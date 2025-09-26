@@ -4230,6 +4230,102 @@ select:not([multiple]) {
 #modal-override #btn-override-apply i {
     color: var(--color-success, #22c55e);
 }
+/* Override modal enhancements */
+#modal-override .override-helper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+#modal-override .override-snippets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 240px;
+}
+#modal-override .ov-snippet {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition:
+        background 120ms ease,
+        border-color 120ms ease;
+}
+#modal-override .ov-snippet:hover,
+#modal-override .ov-snippet:focus-visible {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+    border-color: color-mix(in srgb, var(--color-secondary) 35%, var(--color-border));
+}
+#modal-override .override-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+}
+#modal-override .override-actions .btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    border-radius: 6px;
+}
+#modal-override .override-json {
+    width: 100%;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Menlo, monospace);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.3));
+    border: 1px solid var(--color-border-dark);
+    color: var(--color-text-primary);
+    padding: 12px 14px;
+    border-radius: 10px;
+    resize: vertical;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    outline: none;
+    transition:
+        border-color 120ms ease,
+        box-shadow 120ms ease,
+        background 120ms ease;
+}
+#modal-override .override-json:focus-visible {
+    border-color: color-mix(in srgb, var(--color-secondary) 35%, var(--color-border-dark));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-secondary) 35%, transparent);
+}
+#modal-override .override-json.invalid {
+    border-color: color-mix(in srgb, var(--color-error) 65%, var(--color-border-dark));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-error) 45%, transparent);
+}
+#modal-override .override-json.valid {
+    border-color: color-mix(in srgb, var(--color-success) 55%, var(--color-border-dark));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-success) 35%, transparent);
+}
+#modal-override .override-status {
+    margin-top: 6px;
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
+    font-weight: 500;
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+#modal-override .override-status .icon {
+    font-size: 0.8rem;
+}
+#modal-override .override-status.error {
+    color: color-mix(in srgb, var(--color-error) 80%, var(--color-text-secondary));
+}
+#modal-override .override-status.success {
+    color: color-mix(in srgb, var(--color-success) 80%, var(--color-text-secondary));
+}
+#modal-override .override-status.neutral {
+    color: var(--color-text-muted);
+}
 /* Pairing modal buttons: adopt new flattened neutral surface (matching Cinema/Display buttons) */
 #modal-pairing .modal-footer .btn {
     border: none;

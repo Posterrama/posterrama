@@ -8210,24 +8210,141 @@
                 if (!Array.isArray(ids) || !ids.length) return;
                 const overlay = document.getElementById('modal-override');
                 const textarea = document.getElementById('override-json');
-                if (textarea) textarea.value = '{\n  "wallart": { "duration": 30 }\n}';
+                if (textarea && !textarea.dataset.userEdited) {
+                    textarea.value = '{\n  "wallart": { "duration": 30 }\n}';
+                }
                 overlay?.classList.add('open');
                 const applyBtn = document.getElementById('btn-override-apply');
+                const statusEl = document.getElementById('override-json-status');
+                const formatBtn = document.getElementById('override-format');
+                const clearBtn = document.getElementById('override-clear');
+                const templateBtn = document.getElementById('override-insert-base');
+                const snippetsWrap = document.getElementById('override-snippets');
+
+                function setStatus(state, msg) {
+                    if (!statusEl) return;
+                    statusEl.className = 'override-status ' + state;
+                    let icon = '';
+                    if (state === 'success') icon = '<i class="fas fa-check icon"></i>';
+                    else if (state === 'error')
+                        icon = '<i class="fas fa-exclamation-triangle icon"></i>';
+                    else icon = '<i class="fas fa-info-circle icon"></i>';
+                    statusEl.innerHTML = icon + msg;
+                }
+                function tryParse() {
+                    if (!textarea) return null;
+                    const raw = textarea.value.trim();
+                    if (!raw) {
+                        setStatus('neutral', 'Empty – will clear overrides');
+                        applyBtn && (applyBtn.disabled = false);
+                        textarea.classList.remove('invalid', 'valid');
+                        return {};
+                    }
+                    try {
+                        const obj = JSON.parse(raw);
+                        setStatus(
+                            'success',
+                            'Valid JSON (' +
+                                Object.keys(obj).length +
+                                ' root key' +
+                                (Object.keys(obj).length === 1 ? '' : 's') +
+                                ')'
+                        );
+                        textarea.classList.add('valid');
+                        textarea.classList.remove('invalid');
+                        if (applyBtn) applyBtn.disabled = false;
+                        return obj;
+                    } catch (e) {
+                        setStatus('error', e.message.split('\n')[0]);
+                        textarea.classList.add('invalid');
+                        textarea.classList.remove('valid');
+                        if (applyBtn) applyBtn.disabled = true;
+                        return null;
+                    }
+                }
+                // Initial validation
+                tryParse();
+                if (textarea && !textarea._bound) {
+                    textarea.addEventListener('input', () => {
+                        textarea.dataset.userEdited = '1';
+                        tryParse();
+                    });
+                    textarea._bound = true;
+                }
+                if (formatBtn && !formatBtn._bound) {
+                    formatBtn.addEventListener('click', () => {
+                        const obj = tryParse();
+                        if (obj) {
+                            textarea.value = JSON.stringify(obj, null, 2);
+                            tryParse();
+                        }
+                    });
+                    formatBtn._bound = true;
+                }
+                if (clearBtn && !clearBtn._bound) {
+                    clearBtn.addEventListener('click', () => {
+                        textarea.value = '';
+                        tryParse();
+                    });
+                    clearBtn._bound = true;
+                }
+                if (templateBtn && !templateBtn._bound) {
+                    templateBtn.addEventListener('click', () => {
+                        const template = {
+                            wallart: { duration: 30, shuffle: true },
+                            screensaver: { interval: 120 },
+                            cinema: { ambilight: { strength: 60 } },
+                            display: { orientation: 'auto', theme: 'dark' },
+                        };
+                        textarea.value = JSON.stringify(template, null, 2);
+                        tryParse();
+                    });
+                    templateBtn._bound = true;
+                }
+                if (snippetsWrap && !snippetsWrap._bound) {
+                    snippetsWrap.addEventListener('click', e => {
+                        const btn = e.target.closest('.ov-snippet');
+                        if (!btn) return;
+                        const data = btn.getAttribute('data-override-snippet');
+                        if (!data) return;
+                        let frag;
+                        try {
+                            frag = JSON.parse(data);
+                        } catch (_) {
+                            return;
+                        }
+                        const base = tryParse() || {};
+                        function deepMerge(t, s) {
+                            Object.keys(s).forEach(k => {
+                                if (s[k] && typeof s[k] === 'object' && !Array.isArray(s[k])) {
+                                    if (!t[k] || typeof t[k] !== 'object') t[k] = {};
+                                    deepMerge(t[k], s[k]);
+                                } else {
+                                    t[k] = s[k];
+                                }
+                            });
+                            return t;
+                        }
+                        const merged = deepMerge(JSON.parse(JSON.stringify(base)), frag);
+                        textarea.value = JSON.stringify(merged, null, 2);
+                        tryParse();
+                    });
+                    snippetsWrap._bound = true;
+                }
                 if (applyBtn) {
                     const newBtn = applyBtn.cloneNode(true);
                     applyBtn.parentNode.replaceChild(newBtn, applyBtn);
                     newBtn.addEventListener('click', async () => {
-                        let payload;
-                        try {
-                            payload = JSON.parse(textarea.value || '{}');
-                        } catch (e) {
-                            window.notify?.toast({
+                        const parsed = tryParse();
+                        if (parsed === null) {
+                            window.notify?.toast?.({
                                 type: 'error',
                                 title: 'Invalid JSON',
-                                message: e.message,
+                                message: 'Please fix errors before applying.',
                             });
                             return;
                         }
+                        const payload = parsed || {};
                         let ok = 0,
                             fail = 0;
                         for (const id of ids) {

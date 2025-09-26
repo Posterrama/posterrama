@@ -2274,7 +2274,23 @@
       </div>
       <div class="modal-body">
         <p>Provide a JSON object to override display settings for the selected device(s).</p>
-        <textarea id="override-json" rows="10" style="width:100%;" placeholder="{\n  \"wallart\": { \"duration\": 30 }\n}"></textarea>
+        <div class="override-helper">
+          <div class="override-snippets" id="override-snippets" aria-label="Quick JSON snippets" role="toolbar">
+            <button type="button" class="ov-snippet" data-override-snippet='{"wallart":{"duration":45}}'>wallart.duration</button>
+            <button type="button" class="ov-snippet" data-override-snippet='{"wallart":{"shuffle":true}}'>wallart.shuffle</button>
+            <button type="button" class="ov-snippet" data-override-snippet='{"screensaver":{"interval":120}}'>screensaver.interval</button>
+            <button type="button" class="ov-snippet" data-override-snippet='{"cinema":{"ambilight":{"strength":70}}}'>cinema.ambilight.strength</button>
+            <button type="button" class="ov-snippet" data-override-snippet='{"display":{"orientation":"landscape"}}'>display.orientation</button>
+            <button type="button" class="ov-snippet" data-override-snippet='{"display":{"theme":"dark"}}'>display.theme</button>
+          </div>
+          <div class="override-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="override-format" title="Format JSON"><i class="fas fa-magic"></i> Format</button>
+            <button type="button" class="btn btn-outline btn-sm" id="override-clear" title="Clear JSON"><i class="fas fa-eraser"></i> Clear</button>
+            <button type="button" class="btn btn-outline btn-sm" id="override-insert-base" title="Insert base template"><i class="fas fa-file-code"></i> Template</button>
+          </div>
+        </div>
+        <textarea id="override-json" rows="12" class="override-json" placeholder="{\n  \"wallart\": { \"duration\": 30 }\n}"></textarea>
+        <div id="override-json-status" class="override-status" aria-live="polite"></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" data-close-modal>Cancel</button>
