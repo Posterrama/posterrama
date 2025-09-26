@@ -12156,36 +12156,60 @@
 
         function updateOverviewCards(cfg, env) {
             try {
-                const mediaServers = Array.isArray(cfg?.mediaServers) ? cfg.mediaServers : [];
-                const plex = mediaServers.find(s => s?.type === 'plex') || {};
-                const jf = mediaServers.find(s => s?.type === 'jellyfin') || {};
-                const tmdb = cfg?.tmdbSource || {};
-
-                // Plex
-                try {
-                    const enabled = !!plex.enabled;
-                    const hostVar = plex.hostnameEnvVar || 'PLEX_HOSTNAME';
-                    const portVar = plex.portEnvVar || 'PLEX_PORT';
-                    const tokenVar = plex.tokenEnvVar || 'PLEX_TOKEN';
-                    const host = env[hostVar];
-                    const port = env[portVar];
-                    const tokenVal = env[tokenVar]; // may be boolean true if sensitive
-                    const hasToken = !!tokenVal; // cope with boolean masked value
-                    const configured = !!(host && port && hasToken);
-                    setCardStatus('sc-plex', {
-                        enabled,
-                        configured,
+                // Prefer shared compute module if present (window global or CommonJS loaded earlier), fallback to inline quick calc.
+                let statuses;
+                const compute = window.__adminOverviewCompute?.computeOverviewStatuses;
+                if (typeof compute === 'function') {
+                    statuses = compute(cfg, env);
+                } else {
+                    // Minimal fallback to avoid total duplication (only pill logic) if global missing.
+                    const mediaServers = Array.isArray(cfg?.mediaServers) ? cfg.mediaServers : [];
+                    const plex = mediaServers.find(s => s?.type === 'plex') || {};
+                    const jf = mediaServers.find(s => s?.type === 'jellyfin') || {};
+                    const tmdb = cfg?.tmdbSource || {};
+                    const basic = (enabled, configured) => ({
+                        enabled: !!enabled,
+                        configured: !!configured,
                         pillText: !enabled
                             ? 'Disabled'
                             : configured
                               ? 'Configured'
                               : 'Not configured',
                     });
-                    const libMovie = Array.isArray(plex.movieLibraryNames)
-                        ? plex.movieLibraryNames.length
+                    statuses = {
+                        plex: basic(
+                            plex.enabled,
+                            env[plex.hostnameEnvVar || 'PLEX_HOSTNAME'] &&
+                                env[plex.portEnvVar || 'PLEX_PORT'] &&
+                                env[plex.tokenEnvVar || 'PLEX_TOKEN']
+                        ),
+                        jellyfin: basic(
+                            jf.enabled,
+                            env[jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME'] &&
+                                env[jf.portEnvVar || 'JELLYFIN_PORT'] &&
+                                env[jf.tokenEnvVar || 'JELLYFIN_API_KEY']
+                        ),
+                        tmdb: basic(
+                            tmdb.enabled,
+                            tmdb.apiKey || env[tmdb.apiKeyEnvVar || 'TMDB_API_KEY']
+                        ),
+                    };
+                }
+
+                const { plex = {}, jellyfin = {}, tmdb = {} } = statuses || {};
+
+                // PLEX card + libs
+                try {
+                    setCardStatus('sc-plex', plex);
+                    const plexServer =
+                        (Array.isArray(cfg?.mediaServers) ? cfg.mediaServers : []).find(
+                            s => s?.type === 'plex'
+                        ) || {};
+                    const libMovie = Array.isArray(plexServer.movieLibraryNames)
+                        ? plexServer.movieLibraryNames.length
                         : 0;
-                    const libShow = Array.isArray(plex.showLibraryNames)
-                        ? plex.showLibraryNames.length
+                    const libShow = Array.isArray(plexServer.showLibraryNames)
+                        ? plexServer.showLibraryNames.length
                         : 0;
                     const libsEl = document.getElementById('sc-plex-libs');
                     if (libsEl) {
@@ -12194,45 +12218,31 @@
                         libsEl.title = `Libraries selected: Movies ${libMovie}, Shows ${libShow}`;
                     }
                     const tgl = document.getElementById('sc.plex.enabled');
-                    if (tgl) tgl.checked = enabled;
+                    if (tgl) tgl.checked = !!plex.enabled;
                     wireToggleOnce('sc.plex.enabled', async e => {
                         const el = e.currentTarget;
                         el.disabled = true;
                         const ok = await patchSourceEnabled('plex', !!el.checked);
                         if (!ok) el.checked = !el.checked;
                         el.disabled = false;
-                        // Mirror panel toggle if present
                         const mirror = document.getElementById('plex.enabled');
                         if (mirror) mirror.checked = el.checked;
                         loadMediaSources(true).catch(() => {});
                     });
                 } catch (_) {}
 
-                // Jellyfin
+                // JELLYFIN card + libs
                 try {
-                    const enabled = !!jf.enabled;
-                    const hostVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
-                    const portVar = jf.portEnvVar || 'JELLYFIN_PORT';
-                    const keyVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
-                    const host = env[hostVar];
-                    const port = env[portVar];
-                    const keyVal = env[keyVar];
-                    const hasKey = !!keyVal; // maybe boolean masked
-                    const configured = !!(host && port && hasKey);
-                    setCardStatus('sc-jf', {
-                        enabled,
-                        configured,
-                        pillText: !enabled
-                            ? 'Disabled'
-                            : configured
-                              ? 'Configured'
-                              : 'Not configured',
-                    });
-                    const libMovie = Array.isArray(jf.movieLibraryNames)
-                        ? jf.movieLibraryNames.length
+                    setCardStatus('sc-jf', jellyfin);
+                    const jfServer =
+                        (Array.isArray(cfg?.mediaServers) ? cfg.mediaServers : []).find(
+                            s => s?.type === 'jellyfin'
+                        ) || {};
+                    const libMovie = Array.isArray(jfServer.movieLibraryNames)
+                        ? jfServer.movieLibraryNames.length
                         : 0;
-                    const libShow = Array.isArray(jf.showLibraryNames)
-                        ? jf.showLibraryNames.length
+                    const libShow = Array.isArray(jfServer.showLibraryNames)
+                        ? jfServer.showLibraryNames.length
                         : 0;
                     const libsEl = document.getElementById('sc-jf-libs');
                     if (libsEl) {
@@ -12241,7 +12251,7 @@
                         libsEl.title = `Libraries selected: Movies ${libMovie}, Shows ${libShow}`;
                     }
                     const tgl = document.getElementById('sc.jf.enabled');
-                    if (tgl) tgl.checked = enabled;
+                    if (tgl) tgl.checked = !!jellyfin.enabled;
                     wireToggleOnce('sc.jf.enabled', async e => {
                         const el = e.currentTarget;
                         el.disabled = true;
@@ -12254,27 +12264,18 @@
                     });
                 } catch (_) {}
 
-                // TMDB
+                // TMDB card + category
                 try {
-                    const enabled = !!tmdb.enabled;
-                    const configured = !!tmdb.apiKey;
-                    setCardStatus('sc-tmdb', {
-                        enabled,
-                        configured,
-                        pillText: !enabled
-                            ? 'Disabled'
-                            : configured
-                              ? 'Configured'
-                              : 'Not configured',
-                    });
+                    setCardStatus('sc-tmdb', tmdb);
+                    const tmdbCfg = cfg?.tmdbSource || {};
                     const modeEl = document.getElementById('sc-tmdb-mode');
                     if (modeEl) {
                         const v = modeEl.querySelector('.value');
-                        if (v) v.textContent = `${tmdb.category || 'popular'}`;
-                        modeEl.title = `Category: ${tmdb.category || 'popular'}`;
+                        if (v) v.textContent = `${tmdbCfg.category || 'popular'}`;
+                        modeEl.title = `Category: ${tmdbCfg.category || 'popular'}`;
                     }
                     const tgl = document.getElementById('sc.tmdb.enabled');
-                    if (tgl) tgl.checked = enabled;
+                    if (tgl) tgl.checked = !!tmdb.enabled;
                     wireToggleOnce('sc.tmdb.enabled', async e => {
                         const el = e.currentTarget;
                         el.disabled = true;

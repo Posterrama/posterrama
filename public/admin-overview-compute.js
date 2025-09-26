@@ -22,7 +22,8 @@ function computeSourceStatus({ type, sourceCfg = {}, env = {} }) {
         configured = !!(host && port && keyVal);
     } else if (type === 'tmdb') {
         const apiVar = sourceCfg.apiKeyEnvVar || 'TMDB_API_KEY';
-        const apiKey = env[apiVar];
+        // Allow config object to directly carry apiKey (admin UI may have it masked) falling back to env var.
+        const apiKey = sourceCfg.apiKey || env[apiVar];
         configured = !!apiKey;
     }
     return {

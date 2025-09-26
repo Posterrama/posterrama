@@ -31,6 +31,18 @@ describe('admin-overview-compute', () => {
         expect(out).toMatchObject({ enabled: false, configured: true, pillText: 'Disabled' });
     });
 
+    test('handles malformed mediaServers entries gracefully', () => {
+        const cfg = {
+            mediaServers: [null, undefined, 42, { foo: 'bar' }, { type: 'plex', enabled: true }],
+        };
+        const env = { PLEX_HOSTNAME: 'h', PLEX_PORT: '32400', PLEX_TOKEN: 't' };
+        const r = computeOverviewStatuses(cfg, env);
+        expect(r.plex.enabled).toBe(true);
+        expect(r.plex.configured).toBe(true);
+        expect(r.jellyfin.enabled).toBe(false); // not present
+        expect(r.tmdb.enabled).toBe(false); // no tmdbSource
+    });
+
     test('computeOverviewStatuses aggregate', () => {
         const cfg = {
             mediaServers: [
