@@ -138,4 +138,12 @@ function deviceBypassMiddleware(req, _res, next) {
     next();
 }
 
-module.exports = { deviceBypassMiddleware };
+// Test helper to inject allow list directly (avoids filesystem dependency in unit tests)
+function __testSetAllowList(list) {
+    if (!Array.isArray(list)) list = [];
+    matchers = list.map(buildMatcher);
+    deviceBypassLog.clear();
+    lastLoad = Date.now();
+}
+
+module.exports = { deviceBypassMiddleware, __testSetAllowList };
