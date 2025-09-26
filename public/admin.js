@@ -6399,7 +6399,7 @@
                 const segs = [
                     // 'device-ui' is now an inline content container inside the main device management panel
                     { id: 'seg-devices', val: 'devices', panel: 'device-ui' },
-                    { id: 'seg-dev-settings', val: 'settings', panel: 'panel-device-settings' },
+                    { id: 'seg-dev-settings', val: 'settings', panel: 'device-settings-inline' },
                 ];
                 const setActive = val => {
                     segs.forEach(s => {

@@ -1473,7 +1473,7 @@
                   <input type="radio" name="devices.active" value="devices" />
                   <i class="fas fa-desktop"></i> Devices
                 </label>
-                <label class="seg" id="seg-dev-settings" role="tab" aria-controls="panel-device-settings" aria-checked="false">
+                <label class="seg" id="seg-dev-settings" role="tab" aria-controls="device-settings-inline" aria-checked="false">
                   <input type="radio" name="devices.active" value="settings" />
                   <i class="fas fa-sliders-h"></i> Settings
                 </label>
@@ -1520,11 +1520,9 @@
           </div>
         </div>
       </div>
-      <!-- Settings subpanel (moved under Devices section) -->
-      <section class="panel" id="panel-device-settings" hidden>
-        <div class="panel-content">
-          <!-- Removed Settings heading/subtitle at user request -->
-          <!-- IP Whitelist Section -->
+      <!-- Inline Settings content (previously separate panel) -->
+      <div id="device-settings-inline" hidden>
+          <!-- IP Whitelist Section (moved inline) -->
           <div class="form-section" id="card-ip-whitelist">
             <div class="section-title"><i class="fas fa-shield-halved"></i> IP Whitelist</div>
             <div class="section-subtitle">Clients matching these IPv4 addresses or CIDR ranges will skip device registration and use global Display Settings. Useful for trusted kiosk displays.</div>
@@ -1578,8 +1576,7 @@
             <div class="section-title"><i class="fas fa-gears"></i> Additional Settings</div>
             <div class="section-subtitle">Future options will appear here such as pairing policies, heartbeat intervals, offline grace periods, API throttling and more.</div>
           </div>
-        </div>
-      </section>
+      </div>
     </section>
 
     <!-- Operations Section (top-level sibling) -->
