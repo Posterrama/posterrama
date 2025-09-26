@@ -6429,6 +6429,15 @@ body.page-logs {
 .btn.btn-loading i {
     display: none;
 }
+.btn.btn-loading > span:not(.spinner) {
+    opacity: 0;
+}
+/* Auth context: keep smaller spinner sizing when inside auth container */
+.auth-container .btn .spinner {
+    width: 14px;
+    height: 14px;
+    margin-right: 6px;
+}
 /* Prevent header shift when icon buttons show spinner */
 .panel-actions .btn.btn-icon.btn-sm {
     width: 32px;
@@ -11853,6 +11862,53 @@ select:focus-visible {
 #section-operations .btn.btn-primary.btn-sm .fas,
 #section-operations .btn.btn-primary.btn-sm > span:not(.spinner) {
     color: color-mix(in srgb, var(--color-primary) 85%, var(--color-text-secondary));
+}
+/* =============================================================== */
+/* Auth pages button restyle (reuse operations surface aesthetic)  */
+/* =============================================================== */
+.auth-container .btn.auth-btn-primary {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    font-weight: 500;
+}
+.auth-container .btn.auth-btn-primary i,
+.auth-container .btn.auth-btn-primary .fas,
+.auth-container .btn.auth-btn-primary > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-primary) 85%, var(--color-text-secondary));
+}
+.auth-container .btn.auth-btn-primary:hover:not(:disabled),
+.auth-container .btn.auth-btn-primary:focus-visible:not(:disabled) {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.1) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.38),
+        0 -1px 0 0 rgba(0, 0, 0, 0.38) inset,
+        0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+.auth-container .btn.auth-btn-primary:active:not(:disabled) {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+.auth-container .btn.auth-btn-primary.btn-loading > span:not(.spinner),
+.auth-container .btn.auth-btn-primary.btn-loading i {
+    opacity: 0;
 }
 #section-operations .btn.btn-success.btn-sm i,
 #section-operations .btn.btn-success.btn-sm .fas,

@@ -47,7 +47,8 @@
             .error-message.show { display: block !important; }
             .helper { text-align:center; color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0 0 1rem 0; }
             .auth-actions { display:flex; justify-content:center; margin-top: 1rem; }
-            .auth-footer { display:flex; gap:12px; align-items:center; justify-content:center; }
+            .auth-footer { display:flex; gap:12px; align-items:center; justify-content:center; margin-top:1rem; }
+            /* Spinner + loading state styles centralized in admin.css */
         </style>
     </head>
     <body>
@@ -84,8 +85,9 @@
                         </div>
 
                         <div class="auth-actions">
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="fas fa-key"></i>
+                            <button type="submit" id="verifyBtn" class="btn auth-btn-primary btn-sm">
+                                <span class="spinner" aria-hidden="true"></span>
+                                <i class="fas fa-key" aria-hidden="true"></i>
                                 <span>Verify</span>
                             </button>
                         </div>
@@ -93,7 +95,7 @@
                 </div>
             </div>
             <div class="auth-footer">
-                <a href="/admin/login" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i><span>Back to Login</span></a>
+                <a href="/admin/login" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Back to Login</span></a>
             </div>
         </div>
         <script>
@@ -112,6 +114,16 @@
                         codeInput.focus();
                     }
                 }
+                const form = document.querySelector('form');
+                const verifyBtn = document.getElementById('verifyBtn');
+                form?.addEventListener('submit', () => {
+                    if (!verifyBtn) return;
+                    verifyBtn.classList.add('btn-loading');
+                    verifyBtn.disabled = true;
+                    verifyBtn.setAttribute('data-original-label', verifyBtn.querySelector('span:last-child')?.textContent || 'Verify');
+                    const labelSpan = verifyBtn.querySelector('span:last-child');
+                    if (labelSpan) labelSpan.textContent = 'Verifying...';
+                });
             });
         </script>
     </body>
