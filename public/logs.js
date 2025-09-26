@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let lastLogCount = 0;
     // Track scroll state within checkScroll(); initialized true
-    let isScrolledToBottom = true;
+    let _isScrolledToBottom = true; // renamed to silence unused var (logic simplified later)
     let isPaused = false;
     let currentLogs = [];
     let selectedLevel = logLevelSelect.value;
@@ -73,9 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
         error: 4, // Errors only
     }; // Function to check if the user is scrolled to the bottom of the log container
     function checkScroll() {
+        // Scroll tracking kept for potential future auto-scroll logic
         const container = logOutput.parentElement;
-        // A small tolerance (e.g., 5px) can help on some browsers
-        isScrolledToBottom =
+        _isScrolledToBottom =
             container.scrollHeight - container.scrollTop - container.clientHeight < 5;
     }
 
@@ -214,14 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return logEntry;
     }
 
-    function shouldShowLog(log) {
-        const levelMatch = logLevels[log.level.toLowerCase()] >= logLevels[selectedLevel];
-        const textMatch =
-            searchText === '' ||
-            log.message.toLowerCase().includes(searchText) ||
-            log.level.toLowerCase().includes(searchText);
-        return levelMatch && textMatch;
-    }
+    // Removed unused shouldShowLog; server already filters by level and client re-filters text inline
 
     function renderLogs(logs) {
         // Since server-side filtering is applied, we only need to apply search filter

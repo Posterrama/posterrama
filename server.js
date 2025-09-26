@@ -2403,7 +2403,7 @@ const {
 } = require('./middleware/validation');
 
 // Protect logs.html from public access - require authentication
-app.get('/logs.html', isAuthenticated, (req, res, next) => {
+app.get('/logs.html', isAuthenticated, (req, res, _next) => {
     // Redirect to admin/logs route instead
     res.redirect('/admin/logs');
 });
@@ -4456,7 +4456,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         return null;
     };
 
-    const getRottenTomatoesData = (ratings, titleForDebug = 'Unknown') => {
+    const getRottenTomatoesData = (ratings, _titleForDebug = 'Unknown') => {
         if (!ratings || !Array.isArray(ratings)) {
             return null;
         }

@@ -41,7 +41,9 @@
                 'cinemaWorkingState',
                 JSON.stringify(window.__cinemaWorkingState || {})
             );
-        } catch (_) {}
+        } catch (_) {
+            // swallow manage modal wiring errors (non-critical UI enhancement)
+        }
     }
 
     // Helper: populate a simple <select> with plain options (no separators/specials)
@@ -277,7 +279,7 @@
                 if (existing) existing.checked = !!h.enabled;
             }
         } catch (_) {
-            /* ignore */
+            // header toggle mount failure ignored (card not present yet)
         }
 
         const rowText = el('div', { class: 'form-row cin-col' }, [
@@ -397,7 +399,7 @@
                 if (existing) existing.checked = !!f.enabled;
             }
         } catch (_) {
-            /* ignore */
+            // footer toggle mount failure ignored
         }
 
         // Controls row: Footer type (left) + contextual Style (right)
@@ -796,7 +798,9 @@
                     }
                     try {
                         window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                    } catch (e) {}
+                    } catch (e) {
+                        // preset apply side-effect refresh failed (non-fatal)
+                    }
                 };
                 slot.addEventListener('click', e => {
                     const btn = e.target.closest('button[data-cin-preset]');

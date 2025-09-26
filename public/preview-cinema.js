@@ -95,7 +95,7 @@
             );
             setAmbilight(c.ambilight?.enabled !== false, c.ambilight?.strength ?? 60);
         } catch (e) {
-            /* no-op */
+            // ignore overlay application errors (preview resilience)
         }
     }
     // On load: if preview sends payload, we listen via script.js->applySettings; else poll initial config
@@ -105,14 +105,18 @@
             if (ev.data && ev.data.type === 'posterrama.preview.update' && ev.data.payload) {
                 applyCinemaOverlays(ev.data.payload);
             }
-        } catch (_) {}
+        } catch (_) {
+            // ignore malformed post message
+        }
     });
     // Also patch into window.applySettings if it exists (for initial boot via preview)
     const prevApply = window.applySettings;
     window.applySettings = function (cfg) {
         try {
             applyCinemaOverlays(cfg);
-        } catch (_) {}
+        } catch (_) {
+            // ignore applySettings overlay error
+        }
         if (typeof prevApply === 'function') return prevApply.apply(this, arguments);
     };
 })();
