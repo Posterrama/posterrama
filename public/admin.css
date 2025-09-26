@@ -1,128 +1,128 @@
 #modal-override .override-layout {
     position: relative;
-}
-#modal-override .override-row {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
-}
-.mode-segment {
-    display: inline-flex;
-    background: var(--color-bg-tertiary);
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-    padding: 4px;
-    gap: 4px;
-    position: relative;
-}
-.mode-segment .seg-btn {
-    background: transparent;
-    border: 1px solid transparent;
-    color: var(--color-text-secondary);
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    position: relative;
-    transition:
-        background 0.15s,
-        var(--anim-duration-fast);
-}
-.mode-segment .seg-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--color-text-primary);
-}
-.mode-segment .seg-btn[aria-checked='true'] {
-    background: linear-gradient(180deg, var(--color-bg-card), var(--color-bg-secondary));
-    color: var(--color-text-primary);
-    box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.4),
-        0 1px 2px rgba(0, 0, 0, 0.4) inset;
-}
-.mode-segment .seg-btn:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
-}
-.mode-segment .mode-badge {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-}
-.mode-quick-group {
-    display: flex;
-    gap: 0.35rem;
-    margin-right: 0.25rem;
-}
-.mode-quick-group .btn.qm {
-    padding: 2px 6px;
-    font-size: 0.65rem;
-    letter-spacing: 0.5px;
-    font-weight: 600;
-    border-radius: 6px;
-    box-shadow: var(--btn-shadow);
-}
-.mode-badge {
-    background: linear-gradient(90deg, #ff9800, #ffb74d);
-    color: #222;
-    font-size: 0.6rem;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 10px;
-    margin-left: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.2),
-        0 1px 2px rgba(0, 0, 0, 0.3);
+    /* Migrated to accent system: supply only variables */
+    --accent-color: var(--color-accent);
 }
 
-.override-conflicts {
-    margin-top: 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    background: var(--panel-bg, rgba(255, 255, 255, 0.05));
-    padding: 0.5rem 0.6rem 0.6rem;
+/* ============================================= */
+/* Shared Accent Button Base (pilot introduction) */
+/* ============================================= */
+.btn-accent {
+    position: relative;
+    --_accent-color: var(--accent-color, var(--color-accent));
+    --_accent-color-rgb: var(--accent-color-rgb, var(--color-accent-rgb, 90 195 255));
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--surface-layer-2) 88%, transparent),
+        color-mix(in srgb, var(--surface-layer-3) 92%, transparent)
+    );
+    color: var(--_accent-color) !important;
+    border: 1px solid color-mix(in srgb, var(--_accent-color) 35%, transparent);
     box-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.15) inset,
-        0 2px 4px rgba(0, 0, 0, 0.1);
-}
-.override-conflicts .conflicts-header {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-.override-conflicts #conflict-count {
-    background: #d32f2f;
-    color: #fff;
-    padding: 0 6px;
-    border-radius: 12px;
-    font-size: 0.65rem;
-    margin-left: 0.35rem;
-}
-.conflicts-body {
-    margin-top: 0.5rem;
-    max-height: 200px;
-    overflow: auto;
-    border-top: 1px solid var(--border-color);
-    padding-top: 0.5rem;
-}
-.conflict-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-}
-.conflict-item {
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
-    padding: 0.4rem 0.5rem;
-    font-family: var(--mono, monospace);
+        0 1px 0 0 rgba(var(--_accent-color-rgb) / 0.4),
+        0 0 0 1px rgba(var(--_accent-color-rgb) / 0.14) inset,
+        0 1px 2px 0 rgba(var(--_accent-color-rgb) / 0.22) inset,
+        0 0 0 4px rgba(var(--_accent-color-rgb) / 0.05),
+        0 0 0 8px rgba(var(--_accent-color-rgb) / 0.04),
+        0 0 0 12px rgba(var(--_accent-color-rgb) / 0.02);
+    text-shadow:
+        0 0 12px rgba(var(--_accent-color-rgb) / 0.55),
+        0 0 4px rgba(var(--_accent-color-rgb) / 0.75),
+        0 0 2px rgba(var(--_accent-color-rgb) / 0.95);
+    transition:
+        background 0.25s var(--ease-out),
+        box-shadow 0.25s var(--ease-out),
+        transform 0.3s var(--ease-out),
+        color 0.25s var(--ease-out);
+    #modal-override .override-layout {
+        position: relative;
+    }
+
+    /* ============================================= */
+    /* Shared Accent Button Base (pilot introduction) */
+    /* ============================================= */
+    .btn-accent {
+        position: relative;
+        --_accent-color: var(--accent-color, var(--color-accent));
+        --_accent-color-rgb: var(--accent-color-rgb, var(--color-accent-rgb, 90 195 255));
+        background: linear-gradient(
+            145deg,
+            color-mix(in srgb, var(--surface-layer-2) 88%, transparent),
+            color-mix(in srgb, var(--surface-layer-3) 92%, transparent)
+        );
+        color: var(--_accent-color) !important;
+        border: 1px solid color-mix(in srgb, var(--_accent-color) 35%, transparent);
+        box-shadow:
+            0 1px 0 0 rgba(var(--_accent-color-rgb) / 0.4),
+            0 0 0 1px rgba(var(--_accent-color-rgb) / 0.14) inset,
+            0 1px 2px 0 rgba(var(--_accent-color-rgb) / 0.22) inset,
+            0 0 0 4px rgba(var(--_accent-color-rgb) / 0.05),
+            0 0 0 8px rgba(var(--_accent-color-rgb) / 0.04),
+            0 0 0 12px rgba(var(--_accent-color-rgb) / 0.02);
+        text-shadow:
+            0 0 12px rgba(var(--_accent-color-rgb) / 0.55),
+            0 0 4px rgba(var(--_accent-color-rgb) / 0.75),
+            0 0 2px rgba(var(--_accent-color-rgb) / 0.95);
+        transition:
+            background 0.25s var(--ease-out),
+            box-shadow 0.25s var(--ease-out),
+            transform 0.3s var(--ease-out),
+            color 0.25s var(--ease-out);
+        min-height: 34px;
+        padding: 0.55rem 0.95rem 0.55rem 0.8rem;
+        gap: 0.5rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+    }
+    .btn-accent i,
+    .btn-accent > span:not(.spinner) {
+        color: color-mix(in srgb, var(--_accent-color) 84%, white 7%);
+        filter: drop-shadow(0 0 2px rgba(var(--_accent-color-rgb) / 0.85))
+            drop-shadow(0 0 3px rgba(var(--_accent-color-rgb) / 0.75));
+    }
+    .btn-accent:hover,
+    .btn-accent:focus,
+    .btn-accent:focus-visible {
+        background: linear-gradient(
+            145deg,
+            color-mix(in srgb, var(--surface-layer-2) 86%, transparent),
+            color-mix(in srgb, var(--surface-layer-3) 90%, transparent)
+        );
+        box-shadow:
+            0 1px 0 0 rgba(var(--_accent-color-rgb) / 0.45),
+            0 0 0 1px rgba(var(--_accent-color-rgb) / 0.15) inset,
+            0 1px 2px 0 rgba(var(--_accent-color-rgb) / 0.28) inset,
+            0 0 0 4px rgba(var(--_accent-color-rgb) / 0.07),
+            0 0 0 8px rgba(var(--_accent-color-rgb) / 0.06),
+            0 0 0 12px rgba(var(--_accent-color-rgb) / 0.04),
+            0 0 6px 2px rgba(var(--_accent-color-rgb) / 0.25),
+            0 0 26px 6px rgba(var(--_accent-color-rgb) / 0.16);
+        transform: translateY(-1px);
+    }
+    .btn-accent:active {
+        background: linear-gradient(
+            145deg,
+            color-mix(in srgb, var(--surface-layer-2) 75%, transparent),
+            color-mix(in srgb, var(--surface-layer-3) 86%, transparent)
+        );
+        box-shadow:
+            0 1px 0 0 rgba(var(--_accent-color-rgb) / 0.35),
+            0 0 0 1px rgba(var(--_accent-color-rgb) / 0.15) inset,
+            0 1px 3px 0 rgba(var(--_accent-color-rgb) / 0.28) inset,
+            0 0 0 2px rgba(var(--_accent-color-rgb) / 0.07),
+            0 0 0 6px rgba(var(--_accent-color-rgb) / 0.06),
+            0 0 0 10px rgba(var(--_accent-color-rgb) / 0.04),
+            0 0 4px 1px rgba(var(--_accent-color-rgb) / 0.18),
+            0 0 16px 4px rgba(var(--_accent-color-rgb) / 0.12),
+            0 0 0 1px rgba(var(--_accent-color-rgb) / 0.45) inset,
+            0 2px 4px -1px rgba(var(--_accent-color-rgb) / 0.3);
+        transform: translateY(0);
+    }
+    .btn-accent:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--_accent-color) 65%, transparent);
+        outline-offset: 2px;
+    }
     font-size: 0.7rem;
     position: relative;
 }
@@ -737,49 +737,7 @@ body.dark .pill-cinema {
 }
 
 #modal-update .btn-update-accent {
-    border: none !important;
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
-    box-shadow:
-        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
-        0 0 0 1px rgba(0, 0, 0, 0.35),
-        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
-        0 1px 1px rgba(0, 0, 0, 0.25) !important;
-    color: color-mix(in srgb, var(--color-accent) 82%, var(--color-text-secondary)) !important;
-    padding: var(--space-sm) var(--space-md) !important;
-    font-size: var(--font-size-sm) !important;
-    border-radius: 4px !important;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-sm);
-    transition: all 0.2s ease;
-}
-#modal-update .btn-update-accent i,
-#modal-update .btn-update-accent > span:not(.spinner) {
-    color: inherit !important;
-}
-#modal-update .btn-update-accent:hover,
-#modal-update .btn-update-accent:focus,
-#modal-update .btn-update-accent:focus-visible {
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
-        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
-    color: color-mix(in srgb, var(--color-accent) 90%, var(--color-text-secondary)) !important;
-}
-#modal-update .btn-update-accent:active {
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
-        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
-    color: color-mix(in srgb, var(--color-accent-dark) 88%, var(--color-text-secondary)) !important;
-    box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
-        0 1px 0 0 rgba(255, 255, 255, 0.05),
-        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
-}
-#modal-update .btn-update-accent:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
-    outline-offset: 2px;
+    --accent-color: var(--color-accent);
 }
 #modal-group-assign .btn-cancel {
     border: none !important;
