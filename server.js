@@ -13155,19 +13155,7 @@ function broadcastAdminEvent(event, payload) {
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id: { type: string }
- *                   createdAt: { type: string, format: date-time }
- *                   files:
- *                     type: array
- *                     items:
- *                       type: object
- *                       properties:
- *                         name: { type: string }
- *                         size: { type: integer }
+ *               $ref: '#/components/schemas/BackupListResponse'
  */
 app.get('/api/admin/config-backups', isAuthenticated, async (req, res) => {
     try {
@@ -13194,17 +13182,7 @@ app.get('/api/admin/config-backups', isAuthenticated, async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 id: { type: string }
- *                 createdAt: { type: string, format: date-time }
- *                 files:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       name: { type: string }
- *                       size: { type: integer }
+ *               $ref: '#/components/schemas/BackupCreateResponse'
  */
 app.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
     try {
