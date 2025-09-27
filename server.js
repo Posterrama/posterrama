@@ -13269,9 +13269,7 @@ app.post('/api/admin/config-backups/cleanup', isAuthenticated, async (req, res) 
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 ok: { type: boolean }
+ *               $ref: '#/components/schemas/BackupRestoreResponse'
  *       400:
  *         description: Invalid request or restore failed
  */
