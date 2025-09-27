@@ -1091,6 +1091,22 @@ const adminFilterPreviewCache = new Map(); // key -> { ts, value }
 
 /**
  * @swagger
+ * /api/_internal/health-debug:
+ *   get:
+ *     summary: Internal health debug info
+ *     description: Returns lightweight diagnostic info for internal tooling (excluded from public spec).
+ *     x-internal: true
+ *     tags: ['Testing']
+ *     responses:
+ *       200:
+ *         description: Internal diagnostic info
+ */
+app.get('/api/_internal/health-debug', (req, res) => {
+    res.json({ ok: true, ts: Date.now(), pid: process.pid });
+});
+
+/**
+ * @swagger
  * /api/v1/admin/config/validate:
  *   post:
  *     summary: Validate configuration data
