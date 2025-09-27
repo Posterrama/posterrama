@@ -1123,5 +1123,7 @@ function generateSwaggerSpec() {
     return spec;
 }
 
-// Generate and export swagger spec
-module.exports = generateSwaggerSpec();
+// Export both the generator function and the current spec (for existing consumers)
+const swaggerSpec = generateSwaggerSpec();
+module.exports = swaggerSpec;
+module.exports.generate = generateSwaggerSpec;
