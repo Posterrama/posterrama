@@ -1,5 +1,9 @@
-// Allow relaxed thresholds for focused runs (e.g., --runTestsByPath) to not fail CI locally
-const focusedRun = process.argv.some(a => /runTestsByPath|--testPathPattern/.test(a));
+// Allow relaxed thresholds for focused runs (e.g., --runTestsByPath or direct file path args) to not fail CI locally
+// Original heuristic only caught explicit flags; add detection for direct test file arguments.
+const focusedRun =
+    process.argv.some(a => /runTestsByPath|--testPathPattern/.test(a)) ||
+    // Direct invocation like: jest path/to/file.spec.js or file.test.js
+    process.argv.some(a => /(\.|\/)(spec|test)\.js$/.test(a));
 
 module.exports = {
     // Use the Node.js environment for the tests

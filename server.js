@@ -1143,6 +1143,47 @@ app.get('/api/_internal/health-debug', (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/StandardErrorResponse'
  */
+/**
+ * @swagger
+ * /api/admin/filter-preview:
+ *   post:
+ *     summary: Preview filter results for admin configuration
+ *     description: Admin-only. Generates a preview of media results given filter criteria without caching them.
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: Filter criteria object
+ *     responses:
+ *       200:
+ *         description: Preview results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 cached:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 sample:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 warnings:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       400:
+ *         description: Validation/timeout error
+ */
 app.post(
     '/api/admin/filter-preview',
     isAuthenticated,
@@ -3041,6 +3082,26 @@ if (isDeviceMgmtEnabled()) {
     });
 
     // Public: device bypass probe (must be defined BEFORE /api/devices/:id param route)
+    /**
+     * @swagger
+     * /api/devices/bypass-check:
+     *   get:
+     *     summary: Probe device bypass status
+     *     description: Public endpoint. Returns whether the requesting IP/device is bypass-authorized.
+     *     tags: ['Devices']
+     *     responses:
+     *       200:
+     *         description: Bypass status payload
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 bypass:
+     *                   type: boolean
+     *                 ip:
+     *                   type: string
+     */
     app.get('/api/devices/bypass-check', (req, res) => {
         res.json({ bypass: !!req.deviceBypass, ip: req.ip });
     });
@@ -6448,6 +6509,14 @@ app.get(
     })
 );
 
+// Backward-compatible alias for /api/health (documented in swagger but previously missing implementation)
+app.get('/api/health', (req, res, next) => {
+    // Re-use existing /health handler logic by forwarding internally
+    req.url = '/health' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
+    req.originalUrl = '/health';
+    app._router.handle(req, res, next);
+});
+
 /**
  * @swagger
  * /api/admin/restart-app:
@@ -8249,6 +8318,41 @@ function isSourceTypeEnabled(sourceType) {
 }
 
 // Get available ratings for dropdown filters
+/**
+ * @swagger
+ * /api/sources/{sourceType}/ratings:
+ *   get:
+ *     summary: Get available ratings for a source
+ *     description: Returns the list of distinct ratings for the given source type. Disabled sources return an empty list.
+ *     tags: ['Filters']
+ *     parameters:
+ *       - in: path
+ *         name: sourceType
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Source type (e.g. jellyfin, plex, tmdb)
+ *     responses:
+ *       200:
+ *         description: Ratings list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 cached:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ */
 app.get(
     '/api/sources/:sourceType/ratings',
     asyncHandler(async (req, res) => {
@@ -8289,6 +8393,43 @@ app.get(
 );
 
 // Get available ratings with counts for dropdown filters
+/**
+ * @swagger
+ * /api/sources/{sourceType}/ratings-with-counts:
+ *   get:
+ *     summary: Get available ratings with counts for a source
+ *     description: Returns ratings along with occurrence counts for the given enabled source type.
+ *     tags: ['Filters']
+ *     parameters:
+ *       - in: path
+ *         name: sourceType
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Ratings list with counts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       rating:
+ *                         type: string
+ *                       count:
+ *                         type: integer
+ *                 count:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ */
 app.get(
     '/api/sources/:sourceType/ratings-with-counts',
     asyncHandler(async (req, res) => {
@@ -8329,6 +8470,28 @@ app.get(
 );
 
 // Rating cache management endpoints
+/**
+ * @swagger
+ * /api/admin/rating-cache/stats:
+ *   get:
+ *     summary: Get rating cache statistics
+ *     description: Admin-only. Returns cache hit/miss and size metrics for rating caches.
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Cache statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ */
 app.get(
     '/api/admin/rating-cache/stats',
     isAuthenticated,
@@ -8341,6 +8504,40 @@ app.get(
     })
 );
 
+/**
+ * @swagger
+ * /api/admin/rating-cache/{sourceType}/refresh:
+ *   post:
+ *     summary: Refresh rating cache for a source
+ *     description: Admin-only. Invalidates and rebuilds the rating cache for the given source type.
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sourceType
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Cache refreshed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 count:
+ *                   type: integer
+ */
 app.post(
     '/api/admin/rating-cache/:sourceType/refresh',
     isAuthenticated,
@@ -8755,6 +8952,25 @@ app.get(
 );
 
 // Back-compat/admin-prefixed alias so proxies that gate admin endpoints under /api/admin continue to work
+/**
+ * @swagger
+ * /api/admin/config/schema:
+ *   get:
+ *     summary: Retrieve configuration JSON schema (admin alias)
+ *     description: Alias of /api/config/schema for environments routing admin traffic under /api/admin.
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: The JSON schema document
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       401:
+ *         description: Unauthorized.
+ */
 app.get(
     '/api/admin/config/schema',
     isAuthenticated,
