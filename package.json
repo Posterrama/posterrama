@@ -56,7 +56,8 @@
         "push:force": "bash private/release-push.sh --no-tag --yes --force",
         "release:patch": "bash private/release-push.sh --patch --yes",
         "release:minor": "bash private/release-push.sh --minor --yes",
-        "release:major": "bash private/release-push.sh --major --yes"
+        "release:major": "bash private/release-push.sh --major --yes",
+        "openapi:export": "node scripts/export-openapi.js"
     },
     "dependencies": {
         "adm-zip": "^0.5.16",
