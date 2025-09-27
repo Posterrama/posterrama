@@ -13320,10 +13320,7 @@ app.post('/api/admin/config-backups/restore', isAuthenticated, async (req, res) 
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 ok: { type: boolean }
- *                 id: { type: string }
+ *               $ref: '#/components/schemas/BackupDeleteResponse'
  *       400:
  *         description: Invalid ID or deletion failed
  */
