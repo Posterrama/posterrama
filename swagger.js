@@ -221,6 +221,31 @@ function generateSwaggerSpec() {
                             message: { type: 'string' },
                         },
                     },
+                    StandardErrorResponse: {
+                        type: 'object',
+                        properties: {
+                            error: { type: 'string', description: 'Error message' },
+                            code: { type: 'string', description: 'Optional machine-readable code' },
+                        },
+                    },
+                    PaginatedMediaResponse: {
+                        type: 'object',
+                        description: 'Generic paginated media list wrapper',
+                        properties: {
+                            ok: { type: 'boolean' },
+                            total: {
+                                type: 'integer',
+                                description: 'Total items available (may be capped)',
+                            },
+                            page: { type: 'integer', description: 'Current page index (1-based)' },
+                            pageSize: { type: 'integer', description: 'Requested page size' },
+                            items: {
+                                type: 'array',
+                                description: 'Media items (shape depends on source aggregation)',
+                                items: { type: 'object' },
+                            },
+                        },
+                    },
                     // TODO(new-source): If your new source exposes new request/response shapes
                     // add minimal schemas here and reference them from JSDoc blocks in server.js.
                     // --- Device Management ---

@@ -1122,6 +1122,10 @@ const adminFilterPreviewCache = new Map(); // key -> { ts, value }
  *                   description: Sanitized configuration data
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardErrorResponse'
  */
 app.post(
     '/api/admin/filter-preview',
