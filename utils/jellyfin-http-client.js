@@ -64,21 +64,18 @@ class JellyfinHttpClient {
         // Opt-in flag specifically for retry attempt logging (very noisy)
         this.__retryLogEnabled = process.env.JELLYFIN_RETRY_LOGS === 'true';
         if (jfDebug) {
-            // Minimal debug to aid field diagnostics (no secrets)
-            // eslint-disable-next-line no-console
-            console.debug(
-                `[JellyfinHttpClient] baseUrl=${this.baseUrl}, insecure=${this.insecure}`
-            );
+            const logger = require('./logger');
+            logger.debug(`[JellyfinHttpClient] baseUrl=${this.baseUrl}, insecure=${this.insecure}`);
         }
 
         // Simple throttled warning tracker to avoid log spam per-key
         this.__lastWarnAt = new Map();
         this.__warnIntervalMs = 60_000; // default 60s throttle window
 
+        const logger = require('./logger');
         this.debug = (...args) => {
             if (this.__jfDebug) {
-                // eslint-disable-next-line no-console
-                console.debug(...args);
+                logger.debug(...args);
             }
         };
 
@@ -127,18 +124,15 @@ class JellyfinHttpClient {
                         ? `${val.slice(0, 3)}…${val.slice(-2)}`
                         : '[redacted]';
                 const hdrKeys = Object.keys(config.headers || {});
-                // eslint-disable-next-line no-console
-                console.debug(
+                logger.debug(
                     `[JellyfinHttpClient] Request: ${String(config.method || 'GET').toUpperCase()} ${config.url}`
                 );
-                // eslint-disable-next-line no-console
-                console.debug('[JellyfinHttpClient] Header keys:', hdrKeys);
+                logger.debug('[JellyfinHttpClient] Header keys:', hdrKeys);
                 if (
                     config.headers &&
                     (config.headers['X-Emby-Token'] || config.headers['X-MediaBrowser-Token'])
                 ) {
-                    // eslint-disable-next-line no-console
-                    console.debug(
+                    logger.debug(
                         '[JellyfinHttpClient] Token (masked):',
                         masked(
                             config.headers['X-Emby-Token'] || config.headers['X-MediaBrowser-Token']
@@ -164,8 +158,7 @@ class JellyfinHttpClient {
             if (this.__jfDebug) {
                 const paramsSafe = { ...(config.params || {}) };
                 if ('api_key' in paramsSafe) paramsSafe.api_key = '[redacted]';
-                // eslint-disable-next-line no-console
-                console.debug('[JellyfinHttpClient] Params:', paramsSafe);
+                logger.debug('[JellyfinHttpClient] Params:', paramsSafe);
             }
             return config;
         });
@@ -232,16 +225,16 @@ class JellyfinHttpClient {
             //    Use /Users which requires a valid token and lists users the token can access
             try {
                 if (this.__jfDebug) {
-                    // eslint-disable-next-line no-console
-                    console.debug(
-                        `[JellyfinHttpClient] Testing auth with /Users, apiKey length: ${this.apiKey ? this.apiKey.length : 0}`
+                    logger.debug(
+                        `[JellyfinHttpClient] Testing auth with /Users, apiKey length: ${
+                            this.apiKey ? this.apiKey.length : 0
+                        }`
                     );
                 }
                 await this.http.get('/Users');
             } catch (e) {
                 if (this.__jfDebug) {
-                    // eslint-disable-next-line no-console
-                    console.debug(
+                    logger.debug(
                         `[JellyfinHttpClient] /Users failed:`,
                         e.response?.status,
                         e.message
@@ -251,10 +244,7 @@ class JellyfinHttpClient {
                     // Some reverse proxies can strip X-Emby-Token headers; try query-param fallback
                     try {
                         if (this.__jfDebug) {
-                            // eslint-disable-next-line no-console
-                            console.debug(
-                                `[JellyfinHttpClient] Retrying with query param fallback`
-                            );
+                            logger.debug(`[JellyfinHttpClient] Retrying with query param fallback`);
                         }
                         await this.http.get(`/Users?api_key=${encodeURIComponent(this.apiKey)}`);
                     } catch (e2) {

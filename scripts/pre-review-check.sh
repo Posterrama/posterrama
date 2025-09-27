@@ -92,10 +92,48 @@ echo ""
 
 echo -e "${BLUE}🔒 Security Checks${NC}"
 run_check "Security audit clean" "npm run deps:security-audit" true
-check_content "No console.log in production (warning)" "console\\.log" "server.js sources/ utils/ middleware/" false || true
-if [ $? -ne 0 ]; then :; fi
-check_content "No TODO comments (warning)" "TODO" "server.js sources/ utils/ middleware/" false || true
-if [ $? -ne 0 ]; then :; fi
+# Advanced console log / debug detection: allow wrapped logging in server.js first 40 lines, flag others
+echo -n "  No stray console.debug/log... "
+# We first gather all console.log/debug occurrences, then filter out:
+#  - Lines inside single-line (//) comments
+#  - Lines that are part of block comments (* ... or closing */)
+#  - Our intentional wrapper definitions / allowed markers
+#  - Lines already routed through logger or intentional markers
+# This avoids false positives like example code inside block comments.
+RAW_LOGS=$(grep -RIn "console\\.\(log\\|debug\)" server.js sources/ utils/ middleware/ 2>/dev/null \
+    | awk 'BEGIN{IGNORECASE=0} {
+            orig=$0; content=$0;
+            sub(/^[^:]+:[0-9]+:/, "", content); # strip path:line: prefix for content analysis
+            if (content ~ /^[[:space:]]*\/\//) next;      # // comment
+            if (content ~ /^[[:space:]]*\*/) next;         # block comment interior line starting with *
+            if (content ~ /\*\//) next;                   # block comment closing
+            if (content ~ /originalConsoleLog|originalConsoleDebug/) next; # preserved originals
+            if (content ~ /logger\./) next;                # logger usage
+            if (content ~ /INTENTIONAL-CONSOLE/) next;      # explicit allow marker
+            if (orig ~ /server.js:7:console.log = \(\.\.\.args\) =>/) next; # intentional override assignment
+            if (orig ~ /scripts\//) next;                  # ignore scripts dir
+            print orig;
+        }' \
+    | head -5 || true)
+if [ -z "$RAW_LOGS" ]; then
+    echo -e "${GREEN}✅ PASS${NC}"; ((PASSED++));
+else
+    echo -e "${RED}❌ FAIL${NC}"; ((FAILED++));
+    echo "    Found (top 5):"; echo "$RAW_LOGS" | sed 's/^/    /';
+    echo "    Advice: Replace direct console.log/debug with logger.debug/info/warn/error or mark intentional with INTENTIONAL-CONSOLE.";
+fi
+
+# TODO comments now downgraded to warning unless prefixed INTENTIONAL-TODO
+echo -n "  No unintentional TODO comments... "
+RAW_TODOS=$(grep -RIn "TODO" server.js sources/ utils/ middleware/ | grep -v "INTENTIONAL-TODO" | head -5 || true)
+if [ -z "$RAW_TODOS" ]; then
+    echo -e "${GREEN}✅ PASS${NC}"; ((PASSED++));
+else
+    echo -e "${YELLOW}⚠️ WARN${NC}"; ((WARNINGS++));
+    echo "    Found (top 5):"; echo "$RAW_TODOS" | sed 's/^/    /';
+    echo "    Advice: Convert to issue, remove, or prefix with INTENTIONAL-TODO if deliberately retained.";
+fi
+
 check_content "No hardcoded passwords" "password.*=.*[\"']" "server.js sources/ utils/ middleware/" false
 echo ""
 

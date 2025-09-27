@@ -87,8 +87,6 @@ describe('healthCheck incremental connectivity coverage', () => {
     // swallows errors and returns a fallback object; covering that catch would require fault injection
     // after readConfig returns (not meaningful for current stability goals), so it's intentionally skipped.
 
-    // connectivity tests for TVDB were deleted
-
     // Cache duration mutation test omitted: calling getDetailedHealth triggers plex connectivity baseline
     // which attempts to require server.js late, causing post-teardown reference noise. Not critical for
     // branch coverage goals here.

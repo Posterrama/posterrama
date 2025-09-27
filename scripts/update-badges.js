@@ -69,6 +69,7 @@ function run() {
     }
 
     if (pct !== null) {
+        console.log(`Computed aggregate line coverage: ${pct}%`);
         const color = colorFor(pct);
         // Replace full shields URL segment for coverage (handles HTML <img> src attributes)
         const covUrlRe =
