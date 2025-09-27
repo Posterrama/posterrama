@@ -1,7 +1,7 @@
 /**
- * Basic swagger spec shape test to ensure critical component schemas are present.
+ * Basic swagger spec shape test to ensure critical component schemas are present
+ * and internal endpoints (x-internal) are stripped from the exported spec.
  */
-const path = require('path');
 
 // Import swagger module (exports spec and generate())
 const swagger = require('../../swagger');
@@ -30,6 +30,7 @@ describe('OpenAPI schema (swagger)', () => {
         'BackupDeleteResponse',
         'BackupSchedule',
         'BackupScheduleResponse',
+        'StandardErrorResponse',
     ];
 
     test.each(requiredSchemas)('schema %s exists', name => {
@@ -39,5 +40,12 @@ describe('OpenAPI schema (swagger)', () => {
     test('BackupCreateResponse references BackupRecord', () => {
         const s = spec.components.schemas.BackupCreateResponse;
         expect(s.properties.backup).toBeTruthy();
+    });
+
+    test('internal health-debug route is stripped', () => {
+        const hasInternal = Object.keys(spec.paths || {}).some(p =>
+            p.includes('_internal/health-debug')
+        );
+        expect(hasInternal).toBe(false);
     });
 });
