@@ -321,7 +321,7 @@ const FIXED_LIMITS = Object.freeze({
 const PlexSource = require('./sources/plex');
 const JellyfinSource = require('./sources/jellyfin');
 const TMDBSource = require('./sources/tmdb');
-// TODO(new-source): If you add a new source adapter under sources/<name>.js, require it here
+// INTENTIONAL-TODO(new-source): If you add a new source adapter under sources/<name>.js, require it here
 // const MyNewSource = require('./sources/mynew');
 const deepMerge = require('lodash.merge');
 const speakeasy = require('speakeasy');

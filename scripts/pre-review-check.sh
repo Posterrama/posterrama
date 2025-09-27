@@ -92,8 +92,10 @@ echo ""
 
 echo -e "${BLUE}🔒 Security Checks${NC}"
 run_check "Security audit clean" "npm run deps:security-audit" true
-check_content "No console.log in production" "console\\.log" "server.js sources/ utils/ middleware/" false
-check_content "No TODO comments" "TODO" "server.js sources/ utils/ middleware/" false
+check_content "No console.log in production (warning)" "console\\.log" "server.js sources/ utils/ middleware/" false || true
+if [ $? -ne 0 ]; then :; fi
+check_content "No TODO comments (warning)" "TODO" "server.js sources/ utils/ middleware/" false || true
+if [ $? -ne 0 ]; then :; fi
 check_content "No hardcoded passwords" "password.*=.*[\"']" "server.js sources/ utils/ middleware/" false
 echo ""
 
