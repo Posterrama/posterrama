@@ -13355,11 +13355,7 @@ app.delete('/api/admin/config-backups/:id', isAuthenticated, async (req, res) =>
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 enabled: { type: boolean }
- *                 time: { type: string, example: '02:30' }
- *                 retention: { type: integer, example: 5 }
+ *               $ref: '#/components/schemas/BackupScheduleResponse'
  */
 app.get('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) => {
     try {
