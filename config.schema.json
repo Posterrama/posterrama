@@ -18,7 +18,8 @@
         "transitionIntervalSeconds": {
             "description": "How many seconds each poster is visible.",
             "type": "integer",
-            "minimum": 5
+            "minimum": 5,
+            "default": 10
         },
         "backgroundRefreshMinutes": {
             "description": "How often (in minutes) the entire media library is re-fetched. 0 to disable.",
@@ -28,29 +29,35 @@
         },
         "showClearLogo": {
             "description": "Shows the movie/series logo (if available).",
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
         },
         "showRottenTomatoes": {
             "description": "Shows a 'Fresh' or 'Rotten' badge on the poster.",
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
         },
         "rottenTomatoesMinimumScore": {
             "description": "Minimum score (0-10 scale) required for inclusion when Rotten Tomatoes data is available. Set to 0 to disable.",
             "type": "number",
             "minimum": 0,
-            "maximum": 10
+            "maximum": 10,
+            "default": 0
         },
         "showPoster": {
             "description": "Shows the poster.",
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
         },
         "showMetadata": {
             "description": "Shows metadata (title, tagline, etc.). Requires 'showPoster' to be enabled.",
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
         },
         "clockWidget": {
             "description": "Shows a clock in the top left of the screen.",
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
         },
         "clockTimezone": {
             "description": "Timezone for the clock widget (IANA timezone identifier like 'Europe/Amsterdam', 'America/New_York'). Defaults to system timezone.",
@@ -500,7 +507,8 @@
                                 "type": "number",
                                 "description": "Minimum community rating (0-10 scale).",
                                 "minimum": 0,
-                                "maximum": 10
+                                "maximum": 10,
+                                "default": 0
                             },
                             "allowedOfficialRatings": {
                                 "type": "array",
@@ -513,7 +521,8 @@
                                 "type": "number",
                                 "description": "Minimum user rating (personal rating 0-10 scale).",
                                 "minimum": 0,
-                                "maximum": 10
+                                "maximum": 10,
+                                "default": 0
                             }
                         }
                     }
@@ -598,11 +607,13 @@
         },
         "serverName": {
             "description": "Friendly name for this Posterrama instance.",
-            "type": "string"
+            "type": "string",
+            "default": "Your Server Name"
         },
         "baseUrl": {
             "description": "Base URL where this instance is reachable (for links/tooling).",
-            "type": "string"
+            "type": "string",
+            "default": "http://localhost:4000"
         },
         "port": {
             "description": "Optional explicit port override for integrations/tests.",
@@ -612,7 +623,8 @@
         },
         "plexClientOptions": {
             "description": "Advanced options to pass to the plex-api client.",
-            "type": "object"
+            "type": "object",
+            "default": {}
         },
         "serverPort": {
             "description": "Fallback server port if SERVER_PORT env var is not set.",

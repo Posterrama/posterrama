@@ -43,11 +43,13 @@
         "deps:security-full": "npm audit --audit-level=high",
         "deps:health": "node scripts/dependency-health.js",
         "deps:advice": "bash scripts/deps-advice.sh",
+        "deps:unused": "node scripts/deps-unused.js",
         "review:self-check": "node scripts/review-self-check.js",
         "review:pre-check": "./scripts/simple-review-check.sh",
         "health": "./scripts/health-check.sh",
         "config:validate": "node scripts/validate-config.js",
-        "quality:all": "npm run lint && npm run format:check && npm run test:hygiene && npm test && npm run deps:security-audit",
+        "config:validate:example": "node scripts/validate-config-example.js",
+        "quality:all": "npm run lint && npm run format:check && npm run test:hygiene && npm run config:validate:example && npm test && npm run deps:unused && npm run deps:security-audit",
         "test:hygiene": "node scripts/check-tests-clean.js",
         "hooks:setup": "bash scripts/setup-git-hooks.sh",
         "push": "bash private/release-push.sh --no-tag --yes",
@@ -61,6 +63,7 @@
         "ajv": "^8.17.1",
         "axios": "^1.7.7",
         "bcrypt": "^5.1.1",
+        "ipaddr.js": "^2.1.0",
         "multer": "^1.4.5-lts.1",
         "compression": "^1.8.1",
         "cors": "^2.8.5",
@@ -92,9 +95,10 @@
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.4",
         "jest": "^29.7.0",
-        "nodemon": "^3.1.0",
         "prettier": "^3.6.2",
-        "supertest": "^7.0.0"
+        "supertest": "^7.0.0",
+        "depcheck": "^1.4.7",
+        "@jellyfin/sdk": "^0.11.0"
     },
     "engines": {
         "node": ">=18.0.0"

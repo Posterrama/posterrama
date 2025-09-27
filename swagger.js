@@ -124,6 +124,72 @@ function generateSwaggerSpec() {
                     },
                 },
                 schemas: {
+                    StandardOkResponse: {
+                        type: 'object',
+                        properties: { ok: { type: 'boolean', example: true } },
+                    },
+                    BackupRecord: {
+                        type: 'object',
+                        properties: {
+                            id: {
+                                type: 'string',
+                                description: 'Backup identifier (filename or UUID)',
+                            },
+                            createdAt: { type: 'string', format: 'date-time' },
+                            sizeBytes: { type: 'integer' },
+                            type: {
+                                type: 'string',
+                                description: 'backup type (manual|auto|upgrade)',
+                            },
+                        },
+                    },
+                    BackupListResponse: {
+                        type: 'object',
+                        properties: {
+                            ok: { type: 'boolean' },
+                            backups: {
+                                type: 'array',
+                                items: { $ref: '#/components/schemas/BackupRecord' },
+                            },
+                        },
+                    },
+                    BackupSchedule: {
+                        type: 'object',
+                        properties: {
+                            enabled: { type: 'boolean' },
+                            cron: {
+                                type: 'string',
+                                description: 'Cron expression for automated backups',
+                            },
+                            retain: { type: 'integer', description: 'How many backups to retain' },
+                        },
+                    },
+                    BackupScheduleResponse: {
+                        type: 'object',
+                        properties: {
+                            ok: { type: 'boolean' },
+                            schedule: { $ref: '#/components/schemas/BackupSchedule' },
+                        },
+                    },
+                    NotificationTestRequest: {
+                        type: 'object',
+                        properties: {
+                            level: {
+                                type: 'string',
+                                enum: ['info', 'warn', 'error'],
+                                default: 'warn',
+                            },
+                            message: { type: 'string' },
+                        },
+                    },
+                    NotificationTestResponse: {
+                        type: 'object',
+                        properties: {
+                            ok: { type: 'boolean' },
+                            level: { type: 'string' },
+                            message: { type: 'string' },
+                        },
+                    },
                     // TODO(new-source): If your new source exposes new request/response shapes
                     // add minimal schemas here and reference them from JSDoc blocks in server.js.
                     // --- Device Management ---

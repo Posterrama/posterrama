@@ -13086,6 +13086,31 @@ app.post('/api/admin/logs/level', isAuthenticated, express.json(), (req, res) =>
 
 // Admin Notifications: test logging endpoint to validate SSE + Notification Center
 // Usage: POST /api/admin/notify/test { level?: 'info'|'warn'|'error', message?: string }
+/**
+ * @swagger
+ * /api/admin/notify/test:
+ *   post:
+ *     summary: Emit a test admin notification
+ *     description: Triggers a test log entry (info/warn/error) that flows through the admin notification center and SSE stream.
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/NotificationTestRequest'
+ *     responses:
+ *       200:
+ *         description: Notification emitted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NotificationTestResponse'
+ *       500:
+ *         description: Failed to emit notification
+ */
 app.post('/api/admin/notify/test', isAuthenticated, express.json(), (req, res) => {
     try {
         const lvl = String(req.body?.level || 'warn').toLowerCase();

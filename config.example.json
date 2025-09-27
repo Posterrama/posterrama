@@ -16,10 +16,14 @@
         "randomness": 3,
         "animationType": "fade",
         "layoutVariant": "heroGrid",
+        "itemsPerScreen": 30,
+        "columns": 6,
+        "transitionInterval": 30,
         "layoutSettings": {
             "heroGrid": {
                 "heroSide": "left",
-                "heroRotationMinutes": 10
+                "heroRotationMinutes": 10,
+                "biasAmbientToHero": true
             }
         },
         "ambientGradient": false,
@@ -126,5 +130,6 @@
     "port": 4000,
     "syncEnabled": true,
     "syncAlignMaxDelayMs": 1200,
-    "serverPort": 4000
+    "serverPort": 4000,
+    "plexClientOptions": {}
 }
