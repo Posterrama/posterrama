@@ -3,17 +3,20 @@
     const $ = s => document.querySelector(s);
     function setHeader(text, style, enabled) {
         const el = $('#cinema-header');
+        const body = document.body;
         if (!el) return;
         el.className = '';
         el.id = 'cinema-header';
         if (!enabled) {
             el.textContent = '';
             el.style.display = 'none';
+            body.classList.remove('cinema-header-active');
             return;
         }
         el.textContent = text || '';
         el.classList.add(`style-${style || 'classic'}`);
         el.style.display = 'flex';
+        body.classList.add('cinema-header-active');
     }
     function setFooterMarquee(text, style) {
         const m = $('#cinema-footer-marquee');

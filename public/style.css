@@ -1472,6 +1472,22 @@ body.cinema-mode #info-container {
     z-index: 10 !important;
 }
 
+/* When cinema header active, reserve its height so poster starts below */
+body.cinema-mode.cinema-header-active #info-container {
+    display: block !important;
+    top: var(--cinema-header-height, 120px) !important;
+    height: calc(100vh - var(--cinema-header-height, 120px)) !important;
+}
+body.cinema-mode.cinema-header-active #poster-wrapper,
+body.cinema-mode.cinema-header-active .poster-layer {
+    height: calc(100vh - var(--cinema-header-height, 120px)) !important;
+}
+body.cinema-mode.cinema-header-active #poster-wrapper #poster,
+body.cinema-mode.cinema-header-active #poster-wrapper .poster-layer {
+    height: calc((100vh - var(--cinema-header-height, 120px)) * 3 / 2) !important;
+    max-height: calc(100vh - var(--cinema-header-height, 120px)) !important;
+}
+
 body.cinema-mode #poster-wrapper {
     width: 100vw !important; /* Match poster width */
     height: 100vh !important; /* Full height for centering */
