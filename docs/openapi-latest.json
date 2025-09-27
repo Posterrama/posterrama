@@ -3154,15 +3154,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "ok": {
-                                            "type": "boolean"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/StandardOkResponse"
                                         },
-                                        "count": {
-                                            "type": "integer"
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "count": {
+                                                    "type": "integer"
+                                                }
+                                            }
                                         }
-                                    }
+                                    ]
                                 }
                             }
                         }
