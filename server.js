@@ -13224,11 +13224,7 @@ app.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 keep: { type: integer }
- *                 deleted: { type: integer }
- *                 kept: { type: integer }
+ *               $ref: '#/components/schemas/BackupCleanupResponse'
  */
 app.post('/api/admin/config-backups/cleanup', isAuthenticated, async (req, res) => {
     try {
