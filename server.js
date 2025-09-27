@@ -4144,10 +4144,11 @@ app.get('/api/admin/device-presets', adminAuth, async (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 ok: { type: boolean }
- *                 count: { type: integer }
+ *               allOf:
+ *                 - $ref: '#/components/schemas/StandardOkResponse'
+ *                 - type: object
+ *                   properties:
+ *                     count: { type: integer }
  *       400:
  *         description: Validation error (array required or invalid entries)
  *       401:
