@@ -13,7 +13,9 @@
             body.classList.remove('cinema-header-active');
             return;
         }
-        el.textContent = text || '';
+        // Wrap in span so CSS can balance multi-line and stretch width
+        const safe = (text || '').trim();
+        el.innerHTML = safe ? `<span>${safe.replace(/</g, '&lt;')}</span>` : '';
         el.classList.add(`style-${style || 'classic'}`);
         el.style.display = 'flex';
         body.classList.add('cinema-header-active');
