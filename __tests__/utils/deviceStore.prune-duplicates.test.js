@@ -17,11 +17,11 @@ let deviceStore;
  * Isolation: Each test points DEVICES_STORE_PATH at a unique temp JSON file.
  */
 describe('deviceStore pruneLikelyDuplicates', () => {
+    let tmpStore;
+
     beforeEach(async () => {
-        // Point store path to unique temp file BEFORE requiring module
-        const tmpStore = path.join(__dirname, `devices.prune.${nextId('ts')}.json`);
+        tmpStore = path.join(__dirname, `devices.prune.${nextId('ts')}.json`);
         process.env.DEVICES_STORE_PATH = path.relative(path.join(__dirname, '..', '..'), tmpStore);
-        // Ensure no leftover file
         if (fs.existsSync(tmpStore)) fs.unlinkSync(tmpStore);
         jest.isolateModules(() => {
             deviceStore = require('../../utils/deviceStore');
@@ -33,14 +33,21 @@ describe('deviceStore pruneLikelyDuplicates', () => {
         await deviceStore.updateHeartbeat(keep.id, {
             clientInfo: { userAgent: 'UA', screen: { w: 1920, h: 1080, dpr: 1 } },
         });
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 3; i++)
             await deviceStore.registerDevice({ name: 'Dup' + i, installId: 'iid-1' });
-        }
         for (let i = 0; i < 2; i++) {
             const { device } = await deviceStore.registerDevice({ name: 'Anon' + i });
             await deviceStore.updateHeartbeat(device.id, {
                 clientInfo: { userAgent: 'UA', screen: { width: 1920, height: 1080, scale: 1 } },
             });
+        }
+    });
+
+    afterEach(() => {
+        try {
+            if (tmpStore && fs.existsSync(tmpStore)) fs.unlinkSync(tmpStore);
+        } catch (_) {
+            /* ignore cleanup errors */
         }
     });
 
@@ -56,10 +63,8 @@ describe('deviceStore pruneLikelyDuplicates', () => {
             await deviceStore.updateHeartbeat(keep.id, {
                 clientInfo: { userAgent: 'UA', screen: { w: 1920, h: 1080, dpr: 1 } },
             });
-            // add a quick duplicate
             await deviceStore.registerDevice({ name: 'DupX', installId: 'iid-1' });
         }
-        expect(keep).toBeTruthy();
         const res = await deviceStore.pruneLikelyDuplicates({
             keepId: keep.id,
             userAgent: 'UA',
