@@ -128,6 +128,13 @@ function generateSwaggerSpec() {
                         type: 'object',
                         properties: { ok: { type: 'boolean', example: true } },
                     },
+                    BackupCreateResponse: {
+                        type: 'object',
+                        properties: {
+                            ok: { type: 'boolean' },
+                            backup: { $ref: '#/components/schemas/BackupRecord' },
+                        },
+                    },
                     BackupRecord: {
                         type: 'object',
                         properties: {
@@ -151,6 +158,30 @@ function generateSwaggerSpec() {
                                 type: 'array',
                                 items: { $ref: '#/components/schemas/BackupRecord' },
                             },
+                        },
+                    },
+                    BackupCleanupResponse: {
+                        type: 'object',
+                        properties: {
+                            ok: { type: 'boolean' },
+                            removed: { type: 'integer' },
+                            retained: { type: 'integer' },
+                        },
+                    },
+                    BackupRestoreResponse: {
+                        type: 'object',
+                        properties: {
+                            ok: { type: 'boolean' },
+                            restored: { type: 'boolean' },
+                            backup: { $ref: '#/components/schemas/BackupRecord' },
+                        },
+                    },
+                    BackupDeleteResponse: {
+                        type: 'object',
+                        properties: {
+                            ok: { type: 'boolean' },
+                            deleted: { type: 'boolean' },
+                            id: { type: 'string' },
                         },
                     },
                     BackupSchedule: {
