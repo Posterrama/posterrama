@@ -17,7 +17,6 @@ Transform any screen into a cinematic, always-fresh movie poster display.
   <a href="#content-source-features"><img alt="Plex" src="https://img.shields.io/badge/Plex-supported-ffaa00.svg?logo=plex&logoColor=white"></a>
   <a href="#content-source-features"><img alt="Jellyfin" src="https://img.shields.io/badge/Jellyfin-supported-8f7ee7.svg?logo=jellyfin&logoColor=white"></a>
   <a href="#content-source-features"><img alt="TMDB" src="https://img.shields.io/badge/TMDB-supported-01d277.svg?logo=themoviedatabase&logoColor=white"></a>
-  <a href="#content-source-features"><img alt="TVDB" src="https://img.shields.io/badge/TVDB-integrated-38a169.svg?logo=thetvdb&logoColor=white"></a>
   <a href="http://localhost:4000/api-docs"><img alt="OpenAPI Docs" src="https://img.shields.io/badge/OpenAPI-Docs-85EA2D.svg?logo=swagger&logoColor=white"></a>
 </p>
 
@@ -112,11 +111,11 @@ Get a clear overview of your setup the moment you sign in. The Dashboard highlig
   
 </figure>
 
-Connect your Plex or Jellyfin server, or add popular sources like TMDB and TVDB. Your collection is always up to date.
+Connect your Plex or Jellyfin server, or add popular sources like TMDB. Your collection is always up to date.
 
 <!-- Content source features heading and intro removed per request; keep the actionable bullets below -->
 
-- Enable/disable each source (Plex, Jellyfin, TMDB, TVDB)
+- Enable/disable each source (Plex, Jellyfin, TMDB)
 - Set server address and authentication (token, username/password)
 - Choose which libraries or collections to include
 - Filter by genre, rating, or quality
