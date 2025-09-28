@@ -4653,15 +4653,31 @@
                 }
                 const { list } = getRefs();
                 if (list) {
+                    try {
+                        console.debug('[NotifDebug] renderPanel start', {
+                            alertCount: Array.isArray(alerts) ? alerts.length : 'n/a',
+                            logCount: Array.isArray(logs) ? logs.length : 'n/a',
+                            parts: parts.length,
+                        });
+                    } catch (_) {}
                     if (parts.length) {
                         const html = parts
                             .sort((a, b) => (b.ts || 0) - (a.ts || 0))
                             .map(p => p.html)
                             .join('');
                         list.innerHTML = html;
+                        try {
+                            console.debug('[NotifDebug] renderPanel populated', {
+                                itemNodes: list.querySelectorAll('.notify-item').length,
+                                htmlLength: list.innerHTML.length,
+                            });
+                        } catch (_) {}
                     } else {
                         list.innerHTML =
                             '<div class="notify-item notify-empty"><div class="notify-title" style="grid-column:1 / -1; text-align:center; opacity:.85;">No notifications</div></div>';
+                        try {
+                            console.debug('[NotifDebug] renderPanel empty');
+                        } catch (_) {}
                     }
                 } else {
                     setBadge(0);
@@ -4670,6 +4686,9 @@
 
             async function refreshBadge(force = false) {
                 try {
+                    try {
+                        console.debug('[NotifDebug] refreshBadge start', { force });
+                    } catch (_) {}
                     // Suppression window after user clears notifications (avoid bounce-back)
                     try {
                         const until = Number(localStorage.getItem(CLEAR_SUPPRESS_KEY) || 0);
@@ -4683,6 +4702,12 @@
                         }
                     } catch (_) {}
                     let { alerts, logs } = await fetchAlertsAndLogs({ force });
+                    try {
+                        console.debug('[NotifDebug] refreshBadge data', {
+                            a: alerts?.length,
+                            l: logs?.length,
+                        });
+                    } catch (_) {}
                     // Apply session dismissals so cleared items don't bounce back immediately
                     ({ alerts, logs } = applyDismissedFilter(alerts, logs));
                     const maxItems = getNotifMaxItems();
@@ -4693,8 +4718,17 @@
                     const shownLogs = Math.min(Array.isArray(logs) ? logs.length : 0, maxItems);
                     const count = shownAlerts + shownLogs;
                     setBadge(count);
+                    try {
+                        console.debug('[NotifDebug] refreshBadge count set', { count });
+                    } catch (_) {}
                     renderPanel({ alerts, logs });
+                    try {
+                        console.debug('[NotifDebug] refreshBadge done');
+                    } catch (_) {}
                 } catch (_) {
+                    try {
+                        console.warn('[NotifDebug] refreshBadge failed', _?.message || _);
+                    } catch (__) {}
                     setBadge(0);
                     const { list } = getRefs();
                     if (list)
