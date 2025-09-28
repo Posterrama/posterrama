@@ -59,9 +59,49 @@
                     panel.style.zIndex = '13000';
                     panel.style.transform = 'translateY(0)';
                     console.info('[__diagUI] Forced notif panel open');
+                    try {
+                        window.__diagUI.placePanelInView?.();
+                    } catch (_) {}
                     return true;
                 } catch (err) {
                     console.error('[__diagUI] forceNotifOpen failed', err);
+                    return false;
+                }
+            },
+            placePanelInView() {
+                try {
+                    const panel = document.getElementById('notify-center');
+                    if (!panel) return false;
+                    const r = panel.getBoundingClientRect();
+                    const vw = window.innerWidth;
+                    const vh = window.innerHeight;
+                    let adjust = false;
+                    if (r.right < 32 || r.left > vw) {
+                        panel.style.right = '16px';
+                        panel.style.left = 'auto';
+                        adjust = true;
+                    }
+                    if (r.top < 0 || r.bottom < 80) {
+                        panel.style.top = '60px';
+                        adjust = true;
+                    }
+                    if (r.bottom > vh) {
+                        const maxH = Math.max(200, vh - 100);
+                        panel.style.maxHeight = maxH + 'px';
+                        panel.style.overflowY = 'auto';
+                        adjust = true;
+                    }
+                    if (adjust) {
+                        console.info(
+                            '[__diagUI] panel repositioned into view',
+                            panel.getBoundingClientRect().toJSON()
+                        );
+                    } else {
+                        console.info('[__diagUI] panel already in view', r.toJSON());
+                    }
+                    return true;
+                } catch (e) {
+                    console.warn('[__diagUI] placePanelInView failed', e);
                     return false;
                 }
             },
