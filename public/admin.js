@@ -76,6 +76,22 @@
         console.warn('[AdminBoot] diag helper init failed', diagErr);
     }
 
+    // Early fallback binding for notification button (before heavy logic) so we at least log clicks.
+    try {
+        const earlyNotifBtn = document.getElementById('notif-btn');
+        if (earlyNotifBtn && !earlyNotifBtn.__earlyBound) {
+            earlyNotifBtn.__earlyBound = true;
+            earlyNotifBtn.addEventListener('click', ev => {
+                // If main delegation later also handles it, this simply adds extra debug once.
+                console.debug('[EarlyNotifBinding] click captured');
+                // Mark the event for downstream logic
+                ev.__fromNotifBtn = true;
+            });
+        }
+    } catch (e) {
+        console.warn('[EarlyNotifBinding] failed', e);
+    }
+
     // Small utility: debounce
     function debounce(fn, wait = 120) {
         let t;
