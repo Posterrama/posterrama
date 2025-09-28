@@ -4732,8 +4732,68 @@
                                 typeof closeUserMenu === 'function' && closeUserMenu();
                             } catch (_) {}
                             // Force bypass TTL when the user explicitly opens the panel
-                            await refreshBadge(true);
-                            openPanel();
+                            // Resilient open: ensure panel opens even if refreshBadge fails
+                            console.debug('NOTIFY_OPEN_ATTEMPT');
+                            let rbErr = null;
+                            try {
+                                await refreshBadge(true);
+                            } catch (err) {
+                                rbErr = err;
+                                console.warn(
+                                    'refreshBadge(true) failed (continuing to open panel)',
+                                    err
+                                );
+                            } finally {
+                                try {
+                                    openPanel();
+                                    console.debug('NOTIFY_PANEL_OPEN_CALLED', {
+                                        hadRefreshError: !!rbErr,
+                                    });
+                                } catch (openErr) {
+                                    console.error('openPanel() threw', openErr);
+                                }
+                            }
+                            // Post-open confirmation & self-heal if styles were overridden
+                            setTimeout(() => {
+                                try {
+                                    const { panel } = getRefs();
+                                    if (!panel) return;
+                                    if (!panel.classList.contains('open')) {
+                                        console.warn(
+                                            'NOTIFY_PANEL_NOT_OPEN_AFTER_DELAY - forcing inline styles'
+                                        );
+                                        try {
+                                            panel.classList.add('open');
+                                        } catch (_) {}
+                                    }
+                                    // If computed style still hiding it, force critical visibility properties
+                                    const cs = getComputedStyle(panel);
+                                    if (
+                                        cs &&
+                                        (cs.display === 'none' ||
+                                            cs.visibility === 'hidden' ||
+                                            parseFloat(cs.opacity) === 0)
+                                    ) {
+                                        console.warn('NOTIFY_PANEL_INVISIBLE_COMPUTED_STATE', {
+                                            display: cs.display,
+                                            visibility: cs.visibility,
+                                            opacity: cs.opacity,
+                                            pointerEvents: cs.pointerEvents,
+                                            zIndex: cs.zIndex,
+                                        });
+                                        panel.style.display = 'block';
+                                        panel.style.visibility = 'visible';
+                                        panel.style.opacity = '1';
+                                        panel.style.pointerEvents = 'auto';
+                                        panel.style.zIndex = '13000';
+                                        panel.style.transform = 'translateY(0)';
+                                    } else {
+                                        console.debug('NOTIFY_PANEL_CONFIRMED_OPEN');
+                                    }
+                                } catch (confirmErr) {
+                                    console.error('Post-open confirm logic failed', confirmErr);
+                                }
+                            }, 60);
                             // Reset flag end of tick
                             setTimeout(() => {
                                 window.__notifJustOpened = false;
