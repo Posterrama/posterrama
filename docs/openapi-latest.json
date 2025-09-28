@@ -1694,6 +1694,67 @@
                 }
             }
         },
+        "/api/admin/filter-preview": {
+            "post": {
+                "summary": "Preview filter results for admin configuration",
+                "description": "Admin-only. Generates a preview of media results given filter criteria without caching them.",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "description": "Filter criteria object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Preview results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "cached": {
+                                            "type": "boolean"
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        },
+                                        "sample": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Validation/timeout error"
+                    }
+                }
+            }
+        },
         "/api/v1/admin/plex/validate-connection": {
             "post": {
                 "summary": "Validate Plex connection data",
@@ -2385,6 +2446,33 @@
                     },
                     "500": {
                         "description": "Heartbeat failed"
+                    }
+                }
+            }
+        },
+        "/api/devices/bypass-check": {
+            "get": {
+                "summary": "Probe device bypass status",
+                "description": "Public endpoint. Returns whether the requesting IP/device is bypass-authorized.",
+                "tags": ["Devices"],
+                "responses": {
+                    "200": {
+                        "description": "Bypass status payload",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "bypass": {
+                                            "type": "boolean"
+                                        },
+                                        "ip": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -3940,6 +4028,193 @@
                 }
             }
         },
+        "/api/sources/{sourceType}/ratings": {
+            "get": {
+                "summary": "Get available ratings for a source",
+                "description": "Returns the list of distinct ratings for the given source type. Disabled sources return an empty list.",
+                "tags": ["Filters"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "sourceType",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Source type (e.g. jellyfin, plex, tmdb)"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ratings list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "cached": {
+                                            "type": "boolean"
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sources/{sourceType}/ratings-with-counts": {
+            "get": {
+                "summary": "Get available ratings with counts for a source",
+                "description": "Returns ratings along with occurrence counts for the given enabled source type.",
+                "tags": ["Filters"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "sourceType",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ratings list with counts",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "rating": {
+                                                        "type": "string"
+                                                    },
+                                                    "count": {
+                                                        "type": "integer"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/rating-cache/stats": {
+            "get": {
+                "summary": "Get rating cache statistics",
+                "description": "Admin-only. Returns cache hit/miss and size metrics for rating caches.",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cache statistics",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/rating-cache/{sourceType}/refresh": {
+            "post": {
+                "summary": "Refresh rating cache for a source",
+                "description": "Admin-only. Invalidates and rebuilds the rating cache for the given source type.",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "sourceType",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cache refreshed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/config": {
             "get": {
                 "summary": "Get public configuration",
@@ -4124,6 +4399,33 @@
             "get": {
                 "summary": "Retrieve configuration JSON schema",
                 "description": "Returns the config.schema.json used for validating configuration. Admin-only.",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The JSON schema document",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized."
+                    }
+                }
+            }
+        },
+        "/api/admin/config/schema": {
+            "get": {
+                "summary": "Retrieve configuration JSON schema (admin alias)",
+                "description": "Alias of /api/config/schema for environments routing admin traffic under /api/admin.",
                 "tags": ["Admin"],
                 "security": [
                     {
