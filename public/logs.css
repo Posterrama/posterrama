@@ -144,6 +144,17 @@ body.page-logs {
     outline: 2px solid currentColor;
     outline-offset: 2px;
 }
+
+/* Special button colors */
+.logs-header .logs-actions #btn-logs-logout span {
+    color: #ff00ff !important;
+}
+
+/* Pause button orange when paused */
+.logs-toolbar #pauseButton.btn[data-state='paused'] span,
+.logs-toolbar #pauseButton.btn[data-state='paused'] i {
+    color: #ff8800 !important;
+}
 @media (max-width: 1200px) {
     .logs-toolbar .logs-row {
         flex-wrap: wrap;
@@ -229,14 +240,7 @@ body.page-logs {
     align-items: center;
     gap: 8px;
     height: 44px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    background: var(--color-bg-tertiary);
-    border: 1px solid var(--color-border);
-    transition: all 150ms ease;
-}
-.logs-toolbar .logs-row .auto-scroll-row .checkbox:hover {
-    background: var(--color-bg-hover);
+    padding: 8px 0;
 }
 .logs-toolbar .logs-row .auto-scroll-row .checkbox input {
     margin: 0;
@@ -326,6 +330,7 @@ body.page-logs {
     transform: none;
     width: auto;
     height: 44px;
+    margin-left: 8px;
     background: var(--color-secondary) !important;
     color: var(--color-text-inverse) !important;
     border: 1px solid var(--color-secondary) !important;

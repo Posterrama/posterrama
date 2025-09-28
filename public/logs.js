@@ -93,11 +93,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     clearFilterButton.addEventListener('click', () => {
-        logLevelSelect.value = 'debug';
-        selectedLevel = 'debug';
+        logLevelSelect.value = 'info';
+        selectedLevel = 'info';
         textFilter.value = '';
         searchText = '';
-        // Fetch new logs with debug level
+        // Fetch new logs with info level
         fetchLogs();
     });
 
