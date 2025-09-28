@@ -309,25 +309,24 @@ body.page-logs {
     justify-content: flex-end;
 }
 
-/* Filter badges - positioned right of search field */
+/* Filter badges - positioned right of search field with absolute positioning */
 .filter-badges {
+    position: absolute;
+    left: calc(100% + var(--space-md)); /* Position right of search field */
+    top: 0;
+    height: 44px;
     display: flex;
     flex-wrap: nowrap;
     gap: 8px;
     align-items: center;
-    margin-left: var(--space-md); /* Padding from search field */
-    flex-shrink: 0; /* Don't shrink badges */
-    flex-basis: auto; /* Don't force full width */
-    height: 44px; /* Match search input height exactly */
-    min-width: 0; /* Allow width to collapse to zero when empty */
-    position: relative;
+    pointer-events: auto; /* Ensure badges are clickable */
 }
 .filter-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 10px 12px; /* Match search input padding exactly */
+    padding: 6px 12px; /* Adjust padding for new height */
     background: var(--color-bg-tertiary);
     color: var(--color-text-primary);
     border-radius: 20px;
@@ -338,7 +337,7 @@ body.page-logs {
     transition: all 120ms var(--anim-ease-emph);
     line-height: 14.4px; /* Match input line height exactly */
     box-sizing: border-box; /* Ensure consistent box model */
-    height: 44px; /* Match search input height exactly */
+    height: 30px; /* Appropriate badge height */
     margin: 0; /* Remove any default margins */
     position: relative;
 }
