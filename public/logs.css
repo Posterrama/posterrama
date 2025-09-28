@@ -165,12 +165,8 @@ body.page-logs {
         order: 1;
         flex: 1 1 auto;
     }
-    .logs-toolbar .logs-row .form-row.badges-row {
-        order: 2;
-        flex: 0 0 auto;
-    }
     .logs-toolbar .logs-row .form-row.controls-row {
-        order: 3;
+        order: 2;
         flex: 0 0 auto;
         margin-left: 0;
     }
@@ -187,6 +183,12 @@ body.page-logs {
     .logs-toolbar .logs-row .form-row.search-row {
         order: unset;
         margin-top: 0;
+        flex-wrap: wrap;
+    }
+    .logs-toolbar .logs-row .form-row.search-row .filter-badges {
+        margin-left: 0;
+        margin-top: var(--space-sm);
+        flex: 1 0 100%;
     }
 }
 
@@ -211,13 +213,10 @@ body.page-logs {
     min-width: 120px;
 }
 
-/* Allow search to grow, badges and controls fixed */
+/* Allow search to grow, controls fixed */
 .logs-toolbar .logs-row .form-row.flex-grow {
     flex: 1 1 auto;
     min-width: 280px;
-}
-.logs-toolbar .logs-row .form-row.badges-row {
-    flex: 0 0 auto;
 }
 .logs-toolbar .logs-row .form-row.controls-row {
     flex: 0 0 auto;
@@ -294,11 +293,11 @@ body.page-logs {
     background: var(--color-error);
 }
 
-/* Layout for badges and controls */
-.logs-toolbar .badges-row {
-    justify-content: flex-start;
-    align-items: flex-start;
-    padding-top: 4px; /* Slight offset down */
+/* Layout for search row with integrated badges */
+.logs-toolbar .search-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
 }
 .logs-toolbar .controls-row {
     justify-content: flex-end;
@@ -309,12 +308,13 @@ body.page-logs {
     flex-direction: row; /* Ensure horizontal layout */
 }
 
-/* Filter badges */
+/* Filter badges - positioned right of search field */
 .filter-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+    margin-left: var(--space-md); /* Padding from search field */
 }
 .filter-badge {
     display: inline-flex;
