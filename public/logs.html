@@ -28,31 +28,43 @@
         </header>
 
         <main class="logs-container">
-            <div class="logs-toolbar">
+            <div class="logs-toolbar form-toolbar">
                 <div class="status">
-                    <span id="status-dot" class="status-dot"></span>
-                    <span id="status-text">Connecting...</span>
+                    <span id="status-dot" class="status-dot" aria-hidden="true"></span>
+                    <span id="status-text" class="status-text">Connecting...</span>
                 </div>
 
-                <label>
-                    Level
-                    <select id="logLevel">
-                        <option value="debug">DEBUG</option>
-                        <option value="info" selected>INFO</option>
-                        <option value="warn">WARN</option>
-                        <option value="error">ERROR</option>
-                    </select>
-                </label>
+                <div class="form-group fg-inline fg-compact">
+                    <label for="logLevel" class="fg-label">Level</label>
+                    <div class="select-wrap has-caret">
+                        <select id="logLevel" class="form-input" aria-label="Log level filter">
+                            <option value="debug">DEBUG</option>
+                            <option value="info" selected>INFO</option>
+                            <option value="warn">WARN</option>
+                            <option value="error">ERROR</option>
+                        </select>
+                    </div>
+                </div>
 
-                <input type="text" id="textFilter" placeholder="Search logs..." />
+                <div class="form-group fg-inline fg-grow">
+                    <label for="textFilter" class="sr-only">Search logs</label>
+                    <div class="input-wrap iw-icon-left">
+                        <i class="fas fa-search iw-leading" aria-hidden="true"></i>
+                        <input type="text" id="textFilter" class="form-input" placeholder="Search logs..." aria-label="Search logs" />
+                        <button class="btn btn-clear-input" id="clearFilter" type="button" title="Clear search" aria-label="Clear search"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
 
-                <button class="btn btn-outline btn-sm" id="clearFilter"><i class="fas fa-times"></i> Clear</button>
+                <div class="form-group fg-inline fg-compact auto-scroll-wrap">
+                    <label for="autoScroll" class="fg-label">Auto-scroll</label>
+                    <div class="toggle-wrap">
+                        <input type="checkbox" id="autoScroll" class="toggle-input" checked aria-checked="true" />
+                    </div>
+                </div>
 
-                <label>
-                    <input type="checkbox" id="autoScroll" checked /> Auto-scroll
-                </label>
-
-                <button class="btn btn-secondary btn-sm" id="pauseButton"><i class="fas fa-pause"></i> Pause</button>
+                <div class="form-group fg-inline fg-compact">
+                    <button class="btn btn-accent btn-sm" id="pauseButton" type="button"><i class="fas fa-pause"></i><span class="btn-text"> Pause</span></button>
+                </div>
             </div>
 
             <div class="logs-viewer">
