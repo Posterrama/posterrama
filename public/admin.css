@@ -11624,6 +11624,68 @@ body.page-logs {
     border-color: var(--color-border-strong, rgba(255, 255, 255, 0.22));
 }
 
+/* Send Command modal buttons (match merge modal aesthetic) */
+#modal-sendcmd .btn-cancel {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.34),
+        0 -1px 0 0 rgba(0, 0, 0, 0.34) inset,
+        0 1px 1px rgba(0, 0, 0, 0.22) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    opacity: 0.92;
+    transition: all 0.18s ease;
+}
+#modal-sendcmd .btn-cancel:hover,
+#modal-sendcmd .btn-cancel:focus,
+#modal-sendcmd .btn-cancel:focus-visible {
+    opacity: 1;
+}
+#modal-sendcmd .btn-cancel:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.08);
+    outline-offset: 2px;
+}
+
+#modal-sendcmd .btn-sendcmd-accent {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: color-mix(in srgb, var(--color-accent) 80%, var(--color-text-secondary)) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    transition: all 0.2s ease;
+}
+#modal-sendcmd .btn-sendcmd-accent:hover,
+#modal-sendcmd .btn-sendcmd-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-accent) 90%, var(--color-text-secondary)) !important;
+}
+#modal-sendcmd .btn-sendcmd-accent:active {
+    color: color-mix(in srgb, var(--color-accent) 95%, var(--color-text-secondary)) !important;
+}
+#modal-sendcmd .btn-sendcmd-accent i,
+#modal-sendcmd .btn-sendcmd-accent > span:not(.spinner) {
+    color: inherit !important;
+}
+
 /* IP Whitelist Chips - Clean & Minimal */
 .ip-chip {
     font-family: inherit;
