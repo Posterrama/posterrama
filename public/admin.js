@@ -4234,8 +4234,7 @@
         if (!window.__showOverlay) window.__showOverlay = __showOverlay;
     } catch (_) {}
     try {
-        if (!window.__ensureVisible && typeof __ensureVisible === 'function')
-            window.__ensureVisible = __ensureVisible;
+        // Removed legacy __ensureVisible exposure (debug helper) – no longer needed
     } catch (_) {}
     try {
         window.forceModalPortal = function (id) {
@@ -4250,7 +4249,7 @@
             if (window.__notifPortalWatch) {
                 clearInterval(window.__notifPortalWatch);
                 window.__notifPortalWatch = null;
-                console.info('[NotifDebug] portal watchdog disabled manually');
+                // debug removed
             }
         };
     } catch (_) {}
