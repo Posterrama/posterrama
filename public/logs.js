@@ -72,9 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
     pauseButton.addEventListener('click', () => {
         isPaused = !isPaused;
         if (isPaused) {
-            pauseButton.innerHTML = '<i class="fas fa-play"></i> Resume';
+            pauseButton.innerHTML = '<i class="fas fa-play"></i> <span>Resume</span>';
+            pauseButton.setAttribute('data-state', 'paused');
         } else {
-            pauseButton.innerHTML = '<i class="fas fa-pause"></i> Pause';
+            pauseButton.innerHTML = '<i class="fas fa-pause"></i> <span>Pause</span>';
+            pauseButton.setAttribute('data-state', 'playing');
             fetchLogs();
         }
     });

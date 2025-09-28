@@ -195,7 +195,7 @@ body.page-logs {
     min-width: 140px;
 }
 .logs-toolbar .logs-row .form-row.level-row {
-    min-width: 100px;
+    min-width: 130px;
 }
 .logs-toolbar .logs-row .form-row.auto-scroll-row {
     min-width: 120px;
@@ -219,7 +219,7 @@ body.page-logs {
     color: var(--color-text-secondary);
 }
 .logs-toolbar .logs-row .level-row .select-wrap {
-    min-width: 100px;
+    min-width: 130px;
 }
 .logs-toolbar .logs-row select,
 .logs-toolbar .logs-row .logs-search-wrap > input {
@@ -330,7 +330,7 @@ body.page-logs {
     transform: none;
     width: auto;
     height: 44px;
-    margin-left: 8px;
+    margin-left: 16px;
     background: var(--color-secondary) !important;
     color: var(--color-text-inverse) !important;
     border: 1px solid var(--color-secondary) !important;
