@@ -319,7 +319,7 @@ body.page-logs {
     flex-basis: auto; /* Don't force full width */
     height: 44px; /* Match search input height exactly */
     position: relative;
-    top: 0px; /* Baseline alignment */
+    overflow: visible; /* Allow badges to overflow without affecting container size */
 }
 .filter-badge {
     display: inline-flex;
@@ -337,10 +337,9 @@ body.page-logs {
     transition: all 120ms var(--anim-ease-emph);
     line-height: 14.4px; /* Match input line height exactly */
     box-sizing: border-box; /* Ensure consistent box model */
-    height: 44px; /* Match search input height exactly */
+    height: 37px; /* Slightly smaller to account for visual centering */
     margin: 0; /* Remove any default margins */
     position: relative;
-    transform: translateY(7px); /* Fine-tune vertical position - move DOWN */
 }
 .filter-badge:hover {
     background: var(--color-bg-card);
