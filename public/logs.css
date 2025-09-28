@@ -200,12 +200,10 @@ body.page-logs {
     .logs-toolbar .logs-row .form-row.search-row {
         order: unset;
         margin-top: 0;
-        flex-wrap: wrap;
+        flex-wrap: nowrap; /* Keep badges inline on mobile too */
     }
     .logs-toolbar .logs-row .form-row.search-row .filter-badges {
-        margin-left: 0;
-        margin-top: var(--space-sm);
-        flex: 1 0 100%;
+        margin-left: var(--space-sm); /* Smaller margin on mobile */
     }
 }
 
@@ -313,8 +311,10 @@ body.page-logs {
 /* Layout for search row with integrated badges */
 .logs-toolbar .logs-row .form-row.search-row {
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: var(--space-md);
+    flex-wrap: nowrap; /* Prevent wrapping to new line */
 }
 .logs-toolbar .logs-row .form-row.controls-row {
     display: flex;
@@ -332,6 +332,7 @@ body.page-logs {
     align-items: center;
     margin-left: var(--space-md); /* Padding from search field */
     flex-shrink: 0; /* Don't shrink badges */
+    flex-basis: auto; /* Don't force full width */
     border: 2px solid yellow !important;
 }
 .filter-badge {
