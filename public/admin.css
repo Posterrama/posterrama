@@ -3052,6 +3052,12 @@ input[type='range']::-moz-range-thumb {
     min-width: 220px;
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
+    .dropdown-menu.show {
+        display: block !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+    }
     border-radius: var(--border-radius-md);
     box-shadow: var(--shadow-lg);
     padding: var(--space-sm) 0;

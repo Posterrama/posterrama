@@ -3898,11 +3898,25 @@
         const m = document.getElementById(id);
         if (!m) return;
         m.classList.add('open');
+        m.removeAttribute('hidden');
+        m.setAttribute('aria-hidden', 'false');
+        // Focus first focusable element inside modal for accessibility
+        try {
+            const first = m.querySelector(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            first?.focus?.();
+        } catch (_) {}
     }
     function closeModal(id) {
         const m = document.getElementById(id);
         if (!m) return;
         m.classList.remove('open');
+        m.setAttribute('aria-hidden', 'true');
+        // Keep DOM footprint small; rely on CSS .open to show. If it had explicit hidden originally, restore.
+        if (m.hasAttribute('data-auto-hidden')) {
+            m.setAttribute('hidden', '');
+        }
     }
     async function confirmAction({
         title = 'Confirm',
@@ -4597,11 +4611,13 @@
             function openPanel() {
                 const { panel, btn } = getRefs();
                 panel?.classList.add('open');
+                if (panel) panel.setAttribute('aria-hidden', 'false');
                 btn?.setAttribute('aria-expanded', 'true');
             }
             function closePanel() {
                 const { panel, btn } = getRefs();
                 panel?.classList.remove('open');
+                if (panel) panel.setAttribute('aria-hidden', 'true');
                 btn?.setAttribute('aria-expanded', 'false');
             }
 
