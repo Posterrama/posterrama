@@ -309,17 +309,16 @@ body.page-logs {
     justify-content: flex-end;
 }
 
-/* Filter badges - positioned right of search field with absolute positioning */
+/* Filter badges - positioned right of search field */
 .filter-badges {
-    position: absolute;
-    left: calc(100% + var(--space-md)); /* Position right of search field */
-    top: 0;
-    height: 44px;
     display: flex;
     flex-wrap: nowrap;
     gap: 8px;
     align-items: center;
-    pointer-events: auto; /* Ensure badges are clickable */
+    margin-left: var(--space-md); /* Padding from search field */
+    flex-shrink: 0; /* Don't shrink badges */
+    height: 44px; /* Match search input height exactly */
+    min-width: 120px; /* Reserve space even when empty to prevent layout shift */
 }
 .filter-badge {
     display: inline-flex;
