@@ -39,8 +39,8 @@ body.page-logs {
     gap: 8px;
     font-weight: 700;
     letter-spacing: 0.2px;
-    background: linear-gradient(90deg, rgba(99, 102, 241, 0.22), rgba(139, 92, 246, 0.16));
-    color: #e0e7ff;
+    /* Removed margin for btn-text */
+    margin-left: 0;
     border-color: rgba(139, 92, 246, 0.45);
     animation: none !important;
     box-shadow:
@@ -141,13 +141,9 @@ body.page-logs {
     margin: 0;
 }
 
-/* Button refinement */
+/* Button refinement – rely on shared button styles; enforce consistent min width */
 .logs-toolbar #pauseButton.btn {
-    min-width: 110px;
-    justify-content: center;
-}
-.logs-toolbar #pauseButton.btn .btn-text {
-    margin-left: 4px;
+    min-width: 120px;
 }
 .logs-toolbar .status {
     display: flex;

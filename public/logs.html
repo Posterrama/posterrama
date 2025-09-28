@@ -22,8 +22,8 @@
                 <span class="status-pill status-live sp-screensaver"><i class="fas fa-stream"></i> Live</span>
             </div>
             <div class="logs-actions">
-                <a href="/admin" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
-                <a href="/admin/logout" class="btn btn-error btn-sm"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                <a href="/admin" class="btn btn-secondary btn-sm" id="btn-logs-back" title="Back to admin"><i class="fas fa-arrow-left"></i> <span>Back</span></a>
+                <a href="/admin/logout" class="btn btn-secondary btn-sm" id="btn-logs-logout" title="Logout"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a>
             </div>
         </header>
 
@@ -52,7 +52,7 @@
                         <div class="logs-search-wrap">
                             <i class="fas fa-search" aria-hidden="true"></i>
                             <input type="text" id="textFilter" placeholder="Search logs..." aria-label="Search logs" />
-                            <button type="button" id="clearFilter" class="btn btn-icon btn-sm clear-search" title="Clear search" aria-label="Clear search"><i class="fas fa-times"></i></button>
+                            <button type="button" id="clearFilter" class="btn btn-secondary btn-sm" title="Clear search" aria-label="Clear search"><i class="fas fa-times"></i> <span>Clear</span></button>
                         </div>
                     </div>
                     <div class="form-row auto-scroll-row">
@@ -63,7 +63,7 @@
                         </label>
                     </div>
                     <div class="form-row action-row">
-                        <button class="btn btn-primary btn-sm" id="pauseButton" type="button" data-state="playing" aria-pressed="false"><i class="fas fa-pause"></i><span class="btn-text"> Pause</span></button>
+                        <button class="btn btn-secondary btn-sm" id="pauseButton" type="button" data-state="playing" aria-pressed="false" title="Pause live streaming"><i class="fas fa-pause"></i> <span>Pause</span></button>
                     </div>
                 </div>
             </div>
