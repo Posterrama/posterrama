@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const autoScrollCheckbox = document.getElementById('autoScroll');
     const clearFilterButton = document.getElementById('clearFilter');
 
-    let lastLogCount = 0;
     // Track scroll state within checkScroll(); initialized true
     // Auto-scroll tracking removed (was _isScrolledToBottom)
     let isPaused = false;
@@ -406,7 +405,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentLogs = logs;
                 currentOffset = 0;
                 hasMoreLogs = logs.length === LOGS_PER_PAGE; // Assume more if we got a full page
-                lastLogCount = logs.length;
                 renderLogs(logs);
             } else {
                 // Update: check for new logs and append them
@@ -422,7 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (newLogs.length > 0) {
                         // Append new logs to the end (most recent)
                         currentLogs = [...currentLogs, ...newLogs];
-                        lastLogCount = currentLogs.length;
                         renderLogs(currentLogs);
                     }
                 }
