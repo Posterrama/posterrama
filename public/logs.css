@@ -87,7 +87,8 @@ body.page-logs {
 }
 /* Logs buttons styled to match wallart preset appearance - copy exact selectors */
 .logs-toolbar .logs-row .btn,
-.logs-header .logs-actions .btn {
+.logs-header .logs-actions .btn,
+.logs-toolbar #pauseButton.btn {
     padding: 10px 14px;
     border: 0;
     font-size: 0.95rem;
@@ -107,16 +108,19 @@ body.page-logs {
     cursor: pointer;
 }
 .logs-toolbar .logs-row .btn .fas,
-.logs-header .logs-actions .btn .fas {
+.logs-header .logs-actions .btn .fas,
+.logs-toolbar #pauseButton.btn .fas {
     color: inherit;
 }
 .logs-toolbar .logs-row .btn.btn-sm,
-.logs-header .logs-actions .btn.btn-sm {
+.logs-header .logs-actions .btn.btn-sm,
+.logs-toolbar #pauseButton.btn.btn-sm {
     padding: 8px 12px;
     font-size: 0.9rem;
 }
 .logs-toolbar .logs-row .btn:hover,
-.logs-header .logs-actions .btn:hover {
+.logs-header .logs-actions .btn:hover,
+.logs-toolbar #pauseButton.btn:hover {
     background-color: var(--color-bg-tertiary);
     background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.22));
     box-shadow:
@@ -125,7 +129,8 @@ body.page-logs {
         inset 0 -1px 2px rgba(0, 0, 0, 0.38);
 }
 .logs-toolbar .logs-row .btn:active,
-.logs-header .logs-actions .btn:active {
+.logs-header .logs-actions .btn:active,
+.logs-toolbar #pauseButton.btn:active {
     background-color: var(--color-bg-tertiary);
     background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.2));
     box-shadow:
@@ -133,7 +138,8 @@ body.page-logs {
         inset 0 -1px 2px rgba(255, 255, 255, 0.04);
 }
 .logs-toolbar .logs-row .btn:focus-visible,
-.logs-header .logs-actions .btn:focus-visible {
+.logs-header .logs-actions .btn:focus-visible,
+.logs-toolbar #pauseButton.btn:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
 }
@@ -166,8 +172,7 @@ body.page-logs {
     min-width: 170px;
 }
 .logs-toolbar .logs-row select,
-.logs-toolbar .logs-row .logs-search-wrap > input,
-.logs-toolbar .logs-row #pauseButton.btn {
+.logs-toolbar .logs-row .logs-search-wrap > input {
     height: 44px;
     line-height: 1.2;
 }
@@ -193,6 +198,7 @@ body.page-logs {
 /* Button refinement – rely on shared button styles; enforce consistent min width */
 .logs-toolbar #pauseButton.btn {
     min-width: 120px;
+    /* Remove conflicting height/line-height - let wallart styling take precedence */
 }
 .logs-toolbar .status {
     display: flex;
