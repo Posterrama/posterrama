@@ -6439,6 +6439,19 @@ body.page-logs {
 .notify-center {
     z-index: 3003;
 }
+/* --- Final fallback hardening (appended) ---
+   If earlier rules reintroduce opacity:0 / pointer-events:none, enforce visibility when .open.
+   Also support a diagnostic attribute [data-notif-force]. */
+.notify-center[data-notif-force],
+.notify-center.open[data-notif-force] {
+    opacity: 1 !important;
+    transform: translateY(0) scale(1) !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+}
+.notify-center.open[data-notif-force] {
+    z-index: 13050 !important; /* slightly above emergency override */
+}
 .toast-container {
     z-index: 11000;
 }
