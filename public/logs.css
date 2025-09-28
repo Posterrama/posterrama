@@ -436,6 +436,7 @@ body.page-logs {
     flex: 0 1 auto; /* Don't grow unnecessarily */
     min-width: 300px; /* Reasonable minimum width */
     max-width: 400px; /* Prevent excessive growth */
+    height: 44px; /* Match search input height exactly */
     border: 2px solid green !important;
 }
 .logs-search-wrap > i {
