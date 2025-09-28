@@ -20,6 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedLevel = logLevelSelect.value;
     let searchText = '';
 
+    // Infinite scroll variables
+    let isLoadingOlderLogs = false;
+    let hasMoreLogs = true;
+    let currentOffset = 0;
+    const LOGS_PER_PAGE = 100;
+
     // Detect user's locale and preferred time format for timestamp formatting
     const userLocale = navigator.language || navigator.languages?.[0] || 'en-US';
 
@@ -99,9 +105,86 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedLevel = 'info';
         textFilter.value = '';
         searchText = '';
-        // Fetch new logs with info level
+        // Reset infinite scroll state and fetch new logs
+        currentOffset = 0;
+        hasMoreLogs = true;
+        currentLogs = [];
         fetchLogs();
     });
+
+    // Infinite scroll listener
+    logOutput.addEventListener('scroll', () => {
+        // Check if user scrolled to the top (load older logs)
+        if (logOutput.scrollTop === 0 && !isLoadingOlderLogs && hasMoreLogs && !isPaused) {
+            loadOlderLogs();
+        }
+    });
+
+    // Load older logs for infinite scroll
+    async function loadOlderLogs() {
+        if (isLoadingOlderLogs || !hasMoreLogs) return;
+
+        isLoadingOlderLogs = true;
+
+        // Show loading indicator at top
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading-indicator';
+        loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading older logs...';
+        logOutput.insertBefore(loadingDiv, logOutput.firstChild);
+
+        try {
+            const params = new URLSearchParams({
+                level: selectedLevel,
+                limit: LOGS_PER_PAGE.toString(),
+                offset: (currentOffset + LOGS_PER_PAGE).toString(),
+            });
+
+            const response = await fetch(`/api/admin/logs?${params}`, {
+                headers: {
+                    Accept: 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+
+            const olderLogs = await response.json();
+
+            // Remove loading indicator
+            loadingDiv.remove();
+
+            if (olderLogs.length === 0) {
+                hasMoreLogs = false;
+                // Show "no more logs" message
+                const noMoreDiv = document.createElement('div');
+                noMoreDiv.className = 'no-more-logs';
+                noMoreDiv.textContent = 'No more older logs available';
+                logOutput.insertBefore(noMoreDiv, logOutput.firstChild);
+                return;
+            }
+
+            // Save current scroll position
+            const currentScrollTop = logOutput.scrollTop;
+            const currentScrollHeight = logOutput.scrollHeight;
+
+            // Prepend older logs to current logs array
+            currentLogs = [...olderLogs, ...currentLogs];
+            currentOffset += LOGS_PER_PAGE;
+
+            // Re-render all logs
+            renderLogs(currentLogs);
+
+            // Restore scroll position to prevent jump
+            const newScrollHeight = logOutput.scrollHeight;
+            logOutput.scrollTop = newScrollHeight - currentScrollHeight + currentScrollTop;
+        } catch (error) {
+            console.error('Failed to load older logs:', error);
+            loadingDiv.remove();
+        } finally {
+            isLoadingOlderLogs = false;
+        }
+    }
 
     function formatLog(log) {
         const { timestamp, level, message } = log;
@@ -293,14 +376,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function fetchLogs() {
+    async function fetchLogs(isInitialLoad = false) {
         if (isPaused) return;
 
         try {
-            // Send level and limit parameters to server for efficient filtering
+            // For initial load, get recent logs. For updates, check for new logs only
             const params = new URLSearchParams({
                 level: selectedLevel,
-                limit: '500', // Increased limit to see more history
+                limit: isInitialLoad ? LOGS_PER_PAGE.toString() : '50', // Smaller limit for updates
+                offset: isInitialLoad ? '0' : undefined,
             });
 
             const response = await fetch(`/api/admin/logs?${params}`, {
@@ -317,14 +401,31 @@ document.addEventListener('DOMContentLoaded', () => {
             statusDot.className = 'status-dot connected';
             statusText.textContent = 'Connected';
 
-            // Only update if logs have changed
-            if (
-                logs.length !== lastLogCount ||
-                JSON.stringify(logs.slice(-5)) !== JSON.stringify(currentLogs.slice(-5)) // Only compare last 5 for performance
-            ) {
+            if (isInitialLoad) {
+                // Initial load: replace all logs
                 currentLogs = logs;
+                currentOffset = 0;
+                hasMoreLogs = logs.length === LOGS_PER_PAGE; // Assume more if we got a full page
                 lastLogCount = logs.length;
                 renderLogs(logs);
+            } else {
+                // Update: check for new logs and append them
+                if (logs.length > 0) {
+                    // Find new logs (logs that aren't in currentLogs yet)
+                    const currentLogIds = new Set(
+                        currentLogs.map(log => `${log.timestamp}-${log.message}`)
+                    );
+                    const newLogs = logs.filter(
+                        log => !currentLogIds.has(`${log.timestamp}-${log.message}`)
+                    );
+
+                    if (newLogs.length > 0) {
+                        // Append new logs to the end (most recent)
+                        currentLogs = [...currentLogs, ...newLogs];
+                        lastLogCount = currentLogs.length;
+                        renderLogs(currentLogs);
+                    }
+                }
             }
         } catch (error) {
             console.error('Failed to fetch logs:', error);
@@ -357,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Fetch logs immediately on load, then start smart polling
-    fetchLogs();
+    fetchLogs(true); // Initial load
     startPolling();
 
     // Clean up polling when page is hidden

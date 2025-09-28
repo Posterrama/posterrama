@@ -631,3 +631,27 @@ body.page-logs {
     color: var(--color-text-primary);
     font-weight: 600;
 }
+
+/* Infinite scroll indicators */
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-md);
+    color: var(--color-text-tertiary);
+    font-size: 0.9rem;
+    gap: var(--space-sm);
+}
+
+.loading-indicator i {
+    color: var(--color-secondary);
+}
+
+.no-more-logs {
+    text-align: center;
+    padding: var(--space-md);
+    color: var(--color-text-tertiary);
+    font-size: 0.85rem;
+    font-style: italic;
+    border-bottom: 1px solid var(--color-border);
+}
