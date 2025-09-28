@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLogs = [];
     let selectedLevel = logLevelSelect.value;
     let searchText = '';
+    let testOnlyMode = false;
 
     // Infinite scroll variables
     let isLoadingOlderLogs = false;
@@ -88,8 +89,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logLevelSelect.addEventListener('change', e => {
         selectedLevel = e.target.value;
-        // Fetch new logs with updated level filter
-        fetchLogs();
+        // Reset infinite scroll state and fetch new logs with updated level filter
+        currentOffset = 0;
+        hasMoreLogs = true;
+        currentLogs = [];
+        fetchLogs(true); // Initial load
+    });
+
+    const testOnlyCheckbox = document.getElementById('testOnly');
+    testOnlyCheckbox.addEventListener('change', e => {
+        testOnlyMode = e.target.checked;
+        // Reset infinite scroll state and fetch new logs
+        currentOffset = 0;
+        hasMoreLogs = true;
+        currentLogs = [];
+        fetchLogs(true); // Initial load
     });
 
     const textFilter = document.getElementById('textFilter');
@@ -108,34 +122,56 @@ document.addEventListener('DOMContentLoaded', () => {
         currentOffset = 0;
         hasMoreLogs = true;
         currentLogs = [];
-        fetchLogs();
+        fetchLogs(true); // Initial load
     });
 
     // Infinite scroll listener
     logOutput.addEventListener('scroll', () => {
-        // Check if user scrolled to the top (load older logs)
-        if (logOutput.scrollTop === 0 && !isLoadingOlderLogs && hasMoreLogs && !isPaused) {
+        // Check if user scrolled to the bottom (load older logs)
+        const scrollHeight = logOutput.scrollHeight;
+        const scrollTop = logOutput.scrollTop;
+        const clientHeight = logOutput.clientHeight;
+
+        // Trigger when user is within 100px of the bottom
+        if (
+            scrollTop + clientHeight >= scrollHeight - 100 &&
+            !isLoadingOlderLogs &&
+            hasMoreLogs &&
+            !isPaused
+        ) {
+            console.log('🚀 Loading older logs...');
             loadOlderLogs();
         }
     });
 
     // Load older logs for infinite scroll
     async function loadOlderLogs() {
-        if (isLoadingOlderLogs || !hasMoreLogs) return;
+        console.log('loadOlderLogs called, state:', {
+            isLoadingOlderLogs,
+            hasMoreLogs,
+            currentOffset,
+        });
 
+        if (isLoadingOlderLogs || !hasMoreLogs) {
+            console.log('Bailing out:', { isLoadingOlderLogs, hasMoreLogs });
+            return;
+        }
+
+        console.log('Starting to load older logs...');
         isLoadingOlderLogs = true;
 
-        // Show loading indicator at top
+        // Show loading indicator at bottom
         const loadingDiv = document.createElement('div');
         loadingDiv.className = 'loading-indicator';
         loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading older logs...';
-        logOutput.insertBefore(loadingDiv, logOutput.firstChild);
+        logOutput.appendChild(loadingDiv);
 
         try {
             const params = new URLSearchParams({
                 level: selectedLevel,
                 limit: LOGS_PER_PAGE.toString(),
-                offset: (currentOffset + LOGS_PER_PAGE).toString(),
+                offset: currentOffset.toString(),
+                testOnly: testOnlyMode.toString(),
             });
 
             const response = await fetch(`/api/admin/logs?${params}`, {
@@ -153,35 +189,71 @@ document.addEventListener('DOMContentLoaded', () => {
             // Remove loading indicator
             loadingDiv.remove();
 
+            // Check if we received fewer logs than requested (end of data)
+            console.log(
+                `📊 Received ${olderLogs.length} logs, expected ${LOGS_PER_PAGE}, currentOffset: ${currentOffset}`
+            );
+
             if (olderLogs.length === 0) {
                 hasMoreLogs = false;
-                // Show "no more logs" message
+                console.log('✅ No more logs available - showing end message');
+                // Show "no more logs" message at bottom
                 const noMoreDiv = document.createElement('div');
                 noMoreDiv.className = 'no-more-logs';
                 noMoreDiv.textContent = 'No more older logs available';
-                logOutput.insertBefore(noMoreDiv, logOutput.firstChild);
+                logOutput.appendChild(noMoreDiv);
                 return;
             }
 
-            // Save current scroll position
-            const currentScrollTop = logOutput.scrollTop;
-            const currentScrollHeight = logOutput.scrollHeight;
+            // If we received fewer logs than expected, this might be the last batch
+            // But we'll append them and let the next request determine if we're truly done
+            if (olderLogs.length < LOGS_PER_PAGE) {
+                console.log(
+                    `⚠️  Received partial batch: ${olderLogs.length}/${LOGS_PER_PAGE} - might be near end`
+                );
+            }
 
-            // Prepend older logs to current logs array
-            currentLogs = [...olderLogs, ...currentLogs];
-            currentOffset += LOGS_PER_PAGE;
+            // Append older logs to current logs array (at the end)
+            currentLogs = [...currentLogs, ...olderLogs];
+            currentOffset += olderLogs.length;
 
-            // Re-render all logs
-            renderLogs(currentLogs);
-
-            // Restore scroll position to prevent jump
-            const newScrollHeight = logOutput.scrollHeight;
-            logOutput.scrollTop = newScrollHeight - currentScrollHeight + currentScrollTop;
+            // Render only the new logs (append to DOM)
+            appendNewLogs(olderLogs);
         } catch (error) {
             console.error('Failed to load older logs:', error);
             loadingDiv.remove();
         } finally {
             isLoadingOlderLogs = false;
+        }
+    }
+
+    // Append new logs to the DOM without re-rendering everything
+    function appendNewLogs(newLogs, prepend = false) {
+        const logOutput = document.getElementById('log-output');
+
+        if (prepend) {
+            // For new logs (real-time updates) - add to top
+            // Server returns newest-first, so iterate normally to maintain chronological order
+            newLogs.forEach(log => {
+                // Apply text filter
+                if (searchText && !log.message.toLowerCase().includes(searchText)) {
+                    return; // Skip this log if it doesn't match search
+                }
+
+                const logElement = formatLog(log);
+                logOutput.insertBefore(logElement, logOutput.firstChild);
+            });
+        } else {
+            // For older logs (infinite scroll) - add to bottom
+            newLogs.forEach(log => {
+                // Apply text filter
+                if (searchText && !log.message.toLowerCase().includes(searchText)) {
+                    return; // Skip this log if it doesn't match search
+                }
+
+                const logElement = formatLog(log);
+                logOutput.appendChild(logElement);
+            });
         }
     }
 
@@ -289,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderLogs(logs) {
         // Since server-side filtering is applied, we only need to apply search filter
+        // Server already returns logs in newest-first order, so no need to reverse
         const filteredLogs = logs
             .filter(log => {
                 const textMatch =
@@ -297,8 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     log.level.toLowerCase().includes(searchText);
                 return textMatch;
             })
-            .slice()
-            .reverse(); // Newest-first rendering
+            .slice(); // Keep server order (newest-first)
 
         const container = logOutput.parentElement;
         const wasScrolledToTop = container.scrollTop <= 10; // Allow small threshold for "at top"
@@ -383,8 +455,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams({
                 level: selectedLevel,
                 limit: isInitialLoad ? LOGS_PER_PAGE.toString() : '50', // Smaller limit for updates
-                offset: isInitialLoad ? '0' : undefined,
+                // Don't use offset for initial load - we want the newest logs first
+                testOnly: testOnlyMode.toString(),
             });
+
+            // Only add offset for non-initial loads (infinite scroll)
+            if (!isInitialLoad && currentOffset > 0) {
+                params.set('offset', currentOffset.toString());
+            }
 
             const response = await fetch(`/api/admin/logs?${params}`, {
                 headers: {
@@ -403,8 +481,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isInitialLoad) {
                 // Initial load: replace all logs
                 currentLogs = logs;
-                currentOffset = 0;
+                currentOffset = logs.length; // Set offset to number of logs loaded
                 hasMoreLogs = logs.length === LOGS_PER_PAGE; // Assume more if we got a full page
+                console.log(
+                    'Initial load complete. Logs:',
+                    logs.length,
+                    'Offset now:',
+                    currentOffset
+                );
                 renderLogs(logs);
             } else {
                 // Update: check for new logs and append them
@@ -418,9 +502,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     );
 
                     if (newLogs.length > 0) {
-                        // Append new logs to the end (most recent)
-                        currentLogs = [...currentLogs, ...newLogs];
-                        renderLogs(currentLogs);
+                        // Prepend new logs to the beginning (most recent first)
+                        currentLogs = [...newLogs, ...currentLogs];
+                        // Use appendNewLogs with prepend=true to add to top without scroll reset
+                        appendNewLogs(newLogs, true);
                     }
                 }
             }
@@ -432,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Smart polling: start with longer intervals, then speed up
-    let pollCount = 0;
+    const pollCount = 0;
     let pollInterval;
 
     function getPollingInterval() {
@@ -446,12 +531,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startPolling() {
-        const interval = getPollingInterval();
-        pollInterval = setTimeout(() => {
-            pollCount++;
-            fetchLogs();
-            startPolling(); // Schedule next poll
-        }, interval);
+        // Temporarily disabled for testing
+        // const interval = getPollingInterval();
+        // pollInterval = setTimeout(() => {
+        //     pollCount++;
+        //     fetchLogs();
+        //     startPolling(); // Schedule next poll
+        // }, interval);
     }
 
     // Fetch logs immediately on load, then start smart polling
