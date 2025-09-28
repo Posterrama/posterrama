@@ -73,17 +73,18 @@ body.page-logs {
 }
 
 .logs-toolbar.form-section {
-    margin: 0 0 var(--space-md) 0;
-    padding: var(--space-md) var(--space-md) var(--space-sm);
+    margin: 0 0 var(--space-lg) 0;
+    padding: var(--space-lg) var(--space-lg) var(--space-md);
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
 }
 .logs-toolbar .logs-row {
     display: flex;
     flex-wrap: nowrap;
-    gap: var(--space-md);
-    align-items: flex-end;
+    gap: var(--space-lg);
+    align-items: center;
 }
 /* Logs buttons styled to match wallart preset appearance - copy exact selectors */
 .logs-toolbar .logs-row .btn,
@@ -96,7 +97,7 @@ body.page-logs {
     transition: all 150ms ease-in-out;
     border-radius: 14px;
     font-weight: 500;
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary);
     background-color: var(--color-bg-tertiary);
     background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15));
     box-shadow:
@@ -143,23 +144,60 @@ body.page-logs {
     outline: 2px solid currentColor;
     outline-offset: 2px;
 }
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
     .logs-toolbar .logs-row {
         flex-wrap: wrap;
+        gap: var(--space-md);
     }
     .logs-toolbar .logs-row .form-row.search-row {
         order: 5;
         flex: 1 1 100%;
+        margin-top: var(--space-sm);
     }
     .logs-toolbar .logs-row .form-row.action-row {
         order: 6;
     }
 }
+@media (max-width: 768px) {
+    .logs-toolbar .logs-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-md);
+    }
+    .logs-toolbar .logs-row .form-row {
+        align-items: stretch;
+    }
+    .logs-toolbar .logs-row .form-row.search-row {
+        order: unset;
+        margin-top: 0;
+    }
+}
+
+/* Individual form row spacing and alignment */
+.logs-toolbar .logs-row .form-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+.logs-toolbar .logs-row .form-row.status-row {
+    min-width: 140px;
+}
+.logs-toolbar .logs-row .form-row.level-row {
+    min-width: 100px;
+}
+.logs-toolbar .logs-row .form-row.auto-scroll-row {
+    min-width: 120px;
+    justify-content: center;
+}
+.logs-toolbar .logs-row .form-row.action-row {
+    min-width: 120px;
+}
 
 /* Allow search to grow */
 .logs-toolbar .logs-row .form-row.flex-grow {
     flex: 1 1 auto;
-    min-width: 240px;
+    min-width: 280px;
 }
 
 /* Uniform control sizing */
@@ -167,9 +205,10 @@ body.page-logs {
     font-size: 0.7rem;
     font-weight: 600;
     letter-spacing: 0.5px;
+    color: var(--color-text-secondary);
 }
 .logs-toolbar .logs-row .level-row .select-wrap {
-    min-width: 170px;
+    min-width: 100px;
 }
 .logs-toolbar .logs-row select,
 .logs-toolbar .logs-row .logs-search-wrap > input {
@@ -184,15 +223,28 @@ body.page-logs {
     transform: translateY(-50%);
 }
 
-/* Checkbox alignment */
+/* Checkbox alignment and styling */
 .logs-toolbar .logs-row .auto-scroll-row .checkbox {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     height: 44px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    transition: all 150ms ease;
+}
+.logs-toolbar .logs-row .auto-scroll-row .checkbox:hover {
+    background: var(--color-bg-hover);
 }
 .logs-toolbar .logs-row .auto-scroll-row .checkbox input {
     margin: 0;
+}
+.logs-toolbar .logs-row .auto-scroll-row .checkbox span:last-child {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
 }
 
 /* Button refinement – rely on shared button styles; enforce consistent min width */
@@ -203,13 +255,18 @@ body.page-logs {
 .logs-toolbar .status {
     display: flex;
     align-items: center;
-    gap: 8px;
-    color: var(--color-text-secondary);
-    margin-right: auto;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 .logs-toolbar .status-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--color-warning);
     box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15) inset;
