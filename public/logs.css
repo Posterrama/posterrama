@@ -309,68 +309,7 @@ body.page-logs {
     justify-content: flex-end;
 }
 
-/* Filter badges - positioned right of search field */
-.filter-badges {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 8px;
-    align-items: center;
-    margin-left: var(--space-md); /* Padding from search field */
-    flex-shrink: 0; /* Don't shrink badges */
-    height: 44px; /* Match search input height exactly */
-    min-width: 120px; /* Reserve space even when empty to prevent layout shift */
-}
-.filter-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 6px 12px; /* Adjust padding for new height */
-    background: var(--color-bg-tertiary);
-    color: var(--color-text-primary);
-    border-radius: 20px;
-    font-size: 0.75rem; /* Match input font size */
-    font-weight: 500;
-    border: 1px solid var(--color-border);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: all 120ms var(--anim-ease-emph);
-    line-height: 14.4px; /* Match input line height exactly */
-    box-sizing: border-box; /* Ensure consistent box model */
-    height: 30px; /* Appropriate badge height */
-    margin: 0; /* Remove any default margins */
-    position: relative;
-}
-.filter-badge:hover {
-    background: var(--color-bg-card);
-    border-color: var(--color-text-tertiary);
-}
-.filter-badge .badge-close {
-    background: none;
-    border: none;
-    color: var(--color-text-tertiary);
-    cursor: pointer;
-    padding: 0;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    transition: all 120ms var(--anim-ease-emph);
-}
-.filter-badge .badge-close:hover {
-    color: var(--color-text-primary);
-    background: var(--color-border);
-}
-
-/* Ensure all badge types use neutral colors */
-.filter-badge.level-badge,
-.filter-badge.text-badge {
-    background: var(--color-bg-tertiary) !important;
-    color: var(--color-text-primary) !important;
-    border-color: var(--color-border) !important;
-}
+/* Filter badges removed */
 
 /* Removed legacy fg-* utilities; using form-row + grid layout */
 .logs-toolbar .sr-only {
