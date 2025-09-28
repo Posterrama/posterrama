@@ -297,14 +297,16 @@ body.page-logs {
 /* Layout for badges and controls */
 .logs-toolbar .badges-row {
     justify-content: flex-start;
-    align-items: center;
-    min-height: 44px; /* Match search field height */
+    align-items: flex-start;
+    padding-top: 4px; /* Slight offset down */
 }
 .logs-toolbar .controls-row {
     justify-content: flex-end;
     align-items: center;
-    gap: var(--space-lg);
+    gap: var(--space-md);
     margin-left: auto; /* Push to right */
+    display: flex;
+    flex-direction: row; /* Ensure horizontal layout */
 }
 
 /* Filter badges */
@@ -330,7 +332,7 @@ body.page-logs {
 }
 .filter-badge:hover {
     background: var(--color-bg-card);
-    border-color: var(--color-secondary);
+    border-color: var(--color-text-tertiary);
 }
 .filter-badge .badge-close {
     background: none;
@@ -350,6 +352,14 @@ body.page-logs {
 .filter-badge .badge-close:hover {
     color: var(--color-text-primary);
     background: var(--color-border);
+}
+
+/* Ensure all badge types use neutral colors */
+.filter-badge.level-badge,
+.filter-badge.text-badge {
+    background: var(--color-bg-tertiary) !important;
+    color: var(--color-text-primary) !important;
+    border-color: var(--color-border) !important;
 }
 
 /* Removed legacy fg-* utilities; using form-row + grid layout */
