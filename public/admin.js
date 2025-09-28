@@ -73,6 +73,10 @@
             'at',
             window.__diagUI.adminLoadedAt
         );
+        try {
+            window.__adminTrace = window.__adminTrace || [];
+            window.__adminTrace.push('after:sentinel');
+        } catch (_) {}
     } catch (diagErr) {
         console.warn('[AdminBoot] diag helper init failed', diagErr);
     }
@@ -4662,7 +4666,7 @@
                 const { list } = getRefs();
                 if (list) {
                     try {
-                        console.debug('[NotifDebug] renderPanel start', {
+                        console.log('[NotifDebug] renderPanel start', {
                             alertCount: Array.isArray(alerts) ? alerts.length : 'n/a',
                             logCount: Array.isArray(logs) ? logs.length : 'n/a',
                             parts: parts.length,
@@ -4675,7 +4679,7 @@
                             .join('');
                         list.innerHTML = html;
                         try {
-                            console.debug('[NotifDebug] renderPanel populated', {
+                            console.log('[NotifDebug] renderPanel populated', {
                                 itemNodes: list.querySelectorAll('.notify-item').length,
                                 htmlLength: list.innerHTML.length,
                             });
@@ -4684,7 +4688,7 @@
                         list.innerHTML =
                             '<div class="notify-item notify-empty"><div class="notify-title" style="grid-column:1 / -1; text-align:center; opacity:.85;">No notifications</div></div>';
                         try {
-                            console.debug('[NotifDebug] renderPanel empty');
+                            console.log('[NotifDebug] renderPanel empty');
                         } catch (_) {}
                     }
                 } else {
@@ -4695,7 +4699,7 @@
             async function refreshBadge(force = false) {
                 try {
                     try {
-                        console.debug('[NotifDebug] refreshBadge start', { force });
+                        console.log('[NotifDebug] refreshBadge start', { force });
                     } catch (_) {}
                     // Suppression window after user clears notifications (avoid bounce-back)
                     try {
@@ -4711,7 +4715,7 @@
                     } catch (_) {}
                     let { alerts, logs } = await fetchAlertsAndLogs({ force });
                     try {
-                        console.debug('[NotifDebug] refreshBadge data', {
+                        console.log('[NotifDebug] refreshBadge data', {
                             a: alerts?.length,
                             l: logs?.length,
                         });
@@ -4727,11 +4731,11 @@
                     const count = shownAlerts + shownLogs;
                     setBadge(count);
                     try {
-                        console.debug('[NotifDebug] refreshBadge count set', { count });
+                        console.log('[NotifDebug] refreshBadge count set', { count });
                     } catch (_) {}
                     renderPanel({ alerts, logs });
                     try {
-                        console.debug('[NotifDebug] refreshBadge done');
+                        console.log('[NotifDebug] refreshBadge done');
                     } catch (_) {}
                 } catch (_) {
                     try {
