@@ -113,6 +113,9 @@ body.page-logs {
     font-weight: 600;
     letter-spacing: 0.5px;
 }
+.logs-toolbar .logs-row .level-row .select-wrap {
+    min-width: 170px;
+}
 .logs-toolbar .logs-row select,
 .logs-toolbar .logs-row .logs-search-wrap > input,
 .logs-toolbar .logs-row #pauseButton.btn {
