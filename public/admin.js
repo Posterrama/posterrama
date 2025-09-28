@@ -4698,6 +4698,20 @@
             // Guard to avoid duplicate bindings if init runs again
             if (!window.__notifHandlersAdded) {
                 window.__notifHandlersAdded = true;
+                // Capture-phase guard: ensure notif button click can't be swallowed by generic close handlers
+                try {
+                    document.addEventListener(
+                        'click',
+                        ev => {
+                            const btn = ev.target.closest?.('#notif-btn');
+                            if (btn) {
+                                // Mark event so other listeners know it originated from notif toggle
+                                ev.__fromNotifBtn = true;
+                            }
+                        },
+                        true
+                    );
+                } catch (_) {}
                 // Delegated toggle open on bell
                 document.addEventListener('click', async e => {
                     const notifBtn = e.target.closest?.('#notif-btn');
@@ -4730,6 +4744,7 @@
                     // Close when clicking outside
                     const { panel } = getRefs();
                     if (panel && !panel.contains(e.target) && !e.target.closest('#notif-btn')) {
+                        if (e.__fromNotifBtn) return; // guard: same originating click
                         if (window.__notifJustOpened) {
                             // Skip immediate close on same originating click
                             return;
