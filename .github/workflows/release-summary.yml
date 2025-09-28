@@ -1,0 +1,51 @@
+name: Release Summary
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release-summary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run tests (fast coverage)
+        run: npm run test:coverage
+
+      - name: Generate release summary
+        run: npm run release:summary
+
+      - name: Upload release summary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-check-summary
+          path: private/release-check-summary.md
+          if-no-files-found: warn
+
+      - name: Attach to GitHub Release (if exists)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SUMMARY=private/release-check-summary.md
+          if [ -f "$SUMMARY" ]; then
+            gh release upload "${GITHUB_REF##*/}" "$SUMMARY" --clobber || echo "Could not attach summary (release might not exist yet)."
+          else
+            echo "Summary file missing"
+          fi

@@ -37,7 +37,7 @@ function summarizeCoverage(cov) {
     for (const file of Object.values(cov)) {
         if (!file || !file.l) continue;
         // lines
-        for (const [ln, hits] of Object.entries(file.l)) {
+        for (const hits of Object.values(file.l)) {
             totalLines += 1;
             if (hits > 0) coveredLines += 1;
         }
