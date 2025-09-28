@@ -28,42 +28,44 @@
         </header>
 
         <main class="logs-container">
-            <div class="logs-toolbar form-toolbar">
-                <div class="status">
-                    <span id="status-dot" class="status-dot" aria-hidden="true"></span>
-                    <span id="status-text" class="status-text">Connecting...</span>
-                </div>
-
-                <div class="form-group fg-inline fg-compact">
-                    <label for="logLevel" class="fg-label">Level</label>
-                    <div class="select-wrap has-caret">
-                        <select id="logLevel" class="form-input" aria-label="Log level filter">
-                            <option value="debug">DEBUG</option>
-                            <option value="info" selected>INFO</option>
-                            <option value="warn">WARN</option>
-                            <option value="error">ERROR</option>
-                        </select>
+            <div class="logs-toolbar form-section" id="logs-toolbar-section">
+                <div class="form-grid logs-grid" style="--cols:5;">
+                    <div class="form-row status-row" style="min-width:160px;">
+                        <div class="status" aria-live="polite" aria-atomic="true">
+                            <span id="status-dot" class="status-dot" aria-hidden="true"></span>
+                            <span id="status-text" class="status-text">Connecting...</span>
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-group fg-inline fg-grow">
-                    <label for="textFilter" class="sr-only">Search logs</label>
-                    <div class="input-wrap iw-icon-left">
-                        <i class="fas fa-search iw-leading" aria-hidden="true"></i>
-                        <input type="text" id="textFilter" class="form-input" placeholder="Search logs..." aria-label="Search logs" />
-                        <button class="btn btn-clear-input" id="clearFilter" type="button" title="Clear search" aria-label="Clear search"><i class="fas fa-times"></i></button>
+                    <div class="form-row level-row" style="min-width:140px;">
+                        <label for="logLevel">Level</label>
+                        <div class="select-wrap has-caret">
+                            <select id="logLevel" aria-label="Log level filter">
+                                <option value="debug">DEBUG</option>
+                                <option value="info" selected>INFO</option>
+                                <option value="warn">WARN</option>
+                                <option value="error">ERROR</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-group fg-inline fg-compact auto-scroll-wrap">
-                    <label for="autoScroll" class="fg-label">Auto-scroll</label>
-                    <div class="toggle-wrap">
-                        <input type="checkbox" id="autoScroll" class="toggle-input" checked aria-checked="true" />
+                    <div class="form-row search-row" style="flex:1; min-width:240px;">
+                        <label for="textFilter" class="sr-only">Search logs</label>
+                        <div class="logs-search-wrap">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <input type="text" id="textFilter" placeholder="Search logs..." aria-label="Search logs" />
+                            <button type="button" id="clearFilter" class="btn btn-icon btn-sm clear-search" title="Clear search" aria-label="Clear search"><i class="fas fa-times"></i></button>
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-group fg-inline fg-compact">
-                    <button class="btn btn-accent btn-sm" id="pauseButton" type="button"><i class="fas fa-pause"></i><span class="btn-text"> Pause</span></button>
+                    <div class="form-row auto-scroll-row" style="min-width:130px;">
+                        <label class="checkbox" for="autoScroll">
+                            <input type="checkbox" id="autoScroll" checked />
+                            <span class="checkmark"></span>
+                            <span>Auto-scroll</span>
+                        </label>
+                    </div>
+                    <div class="form-row action-row" style="min-width:120px; align-self:end;">
+                        <button class="btn btn-secondary btn-sm" id="pauseButton" type="button" data-state="playing"><i class="fas fa-pause"></i><span class="btn-text"> Pause</span></button>
+                    </div>
                 </div>
             </div>
 

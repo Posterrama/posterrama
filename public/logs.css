@@ -75,16 +75,29 @@ body.page-logs {
     overflow: hidden;
 }
 
-.logs-toolbar.form-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: stretch;
-    gap: var(--space-md);
+.logs-toolbar.form-section {
+    margin: 0 0 var(--space-md) 0;
+    padding: var(--space-md) var(--space-md) var(--space-sm);
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
-    padding: var(--space-md);
-    position: relative;
+}
+.logs-toolbar .logs-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(110px, auto);
+    gap: var(--space-md);
+    align-items: end;
+}
+@media (max-width: 1100px) {
+    .logs-toolbar .logs-grid {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        align-items: stretch;
+    }
+    .logs-toolbar .form-row.action-row {
+        align-self: stretch;
+    }
 }
 .logs-toolbar .status {
     display: flex;
@@ -107,28 +120,7 @@ body.page-logs {
     background: var(--color-error);
 }
 
-/* Inline form groups inside toolbar */
-.logs-toolbar .form-group.fg-inline {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 120px;
-}
-.logs-toolbar .form-group.fg-inline.fg-grow {
-    flex: 1 1 260px;
-    min-width: 200px;
-}
-.logs-toolbar .form-group.fg-inline.fg-compact {
-    min-width: 100px;
-    flex: 0 0 auto;
-}
-.logs-toolbar .fg-label {
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: var(--color-text-tertiary);
-}
+/* Removed legacy fg-* utilities; using form-row + grid layout */
 .logs-toolbar .sr-only {
     position: absolute;
     width: 1px;
@@ -140,73 +132,74 @@ body.page-logs {
     border: 0;
 }
 
-/* Input wrap with leading icon + clear button */
-.logs-toolbar .input-wrap.iw-icon-left {
+/* Search wrapper pattern */
+.logs-search-wrap {
     position: relative;
     display: flex;
     align-items: center;
 }
-.logs-toolbar .input-wrap .iw-leading {
+.logs-search-wrap > i {
     position: absolute;
     left: 12px;
     font-size: 0.8rem;
     color: var(--color-text-tertiary);
     pointer-events: none;
 }
-.logs-toolbar .input-wrap .form-input {
-    padding-left: 34px;
+.logs-search-wrap > input {
+    width: 100%;
+    padding: 10px 38px 10px 34px;
+    font-size: 0.75rem;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text-primary);
+    outline: none;
+    transition:
+        border-color 120ms var(--anim-ease-emph),
+        box-shadow 120ms var(--anim-ease-emph);
 }
-.logs-toolbar .input-wrap .btn-clear-input {
+.logs-search-wrap > input:focus {
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 3px rgba(var(--color-secondary-rgb, 102 126 234) / 35%);
+}
+.logs-search-wrap .clear-search {
     position: absolute;
-    right: 6px;
+    right: 4px;
     top: 50%;
     transform: translateY(-50%);
     background: transparent;
     border: none;
     color: var(--color-text-tertiary);
-    cursor: pointer;
+    width: 30px;
+    height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
     border-radius: 6px;
     transition:
         background 0.15s ease,
         color 0.15s ease;
 }
-.logs-toolbar .input-wrap .btn-clear-input:hover,
-.logs-toolbar .input-wrap .btn-clear-input:focus-visible {
+.logs-search-wrap .clear-search:hover,
+.logs-search-wrap .clear-search:focus-visible {
     background: var(--color-bg-tertiary);
     color: var(--color-text-primary);
 }
-.logs-toolbar .input-wrap .btn-clear-input:active {
+.logs-search-wrap .clear-search:active {
     background: var(--color-bg-dark);
 }
 
-/* Toggle (auto-scroll) - minimal styling relying on browser accent */
-.logs-toolbar .toggle-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    height: 100%;
-}
-.logs-toolbar .toggle-wrap .toggle-input {
-    width: 20px;
-    height: 20px;
-    accent-color: var(--color-secondary);
-}
+/* Checkbox now inherits shared checkbox styles */
 
 /* Select integration inside select-wrap */
-.logs-toolbar .select-wrap.has-caret select.form-input {
-    min-height: 40px;
+.logs-toolbar .select-wrap.has-caret select {
+    min-height: 44px;
     font-size: 0.75rem;
-    padding-right: 36px;
 }
 
 /* Pause button alignment */
 .logs-toolbar #pauseButton.btn {
-    min-height: 40px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
