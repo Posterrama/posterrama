@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pauseButton = document.getElementById('pauseButton');
     const autoScrollCheckbox = document.getElementById('autoScroll');
     const clearFilterButton = document.getElementById('clearFilter');
+    const filterBadges = document.getElementById('filterBadges');
 
     let lastLogCount = 0;
     // Track scroll state within checkScroll(); initialized true
@@ -83,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logLevelSelect.addEventListener('change', e => {
         selectedLevel = e.target.value;
+        updateFilterBadges();
         // Fetch new logs with updated level filter
         fetchLogs();
     });
@@ -91,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     textFilter.addEventListener('input', e => {
         searchText = e.target.value.toLowerCase();
+        updateFilterBadges();
         renderLogs(currentLogs);
     });
 
@@ -99,9 +102,75 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedLevel = 'info';
         textFilter.value = '';
         searchText = '';
+        updateFilterBadges();
         // Fetch new logs with info level
         fetchLogs();
     });
+
+    // Update filter badges display
+    function updateFilterBadges() {
+        const badges = [];
+
+        // Add level badge if not default (INFO)
+        if (selectedLevel !== 'info') {
+            badges.push({
+                type: 'level',
+                text: `Level: ${selectedLevel.toUpperCase()}`,
+                value: selectedLevel,
+            });
+        }
+
+        // Add text search badge if active
+        if (searchText.trim()) {
+            badges.push({
+                type: 'text',
+                text: `Search: "${searchText.trim()}"`,
+                value: searchText.trim(),
+            });
+        }
+
+        // Show/hide badges container
+        if (badges.length === 0) {
+            filterBadges.style.display = 'none';
+            return;
+        }
+
+        filterBadges.style.display = 'flex';
+
+        // Generate badges HTML
+        filterBadges.innerHTML = badges
+            .map(
+                badge => `
+            <div class="filter-badge ${badge.type}-badge">
+                <span>${badge.text}</span>
+                <button class="badge-close" data-type="${badge.type}" title="Remove filter">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `
+            )
+            .join('');
+
+        // Add click handlers for badge removal
+        filterBadges.querySelectorAll('.badge-close').forEach(btn => {
+            btn.addEventListener('click', e => {
+                e.preventDefault();
+                const type = btn.dataset.type;
+
+                if (type === 'level') {
+                    logLevelSelect.value = 'info';
+                    selectedLevel = 'info';
+                    fetchLogs();
+                } else if (type === 'text') {
+                    textFilter.value = '';
+                    searchText = '';
+                    renderLogs(currentLogs);
+                }
+
+                updateFilterBadges();
+            });
+        });
+    }
 
     function formatLog(log) {
         const { timestamp, level, message } = log;
@@ -356,7 +425,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }, interval);
     }
 
-    // Fetch logs immediately on load, then start smart polling
+    // Initialize filter badges and fetch logs immediately on load, then start smart polling
+    updateFilterBadges();
     fetchLogs();
     startPolling();
 

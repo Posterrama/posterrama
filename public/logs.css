@@ -85,6 +85,7 @@ body.page-logs {
     flex-wrap: nowrap;
     gap: var(--space-lg);
     align-items: center;
+    width: 100%;
 }
 /* Logs buttons styled to match wallart preset appearance - copy exact selectors */
 .logs-toolbar .logs-row .btn,
@@ -161,12 +162,17 @@ body.page-logs {
         gap: var(--space-md);
     }
     .logs-toolbar .logs-row .form-row.search-row {
-        order: 5;
-        flex: 1 1 100%;
-        margin-top: var(--space-sm);
+        order: 1;
+        flex: 1 1 auto;
     }
-    .logs-toolbar .logs-row .form-row.action-row {
-        order: 6;
+    .logs-toolbar .logs-row .form-row.badges-row {
+        order: 2;
+        flex: 0 0 auto;
+    }
+    .logs-toolbar .logs-row .form-row.controls-row {
+        order: 3;
+        flex: 0 0 auto;
+        margin-left: 0;
     }
 }
 @media (max-width: 768px) {
@@ -205,10 +211,16 @@ body.page-logs {
     min-width: 120px;
 }
 
-/* Allow search to grow */
+/* Allow search to grow, badges and controls fixed */
 .logs-toolbar .logs-row .form-row.flex-grow {
     flex: 1 1 auto;
     min-width: 280px;
+}
+.logs-toolbar .logs-row .form-row.badges-row {
+    flex: 0 0 auto;
+}
+.logs-toolbar .logs-row .form-row.controls-row {
+    flex: 0 0 auto;
 }
 
 /* Uniform control sizing */
@@ -280,6 +292,64 @@ body.page-logs {
 }
 .logs-toolbar .status-dot.disconnected {
     background: var(--color-error);
+}
+
+/* Layout for badges and controls */
+.logs-toolbar .badges-row {
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 44px; /* Match search field height */
+}
+.logs-toolbar .controls-row {
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-lg);
+    margin-left: auto; /* Push to right */
+}
+
+/* Filter badges */
+.filter-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+.filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 120ms var(--anim-ease-emph);
+}
+.filter-badge:hover {
+    background: var(--color-bg-card);
+    border-color: var(--color-secondary);
+}
+.filter-badge .badge-close {
+    background: none;
+    border: none;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    transition: all 120ms var(--anim-ease-emph);
+}
+.filter-badge .badge-close:hover {
+    color: var(--color-text-primary);
+    background: var(--color-border);
 }
 
 /* Removed legacy fg-* utilities; using form-row + grid layout */
@@ -372,6 +442,54 @@ body.page-logs {
     height: 18px;
 }
 
+/* Filter badges */
+.filter-badges {
+    padding: 0 var(--space-xl);
+    margin-bottom: var(--space-md);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--color-secondary);
+    color: var(--color-text-inverse);
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.filter-badge .badge-close {
+    background: none;
+    border: none;
+    color: currentColor;
+    cursor: pointer;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    opacity: 0.7;
+    transition: opacity 120ms var(--anim-ease-emph);
+}
+.filter-badge .badge-close:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.2);
+}
+.filter-badge.level-badge {
+    background: var(--color-warning);
+}
+.filter-badge.text-badge {
+    background: var(--color-info);
+}
+
 .logs-viewer {
     flex: 1 1 auto;
     background: var(--color-bg-dark);
@@ -384,6 +502,23 @@ body.page-logs {
         monospace;
     font-size: 0.85rem;
     line-height: 1.5;
+    position: relative;
+}
+
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: var(--space-md);
+    color: var(--color-text-tertiary);
+    font-size: 0.8rem;
+    border-radius: var(--border-radius-sm);
+    background: rgba(var(--color-bg-secondary-rgb, 0 0 0) / 50%);
+    margin: 8px 0;
+}
+.loading-indicator .fa-spinner {
+    font-size: 0.9rem;
 }
 .logs-output {
     display: grid;
