@@ -4843,17 +4843,8 @@
                         true
                     );
                 } catch (_) {}
-                try {
-                    console.debug('[NotifDebug] fetchAlertsAndLogs done', {
-                        a: alerts?.length,
-                        l: logs?.length,
-                    });
-                } catch (_) {}
                 // Delegated toggle open on bell
                 document.addEventListener('click', async e => {
-                    try {
-                        console.warn('[NotifDebug] fetchAlertsAndLogs error', err?.message || err);
-                    } catch (_) {}
                     const notifBtn = e.target.closest?.('#notif-btn');
                     if (notifBtn) {
                         e.stopPropagation();
