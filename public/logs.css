@@ -82,22 +82,69 @@ body.page-logs {
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
 }
-.logs-toolbar .logs-grid {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(110px, auto);
+.logs-toolbar .logs-row {
+    display: flex;
+    flex-wrap: nowrap;
     gap: var(--space-md);
-    align-items: end;
+    align-items: flex-end;
 }
 @media (max-width: 1100px) {
-    .logs-toolbar .logs-grid {
-        grid-auto-flow: row;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        align-items: stretch;
+    .logs-toolbar .logs-row {
+        flex-wrap: wrap;
     }
-    .logs-toolbar .form-row.action-row {
-        align-self: stretch;
+    .logs-toolbar .logs-row .form-row.search-row {
+        order: 5;
+        flex: 1 1 100%;
     }
+    .logs-toolbar .logs-row .form-row.action-row {
+        order: 6;
+    }
+}
+
+/* Allow search to grow */
+.logs-toolbar .logs-row .form-row.flex-grow {
+    flex: 1 1 auto;
+    min-width: 240px;
+}
+
+/* Uniform control sizing */
+.logs-toolbar .logs-row .form-row label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.logs-toolbar .logs-row select,
+.logs-toolbar .logs-row .logs-search-wrap > input,
+.logs-toolbar .logs-row #pauseButton.btn {
+    height: 44px;
+    line-height: 1.2;
+}
+.logs-toolbar .logs-row .select-wrap.has-caret select {
+    padding-right: 34px;
+}
+.logs-toolbar .logs-row .select-wrap .select-caret {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Checkbox alignment */
+.logs-toolbar .logs-row .auto-scroll-row .checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 44px;
+}
+.logs-toolbar .logs-row .auto-scroll-row .checkbox input {
+    margin: 0;
+}
+
+/* Button refinement */
+.logs-toolbar #pauseButton.btn {
+    min-width: 110px;
+    justify-content: center;
+}
+.logs-toolbar #pauseButton.btn .btn-text {
+    margin-left: 4px;
 }
 .logs-toolbar .status {
     display: flex;
@@ -192,18 +239,13 @@ body.page-logs {
 /* Checkbox now inherits shared checkbox styles */
 
 /* Select integration inside select-wrap */
+/* Select font sizing kept small for dense toolbar */
 .logs-toolbar .select-wrap.has-caret select {
-    min-height: 44px;
     font-size: 0.75rem;
 }
 
 /* Pause button alignment */
-.logs-toolbar #pauseButton.btn {
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
+/* Pause button already normalized in uniform control sizing */
 
 /* Removed legacy #textFilter styling in favor of shared .form-input + icon wrapper */
 
