@@ -6571,6 +6571,101 @@ app.get('/api/health', (req, res, next) => {
     app._router.handle(req, res, next);
 });
 
+// Test endpoint to clear memory logs (NO AUTH REQUIRED)
+app.get('/api/test/clear-logs', (req, res) => {
+    try {
+        const beforeCount = logger.memoryLogs.length;
+        logger.memoryLogs.length = 0; // Clear all memory logs
+
+        res.json({
+            success: true,
+            message: `Cleared ${beforeCount} memory logs`,
+            beforeCount,
+            afterCount: logger.memoryLogs.length,
+        });
+    } catch (error) {
+        logger.error('Failed to clear memory logs:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+        });
+    }
+});
+
+// Test endpoint to generate logs for development/testing (NO AUTH REQUIRED)
+app.get('/api/test/generate-logs', (req, res) => {
+    try {
+        const count = parseInt(req.query.count) || 10;
+        const maxCount = 1000; // Safety limit
+
+        const actualCount = Math.min(count, maxCount);
+
+        // Array of different log levels
+        const levels = ['info', 'warn', 'error', 'debug'];
+
+        // Array of sample messages
+        const messages = [
+            'System startup complete',
+            'Cache invalidated successfully',
+            'User authentication successful',
+            'Configuration updated',
+            'Media scan initiated',
+            'Database connection established',
+            'API request processed',
+            'Memory usage optimal',
+            'Service health check passed',
+            'Backup operation started',
+            'Network connection stable',
+            'File processing complete',
+            'Session cleanup executed',
+            'Performance metrics collected',
+            'Security validation passed',
+            'Resource allocation optimized',
+            'External API call successful',
+            'Data synchronization complete',
+            'Error recovery initiated',
+            'System resources available',
+            'Connection pool refreshed',
+            'Task queue processed',
+            'Monitoring alert cleared',
+            'Service discovery updated',
+            'Load balancing adjusted',
+        ];
+
+        function getRandomItem(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        // Generate all logs in batch to avoid system logs interrupting
+        const logEntries = [];
+        for (let i = 1; i <= actualCount; i++) {
+            const level = getRandomItem(levels);
+            const messageBase = getRandomItem(messages);
+            const message = `[${i}/${actualCount}] ${messageBase} - Test log entry #${i}`;
+            logEntries.push(message);
+        }
+
+        // Log all at once to preserve order
+        // Add a special marker to identify test logs
+        logEntries.forEach(message => {
+            logger.info(message + ' [TEST-LOG]');
+        });
+
+        res.json({
+            success: true,
+            message: `Generated ${actualCount} test logs`,
+            count: actualCount,
+            memoryLogsCount: logger.memoryLogs.length,
+        });
+    } catch (error) {
+        logger.error('Failed to generate test logs:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+        });
+    }
+});
+
 /**
  * @swagger
  * /api/admin/restart-app:
@@ -13261,9 +13356,14 @@ app.post(
  *                 $ref: '#/components/schemas/LogEntry'
  */
 app.get('/api/admin/logs', isAuthenticated, (req, res) => {
-    const { level, limit } = req.query;
+    const { level, limit, offset, testOnly } = req.query;
     res.setHeader('Cache-Control', 'no-store'); // Prevent browser caching of log data
-    res.json(logger.getRecentLogs(level, parseInt(limit) || 200));
+
+    const parsedLimit = parseInt(limit) || 200;
+    const parsedOffset = parseInt(offset) || 0;
+    const testOnlyMode = testOnly === 'true';
+
+    res.json(logger.getRecentLogs(level, parsedLimit, parsedOffset, testOnlyMode));
 });
 
 /**

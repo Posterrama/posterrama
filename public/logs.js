@@ -1,9 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log(
-        '🔄 Logs.js v2.2.0 - Smart updates preserve expanded states',
-        new Date().toISOString()
-    );
-
     const logOutput = document.getElementById('log-output');
     const statusDot = document.getElementById('status-dot');
     const statusText = document.getElementById('status-text');
@@ -97,14 +92,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const testOnlyCheckbox = document.getElementById('testOnly');
-    testOnlyCheckbox.addEventListener('change', e => {
-        testOnlyMode = e.target.checked;
-        // Reset infinite scroll state and fetch new logs
-        currentOffset = 0;
-        hasMoreLogs = true;
-        currentLogs = [];
-        fetchLogs(true); // Initial load
-    });
+    if (testOnlyCheckbox) {
+        testOnlyCheckbox.addEventListener('change', e => {
+            testOnlyMode = e.target.checked;
+            // Reset infinite scroll state and fetch new logs
+            currentOffset = 0;
+            hasMoreLogs = true;
+            currentLogs = [];
+            fetchLogs(true); // Initial load
+        });
+    }
 
     const textFilter = document.getElementById('textFilter');
 
@@ -139,25 +136,16 @@ document.addEventListener('DOMContentLoaded', () => {
             hasMoreLogs &&
             !isPaused
         ) {
-            console.log('🚀 Loading older logs...');
             loadOlderLogs();
         }
     });
 
     // Load older logs for infinite scroll
     async function loadOlderLogs() {
-        console.log('loadOlderLogs called, state:', {
-            isLoadingOlderLogs,
-            hasMoreLogs,
-            currentOffset,
-        });
-
         if (isLoadingOlderLogs || !hasMoreLogs) {
-            console.log('Bailing out:', { isLoadingOlderLogs, hasMoreLogs });
             return;
         }
 
-        console.log('Starting to load older logs...');
         isLoadingOlderLogs = true;
 
         // Show loading indicator at bottom
@@ -189,28 +177,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Remove loading indicator
             loadingDiv.remove();
 
-            // Check if we received fewer logs than requested (end of data)
-            console.log(
-                `📊 Received ${olderLogs.length} logs, expected ${LOGS_PER_PAGE}, currentOffset: ${currentOffset}`
-            );
-
             if (olderLogs.length === 0) {
                 hasMoreLogs = false;
-                console.log('✅ No more logs available - showing end message');
                 // Show "no more logs" message at bottom
                 const noMoreDiv = document.createElement('div');
                 noMoreDiv.className = 'no-more-logs';
                 noMoreDiv.textContent = 'No more older logs available';
                 logOutput.appendChild(noMoreDiv);
                 return;
-            }
-
-            // If we received fewer logs than expected, this might be the last batch
-            // But we'll append them and let the next request determine if we're truly done
-            if (olderLogs.length < LOGS_PER_PAGE) {
-                console.log(
-                    `⚠️  Received partial batch: ${olderLogs.length}/${LOGS_PER_PAGE} - might be near end`
-                );
             }
 
             // Append older logs to current logs array (at the end)
@@ -483,12 +457,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentLogs = logs;
                 currentOffset = logs.length; // Set offset to number of logs loaded
                 hasMoreLogs = logs.length === LOGS_PER_PAGE; // Assume more if we got a full page
-                console.log(
-                    'Initial load complete. Logs:',
-                    logs.length,
-                    'Offset now:',
-                    currentOffset
-                );
                 renderLogs(logs);
             } else {
                 // Update: check for new logs and append them

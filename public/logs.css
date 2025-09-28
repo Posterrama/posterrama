@@ -486,6 +486,9 @@ body.page-logs {
 .logs-output {
     display: grid;
     gap: 2px;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 8px;
 }
 .log-row {
     display: grid;

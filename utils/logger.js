@@ -121,8 +121,8 @@ const memoryTransport = new winston.transports.Stream({
         write: (chunk, encoding, callback) => {
             // Skip system/debug messages for the admin panel
             if (!logger.shouldExcludeFromAdmin(chunk.message)) {
-                // Keep the last 1000 logs in memory (increased from 200 for better history)
-                if (logger.memoryLogs.length >= 1000) {
+                // Keep the last 2000 logs in memory (increased for better history)
+                if (logger.memoryLogs.length >= 2000) {
                     logger.memoryLogs.shift();
                 }
                 logger.memoryLogs.push(chunk);
@@ -200,8 +200,14 @@ logger.fatal = (...args) => logger.log('error', ...args); // Map fatal to error 
 logger.debug = (...args) => logger.log('debug', ...args);
 
 // Method to get recent logs for admin panel
-logger.getRecentLogs = (level = null, limit = 500) => {
+logger.getRecentLogs = (level = null, limit = 500, offset = 0, testOnly = false) => {
     let logs = [...logger.memoryLogs];
+
+    // Filter for test logs only if requested
+    if (testOnly) {
+        logs = logs.filter(log => log.message && log.message.includes('[TEST-LOG]'));
+    }
+
     if (level) {
         // Level hierarchy: lower number = more severe, higher number = more verbose
         const levels = {
@@ -220,7 +226,15 @@ logger.getRecentLogs = (level = null, limit = 500) => {
             });
         }
     }
-    return logs.slice(-limit);
+
+    // Reverse first to get newest-first order
+    logs.reverse();
+
+    // Apply pagination on the reversed logs
+    const startIndex = offset;
+    const endIndex = offset + limit;
+
+    return logs.slice(startIndex, endIndex);
 };
 
 // Method to update logger level based on DEBUG environment variable
