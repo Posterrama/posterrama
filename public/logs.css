@@ -339,8 +339,9 @@ body.page-logs {
 .filter-badge {
     display: inline-flex;
     align-items: center;
+    align-self: center; /* Force vertical centering within flex container */
     gap: 6px;
-    padding: 10px 12px; /* Match input padding vertically */
+    padding: 8px 12px; /* Slightly less padding for better proportion */
     background: var(--color-bg-tertiary);
     color: var(--color-text-primary);
     border-radius: 20px;
@@ -349,7 +350,9 @@ body.page-logs {
     border: 1px solid var(--color-border);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: all 120ms var(--anim-ease-emph);
-    /* Remove explicit height, let padding control it naturally */
+    line-height: 1.2; /* Match typical input line height */
+    box-sizing: border-box; /* Ensure consistent box model */
+    height: 34px; /* Explicit height to match search input */
 }
 .filter-badge:hover {
     background: var(--color-bg-card);
