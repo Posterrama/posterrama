@@ -3918,6 +3918,11 @@
             m.setAttribute('hidden', '');
         }
     }
+    // Expose for any legacy or inline triggers
+    try {
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+    } catch (_) {}
     async function confirmAction({
         title = 'Confirm',
         message = 'Are you sure?',
@@ -4685,6 +4690,7 @@
                             // Toggle: if open, close it
                             closePanel();
                         } else {
+                            window.__notifJustOpened = true;
                             // Ensure other header menus are closed when opening notifications
                             try {
                                 typeof closeMenu === 'function' && closeMenu();
@@ -4695,12 +4701,20 @@
                             // Force bypass TTL when the user explicitly opens the panel
                             await refreshBadge(true);
                             openPanel();
+                            // Reset flag end of tick
+                            setTimeout(() => {
+                                window.__notifJustOpened = false;
+                            }, 0);
                         }
                         return;
                     }
                     // Close when clicking outside
                     const { panel } = getRefs();
                     if (panel && !panel.contains(e.target) && !e.target.closest('#notif-btn')) {
+                        if (window.__notifJustOpened) {
+                            // Skip immediate close on same originating click
+                            return;
+                        }
                         closePanel();
                     }
                     // Close via header X
