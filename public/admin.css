@@ -3208,6 +3208,14 @@ input[type='range']::-moz-range-thumb {
     transform: translateY(0) scale(1);
     pointer-events: auto;
 }
+/* High-specificity emergency override to beat later generic .notify-center { pointer-events:none or z-index conflicts } */
+body .notify-center.open {
+    opacity: 1 !important;
+    transform: translateY(0) scale(1) !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+    z-index: 13000 !important; /* ensure above other header layers */
+}
 .notify-header {
     display: flex;
     align-items: center;

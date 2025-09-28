@@ -3900,6 +3900,11 @@
         m.classList.add('open');
         m.removeAttribute('hidden');
         m.setAttribute('aria-hidden', 'false');
+        // Inline style force in case base CSS overridden elsewhere
+        if (m.classList.contains('modal-overlay')) {
+            m.style.display = 'flex';
+            m.style.pointerEvents = 'auto';
+        }
         // Focus first focusable element inside modal for accessibility
         try {
             const first = m.querySelector(
@@ -4618,12 +4623,26 @@
                 panel?.classList.add('open');
                 if (panel) panel.setAttribute('aria-hidden', 'false');
                 btn?.setAttribute('aria-expanded', 'true');
+                if (panel) {
+                    panel.style.opacity = '1';
+                    panel.style.pointerEvents = 'auto';
+                    panel.style.transform = 'translateY(0) scale(1)';
+                    panel.style.visibility = 'visible';
+                    panel.style.zIndex = '13000';
+                }
             }
             function closePanel() {
                 const { panel, btn } = getRefs();
                 panel?.classList.remove('open');
                 if (panel) panel.setAttribute('aria-hidden', 'true');
                 btn?.setAttribute('aria-expanded', 'false');
+                if (panel) {
+                    panel.style.opacity = '';
+                    panel.style.pointerEvents = '';
+                    panel.style.transform = '';
+                    panel.style.visibility = '';
+                    panel.style.zIndex = '';
+                }
             }
 
             // Expose close/open so other header menus can close notifications when they open
