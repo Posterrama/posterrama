@@ -117,6 +117,41 @@
             window.__adminTrace = window.__adminTrace || [];
             window.__adminTrace.push('after:sentinel');
         } catch (_) {}
+        // Portal watchdog: ensures notify-center not trapped in zero-size container
+        try {
+            if (!window.__notifPortalWatch) {
+                window.__notifPortalWatch = setInterval(() => {
+                    try {
+                        const panel = document.getElementById('notify-center');
+                        if (!panel) return;
+                        const r = panel.getBoundingClientRect();
+                        if (r.width === 0 || r.height === 0) {
+                            if (panel.parentElement !== document.body) {
+                                document.body.appendChild(panel);
+                                panel.setAttribute('data-portal', 'true');
+                                console.warn('[NotifDebug] watchdog moved panel to body');
+                            }
+                            panel.style.position = 'fixed';
+                            panel.style.top = '70px';
+                            panel.style.right = '16px';
+                            panel.style.left = 'auto';
+                            panel.style.width = '360px';
+                            panel.style.minHeight = '160px';
+                            panel.style.opacity = '1';
+                            panel.style.visibility = 'visible';
+                            panel.style.pointerEvents = 'auto';
+                            panel.style.zIndex = '13000';
+                        } else {
+                            clearInterval(window.__notifPortalWatch);
+                            window.__notifPortalWatch = null;
+                            console.info('[NotifDebug] portal watchdog satisfied');
+                        }
+                    } catch (e) {
+                        console.warn('[NotifDebug] portal watchdog error', e);
+                    }
+                }, 1000);
+            }
+        } catch (_) {}
     } catch (diagErr) {
         console.warn('[AdminBoot] diag helper init failed', diagErr);
     }
@@ -4813,6 +4848,18 @@
 
             function openPanel() {
                 const { panel, btn } = getRefs();
+                try {
+                    if (panel && panel.parentElement !== document.body) {
+                        // If panel is accidentally nested inside other layout (e.g., form/modal), detach to body.
+                        console.info(
+                            '[NotifDebug] relocating notify-center to <body> (parent was',
+                            panel.parentElement?.className || panel.parentElement?.id,
+                            ')'
+                        );
+                        document.body.appendChild(panel);
+                        panel.setAttribute('data-portal', 'true');
+                    }
+                } catch (_) {}
                 panel?.classList.add('open');
                 if (panel) panel.setAttribute('aria-hidden', 'false');
                 btn?.setAttribute('aria-expanded', 'true');
@@ -4822,6 +4869,19 @@
                     panel.style.transform = 'translateY(0) scale(1)';
                     panel.style.visibility = 'visible';
                     panel.style.zIndex = '13000';
+                    // If collapsed (width/height 0) enforce base dimensions
+                    try {
+                        const r = panel.getBoundingClientRect();
+                        if (r.width === 0 || r.height === 0) {
+                            panel.style.width = '360px';
+                            panel.style.minHeight = '160px';
+                            panel.style.padding = '8px 0 4px';
+                            panel.style.overflow = 'auto';
+                            console.warn(
+                                '[NotifDebug] panel had zero rect, applied fallback sizing'
+                            );
+                        }
+                    } catch (_) {}
                 }
             }
             function closePanel() {
