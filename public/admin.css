@@ -563,6 +563,19 @@
 #modal-override .mode-segment {
     display: flex;
     align-items: center;
+    #device-settings-inline .whitelist-actions .actions .btn {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 18px;
+    }
+    #device-settings-inline .whitelist-actions .actions .btn i {
+        font-size: 14px;
+    }
+    #device-settings-inline .whitelist-actions {
+        align-items: flex-start !important;
+    }
     gap: 4px;
     padding: 4px;
     border-radius: 12px;
@@ -7205,6 +7218,14 @@ body.page-logs {
 }
 #device-settings-inline .perf-card .form-help {
     margin-top: 12px !important;
+}
+#device-settings-inline .whitelist-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+#device-settings-inline .whitelist-actions .btn i {
+    font-size: 12px;
 }
 .operations-panel .perf-card h3 {
     margin: 0 0 10px 0;

@@ -1529,7 +1529,7 @@
                   <div id="device-whitelist-list" class="chip-container" style="margin:0 0 18px 0; display:flex; flex-wrap:wrap; gap:8px; min-height:28px;"></div>
                 </div>
                 <div class="form-row">
-                  <div class="input-group" style="display:flex; gap:12px; align-items:stretch;">
+                  <div class="input-group whitelist-actions" style="display:flex; gap:12px; align-items:stretch; flex-wrap:wrap;">
                     <input
                       type="text"
                       id="input-whitelist-entry"
@@ -1542,14 +1542,14 @@
                       autocapitalize="off"
                       spellcheck="false"
                     />
-                    <button type="button" id="btn-add-whitelist" class="btn btn-outline" style="padding:10px 16px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:6px; white-space:nowrap; transition:all 0.15s ease;">
-                      <i class="fas fa-plus" style="font-size:12px;"></i>
-                      <span>Add</span>
-                    </button>
-                    <button type="button" id="btn-whitelist-save" class="btn btn-primary" disabled style="padding:10px 20px; border-radius:6px; font-weight:500; font-size:14px; display:flex; align-items:center; gap:8px; white-space:nowrap; transition:all 0.15s ease;">
-                      <i class="fas fa-save" style="font-size:12px;"></i>
-                      <span>Save Changes</span>
-                    </button>
+                    <div class="actions" style="display:flex; gap:10px; align-items:center;">
+                      <button type="button" id="btn-add-whitelist" class="btn btn-outline btn-sm" title="Add entry">
+                        <i class="fas fa-plus"></i><span>Add</span>
+                      </button>
+                      <button type="button" id="btn-whitelist-save" class="btn btn-primary btn-sm" disabled>
+                        <i class="fas fa-save"></i><span>Save Changes</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div class="form-help" style="margin-top:10px; font-size:11px; opacity:.8;">
@@ -2163,8 +2163,8 @@
         </div>
         <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
       </div>
-      <div class="modal-body">
-        <p>Select the source and target devices to merge histories and preferences. This cannot be undone.</p>
+                <div class="form-row">
+                  <div class="input-group" style="display:flex; gap:12px; align-items:stretch;">
         <div class="form-grid" style="margin-top: var(--space-lg);">
           <div class="form-group">
             <label>Source Device</label>
@@ -2177,14 +2177,16 @@
             <label>Target Device</label>
             <div class="select-wrap has-caret">
               <select id="merge-target"></select>
-              <span class="select-caret" aria-hidden="true">▾</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
         <button class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
         <button class="btn btn-secondary btn-sm btn-merge-accent" id="btn-merge-confirm">
+                <div class="actions main-actions whitelist-actions" style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" id="btn-add-whitelist" class="btn btn-outline btn-sm" title="Add entry">
+                    <i class="fas fa-plus"></i><span>Add</span>
+                  </button>
+                  <button type="button" id="btn-whitelist-save" class="btn btn-success btn-sm" disabled>
+                    <i class="fas fa-save"></i><span>Save Changes</span>
+                  </button>
+                </div>
           <i class="fas fa-object-group" aria-hidden="true"></i><span>Merge</span>
         </button>
       </div>
