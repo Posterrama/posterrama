@@ -39,9 +39,6 @@ body.page-logs {
     gap: 8px;
     font-weight: 700;
     letter-spacing: 0.2px;
-    /* Removed margin for btn-text */
-    margin-left: 0;
-    border-color: rgba(139, 92, 246, 0.45);
     animation: none !important;
     box-shadow:
         0 0 0 2px rgba(139, 92, 246, 0.08),
@@ -87,6 +84,32 @@ body.page-logs {
     flex-wrap: nowrap;
     gap: var(--space-md);
     align-items: flex-end;
+}
+/* Enforced button style overrides to mirror wallart/operations preset buttons */
+.logs-toolbar .logs-row .btn.btn-sm {
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    gap: var(--space-sm) !important;
+    line-height: 1.2 !important;
+    border-radius: var(--border-radius-md) !important;
+}
+.logs-toolbar .logs-row .btn.btn-secondary {
+    background: var(--color-secondary) !important;
+    color: var(--color-text-inverse) !important;
+    border: 1px solid var(--color-secondary) !important;
+}
+.logs-toolbar .logs-row .btn.btn-secondary:hover:not(:disabled) {
+    background: var(--color-secondary-dark) !important;
+    border-color: var(--color-secondary-dark) !important;
+}
+.logs-toolbar .logs-row .btn.btn-success {
+    background: var(--color-success) !important;
+    color: var(--color-text-inverse) !important;
+    border: 1px solid var(--color-success) !important;
+}
+.logs-toolbar .logs-row .btn.btn-success:hover:not(:disabled) {
+    background: var(--color-success-dark) !important;
+    border-color: var(--color-success-dark) !important;
 }
 @media (max-width: 1100px) {
     .logs-toolbar .logs-row {
@@ -208,31 +231,21 @@ body.page-logs {
     border-color: var(--color-secondary);
     box-shadow: 0 0 0 3px rgba(var(--color-secondary-rgb, 102 126 234) / 35%);
 }
-.logs-search-wrap .clear-search {
-    position: absolute;
-    right: 4px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: transparent;
-    border: none;
-    color: var(--color-text-tertiary);
-    width: 30px;
-    height: 30px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    transition:
-        background 0.15s ease,
-        color 0.15s ease;
+/* Clear button now styled as standard button inside wrapper */
+.logs-search-wrap .clear-search.btn {
+    position: static;
+    transform: none;
+    width: auto;
+    height: 44px;
+    background: var(--color-secondary) !important;
+    color: var(--color-text-inverse) !important;
+    border: 1px solid var(--color-secondary) !important;
 }
-.logs-search-wrap .clear-search:hover,
-.logs-search-wrap .clear-search:focus-visible {
-    background: var(--color-bg-tertiary);
-    color: var(--color-text-primary);
-}
-.logs-search-wrap .clear-search:active {
-    background: var(--color-bg-dark);
+@media (hover: hover) {
+    .logs-search-wrap .clear-search.btn:hover:not(:disabled) {
+        background: var(--color-secondary-dark) !important;
+        border-color: var(--color-secondary-dark) !important;
+    }
 }
 
 /* Checkbox now inherits shared checkbox styles */
