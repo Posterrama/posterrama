@@ -10878,6 +10878,7 @@ body.page-logs {
     align-self: start;
     height: auto;
 }
+/* (Removed ip-whitelist-card overrides – now using base perf-card styles) */
 /* Ensure bottom spacing equals top by trimming trailing inner margins */
 #section-display .mode-card > :last-child {
     margin-bottom: 0 !important;
