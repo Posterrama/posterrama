@@ -7798,16 +7798,17 @@
                         validGroups = d.groups.filter(g => validSet.has(g));
                     }
                 } catch (_) {}
-                const groupsHtml =
-                    validGroups.length > 0
-                        ? `<div class="dev-groups">${validGroups
-                              .map(gid => {
-                                  const g = state.groups.find(x => x.id === gid);
-                                  const label = escapeHtml(g?.name || gid);
-                                  return `<span class="group-pill" title="Group: ${label}">${label}</span>`;
-                              })
-                              .join('')}</div>`
-                        : '';
+                // Build group pills HTML only when needed
+                let groupsHtml = '';
+                if (validGroups.length > 0) {
+                    groupsHtml = `<div class="dev-groups">${validGroups
+                        .map(gid => {
+                            const g = state.groups.find(x => x.id === gid);
+                            const label = escapeHtml(g?.name || gid);
+                            return `<span class="group-pill" title="Group: ${label}">${label}</span>`;
+                        })
+                        .join('')}</div>`;
+                }
                 const disabledPower = status === 'offline' ? ' disabled' : '';
                 const isPoweredOff = d?.currentState?.poweredOff === true;
                 const poweredOff = isPoweredOff ? ' title="Currently powered off"' : '';
@@ -7969,7 +7970,8 @@
                                             ${groupNames.length ? `<span class="status-pill" title="Groups"><i class="fas fa-layer-group"></i> ${escapeHtml(groupNames.join(', '))}</span>` : ''}
                                         </div>
                                     </div>
-                </div>`;
+                                    ${groupsHtml}
+                                </div>`;
             }
             function escapeHtml(s) {
                 return String(s || '')
@@ -8668,10 +8670,15 @@
                             Math.max(0, Date.parse(r?.expiresAt || 0) - Date.now());
                         const expMs = Math.max(0, ttlMs);
                         const expAt = Date.now() + expMs;
-                        const cardBody = `
+                        const tagHtml = `
                             <div class="pairing-tags" aria-label="Device attributes">
                                 ${location ? `<span class="pill" title="Location"><i class="fas fa-location-dot"></i> ${escapeHtml(String(location))}</span>` : ''}
-                                ${groups.map(g => `<span class="pill" title="Group"><i class="fas fa-layer-group"></i> ${escapeHtml(String(g))}</span>`).join(' ')}
+                                ${groups
+                                    .map(
+                                        g =>
+                                            `<span class="pill" title="Group"><i class="fas fa-layer-group"></i> ${escapeHtml(String(g))}</span>`
+                                    )
+                                    .join(' ')}
                             </div>`;
                         const html = `
                             <div class="pairing-item" data-expires-at="${String(expAt)}">
