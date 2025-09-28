@@ -312,9 +312,10 @@ body.page-logs {
 .logs-toolbar .logs-row .form-row.search-row {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: center; /* Vertically center all items */
     gap: var(--space-md);
     flex-wrap: nowrap; /* Prevent wrapping to new line */
+    flex: 1 1 auto; /* Allow this row to grow to fill space */
 }
 .logs-toolbar .logs-row .form-row.controls-row {
     display: flex;
@@ -339,15 +340,16 @@ body.page-logs {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 8px 12px; /* Increase padding for better height match */
     background: var(--color-bg-tertiary);
     color: var(--color-text-primary);
     border-radius: 20px;
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* Match input font size */
     font-weight: 500;
     border: 1px solid var(--color-border);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: all 120ms var(--anim-ease-emph);
+    height: 36px; /* Match input field height approximately */
 }
 .filter-badge:hover {
     background: var(--color-bg-card);
@@ -398,7 +400,9 @@ body.page-logs {
     position: relative;
     display: flex;
     align-items: center;
-    flex: 1 1 auto; /* Allow search to grow */
+    flex: 0 1 auto; /* Don't grow unnecessarily */
+    min-width: 300px; /* Reasonable minimum width */
+    max-width: 400px; /* Prevent excessive growth */
     border: 2px solid green !important;
 }
 .logs-search-wrap > i {
