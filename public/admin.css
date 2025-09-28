@@ -563,19 +563,6 @@
 #modal-override .mode-segment {
     display: flex;
     align-items: center;
-    #device-settings-inline .whitelist-actions .actions .btn {
-        min-height: 42px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 18px;
-    }
-    #device-settings-inline .whitelist-actions .actions .btn i {
-        font-size: 14px;
-    }
-    #device-settings-inline .whitelist-actions {
-        align-items: flex-start !important;
-    }
     gap: 4px;
     padding: 4px;
     border-radius: 12px;
@@ -7219,24 +7206,6 @@ body.page-logs {
 #device-settings-inline .perf-card .form-help {
     margin-top: 12px !important;
 }
-#device-settings-inline .whitelist-actions {
-    margin-top: 14px;
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-#device-settings-inline .whitelist-actions .btn i {
-    font-size: 12px;
-}
-#device-settings-inline .whitelist-actions .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-#device-settings-inline .whitelist-actions .btn i {
-    font-size: 12px;
-}
 .operations-panel .perf-card h3 {
     margin: 0 0 10px 0;
     font-size: 0.95rem;
@@ -12024,6 +11993,67 @@ select:focus-visible {
     padding: var(--space-sm) var(--space-md) !important;
     font-size: var(--font-size-sm) !important;
     border-radius: 4px !important;
+}
+#device-settings-inline #card-ip-whitelist .btn-op-surface.btn-sm {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+#device-settings-inline #card-ip-whitelist .btn-op-surface.btn-sm i,
+#device-settings-inline #card-ip-whitelist .btn-op-surface.btn-sm .fas,
+#device-settings-inline #card-ip-whitelist .btn-op-surface.btn-sm > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-text-secondary) 92%, var(--color-text-secondary));
+}
+#device-settings-inline #card-ip-whitelist .btn-op-surface.btn-sm:hover,
+#device-settings-inline #card-ip-whitelist .btn-op-surface.btn-sm:focus,
+#device-settings-inline #card-ip-whitelist .btn-op-surface.btn-sm:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+#device-settings-inline #card-ip-whitelist .btn-op-surface.btn-sm:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+}
+
+/* Violet accent variant for Add button */
+#device-settings-inline #card-ip-whitelist .btn-violet.btn-sm i,
+#device-settings-inline #card-ip-whitelist .btn-violet.btn-sm .fas,
+#device-settings-inline #card-ip-whitelist .btn-violet.btn-sm > span:not(.spinner) {
+    /* Brighter violet accent for Add button */
+    color: color-mix(in srgb, #e4d4ff 85%, white);
+}
+/* Save Changes green foreground (mirror operations Save Settings) */
+#device-settings-inline #card-ip-whitelist .btn-op-surface.btn-primary.btn-sm i,
+#device-settings-inline #card-ip-whitelist .btn-op-surface.btn-primary.btn-sm .fas,
+#device-settings-inline #card-ip-whitelist .btn-op-surface.btn-primary.btn-sm > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-success) 85%, var(--color-text-secondary));
+}
+#device-settings-inline #card-ip-whitelist .btn-violet.btn-sm:hover,
+#device-settings-inline #card-ip-whitelist .btn-violet.btn-sm:focus,
+#device-settings-inline #card-ip-whitelist .btn-violet.btn-sm:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+#device-settings-inline #card-ip-whitelist .btn-violet.btn-sm:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
 }
 #section-operations .btn.btn-primary.btn-sm i,
 #section-operations .btn.btn-primary.btn-sm .fas,
