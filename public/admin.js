@@ -4483,6 +4483,11 @@
                     if (!force) {
                         if (__notifInflight) return __notifInflight;
                         if (__notifCache.data && now - __notifCache.ts < FETCH_TTL_MS) {
+                            try {
+                                console.debug('[NotifDebug] fetchAlertsAndLogs cache-hit', {
+                                    age: now - __notifCache.ts,
+                                });
+                            } catch (_) {}
                             return __notifCache.data;
                         }
                     }
@@ -4490,6 +4495,9 @@
 
                 // Build a single-flight promise for both alerts and logs
                 __notifInflight = (async () => {
+                    try {
+                        console.debug('[NotifDebug] fetchAlertsAndLogs start', { force });
+                    } catch (_) {}
                     // Dedup + backoff for dashboard metrics inside notifications too
                     if (!window.__metricsCooldownUntil) window.__metricsCooldownUntil = 0;
                     const nowInner = Date.now();
@@ -4835,8 +4843,17 @@
                         true
                     );
                 } catch (_) {}
+                try {
+                    console.debug('[NotifDebug] fetchAlertsAndLogs done', {
+                        a: alerts?.length,
+                        l: logs?.length,
+                    });
+                } catch (_) {}
                 // Delegated toggle open on bell
                 document.addEventListener('click', async e => {
+                    try {
+                        console.warn('[NotifDebug] fetchAlertsAndLogs error', err?.message || err);
+                    } catch (_) {}
                     const notifBtn = e.target.closest?.('#notif-btn');
                     if (notifBtn) {
                         e.stopPropagation();
