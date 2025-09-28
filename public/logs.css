@@ -86,52 +86,6 @@ body.page-logs {
     gap: var(--space-md);
     align-items: center;
     width: 100%;
-    /* DEBUG: temporary borders to see layout */
-    border: 2px solid red;
-}
-
-/* DEBUG: Show form-row containers */
-.logs-toolbar .logs-row .form-row {
-    border: 2px solid blue;
-    margin: 2px;
-}
-
-/* DEBUG: Show search components */
-.logs-search-wrap {
-    border: 2px solid green !important;
-}
-
-.filter-badges {
-    border: 2px solid yellow !important;
-}
-
-/* DEBUG: Show individual badge alignment */
-.filter-badge {
-    border: 2px solid orange !important;
-    background-color: rgba(255, 0, 255, 0.3) !important;
-}
-
-/* DEBUG: Show search input exact dimensions */
-.logs-search-wrap > input {
-    border: 3px solid red !important;
-    background-color: rgba(0, 255, 0, 0.2) !important;
-}
-
-/* DEBUG: Add center line reference */
-.logs-toolbar .logs-row .form-row.search-row::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 50%;
-    height: 2px;
-    background: red;
-    z-index: 1000;
-    pointer-events: none;
-}
-
-.logs-toolbar .logs-row .form-row.search-row {
-    position: relative;
 }
 /* Logs buttons styled to match wallart preset appearance - copy exact selectors */
 .logs-toolbar .logs-row .btn,
