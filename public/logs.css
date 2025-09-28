@@ -387,7 +387,7 @@ body.page-logs {
     height: 44px; /* Match search input height exactly */
     margin: 0; /* Remove any default margins */
     position: relative;
-    transform: translateY(8px); /* Fine-tune vertical position - move DOWN */
+    transform: translateY(6px); /* Fine-tune vertical position - move DOWN */
 }
 .filter-badge:hover {
     background: var(--color-bg-card);
