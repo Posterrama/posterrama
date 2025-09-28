@@ -7173,6 +7173,39 @@ body.page-logs {
         0 6px 20px rgba(0, 0, 0, 0.15),
         inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
+/* Device settings inline perf-cards (reuse Operations aesthetic) */
+#device-settings-inline .perf-card {
+    position: relative;
+    background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 18px 22px 22px 22px;
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    display: flex;
+    flex-direction: column;
+}
+#device-settings-inline .perf-card h3 {
+    margin: 0 0 12px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+#device-settings-inline .perf-card .card-subtext {
+    font-size: 0.85rem;
+    line-height: 1.35;
+    opacity: 0.9;
+    max-width: 1180px;
+}
+#device-settings-inline .perf-card .form-row {
+    margin-bottom: 0;
+}
+#device-settings-inline .perf-card .form-help {
+    margin-top: 12px !important;
+}
 .operations-panel .perf-card h3 {
     margin: 0 0 10px 0;
     font-size: 0.95rem;
