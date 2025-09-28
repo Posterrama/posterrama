@@ -4698,6 +4698,18 @@
 
             async function refreshBadge(force = false) {
                 try {
+                    const nowThrottle = Date.now();
+                    if (!window.__notifLastRun) window.__notifLastRun = 0;
+                    if (!window.__notifRunCount) window.__notifRunCount = 0;
+                    // Hard throttle: if < 1500ms since last and not force, skip
+                    if (!force && nowThrottle - window.__notifLastRun < 1500) {
+                        return; // suppress storm
+                    }
+                    window.__notifLastRun = nowThrottle;
+                    window.__notifRunCount++;
+                    if (window.__notifRunCount > 500) {
+                        /* safety fuse */ return;
+                    }
                     try {
                         console.log('[NotifDebug] refreshBadge start', { force });
                     } catch (_) {}
@@ -4733,7 +4745,13 @@
                     try {
                         console.log('[NotifDebug] refreshBadge count set', { count });
                     } catch (_) {}
+                    try {
+                        window.__notifRendering = true;
+                    } catch (_) {}
                     renderPanel({ alerts, logs });
+                    try {
+                        window.__notifRendering = false;
+                    } catch (_) {}
                     try {
                         console.log('[NotifDebug] refreshBadge done');
                     } catch (_) {}
@@ -4977,7 +4995,7 @@
                     if (!window.__notifMO) {
                         const mo = new MutationObserver(
                             debounce(() => {
-                                // If our key nodes exist (or re-appeared), re-sync the badge and list
+                                if (window.__notifRendering) return; // skip self-triggered
                                 const center = document.getElementById('notify-center');
                                 const countEl = document.getElementById('notif-count');
                                 if (center || countEl) {
@@ -4985,7 +5003,7 @@
                                         refreshBadge();
                                     } catch (_) {}
                                 }
-                            }, 120)
+                            }, 300)
                         );
                         mo.observe(document.body, { childList: true, subtree: true });
                         window.__notifMO = mo;
