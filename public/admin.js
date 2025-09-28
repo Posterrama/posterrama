@@ -135,12 +135,7 @@
             },
         });
         // Clear any previous log guard to ensure visibility
-        console.info(
-            '[AdminBoot] Loaded admin.js sentinel:',
-            window.__diagUI.versionSentinel,
-            'at',
-            window.__diagUI.adminLoadedAt
-        );
+        // Removed admin boot sentinel log (was noisy in production)
         try {
             window.__adminTrace = window.__adminTrace || [];
             window.__adminTrace.push('after:sentinel');
@@ -178,7 +173,7 @@
         } catch (_) {}
         // NOTE: portal watchdog is a resilience fallback. Can be removed once root cause of zero-size containment is permanently fixed.
     } catch (diagErr) {
-        console.warn('[AdminBoot] diag helper init failed', diagErr);
+        /* admin diag helper init failed (suppressed) */
     }
 
     // Early fallback binding for notification button (before heavy logic) so we at least log clicks.
@@ -4213,6 +4208,25 @@
             }
         } catch (e) {
             console.warn('[ModalDebug] showOverlay failed', label, e);
+        }
+    }
+
+    // Media source enablement helpers
+    function isJellyfinEnabledCached() {
+        try {
+            if (window.__jfEnabledCache !== undefined) return window.__jfEnabledCache;
+            const cfg = window.__adminConfig || window.__appConfig || {};
+            const servers = Array.isArray(cfg?.config?.mediaServers)
+                ? cfg.config.mediaServers
+                : Array.isArray(cfg?.mediaServers)
+                  ? cfg.mediaServers
+                  : [];
+            const jf = servers.find(s => (s.type || '').toLowerCase() === 'jellyfin');
+            const enabled = !!jf && jf.enabled !== false; // default true unless explicitly false
+            window.__jfEnabledCache = enabled;
+            return enabled;
+        } catch (_) {
+            return true; // fail open (will attempt, backend still validates)
         }
     }
     // Expose for external callers / guards
@@ -13167,6 +13181,7 @@
                         } catch (_) {}
                     }
                     if (!hostname) return new Map();
+                    if (!isJellyfinEnabledCached()) return new Map();
                     try {
                         res = await fetch('/api/admin/jellyfin-libraries', {
                             method: 'POST',
@@ -15076,6 +15091,17 @@
                                 title: 'Jellyfin',
                                 message: 'Hostname is required to fetch libraries',
                                 duration: 3200,
+                            });
+                        }
+                        return { skipped: true, libraries: [] };
+                    }
+                    if (!isJellyfinEnabledCached()) {
+                        if (!silent) {
+                            window.notify?.toast?.({
+                                type: 'info',
+                                title: 'Jellyfin',
+                                message: 'Jellyfin disabled in configuration',
+                                duration: 2200,
                             });
                         }
                         return { skipped: true, libraries: [] };
