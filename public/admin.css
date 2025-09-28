@@ -70,6 +70,34 @@
 #modal-merge .btn-merge-accent {
     --accent-color: var(--color-warning);
 }
+/* Merge modal refinements */
+#modal-merge .modal-body .form-grid {
+    display: grid;
+    gap: 24px 32px;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    padding: 4px 4px 4px 4px;
+    max-width: 760px;
+}
+#modal-merge .modal-body .form-group label {
+    font-weight: 600;
+}
+#modal-merge .modal-body .form-group .select-wrap {
+    width: 100%;
+}
+#modal-merge .modal-body select {
+    min-height: 44px;
+    font-size: 0.85rem;
+}
+#modal-merge .modal-footer .btn-merge-accent {
+    --accent-color: var(--color-warning);
+}
+#modal-merge .modal-title i {
+    margin-right: 6px;
+}
+#modal-merge .form-hint {
+    color: var(--color-text-secondary);
+}
 #modal-delete-devices .btn-cancel {
     border: none !important;
     background:
@@ -3407,6 +3435,15 @@ body .notify-center.open {
 
 .modal-overlay.open {
     display: flex;
+}
+
+/* High-specificity safety net to ensure overlays remain interactive if other CSS overrides occur */
+body .modal-overlay.open {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: 14000 !important;
 }
 
 .modal {

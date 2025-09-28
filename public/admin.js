@@ -13,7 +13,7 @@
         }
         Object.assign(window.__diagUI, {
             adminLoadedAt: new Date().toISOString(),
-            versionSentinel: 'notif-resilience-1',
+            versionSentinel: 'notif-resilience-2',
             hasNotifResiliencePatch: true,
             showScripts() {
                 const list = [...document.scripts].map(s => s.src || '[inline]');
@@ -105,6 +105,34 @@
                     return false;
                 }
             },
+            modalInfo(id) {
+                try {
+                    const el = document.getElementById(id);
+                    if (!el) return { exists: false };
+                    const r = el.getBoundingClientRect();
+                    return {
+                        exists: true,
+                        id,
+                        classes: [...el.classList],
+                        rect: r.toJSON(),
+                        portal: el.hasAttribute('data-portal'),
+                        hiddenAttr: el.hasAttribute('hidden'),
+                        ariaHidden: el.getAttribute('aria-hidden'),
+                        open: el.classList.contains('open'),
+                        parent: el.parentElement?.id || el.parentElement?.className,
+                    };
+                } catch (e) {
+                    return { error: e?.message };
+                }
+            },
+            openModalTest(id) {
+                try {
+                    window.openModal?.(id);
+                    return this.modalInfo(id);
+                } catch (e) {
+                    return { error: e?.message };
+                }
+            },
         });
         // Clear any previous log guard to ensure visibility
         console.info(
@@ -117,41 +145,38 @@
             window.__adminTrace = window.__adminTrace || [];
             window.__adminTrace.push('after:sentinel');
         } catch (_) {}
-        // Portal watchdog: ensures notify-center not trapped in zero-size container
+        // Portal watchdog (deferred): only repairs after user opens panel at least once to avoid auto-open side effect
         try {
             if (!window.__notifPortalWatch) {
                 window.__notifPortalWatch = setInterval(() => {
                     try {
                         const panel = document.getElementById('notify-center');
                         if (!panel) return;
+                        if (!window.__notifUserOpenedOnce) return; // do nothing until user has opened
+                        if (!panel.classList.contains('open')) return; // only enforce when meant to be visible
                         const r = panel.getBoundingClientRect();
                         if (r.width === 0 || r.height === 0) {
                             if (panel.parentElement !== document.body) {
                                 document.body.appendChild(panel);
                                 panel.setAttribute('data-portal', 'true');
-                                console.warn('[NotifDebug] watchdog moved panel to body');
+                                console.warn(
+                                    '[NotifDebug] watchdog moved panel to body (post-open)'
+                                );
                             }
-                            panel.style.position = 'fixed';
-                            panel.style.top = '70px';
-                            panel.style.right = '16px';
-                            panel.style.left = 'auto';
-                            panel.style.width = '360px';
-                            panel.style.minHeight = '160px';
-                            panel.style.opacity = '1';
-                            panel.style.visibility = 'visible';
-                            panel.style.pointerEvents = 'auto';
-                            panel.style.zIndex = '13000';
-                        } else {
+                            window.__ensureVisible?.(panel, 'notify');
+                        } else if (window.__notifUserOpenedOnce) {
+                            // Once we have a healthy rect after user interaction we can retire the watchdog
                             clearInterval(window.__notifPortalWatch);
                             window.__notifPortalWatch = null;
-                            console.info('[NotifDebug] portal watchdog satisfied');
+                            console.info('[NotifDebug] portal watchdog retired (healthy)');
                         }
                     } catch (e) {
                         console.warn('[NotifDebug] portal watchdog error', e);
                     }
-                }, 1000);
+                }, 1200);
             }
         } catch (_) {}
+        // NOTE: portal watchdog is a resilience fallback. Can be removed once root cause of zero-size containment is permanently fixed.
     } catch (diagErr) {
         console.warn('[AdminBoot] diag helper init failed', diagErr);
     }
@@ -4065,14 +4090,45 @@
     function openModal(id) {
         const m = document.getElementById(id);
         if (!m) return;
+        try {
+            console.info('[ModalDebug] openModal start', id);
+        } catch (_) {}
         m.classList.add('open');
         m.removeAttribute('hidden');
         m.setAttribute('aria-hidden', 'false');
-        // Inline style force in case base CSS overridden elsewhere
-        if (m.classList.contains('modal-overlay')) {
+        const isOverlay = m.classList.contains('modal-overlay');
+        if (isOverlay) {
+            // Ensure overlay container is visible
+            // Record original inline styles (only once) so we can restore on close
+            if (!m.__origStyle) m.__origStyle = m.getAttribute('style') || '';
             m.style.display = 'flex';
             m.style.pointerEvents = 'auto';
+            m.style.visibility = 'visible';
+            m.style.opacity = '1';
+            m.style.zIndex = '14000';
+            // Also enforce inner modal if present
+            const inner = m.querySelector('.modal');
+            if (inner) {
+                if (!inner.__origStyle) inner.__origStyle = inner.getAttribute('style') || '';
+                inner.style.opacity = '1';
+                inner.style.transform = 'translateY(0) scale(1)';
+                inner.style.pointerEvents = 'auto';
+            }
         }
+        // Fallback ensureVisible (shared utility)
+        try {
+            window.__ensureVisible?.(m, 'modal');
+        } catch (_) {}
+        // If still zero-sized, attempt to clone structure into body (portal) while keeping original for reference
+        try {
+            const r = m.getBoundingClientRect();
+            if ((r.width === 0 || r.height === 0) && m.parentElement !== document.body) {
+                console.warn('[ModalDebug] zero rect after open; re-parenting overlay to body', id);
+                document.body.appendChild(m);
+                m.setAttribute('data-portal', 'true');
+                window.__ensureVisible?.(m, 'modal');
+            }
+        } catch (_) {}
         // Focus first focusable element inside modal for accessibility
         try {
             const first = m.querySelector(
@@ -4080,12 +4136,152 @@
             );
             first?.focus?.();
         } catch (_) {}
+        try {
+            const rr = m.getBoundingClientRect();
+            console.info('[ModalDebug] openModal done', id, {
+                width: rr.width,
+                height: rr.height,
+                top: rr.top,
+                left: rr.left,
+                portal: m.hasAttribute('data-portal'),
+            });
+        } catch (_) {}
     }
+    // Unified overlay show helper (for legacy direct handlers using classList only)
+    function __showOverlay(el, label = 'overlay') {
+        if (!el) return;
+        try {
+            if (el.__origStyle === undefined) {
+                el.__origStyle = el.getAttribute('style') || '';
+            }
+            if (el.hasAttribute('hidden')) el.removeAttribute('hidden');
+            el.setAttribute('aria-hidden', 'false');
+            el.classList.add('open');
+            if (window.__ensureVisible) window.__ensureVisible(el, 'modal');
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) {
+                console.warn('[ModalDebug] zero-rect after showOverlay', label, r.toJSON());
+                // Force minimal sizing try
+                try {
+                    el.style.minWidth = el.style.minWidth || '320px';
+                    el.style.minHeight = el.style.minHeight || '160px';
+                    el.style.display = 'flex';
+                    el.style.position = 'fixed';
+                    el.style.inset = '0';
+                    el.style.zIndex = '14000';
+                    // Diagnostics: log ancestor display chain
+                    const chain = [];
+                    let p = el.parentElement;
+                    while (p && chain.length < 8) {
+                        const cs = getComputedStyle(p);
+                        chain.push({
+                            tag: p.tagName.toLowerCase(),
+                            id: p.id,
+                            cls: p.className,
+                            display: cs.display,
+                            visibility: cs.visibility,
+                            opacity: cs.opacity,
+                            transform: cs.transform,
+                        });
+                        p = p.parentElement;
+                    }
+                    console.warn('[ModalDebug] ancestor chain', label, chain);
+                    // If parent chain suggests any ancestor has display:none, portal to body
+                    const hiddenAncestor = chain.find(a => a.display === 'none');
+                    if (hiddenAncestor || el.parentElement !== document.body) {
+                        try {
+                            document.body.appendChild(el);
+                            el.setAttribute('data-portal', 'true');
+                            console.warn(
+                                '[ModalDebug] portal relocation applied',
+                                label,
+                                hiddenAncestor
+                            );
+                        } catch (_) {}
+                    }
+                    // Retry measurement after potential portal
+                    requestAnimationFrame(() => {
+                        try {
+                            const r2 = el.getBoundingClientRect();
+                            if (r2.width === 0 || r2.height === 0) {
+                                // Final hard style attempt
+                                el.style.width = '100vw';
+                                el.style.height = '100vh';
+                                el.style.alignItems = 'center';
+                                el.style.justifyContent = 'center';
+                                console.error(
+                                    '[ModalDebug] still zero-rect after portal & hard sizing',
+                                    label,
+                                    r2.toJSON()
+                                );
+                            } else {
+                                console.info(
+                                    '[ModalDebug] rect recovered after portal sizing',
+                                    label,
+                                    r2.toJSON()
+                                );
+                            }
+                        } catch (_) {}
+                    });
+                } catch (_) {}
+            }
+        } catch (e) {
+            console.warn('[ModalDebug] showOverlay failed', label, e);
+        }
+    }
+    // Expose for external callers / guards
+    try {
+        if (!window.__showOverlay) window.__showOverlay = __showOverlay;
+    } catch (_) {}
+    try {
+        if (!window.__ensureVisible && typeof __ensureVisible === 'function')
+            window.__ensureVisible = __ensureVisible;
+    } catch (_) {}
+    try {
+        window.forceModalPortal = function (id) {
+            const el = document.getElementById(id);
+            if (!el) return false;
+            document.body.appendChild(el);
+            el.setAttribute('data-portal', 'true');
+            __showOverlay(el, id + ':force');
+            return true;
+        };
+        window.disableNotifWatchdog = () => {
+            if (window.__notifPortalWatch) {
+                clearInterval(window.__notifPortalWatch);
+                window.__notifPortalWatch = null;
+                console.info('[NotifDebug] portal watchdog disabled manually');
+            }
+        };
+    } catch (_) {}
     function closeModal(id) {
         const m = document.getElementById(id);
         if (!m) return;
+        try {
+            // If a focused element is inside, blur it first to avoid aria-hidden warning
+            const active = document.activeElement;
+            if (active && m.contains(active)) {
+                active.blur();
+            }
+        } catch (_) {}
         m.classList.remove('open');
         m.setAttribute('aria-hidden', 'true');
+        // Restore original inline styles if we overrode them
+        try {
+            if (m.__origStyle !== undefined) {
+                if (m.__origStyle) m.setAttribute('style', m.__origStyle);
+                else m.removeAttribute('style');
+            }
+            const inner = m.querySelector('.modal');
+            if (inner && inner.__origStyle !== undefined) {
+                if (inner.__origStyle) inner.setAttribute('style', inner.__origStyle);
+                else inner.removeAttribute('style');
+            }
+            // If portal relocation added sizing overrides but no original style existed, enforce hidden
+            if (!m.__origStyle) {
+                m.style.display = 'none';
+            }
+        } catch (_) {}
         // Keep DOM footprint small; rely on CSS .open to show. If it had explicit hidden originally, restore.
         if (m.hasAttribute('data-auto-hidden')) {
             m.setAttribute('hidden', '');
@@ -4096,6 +4292,21 @@
         window.openModal = openModal;
         window.closeModal = closeModal;
     } catch (_) {}
+    // Global backdrop click handler (capture outside inner modal)
+    document.addEventListener('click', e => {
+        try {
+            const target = e.target;
+            if (!(target instanceof Element)) return;
+            const overlay = target.closest('.modal-overlay');
+            if (!overlay) return; // not inside an overlay
+            const inner = target.closest('.modal');
+            if (!inner && overlay.classList.contains('open')) {
+                // Click directly on backdrop area
+                const id = overlay.id;
+                if (id) closeModal(id);
+            }
+        } catch (_) {}
+    });
     async function confirmAction({
         title = 'Confirm',
         message = 'Are you sure?',
@@ -4106,7 +4317,7 @@
         return new Promise(resolve => {
             const overlay = document.getElementById('modal-confirm');
             if (!overlay) return resolve(false);
-            overlay.removeAttribute('hidden');
+            __showOverlay(overlay, 'modal-confirm');
             let titleEl = document.getElementById('modal-confirm-title');
             let bodyEl = document.getElementById('modal-confirm-body');
             let okBtn = document.getElementById('modal-confirm-ok');
@@ -4786,7 +4997,8 @@
                         /* safety fuse */ return;
                     }
                     try {
-                        console.log('[NotifDebug] refreshBadge start', { force });
+                        if (window.__notifVerbose)
+                            console.log('[NotifDebug] refreshBadge start', { force });
                     } catch (_) {}
                     // Suppression window after user clears notifications (avoid bounce-back)
                     try {
@@ -4802,10 +5014,11 @@
                     } catch (_) {}
                     let { alerts, logs } = await fetchAlertsAndLogs({ force });
                     try {
-                        console.log('[NotifDebug] refreshBadge data', {
-                            a: alerts?.length,
-                            l: logs?.length,
-                        });
+                        if (window.__notifVerbose)
+                            console.log('[NotifDebug] refreshBadge data', {
+                                a: alerts?.length,
+                                l: logs?.length,
+                            });
                     } catch (_) {}
                     // Apply session dismissals so cleared items don't bounce back immediately
                     ({ alerts, logs } = applyDismissedFilter(alerts, logs));
@@ -4818,7 +5031,8 @@
                     const count = shownAlerts + shownLogs;
                     setBadge(count);
                     try {
-                        console.log('[NotifDebug] refreshBadge count set', { count });
+                        if (window.__notifVerbose)
+                            console.log('[NotifDebug] refreshBadge count set', { count });
                     } catch (_) {}
                     try {
                         window.__notifRendering = true;
@@ -4828,7 +5042,7 @@
                         window.__notifRendering = false;
                     } catch (_) {}
                     try {
-                        console.log('[NotifDebug] refreshBadge done');
+                        if (window.__notifVerbose) console.log('[NotifDebug] refreshBadge done');
                     } catch (_) {}
                 } catch (_) {
                     try {
@@ -4863,7 +5077,46 @@
                 panel?.classList.add('open');
                 if (panel) panel.setAttribute('aria-hidden', 'false');
                 btn?.setAttribute('aria-expanded', 'true');
+                try {
+                    window.__notifUserOpenedOnce = true;
+                } catch (_) {}
                 if (panel) {
+                    // Reusable visibility enforcement for panel or modal elements
+                    // (Will be extracted for modals too.)
+                    if (!window.__ensureVisible) {
+                        window.__ensureVisible = function ensureVisible(el, kind = 'generic') {
+                            try {
+                                if (!el) return;
+                                const r = el.getBoundingClientRect();
+                                const zero = r.width === 0 || r.height === 0;
+                                if (zero) {
+                                    console.warn(
+                                        '[UIEnsureVisible] zero-rect detected for',
+                                        kind,
+                                        r.toJSON ? r.toJSON() : r
+                                    );
+                                    if (el.parentElement !== document.body && kind === 'notify') {
+                                        try {
+                                            document.body.appendChild(el);
+                                            el.setAttribute('data-portal', 'true');
+                                        } catch (e) {}
+                                    }
+                                    el.style.minWidth = el.style.minWidth || '320px';
+                                    if (!el.style.width) el.style.width = '360px';
+                                    el.style.minHeight = el.style.minHeight || '140px';
+                                    el.style.padding = el.style.padding || '8px 0 4px';
+                                    el.style.overflow = el.style.overflow || 'auto';
+                                    el.style.visibility = 'visible';
+                                    el.style.opacity = '1';
+                                    el.style.pointerEvents = 'auto';
+                                    el.style.transform = 'translateY(0) scale(1)';
+                                    el.style.zIndex = kind === 'modal' ? '14000' : '13000';
+                                }
+                            } catch (evErr) {
+                                console.warn('[UIEnsureVisible] failed for', kind, evErr);
+                            }
+                        };
+                    }
                     panel.style.opacity = '1';
                     panel.style.pointerEvents = 'auto';
                     panel.style.transform = 'translateY(0) scale(1)';
@@ -4880,6 +5133,11 @@
                             console.warn(
                                 '[NotifDebug] panel had zero rect, applied fallback sizing'
                             );
+                        } else {
+                            // Secondary guard: still run generic ensureVisible in case of race conditions
+                            try {
+                                window.__ensureVisible?.(panel, 'notify');
+                            } catch (_) {}
                         }
                     } catch (_) {}
                 }
@@ -7189,9 +7447,17 @@
         });
         // Theme-demo modal close buttons just have data-close-modal and close nearest overlay
         document.querySelectorAll('[data-close-modal]')?.forEach(btn => {
-            btn.addEventListener('click', () => {
+            if (btn.__closeBound) return; // avoid duplicate
+            btn.__closeBound = true;
+            btn.addEventListener('click', e => {
+                e.preventDefault();
                 const overlay = btn.closest('.modal-overlay');
-                if (overlay) overlay.classList.remove('open');
+                if (overlay && overlay.id) {
+                    closeModal(overlay.id);
+                } else if (overlay) {
+                    overlay.classList.remove('open');
+                    overlay.setAttribute('aria-hidden', 'true');
+                }
             });
         });
         const btn2faVerify = document.getElementById('btn-2fa-verify');
@@ -7835,6 +8101,13 @@
                     try {
                         e.stopPropagation();
                     } catch (_) {}
+                    try {
+                        if (window.__uiDebug)
+                            console.info('[DevUI] selection change', {
+                                id: card.getAttribute('data-id'),
+                                checked: cb.checked,
+                            });
+                    } catch (_) {}
                     card.classList.toggle('selected', cb.checked);
                     updateBulkUI();
                 });
@@ -7917,6 +8190,9 @@
                         e.stopPropagation();
                     } catch (_) {}
                     const id = card.getAttribute('data-id');
+                    try {
+                        if (window.__uiDebug) console.info('[DevUI] btn-pair click', id);
+                    } catch (_) {}
                     await openPairingFor([id]);
                 });
                 card.querySelector('.btn-remote')?.addEventListener('click', async e => {
@@ -7986,6 +8262,9 @@
                         e.stopPropagation();
                     } catch (_) {}
                     const id = card.getAttribute('data-id');
+                    try {
+                        if (window.__uiDebug) console.info('[DevUI] btn-sendcmd click', id);
+                    } catch (_) {}
                     openSendCmdFor([id]);
                 });
                 card.querySelector('.btn-playpause')?.addEventListener('click', async e => {
@@ -8158,7 +8437,30 @@
                     '#device-grid .device-card.selected'
                 ).length;
                 if (bulkCount) bulkCount.textContent = String(selected);
-                if (bulkBar) bulkBar.classList.toggle('open', selected > 0);
+                if (bulkBar) {
+                    bulkBar.classList.toggle('open', selected > 0);
+                    if (selected > 0) {
+                        try {
+                            const r = bulkBar.getBoundingClientRect();
+                            if (
+                                (r.width === 0 || r.height === 0) &&
+                                bulkBar.parentElement !== document.body
+                            ) {
+                                if (window.__uiDebug)
+                                    console.warn('[DevUI] bulk bar zero-rect; portal relocation');
+                                document.body.appendChild(bulkBar);
+                                requestAnimationFrame(() => {
+                                    const r2 = bulkBar.getBoundingClientRect();
+                                    if (window.__uiDebug)
+                                        console.info(
+                                            '[DevUI] bulk bar rect after portal',
+                                            r2.toJSON()
+                                        );
+                                });
+                            }
+                        } catch (_) {}
+                    }
+                }
                 // Responsive controls: collapse secondary buttons on narrow widths
                 try {
                     const bar = document.getElementById('bulk-bar');
@@ -8251,7 +8553,16 @@
                 populateMergeOptions();
                 if (mergeTarget && targetId) mergeTarget.value = targetId;
                 const overlay = document.getElementById('modal-merge');
-                overlay?.classList.add('open');
+                if (overlay) {
+                    __showOverlay(overlay, 'modal-merge');
+                    try {
+                        if (window.__uiDebug)
+                            console.info(
+                                '[ModalDebug] merge rect',
+                                overlay.getBoundingClientRect().toJSON()
+                            );
+                    } catch (_) {}
+                }
             }
             async function submitMerge() {
                 const src = mergeSource?.value;
@@ -8489,7 +8800,34 @@
                 }
                 // QR removed per UX
                 const pairingOverlay = document.getElementById('modal-pairing');
-                pairingOverlay?.classList.add('open');
+                if (pairingOverlay) {
+                    __showOverlay(pairingOverlay, 'modal-pairing');
+                    try {
+                        const r = pairingOverlay.getBoundingClientRect();
+                        if (window.__uiDebug)
+                            console.info('[ModalDebug] openPairingFor rect', r.toJSON());
+                        if (
+                            (r.width === 0 || r.height === 0) &&
+                            pairingOverlay.parentElement !== document.body
+                        ) {
+                            console.warn('[ModalDebug] pairing zero-rect; force portal move');
+                            document.body.appendChild(pairingOverlay);
+                            pairingOverlay.setAttribute('data-portal', 'true');
+                            requestAnimationFrame(() => {
+                                const r2 = pairingOverlay.getBoundingClientRect();
+                                if (window.__uiDebug)
+                                    console.info(
+                                        '[ModalDebug] pairing rect after portal',
+                                        r2.toJSON()
+                                    );
+                                if (r2.width === 0 || r2.height === 0) {
+                                    pairingOverlay.style.width = '100vw';
+                                    pairingOverlay.style.height = '100vh';
+                                }
+                            });
+                        }
+                    } catch (_) {}
+                }
 
                 // Helper to show a short success state and fade out the modal
                 function closePairingModalWithSuccess() {
@@ -8574,7 +8912,14 @@
                 if (!overlay) return;
                 // Stash current device id on overlay for delegated handler
                 overlay.dataset.targetId = id;
-                overlay.classList.add('open');
+                __showOverlay(overlay, 'modal-remote');
+                try {
+                    if (window.__uiDebug)
+                        console.info(
+                            '[ModalDebug] openRemoteFor rect',
+                            overlay.getBoundingClientRect().toJSON()
+                        );
+                } catch (_) {}
                 // Attach a single delegated click handler once
                 if (!overlay._remoteBound) {
                     overlay.addEventListener('click', async ev => {
@@ -8606,7 +8951,15 @@
                 if (!Array.isArray(ids) || !ids.length) return;
                 const overlay = document.getElementById('modal-override');
                 const textarea = document.getElementById('override-json');
-                overlay?.classList.add('open');
+                if (overlay) __showOverlay(overlay, 'modal-override');
+                try {
+                    overlay &&
+                        window.__uiDebug &&
+                        console.info(
+                            '[ModalDebug] openOverrideFor rect',
+                            overlay.getBoundingClientRect().toJSON()
+                        );
+                } catch (_) {}
                 const applyBtn = document.getElementById('btn-override-apply');
                 const statusEl = document.getElementById('override-json-status');
                 const formatBtn = document.getElementById('override-format');
@@ -9471,7 +9824,34 @@
             async function openSendCmdFor(ids) {
                 if (!Array.isArray(ids) || !ids.length) return;
                 const overlay = document.getElementById('modal-sendcmd');
-                overlay?.classList.add('open');
+                if (overlay) {
+                    __showOverlay(overlay, 'modal-sendcmd');
+                    try {
+                        const r = overlay.getBoundingClientRect();
+                        if (window.__uiDebug)
+                            console.info('[ModalDebug] openSendCmdFor rect', r.toJSON());
+                        if (
+                            (r.width === 0 || r.height === 0) &&
+                            overlay.parentElement !== document.body
+                        ) {
+                            console.warn('[ModalDebug] sendcmd zero-rect; force portal move');
+                            document.body.appendChild(overlay);
+                            overlay.setAttribute('data-portal', 'true');
+                            requestAnimationFrame(() => {
+                                const r2 = overlay.getBoundingClientRect();
+                                if (window.__uiDebug)
+                                    console.info(
+                                        '[ModalDebug] sendcmd rect after portal',
+                                        r2.toJSON()
+                                    );
+                                if (r2.width === 0 || r2.height === 0) {
+                                    overlay.style.width = '100vw';
+                                    overlay.style.height = '100vh';
+                                }
+                            });
+                        }
+                    } catch (_) {}
+                }
                 const typeEl = document.getElementById('sendcmd-type');
                 const payloadEl = document.getElementById('sendcmd-payload');
                 const selectEl = document.getElementById('sendcmd-select');
@@ -9787,7 +10167,14 @@
                             .join('');
                     }
                 } catch (_) {}
-                overlay.classList.add('open');
+                __showOverlay(overlay, 'modal-assign-location');
+                try {
+                    if (window.__uiDebug)
+                        console.info(
+                            '[ModalDebug] assign-location rect',
+                            overlay.getBoundingClientRect().toJSON()
+                        );
+                } catch (_) {}
                 setTimeout(() => locationInput?.focus(), 50);
             }
             btnLocationApply?.addEventListener('click', async () => {
@@ -10138,7 +10525,10 @@
                     const act = item.getAttribute('data-device-action');
                     if (act === 'create-device') {
                         const overlay = document.getElementById('modal-create-device');
-                        const close = () => overlay?.classList.remove('open');
+                        const close = () => {
+                            overlay?.classList.remove('open');
+                            overlay?.setAttribute('aria-hidden', 'true');
+                        };
                         // Prepare fields: suggested name + location dropdown + groups
                         const nameEl = document.getElementById('create-device-name');
                         const locSel = document.getElementById('create-device-location-select');
@@ -10225,7 +10615,16 @@
                                 )
                                 .join('');
                         }
-                        overlay?.classList.add('open');
+                        if (overlay) {
+                            __showOverlay(overlay, 'modal-create-device');
+                            try {
+                                if (window.__uiDebug)
+                                    console.info(
+                                        '[ModalDebug] create-device rect',
+                                        overlay.getBoundingClientRect().toJSON()
+                                    );
+                            } catch (_) {}
+                        }
                         const confirmBtn = document.getElementById('btn-create-device-confirm');
                         const onConfirm = async () => {
                             confirmBtn?.setAttribute('disabled', 'disabled');
@@ -10845,6 +11244,9 @@
                 const ids = Array.from(
                     document.querySelectorAll('#device-grid .device-card.selected')
                 ).map(c => c.getAttribute('data-id'));
+                try {
+                    if (window.__uiDebug) console.info('[BulkAction] pair', ids);
+                } catch (_) {}
                 await openPairingFor(ids);
             });
             (function () {
@@ -10855,12 +11257,18 @@
                 const ids = Array.from(
                     document.querySelectorAll('#device-grid .device-card.selected')
                 ).map(c => c.getAttribute('data-id'));
+                try {
+                    if (window.__uiDebug) console.info('[BulkAction] override', ids);
+                } catch (_) {}
                 await openOverrideFor(ids);
             });
             document.getElementById('bulk-sendcmd')?.addEventListener('click', async () => {
                 const ids = Array.from(
                     document.querySelectorAll('#device-grid .device-card.selected')
                 ).map(c => c.getAttribute('data-id'));
+                try {
+                    if (window.__uiDebug) console.info('[BulkAction] sendcmd', ids);
+                } catch (_) {}
                 await openSendCmdFor(ids);
             });
             document.getElementById('bulk-clearoverrides')?.addEventListener('click', async () => {
@@ -10991,7 +11399,33 @@
                         await loadDevices();
                     });
                 }
-                overlay?.classList.add('open');
+                if (overlay) {
+                    if (window.__uiDebug) console.info('[BulkAction] delete open modal', { ids });
+                    __showOverlay(overlay, 'modal-delete-devices');
+                    // zero-rect repair if needed
+                    try {
+                        const r = overlay.getBoundingClientRect();
+                        if (
+                            (r.width === 0 || r.height === 0) &&
+                            overlay.parentElement !== document.body
+                        ) {
+                            document.body.appendChild(overlay);
+                            overlay.setAttribute('data-portal', 'true');
+                            requestAnimationFrame(() => {
+                                const r2 = overlay.getBoundingClientRect();
+                                if (window.__uiDebug)
+                                    console.info(
+                                        '[BulkAction] delete rect after portal',
+                                        r2.toJSON()
+                                    );
+                                if (r2.width === 0 || r2.height === 0) {
+                                    overlay.style.width = '100vw';
+                                    overlay.style.height = '100vh';
+                                }
+                            });
+                        }
+                    } catch (_) {}
+                }
             });
             document.getElementById('bulk-poweroff')?.addEventListener('click', async () => {
                 const selectedCards = Array.from(
@@ -11069,7 +11503,16 @@
             }
             function openGroupModal() {
                 loadGroups();
-                document.getElementById('modal-group-assign')?.classList.add('open');
+                const overlay = document.getElementById('modal-group-assign');
+                if (!overlay) return;
+                __showOverlay(overlay, 'modal-group-assign');
+                try {
+                    if (window.__uiDebug)
+                        console.info(
+                            '[ModalDebug] group-assign rect',
+                            overlay.getBoundingClientRect().toJSON()
+                        );
+                } catch (_) {}
             }
             async function patchDeviceGroups(deviceId, mutate) {
                 try {
@@ -11147,7 +11590,16 @@
                             .join('');
                     }
                 }
-                document.getElementById('modal-assign-preset')?.classList.add('open');
+                const overlay = document.getElementById('modal-assign-preset');
+                if (!overlay) return;
+                __showOverlay(overlay, 'modal-assign-preset');
+                try {
+                    if (window.__uiDebug)
+                        console.info(
+                            '[ModalDebug] assign-preset rect',
+                            overlay.getBoundingClientRect().toJSON()
+                        );
+                } catch (_) {}
             }
             btnPresetApply?.addEventListener('click', async () => {
                 const preset = presetSelect?.value || '';
@@ -12145,7 +12597,14 @@
         btnConfirm.disabled = true;
         btnForce.style.display = 'none';
         content.innerHTML = '<div class="subtle">Loading update information…</div>';
-        overlay.classList.add('open');
+        __showOverlay(overlay, 'modal-update');
+        try {
+            if (window.__uiDebug)
+                console.info(
+                    '[ModalDebug] openUpdateModal overlay rect',
+                    overlay.getBoundingClientRect().toJSON()
+                );
+        } catch (_) {}
 
         try {
             const r = await fetch('/api/admin/update-check', { credentials: 'include' });
@@ -12226,6 +12685,9 @@
             const j = await r.json().catch(() => ({}));
             if (!r.ok) throw new Error(j?.error || 'Failed to start update');
             overlay?.classList.remove('open');
+            try {
+                overlay?.setAttribute('aria-hidden', 'true');
+            } catch (_) {}
             window.notify?.toast({
                 type: 'info',
                 title: 'Updating…',
