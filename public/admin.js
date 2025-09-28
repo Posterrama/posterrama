@@ -4090,9 +4090,6 @@
     function openModal(id) {
         const m = document.getElementById(id);
         if (!m) return;
-        try {
-            console.info('[ModalDebug] openModal start', id);
-        } catch (_) {}
         m.classList.add('open');
         m.removeAttribute('hidden');
         m.setAttribute('aria-hidden', 'false');
@@ -4123,7 +4120,6 @@
         try {
             const r = m.getBoundingClientRect();
             if ((r.width === 0 || r.height === 0) && m.parentElement !== document.body) {
-                console.warn('[ModalDebug] zero rect after open; re-parenting overlay to body', id);
                 document.body.appendChild(m);
                 m.setAttribute('data-portal', 'true');
                 window.__ensureVisible?.(m, 'modal');
@@ -4135,16 +4131,6 @@
                 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
             );
             first?.focus?.();
-        } catch (_) {}
-        try {
-            const rr = m.getBoundingClientRect();
-            console.info('[ModalDebug] openModal done', id, {
-                width: rr.width,
-                height: rr.height,
-                top: rr.top,
-                left: rr.left,
-                portal: m.hasAttribute('data-portal'),
-            });
         } catch (_) {}
     }
     // Unified overlay show helper (for legacy direct handlers using classList only)
@@ -4950,55 +4936,29 @@
                 }
                 const { list } = getRefs();
                 if (list) {
-                    try {
-                        console.log('[NotifDebug] renderPanel start', {
-                            alertCount: Array.isArray(alerts) ? alerts.length : 'n/a',
-                            logCount: Array.isArray(logs) ? logs.length : 'n/a',
-                            parts: parts.length,
-                        });
-                    } catch (_) {}
                     if (parts.length) {
                         const html = parts
                             .sort((a, b) => (b.ts || 0) - (a.ts || 0))
                             .map(p => p.html)
                             .join('');
                         list.innerHTML = html;
-                        try {
-                            console.log('[NotifDebug] renderPanel populated', {
-                                itemNodes: list.querySelectorAll('.notify-item').length,
-                                htmlLength: list.innerHTML.length,
-                            });
-                        } catch (_) {}
                     } else {
                         list.innerHTML =
                             '<div class="notify-item notify-empty"><div class="notify-title" style="grid-column:1 / -1; text-align:center; opacity:.85;">No notifications</div></div>';
-                        try {
-                            console.log('[NotifDebug] renderPanel empty');
-                        } catch (_) {}
                     }
                 } else {
                     setBadge(0);
                 }
             }
-
             async function refreshBadge(force = false) {
                 try {
                     const nowThrottle = Date.now();
                     if (!window.__notifLastRun) window.__notifLastRun = 0;
                     if (!window.__notifRunCount) window.__notifRunCount = 0;
-                    // Hard throttle: if < 1500ms since last and not force, skip
-                    if (!force && nowThrottle - window.__notifLastRun < 1500) {
-                        return; // suppress storm
-                    }
+                    if (!force && nowThrottle - window.__notifLastRun < 1500) return;
                     window.__notifLastRun = nowThrottle;
                     window.__notifRunCount++;
-                    if (window.__notifRunCount > 500) {
-                        /* safety fuse */ return;
-                    }
-                    try {
-                        if (window.__notifVerbose)
-                            console.log('[NotifDebug] refreshBadge start', { force });
-                    } catch (_) {}
+                    if (window.__notifRunCount > 500) return;
                     // Suppression window after user clears notifications (avoid bounce-back)
                     try {
                         const until = Number(localStorage.getItem(CLEAR_SUPPRESS_KEY) || 0);
@@ -5012,13 +4972,6 @@
                         }
                     } catch (_) {}
                     let { alerts, logs } = await fetchAlertsAndLogs({ force });
-                    try {
-                        if (window.__notifVerbose)
-                            console.log('[NotifDebug] refreshBadge data', {
-                                a: alerts?.length,
-                                l: logs?.length,
-                            });
-                    } catch (_) {}
                     // Apply session dismissals so cleared items don't bounce back immediately
                     ({ alerts, logs } = applyDismissedFilter(alerts, logs));
                     const maxItems = getNotifMaxItems();
@@ -5030,23 +4983,13 @@
                     const count = shownAlerts + shownLogs;
                     setBadge(count);
                     try {
-                        if (window.__notifVerbose)
-                            console.log('[NotifDebug] refreshBadge count set', { count });
-                    } catch (_) {}
-                    try {
                         window.__notifRendering = true;
                     } catch (_) {}
                     renderPanel({ alerts, logs });
                     try {
                         window.__notifRendering = false;
                     } catch (_) {}
-                    try {
-                        if (window.__notifVerbose) console.log('[NotifDebug] refreshBadge done');
-                    } catch (_) {}
                 } catch (_) {
-                    try {
-                        console.warn('[NotifDebug] refreshBadge failed', _?.message || _);
-                    } catch (__) {}
                     setBadge(0);
                     const { list } = getRefs();
                     if (list)
@@ -5064,11 +5007,6 @@
                 try {
                     if (panel && panel.parentElement !== document.body) {
                         // If panel is accidentally nested inside other layout (e.g., form/modal), detach to body.
-                        console.info(
-                            '[NotifDebug] relocating notify-center to <body> (parent was',
-                            panel.parentElement?.className || panel.parentElement?.id,
-                            ')'
-                        );
                         document.body.appendChild(panel);
                         panel.setAttribute('data-portal', 'true');
                     }
