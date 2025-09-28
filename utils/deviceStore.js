@@ -575,6 +575,40 @@ function popCommands(id) {
     return list;
 }
 
+/**
+ * Remove references to groups that no longer exist from all devices.
+ * @param {Set<string>|string[]} existingGroupIds - Set/array of valid group ids.
+ * @returns {Promise<{updated:number, removed:number}>}
+ */
+async function pruneOrphanGroupRefs(existingGroupIds) {
+    try {
+        const valid =
+            existingGroupIds instanceof Set ? existingGroupIds : new Set(existingGroupIds || []);
+        const all = await readAll();
+        let modified = false;
+        let removed = 0;
+        for (const d of all) {
+            if (Array.isArray(d.groups) && d.groups.length) {
+                const before = d.groups.length;
+                const next = d.groups.filter(gid => valid.has(gid));
+                if (next.length !== before) {
+                    removed += before - next.length;
+                    d.groups = next;
+                    d.updatedAt = new Date().toISOString();
+                    modified = true;
+                }
+            }
+        }
+        if (modified) await writeAll(all);
+        return { updated: modified ? 1 : 0, removed };
+    } catch (e) {
+        try {
+            logger.warn('[Devices] pruneOrphanGroupRefs failed', e);
+        } catch (_) {}
+        return { updated: 0, removed: 0 };
+    }
+}
+
 module.exports = {
     storePath,
     getAll,
@@ -594,4 +628,5 @@ module.exports = {
     revokePairingCode,
     getActivePairings,
     mergeDevices,
+    pruneOrphanGroupRefs,
 };

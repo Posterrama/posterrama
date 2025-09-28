@@ -7790,6 +7790,24 @@
                 const mode = deriveDeviceMode(d);
                 const room = roomLabel(d);
                 const meta = versionMeta(d);
+                // Filter orphan group IDs (those not in state.groups) at render time
+                let validGroups = [];
+                try {
+                    if (Array.isArray(d.groups) && Array.isArray(state.groups)) {
+                        const validSet = new Set(state.groups.map(g => g.id));
+                        validGroups = d.groups.filter(g => validSet.has(g));
+                    }
+                } catch (_) {}
+                const groupsHtml =
+                    validGroups.length > 0
+                        ? `<div class="dev-groups">${validGroups
+                              .map(gid => {
+                                  const g = state.groups.find(x => x.id === gid);
+                                  const label = escapeHtml(g?.name || gid);
+                                  return `<span class="group-pill" title="Group: ${label}">${label}</span>`;
+                              })
+                              .join('')}</div>`
+                        : '';
                 const disabledPower = status === 'offline' ? ' disabled' : '';
                 const isPoweredOff = d?.currentState?.poweredOff === true;
                 const poweredOff = isPoweredOff ? ' title="Currently powered off"' : '';
@@ -8650,7 +8668,7 @@
                             Math.max(0, Date.parse(r?.expiresAt || 0) - Date.now());
                         const expMs = Math.max(0, ttlMs);
                         const expAt = Date.now() + expMs;
-                        const tagHtml = `
+                        const cardBody = `
                             <div class="pairing-tags" aria-label="Device attributes">
                                 ${location ? `<span class="pill" title="Location"><i class="fas fa-location-dot"></i> ${escapeHtml(String(location))}</span>` : ''}
                                 ${groups.map(g => `<span class="pill" title="Group"><i class="fas fa-layer-group"></i> ${escapeHtml(String(g))}</span>`).join(' ')}
@@ -11437,19 +11455,47 @@
             const btnRemove = document.getElementById('btn-group-remove');
             const btnCreateAssign = document.getElementById('btn-group-create-assign');
             const newGroupInput = document.getElementById('new-group-name');
+            let __groupsLoading = false;
             async function loadGroups() {
+                if (!groupSelect) return;
+                if (__groupsLoading) return; // prevent concurrent stacking
+                __groupsLoading = true;
                 try {
-                    const list = await fetchJSON('/api/groups');
-                    if (groupSelect) {
-                        groupSelect.innerHTML = list
-                            .map(
-                                g =>
-                                    `<option value="${g.id}">${escapeHtml(g.name || g.id)}</option>`
-                            )
-                            .join('');
+                    // Accessible loading placeholder (will be replaced)
+                    groupSelect.innerHTML =
+                        '<option value="" disabled selected>Loading groups...</option>';
+                    let list = await fetchJSON('/api/groups');
+                    if (!Array.isArray(list)) list = [];
+                    // Fallback: if empty, attempt to refresh config (in case groups created recently)
+                    if (list.length === 0) {
+                        try {
+                            await fetchJSON('/get-config');
+                            const retry = await fetchJSON('/api/groups');
+                            if (Array.isArray(retry)) list = retry;
+                        } catch (_) {
+                            /* ignore fallback errors */
+                        }
+                    }
+                    const seen = new Set();
+                    const options = [];
+                    for (const g of list) {
+                        const id = g && g.id;
+                        if (!id || seen.has(id)) continue;
+                        seen.add(id);
+                        const label = escapeHtml(g.name || id);
+                        options.push(`<option value="${id}">${label}</option>`);
+                    }
+                    if (options.length === 0) {
+                        groupSelect.innerHTML =
+                            '<option value="" disabled selected>(No groups defined)</option>';
+                    } else {
+                        groupSelect.innerHTML = options.join('');
                     }
                 } catch (_) {
-                    if (groupSelect) groupSelect.innerHTML = '';
+                    groupSelect.innerHTML =
+                        '<option value="" disabled selected>(Failed to load groups)</option>';
+                } finally {
+                    __groupsLoading = false;
                 }
             }
             function openGroupModal() {

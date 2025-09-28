@@ -3,11 +3,18 @@ const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 
-const storePath = process.env.GROUPS_STORE_PATH
-    ? path.isAbsolute(process.env.GROUPS_STORE_PATH)
+// Determine store path with test isolation: if NODE_ENV=test and no explicit override, use groups.test.json
+let resolvedGroupsPath;
+if (process.env.GROUPS_STORE_PATH) {
+    resolvedGroupsPath = path.isAbsolute(process.env.GROUPS_STORE_PATH)
         ? process.env.GROUPS_STORE_PATH
-        : path.join(__dirname, '..', process.env.GROUPS_STORE_PATH)
-    : path.join(__dirname, '..', 'groups.json');
+        : path.join(__dirname, '..', process.env.GROUPS_STORE_PATH);
+} else if (process.env.NODE_ENV === 'test') {
+    resolvedGroupsPath = path.join(__dirname, '..', 'groups.test.json');
+} else {
+    resolvedGroupsPath = path.join(__dirname, '..', 'groups.json');
+}
+const storePath = resolvedGroupsPath;
 
 let writeQueue = Promise.resolve();
 let cache = null; // in-memory cache of groups

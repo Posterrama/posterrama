@@ -3537,6 +3537,19 @@ if (isDeviceMgmtEnabled()) {
                 ];
                 const patch = {};
                 for (const k of allowed) if (k in req.body) patch[k] = req.body[k];
+                // Filter group IDs that no longer exist to prevent orphan references
+                if (Array.isArray(patch.groups)) {
+                    try {
+                        const allGroups = await groupsStore.getAll();
+                        const valid = new Set(allGroups.map(g => g.id));
+                        patch.groups = patch.groups.filter(
+                            g => typeof g === 'string' && valid.has(g)
+                        );
+                    } catch (_) {
+                        // On failure, drop groups field entirely rather than write potentially bad data
+                        delete patch.groups;
+                    }
+                }
                 const d = await deviceStore.patchDevice(req.params.id, patch);
                 if (!d) return res.status(404).json({ error: 'not_found' });
                 // If settingsOverride changed, push live to device when connected
@@ -3784,6 +3797,47 @@ if (isDeviceMgmtEnabled()) {
                 res.json({ queued: true, live: false, command: cmd });
             } catch (e) {
                 res.status(500).json({ error: 'queue_failed' });
+            }
+        }
+    );
+
+    /**
+     * @swagger
+     * /api/devices/prune-orphan-groups:
+     *   post:
+     *     summary: Remove non-existent group references from all devices
+     *     tags: ['Devices','Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     responses:
+     *       200:
+     *         description: Prune result
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 updated:
+     *                   type: integer
+     *                 removed:
+     *                   type: integer
+     *       401:
+     *         description: Unauthorized
+     *       500:
+     *         description: Prune failed
+     */
+    app.post(
+        '/api/devices/prune-orphan-groups',
+        testSessionShim,
+        adminAuthDevices,
+        async (_req, res) => {
+            try {
+                const groups = await groupsStore.getAll();
+                const ids = groups.map(g => g.id);
+                const result = await deviceStore.pruneOrphanGroupRefs(ids);
+                res.json(result);
+            } catch (e) {
+                res.status(500).json({ error: 'prune_failed' });
             }
         }
     );

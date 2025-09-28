@@ -6,6 +6,11 @@ describe('Admin Group Command wait=true', () => {
         process.env.NODE_ENV = 'test';
         process.env.DEVICE_MGMT_ENABLED = 'true';
         process.env.API_ACCESS_TOKEN = 'test-token';
+        // Use isolated groups store path so test data does not pollute production groups.json
+        const uniqueGroups = `${process.pid}.${Date.now()}.${Math.random()
+            .toString(36)
+            .slice(2)}.groups.test.json`;
+        process.env.GROUPS_STORE_PATH = uniqueGroups;
 
         // Set unique device store path for each test
         const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
@@ -23,6 +28,7 @@ describe('Admin Group Command wait=true', () => {
         // Clean up environment
         delete process.env.API_ACCESS_TOKEN;
         delete process.env.DEVICE_MGMT_ENABLED;
+        delete process.env.GROUPS_STORE_PATH;
     });
     test('collects per-device ACKs and queues offline members', async () => {
         let app;
