@@ -363,6 +363,7 @@ body.page-logs {
     margin-left: var(--space-md); /* Padding from search field */
     flex-shrink: 0; /* Don't shrink badges */
     flex-basis: auto; /* Don't force full width */
+    height: 44px; /* Match search input height exactly */
     border: 2px solid yellow !important;
 }
 .filter-badge {
