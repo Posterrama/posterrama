@@ -3216,6 +3216,16 @@ body .notify-center.open {
     visibility: visible !important;
     z-index: 13000 !important; /* ensure above other header layers */
 }
+/* Debug visibility aids (can be removed later) */
+.notify-center[data-notif-force] {
+    outline: 2px solid #ff00d4 !important;
+    box-shadow:
+        0 0 0 2px #ff00d480,
+        0 8px 28px -4px rgba(0, 0, 0, 0.55) !important;
+}
+.notify-center {
+    min-height: 140px; /* ensure body area visible even if empty */
+}
 .notify-header {
     display: flex;
     align-items: center;
