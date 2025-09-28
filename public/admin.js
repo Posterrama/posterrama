@@ -51,6 +51,7 @@
                         return false;
                     }
                     panel.classList.add('open');
+                    panel.setAttribute('data-notif-force', 'true');
                     panel.style.display = 'block';
                     panel.style.visibility = 'visible';
                     panel.style.opacity = '1';
