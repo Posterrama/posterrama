@@ -57,7 +57,8 @@
         "release:patch": "bash private/release-push.sh --patch --yes",
         "release:minor": "bash private/release-push.sh --minor --yes",
         "release:major": "bash private/release-push.sh --major --yes",
-        "openapi:export": "node scripts/export-openapi.js"
+        "openapi:export": "node scripts/export-openapi.js",
+        "release:summary": "node scripts/generate-release-summary.js"
     },
     "dependencies": {
         "adm-zip": "^0.5.16",
