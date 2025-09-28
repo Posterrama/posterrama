@@ -83,7 +83,7 @@ body.page-logs {
 .logs-toolbar .logs-row {
     display: flex;
     flex-wrap: nowrap;
-    gap: var(--space-lg);
+    gap: var(--space-md);
     align-items: center;
     width: 100%;
     /* DEBUG: temporary borders to see layout */
@@ -327,10 +327,12 @@ body.page-logs {
 /* Filter badges - positioned right of search field */
 .filter-badges {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
     align-items: center;
     margin-left: var(--space-md); /* Padding from search field */
+    flex-shrink: 0; /* Don't shrink badges */
+    border: 2px solid yellow !important;
 }
 .filter-badge {
     display: inline-flex;
@@ -395,6 +397,8 @@ body.page-logs {
     position: relative;
     display: flex;
     align-items: center;
+    flex: 1 1 auto; /* Allow search to grow */
+    border: 2px solid green !important;
 }
 .logs-search-wrap > i {
     position: absolute;
