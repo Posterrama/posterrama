@@ -86,6 +86,23 @@ body.page-logs {
     gap: var(--space-lg);
     align-items: center;
     width: 100%;
+    /* DEBUG: temporary borders to see layout */
+    border: 2px solid red;
+}
+
+/* DEBUG: Show form-row containers */
+.logs-toolbar .logs-row .form-row {
+    border: 2px solid blue;
+    margin: 2px;
+}
+
+/* DEBUG: Show search components */
+.logs-search-wrap {
+    border: 2px solid green !important;
+}
+
+.filter-badges {
+    border: 2px solid yellow !important;
 }
 /* Logs buttons styled to match wallart preset appearance - copy exact selectors */
 .logs-toolbar .logs-row .btn,
@@ -294,18 +311,17 @@ body.page-logs {
 }
 
 /* Layout for search row with integrated badges */
-.logs-toolbar .search-row {
+.logs-toolbar .logs-row .form-row.search-row {
     display: flex;
     align-items: center;
     gap: var(--space-md);
 }
-.logs-toolbar .controls-row {
-    justify-content: flex-end;
+.logs-toolbar .logs-row .form-row.controls-row {
+    display: flex;
+    flex-direction: row;
     align-items: center;
     gap: var(--space-md);
-    margin-left: auto; /* Push to right */
-    display: flex;
-    flex-direction: row; /* Ensure horizontal layout */
+    justify-content: flex-end;
 }
 
 /* Filter badges - positioned right of search field */
