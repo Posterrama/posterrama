@@ -309,7 +309,7 @@ body.page-logs {
 }
 .logs-search-wrap > input {
     width: 100%;
-    padding: 10px 38px 10px 34px;
+    padding: 10px 40px 10px 34px;
     font-size: 0.75rem;
     background: var(--color-bg-dark);
     border: 1px solid var(--color-border);
@@ -324,21 +324,31 @@ body.page-logs {
     border-color: var(--color-secondary);
     box-shadow: 0 0 0 3px rgba(var(--color-secondary-rgb, 102 126 234) / 35%);
 }
-/* Clear button now styled as standard button inside wrapper */
-.logs-search-wrap .clear-search.btn {
-    position: static;
-    transform: none;
-    width: auto;
-    height: 44px;
-    margin-left: 16px;
-    background: var(--color-secondary) !important;
-    color: var(--color-text-inverse) !important;
-    border: 1px solid var(--color-secondary) !important;
+/* Clear button as icon inside search field */
+.logs-search-wrap .clear-search-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    background: none;
+    border: none;
+    color: var(--color-text-tertiary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition:
+        color 120ms var(--anim-ease-emph),
+        background-color 120ms var(--anim-ease-emph);
 }
 @media (hover: hover) {
-    .logs-search-wrap .clear-search.btn:hover:not(:disabled) {
-        background: var(--color-secondary-dark) !important;
-        border-color: var(--color-secondary-dark) !important;
+    .logs-search-wrap .clear-search-icon:hover {
+        color: var(--color-text-primary);
+        background-color: var(--color-border);
     }
 }
 

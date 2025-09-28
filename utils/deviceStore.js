@@ -604,7 +604,9 @@ async function pruneOrphanGroupRefs(existingGroupIds) {
     } catch (e) {
         try {
             logger.warn('[Devices] pruneOrphanGroupRefs failed', e);
-        } catch (_) {}
+        } catch (_) {
+            // noop: secondary logging failure is non-fatal
+        }
         return { updated: 0, removed: 0 };
     }
 }
