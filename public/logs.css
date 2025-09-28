@@ -320,7 +320,6 @@ body.page-logs {
     height: 44px; /* Match search input height exactly */
     position: relative;
     top: 0px; /* Baseline alignment */
-    border: 2px solid yellow !important;
 }
 .filter-badge {
     display: inline-flex;
@@ -396,7 +395,6 @@ body.page-logs {
     min-width: 300px; /* Reasonable minimum width */
     max-width: 400px; /* Prevent excessive growth */
     height: 44px; /* Match search input height exactly */
-    border: 2px solid green !important;
 }
 .logs-search-wrap > i {
     position: absolute;
