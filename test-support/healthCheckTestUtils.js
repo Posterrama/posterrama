@@ -1,5 +1,4 @@
 /** Test support utilities (not a test suite) */
-const fs = require('fs');
 let realReadFile;
 function loadHealthCheckWithConfig(config, { fetchMock } = {}) {
     jest.resetModules();
