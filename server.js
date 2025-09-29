@@ -308,20 +308,9 @@ const fetch = require('node-fetch');
 
 const config = require('./config.json');
 const swaggerUi = require('swagger-ui-express');
-// Internal/test routes (exported separately for swagger scanning)
-let testRoutes; // lazy require to avoid impacting prod startup if file missing
-try {
-    testRoutes = require('./routes.test-endpoints');
-    app.use(testRoutes);
-} catch (e) {
-    // Defer reference to isDebug safely (it may not yet be defined if code rearranged)
-    try {
-        if (typeof isDebug !== 'undefined' && isDebug)
-            logger.warn('[init] test routes not loaded', { error: e.message });
-    } catch (_) {
-        // intentionally ignore logging failure
-    }
-}
+// Defer internal/test routes mounting until after app is created and env inspected.
+// They are only mounted automatically when EXPOSE_INTERNAL_ENDPOINTS === 'true'.
+let testRoutes; // will be conditionally required later (after app initialization) to avoid side effects
 const pkg = require('./package.json');
 const {
     FILE_WHITELIST: CFG_FILES,
@@ -14380,6 +14369,18 @@ try {
     }
 } catch (e) {
     logger.warn('[SSE] init failed', e?.message || e);
+}
+
+// Conditionally mount internal test routes late (after all core middleware) to avoid affecting production
+if (process.env.EXPOSE_INTERNAL_ENDPOINTS === 'true') {
+    try {
+        // Lazy require only when needed
+        testRoutes = require('./routes.test-endpoints');
+        app.use(testRoutes);
+        logger.debug?.('[init] internal test routes mounted (EXPOSE_INTERNAL_ENDPOINTS)');
+    } catch (e) {
+        logger.warn('[init] failed to mount internal test routes', { error: e.message });
+    }
 }
 
 // Error handling middleware (must be last)
