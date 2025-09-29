@@ -124,4 +124,6 @@ router.get('/api/test/generate-logs', (req, res) => {
     }
 });
 
+// Export both the router (default) and a named export for direct mounting in isolated tests
 module.exports = router;
+module.exports.testEndpointsRouter = router;

@@ -1131,10 +1131,10 @@ function generateSwaggerSpec() {
         if (spec.tags && spec.paths) {
             const hasTesting = Object.values(spec.paths).some(methods =>
                 Object.values(methods || {}).some(
-                    op => Array.isArray(op.tags) && op.tags.includes('Test')
+                    op => Array.isArray(op.tags) && op.tags.includes('Testing')
                 )
             );
-            if (!hasTesting) spec.tags = spec.tags.filter(t => t.name !== 'Test');
+            if (!hasTesting) spec.tags = spec.tags.filter(t => t.name !== 'Testing');
         }
     } catch (_) {
         // Non-fatal if sanitization fails
