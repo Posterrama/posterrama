@@ -103,3 +103,6 @@ private/
 *.swp
 *.swo
 *.un~
+
+# Generated test artifacts (group config test outputs)
+*.groups.test.json

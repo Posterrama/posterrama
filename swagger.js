@@ -1111,35 +1111,30 @@ function generateSwaggerSpec() {
                 },
             },
         },
-        apis: ['./server.js'], // Path to files with OpenAPI definitions
+        apis: ['./server.js', './routes.test-endpoints.js'], // Include test routes file for documentation
     };
 
     const spec = swaggerJSDoc(options);
 
-    // Remove internal-only endpoints (annotated with x-internal: true)
+    // Internal endpoint filtering (x-internal) can be disabled via EXPOSE_INTERNAL_ENDPOINTS=true
     try {
-        if (spec && spec.paths) {
+        const exposeInternal = process.env.EXPOSE_INTERNAL_ENDPOINTS === 'true';
+        if (!exposeInternal && spec && spec.paths) {
             for (const [p, methods] of Object.entries(spec.paths)) {
                 for (const m of Object.keys(methods)) {
-                    if (methods[m] && methods[m]['x-internal'] === true) {
-                        delete methods[m];
-                    }
+                    if (methods[m] && methods[m]['x-internal'] === true) delete methods[m];
                 }
-                if (Object.keys(methods).length === 0) {
-                    delete spec.paths[p];
-                }
+                if (Object.keys(methods).length === 0) delete spec.paths[p];
             }
         }
-        // Optionally remove the Testing tag if no testing endpoints remain
-        if (spec.tags && (!spec.paths || Object.keys(spec.paths).length > 0)) {
-            const hasTesting = Object.values(spec.paths || {}).some(methods =>
+        // Clean up Testing tag only if no remaining ops use it
+        if (spec.tags && spec.paths) {
+            const hasTesting = Object.values(spec.paths).some(methods =>
                 Object.values(methods || {}).some(
-                    op => Array.isArray(op.tags) && op.tags.includes('Testing')
+                    op => Array.isArray(op.tags) && op.tags.includes('Test')
                 )
             );
-            if (!hasTesting) {
-                spec.tags = spec.tags.filter(t => t.name !== 'Testing');
-            }
+            if (!hasTesting) spec.tags = spec.tags.filter(t => t.name !== 'Test');
         }
     } catch (_) {
         // Non-fatal if sanitization fails

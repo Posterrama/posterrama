@@ -43,6 +43,10 @@
             "description": "Configuration and data validation endpoints."
         },
         {
+            "name": "Testing",
+            "description": "Development and testing endpoints."
+        },
+        {
             "name": "Metrics",
             "description": "Performance monitoring and metrics endpoints."
         },
@@ -1640,6 +1644,19 @@
                 }
             }
         },
+        "/api/_internal/health-debug": {
+            "get": {
+                "summary": "Internal health debug info",
+                "description": "Returns lightweight diagnostic info for internal tooling (excluded from public spec).",
+                "x-internal": true,
+                "tags": ["Testing"],
+                "responses": {
+                    "200": {
+                        "description": "Internal diagnostic info"
+                    }
+                }
+            }
+        },
         "/api/v1/admin/config/validate": {
             "post": {
                 "summary": "Validate configuration data",
@@ -1811,6 +1828,60 @@
                     },
                     "400": {
                         "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/v1/test-error": {
+            "get": {
+                "summary": "Test error handling (Development only)",
+                "description": "Throws a test error to verify error handling middleware works correctly.",
+                "tags": ["Testing"],
+                "deprecated": true,
+                "x-internal": true,
+                "responses": {
+                    "500": {
+                        "description": "Test error thrown successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "This is a test error"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/test-async-error": {
+            "get": {
+                "summary": "Test async error handling (Development only)",
+                "description": "Throws a test async error to verify async error handling middleware works correctly.",
+                "tags": ["Testing"],
+                "deprecated": true,
+                "x-internal": true,
+                "responses": {
+                    "500": {
+                        "description": "Test async error thrown successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "This is a test async error"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -2978,6 +3049,43 @@
                 }
             }
         },
+        "/api/devices/prune-orphan-groups": {
+            "post": {
+                "summary": "Remove non-existent group references from all devices",
+                "tags": ["Devices", "Admin"],
+                "security": [
+                    {
+                        "sessionAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Prune result",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "updated": {
+                                            "type": "integer"
+                                        },
+                                        "removed": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Prune failed"
+                    }
+                }
+            }
+        },
         "/api/groups": {
             "get": {
                 "summary": "List groups",
@@ -3505,6 +3613,92 @@
                                 }
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/api/test/clear-logs": {
+            "get": {
+                "summary": "Clear in-memory captured logs (test only)",
+                "description": "Clears the in-memory logger ring buffer used by the admin UI. Test / internal use only.",
+                "tags": ["Test"],
+                "x-internal": true,
+                "responses": {
+                    "200": {
+                        "description": "Successfully cleared memory logs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "beforeCount": {
+                                            "type": "integer"
+                                        },
+                                        "afterCount": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error clearing logs"
+                    }
+                }
+            }
+        },
+        "/api/test/generate-logs": {
+            "get": {
+                "summary": "Generate synthetic log entries (test only)",
+                "description": "Generates a batch of synthetic log entries for UI/testing purposes. Internal use only.",
+                "tags": ["Test"],
+                "x-internal": true,
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "count",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "maximum": 1000
+                        },
+                        "description": "Number of test log entries to generate (max 1000)"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Logs generated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        },
+                                        "memoryLogsCount": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error generating logs"
                     }
                 }
             }
