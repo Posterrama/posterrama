@@ -485,18 +485,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Smart polling: start with longer intervals, then speed up
-    const pollCount = 0;
+    // const pollCount = 0; // smart polling disabled (kept commented for future use)
     let pollInterval;
 
-    function getPollingInterval() {
-        // First 5 polls (25 seconds): every 5 seconds
-        // Next 10 polls (50 seconds): every 5 seconds
-        // After that: every 3 seconds for more responsive updates
-        if (pollCount < 15) {
-            return 5000; // 5 seconds for first 75 seconds
-        }
-        return 3000; // 3 seconds afterwards
-    }
+    // getPollingInterval kept for potential future smart polling logic; currently unused.
+    // Commented out to satisfy ESLint no-unused-vars without deleting implementation context.
+    // function getPollingInterval() {
+    //     // First 5 polls (25 seconds): every 5 seconds
+    //     // Next 10 polls (50 seconds): every 5 seconds
+    //     // After that: every 3 seconds for more responsive updates
+    //     if (pollCount < 15) {
+    //         return 5000; // 5 seconds for first 75 seconds
+    //     }
+    //     return 3000; // 3 seconds afterwards
+    // }
 
     function startPolling() {
         // Temporarily disabled for testing

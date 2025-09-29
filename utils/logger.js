@@ -199,7 +199,26 @@ logger.error = (...args) => logger.log('error', ...args);
 logger.fatal = (...args) => logger.log('error', ...args); // Map fatal to error level
 logger.debug = (...args) => logger.log('debug', ...args);
 
-// Method to get recent logs for admin panel
+/**
+ * Retrieve recent logs from in-memory ring buffer.
+ * Ordering semantics:
+ *  - Logs are stored oldest -> newest in logger.memoryLogs.
+ *  - This function selects from the end (newest) applying offset & limit, but
+ *    returns the slice in chronological order (oldest -> newest within the window)
+ *    so UI components can append naturally.
+ * Filtering semantics:
+ *  - level (optional): case-insensitive log level threshold. Using ERROR returns only ERROR,
+ *    WARN returns WARN+ERROR, INFO returns INFO+WARN+ERROR, etc. Unknown level -> no filtering.
+ *  - testOnly: when true, only logs with marker [TEST-LOG] in message are included.
+ * Pagination semantics:
+ *  - offset counts from the newest end (offset=0 => newest log included).
+ *  - limit defines max number of entries returned.
+ * @param {string|null} level Optional level threshold (ERROR|WARN|INFO|DEBUG|TRACE etc.)
+ * @param {number} limit Maximum number of entries to return (default 500)
+ * @param {number} offset Number of newest logs to skip from the end (default 0)
+ * @param {boolean} testOnly Restrict to synthetic test logs containing [TEST-LOG]
+ * @returns {Array<{level:string,message:string,timestamp:string}>}
+ */
 logger.getRecentLogs = (level = null, limit = 500, offset = 0, testOnly = false) => {
     let logs = [...logger.memoryLogs];
 
@@ -227,14 +246,16 @@ logger.getRecentLogs = (level = null, limit = 500, offset = 0, testOnly = false)
         }
     }
 
-    // Reverse first to get newest-first order
-    logs.reverse();
-
-    // Apply pagination on the reversed logs
-    const startIndex = offset;
-    const endIndex = offset + limit;
-
-    return logs.slice(startIndex, endIndex);
+    // We want the selection based on most recent items (end of array) but
+    // preserve their original chronological order inside the returned slice.
+    if (offset < 0) offset = 0;
+    if (limit < 0) limit = 0;
+    const total = logs.length;
+    // Calculate slice bounds from the end (newest)
+    const sliceEndExclusive = total - offset; // exclude offset items from newest end
+    const sliceStart = Math.max(0, sliceEndExclusive - limit);
+    const slice = logs.slice(sliceStart, sliceEndExclusive);
+    return slice; // already chronological (oldest→newest within requested window)
 };
 
 // Method to update logger level based on DEBUG environment variable
