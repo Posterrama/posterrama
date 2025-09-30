@@ -203,7 +203,9 @@ const logger = createLoggerInstance({ forTest: process.env.NODE_ENV === 'test' }
 
 // Expose factory for tests and advanced scenarios
 function createTestLogger(opts = {}) {
-    const { silent: _ignored, ...rest } = opts; // silent ignored for test loggers (memory still captured)
+    // silent ignored for test loggers (memory still captured)
+    const rest = { ...opts };
+    delete rest.silent;
     return createLoggerInstance({ forTest: true, hardSilent: false, ...rest });
 }
 

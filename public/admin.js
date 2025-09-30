@@ -14005,16 +14005,17 @@
                 // Support both dotted IDs (new) and legacy underscore IDs present in HTML
                 const hostInput = getInput('plex.hostname');
                 const portInput = getInput('plex.port');
+                const host = plex.hostname || '';
+                const portVal = plex.port != null ? String(plex.port) : '';
                 const existingHost = hostInput ? hostInput.value.trim() : '';
                 const existingPort = portInput ? portInput.value.trim() : '';
-                const envHost = env[plexHostVar] || '';
-                const envPort = env[plexPortVar] || '';
+                // Legacy env-based host/port variables removed. Use existing config values only.
                 if (hostInput) {
-                    hostInput.value = envHost || existingHost;
+                    hostInput.value = existingHost || host || '';
                     hostInput.classList.toggle('is-placeholder', !hostInput.value);
                 }
                 if (portInput) {
-                    portInput.value = envPort || existingPort;
+                    portInput.value = existingPort || portVal || '';
                     portInput.classList.toggle('is-placeholder', !portInput.value);
                 }
             } catch (_) {}
@@ -14172,8 +14173,17 @@
             } catch (_) {
                 /* no-op */
             }
-            if (getInput('jf.hostname')) getInput('jf.hostname').value = env[jfHostVar] || '';
-            if (getInput('jf.port')) getInput('jf.port').value = env[jfPortVar] || '';
+            // Legacy Jellyfin env host/port vars removed; rely on config values already loaded above.
+            if (getInput('jf.hostname')) {
+                const jfHostInput = getInput('jf.hostname');
+                jfHostInput.value = jfHostInput.value || jf.hostname || '';
+                jfHostInput.classList.toggle('is-placeholder', !jfHostInput.value);
+            }
+            if (getInput('jf.port')) {
+                const jfPortInput = getInput('jf.port');
+                jfPortInput.value = jfPortInput.value || (jf.port != null ? String(jf.port) : '');
+                jfPortInput.classList.toggle('is-placeholder', !jfPortInput.value);
+            }
             if (getInput('jf.apikey')) {
                 // Use grey hint text when a key exists
                 const hasKey = !!env[jfKeyVar];
