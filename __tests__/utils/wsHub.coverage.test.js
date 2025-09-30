@@ -47,6 +47,7 @@ describe('utils/wsHub coverage', () => {
 
     async function waitFor(pred, { timeoutMs = 1500, intervalMs = 10 } = {}) {
         const start = Date.now();
+
         // eslint-disable-next-line no-constant-condition
         while (true) {
             if (pred()) return;

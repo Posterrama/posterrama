@@ -36,7 +36,6 @@ function round2(n) {
 
 function loadThresholds() {
     try {
-        // eslint-disable-next-line global-require
         const jestConfig = require(JEST_CONFIG_PATH);
         const thresholds = jestConfig.coverageThreshold || {};
         const perFile = { ...thresholds };

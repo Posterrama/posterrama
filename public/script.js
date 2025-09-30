@@ -1,5 +1,5 @@
 'use strict';
-/* eslint-disable no-empty, prettier/prettier */
+/* eslint-disable no-empty */
 /**
  * posterrama.app - Client-side logic
  *

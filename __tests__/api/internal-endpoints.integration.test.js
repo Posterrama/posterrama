@@ -12,7 +12,7 @@ describe('Internal endpoints (integration)', () => {
         // Ensure we start with a clean module state
         const srvPath = require.resolve('../../server.js');
         delete require.cache[srvPath];
-        // eslint-disable-next-line global-require
+
         app = require('../../server.js');
     });
     afterAll(() => {

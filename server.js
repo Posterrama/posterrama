@@ -12,7 +12,7 @@ function fatalExit(code) {
         }
         return; // Do not throw; allow tests to continue to inspect state.
     }
-    // eslint-disable-next-line no-process-exit
+
     process.exit(code);
 }
 
@@ -346,7 +346,7 @@ const JellyfinSource = require('./sources/jellyfin');
 const TMDBSource = require('./sources/tmdb');
 // INTENTIONAL-TODO(new-source): If you add a new source adapter under sources/<name>.js, require it here
 // const MyNewSource = require('./sources/mynew');
-const deepMerge = require('lodash.merge');
+const deepMerge = require('./utils/deep-merge');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 const rateLimit = require('express-rate-limit');
@@ -2517,7 +2517,6 @@ app.use(requestLoggingMiddleware());
 if (process.env.NODE_ENV === 'test') {
     app.use((req, _res, next) => {
         if (process.env.PRINT_AUTH_DEBUG === '1') {
-            // eslint-disable-next-line no-console
             // Replaced raw console.log with logger.debug (pre-review enforcement)
             logger.debug('[REQ]', req.method, req.path, 'Auth:', req.headers.authorization || '');
         }
@@ -2540,7 +2539,6 @@ const adminAuth = (req, res, next) => {
         const qApiKey = (req.query && (req.query.apiKey || req.query.apikey)) || '';
         if (process.env.PRINT_AUTH_DEBUG === '1') {
             try {
-                // eslint-disable-next-line no-console
                 // Replaced raw console.log with logger.debug (pre-review enforcement)
                 logger.debug('[ADMIN AUTH DEBUG]', {
                     env: process.env.NODE_ENV,
@@ -2579,7 +2577,6 @@ const adminAuthDevices = (req, res, next) => {
             (qApiKey && String(qApiKey).trim());
         if (process.env.PRINT_AUTH_DEBUG === '1') {
             try {
-                // eslint-disable-next-line no-console
                 // Replaced raw console.log with logger.debug (pre-review enforcement)
                 logger.debug('[ADMIN AUTH DEVICES BYPASS?]', req.method, req.path, {
                     hasAnyAuth: Boolean(hasAnyAuth),

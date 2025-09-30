@@ -15,7 +15,7 @@ beforeAll(() => {
     // Build an isolated express instance and mount only the test router
     // to achieve focused coverage without full server side‑effects.
     app = require('express')();
-    // eslint-disable-next-line global-require
+
     const testRouter = require('../../routes.test-endpoints');
     app.use(testRouter);
     // Ensure logger captures info-level entries for generated logs

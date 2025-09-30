@@ -1756,7 +1756,7 @@
     } catch (_) {}
 
     // format uptime helper (not used everywhere but kept for parity/UI)
-    // eslint-disable-next-line no-unused-vars
+
     function formatUptime(sec) {
         const s = Math.max(0, Math.floor(Number(sec) || 0));
         // Show seconds for sub-minute uptimes (e.g., 45s)
@@ -1783,7 +1783,6 @@
     const dbg = (...args) => {
         if (__debugOn) {
             try {
-                // eslint-disable-next-line no-console
                 console.debug('[admin2]', ...args);
             } catch (_) {
                 // ignore
@@ -7422,7 +7421,7 @@
                     } catch (_) {
                         try {
                             // Fallback if History API fails
-                            // eslint-disable-next-line no-self-assign
+
                             location.hash = '';
                         } catch (__) {
                             /* no-op */
@@ -9191,7 +9190,7 @@
                             try {
                                 btn.classList.remove('pulse');
                                 // Force reflow to restart animation
-                                // eslint-disable-next-line no-unused-expressions
+
                                 btn.offsetHeight;
                                 btn.classList.add('pulse');
                             } catch (_) {}
@@ -11325,7 +11324,7 @@
                                     // retrigger animation by toggling the class
                                     statusPill.classList.remove('status-flip');
                                     // force reflow
-                                    // eslint-disable-next-line no-unused-expressions
+
                                     statusPill.offsetWidth;
                                     statusPill.classList.add('status-flip');
                                     setTimeout(
@@ -15268,7 +15267,7 @@
             });
             container.appendChild(chip);
         }
-        // eslint-disable-next-line no-unused-vars
+
         function populatePlexGenreChips(genres, selectedCsv) {
             const container = document.getElementById('plex.genreFilter');
             const select = document.getElementById('plex.genreFilter-select');

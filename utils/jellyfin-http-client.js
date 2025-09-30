@@ -11,7 +11,7 @@ let pkgVersion = '1.0.0';
 try {
     // Resolve version for User-Agent / authorization metadata
     // Falls back silently if package.json cannot be loaded
-    // eslint-disable-next-line global-require
+
     pkgVersion = require('../package.json').version || pkgVersion;
 } catch (_) {
     // package.json not available; keep default version
@@ -84,7 +84,7 @@ class JellyfinHttpClient {
             const last = this.__lastWarnAt.get(key) || 0;
             if (now - last >= this.__warnIntervalMs) {
                 this.__lastWarnAt.set(key, now);
-                // eslint-disable-next-line no-console
+
                 console.warn(...args);
             }
         };
@@ -192,7 +192,6 @@ class JellyfinHttpClient {
                 // Exponential backoff: wait longer between retries
                 const delay = baseDelay * Math.pow(2, attempt);
                 if (this.__jfDebug && this.__retryLogEnabled) {
-                    // eslint-disable-next-line no-console
                     console.warn(
                         `[JellyfinClient] Request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms:`,
                         error.message

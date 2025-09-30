@@ -952,7 +952,7 @@ module.exports = {
         // For tests only: override cache duration in-process
         if (Number.isFinite(Number(ms))) {
             module.exports.__resetCache();
-            // eslint-disable-next-line no-global-assign
+
             CACHE_DURATION = Number(ms);
         }
     },

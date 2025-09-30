@@ -18,7 +18,6 @@
         if (typeof window !== 'undefined') {
             const preCfg = window.__POSTERRAMA_CONFIG;
             if (preCfg && preCfg.deviceMgmt && preCfg.deviceMgmt.bypassActive) {
-                // eslint-disable-next-line no-console
                 console.info('[DeviceMgmt] Bypass active (config flag) – skipping initialization.');
                 return; // abort IIFE
             }
@@ -41,7 +40,6 @@
             .then(r => (r.ok ? r.json() : null))
             .then(j => {
                 if (j && j.bypass) {
-                    // eslint-disable-next-line no-console
                     console.info('[DeviceMgmt] Bypass active (probe) – skipping initialization.');
                     // Replace the IIFE body with a noop; future calls to PosterramaDevice.init will be ignored.
                     window.PosterramaDevice = { init: () => {}, bypass: true };
@@ -983,7 +981,6 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             ) {
                 window.logger.debug.apply(window.logger, arguments);
             } else {
-                // eslint-disable-next-line no-console
                 console.info.apply(console, arguments);
             }
         } catch (_) {

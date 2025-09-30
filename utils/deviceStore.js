@@ -3,7 +3,7 @@ const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 const logger = require('./logger');
-const deepMerge = require('lodash.merge');
+const deepMerge = require('./deep-merge');
 
 // Helper function for mkdir with recursive option (compatible with older Node versions)
 async function ensureDir(dirPath) {

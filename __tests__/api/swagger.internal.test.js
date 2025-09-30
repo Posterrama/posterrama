@@ -10,7 +10,7 @@ function loadSwaggerWithSpec(mockSpec) {
     jest.doMock('swagger-jsdoc', () => jest.fn(() => mockSpec));
     const swaggerPath = path.join(process.cwd(), 'swagger.js');
     delete require.cache[swaggerPath];
-    // eslint-disable-next-line global-require
+
     return require('../../swagger.js');
 }
 
