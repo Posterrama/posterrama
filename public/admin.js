@@ -13548,6 +13548,25 @@
                     const sum = arr =>
                         (arr || []).reduce((acc, name) => acc + (map.get(name)?.itemCount || 0), 0);
                     totalJf = sum(movies) + sum(shows);
+                    // Fallback: if nothing selected yet but we have a global library count map, sum all
+                    if (!Number.isFinite(totalJf) || totalJf === 0) {
+                        const noneSelected =
+                            (!movies || movies.length === 0) && (!shows || shows.length === 0);
+                        if (
+                            noneSelected &&
+                            window.__jfLibraryCounts instanceof Map &&
+                            window.__jfLibraryCounts.size > 0
+                        ) {
+                            let all = 0;
+                            window.__jfLibraryCounts.forEach(v => {
+                                if (v && Number.isFinite(Number(v.itemCount)))
+                                    all += Number(v.itemCount);
+                            });
+                            if (all > 0) {
+                                totalJf = all;
+                            }
+                        }
+                    }
                 } catch (_) {}
 
                 // If no filters are active, prefer true totals; if unavailable, fall back to filtered (playlist-derived)
@@ -13568,6 +13587,14 @@
                 const _fmt = v => (Number.isFinite(v) ? Number(v).toLocaleString() : '—');
                 const plexTooltip = `Items — filtered: ${_fmt(filteredPlex)} | total: ${_fmt(totalPlex)}`;
                 const jfTooltip = `Items — filtered: ${_fmt(filteredJf)} | total: ${_fmt(totalJf)}`;
+                try {
+                    console.log('[Admin][Jellyfin][Counts]', {
+                        filteredJf,
+                        totalJf,
+                        displayJf,
+                        libraryCountMapSize: window.__jfLibraryCounts?.size,
+                    });
+                } catch (_) {}
                 setCount('sc-plex-count', displayPlex, totalPlex, plexTooltip);
                 setCount('sc-jf-count', displayJf, totalJf, jfTooltip);
                 // Default display for TMDB from cached playlist
