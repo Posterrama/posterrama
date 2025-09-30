@@ -4,6 +4,18 @@
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
+    // --- Hoisted global helpers (multiselect) to satisfy ESLint no-undef across late-file usages ---
+    // Define only once; if already defined (hot-reload scenario) reuse existing implementations.
+    if (!window.initMsForSelect) {
+        window.initMsForSelect = function initMsForSelect(_idBase, _selectId) {};
+    }
+    if (!window.rebuildMsForSelect) {
+        window.rebuildMsForSelect = function rebuildMsForSelect(_idBase, _selectId) {};
+    }
+    // Local aliases for lint (so references resolve even before bodies are replaced)
+    const initMsForSelect = window.initMsForSelect;
+    const rebuildMsForSelect = window.rebuildMsForSelect;
+
     // ---- Diagnostic Sentinel (notifications resilience) ----
     // Provides quick confirmation in the browser console that the latest admin.js has loaded.
     // Type:  __diagUI   or  window.__diagUI.showScripts()  in DevTools.
@@ -6665,6 +6677,210 @@
             });
         });
 
+        // Multiselect rebuild helper (hoisted above early panel switch usage to satisfy lint)
+        // Generic theme-demo multiselect (chips + dropdown) for backing <select multiple>
+        window.initMsForSelect = function initMsForSelect(idBase, selectId) {
+            const sel = document.getElementById(selectId);
+            const root = document.getElementById(`${idBase}`);
+            if (!sel || !root) return;
+            if (root.dataset.msWired === 'true') return; // already wired; use rebuildMsForSelect to refresh
+            const control = root.querySelector('.ms-control');
+            const chipsEl = root.querySelector('.ms-chips');
+            const menu = document.getElementById(`${idBase}-menu`);
+            const optsEl = document.getElementById(`${idBase}-options`);
+            const search = document.getElementById(`${idBase}-search`);
+            const clear = document.getElementById(`${idBase}-clear`);
+            const selectAll = document.getElementById(`${idBase}-select-all`);
+            const clearAll = document.getElementById(`${idBase}-clear-all`);
+            if (!control || !chipsEl || !menu || !optsEl || !search || !selectAll || !clearAll)
+                return;
+            const getSelected = () => new Set(Array.from(sel.selectedOptions).map(o => o.value));
+            const setSelected = valsSet => {
+                const vals = new Set(valsSet);
+                Array.from(sel.options).forEach(o => {
+                    o.selected = vals.has(o.value);
+                });
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+            const renderChips = () => {
+                const selected = getSelected();
+                chipsEl.innerHTML = '';
+                selected.forEach(v => {
+                    const label =
+                        Array.from(sel.options).find(o => o.value === v)?.textContent || v;
+                    const chip = document.createElement('span');
+                    chip.className = 'ms-chip';
+                    chip.dataset.value = v;
+                    chip.innerHTML = `${label} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                    chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const s = getSelected();
+                        s.delete(v);
+                        setSelected(s);
+                        syncOptions();
+                        renderChips();
+                        control.classList.toggle('has-selection', s.size > 0);
+                    });
+                    chipsEl.appendChild(chip);
+                });
+                control.classList.toggle('has-selection', selected.size > 0);
+            };
+            const syncOptions = () => {
+                const selected = getSelected();
+                Array.from(optsEl.children).forEach(row => {
+                    const v = row.dataset.value;
+                    const cb = row.querySelector('input[type="checkbox"]');
+                    if (cb) cb.checked = selected.has(v);
+                });
+            };
+            const buildOptions = () => {
+                optsEl.innerHTML = '';
+                const items = Array.from(sel.options).map(o => ({
+                    value: o.value,
+                    label: o.textContent,
+                }));
+                items.forEach(it => {
+                    const row = document.createElement('div');
+                    row.className = 'ms-option';
+                    row.dataset.value = it.value;
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    const span = document.createElement('span');
+                    span.textContent = it.label;
+                    row.appendChild(cb);
+                    row.appendChild(span);
+                    optsEl.appendChild(row);
+                });
+                syncOptions();
+            };
+            const filterOptions = q => {
+                const qq = (q || '').toLowerCase();
+                Array.from(optsEl.children).forEach(child => {
+                    const label = child.querySelector('span')?.textContent?.toLowerCase() || '';
+                    child.style.display = label.includes(qq) ? '' : 'none';
+                });
+            };
+            const openMenu = open => {
+                root.classList.toggle('ms-open', !!open);
+                control.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (open) {
+                    try {
+                        if (menu) menu.scrollTop = 0;
+                        if (optsEl) optsEl.scrollTop = 0;
+                    } catch (e) {
+                        dbg('ms scroll reset failed', e);
+                    }
+                }
+            };
+            const clearBtn = document.getElementById(`${idBase}-clear`);
+            clearBtn?.addEventListener('mousedown', e => {
+                e.stopPropagation();
+            });
+            control.addEventListener('mousedown', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                const willOpen = !root.classList.contains('ms-open');
+                openMenu(willOpen);
+                if (willOpen) setTimeout(() => search.focus(), 0);
+            });
+            document.addEventListener('click', e => {
+                if (!root.contains(e.target)) openMenu(false);
+            });
+            search.addEventListener('focus', () => openMenu(true));
+            search.addEventListener('keydown', e => {
+                if (e.key === 'Escape') openMenu(false);
+            });
+            search.addEventListener('input', () => filterOptions(search.value));
+            selectAll.addEventListener('click', e => {
+                e.preventDefault();
+                const all = new Set(Array.from(sel.options).map(o => o.value));
+                setSelected(all);
+                syncOptions();
+                renderChips();
+            });
+            clearAll.addEventListener('click', e => {
+                e.preventDefault();
+                setSelected(new Set());
+                syncOptions();
+                renderChips();
+                search.value = '';
+                filterOptions('');
+            });
+            clear?.addEventListener('click', e => {
+                e.preventDefault();
+                setSelected(new Set());
+                syncOptions();
+                renderChips();
+                search.value = '';
+                filterOptions('');
+            });
+            optsEl.addEventListener('click', e => {
+                const row = e.target.closest('.ms-option');
+                if (!row) return;
+                const v = row.dataset.value;
+                const selected = getSelected();
+                if (selected.has(v)) selected.delete(v);
+                else selected.add(v);
+                setSelected(selected);
+                syncOptions();
+                renderChips();
+            });
+            buildOptions();
+            renderChips();
+            root.dataset.msWired = 'true';
+        };
+        window.rebuildMsForSelect = function rebuildMsForSelect(idBase, selectId) {
+            const sel = document.getElementById(selectId);
+            const root = document.getElementById(`${idBase}`);
+            if (!sel || !root) return;
+            if (root.dataset.msWired !== 'true') {
+                initMsForSelect(idBase, selectId);
+                return;
+            }
+            const control = root.querySelector('.ms-control');
+            const chipsEl = root.querySelector('.ms-chips');
+            const optsEl = document.getElementById(`${idBase}-options`);
+            if (!control || !chipsEl || !optsEl) return;
+            const selected = new Set(Array.from(sel.selectedOptions).map(o => o.value));
+            optsEl.innerHTML = '';
+            const items = Array.from(sel.options).map(o => ({
+                value: o.value,
+                label: o.textContent,
+            }));
+            items.forEach(it => {
+                const row = document.createElement('div');
+                row.className = 'ms-option';
+                row.dataset.value = it.value;
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = selected.has(it.value);
+                const span = document.createElement('span');
+                span.textContent = it.label;
+                row.appendChild(cb);
+                row.appendChild(span);
+                optsEl.appendChild(row);
+            });
+            chipsEl.innerHTML = '';
+            selected.forEach(v => {
+                const label = Array.from(sel.options).find(o => o.value === v)?.textContent || v;
+                const chip = document.createElement('span');
+                chip.className = 'ms-chip';
+                chip.dataset.value = v;
+                chip.innerHTML = `${label} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
+                chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
+                    e.stopPropagation();
+                    Array.from(sel.options).forEach(o => {
+                        if (o.value === v) o.selected = false;
+                    });
+                    rebuildMsForSelect(idBase, selectId);
+                    control.classList.toggle('has-selection', sel.selectedOptions.length > 0);
+                    sel.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                chipsEl.appendChild(chip);
+            });
+            control.classList.toggle('has-selection', selected.size > 0);
+        };
+
         // Media Sources is now a simple nav item handled above via data-nav="media-sources"
         // Show only the selected source panel
         function showSourcePanel(panelId, title) {
@@ -9317,89 +9533,7 @@
                             const vBtn = document.createElement('div');
                             vBtn.className = 'conflict-value';
 
-                            // Integrity safeguard: if auto-select was applied previously but current selection is empty (race during panel switches),
-                            // reapply full selection unless the user has manually modified selections.
-                            function ensureLibrarySelectionIntegrity(source) {
-                                try {
-                                    if (source === 'plex') {
-                                        if (!window.__plexAutoSelected) return;
-                                        if (window.__plexUserModifiedSelection) return; // don't override user edits
-                                        const mSel = document.getElementById('plex.movies');
-                                        const sSel = document.getElementById('plex.shows');
-                                        if (!mSel || !sSel) return;
-                                        const hasAny =
-                                            mSel.selectedOptions.length +
-                                                sSel.selectedOptions.length >
-                                            0;
-                                        if (!hasAny) {
-                                            const allMovies = Array.from(mSel.options).map(
-                                                o => o.value
-                                            );
-                                            const allShows = Array.from(sSel.options).map(
-                                                o => o.value
-                                            );
-                                            allMovies.forEach(v => {
-                                                const opt = Array.from(mSel.options).find(
-                                                    o => o.value === v
-                                                );
-                                                if (opt) opt.selected = true;
-                                            });
-                                            allShows.forEach(v => {
-                                                const opt = Array.from(sSel.options).find(
-                                                    o => o.value === v
-                                                );
-                                                if (opt) opt.selected = true;
-                                            });
-                                            mSel.dispatchEvent(
-                                                new Event('change', { bubbles: true })
-                                            );
-                                            sSel.dispatchEvent(
-                                                new Event('change', { bubbles: true })
-                                            );
-                                            rebuildMsForSelect('plex-ms-movies', 'plex.movies');
-                                            rebuildMsForSelect('plex-ms-shows', 'plex.shows');
-                                        }
-                                    } else if (source === 'jellyfin') {
-                                        if (!window.__jfAutoSelected) return;
-                                        if (window.__jfUserModifiedSelection) return;
-                                        const mSel = document.getElementById('jf.movies');
-                                        const sSel = document.getElementById('jf.shows');
-                                        if (!mSel || !sSel) return;
-                                        const hasAny =
-                                            mSel.selectedOptions.length +
-                                                sSel.selectedOptions.length >
-                                            0;
-                                        if (!hasAny) {
-                                            const allMovies = Array.from(mSel.options).map(
-                                                o => o.value
-                                            );
-                                            const allShows = Array.from(sSel.options).map(
-                                                o => o.value
-                                            );
-                                            allMovies.forEach(v => {
-                                                const opt = Array.from(mSel.options).find(
-                                                    o => o.value === v
-                                                );
-                                                if (opt) opt.selected = true;
-                                            });
-                                            allShows.forEach(v => {
-                                                const opt = Array.from(sSel.options).find(
-                                                    o => o.value === v
-                                                );
-                                                if (opt) opt.selected = true;
-                                            });
-                                            mSel.dispatchEvent(
-                                                new Event('change', { bubbles: true })
-                                            );
-                                            sSel.dispatchEvent(
-                                                new Event('change', { bubbles: true })
-                                            );
-                                            rebuildMsForSelect('jf-ms-movies', 'jf.movies');
-                                            rebuildMsForSelect('jf-ms-shows', 'jf.shows');
-                                        }
-                                    }
-                                } catch (_) {}
-                            }
+                            // ensureLibrarySelectionIntegrity now defined at top-level; removed inner duplicate
                             vBtn.title =
                                 'Device: ' +
                                 s.device +
@@ -13889,163 +14023,8 @@
             }
         }
 
-        // Generic theme-demo multiselect (chips + dropdown) for backing <select multiple>
-        function initMsForSelect(idBase, selectId) {
-            const sel = document.getElementById(selectId);
-            const root = document.getElementById(`${idBase}`);
-            if (!sel || !root) return;
-            if (root.dataset.msWired === 'true') return; // listeners already attached; use rebuildMsForSelect() to refresh options
-            const control = root.querySelector('.ms-control');
-            const chipsEl = root.querySelector('.ms-chips');
-            const menu = document.getElementById(`${idBase}-menu`);
-            const optsEl = document.getElementById(`${idBase}-options`);
-            const search = document.getElementById(`${idBase}-search`);
-            const clear = document.getElementById(`${idBase}-clear`);
-            const selectAll = document.getElementById(`${idBase}-select-all`);
-            const clearAll = document.getElementById(`${idBase}-clear-all`);
-            if (!control || !chipsEl || !menu || !optsEl || !search || !selectAll || !clearAll)
-                return;
-
-            const getSelected = () => new Set(Array.from(sel.selectedOptions).map(o => o.value));
-            const setSelected = valsSet => {
-                const vals = new Set(valsSet);
-                Array.from(sel.options).forEach(o => {
-                    o.selected = vals.has(o.value);
-                });
-                sel.dispatchEvent(new Event('change', { bubbles: true }));
-            };
-            const renderChips = () => {
-                const selected = getSelected();
-                chipsEl.innerHTML = '';
-                selected.forEach(v => {
-                    const label =
-                        Array.from(sel.options).find(o => o.value === v)?.textContent || v;
-                    const chip = document.createElement('span');
-                    chip.className = 'ms-chip';
-                    chip.dataset.value = v;
-                    chip.innerHTML = `${label} <i class="fas fa-xmark ms-chip-remove" title="Remove"></i>`;
-                    chip.querySelector('.ms-chip-remove')?.addEventListener('click', e => {
-                        e.stopPropagation();
-                        const s = getSelected();
-                        s.delete(v);
-                        setSelected(s);
-                        syncOptions();
-                        renderChips();
-                        control.classList.toggle('has-selection', s.size > 0);
-                    });
-                    chipsEl.appendChild(chip);
-                });
-                control.classList.toggle('has-selection', selected.size > 0);
-            };
-            const syncOptions = () => {
-                const selected = getSelected();
-                Array.from(optsEl.children).forEach(row => {
-                    const v = row.dataset.value;
-                    const cb = row.querySelector('input[type="checkbox"]');
-                    if (cb) cb.checked = selected.has(v);
-                });
-            };
-            const buildOptions = () => {
-                optsEl.innerHTML = '';
-                const items = Array.from(sel.options).map(o => ({
-                    value: o.value,
-                    label: o.textContent,
-                }));
-                items.forEach(it => {
-                    const row = document.createElement('div');
-                    row.className = 'ms-option';
-                    row.dataset.value = it.value;
-                    const cb = document.createElement('input');
-                    cb.type = 'checkbox';
-                    const span = document.createElement('span');
-                    span.textContent = it.label;
-                    row.appendChild(cb);
-                    row.appendChild(span);
-                    optsEl.appendChild(row);
-                });
-                syncOptions();
-            };
-            const filterOptions = q => {
-                const qq = (q || '').toLowerCase();
-                Array.from(optsEl.children).forEach(child => {
-                    const label = child.querySelector('span')?.textContent?.toLowerCase() || '';
-                    child.style.display = label.includes(qq) ? '' : 'none';
-                });
-            };
-            const openMenu = open => {
-                root.classList.toggle('ms-open', !!open);
-                control.setAttribute('aria-expanded', open ? 'true' : 'false');
-                if (open) {
-                    try {
-                        if (menu) menu.scrollTop = 0;
-                        if (optsEl) optsEl.scrollTop = 0;
-                    } catch (e) {
-                        dbg('ms scroll reset failed', e);
-                    }
-                }
-            };
-            // Handlers
-            // Prevent clear button from toggling menu
-            const clearBtn = document.getElementById(`${idBase}-clear`);
-            clearBtn?.addEventListener('mousedown', e => {
-                e.stopPropagation();
-            });
-            control.addEventListener('mousedown', e => {
-                e.preventDefault();
-                e.stopPropagation();
-                const willOpen = !root.classList.contains('ms-open');
-                openMenu(willOpen);
-                if (willOpen) setTimeout(() => search.focus(), 0);
-            });
-            document.addEventListener('click', e => {
-                if (!root.contains(e.target)) openMenu(false);
-            });
-            search.addEventListener('focus', () => openMenu(true));
-            search.addEventListener('keydown', e => {
-                if (e.key === 'Escape') openMenu(false);
-            });
-            search.addEventListener('input', () => filterOptions(search.value));
-            selectAll.addEventListener('click', e => {
-                e.preventDefault();
-                const all = new Set(Array.from(sel.options).map(o => o.value));
-                setSelected(all);
-                syncOptions();
-                renderChips();
-            });
-            clearAll.addEventListener('click', e => {
-                e.preventDefault();
-                setSelected(new Set());
-                syncOptions();
-                renderChips();
-                search.value = '';
-                filterOptions('');
-            });
-            clear?.addEventListener('click', e => {
-                e.preventDefault();
-                setSelected(new Set());
-                syncOptions();
-                renderChips();
-                search.value = '';
-                filterOptions('');
-            });
-            optsEl.addEventListener('click', e => {
-                const row = e.target.closest('.ms-option');
-                if (!row) return;
-                const v = row.dataset.value;
-                const selected = getSelected();
-                if (selected.has(v)) selected.delete(v);
-                else selected.add(v);
-                setSelected(selected);
-                syncOptions();
-                renderChips();
-            });
-            // Initial paint
-            buildOptions();
-            renderChips();
-            root.dataset.msWired = 'true';
-        }
-
         // Refresh an already-initialized multiselect's options and chips from the current <select> state
+        /* duplicate rebuildMsForSelect removed earlier; keeping commented stub for reference
         function rebuildMsForSelect(idBase, selectId) {
             const sel = document.getElementById(selectId);
             const root = document.getElementById(`${idBase}`);
@@ -14101,6 +14080,67 @@
                 chipsEl.appendChild(chip);
             });
             control.classList.toggle('has-selection', selected.size > 0);
+        }
+        */
+        // Integrity safeguard ensures that if the user has not manually modified selections and the
+        // auto-select logic previously ran, the selections are not silently emptied by race conditions
+        // (e.g., panel switch while fetch in-flight). Reapplies full selection when necessary.
+        function ensureLibrarySelectionIntegrity(source) {
+            try {
+                if (source === 'plex') {
+                    if (!window.__plexAutoSelected) return;
+                    if (window.__plexUserModifiedSelection) return;
+                    const mSel = document.getElementById('plex.movies');
+                    const sSel = document.getElementById('plex.shows');
+                    if (!mSel || !sSel) return;
+                    const hasAny = mSel.selectedOptions.length + sSel.selectedOptions.length > 0;
+                    if (!hasAny) {
+                        const allMovies = Array.from(mSel.options).map(o => o.value);
+                        const allShows = Array.from(sSel.options).map(o => o.value);
+                        allMovies.forEach(v => {
+                            const opt = Array.from(mSel.options).find(o => o.value === v);
+                            if (opt) opt.selected = true;
+                        });
+                        allShows.forEach(v => {
+                            const opt = Array.from(sSel.options).find(o => o.value === v);
+                            if (opt) opt.selected = true;
+                        });
+                        mSel.dispatchEvent(new Event('change', { bubbles: true }));
+                        sSel.dispatchEvent(new Event('change', { bubbles: true }));
+                        rebuildMsForSelect('plex-ms-movies', 'plex.movies');
+                        rebuildMsForSelect('plex-ms-shows', 'plex.shows');
+                    }
+                } else if (source === 'jellyfin') {
+                    if (!window.__jfAutoSelected) return;
+                    if (window.__jfUserModifiedSelection) return;
+                    const mSel = document.getElementById('jf.movies');
+                    const sSel = document.getElementById('jf.shows');
+                    if (!mSel || !sSel) return;
+                    const hasAny = mSel.selectedOptions.length + sSel.selectedOptions.length > 0;
+                    if (!hasAny) {
+                        const allMovies = Array.from(mSel.options).map(o => o.value);
+                        const allShows = Array.from(sSel.options).map(o => o.value);
+                        allMovies.forEach(v => {
+                            const opt = Array.from(mSel.options).find(o => o.value === v);
+                            if (opt) opt.selected = true;
+                        });
+                        allShows.forEach(v => {
+                            const opt = Array.from(sSel.options).find(o => o.value === v);
+                            if (opt) opt.selected = true;
+                        });
+                        mSel.dispatchEvent(new Event('change', { bubbles: true }));
+                        sSel.dispatchEvent(new Event('change', { bubbles: true }));
+                        rebuildMsForSelect('jf-ms-movies', 'jf.movies');
+                        rebuildMsForSelect('jf-ms-shows', 'jf.shows');
+                    }
+                }
+            } catch (_) {}
+        }
+        // Expose for debugging if not already present
+        if (typeof window !== 'undefined' && !window.ensureLibrarySelectionIntegrity) {
+            try {
+                window.ensureLibrarySelectionIntegrity = ensureLibrarySelectionIntegrity;
+            } catch (_) {}
         }
 
         async function loadMediaSources(forceFresh = false) {
