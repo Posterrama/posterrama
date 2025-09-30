@@ -2275,14 +2275,8 @@
                         wrapper.classList.add('niw-sized-sm');
                     }
                 } catch (_) {}
-                // Always wire direct handlers so buttons work without relying on delegated bubbling
-                const step = () => Number(input.step || '1') || 1;
-                const decimalsForStep = s => {
-                    const str = String(s);
-                    if (str.includes('e') || str.includes('E')) return 6;
-                    const i = str.indexOf('.');
-                    return i === -1 ? 0 : Math.min(6, str.length - i - 1);
-                };
+
+                // End width bucket sizing
                 const snap = (val, s) => Math.round(val / s) * s;
                 const clamp = v => {
                     let val = v;
@@ -13966,14 +13960,36 @@
             const plex = (cfg.mediaServers || []).find(s => s.type === 'plex') || {};
             const jf = (cfg.mediaServers || []).find(s => s.type === 'jellyfin') || {};
             try {
-                // Debug logging to help diagnose missing host/port in UI vs config.json
-                console.debug('[Admin][MediaSources] Loaded plex entry', {
+                // Stronger debug logging (console.log instead of debug so it always shows) and global exposure for support
+                const plexDbg = {
                     hostname: plex.hostname,
                     port: plex.port,
                     enabled: plex.enabled,
                     tokenEnvVar: plex.tokenEnvVar,
                     hasTokenEnv: !!env[plex.tokenEnvVar || 'PLEX_TOKEN'],
-                });
+                    movieLibraries: plex.movieLibraryNames,
+                };
+                window.__PLEX_ENTRY = plexDbg;
+                console.log('[Admin][MediaSources] Loaded plex entry', plexDbg);
+                // Mirror into legacy hidden inputs if they exist so older handlers / cached DOM still read values
+                const legacyHost = document.getElementById('plex_hostname');
+                const legacyPort = document.getElementById('plex_port');
+                if (legacyHost && plex.hostname) legacyHost.value = plex.hostname;
+                if (legacyPort && (plex.port || plex.port === 0)) legacyPort.value = plex.port;
+                // Inject a one-time small badge to visually confirm script executed & values loaded
+                if (!document.getElementById('plex-loaded-badge')) {
+                    const badge = document.createElement('span');
+                    badge.id = 'plex-loaded-badge';
+                    badge.textContent = 'Plex cfg loaded';
+                    badge.style.cssText =
+                        'margin-left:8px;padding:2px 6px;font-size:11px;border-radius:10px;background:#2d6a4f;color:#fff;';
+                    const hdr = document.querySelector(
+                        '#plex-panel h2, #plex-panel h3, #plex-panel .panel-header, #plex-panel .panel-title'
+                    );
+                    (hdr || document.getElementById('plex-panel') || document.body).appendChild(
+                        badge
+                    );
+                }
             } catch (_) {}
             // Plex
             const plexEnabled = !!plex.enabled;
@@ -15632,6 +15648,14 @@
                     getInput('plex.token')?.value ||
                     document.getElementById('plex_token')?.value ||
                     '';
+                console.log('[Admin][Plex][Test] Resolved inputs', {
+                    fromNewHostname: getInput('plex.hostname')?.value,
+                    fromLegacyHostname: document.getElementById('plex_hostname')?.value,
+                    fromNewPort: getInput('plex.port')?.value,
+                    fromLegacyPort: document.getElementById('plex_port')?.value,
+                    finalHostname: hostname,
+                    finalPort: port,
+                });
                 if (!hostname || !port) throw new Error('Hostname and port are required');
                 const res = await fetch('/api/admin/test-plex', {
                     method: 'POST',
