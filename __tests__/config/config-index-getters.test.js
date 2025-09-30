@@ -86,7 +86,7 @@ describe('config/index.js getters', () => {
 
         delete process.env.SERVER_PORT;
         jest.resetModules();
-        const config2 = require('../../config');
+        // Removed unused duplicate require that triggered lint (no-unused-vars)
         // if config.json has port we cannot assert 4000, so we mimic removal by editing config
         const fs = require('fs');
         const cfg = JSON.parse(originalConfigContent);

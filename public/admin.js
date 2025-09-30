@@ -2278,6 +2278,18 @@
 
                 // End width bucket sizing
                 const snap = (val, s) => Math.round(val / s) * s;
+                // Local helpers for increment/decrement controls (mirrors late fallback delegate logic)
+                const step = () => {
+                    const raw = input.step || '1';
+                    const n = Number(raw);
+                    return Number.isFinite(n) && n > 0 ? n : 1;
+                };
+                const decimalsForStep = s => {
+                    const str = String(s);
+                    if (str.includes('e') || str.includes('E')) return 6;
+                    const i = str.indexOf('.');
+                    return i === -1 ? 0 : Math.min(6, str.length - i - 1);
+                };
                 const clamp = v => {
                     let val = v;
                     const min = input.min === '' ? null : Number(input.min);
@@ -14017,6 +14029,15 @@
                     } else if (host && portVal) {
                         pill.textContent = 'Configured';
                         pill.classList.add('is-configured');
+                        // Auto-trigger library/media refresh once after load when configured & enabled
+                        try {
+                            window.__plexAutoRefreshed = window.__plexAutoRefreshed || false;
+                            if (!window.__plexAutoRefreshed && !forceFresh) {
+                                window.__plexAutoRefreshed = true;
+                                console.log('[Admin][MediaSources] Auto refreshing Plex libraries');
+                                fetchPlexLibraries(true, true);
+                            }
+                        } catch (_) {}
                     } else {
                         pill.textContent = 'Not configured';
                         pill.classList.add('is-not-configured');
@@ -14045,6 +14066,53 @@
                     portInput.classList.toggle('is-placeholder', !portInput.value);
                 }
             } catch (_) {}
+            // Install / update Plex health indicator
+            try {
+                let health = document.getElementById('plex-health-indicator');
+                if (!health) {
+                    health = document.createElement('div');
+                    health.id = 'plex-health-indicator';
+                    health.style.cssText = 'margin-top:4px;font-size:11px;opacity:0.85;';
+                    const container = document.getElementById('plex-panel') || document.body;
+                    container.appendChild(health);
+                }
+                const updateHealth = (status, extra = '') => {
+                    const ts = new Date().toLocaleTimeString();
+                    health.textContent = `Plex health: ${status}${extra ? ' - ' + extra : ''} (${ts})`;
+                    health.style.color =
+                        status === 'OK' ? '#2d6a4f' : status === 'Testing' ? '#555' : '#c92a2a';
+                };
+                // Periodic lightweight health check using test-plex endpoint if enabled
+                if (plexEnabled && plex.hostname && plex.port) {
+                    window.__plexHealthTimer && clearTimeout(window.__plexHealthTimer);
+                    const doCheck = () => {
+                        updateHealth('Testing');
+                        fetch('/api/admin/test-plex', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ hostname: plex.hostname, port: plex.port }),
+                        })
+                            .then(r =>
+                                r
+                                    .json()
+                                    .then(j => ({ r, j }))
+                                    .catch(() => ({ r, j: {} }))
+                            )
+                            .then(({ r, j }) => {
+                                if (r.ok) updateHealth('OK');
+                                else updateHealth('Error', j?.error || r.status);
+                            })
+                            .catch(err => updateHealth('Error', err?.message || 'network'))
+                            .finally(() => {
+                                window.__plexHealthTimer = setTimeout(doCheck, 60000); // every 60s
+                            });
+                    };
+                    doCheck();
+                }
+            } catch (e) {
+                console.warn('Plex health indicator init failed', e);
+            }
             if (getInput('plex.token')) {
                 // Show grey hint instead of masked value when a token exists
                 const hasToken = !!env[plexTokenVar];
