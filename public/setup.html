@@ -4,316 +4,131 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Setup - Admin posterrama</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="stylesheet" href="/admin.css?v=0" />
         <link
-            href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap"
             rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+            integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
         />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-        <link rel="stylesheet" href="../admin.css?v=20250819a" />
         <style>
-            body {
-                background: linear-gradient(
-                    135deg,
-                    #0f0f23 0%,
-                    #1a1a2e 25%,
-                    #16213e 50%,
-                    #0f3460 75%,
-                    #533483 100%
-                ) !important;
-                margin: 0;
-                padding: 0;
-                min-height: 100vh;
-            }
-            .auth-container {
-                min-height: 100vh;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 2rem;
-                gap: 2rem;
-            }
-            .auth-box {
-                background: rgba(255, 255, 255, 0.05) !important;
-                border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                border-radius: 16px !important;
-                padding: 2.5rem !important;
-                width: 100%;
-                max-width: 420px;
-                backdrop-filter: blur(20px) !important;
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
-            }
-            .auth-box h1 {
-                text-align: center !important;
-                margin-bottom: 1rem !important;
-                font-size: 1.875rem !important;
-                font-weight: 600 !important;
-                letter-spacing: -0.02em !important;
-                color: #e2e8f0 !important;
-                display: flex !important;
-                align-items: baseline !important;
-                justify-content: center !important;
-                gap: 0.5rem !important;
-            }
-            .auth-box h2 {
-                text-align: center !important;
-                margin-bottom: 1rem !important;
-                font-size: 1.25rem !important;
-                font-weight: 500 !important;
-                color: rgba(226, 232, 240, 0.8) !important;
-            }
-            .auth-box p {
-                text-align: center !important;
-                margin-bottom: 1.5rem !important;
-                color: rgba(226, 232, 240, 0.7) !important;
-                font-size: 0.875rem !important;
-                line-height: 1.5 !important;
-            }
-            .admin-text {
-                font-family: 'Orbitron', 'Courier New', monospace !important;
-                font-weight: 700 !important;
-                text-transform: uppercase !important;
-                letter-spacing: 0.1em !important;
-            }
-            .gradient-text {
-                background: linear-gradient(
-                    135deg,
-                    #667eea 0%,
-                    #764ba2 50%,
-                    #f093fb 100%
-                ) !important;
-                -webkit-background-clip: text !important;
-                -webkit-text-fill-color: transparent !important;
-                background-clip: text !important;
-            }
-            .auth-box .form-group {
-                margin-bottom: 1.25rem !important;
-            }
-            .auth-box .form-group label {
-                display: block !important;
-                margin-bottom: 0.5rem !important;
-                color: #e2e8f0 !important;
-                font-weight: 500 !important;
-                font-size: 0.875rem !important;
-                white-space: nowrap !important;
-            }
-            .auth-box .form-group input {
-                width: 100% !important;
-                padding: 0.75rem 1rem !important;
-                background: rgba(255, 255, 255, 0.05) !important;
-                border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                border-radius: 8px !important;
-                color: #e2e8f0 !important;
-                font-size: 1rem !important;
-                transition: all 0.3s ease !important;
-                box-sizing: border-box !important;
-                min-height: 48px !important;
-            }
-            .auth-box .form-group input:focus {
-                outline: none !important;
-                border-color: #667eea !important;
-                background: rgba(102, 126, 234, 0.1) !important;
-            }
-            .setup-choice {
-                margin: 1rem 0;
-            }
-            .choice-compact {
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 12px;
-                padding: 2rem;
-            }
-            .choice-info {
-                text-align: center;
-                margin-bottom: 2rem;
-            }
-            .choice-info h3 {
-                color: #e2e8f0;
-                margin: 0 0 0.75rem 0;
-                font-size: 1.2rem;
-                font-weight: 600;
-            }
-            .choice-info p {
-                color: #94a3b8;
-                margin: 0;
-                font-size: 0.95rem;
-                line-height: 1.5;
-            }
-            .choice-buttons {
-                display: flex;
-                gap: 1rem;
-                justify-content: center;
-            }
-            .choice-buttons .btn {
-                flex: 1;
-                max-width: 160px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 0.5rem;
-                font-size: 0.9rem;
-                padding: 0.75rem 1.25rem;
-            }
-            .setup-note {
-                margin-top: 1.5rem;
-                text-align: center;
-                color: #64748b;
-                font-size: 0.85rem;
-            }
-            .setup-note i {
-                margin-right: 0.5rem;
-                color: #94a3b8;
-            }
-            .choice-box {
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 12px;
-                padding: 1.5rem;
-                text-align: center;
-            }
-            .choice-box h3 {
-                color: #e2e8f0;
-                margin: 0 0 0.5rem 0;
-                font-size: 1.1rem;
-            }
-            .choice-box p {
-                color: #94a3b8;
-                margin: 0 0 1rem 0;
-                font-size: 0.9rem;
-                line-height: 1.4;
-            }
-            .choice-box .btn {
-                width: 100%;
-            }
-            #qr-container img {
-                max-width: 200px;
-                border: 1px solid #ddd;
-                padding: 10px;
-                background: white;
-                border-radius: 8px;
-            }
+            body { background-color: var(--color-bg-secondary); color: var(--color-text-primary); }
+            .auth-container { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2rem; gap:2rem; }
+            .auth-box { width:100%; max-width:480px; }
+            .panel-content { padding: var(--space-lg); }
+            .auth-title { text-align:center; margin:0 0 1.25rem 0; letter-spacing:-0.02em; font-weight:var(--font-weight-semibold); }
+            .admin-text { font-weight: var(--font-weight-bold); text-transform: uppercase; letter-spacing: .08em; }
+            .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+            .form-group { margin-bottom: var(--space-md); }
+            .setup-choice { margin: 1rem 0; }
+            .choice-compact { background: var(--color-bg-card); border:1px solid var(--color-border); border-radius:12px; padding:1.75rem; }
+            .choice-info h3 { margin:0 0 .75rem 0; font-size:1.1rem; font-weight:600; color: var(--color-text-primary); }
+            .choice-info p { margin:0; font-size:.9rem; line-height:1.5; color: var(--color-text-secondary); }
+            .choice-buttons { display:flex; gap:1rem; justify-content:center; }
+            .choice-buttons .btn { flex:1; max-width:170px; display:flex; align-items:center; justify-content:center; gap:.5rem; font-size:.9rem; }
+            .setup-note { margin-top:1.25rem; text-align:center; font-size:.75rem; color: var(--color-text-tertiary); }
+            #qr-container img { max-width:200px; border:1px solid var(--color-border-strong); padding:10px; background: var(--color-bg-base); border-radius:8px; }
+            .steps-hidden { display:none; }
+            .step-actions { display:flex; gap:1rem; }
+            .auth-footer { display:flex; gap:12px; align-items:center; justify-content:center; margin-top:1rem; }
+            .info-list { color: var(--color-text-tertiary); margin:1rem 0 1.25rem; padding-left:1.25rem; font-size:.85rem; }
+            .info-list li { margin-bottom:.5rem; }
+            .error-inline { display:none; margin-top:.75rem; font-size:.75rem; color:#e8439b; text-align:center; }
+            .error-inline.show { display:block; }
         </style>
     </head>
     <body>
         <div class="auth-container">
             <!-- Step 1: Admin Account -->
-            <div id="step1" class="auth-box">
-                <h1>
-                    <span class="admin-text">Setup</span>
-                    <span class="gradient-text">posterrama</span>
-                </h1>
-                <h2>Step 1: Create Admin Account</h2>
-                <p>Create an administrator account to continue.</p>
-                <form id="admin-form">
-                    <div class="form-group">
-                        <label for="username">Admin Username</label>
-                        <input type="text" id="username" name="username" required />
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Admin Password</label>
-                        <input type="password" id="password" name="password" required minlength="8" />
-                    </div>
-                    <button type="submit" class="btn btn-primary">Continue</button>
-                </form>
+            <div id="step1" class="auth-box panel">
+                <div class="panel-content">
+                    <h1 class="auth-title">
+                        <i class="fas fa-rocket" aria-hidden="true" style="opacity:.9; margin-right:.5rem"></i>
+                        <span class="admin-text" style="color: var(--color-text-primary);">Setup</span>
+                        <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight:100;">posterrama</span>
+                    </h1>
+                    <h2 style="text-align:center; font-size:1.05rem; font-weight:600; margin:0 0 .75rem; color: var(--color-text-primary);">Step 1: Create Admin Account</h2>
+                    <p style="text-align:center; margin:0 0 1.25rem; font-size:.85rem; line-height:1.4; color: var(--color-text-secondary);">Create an administrator account to continue.</p>
+                    <form id="admin-form" class="form-compact">
+                        <div class="form-group">
+                            <input type="text" id="username" name="username" required placeholder="Admin username" autocomplete="username" />
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="password" name="password" required minlength="8" placeholder="Password (min 8 chars)" autocomplete="new-password" />
+                        </div>
+                        <div class="auth-actions">
+                            <button type="submit" class="btn auth-btn-primary btn-sm" id="continueStep1">
+                                <span class="spinner" aria-hidden="true"></span>
+                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                <span>Continue</span>
+                            </button>
+                        </div>
+                        <div id="errorStep1" class="error-inline" role="alert" aria-live="assertive"></div>
+                    </form>
+                </div>
             </div>
 
             <!-- Step 2: 2FA Setup (Initially Hidden) -->
-            <div id="step2" class="auth-box" style="display: none">
-                <h1>
-                    <span class="admin-text">Setup</span>
-                    <span class="gradient-text">posterrama</span>
-                </h1>
-                <h2>Step 2: Two-Factor Authentication</h2>
-                <p style="margin-bottom: 2rem">
-                    Would you like to enable 2FA to secure your admin panel?
-                </p>
-
-                <div class="setup-choice">
-                    <div class="choice-compact">
-                        <div class="choice-info">
-                            <h3>🔒 Two-Factor Authentication</h3>
-                            <p>
-                                Adds an extra layer of security using an authenticator app.
-                                <strong>Recommended for production environments.</strong>
-                            </p>
-                        </div>
-                        <div class="choice-buttons">
-                            <button type="button" id="enable-2fa-btn" class="btn btn-primary">
-                                <i class="fas fa-shield-alt"></i> Enable 2FA
-                            </button>
-                            <button type="button" id="skip-2fa-btn" class="btn btn-secondary">
-                                <i class="fas fa-forward"></i> Skip for Now
-                            </button>
+            <div id="step2" class="auth-box panel steps-hidden">
+                <div class="panel-content">
+                    <h1 class="auth-title">
+                        <i class="fas fa-shield-alt" aria-hidden="true" style="opacity:.9; margin-right:.5rem"></i>
+                        <span class="admin-text" style="color: var(--color-text-primary);">Setup</span>
+                        <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight:100;">posterrama</span>
+                    </h1>
+                    <h2 style="text-align:center; font-size:1.05rem; font-weight:600; margin:0 0 .75rem; color: var(--color-text-primary);">Step 2: Two-Factor Authentication</h2>
+                    <p style="text-align:center; margin:0 0 1.25rem; font-size:.85rem; line-height:1.4; color: var(--color-text-secondary);">Would you like to enable 2FA to secure your admin panel?</p>
+                    <div class="setup-choice">
+                        <div class="choice-compact">
+                            <div class="choice-info">
+                                <h3>🔒 Two-Factor Authentication</h3>
+                                <p>Adds an extra layer of security using an authenticator app. <strong>Recommended for production environments.</strong></p>
+                            </div>
+                            <div class="choice-buttons">
+                                <button type="button" id="enable-2fa-btn" class="btn auth-btn-primary btn-sm"><i class="fas fa-shield-alt"></i><span>Enable 2FA</span></button>
+                                <button type="button" id="skip-2fa-btn" class="btn auth-btn-secondary btn-sm"><i class="fas fa-forward"></i><span>Skip for now</span></button>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="setup-note">
-                    <small
-                        ><i class="fas fa-info-circle"></i> You can always enable 2FA later from the
-                        admin panel settings.</small
-                    >
+                    <div class="setup-note"><i class="fas fa-info-circle"></i> You can always enable 2FA later from the admin panel settings.</div>
+                    <div id="errorStep2" class="error-inline" role="alert" aria-live="assertive"></div>
                 </div>
             </div>
 
             <!-- Step 3: 2FA Configuration (Initially Hidden) -->
-            <div id="step3" class="auth-box" style="display: none">
-                <h1>
-                    <span class="admin-text">Setup</span>
-                    <span class="gradient-text">posterrama</span>
-                </h1>
-                <h2>Step 3: Configure 2FA</h2>
-                <ol style="color: #b3b3b3; margin: 1rem 0; padding-left: 1.5rem; text-align: left">
-                    <li>
-                        Install an authenticator app (Google Authenticator, Authy, Microsoft
-                        Authenticator, etc.)
-                    </li>
-                    <li>Scan the QR code below with your authenticator app</li>
-                    <li>Enter the 6-digit code from your app to complete setup</li>
-                    <li>
-                        <strong>Note:</strong> The verification code will also test your first login
-                        with 2FA
-                    </li>
-                </ol>
-                <div id="qr-container" style="text-align: center; margin: 1.5rem 0">
-                    <!-- QR code will be inserted here -->
+            <div id="step3" class="auth-box panel steps-hidden">
+                <div class="panel-content">
+                    <h1 class="auth-title">
+                        <i class="fas fa-mobile-alt" aria-hidden="true" style="opacity:.9; margin-right:.5rem"></i>
+                        <span class="admin-text" style="color: var(--color-text-primary);">Setup</span>
+                        <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight:100;">posterrama</span>
+                    </h1>
+                    <h2 style="text-align:center; font-size:1.05rem; font-weight:600; margin:0 0 .75rem; color: var(--color-text-primary);">Step 3: Configure 2FA</h2>
+                    <ol class="info-list">
+                        <li>Install an authenticator app (Google Authenticator, Authy, Microsoft Authenticator, etc.)</li>
+                        <li>Scan the QR code below with your authenticator app</li>
+                        <li>Enter the 6-digit code from your app to complete setup</li>
+                        <li><strong>Note:</strong> This verification also tests your first login with 2FA</li>
+                    </ol>
+                    <div id="qr-container" style="text-align:center; margin:1.25rem 0">
+                        <!-- QR code will be inserted here -->
+                    </div>
+                    <form id="verify-2fa-form" onsubmit="event.preventDefault(); verify2FA(document.getElementById('token').value);" class="form-compact">
+                        <div class="form-group">
+                            <input type="text" id="token" name="token" maxlength="6" placeholder="6-digit code" required style="text-align:center; letter-spacing:.25rem;" />
+                        </div>
+                        <div class="step-actions">
+                            <button type="button" id="back-to-choice" class="btn auth-btn-secondary btn-sm" onclick="goBackToStep2()"><i class="fas fa-arrow-left"></i><span>Back</span></button>
+                            <button type="submit" class="btn auth-btn-primary btn-sm" style="flex:1"><i class="fas fa-check"></i><span>Verify & Complete</span></button>
+                        </div>
+                    </form>
+                    <div id="errorStep3" class="error-inline" role="alert" aria-live="assertive"></div>
                 </div>
-                <form
-                    id="verify-2fa-form"
-                    onsubmit="event.preventDefault(); verify2FA(document.getElementById('token').value);"
-                >
-                    <div class="form-group">
-                        <label for="token">6-Digit Code</label>
-                        <input
-                            type="text"
-                            id="token"
-                            name="token"
-                            maxlength="6"
-                            placeholder="000000"
-                            required
-                            style="text-align: center; letter-spacing: 0.2rem"
-                        />
-                    </div>
-                    <div style="display: flex; gap: 1rem">
-                        <button
-                            type="button"
-                            id="back-to-choice"
-                            class="btn btn-secondary"
-                            onclick="goBackToStep2()"
-                        >
-                            ← Back
-                        </button>
-                        <button type="submit" class="btn btn-primary" style="flex: 1">
-                            Verify & Complete Setup
-                        </button>
-                    </div>
-                </form>
             </div>
 
             <div class="auth-footer">
-                <a href="/" class="btn btn-secondary">← Back to Screensaver</a>
+                <a href="/" class="btn auth-btn-secondary btn-sm"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Back to Home</span></a>
             </div>
         </div>
         <!-- Setup complete message, only tonen als ?complete=1 in de URL staat -->
@@ -337,14 +152,16 @@
 
                     const username = document.getElementById('username').value;
                     const password = document.getElementById('password').value;
+                    const errorBox = document.getElementById('errorStep1');
+                    if (errorBox) { errorBox.textContent=''; errorBox.classList.remove('show'); }
 
                     if (!username || !password) {
-                        alert('Please fill in all fields');
+                        if (errorBox) { errorBox.textContent = 'Please fill in all fields'; errorBox.classList.add('show'); }
                         return;
                     }
 
                     if (password.length < 8) {
-                        alert('Password must be at least 8 characters long');
+                        if (errorBox) { errorBox.textContent = 'Password must be at least 8 characters long'; errorBox.classList.add('show'); }
                         return;
                     }
 
@@ -373,8 +190,10 @@
                 verify2faForm.addEventListener('submit', async function (e) {
                     e.preventDefault();
                     const token = document.getElementById('token').value;
+                    const err3 = document.getElementById('errorStep3');
+                    if (err3) { err3.textContent=''; err3.classList.remove('show'); }
                     if (token.length !== 6) {
-                        alert('Please enter a 6-digit code');
+                        if (err3) { err3.textContent='Please enter a 6-digit code'; err3.classList.add('show'); }
                         return;
                     }
                     await verify2FA(token);
@@ -404,11 +223,13 @@
                     } else {
                         const error = await response.text();
                         console.error('❌ Setup failed:', error);
-                        alert('Setup failed: ' + error);
+                        const err2 = document.getElementById('errorStep2');
+                        if (err2) { err2.textContent='Setup failed: ' + error; err2.classList.add('show'); }
                     }
                 } catch (error) {
                     console.error('💥 Setup error:', error);
-                    alert('Setup failed: ' + error.message);
+                    const err2 = document.getElementById('errorStep2');
+                    if (err2) { err2.textContent='Setup failed: ' + error.message; err2.classList.add('show'); }
                 }
             }
 
@@ -475,12 +296,8 @@
                     }
                 } catch (error) {
                     console.error('💥 2FA setup error:', error);
-                    alert(
-                        '2FA setup failed: ' +
-                            error.message +
-                            '\n\nWould you like to continue without 2FA?'
-                    );
-
+                    const err2 = document.getElementById('errorStep2');
+                    if (err2) { err2.textContent='2FA setup failed: ' + error.message; err2.classList.add('show'); }
                     // Return to step 2 for user to choose again
                     document.getElementById('step3').style.display = 'none';
                     document.getElementById('step2').style.display = 'block';
@@ -517,7 +334,8 @@
                     if (!loginResponse.ok) {
                         const errorText = await loginResponse.text();
                         console.error('❌ Login with 2FA failed:', errorText);
-                        alert('Verification failed: Invalid code or login error');
+                        const err3 = document.getElementById('errorStep3');
+                        if (err3) { err3.textContent='Verification failed: Invalid code or login error'; err3.classList.add('show'); }
                         return;
                     }
 
@@ -526,7 +344,8 @@
                     window.location.href = '/setup.html?complete=1';
                 } catch (error) {
                     console.error('💥 2FA verification error:', error);
-                    alert('Verification failed: ' + error.message);
+                    const err3 = document.getElementById('errorStep3');
+                    if (err3) { err3.textContent='Verification failed: ' + error.message; err3.classList.add('show'); }
                 } finally {
                     verify2FA.isRunning = false;
                 }
