@@ -13537,45 +13537,64 @@
                 try {
                     const body = {
                         plex: getSelectedLibraries('plex'),
-                        jellyfin: getSelectedLibraries('jellyfin'),
-                        // Send filters per source, matching server-side logic
-                        filtersPlex: plexFilters,
-                        filtersJellyfin: jfFilters,
-                    };
-                    const r = await fetch('/api/admin/filter-preview', {
-                        method: 'POST',
-                        credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body),
-                    });
-                    if (r.ok) {
-                        const j = await r.json().catch(() => ({}));
-                        const c = j?.counts || {};
-                        if (Number.isFinite(c.plex)) filteredPlex = c.plex;
-                        if (Number.isFinite(c.jellyfin)) filteredJf = c.jellyfin;
-                    }
-                } catch (_) {
-                    // ignore and fall back to cached playlist derived counts
-                }
-
-                // Always compute true totals (sum of selected library counts)
-                let totalPlex = null;
-                let totalJf = null;
-                try {
-                    const map = await fetchLibraryCounts('plex');
-                    const { movies, shows } = getSelectedLibraries('plex');
-                    const sum = arr =>
-                        (arr || []).reduce((acc, name) => acc + (map.get(name)?.itemCount || 0), 0);
-                    totalPlex = sum(movies) + sum(shows);
-                } catch (_) {}
-                try {
-                    // We prefer the richer global map built during the last explicit Jellyfin library fetch
-                    let map = null;
-                    if (window.__jfLibraryCounts instanceof Map && window.__jfLibraryCounts.size) {
-                        map = window.__jfLibraryCounts;
-                    } else {
-                        // Fallback: fetch on-demand (may return empty if enablement cache stale)
-                        map = await fetchLibraryCounts('jellyfin');
+                        const jfSel = getSelectedLibraries('jellyfin');
+                        const plexSel = getSelectedLibraries('plex');
+                        const selectedCountJf = jfSel.movies.length + jfSel.shows.length;
+                        const selectedCountPlex = plexSel.movies.length + plexSel.shows.length;
+                        let totalLibsJf = 0;
+                        if (window.__jfLibraryCounts instanceof Map) totalLibsJf = window.__jfLibraryCounts.size;
+                        let totalLibsPlex = 0;
+                        try { const plexMap = await fetchLibraryCounts('plex'); totalLibsPlex = plexMap.size; } catch (_) {}
+                        const noneSelectedJf = selectedCountJf === 0;
+                        const noneSelectedPlex = selectedCountPlex === 0;
+                        const allSelectedJf = totalLibsJf > 0 && selectedCountJf === totalLibsJf;
+                        const allSelectedPlex = totalLibsPlex > 0 && selectedCountPlex === totalLibsPlex;
+                        const modeFor = (noneSel, allSel) => (noneSel ? 'aggregate' : allSel ? 'all' : 'partial');
+                        const jfMode = modeFor(noneSelectedJf, allSelectedJf);
+                        const plexMode = modeFor(noneSelectedPlex, allSelectedPlex);
+                        const ensureBadge = (primaryId, fallbackId, mode) => {
+                            const host = document.getElementById(primaryId) || document.getElementById(fallbackId);
+                            if (!host) return;
+                            let badge = host.querySelector('.all-libs-badge');
+                            const shouldShow = mode === 'aggregate' || mode === 'all';
+                            if (shouldShow) {
+                                if (!badge) {
+                                    badge = document.createElement('span');
+                                    badge.className = 'all-libs-badge';
+                                    badge.style.marginLeft = '6px';
+                                    badge.style.fontSize = '0.62rem';
+                                    badge.style.padding = '2px 6px';
+                                    badge.style.borderRadius = '10px';
+                                    badge.style.letterSpacing = '0.5px';
+                                    badge.style.background = 'rgba(255,255,255,0.08)';
+                                    badge.style.border = '1px solid rgba(255,255,255,0.15)';
+                                    badge.style.textTransform = 'uppercase';
+                                    badge.style.display = 'inline-flex';
+                                    badge.style.alignItems = 'center';
+                                    badge.style.gap = '4px';
+                                    const icon = document.createElement('span');
+                                    icon.textContent = mode === 'aggregate' ? 'Σ' : '✓';
+                                    icon.style.fontSize = '0.65rem';
+                                    const label = document.createElement('span');
+                                    label.textContent = mode === 'aggregate' ? 'All (aggregate)' : 'All selected';
+                                    badge.appendChild(icon);
+                                    badge.appendChild(label);
+                                    host.appendChild(badge);
+                                } else {
+                                    // Update mode if it changed
+                                    const label = badge.querySelector('span:last-child');
+                                    if (label) {
+                                        label.textContent = mode === 'aggregate' ? 'All (aggregate)' : 'All selected';
+                                    }
+                                    const icon = badge.querySelector('span:first-child');
+                                    if (icon) icon.textContent = mode === 'aggregate' ? 'Σ' : '✓';
+                                }
+                            } else if (badge) {
+                                badge.remove();
+                            }
+                        };
+                        ensureBadge('jf-count-pill', 'sc-jf-count', jfMode);
+                        ensureBadge('plex-count-pill', 'sc-plex-count', plexMode);
                     }
                     const { movies, shows } = getSelectedLibraries('jellyfin');
                     const selectedMovies = Array.isArray(movies) ? movies : [];
