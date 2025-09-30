@@ -38,6 +38,13 @@ const schemas = {
                     .when('enabled', { is: true, then: Joi.required() }),
                 tokenEnvVar: Joi.string().required(),
                 token: Joi.string().optional(),
+                // Reject legacy fields explicitly
+                hostnameEnvVar: Joi.any().forbidden().messages({
+                    'any.unknown': 'hostnameEnvVar is no longer supported. Use hostname instead.',
+                }),
+                portEnvVar: Joi.any().forbidden().messages({
+                    'any.unknown': 'portEnvVar is no longer supported. Use port instead.',
+                }),
             })
         ),
     }),

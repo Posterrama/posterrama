@@ -10298,9 +10298,6 @@ app.post(
                 name: `Test Server ${hostname}:${port}`, // Unique name to avoid caching issues
                 type: 'plex',
                 enabled: true, // Temporarily enabled for testing
-                hostnameEnvVar: null,
-                portEnvVar: null,
-                tokenEnvVar: null,
                 // Direct values for testing
                 hostname,
                 port: parseInt(port),
@@ -10394,9 +10391,6 @@ app.post(
                 name: `Test Server ${hostname}:${port}`,
                 type: 'plex',
                 enabled: true,
-                hostnameEnvVar: null,
-                portEnvVar: null,
-                tokenEnvVar: null,
                 hostname,
                 port: parseInt(port),
                 token,
