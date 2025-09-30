@@ -157,8 +157,14 @@ function buildTransports(inst, { forTest = false } = {}) {
 
 function createLoggerInstance(options = {}) {
     const { level, forTest = false, silent, hardSilent = false } = options;
+    // Determine base level. In test mode we normally default to 'warn' to keep useful diagnostics
+    // while trimming info/debug spam. If QUIET_TEST_LOGS is set, we further clamp to 'error'.
+    let resolvedLevel = level || (forTest ? 'warn' : process.env.LOG_LEVEL || 'info');
+    if (forTest && process.env.QUIET_TEST_LOGS === '1') {
+        resolvedLevel = 'error';
+    }
     const inst = winston.createLogger({
-        level: level || (forTest ? 'warn' : process.env.LOG_LEVEL || 'info'),
+        level: resolvedLevel,
         levels: winston.config.npm.levels,
         format: buildBaseFormat(),
         transports: [],

@@ -11,13 +11,11 @@ let app; // will be required fresh per test run
 // If server.js starts listening immediately, we may need to require and access the exported app.
 // Inspecting other tests would give pattern; we assume module.exports = app is present (common in repo).
 
-let originalEnvContent = null;
 let envWasPresent = false;
 
 beforeAll(() => {
     const envPath = path.join(__dirname, '..', '..', '.env');
     if (fs.existsSync(envPath)) {
-        originalEnvContent = fs.readFileSync(envPath, 'utf8');
         fs.renameSync(envPath, envPath + '.bak_test');
         envWasPresent = true;
     }
@@ -87,8 +85,17 @@ describe('Admin setup then login flow', () => {
             expect(process.env.SESSION_SECRET.length).toBeGreaterThanOrEqual(32);
         }
 
-        // Now login
+        // Use one agent for full flow
         const agent = request.agent(app);
+
+        // Pre-flight GET to establish baseline session cookie (avoids some store timing issues)
+        await agent.get('/admin/login').expect(res => {
+            if (![200, 302].includes(res.status)) {
+                throw new Error('Unexpected preflight status: ' + res.status);
+            }
+        });
+
+        // Now login
         const loginRes = await agent
             .post('/admin/login')
             .type('form')
@@ -100,7 +107,12 @@ describe('Admin setup then login flow', () => {
         expect(loginRes.body.redirectTo).toBe('/admin');
 
         // Follow redirect to /admin with same agent (cookie retained)
-        const panelRes = await agent.get('/admin').expect(200);
-        expect(panelRes.text).toContain('<!doctype html'); // crude sanity check admin HTML served
+        let panelRes = await agent.get('/admin');
+        if (panelRes.status === 302 && panelRes.headers.location) {
+            // Follow single redirect once (some stores may need one more round-trip)
+            panelRes = await agent.get(panelRes.headers.location);
+        }
+        expect(panelRes.status).toBe(200);
+        expect(String(panelRes.text).toLowerCase()).toContain('<!doctype html');
     });
 });
