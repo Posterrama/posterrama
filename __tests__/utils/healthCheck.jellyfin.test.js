@@ -12,24 +12,22 @@ function buildConfig(enabled = true) {
                 name: 'Jellyfin Main',
                 type: 'jellyfin',
                 enabled,
-                hostnameEnvVar: 'JELLYFIN_HOSTNAME',
-                portEnvVar: 'JELLYFIN_PORT',
+                hostname: '127.0.0.1',
+                port: 8096,
                 tokenEnvVar: 'JELLYFIN_API_KEY',
             },
         ],
     });
 }
 
-// Common fs mock: only readFile is needed by readConfig()
+// Spy on fs.promises.readFile instead of mocking entire fs (winston needs full fs API)
 function mockFsWithConfig(jsonString) {
-    jest.doMock('fs', () => ({
-        promises: {
-            readFile: jest.fn().mockResolvedValue(jsonString),
-        },
-        constants: { R_OK: 4, W_OK: 2 },
-        existsSync: jest.fn().mockReturnValue(true),
-        mkdirSync: jest.fn(),
-    }));
+    const fs = require('fs');
+    if (fs.promises && fs.promises.readFile) {
+        jest.spyOn(fs.promises, 'readFile').mockResolvedValue(jsonString);
+    } else {
+        throw new Error('fs.promises.readFile not available to spy on');
+    }
 }
 
 function mockServerTestConnection(impl) {
@@ -44,13 +42,7 @@ function mockServerTestConnection(impl) {
 }
 
 function unmockAll() {
-    jest.dontMock('fs');
-    try {
-        const serverPath = path.resolve(__dirname, '../../server.js');
-        jest.dontMock(serverPath);
-    } catch (_) {
-        // ignore cleanup errors in test teardown
-    }
+    jest.restoreAllMocks();
 }
 
 describe('jellyfin_connectivity health check', () => {
@@ -63,7 +55,6 @@ describe('jellyfin_connectivity health check', () => {
     test('returns ok when testServerConnection reports ok', async () => {
         mockFsWithConfig(buildConfig(true));
         mockServerTestConnection(async () => ({ status: 'ok', message: 'Connection successful.' }));
-
         const hc = require('../../utils/healthCheck');
         const res = await hc.checkJellyfinConnectivity();
 
@@ -80,7 +71,6 @@ describe('jellyfin_connectivity health check', () => {
     test('returns error when any Jellyfin server fails', async () => {
         mockFsWithConfig(buildConfig(true));
         mockServerTestConnection(async () => ({ status: 'error', message: 'Connection failed.' }));
-
         const hc = require('../../utils/healthCheck');
         const res = await hc.checkJellyfinConnectivity();
 

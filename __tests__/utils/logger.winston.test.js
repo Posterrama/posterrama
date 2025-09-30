@@ -1,10 +1,9 @@
 // Test logger functionality - focusing on the aspects we can test effectively
 
-// Mock logger dependencies
-jest.mock('fs', () => ({
-    existsSync: jest.fn().mockReturnValue(true),
-    mkdirSync: jest.fn(),
-}));
+// Spy on fs methods rather than full mock to avoid breaking nested dependencies
+const fs = require('fs');
+jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+jest.spyOn(fs, 'mkdirSync').mockImplementation(() => {});
 
 describe('Logger Module', () => {
     let logger;
@@ -12,7 +11,8 @@ describe('Logger Module', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         delete require.cache[require.resolve('../../utils/logger')];
-        logger = require('../../utils/logger');
+        const mod = require('../../utils/logger');
+        logger = mod.createTestLogger({ level: 'info', silent: true });
     });
 
     describe('Logger properties and initialization', () => {

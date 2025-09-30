@@ -13,7 +13,25 @@ if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
 }
 
-// Format messages to handle objects and arrays
+// Redaction patterns (case-insensitive) for sensitive tokens/keys
+const REDACTION_PATTERNS = [
+    /X-Plex-Token=([A-Za-z0-9]+)/gi,
+    /X_PLEX_TOKEN=([A-Za-z0-9]+)/gi,
+    /PLEX_TOKEN=([A-Za-z0-9]+)/gi,
+    /JELLYFIN_API_KEY=([A-Za-z0-9]+)/gi,
+    /Authorization:\s*Bearer\s+([A-Za-z0-9._-]+)/gi,
+];
+
+function redact(str) {
+    if (typeof str !== 'string') return str;
+    let out = str;
+    for (const re of REDACTION_PATTERNS) {
+        out = out.replace(re, (match, p1) => match.replace(p1, '***REDACTED***'));
+    }
+    return out;
+}
+
+// Format messages to handle objects and arrays + redact sensitive substrings
 const formatMessage = winston.format(info => {
     if (typeof info.message === 'object' && info.message !== null) {
         try {
@@ -29,29 +47,28 @@ const formatMessage = winston.format(info => {
             info.message = '[Unserializable Object]';
         }
     }
+    if (typeof info.message === 'string') {
+        info.message = redact(info.message);
+    }
+    // Redact top-level string props commonly used for logging tokens
+    for (const k of Object.keys(info)) {
+        if (typeof info[k] === 'string') info[k] = redact(info[k]);
+    }
     return info;
 });
 
-// Custom format for console and file output
-const customFormat = winston.format.combine(
-    formatMessage(),
-    winston.format.timestamp({
+function buildTimestampFormat() {
+    return winston.format.timestamp({
         format: () => {
             try {
                 const config = require('../config.json');
                 const timezone = config.clockTimezone || 'auto';
-
-                if (timezone === 'auto') {
-                    return new Date().toLocaleString('sv-SE', {
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        hour12: false,
-                    });
-                } else {
-                    return new Date().toLocaleString('sv-SE', {
-                        timeZone: timezone,
-                        hour12: false,
-                    });
-                }
+                const baseOpts = {
+                    hour12: false,
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                };
+                if (timezone !== 'auto') baseOpts.timeZone = timezone;
+                return new Date().toLocaleString('sv-SE', baseOpts);
             } catch (e) {
                 return new Date().toLocaleString('sv-SE', {
                     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -59,134 +76,142 @@ const customFormat = winston.format.combine(
                 });
             }
         },
-    }),
-    winston.format.errors({ stack: true }),
-    winston.format.splat(),
-    winston.format.json()
-);
+    });
+}
 
-// In-memory transport for admin panel
-const memoryTransport = new winston.transports.Stream({
-    format: winston.format.combine(
+function buildBaseFormat() {
+    return winston.format.combine(
         formatMessage(),
-        winston.format(info => {
-            // Get the configured timezone or fallback to system timezone
-            let timestamp;
-            try {
-                const config = require('../config.json');
-                const timezone = config.clockTimezone || 'auto';
-
-                if (timezone === 'auto') {
-                    // Use local timezone
-                    timestamp = new Date()
-                        .toLocaleString('sv-SE', {
-                            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                            hour12: false,
-                        })
-                        .replace(' ', 'T');
-                } else {
-                    // Use configured timezone
-                    timestamp = new Date()
-                        .toLocaleString('sv-SE', {
-                            timeZone: timezone,
-                            hour12: false,
-                        })
-                        .replace(' ', 'T');
-                }
-            } catch (e) {
-                // Fallback to local time if config is not available
-                timestamp = new Date()
-                    .toLocaleString('sv-SE', {
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        hour12: false,
-                    })
-                    .replace(' ', 'T');
-            }
-
-            return {
-                timestamp: timestamp,
-                level: info.level.toUpperCase(),
-                message: info.message,
-                // Include all other metadata from the original log
-                ...Object.fromEntries(
-                    Object.entries(info).filter(
-                        ([key]) => !['timestamp', 'level', 'message'].includes(key)
-                    )
-                ),
-            };
-        })()
-    ),
-    stream: new (require('stream').Writable)({
-        objectMode: true,
-        write: (chunk, encoding, callback) => {
-            // Skip system/debug messages for the admin panel
-            if (!logger.shouldExcludeFromAdmin(chunk.message)) {
-                // Keep the last 2000 logs in memory (increased for better history)
-                if (logger.memoryLogs.length >= 2000) {
-                    logger.memoryLogs.shift();
-                }
-                logger.memoryLogs.push(chunk);
-                try {
-                    // Emit a real-time event to subscribers via the stable emitter
-                    events.emit('log', chunk);
-                } catch (_) {
-                    /* ignore */
-                }
-            }
-            callback();
-        },
-    }),
-});
-
-// Build transports conditionally (skip file transports in test to avoid fs.stat issues with mocks)
-const transports = [
-    new winston.transports.Console({
-        format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
-    }),
-    memoryTransport,
-];
-
-if (process.env.NODE_ENV !== 'test') {
-    transports.splice(
-        1,
-        0, // Insert file transports after console
-        new winston.transports.File({
-            filename: path.join(logsDir, 'error.log'),
-            level: 'error',
-            maxsize: 5242880,
-            maxFiles: 5,
-        }),
-        new winston.transports.File({
-            filename: path.join(logsDir, 'combined.log'),
-            maxsize: 5242880,
-            maxFiles: 5,
-        })
+        buildTimestampFormat(),
+        winston.format.errors({ stack: true }),
+        winston.format.splat(),
+        winston.format.json()
     );
 }
 
-// Create the logger instance
-const logger = winston.createLogger({
-    level: process.env.NODE_ENV === 'test' ? 'warn' : process.env.LOG_LEVEL || 'info', // Default to info level, debug can be enabled via admin toggle
-    levels: winston.config.npm.levels,
-    format: customFormat,
-    transports:
-        process.env.NODE_ENV === 'test'
-            ? [memoryTransport] // Only memory transport during tests to suppress console output
-            : transports,
-    silent: process.env.NODE_ENV === 'test' && process.env.TEST_SILENT === 'true', // Allow complete silence for tests
-});
+// Simple custom transport capturing logs in memory
+function createMemoryTransport(inst) {
+    const CustomTransport = class extends winston.Transport {
+        constructor(opts = {}) {
+            super(opts);
+            this.name = 'memory';
+        }
+        log(info, next) {
+            setImmediate(() => this.emit('logged', info));
+            try {
+                const timestamp = new Date().toISOString();
+                const entry = {
+                    timestamp,
+                    level: (info.level || '').toUpperCase(),
+                    message:
+                        typeof info.message === 'string'
+                            ? info.message
+                            : JSON.stringify(info.message),
+                    ...Object.fromEntries(
+                        Object.entries(info).filter(
+                            ([key]) => !['timestamp', 'level', 'message'].includes(key)
+                        )
+                    ),
+                };
+                if (!inst.shouldExcludeFromAdmin || !inst.shouldExcludeFromAdmin(entry.message)) {
+                    if (inst.memoryLogs.length >= 2000) inst.memoryLogs.shift();
+                    inst.memoryLogs.push(entry);
+                    events.emit('log', entry);
+                }
+            } catch (e) {
+                // swallow
+            }
+            next();
+        }
+    };
+    return new CustomTransport();
+}
 
-// Store logs in memory for admin panel access
-logger.memoryLogs = [];
+function buildTransports(inst, { forTest = false } = {}) {
+    const memoryTransport = createMemoryTransport(inst);
+    const base = [
+        new winston.transports.Console({
+            format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+        }),
+        memoryTransport,
+    ];
+    if (!forTest) {
+        base.splice(
+            1,
+            0,
+            new winston.transports.File({
+                filename: path.join(logsDir, 'error.log'),
+                level: 'error',
+                maxsize: 5242880,
+                maxFiles: 5,
+            }),
+            new winston.transports.File({
+                filename: path.join(logsDir, 'combined.log'),
+                maxsize: 5242880,
+                maxFiles: 5,
+            })
+        );
+    }
+    return forTest ? [memoryTransport] : base;
+}
 
-// Expose the stable events emitter on the logger instance
-logger.events = events;
+function createLoggerInstance(options = {}) {
+    const { level, forTest = false, silent, hardSilent = false } = options;
+    const inst = winston.createLogger({
+        level: level || (forTest ? 'warn' : process.env.LOG_LEVEL || 'info'),
+        levels: winston.config.npm.levels,
+        format: buildBaseFormat(),
+        transports: [],
+        // In test mode we never fully silence the logger so memory transport still captures
+        silent: hardSilent ? true : forTest ? false : (silent ?? false),
+    });
+    // Attach shared structures
+    inst.memoryLogs = [];
+    inst.events = events;
+    // Utility helpers will be assigned after baseLogger populated
+    inst.info = (...args) => inst.log('info', ...args);
+    inst.warn = (...args) => inst.log('warn', ...args);
+    inst.error = (...args) => inst.log('error', ...args);
+    inst.fatal = (...args) => inst.log('error', ...args);
+    inst.debug = (...args) => inst.log('debug', ...args);
+    inst.__resetMemory = () => {
+        inst.memoryLogs.length = 0;
+    };
+    inst.__ping = () => true;
+    // If exclusion helper already defined attach it (baseLogger populated later during module load)
+    if (baseLogger.shouldExcludeFromAdmin) {
+        inst.shouldExcludeFromAdmin = baseLogger.shouldExcludeFromAdmin;
+    }
+    if (baseLogger._computeRecentLogs) {
+        inst.getRecentLogs = (level = null, limit = 500, offset = 0, testOnly = false) =>
+            baseLogger._computeRecentLogs(inst.memoryLogs, level, limit, offset, testOnly);
+    }
+    if (baseLogger.updateLogLevelFromDebug) {
+        inst.updateLogLevelFromDebug = baseLogger.updateLogLevelFromDebug;
+    }
+    // Build transports after instance so memory transport can reference inst
+    const transports = buildTransports(inst, { forTest });
+    transports.forEach(t => inst.add(t));
+    return inst;
+}
+
+// Temporary base object to allow methods reuse in factory without circular assignment
+const baseLogger = {};
+
+// Create the default singleton logger (backward compatible)
+const logger = createLoggerInstance({ forTest: process.env.NODE_ENV === 'test' });
+
+// Expose factory for tests and advanced scenarios
+function createTestLogger(opts = {}) {
+    const { silent: _ignored, ...rest } = opts; // silent ignored for test loggers (memory still captured)
+    return createLoggerInstance({ forTest: true, hardSilent: false, ...rest });
+}
 
 // List of messages to exclude from the admin panel (but still log to files)
 const adminPanelExclusions = ['[Request Logger] Received:', '[Auth] Authenticated via session'];
 
 // Helper to check if a message should be excluded from admin panel
-logger.shouldExcludeFromAdmin = message => {
+baseLogger.shouldExcludeFromAdmin = message => {
     return adminPanelExclusions.some(
         exclusion => typeof message === 'string' && message.includes(exclusion)
     );
@@ -219,8 +244,8 @@ logger.debug = (...args) => logger.log('debug', ...args);
  * @param {boolean} testOnly Restrict to synthetic test logs containing [TEST-LOG]
  * @returns {Array<{level:string,message:string,timestamp:string}>}
  */
-logger.getRecentLogs = (level = null, limit = 500, offset = 0, testOnly = false) => {
-    let logs = [...logger.memoryLogs];
+function computeRecentLogs(sourceLogs, level = null, limit = 500, offset = 0, testOnly = false) {
+    let logs = [...sourceLogs];
 
     // Filter for test logs only if requested
     if (testOnly) {
@@ -256,10 +281,15 @@ logger.getRecentLogs = (level = null, limit = 500, offset = 0, testOnly = false)
     const sliceStart = Math.max(0, sliceEndExclusive - limit);
     const slice = logs.slice(sliceStart, sliceEndExclusive);
     return slice; // already chronological (oldest→newest within requested window)
+}
+
+baseLogger.getRecentLogs = (level = null, limit = 500, offset = 0, testOnly = false) => {
+    return computeRecentLogs(logger.memoryLogs, level, limit, offset, testOnly);
 };
+baseLogger._computeRecentLogs = computeRecentLogs;
 
 // Method to update logger level based on DEBUG environment variable
-logger.updateLogLevelFromDebug = () => {
+baseLogger.updateLogLevelFromDebug = () => {
     const isDebugEnabled = process.env.DEBUG === 'true';
     const newLevel = isDebugEnabled ? 'debug' : 'info';
 
@@ -282,7 +312,15 @@ logger.updateLogLevelFromDebug = () => {
     }
 };
 
-module.exports = logger;
+// Wire reused methods onto default logger now that baseLogger has them
+logger.shouldExcludeFromAdmin = baseLogger.shouldExcludeFromAdmin;
+logger.getRecentLogs = baseLogger.getRecentLogs;
+logger.updateLogLevelFromDebug = baseLogger.updateLogLevelFromDebug;
+
+module.exports = logger; // default export (singleton)
+module.exports.redact = redact; // pure helper
+module.exports.createTestLogger = createTestLogger; // new factory
+module.exports._createLoggerInstance = createLoggerInstance; // internal (for future refactors/tests)
 
 // Initialize logger level based on DEBUG environment variable on startup
 setTimeout(() => {

@@ -439,19 +439,24 @@
                         "type": "boolean",
                         "description": "Whether this server configuration is active."
                     },
-                    "hostnameEnvVar": {
+                    "hostname": {
                         "type": "string",
-                        "description": "The name of the environment variable for the hostname.",
+                        "description": "Direct hostname or IP. Mandatory for enabled servers.",
                         "minLength": 1
                     },
-                    "portEnvVar": {
-                        "type": "string",
-                        "description": "The name of the environment variable for the port.",
-                        "minLength": 1
+                    "port": {
+                        "type": "integer",
+                        "description": "Direct TCP port. Mandatory for enabled servers.",
+                        "minimum": 1
                     },
                     "tokenEnvVar": {
                         "type": "string",
-                        "description": "The name of the environment variable for the authentication token.",
+                        "description": "Environment variable containing the authentication token (token itself stays out of config.json).",
+                        "minLength": 1
+                    },
+                    "token": {
+                        "type": "string",
+                        "description": "Optional direct token/API key (NOT recommended – prefer tokenEnvVar).",
                         "minLength": 1
                     },
                     "movieLibraryNames": {
@@ -527,14 +532,7 @@
                         }
                     }
                 },
-                "required": [
-                    "name",
-                    "type",
-                    "enabled",
-                    "hostnameEnvVar",
-                    "portEnvVar",
-                    "tokenEnvVar"
-                ]
+                "required": ["name", "type", "enabled", "hostname", "port", "tokenEnvVar"]
             }
         },
         "siteServer": {

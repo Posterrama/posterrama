@@ -13000,7 +13000,6 @@
                 if (typeof compute === 'function') {
                     statuses = compute(cfg, env);
                 } else {
-                    // Minimal fallback to avoid total duplication (only pill logic) if global missing.
                     const mediaServers = Array.isArray(cfg?.mediaServers) ? cfg.mediaServers : [];
                     const plex = mediaServers.find(s => s?.type === 'plex') || {};
                     const jf = mediaServers.find(s => s?.type === 'jellyfin') || {};
@@ -13017,15 +13016,11 @@
                     statuses = {
                         plex: basic(
                             plex.enabled,
-                            env[plex.hostnameEnvVar || 'PLEX_HOSTNAME'] &&
-                                env[plex.portEnvVar || 'PLEX_PORT'] &&
-                                env[plex.tokenEnvVar || 'PLEX_TOKEN']
+                            plex.hostname && plex.port && env[plex.tokenEnvVar || 'PLEX_TOKEN']
                         ),
                         jellyfin: basic(
                             jf.enabled,
-                            env[jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME'] &&
-                                env[jf.portEnvVar || 'JELLYFIN_PORT'] &&
-                                env[jf.tokenEnvVar || 'JELLYFIN_API_KEY']
+                            jf.hostname && jf.port && env[jf.tokenEnvVar || 'JELLYFIN_API_KEY']
                         ),
                         tmdb: basic(
                             tmdb.enabled,
@@ -13972,8 +13967,7 @@
             const jf = (cfg.mediaServers || []).find(s => s.type === 'jellyfin') || {};
             // Plex
             const plexEnabled = !!plex.enabled;
-            const plexHostVar = plex.hostnameEnvVar || 'PLEX_HOSTNAME';
-            const plexPortVar = plex.portEnvVar || 'PLEX_PORT';
+            // Direct config model: use stored hostname/port directly (legacy *EnvVar removed)
             const plexTokenVar = plex.tokenEnvVar || 'PLEX_TOKEN';
             getInput('plex.enabled') && (getInput('plex.enabled').checked = plexEnabled);
             try {
@@ -13982,8 +13976,8 @@
             // Prefill status pill based on enabled + presence of host/port
             try {
                 const pill = document.getElementById('plex-status-pill-header');
-                const host = env[plexHostVar] || '';
-                const portVal = env[plexPortVar] || '';
+                const host = plex.hostname || '';
+                const portVal = plex.port != null ? String(plex.port) : '';
                 if (pill) {
                     pill.classList.remove(
                         'status-success',
@@ -14009,9 +14003,8 @@
             // Populate Plex host/port more defensively: if empty but we have server config values fallback
             try {
                 // Support both dotted IDs (new) and legacy underscore IDs present in HTML
-                const hostInput =
-                    getInput('plex.hostname') || document.getElementById('plex_hostname');
-                const portInput = getInput('plex.port') || document.getElementById('plex_port');
+                const hostInput = getInput('plex.hostname');
+                const portInput = getInput('plex.port');
                 const existingHost = hostInput ? hostInput.value.trim() : '';
                 const existingPort = portInput ? portInput.value.trim() : '';
                 const envHost = env[plexHostVar] || '';
@@ -14126,8 +14119,6 @@
             // Defer fetching Plex libraries until the Plex panel is opened
             // Jellyfin
             const jfEnabled = !!jf.enabled;
-            const jfHostVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
-            const jfPortVar = jf.portEnvVar || 'JELLYFIN_PORT';
             const jfKeyVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
             if (getInput('jf.enabled')) getInput('jf.enabled').checked = jfEnabled;
             try {
@@ -14137,8 +14128,8 @@
             try {
                 const pill = document.getElementById('jf-status-pill-header');
                 const openLink = document.getElementById('jf-open-link');
-                const host = env[jfHostVar] || '';
-                const portVal = env[jfPortVar] || '';
+                const host = jf.hostname || '';
+                const portVal = jf.port != null ? String(jf.port) : '';
                 if (pill) {
                     pill.classList.remove(
                         'status-success',
@@ -15893,8 +15884,7 @@
                 plex.genreFilter = getPlexGenreFilterHidden();
                 plex.movieLibraryNames = getMultiSelectValues('plex.movies');
                 plex.showLibraryNames = getMultiSelectValues('plex.shows');
-                plex.hostnameEnvVar = plex.hostnameEnvVar || 'PLEX_HOSTNAME';
-                plex.portEnvVar = plex.portEnvVar || 'PLEX_PORT';
+                // Ensure token env var retained; hostname/port now stored directly in config
                 plex.tokenEnvVar = plex.tokenEnvVar || 'PLEX_TOKEN';
                 if (plexIdx >= 0) servers[plexIdx] = plex;
                 else servers.push(plex);
@@ -15904,11 +15894,13 @@
                     if (val != null && String(val).trim() !== '')
                         envPatch[key] = String(val).trim();
                 };
-                setIfProvided(plex.hostnameEnvVar, getInput('plex.hostname')?.value);
-                setIfProvided(plex.portEnvVar, getInput('plex.port')?.value);
                 const plexToken = getInput('plex.token')?.value;
                 if (plexToken && plexToken !== '••••••••')
                     setIfProvided(plex.tokenEnvVar, plexToken);
+                // Persist direct hostname/port inside mediaServers entry
+                plex.hostname = getInput('plex.hostname')?.value?.trim() || plex.hostname;
+                const portRaw = getInput('plex.port')?.value?.trim();
+                if (portRaw && !Number.isNaN(Number(portRaw))) plex.port = Number(portRaw);
                 await saveConfigPatch({ mediaServers: servers }, envPatch);
                 window.notify?.toast({
                     type: 'success',
@@ -15967,8 +15959,6 @@
                 jf.qualityFilter = '';
                 jf.movieLibraryNames = getMultiSelectValues('jf.movies');
                 jf.showLibraryNames = getMultiSelectValues('jf.shows');
-                jf.hostnameEnvVar = jf.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
-                jf.portEnvVar = jf.portEnvVar || 'JELLYFIN_PORT';
                 jf.tokenEnvVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
                 if (jfIdx >= 0) servers[jfIdx] = jf;
                 else servers.push(jf);
@@ -15977,16 +15967,16 @@
                     if (val != null && String(val).trim() !== '')
                         envPatch[key] = String(val).trim();
                 };
-                setIfProvided(jf.hostnameEnvVar, getInput('jf.hostname')?.value);
-                setIfProvided(jf.portEnvVar, getInput('jf.port')?.value);
                 const jfKey = getInput('jf.apikey')?.value;
                 if (jfKey && jfKey !== '••••••••') setIfProvided(jf.tokenEnvVar, jfKey);
-                // Persist insecure HTTPS as an env var for server-side defaults
                 envPatch.JELLYFIN_INSECURE_HTTPS =
                     document.getElementById('jf.insecureHttpsHeader')?.checked ||
                     document.getElementById('jf.insecureHttps')?.checked
                         ? 'true'
                         : 'false';
+                jf.hostname = getInput('jf.hostname')?.value?.trim() || jf.hostname;
+                const jfPortRaw = getInput('jf.port')?.value?.trim();
+                if (jfPortRaw && !Number.isNaN(Number(jfPortRaw))) jf.port = Number(jfPortRaw);
                 await saveConfigPatch({ mediaServers: servers }, envPatch);
                 window.notify?.toast({
                     type: 'success',

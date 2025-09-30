@@ -34,7 +34,7 @@ const Ajv = require('ajv');
 require('dotenv').config();
 
 // --- Schema Validation ---
-const ajv = new Ajv({ allErrors: true }); // Show all errors, not just the first
+const ajv = new Ajv({ allErrors: true, allowUnionTypes: true }); // allowUnionTypes to support multi-type definitions
 const schemaPath = path.join(__dirname, '..', 'config.schema.json');
 
 // Create a local safe reader that doesn't globally monkey-patch fs, to avoid
@@ -112,13 +112,17 @@ function validateEnvironment() {
         }
 
         for (const server of enabledServers) {
-            if (server.type === 'plex') {
-                if (server.hostnameEnvVar) required.add(server.hostnameEnvVar);
-                if (server.portEnvVar) required.add(server.portEnvVar);
-                if (server.tokenEnvVar) {
-                    required.add(server.tokenEnvVar);
-                    tokens.push(server.tokenEnvVar);
-                }
+            // Hostname/port now come strictly from config.json. Only token env var is required (unless direct token provided).
+            if (server.tokenEnvVar && !server.token) {
+                required.add(server.tokenEnvVar);
+                tokens.push(server.tokenEnvVar);
+            }
+            if (!server.hostname || !server.port) {
+                console.error(
+                    '[Config] Enabled server missing mandatory hostname/port in config.json:',
+                    server.name
+                );
+                process.exit(1);
             }
         }
         return { required, tokens };

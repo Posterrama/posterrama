@@ -19,8 +19,6 @@ describe('Environment Validator integration', () => {
         console.error = mockConsoleError;
         console.warn = mockConsoleWarn;
         jest.resetModules();
-        delete process.env.PLEX_HOSTNAME;
-        delete process.env.PLEX_PORT;
         delete process.env.PLEX_TOKEN;
     });
     afterEach(() => {
@@ -46,8 +44,8 @@ describe('Environment Validator integration', () => {
                 name: 'Test Server',
                 type: 'plex',
                 enabled: true,
-                hostnameEnvVar: 'PLEX_HOSTNAME',
-                portEnvVar: 'PLEX_PORT',
+                hostname: '127.0.0.1',
+                port: 32400,
                 tokenEnvVar: 'PLEX_TOKEN',
             },
         ],
@@ -62,8 +60,6 @@ describe('Environment Validator integration', () => {
             }
             return realRead.call(fs, p, options);
         });
-        process.env.PLEX_HOSTNAME = 'localhost';
-        process.env.PLEX_PORT = '32400';
         process.env.PLEX_TOKEN = 'tok';
         try {
             delete require.cache[require.resolve('../../config/validate-env')];

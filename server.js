@@ -2083,9 +2083,10 @@ app.get('/api/v1/metrics/dashboard', (req, res) => {
             if (!s || s.enabled !== true) continue;
             try {
                 if (s.type === 'plex') {
-                    const hostname = process.env[s.hostnameEnvVar];
-                    const port = process.env[s.portEnvVar];
-                    const token = process.env[s.tokenEnvVar];
+                    // New model: hostname/port MUST be in config; token stays in env (unless optional direct token supplied)
+                    const hostname = s.hostname;
+                    const port = s.port;
+                    const token = s.token || process.env[s.tokenEnvVar];
                     if (!hostname || !port || !token) continue;
                     const client = createPlexClient({ hostname, port, token, timeout: 8000 });
                     const sectionsResponse = await client.query('/library/sections');
@@ -2107,9 +2108,9 @@ app.get('/api/v1/metrics/dashboard', (req, res) => {
                         }
                     }
                 } else if (s.type === 'jellyfin') {
-                    const hostname = process.env[s.hostnameEnvVar];
-                    const port = process.env[s.portEnvVar];
-                    const apiKey = process.env[s.tokenEnvVar];
+                    const hostname = s.hostname;
+                    const port = s.port;
+                    const apiKey = s.token || process.env[s.tokenEnvVar];
                     if (!hostname || !port || !apiKey) continue;
                     const jf = await createJellyfinClient({
                         hostname,

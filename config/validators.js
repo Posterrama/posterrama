@@ -31,9 +31,13 @@ const schemas = {
                 name: Joi.string().required(),
                 type: Joi.string().valid('plex', 'jellyfin').required(),
                 enabled: Joi.boolean(),
-                hostnameEnvVar: Joi.string().required(),
-                portEnvVar: Joi.string().required(),
+                hostname: Joi.string().when('enabled', { is: true, then: Joi.required() }),
+                port: Joi.number()
+                    .integer()
+                    .min(1)
+                    .when('enabled', { is: true, then: Joi.required() }),
                 tokenEnvVar: Joi.string().required(),
+                token: Joi.string().optional(),
             })
         ),
     }),
