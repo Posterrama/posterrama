@@ -13295,23 +13295,57 @@
             );
         }
 
+        // Debug helpers (gated logging) - top-level so lint allows
+        if (typeof window.__MEDIA_DEBUG === 'undefined') window.__MEDIA_DEBUG = false;
+        function msDebugLog(msg, data) {
+            if (!window.__MEDIA_DEBUG) return;
+            try {
+                console.log('[Admin][MS]', msg, data || '');
+            } catch (_) {}
+        }
+        function msDebugWarn(msg, data) {
+            if (!window.__MEDIA_DEBUG) return;
+            try {
+                console.warn('[Admin][MS]', msg, data || '');
+            } catch (_) {}
+        }
+
+        // Placeholder Plex filters object (mirrors pattern from original codebase)
+        function buildPlexFilters() {
+            return {
+                years: getInput('plex.yearFilter')?.value || '',
+                genres: getInput('plex.genreFilter-hidden')?.value || '',
+                ratings: getInput('plex.ratingFilter-hidden')?.value || '',
+                qualities: getInput('plex.qualityFilter-hidden')?.value || '',
+                recentOnly: !!document.getElementById('plex.recentOnly')?.checked,
+                recentDays: Number(document.getElementById('plex.recentDays')?.value) || 0,
+            };
+        }
+        let plexFilters = buildPlexFilters();
+        // Update plexFilters opportunistically when overview refresh runs
+        // Try to infer Plex quality (simplified placeholder that prefers explicit qualityLabel)
+        const inferPlexQuality = it => {
+            try {
+                if (it.qualityLabel) return it.qualityLabel;
+                // Heuristic: look at media object
+                const media = Array.isArray(it.Media)
+                    ? it.Media
+                    : Array.isArray(it.media)
+                      ? it.media
+                      : [];
+                for (const m of media) {
+                    if (m.videoResolution) return mapResToLabel(m.videoResolution);
+                    if (m.width && m.height) return mapResToLabel(m.height);
+                }
+            } catch (_) {}
+            return null;
+        };
+
         // Compute live filtered counts per source; when filters are active, use server-side uncapped preview
         async function refreshOverviewCounts() {
             try {
-                // Debug helpers (gated logging)
-                if (typeof window.__MEDIA_DEBUG === 'undefined') window.__MEDIA_DEBUG = false;
-                function msDebugLog(msg, data) {
-                    if (!window.__MEDIA_DEBUG) return;
-                    try {
-                        console.log('[Admin][MS]', msg, data || '');
-                    } catch (_) {}
-                }
-                function msDebugWarn(msg, data) {
-                    if (!window.__MEDIA_DEBUG) return;
-                    try {
-                        console.warn('[Admin][MS]', msg, data || '');
-                    } catch (_) {}
-                }
+                // Rebuild plexFilters each invocation so we capture UI changes even if events missed
+                plexFilters = buildPlexFilters();
                 // Fetch cached playlist first (fast fallback & used when no filters)
                 const res = await window.dedupJSON('/get-media', { credentials: 'include' });
                 let items = [];
