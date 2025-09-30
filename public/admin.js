@@ -14142,6 +14142,140 @@
             } catch (e) {
                 console.warn('Plex health indicator init failed', e);
             }
+
+            // ---------------- Jellyfin auto wiring (mirror + auto test + libraries) ----------------
+            try {
+                const jfEnabled = !!jf.enabled;
+                // Mirror into legacy fields if present
+                const legacyJfHost = document.getElementById('jf_hostname');
+                const legacyJfPort = document.getElementById('jf_port');
+                if (legacyJfHost && jf.hostname) legacyJfHost.value = jf.hostname;
+                if (legacyJfPort && (jf.port || jf.port === 0)) legacyJfPort.value = jf.port;
+                // Status pill update (reuse existing pill if present)
+                const jfPill = document.getElementById('jf-status-pill-header');
+                if (jfPill) {
+                    jfPill.classList.remove(
+                        'status-success',
+                        'status-error',
+                        'is-configured',
+                        'is-not-configured'
+                    );
+                    if (!jfEnabled) {
+                        jfPill.textContent = 'Disabled';
+                        jfPill.classList.add('is-not-configured');
+                    } else if (jf.hostname && (jf.port || jf.port === 0)) {
+                        jfPill.textContent = 'Configured';
+                        jfPill.classList.add('is-configured');
+                    } else {
+                        jfPill.textContent = 'Not configured';
+                        jfPill.classList.add('is-not-configured');
+                    }
+                }
+                // Auto test + library fetch (one time per session) similar to Plex
+                if (jfEnabled && jf.hostname && (jf.port || jf.port === 0)) {
+                    window.__jfAutoRefreshed = window.__jfAutoRefreshed || false;
+                    if (!window.__jfAutoRefreshed && !forceFresh) {
+                        window.__jfAutoRefreshed = true;
+                        console.log('[Admin][MediaSources] Auto refreshing Jellyfin libraries');
+                        (async () => {
+                            try {
+                                const body = { hostname: jf.hostname, port: jf.port };
+                                const apiKeyEl = getInput('jf.apikey');
+                                if (apiKeyEl?.value) body.apiKey = apiKeyEl.value;
+                                const insecureHttps = !!(
+                                    document.getElementById('jf.insecureHttps')?.checked ||
+                                    document.getElementById('jf.insecureHttpsHeader')?.checked
+                                );
+                                if (insecureHttps) body.insecureHttps = true;
+                                const testRes = await fetch('/api/admin/test-jellyfin', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
+                                    body: JSON.stringify(body),
+                                });
+                                if (testRes.ok)
+                                    console.log(
+                                        '[Admin][MediaSources] Auto test-jellyfin succeeded'
+                                    );
+                                else
+                                    console.warn(
+                                        '[Admin][MediaSources] Auto test-jellyfin failed status',
+                                        testRes.status
+                                    );
+                            } catch (je) {
+                                console.warn(
+                                    '[Admin][MediaSources] Auto test-jellyfin error',
+                                    je?.message || je
+                                );
+                            } finally {
+                                try {
+                                    fetchJellyfinLibraries(true, true);
+                                } catch (_) {}
+                            }
+                        })();
+                    }
+                }
+            } catch (e) {
+                console.warn('Jellyfin auto wiring failed', e);
+            }
+
+            // ---------------- Jellyfin health indicator ----------------
+            try {
+                let jfHealth = document.getElementById('jf-health-indicator');
+                if (!jfHealth) {
+                    jfHealth = document.createElement('div');
+                    jfHealth.id = 'jf-health-indicator';
+                    jfHealth.style.cssText = 'margin-top:4px;font-size:11px;opacity:0.85;';
+                    const jfPanel =
+                        document.getElementById('panel-jellyfin') ||
+                        document.getElementById('jellyfin-panel') ||
+                        document.body;
+                    jfPanel.appendChild(jfHealth);
+                }
+                const updateJfHealth = (status, extra = '') => {
+                    const ts = new Date().toLocaleTimeString();
+                    jfHealth.textContent = `Jellyfin health: ${status}${extra ? ' - ' + extra : ''} (${ts})`;
+                    jfHealth.style.color =
+                        status === 'OK' ? '#2d6a4f' : status === 'Testing' ? '#555' : '#c92a2a';
+                };
+                if (jf?.enabled && jf?.hostname && (jf.port || jf.port === 0)) {
+                    window.__jfHealthTimer && clearTimeout(window.__jfHealthTimer);
+                    const doJfCheck = () => {
+                        updateJfHealth('Testing');
+                        const body = { hostname: jf.hostname, port: jf.port };
+                        const apiKeyEl = getInput('jf.apikey');
+                        if (apiKeyEl?.value) body.apiKey = apiKeyEl.value;
+                        const insecureHttps = !!(
+                            document.getElementById('jf.insecureHttps')?.checked ||
+                            document.getElementById('jf.insecureHttpsHeader')?.checked
+                        );
+                        if (insecureHttps) body.insecureHttps = true;
+                        fetch('/api/admin/test-jellyfin', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify(body),
+                        })
+                            .then(r =>
+                                r
+                                    .json()
+                                    .then(j => ({ r, j }))
+                                    .catch(() => ({ r, j: {} }))
+                            )
+                            .then(({ r, j }) => {
+                                if (r.ok) updateJfHealth('OK');
+                                else updateJfHealth('Error', j?.error || r.status);
+                            })
+                            .catch(err => updateJfHealth('Error', err?.message || 'network'))
+                            .finally(() => {
+                                window.__jfHealthTimer = setTimeout(doJfCheck, 60000);
+                            });
+                    };
+                    doJfCheck();
+                }
+            } catch (e) {
+                console.warn('Jellyfin health indicator init failed', e);
+            }
             if (getInput('plex.token')) {
                 // Show grey hint instead of masked value when a token exists
                 const hasToken = !!env[plexTokenVar];
