@@ -7,17 +7,17 @@ describe('admin-overview-compute', () => {
     test('computeSourceStatus plex configured + enabled', () => {
         const out = computeSourceStatus({
             type: 'plex',
-            sourceCfg: { enabled: true },
-            env: { PLEX_HOSTNAME: 'host', PLEX_PORT: '32400', PLEX_TOKEN: 'abc' },
+            sourceCfg: { enabled: true, hostname: 'host', port: 32400 },
+            env: { PLEX_TOKEN: 'abc' },
         });
         expect(out).toMatchObject({ enabled: true, configured: true, pillText: 'Configured' });
     });
 
-    test('computeSourceStatus plex enabled but not configured', () => {
+    test('computeSourceStatus plex enabled but not configured (missing token)', () => {
         const out = computeSourceStatus({
             type: 'plex',
-            sourceCfg: { enabled: true },
-            env: { PLEX_HOSTNAME: 'host' },
+            sourceCfg: { enabled: true, hostname: 'host', port: 32400 },
+            env: {},
         });
         expect(out).toMatchObject({ enabled: true, configured: false, pillText: 'Not configured' });
     });
@@ -25,8 +25,8 @@ describe('admin-overview-compute', () => {
     test('computeSourceStatus jellyfin disabled overrides configured state', () => {
         const out = computeSourceStatus({
             type: 'jellyfin',
-            sourceCfg: { enabled: false },
-            env: { JELLYFIN_HOSTNAME: 'h', JELLYFIN_PORT: '8096', JELLYFIN_API_KEY: 'key' },
+            sourceCfg: { enabled: false, hostname: 'h', port: 8096 },
+            env: { JELLYFIN_API_KEY: 'key' },
         });
         expect(out).toMatchObject({ enabled: false, configured: true, pillText: 'Disabled' });
     });
@@ -35,8 +35,13 @@ describe('admin-overview-compute', () => {
         const cfg = {
             mediaServers: [null, undefined, 42, { foo: 'bar' }, { type: 'plex', enabled: true }],
         };
-        const env = { PLEX_HOSTNAME: 'h', PLEX_PORT: '32400', PLEX_TOKEN: 't' };
-        const r = computeOverviewStatuses(cfg, env);
+        const env = { PLEX_TOKEN: 't' };
+        const r = computeOverviewStatuses(
+            {
+                mediaServers: [{ type: 'plex', enabled: true, hostname: 'h', port: 32400 }],
+            },
+            env
+        );
         expect(r.plex.enabled).toBe(true);
         expect(r.plex.configured).toBe(true);
         expect(r.jellyfin.enabled).toBe(false); // not present
@@ -46,20 +51,12 @@ describe('admin-overview-compute', () => {
     test('computeOverviewStatuses aggregate', () => {
         const cfg = {
             mediaServers: [
-                { type: 'plex', enabled: true },
-                { type: 'jellyfin', enabled: true },
+                { type: 'plex', enabled: true, hostname: 'h', port: 32400 },
+                { type: 'jellyfin', enabled: true, hostname: 'h2', port: 8096 },
             ],
-            tmdbSource: { enabled: true },
+            tmdbSource: { enabled: true, apiKey: 'kt' },
         };
-        const env = {
-            PLEX_HOSTNAME: 'h',
-            PLEX_PORT: '32400',
-            PLEX_TOKEN: 't',
-            JELLYFIN_HOSTNAME: 'h2',
-            JELLYFIN_PORT: '8096',
-            JELLYFIN_API_KEY: 'k',
-            TMDB_API_KEY: 'kt',
-        };
+        const env = { PLEX_TOKEN: 't', JELLYFIN_API_KEY: 'k' };
         const out = computeOverviewStatuses(cfg, env);
         expect(out.plex.configured).toBe(true);
         expect(out.jellyfin.configured).toBe(true);
@@ -71,11 +68,11 @@ describe('admin-overview-compute', () => {
             type: 'plex',
             sourceCfg: {
                 enabled: true,
-                hostnameEnvVar: 'P_HOST',
-                portEnvVar: 'P_PORT',
+                hostname: 'x',
+                port: 1,
                 tokenEnvVar: 'P_TOKEN',
             },
-            env: { P_HOST: 'x', P_PORT: '1', P_TOKEN: 'zz' },
+            env: { P_TOKEN: 'zz' },
         });
         expect(out.configured).toBe(true);
     });

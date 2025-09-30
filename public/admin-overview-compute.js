@@ -5,24 +5,20 @@ function computeSourceStatus({ type, sourceCfg = {}, env = {} }) {
     const enabled = !!sourceCfg.enabled;
     let configured = false;
     if (type === 'plex') {
-        const hostVar = sourceCfg.hostnameEnvVar || 'PLEX_HOSTNAME';
-        const portVar = sourceCfg.portEnvVar || 'PLEX_PORT';
+        // Hostname/port now expected directly on sourceCfg (legacy *EnvVar removed). Token still comes from env var.
         const tokenVar = sourceCfg.tokenEnvVar || 'PLEX_TOKEN';
-        const host = env[hostVar];
-        const port = env[portVar];
-        const tokenVal = env[tokenVar];
+        const host = sourceCfg.hostname;
+        const port = sourceCfg.port;
+        const tokenVal = sourceCfg.token || env[tokenVar];
         configured = !!(host && port && tokenVal);
     } else if (type === 'jellyfin') {
-        const hostVar = sourceCfg.hostnameEnvVar || 'JELLYFIN_HOSTNAME';
-        const portVar = sourceCfg.portEnvVar || 'JELLYFIN_PORT';
         const keyVar = sourceCfg.tokenEnvVar || 'JELLYFIN_API_KEY';
-        const host = env[hostVar];
-        const port = env[portVar];
-        const keyVal = env[keyVar];
+        const host = sourceCfg.hostname;
+        const port = sourceCfg.port;
+        const keyVal = sourceCfg.apiKey || env[keyVar];
         configured = !!(host && port && keyVal);
     } else if (type === 'tmdb') {
         const apiVar = sourceCfg.apiKeyEnvVar || 'TMDB_API_KEY';
-        // Allow config object to directly carry apiKey (admin UI may have it masked) falling back to env var.
         const apiKey = sourceCfg.apiKey || env[apiVar];
         configured = !!apiKey;
     }
