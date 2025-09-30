@@ -13682,18 +13682,7 @@
                             }
                         }
                     } catch (_) {}
-                    try {
-                        console.log('[Admin][Jellyfin][Counts][Compute]', {
-                            haveGlobalMap:
-                                window.__jfLibraryCounts instanceof Map &&
-                                window.__jfLibraryCounts.size,
-                            fetchedMapSize: map?.size,
-                            selectedMovies,
-                            selectedShows,
-                            haveSelection,
-                            computedTotalJf: totalJf,
-                        });
-                    } catch (_) {}
+                    // debug removed: Jellyfin counts compute
                 } catch (e) {
                     try {
                         console.warn('[Admin][Jellyfin][Counts][Compute] failed', e);
@@ -13718,14 +13707,7 @@
                 const _fmt = v => (Number.isFinite(v) ? Number(v).toLocaleString() : '—');
                 const plexTooltip = `Items — filtered: ${_fmt(filteredPlex)} | total: ${_fmt(totalPlex)}`;
                 const jfTooltip = `Items — filtered: ${_fmt(filteredJf)} | total: ${_fmt(totalJf)}`;
-                try {
-                    console.log('[Admin][Jellyfin][Counts]', {
-                        filteredJf,
-                        totalJf,
-                        displayJf,
-                        libraryCountMapSize: window.__jfLibraryCounts?.size,
-                    });
-                } catch (_) {}
+                // debug removed: Jellyfin counts summary
                 setCount('sc-plex-count', displayPlex, totalPlex, plexTooltip);
                 setCount('sc-jf-count', displayJf, totalJf, jfTooltip);
                 // Default display for TMDB from cached playlist
@@ -14145,7 +14127,7 @@
                     movieLibraries: plex.movieLibraryNames,
                 };
                 window.__PLEX_ENTRY = plexDbg;
-                console.log('[Admin][MediaSources] Loaded plex entry', plexDbg);
+                // console.log removed: Loaded plex entry
                 // Mirror into legacy hidden inputs if they exist so older handlers / cached DOM still read values
                 const legacyHost = document.getElementById('plex_hostname');
                 const legacyPort = document.getElementById('plex_port');
@@ -14197,7 +14179,7 @@
                             window.__plexAutoRefreshed = window.__plexAutoRefreshed || false;
                             if (!window.__plexAutoRefreshed && !forceFresh) {
                                 window.__plexAutoRefreshed = true;
-                                console.log('[Admin][MediaSources] Auto refreshing Plex libraries');
+                                // console log removed: Auto refreshing Plex libraries
                                 // First perform a silent connection test to ensure token/host are valid
                                 (async () => {
                                     try {
@@ -14208,9 +14190,7 @@
                                             body: JSON.stringify({ hostname: host, port: portVal }),
                                         });
                                         if (testRes.ok) {
-                                            console.log(
-                                                '[Admin][MediaSources] Auto test-plex succeeded'
-                                            );
+                                            // console log removed: Auto test-plex succeeded
                                         } else {
                                             console.warn(
                                                 '[Admin][MediaSources] Auto test-plex failed status',
@@ -14316,7 +14296,7 @@
                     tokenEnvVar: jf.tokenEnvVar,
                 };
                 window.__JELLYFIN_ENTRY = jfDbg;
-                console.log('[Admin][MediaSources] Loaded jellyfin entry', jfDbg);
+                // console.log removed: Loaded jellyfin entry
                 // Populate visible inputs if present
                 const jfEnabledInput = document.getElementById('jf.enabled');
                 if (jfEnabledInput) jfEnabledInput.checked = !!jf.enabled;
@@ -14354,7 +14334,7 @@
                     window.__jfAutoRefreshed = window.__jfAutoRefreshed || false;
                     if (!window.__jfAutoRefreshed && !forceFresh) {
                         window.__jfAutoRefreshed = true;
-                        console.log('[Admin][MediaSources] Auto refreshing Jellyfin libraries');
+                        // console log removed: Auto refreshing Jellyfin libraries
                         (async () => {
                             try {
                                 const body = { hostname: jf.hostname, port: jf.port };
@@ -14371,11 +14351,7 @@
                                     credentials: 'include',
                                     body: JSON.stringify(body),
                                 });
-                                if (testRes.ok)
-                                    console.log(
-                                        '[Admin][MediaSources] Auto test-jellyfin succeeded'
-                                    );
-                                else
+                                if (!testRes.ok)
                                     console.warn(
                                         '[Admin][MediaSources] Auto test-jellyfin failed status',
                                         testRes.status
@@ -15607,7 +15583,7 @@
             if (window.__jfLibsInFlight) return window.__jfLibsInFlight;
             window.__jfLibsInFlight = (async () => {
                 try {
-                    console.log('[Admin][Jellyfin][Fetch] start', { refreshFilters, silent });
+                    // debug removed: Jellyfin fetch start
                     const hostname = getInput('jf.hostname')?.value || undefined;
                     const port = getInput('jf.port')?.value || undefined;
                     const apiKey = getInput('jf.apikey')?.value || undefined;
@@ -15615,16 +15591,7 @@
                         document.getElementById('jf.insecureHttps')?.checked ||
                         document.getElementById('jf.insecureHttpsHeader')?.checked
                     );
-                    console.log('[Admin][Jellyfin][Fetch] resolved inputs', {
-                        hostname: hostname || window.__JELLYFIN_ENTRY?.hostname,
-                        port: port || window.__JELLYFIN_ENTRY?.port,
-                        hasApiKey: !!(
-                            apiKey ||
-                            (window.__JELLYFIN_ENTRY && window.__JELLYFIN_ENTRY.apiKey)
-                        ),
-                        insecureHttps,
-                        enabledCached: isJellyfinEnabledCached(),
-                    });
+                    // debug removed: Jellyfin fetch resolved inputs
                     const effHostname = hostname || window.__JELLYFIN_ENTRY?.hostname;
                     const effPort = port || window.__JELLYFIN_ENTRY?.port;
                     const effApiKey = apiKey || window.__JELLYFIN_ENTRY?.apiKey;
@@ -15673,14 +15640,11 @@
                             insecureHttps,
                         }),
                     });
-                    console.log('[Admin][Jellyfin][Fetch] response status', res.status);
+                    // debug removed: Jellyfin fetch response status
                     const j = await res.json().catch(() => ({}));
                     if (!res.ok) throw new Error(j?.error || 'Failed to load Jellyfin libraries');
                     const libs = Array.isArray(j.libraries) ? j.libraries : [];
-                    console.log(
-                        '[Admin][Jellyfin][Fetch] libs received',
-                        libs.map(l => ({ name: l.name, type: l.type, count: l.itemCount }))
-                    );
+                    // debug removed: Jellyfin libs received
                     // Build internal map for overview counts (parity with Plex fetch flow)
                     try {
                         window.__jfLibraryCounts = new Map();
@@ -15768,7 +15732,7 @@
                         }
                     }
                 } catch (e) {
-                    console.error('[Admin][Jellyfin][Fetch] failed', e);
+                    console.error('[Admin][Jellyfin][Fetch] failed', e); // keep errors
                     if (!silent) {
                         window.notify?.toast({
                             type: 'error',
@@ -15782,7 +15746,7 @@
                     window.__jfLibsInFlight = null;
                     // Reset refresh request flag after one settled cycle
                     window.__jfLibsRefreshRequested = false;
-                    console.log('[Admin][Jellyfin][Fetch] end');
+                    // debug removed: Jellyfin fetch end
                     // Post-fetch integrity safeguard
                     try {
                         ensureLibrarySelectionIntegrity('jellyfin');
