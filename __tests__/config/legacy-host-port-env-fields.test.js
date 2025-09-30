@@ -1,4 +1,4 @@
-const { schemas, validate } = require('../../config/validators');
+const { validate } = require('../../config/validators');
 
 describe('config validation rejects legacy host/port env field usage', () => {
     test('should throw when hostnameEnvVar present', () => {

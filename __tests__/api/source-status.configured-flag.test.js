@@ -1,6 +1,5 @@
 const request = require('supertest');
 const fs = require('fs/promises');
-const path = require('path');
 
 jest.mock('../../config/index.js', () => {
     const real = jest.requireActual('../../config/index.js');
