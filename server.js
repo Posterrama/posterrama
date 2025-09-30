@@ -9885,6 +9885,38 @@ app.post(
 
         // Merge existing config with new config to preserve properties not in admin UI
         const mergedConfig = { ...existingConfig, ...newConfig };
+        try {
+            // Diff logging for mediaServers host/port to debug persistence issues
+            const beforeServers = existingConfig.mediaServers || [];
+            const afterServers = mergedConfig.mediaServers || [];
+            const diff = [];
+            const indexByTypeName = list => {
+                const map = new Map();
+                list.forEach(s => map.set(`${s.type}:${s.name}`, s));
+                return map;
+            };
+            const beforeMap = indexByTypeName(beforeServers);
+            const afterMap = indexByTypeName(afterServers);
+            const keys = new Set([...beforeMap.keys(), ...afterMap.keys()]);
+            keys.forEach(k => {
+                const b = beforeMap.get(k) || {};
+                const a = afterMap.get(k) || {};
+                if (b.hostname !== a.hostname || b.port !== a.port) {
+                    diff.push({
+                        key: k,
+                        before: { hostname: b.hostname, port: b.port },
+                        after: { hostname: a.hostname, port: a.port },
+                    });
+                }
+            });
+            if (diff.length) {
+                logger.info('[Admin API] Host/port diff', { changes: diff });
+            } else {
+                logger.debug('[Admin API] No host/port changes detected in mediaServers');
+            }
+        } catch (e) {
+            logger.warn('[Admin API] Failed diff logging mediaServers host/port:', e.message);
+        }
 
         if (
             newConfig.tmdbSource &&

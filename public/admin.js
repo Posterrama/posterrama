@@ -15908,8 +15908,14 @@
                 if (plexToken && plexToken !== '••••••••')
                     setIfProvided(plex.tokenEnvVar, plexToken);
                 // Persist direct hostname/port inside mediaServers entry
-                plex.hostname = getInput('plex.hostname')?.value?.trim() || plex.hostname;
-                const portRaw = getInput('plex.port')?.value?.trim();
+                // Some templates (legacy or cached) still render inputs with ids 'plex_hostname' / 'plex_port'.
+                // Use both modern (dot) and legacy (underscore) IDs so a stale cached HTML file does not block saving.
+                const hostEl =
+                    getInput('plex.hostname') || document.getElementById('plex_hostname');
+                const portEl = getInput('plex.port') || document.getElementById('plex_port');
+                const hostRaw = hostEl?.value?.trim();
+                if (hostRaw) plex.hostname = hostRaw;
+                const portRaw = portEl?.value?.trim();
                 if (portRaw && !Number.isNaN(Number(portRaw))) plex.port = Number(portRaw);
                 await saveConfigPatch({ mediaServers: servers }, envPatch);
                 window.notify?.toast({
