@@ -13965,6 +13965,16 @@
             // Plex/Jellyfin server entries
             const plex = (cfg.mediaServers || []).find(s => s.type === 'plex') || {};
             const jf = (cfg.mediaServers || []).find(s => s.type === 'jellyfin') || {};
+            try {
+                // Debug logging to help diagnose missing host/port in UI vs config.json
+                console.debug('[Admin][MediaSources] Loaded plex entry', {
+                    hostname: plex.hostname,
+                    port: plex.port,
+                    enabled: plex.enabled,
+                    tokenEnvVar: plex.tokenEnvVar,
+                    hasTokenEnv: !!env[plex.tokenEnvVar || 'PLEX_TOKEN'],
+                });
+            } catch (_) {}
             // Plex
             const plexEnabled = !!plex.enabled;
             // Direct config model: use stored hostname/port directly (legacy *EnvVar removed)

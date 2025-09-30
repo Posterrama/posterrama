@@ -8873,14 +8873,28 @@ app.get(
         try {
             const currentConfig = await readConfig();
 
-            // Return only non-sensitive configuration data
+            // Derive plex info from mediaServers array (post-migration) falling back to legacy structure
+            let plexServerEntry = null;
+            if (Array.isArray(currentConfig.mediaServers)) {
+                plexServerEntry = currentConfig.mediaServers.find(s => s.type === 'plex');
+            }
+            const plexServerAddress = plexServerEntry
+                ? `${plexServerEntry.hostname || ''}${
+                      plexServerEntry.port ? ':' + plexServerEntry.port : ''
+                  }`.replace(/:?$/, '') || null
+                : currentConfig.plex?.server || null;
+            const plexTokenConfigured = !!(
+                (plexServerEntry && (plexServerEntry.token || plexServerEntry.tokenEnvVar)) ||
+                currentConfig.plex?.token
+            );
+
             const publicConfig = {
                 plex: {
-                    server: currentConfig.plex?.server || null,
-                    token: !!currentConfig.plex?.token, // Boolean only, not the actual token
+                    server: plexServerAddress,
+                    token: plexTokenConfigured, // Boolean only, not the actual token
                 },
                 tmdb: {
-                    enabled: !!currentConfig.tmdb?.apiKey,
+                    enabled: !!(currentConfig.tmdb?.apiKey || currentConfig.tmdbSource?.apiKey),
                 },
             };
 
