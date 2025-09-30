@@ -7,64 +7,13 @@
     // ---- Diagnostic Sentinel (notifications resilience) ----
     // Provides quick confirmation in the browser console that the latest admin.js has loaded.
     // Type:  __diagUI   or  window.__diagUI.showScripts()  in DevTools.
-    try {
-        if (!window.__diagUI) {
-            window.__diagUI = {};
-        }
-        Object.assign(window.__diagUI, {
-            adminLoadedAt: new Date().toISOString(),
-            versionSentinel: 'notif-resilience-2',
-            hasNotifResiliencePatch: true,
-            showScripts() {
-                const list = [...document.scripts].map(s => s.src || '[inline]');
-                console.info('[__diagUI] Scripts:', list);
-                return list;
-            },
-            getNotifPanelInfo() {
-                const panel = document.getElementById('notify-center');
-                if (!panel) return { exists: false };
-                const cs = getComputedStyle(panel);
-                const info = {
-                    exists: true,
-                    classes: [...panel.classList],
-                    inline: panel.getAttribute('style') || '',
-                    ariaHidden: panel.getAttribute('aria-hidden'),
-                    hiddenAttr: panel.hasAttribute('hidden'),
-                    bounding: panel.getBoundingClientRect().toJSON(),
-                    computed: {
-                        display: cs.display,
-                        visibility: cs.visibility,
-                        opacity: cs.opacity,
-                        pointerEvents: cs.pointerEvents,
-                        zIndex: cs.zIndex,
-                        transform: cs.transform,
-                    },
-                };
-                console.info('[__diagUI] Notif panel info:', info);
-                return info;
-            },
-            forceNotifOpen() {
                 try {
-                    const panel = document.getElementById('notify-center');
-                    if (!panel) {
-                        console.warn('[__diagUI] notify-center not found');
-                        return false;
-                    }
-                    panel.classList.add('open');
-                    panel.setAttribute('data-notif-force', 'true');
-                    panel.style.display = 'block';
-                    panel.style.visibility = 'visible';
-                    panel.style.opacity = '1';
-                    panel.style.pointerEvents = 'auto';
-                    panel.style.zIndex = '13000';
-                    panel.style.transform = 'translateY(0)';
-                    console.info('[__diagUI] Forced notif panel open');
-                    try {
-                        window.__diagUI.placePanelInView?.();
-                    } catch (_) {}
-                    return true;
-                } catch (err) {
-                    console.error('[__diagUI] forceNotifOpen failed', err);
+                    const body = {
+                        plex: getSelectedLibraries('plex'),
+                        jellyfin: getSelectedLibraries('jellyfin'),
+                        filtersPlex: plexFilters,
+                        filtersJellyfin: jfFilters,
+                    };
                     return false;
                 }
             },
@@ -13593,8 +13542,6 @@
                                 badge.remove();
                             }
                         };
-                        ensureBadge('jf-count-pill', 'sc-jf-count', jfMode);
-                        ensureBadge('plex-count-pill', 'sc-plex-count', plexMode);
                     }
                     const { movies, shows } = getSelectedLibraries('jellyfin');
                     const selectedMovies = Array.isArray(movies) ? movies : [];
