@@ -7,15 +7,13 @@
     // ---- Diagnostic Sentinel (notifications resilience) ----
     // Provides quick confirmation in the browser console that the latest admin.js has loaded.
     // Type:  __diagUI   or  window.__diagUI.showScripts()  in DevTools.
-                try {
-                    const body = {
-                        plex: getSelectedLibraries('plex'),
-                        jellyfin: getSelectedLibraries('jellyfin'),
-                        filtersPlex: plexFilters,
-                        filtersJellyfin: jfFilters,
-                    };
-                    return false;
-                }
+    try {
+        if (!window.__diagUI) window.__diagUI = {};
+        Object.assign(window.__diagUI, {
+            showScripts() {
+                const list = [...document.scripts].map(s => s.src || '[inline]');
+                console.info('[__diagUI] Scripts:', list);
+                return list;
             },
             placePanelInView() {
                 try {
@@ -83,12 +81,12 @@
                 }
             },
         });
-        // Clear any previous log guard to ensure visibility
-        // Removed admin boot sentinel log (was noisy in production)
-        try {
-            window.__adminTrace = window.__adminTrace || [];
-            window.__adminTrace.push('after:sentinel');
-        } catch (_) {}
+    } catch (_) {}
+    // Clear any previous log guard to ensure visibility
+    try {
+        window.__adminTrace = window.__adminTrace || [];
+        window.__adminTrace.push('after:sentinel');
+    } catch (_) {}
         // Portal watchdog (deferred): only repairs after user opens panel at least once to avoid auto-open side effect
         try {
             if (!window.__notifPortalWatch) {
