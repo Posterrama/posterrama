@@ -13543,31 +13543,67 @@
                     totalPlex = sum(movies) + sum(shows);
                 } catch (_) {}
                 try {
-                    const map = await fetchLibraryCounts('jellyfin');
+                    // We prefer the richer global map built during the last explicit Jellyfin library fetch
+                    let map = null;
+                    if (window.__jfLibraryCounts instanceof Map && window.__jfLibraryCounts.size) {
+                        map = window.__jfLibraryCounts;
+                    } else {
+                        // Fallback: fetch on-demand (may return empty if enablement cache stale)
+                        map = await fetchLibraryCounts('jellyfin');
+                    }
                     const { movies, shows } = getSelectedLibraries('jellyfin');
-                    const sum = arr =>
-                        (arr || []).reduce((acc, name) => acc + (map.get(name)?.itemCount || 0), 0);
-                    totalJf = sum(movies) + sum(shows);
-                    // Fallback: if nothing selected yet but we have a global library count map, sum all
-                    if (!Number.isFinite(totalJf) || totalJf === 0) {
-                        const noneSelected =
-                            (!movies || movies.length === 0) && (!shows || shows.length === 0);
-                        if (
-                            noneSelected &&
-                            window.__jfLibraryCounts instanceof Map &&
-                            window.__jfLibraryCounts.size > 0
-                        ) {
+                    const selectedMovies = Array.isArray(movies) ? movies : [];
+                    const selectedShows = Array.isArray(shows) ? shows : [];
+                    const sumFromMap = (arr, libMap) =>
+                        (arr || []).reduce(
+                            (acc, name) => acc + (Number(libMap.get(name)?.itemCount) || 0),
+                            0
+                        );
+                    const haveSelection = selectedMovies.length + selectedShows.length > 0;
+                    if (map && map.size) {
+                        if (haveSelection) {
+                            const selTotal =
+                                sumFromMap(selectedMovies, map) + sumFromMap(selectedShows, map);
+                            totalJf = selTotal;
+                        } else {
+                            // No selection: sum all to show overall total
                             let all = 0;
-                            window.__jfLibraryCounts.forEach(v => {
+                            map.forEach(v => {
                                 if (v && Number.isFinite(Number(v.itemCount)))
                                     all += Number(v.itemCount);
                             });
-                            if (all > 0) {
-                                totalJf = all;
-                            }
+                            totalJf = all;
                         }
                     }
-                } catch (_) {}
+                    // If after computation totalJf is 0 but we had previous non-zero displayed value, preserve previous (avoid flicker to 0)
+                    try {
+                        const pill = document.getElementById('jf-count-pill');
+                        const prevText = pill?.textContent || '';
+                        const m = prevText.match(/(\d+)[^0-9]+(\d+)/); // format like "348/1328"
+                        if (m && Number(totalJf) === 0) {
+                            const prevTotal = Number(m[2]);
+                            if (Number.isFinite(prevTotal) && prevTotal > 0) {
+                                totalJf = prevTotal; // retain previous total until a non-zero recompute occurs
+                            }
+                        }
+                    } catch (_) {}
+                    try {
+                        console.log('[Admin][Jellyfin][Counts][Compute]', {
+                            haveGlobalMap:
+                                window.__jfLibraryCounts instanceof Map &&
+                                window.__jfLibraryCounts.size,
+                            fetchedMapSize: map?.size,
+                            selectedMovies,
+                            selectedShows,
+                            haveSelection,
+                            computedTotalJf: totalJf,
+                        });
+                    } catch (_) {}
+                } catch (e) {
+                    try {
+                        console.warn('[Admin][Jellyfin][Counts][Compute] failed', e);
+                    } catch (_) {}
+                }
 
                 // If no filters are active, prefer true totals; if unavailable, fall back to filtered (playlist-derived)
                 // Determine whether any filters are currently active (for display preference only)
