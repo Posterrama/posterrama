@@ -15388,6 +15388,7 @@
             if (window.__jfLibsInFlight) return window.__jfLibsInFlight;
             window.__jfLibsInFlight = (async () => {
                 try {
+                    console.log('[Admin][Jellyfin][Fetch] start', { refreshFilters, silent });
                     const hostname = getInput('jf.hostname')?.value || undefined;
                     const port = getInput('jf.port')?.value || undefined;
                     const apiKey = getInput('jf.apikey')?.value || undefined;
@@ -15395,7 +15396,15 @@
                         document.getElementById('jf.insecureHttps')?.checked ||
                         document.getElementById('jf.insecureHttpsHeader')?.checked
                     );
+                    console.log('[Admin][Jellyfin][Fetch] resolved inputs', {
+                        hostname,
+                        port,
+                        hasApiKey: !!apiKey,
+                        insecureHttps,
+                        enabledCached: isJellyfinEnabledCached(),
+                    });
                     if (!hostname) {
+                        console.warn('[Admin][Jellyfin][Fetch] abort: no hostname');
                         if (!silent) {
                             window.notify?.toast({
                                 type: 'warning',
@@ -15407,6 +15416,7 @@
                         return { skipped: true, libraries: [] };
                     }
                     if (!isJellyfinEnabledCached()) {
+                        console.warn('[Admin][Jellyfin][Fetch] abort: disabled');
                         if (!silent) {
                             window.notify?.toast?.({
                                 type: 'info',
@@ -15423,9 +15433,14 @@
                         credentials: 'include',
                         body: JSON.stringify({ hostname, port, apiKey, insecureHttps }),
                     });
+                    console.log('[Admin][Jellyfin][Fetch] response status', res.status);
                     const j = await res.json().catch(() => ({}));
                     if (!res.ok) throw new Error(j?.error || 'Failed to load Jellyfin libraries');
                     const libs = Array.isArray(j.libraries) ? j.libraries : [];
+                    console.log(
+                        '[Admin][Jellyfin][Fetch] libs received',
+                        libs.map(l => ({ name: l.name, type: l.type, count: l.itemCount }))
+                    );
                     const movies = libs
                         .filter(l => l.type === 'movie')
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
@@ -15463,6 +15478,7 @@
                         }
                     }
                 } catch (e) {
+                    console.error('[Admin][Jellyfin][Fetch] failed', e);
                     if (!silent) {
                         window.notify?.toast({
                             type: 'error',
@@ -15476,6 +15492,7 @@
                     window.__jfLibsInFlight = null;
                     // Reset refresh request flag after one settled cycle
                     window.__jfLibsRefreshRequested = false;
+                    console.log('[Admin][Jellyfin][Fetch] end');
                 }
             })();
             return window.__jfLibsInFlight;
