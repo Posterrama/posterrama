@@ -122,7 +122,7 @@ describe('HealthCheck - Plex and Integration', () => {
             // Accept different error messages depending on which method is used
             expect([
                 'Hostname not configured',
-                'Plex connection failed: Missing required environment variables (hostname, port, or token) for this server.',
+                'Plex connection failed: Missing required connection details (hostname, port, or token).',
             ]).toContain(result.details.servers[0].message);
             expect(result.details.servers[0]).toHaveProperty('responseTime');
 
@@ -133,7 +133,7 @@ describe('HealthCheck - Plex and Integration', () => {
             // Accept different error messages depending on which method is used
             expect([
                 'Hostname not configured',
-                'Plex connection failed: Missing required environment variables (hostname, port, or token) for this server.',
+                'Plex connection failed: Missing required connection details (hostname, port, or token).',
             ]).toContain(result.details.servers[1].message);
             expect(result.details.servers[1]).toHaveProperty('responseTime');
         });

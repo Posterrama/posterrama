@@ -18,15 +18,13 @@ describe('healthCheck jellyfin mixed connectivity aggregation', () => {
                     name: 'J1',
                     type: 'jellyfin',
                     enabled: true,
-                    hostnameEnvVar: 'J1_HOST',
-                    portEnvVar: 'J1_PORT',
+                    // Intentionally missing hostname/port to force error aggregation
                 },
                 {
                     name: 'J2',
                     type: 'jellyfin',
                     enabled: true,
-                    hostnameEnvVar: 'J2_HOST',
-                    portEnvVar: 'J2_PORT',
+                    // Intentionally missing hostname/port to force error aggregation
                 },
             ],
         });

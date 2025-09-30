@@ -4822,20 +4822,18 @@ async function testServerConnection(serverConfig) {
             action: 'plex_connection_test',
             server: {
                 name: serverConfig.name,
-                hostnameVar: serverConfig.hostnameEnvVar,
-                portVar: serverConfig.portEnvVar,
+                hostname: serverConfig.hostname,
+                port: serverConfig.port,
             },
         });
 
         try {
-            const hostname = process.env[serverConfig.hostnameEnvVar];
-            const port = process.env[serverConfig.portEnvVar];
+            const hostname = serverConfig.hostname;
+            const port = serverConfig.port;
             const token = process.env[serverConfig.tokenEnvVar];
 
             if (!hostname || !port || !token) {
-                throw new Error(
-                    'Missing required environment variables (hostname, port, or token) for this server.'
-                );
+                throw new Error('Missing required connection details (hostname, port, or token).');
             }
 
             const testClient = createPlexClient({
@@ -4892,8 +4890,8 @@ async function testServerConnection(serverConfig) {
                     action: 'plex_connection_refused',
                     server: {
                         name: serverConfig.name,
-                        hostname: process.env[serverConfig.hostnameEnvVar],
-                        port: process.env[serverConfig.portEnvVar],
+                        hostname: serverConfig.hostname,
+                        port: serverConfig.port,
                     },
                     error: {
                         code: error.code,
@@ -4914,19 +4912,19 @@ async function testServerConnection(serverConfig) {
             action: 'jellyfin_connection_test',
             server: {
                 name: serverConfig.name,
-                hostnameVar: serverConfig.hostnameEnvVar,
-                portVar: serverConfig.portEnvVar,
+                hostname: serverConfig.hostname,
+                port: serverConfig.port,
             },
         });
 
         try {
-            const hostname = process.env[serverConfig.hostnameEnvVar];
-            const port = process.env[serverConfig.portEnvVar];
+            const hostname = serverConfig.hostname;
+            const port = serverConfig.port;
             const apiKey = process.env[serverConfig.tokenEnvVar];
 
             if (!hostname || !port || !apiKey) {
                 throw new Error(
-                    'Missing required environment variables (hostname, port, or API key) for this server.'
+                    'Missing required connection details (hostname, port, or API key).'
                 );
             }
 
@@ -4984,8 +4982,8 @@ async function testServerConnection(serverConfig) {
                     action: 'jellyfin_connection_refused',
                     server: {
                         name: serverConfig.name,
-                        hostname: process.env[serverConfig.hostnameEnvVar],
-                        port: process.env[serverConfig.portEnvVar],
+                        hostname: serverConfig.hostname,
+                        port: serverConfig.port,
                     },
                     error: {
                         code: error.code,
@@ -5020,8 +5018,8 @@ function getPlexClient(serverConfig) {
 
     if (!plexClients[serverConfig.name]) {
         // Support both environment variables and direct values (for testing)
-        const hostname = serverConfig.hostname || process.env[serverConfig.hostnameEnvVar];
-        const port = serverConfig.port || process.env[serverConfig.portEnvVar];
+        const hostname = serverConfig.hostname;
+        const port = serverConfig.port;
         const token = serverConfig.token || process.env[serverConfig.tokenEnvVar];
 
         // The createPlexClient function will throw an error if details are missing.
@@ -5324,8 +5322,8 @@ async function getJellyfinClient(serverConfig) {
     }
 
     // Support both environment variables and direct values (for testing)
-    const hostname = serverConfig.hostname || process.env[serverConfig.hostnameEnvVar];
-    const port = serverConfig.port || process.env[serverConfig.portEnvVar];
+    const hostname = serverConfig.hostname;
+    const port = serverConfig.port;
     let apiKey = serverConfig.apiKey || process.env[serverConfig.tokenEnvVar];
 
     // If apiKey is still not found, try reading directly from .env file
@@ -7297,27 +7295,23 @@ app.get(
 
             if (serverConfig.type === 'plex') {
                 const token = process.env[serverConfig.tokenEnvVar];
-                if (!token) {
+                if (!token || !serverConfig.hostname || !serverConfig.port) {
                     console.error(
-                        `[Image Proxy] Plex token not configured for server "${serverName}" (env var: ${serverConfig.tokenEnvVar}).`
+                        `[Image Proxy] Plex connection details incomplete for server "${serverName}". Ensure hostname/port in config.json and token env var ${serverConfig.tokenEnvVar}.`
                     );
                     return res.redirect('/fallback-poster.png');
                 }
-                const hostname = process.env[serverConfig.hostnameEnvVar];
-                const port = process.env[serverConfig.portEnvVar];
-                imageUrl = `http://${hostname}:${port}${imagePath}`;
+                imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}`;
                 fetchOptions.headers['X-Plex-Token'] = token;
             } else if (serverConfig.type === 'jellyfin') {
                 const token = process.env[serverConfig.tokenEnvVar];
-                if (!token) {
+                if (!token || !serverConfig.hostname || !serverConfig.port) {
                     console.error(
-                        `[Image Proxy] Jellyfin token not configured for server "${serverName}" (env var: ${serverConfig.tokenEnvVar}).`
+                        `[Image Proxy] Jellyfin connection details incomplete for server "${serverName}". Ensure hostname/port in config.json and token env var ${serverConfig.tokenEnvVar}.`
                     );
                     return res.redirect('/fallback-poster.png');
                 }
-                const hostname = process.env[serverConfig.hostnameEnvVar];
-                const port = process.env[serverConfig.portEnvVar];
-                imageUrl = `http://${hostname}:${port}${imagePath}`;
+                imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}`;
                 fetchOptions.headers['X-Emby-Token'] = token;
             } else {
                 console.error(
@@ -9305,11 +9299,12 @@ app.post(
             throw new ApiError(500, 'Plex server is not configured in config.json.');
         }
 
-        if (!hostname) {
-            const envHostname = process.env[plexServerConfig.hostnameEnvVar];
-            if (envHostname) hostname = envHostname.trim().replace(/^https?:\/\//, '');
+        if (!hostname && plexServerConfig.hostname) {
+            hostname = plexServerConfig.hostname.trim().replace(/^https?:\/\//, '');
         }
-        port = port || process.env[plexServerConfig.portEnvVar];
+        if (!port && typeof plexServerConfig.port !== 'undefined') {
+            port = plexServerConfig.port;
+        }
         token = token || process.env[plexServerConfig.tokenEnvVar];
 
         if (!hostname || !port || !token) {
@@ -9663,11 +9658,12 @@ app.post(
             throw new ApiError(500, 'Jellyfin server is not configured in config.json.');
         }
 
-        if (!hostname) {
-            const envHostname = process.env[jellyfinServerConfig.hostnameEnvVar];
-            if (envHostname) hostname = envHostname.trim().replace(/^https?:\/\//, '');
+        if (!hostname && jellyfinServerConfig.hostname) {
+            hostname = jellyfinServerConfig.hostname.trim().replace(/^https?:\/\//, '');
         }
-        port = port || process.env[jellyfinServerConfig.portEnvVar];
+        if (!port && typeof jellyfinServerConfig.port !== 'undefined') {
+            port = jellyfinServerConfig.port;
+        }
         apiKey = apiKey || process.env[jellyfinServerConfig.tokenEnvVar];
 
         if (!hostname || !port || !apiKey) {
@@ -10492,8 +10488,10 @@ app.post(
         // Fallback to configured values if not provided
         const jellyfinServerConfig = config.mediaServers.find(s => s.type === 'jellyfin');
         if (jellyfinServerConfig) {
-            hostname = hostname || process.env[jellyfinServerConfig.hostnameEnvVar];
-            port = port || process.env[jellyfinServerConfig.portEnvVar];
+            if (!hostname && jellyfinServerConfig.hostname)
+                hostname = jellyfinServerConfig.hostname;
+            if (!port && typeof jellyfinServerConfig.port !== 'undefined')
+                port = jellyfinServerConfig.port;
             apiKey = apiKey || process.env[jellyfinServerConfig.tokenEnvVar];
         }
 
@@ -10639,8 +10637,10 @@ app.post(
         // Fallback to configured values if not provided
         const jellyfinServerConfig = config.mediaServers.find(s => s.type === 'jellyfin');
         if (jellyfinServerConfig) {
-            hostname = hostname || process.env[jellyfinServerConfig.hostnameEnvVar];
-            port = port || process.env[jellyfinServerConfig.portEnvVar];
+            if (!hostname && jellyfinServerConfig.hostname)
+                hostname = jellyfinServerConfig.hostname;
+            if (!port && typeof jellyfinServerConfig.port !== 'undefined')
+                port = jellyfinServerConfig.port;
             apiKey = apiKey || process.env[jellyfinServerConfig.tokenEnvVar];
         }
 
@@ -12922,7 +12922,6 @@ app.get(
     asyncHandler(async (_req, res) => {
         try {
             const currentConfig = await readConfig();
-            const envLookup = name => (name ? process.env[name] : undefined);
             const servers = Array.isArray(currentConfig?.mediaServers)
                 ? currentConfig.mediaServers
                 : [];
@@ -12931,14 +12930,16 @@ app.get(
             const tmdbCfg = currentConfig?.tmdbSource || {};
 
             const plexConfigured = !!(
-                envLookup(plexCfg.hostnameEnvVar) &&
-                envLookup(plexCfg.portEnvVar) &&
-                envLookup(plexCfg.tokenEnvVar)
+                plexCfg.hostname &&
+                typeof plexCfg.port !== 'undefined' &&
+                plexCfg.tokenEnvVar &&
+                process.env[plexCfg.tokenEnvVar]
             );
             const jfConfigured = !!(
-                envLookup(jfCfg.hostnameEnvVar) &&
-                envLookup(jfCfg.portEnvVar) &&
-                envLookup(jfCfg.tokenEnvVar)
+                jfCfg.hostname &&
+                typeof jfCfg.port !== 'undefined' &&
+                jfCfg.tokenEnvVar &&
+                process.env[jfCfg.tokenEnvVar]
             );
             const tmdbConfigured = !!tmdbCfg.apiKey;
 
