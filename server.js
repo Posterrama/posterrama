@@ -7515,7 +7515,18 @@ app.post(
 
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
-        const sessionSecret = require('crypto').randomBytes(32).toString('hex');
+        // Reuse existing SESSION_SECRET if already present to avoid mid-runtime rotation
+        const crypto = require('crypto');
+        const existingSecret = process.env.SESSION_SECRET;
+        const sessionSecret =
+            existingSecret && existingSecret.trim().length >= 32
+                ? existingSecret
+                : crypto.randomBytes(32).toString('hex');
+        if (existingSecret) {
+            logger.info('[Admin Setup] Reusing existing SESSION_SECRET (no rotation during setup)');
+        } else {
+            logger.info('[Admin Setup] Generated new SESSION_SECRET (first-time setup)');
+        }
 
         let tfaSecret = '';
         let qrCodeDataUrl = null;
