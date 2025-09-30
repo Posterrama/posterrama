@@ -13298,6 +13298,20 @@
         // Compute live filtered counts per source; when filters are active, use server-side uncapped preview
         async function refreshOverviewCounts() {
             try {
+                // Debug helpers (gated logging)
+                if (typeof window.__MEDIA_DEBUG === 'undefined') window.__MEDIA_DEBUG = false;
+                function msDebugLog(msg, data) {
+                    if (!window.__MEDIA_DEBUG) return;
+                    try {
+                        console.log('[Admin][MS]', msg, data || '');
+                    } catch (_) {}
+                }
+                function msDebugWarn(msg, data) {
+                    if (!window.__MEDIA_DEBUG) return;
+                    try {
+                        console.warn('[Admin][MS]', msg, data || '');
+                    } catch (_) {}
+                }
                 // Fetch cached playlist first (fast fallback & used when no filters)
                 const res = await window.dedupJSON('/get-media', { credentials: 'include' });
                 let items = [];
@@ -13382,69 +13396,39 @@
                     if (r === '4k' || r === '2160' || r === '2160p' || r === 'uhd') return '4K';
                     return r.toUpperCase();
                 };
-                // Try to infer Jellyfin quality label from originalData MediaStreams
+                // Try to infer Jellyfin quality label from originalData MediaStreams (best-effort)
                 const inferJfQuality = it => {
-                    const od = it && (it.originalData || it._raw);
-                    const sources = od && Array.isArray(od.MediaSources) ? od.MediaSources : [];
-                    for (const source of sources) {
-                        const streams = Array.isArray(source.MediaStreams)
-                            ? source.MediaStreams
-                            : [];
-                        const vid = streams.find(s => s.Type === 'Video');
-                        if (vid && Number.isFinite(Number(vid.Height))) {
-                            const h = Number(vid.Height);
-                            if (h <= 576) return 'SD';
-                            if (h <= 720) return '720p';
-                            if (h <= 1080) return '1080p';
-                            if (h >= 2160) return '4K';
-                            return `${h}p`;
+                    try {
+                        const od = it && (it.originalData || it._raw);
+                        const sources = od && Array.isArray(od.MediaSources) ? od.MediaSources : [];
+                        for (const source of sources) {
+                            const streams = Array.isArray(source.MediaStreams)
+                                ? source.MediaStreams
+                                : [];
+                            for (const s of streams) {
+                                // Prefer explicit Height then map to label
+                                if (s && (s.Height || s.height)) {
+                                    return mapResToLabel(s.Height || s.height);
+                                }
+                                if (s && s.DisplayTitle) {
+                                    // Heuristic: look for 1080 / 720 / 2160 in display title
+                                    const low = String(s.DisplayTitle).toLowerCase();
+                                    if (low.includes('2160') || low.includes('4k')) return '4K';
+                                    if (low.includes('1080')) return '1080p';
+                                    if (low.includes('720')) return '720p';
+                                }
+                            }
                         }
+                    } catch (_) {
+                        /* no-op */
                     }
                     return null;
-                };
-                // Try to infer Plex quality label from raw Media videoResolution when available
-                const inferPlexQuality = it => {
-                    const raw = it && it._raw;
-                    const mediaArr = raw && Array.isArray(raw.Media) ? raw.Media : [];
-                    for (const m of mediaArr) {
-                        if (m && m.videoResolution) return mapResToLabel(m.videoResolution);
-                    }
-                    return null;
-                };
-
-                // Read current UI filters (live, unsaved)
-                const plexFilters = {
-                    years: (document.getElementById('plex.yearFilter')?.value || '').trim(),
-                    genres: (typeof getPlexGenreFilterHidden === 'function'
-                        ? getPlexGenreFilterHidden()
-                        : ''
-                    ).trim(),
-                    // MPAA/TV ratings
-                    ratings: (typeof getPlexHidden === 'function'
-                        ? getPlexHidden('plex.ratingFilter-hidden')
-                        : ''
-                    ).trim(),
-                    qualities: (typeof getPlexHidden === 'function'
-                        ? getPlexHidden('plex.qualityFilter-hidden')
-                        : ''
-                    ).trim(),
-                    recentOnly: !!document.getElementById('plex.recentOnlyHeader')?.checked,
-                    recentDays: Number(document.getElementById('plex.recentDays')?.value) || 0,
                 };
                 const jfFilters = {
-                    years: (document.getElementById('jf.yearFilter')?.value || '').trim(),
-                    genres: (typeof getJfHidden === 'function'
-                        ? getJfHidden('jf.genreFilter-hidden')
-                        : ''
-                    ).trim(),
-                    ratings: (typeof getJfHidden === 'function'
-                        ? getJfHidden('jf.ratingFilter-hidden')
-                        : ''
-                    ).trim(),
-                    qualities: (typeof getJfHidden === 'function'
-                        ? getJfHidden('jf.qualityFilter-hidden')
-                        : ''
-                    ).trim(),
+                    years: getInput('jf.yearFilter')?.value || '',
+                    genres: getInput('jf.genreFilter-hidden')?.value || '',
+                    ratings: getInput('jf.ratingFilter-hidden')?.value || '',
+                    qualities: '', // Jellyfin quality filter disabled currently
                     recentOnly: !!document.getElementById('jf.recentOnlyHeader')?.checked,
                     recentDays: Number(document.getElementById('jf.recentDays')?.value) || 0,
                 };
@@ -13623,16 +13607,47 @@
                 const _fmt = v => (Number.isFinite(v) ? Number(v).toLocaleString() : '—');
                 const plexTooltip = `Items — filtered: ${_fmt(filteredPlex)} | total: ${_fmt(totalPlex)}`;
                 const jfTooltip = `Items — filtered: ${_fmt(filteredJf)} | total: ${_fmt(totalJf)}`;
-                try {
-                    console.log('[Admin][Jellyfin][Counts]', {
-                        filteredJf,
-                        totalJf,
-                        displayJf,
-                        libraryCountMapSize: window.__jfLibraryCounts?.size,
-                    });
-                } catch (_) {}
+                msDebugLog('[Jellyfin][Counts]', {
+                    filteredJf,
+                    totalJf,
+                    displayJf,
+                    libraryCountMapSize: window.__jfLibraryCounts?.size,
+                    badgeAll:
+                        !getSelectedLibraries('jellyfin').movies.length &&
+                        !getSelectedLibraries('jellyfin').shows.length
+                            ? true
+                            : false,
+                });
                 setCount('sc-plex-count', displayPlex, totalPlex, plexTooltip);
                 setCount('sc-jf-count', displayJf, totalJf, jfTooltip);
+                // Badge / indicator for "All libraries" (Plex & Jellyfin)
+                try {
+                    const jfSel = getSelectedLibraries('jellyfin');
+                    const plexSel = getSelectedLibraries('plex');
+                    const allJf = !jfSel.movies.length && !jfSel.shows.length;
+                    const allPlex = !plexSel.movies.length && !plexSel.shows.length;
+                    const ensureBadge = (pillId, flag) => {
+                        const pill = document.getElementById(pillId);
+                        if (!pill) return;
+                        let badge = pill.querySelector('.all-libs-badge');
+                        if (flag) {
+                            if (!badge) {
+                                badge = document.createElement('span');
+                                badge.className = 'all-libs-badge';
+                                badge.textContent = 'All libraries';
+                                badge.style.marginLeft = '6px';
+                                badge.style.fontSize = '0.65rem';
+                                badge.style.opacity = '0.85';
+                                badge.style.textTransform = 'uppercase';
+                                pill.appendChild(badge);
+                            }
+                        } else if (badge) {
+                            badge.remove();
+                        }
+                    };
+                    ensureBadge('jf-count-pill', allJf);
+                    ensureBadge('plex-count-pill', allPlex);
+                } catch (_) {}
                 // Default display for TMDB from cached playlist
                 let tmdbTotal = null;
                 try {
@@ -15061,8 +15076,16 @@
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
                     const prevMovies = new Set(getMultiSelectValues('plex.movies'));
                     const prevShows = new Set(getMultiSelectValues('plex.shows'));
-                    setMultiSelect('plex.movies', movies, Array.from(prevMovies));
-                    setMultiSelect('plex.shows', shows, Array.from(prevShows));
+                    const hadPrevSelection = prevMovies.size + prevShows.size > 0;
+                    const autoSelectAll = !hadPrevSelection; // first load -> select everything
+                    const allMovieNames = autoSelectAll
+                        ? movies.map(m => m.value)
+                        : Array.from(prevMovies);
+                    const allShowNames = autoSelectAll
+                        ? shows.map(s => s.value)
+                        : Array.from(prevShows);
+                    setMultiSelect('plex.movies', movies, allMovieNames);
+                    setMultiSelect('plex.shows', shows, allShowNames);
                     // Rebuild multiselect options
                     rebuildMsForSelect('plex-ms-movies', 'plex.movies');
                     rebuildMsForSelect('plex-ms-shows', 'plex.shows');
@@ -15466,7 +15489,7 @@
             if (window.__jfLibsInFlight) return window.__jfLibsInFlight;
             window.__jfLibsInFlight = (async () => {
                 try {
-                    console.log('[Admin][Jellyfin][Fetch] start', { refreshFilters, silent });
+                    msDebugLog('[Jellyfin][Fetch] start', { refreshFilters, silent });
                     const hostname = getInput('jf.hostname')?.value || undefined;
                     const port = getInput('jf.port')?.value || undefined;
                     const apiKey = getInput('jf.apikey')?.value || undefined;
@@ -15474,7 +15497,7 @@
                         document.getElementById('jf.insecureHttps')?.checked ||
                         document.getElementById('jf.insecureHttpsHeader')?.checked
                     );
-                    console.log('[Admin][Jellyfin][Fetch] resolved inputs', {
+                    msDebugLog('[Jellyfin][Fetch] resolved inputs', {
                         hostname: hostname || window.__JELLYFIN_ENTRY?.hostname,
                         port: port || window.__JELLYFIN_ENTRY?.port,
                         hasApiKey: !!(
@@ -15498,7 +15521,7 @@
                         return isJellyfinEnabledCached();
                     })();
                     if (!effHostname) {
-                        console.warn('[Admin][Jellyfin][Fetch] abort: no hostname');
+                        msDebugWarn('[Jellyfin][Fetch] abort: no hostname');
                         if (!silent) {
                             window.notify?.toast({
                                 type: 'warning',
@@ -15510,7 +15533,7 @@
                         return { skipped: true, libraries: [] };
                     }
                     if (!effEnabled) {
-                        console.warn('[Admin][Jellyfin][Fetch] abort: disabled');
+                        msDebugWarn('[Jellyfin][Fetch] abort: disabled');
                         if (!silent) {
                             window.notify?.toast?.({
                                 type: 'info',
@@ -15532,12 +15555,12 @@
                             insecureHttps,
                         }),
                     });
-                    console.log('[Admin][Jellyfin][Fetch] response status', res.status);
+                    msDebugLog('[Jellyfin][Fetch] response status', res.status);
                     const j = await res.json().catch(() => ({}));
                     if (!res.ok) throw new Error(j?.error || 'Failed to load Jellyfin libraries');
                     const libs = Array.isArray(j.libraries) ? j.libraries : [];
-                    console.log(
-                        '[Admin][Jellyfin][Fetch] libs received',
+                    msDebugLog(
+                        '[Jellyfin][Fetch] libs received',
                         libs.map(l => ({ name: l.name, type: l.type, count: l.itemCount }))
                     );
                     // Build internal map for overview counts (parity with Plex fetch flow)
@@ -15560,8 +15583,16 @@
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
                     const prevMovies = new Set(getMultiSelectValues('jf.movies'));
                     const prevShows = new Set(getMultiSelectValues('jf.shows'));
-                    setMultiSelect('jf.movies', movies, Array.from(prevMovies));
-                    setMultiSelect('jf.shows', shows, Array.from(prevShows));
+                    const hadPrevSelectionJf = prevMovies.size + prevShows.size > 0;
+                    const autoSelectAllJf = !hadPrevSelectionJf; // first load -> select everything
+                    const allMovieNamesJf = autoSelectAllJf
+                        ? movies.map(m => m.value)
+                        : Array.from(prevMovies);
+                    const allShowNamesJf = autoSelectAllJf
+                        ? shows.map(s => s.value)
+                        : Array.from(prevShows);
+                    setMultiSelect('jf.movies', movies, allMovieNamesJf);
+                    setMultiSelect('jf.shows', shows, allShowNamesJf);
                     // Rebuild multiselect options
                     rebuildMsForSelect('jf-ms-movies', 'jf.movies');
                     rebuildMsForSelect('jf-ms-shows', 'jf.shows');
@@ -15593,7 +15624,7 @@
                         }
                     }
                 } catch (e) {
-                    console.error('[Admin][Jellyfin][Fetch] failed', e);
+                    msDebugWarn('[Jellyfin][Fetch] failed', e);
                     if (!silent) {
                         window.notify?.toast({
                             type: 'error',
@@ -15607,7 +15638,7 @@
                     window.__jfLibsInFlight = null;
                     // Reset refresh request flag after one settled cycle
                     window.__jfLibsRefreshRequested = false;
-                    console.log('[Admin][Jellyfin][Fetch] end');
+                    msDebugLog('[Jellyfin][Fetch] end');
                 }
             })();
             return window.__jfLibsInFlight;
