@@ -14146,6 +14146,21 @@
             // ---------------- Jellyfin auto wiring (mirror + auto test + libraries) ----------------
             try {
                 const jfEnabled = !!jf.enabled;
+                const jfDbg = {
+                    hostname: jf.hostname,
+                    port: jf.port,
+                    enabled: jf.enabled,
+                    tokenEnvVar: jf.tokenEnvVar,
+                };
+                window.__JELLYFIN_ENTRY = jfDbg;
+                console.log('[Admin][MediaSources] Loaded jellyfin entry', jfDbg);
+                // Populate visible inputs if present
+                const jfEnabledInput = document.getElementById('jf.enabled');
+                if (jfEnabledInput) jfEnabledInput.checked = !!jf.enabled;
+                const jfHostInput = document.getElementById('jf.hostname');
+                if (jfHostInput && jf.hostname) jfHostInput.value = jf.hostname;
+                const jfPortInput = document.getElementById('jf.port');
+                if (jfPortInput && (jf.port || jf.port === 0)) jfPortInput.value = jf.port;
                 // Mirror into legacy fields if present
                 const legacyJfHost = document.getElementById('jf_hostname');
                 const legacyJfPort = document.getElementById('jf_port');
@@ -15397,13 +15412,19 @@
                         document.getElementById('jf.insecureHttpsHeader')?.checked
                     );
                     console.log('[Admin][Jellyfin][Fetch] resolved inputs', {
-                        hostname,
-                        port,
-                        hasApiKey: !!apiKey,
+                        hostname: hostname || window.__JELLYFIN_ENTRY?.hostname,
+                        port: port || window.__JELLYFIN_ENTRY?.port,
+                        hasApiKey: !!(
+                            apiKey ||
+                            (window.__JELLYFIN_ENTRY && window.__JELLYFIN_ENTRY.apiKey)
+                        ),
                         insecureHttps,
                         enabledCached: isJellyfinEnabledCached(),
                     });
-                    if (!hostname) {
+                    const effHostname = hostname || window.__JELLYFIN_ENTRY?.hostname;
+                    const effPort = port || window.__JELLYFIN_ENTRY?.port;
+                    const effApiKey = apiKey || window.__JELLYFIN_ENTRY?.apiKey;
+                    if (!effHostname) {
                         console.warn('[Admin][Jellyfin][Fetch] abort: no hostname');
                         if (!silent) {
                             window.notify?.toast({
@@ -15431,7 +15452,12 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
-                        body: JSON.stringify({ hostname, port, apiKey, insecureHttps }),
+                        body: JSON.stringify({
+                            hostname: effHostname,
+                            port: effPort,
+                            apiKey: effApiKey,
+                            insecureHttps,
+                        }),
                     });
                     console.log('[Admin][Jellyfin][Fetch] response status', res.status);
                     const j = await res.json().catch(() => ({}));
