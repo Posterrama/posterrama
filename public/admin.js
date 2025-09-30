@@ -2275,7 +2275,6 @@
                         wrapper.classList.add('niw-sized-sm');
                     }
                 } catch (_) {}
-
                 // End width bucket sizing
                 const snap = (val, s) => Math.round(val / s) * s;
                 // Local helpers for increment/decrement controls (mirrors late fallback delegate logic)
@@ -6684,6 +6683,18 @@
                     p.hidden = true; // hide overview panel when selecting a specific source
                 }
             });
+            // When switching panels, ensure multiselect UIs for the target panel are refreshed so that
+            // any programmatic auto-selection (first-load) is reflected with chips. This covers cases
+            // where the panel was never opened before (UI not wired yet) or options changed while hidden.
+            try {
+                if (panelId === 'panel-plex') {
+                    rebuildMsForSelect('plex-ms-movies', 'plex.movies');
+                    rebuildMsForSelect('plex-ms-shows', 'plex.shows');
+                } else if (panelId === 'panel-jellyfin') {
+                    rebuildMsForSelect('jf-ms-movies', 'jf.movies');
+                    rebuildMsForSelect('jf-ms-shows', 'jf.shows');
+                }
+            } catch (_) {}
             // Keep the main page header static for Media Sources; individual panels have their own titles
             const el = document.getElementById(panelId);
             if (el) {
@@ -9305,6 +9316,90 @@
                             rendered.add(k);
                             const vBtn = document.createElement('div');
                             vBtn.className = 'conflict-value';
+
+                            // Integrity safeguard: if auto-select was applied previously but current selection is empty (race during panel switches),
+                            // reapply full selection unless the user has manually modified selections.
+                            function ensureLibrarySelectionIntegrity(source) {
+                                try {
+                                    if (source === 'plex') {
+                                        if (!window.__plexAutoSelected) return;
+                                        if (window.__plexUserModifiedSelection) return; // don't override user edits
+                                        const mSel = document.getElementById('plex.movies');
+                                        const sSel = document.getElementById('plex.shows');
+                                        if (!mSel || !sSel) return;
+                                        const hasAny =
+                                            mSel.selectedOptions.length +
+                                                sSel.selectedOptions.length >
+                                            0;
+                                        if (!hasAny) {
+                                            const allMovies = Array.from(mSel.options).map(
+                                                o => o.value
+                                            );
+                                            const allShows = Array.from(sSel.options).map(
+                                                o => o.value
+                                            );
+                                            allMovies.forEach(v => {
+                                                const opt = Array.from(mSel.options).find(
+                                                    o => o.value === v
+                                                );
+                                                if (opt) opt.selected = true;
+                                            });
+                                            allShows.forEach(v => {
+                                                const opt = Array.from(sSel.options).find(
+                                                    o => o.value === v
+                                                );
+                                                if (opt) opt.selected = true;
+                                            });
+                                            mSel.dispatchEvent(
+                                                new Event('change', { bubbles: true })
+                                            );
+                                            sSel.dispatchEvent(
+                                                new Event('change', { bubbles: true })
+                                            );
+                                            rebuildMsForSelect('plex-ms-movies', 'plex.movies');
+                                            rebuildMsForSelect('plex-ms-shows', 'plex.shows');
+                                        }
+                                    } else if (source === 'jellyfin') {
+                                        if (!window.__jfAutoSelected) return;
+                                        if (window.__jfUserModifiedSelection) return;
+                                        const mSel = document.getElementById('jf.movies');
+                                        const sSel = document.getElementById('jf.shows');
+                                        if (!mSel || !sSel) return;
+                                        const hasAny =
+                                            mSel.selectedOptions.length +
+                                                sSel.selectedOptions.length >
+                                            0;
+                                        if (!hasAny) {
+                                            const allMovies = Array.from(mSel.options).map(
+                                                o => o.value
+                                            );
+                                            const allShows = Array.from(sSel.options).map(
+                                                o => o.value
+                                            );
+                                            allMovies.forEach(v => {
+                                                const opt = Array.from(mSel.options).find(
+                                                    o => o.value === v
+                                                );
+                                                if (opt) opt.selected = true;
+                                            });
+                                            allShows.forEach(v => {
+                                                const opt = Array.from(sSel.options).find(
+                                                    o => o.value === v
+                                                );
+                                                if (opt) opt.selected = true;
+                                            });
+                                            mSel.dispatchEvent(
+                                                new Event('change', { bubbles: true })
+                                            );
+                                            sSel.dispatchEvent(
+                                                new Event('change', { bubbles: true })
+                                            );
+                                            rebuildMsForSelect('jf-ms-movies', 'jf.movies');
+                                            rebuildMsForSelect('jf-ms-shows', 'jf.shows');
+                                        }
+                                    }
+                                } catch (_) {}
+                            }
                             vBtn.title =
                                 'Device: ' +
                                 s.device +
@@ -13746,6 +13841,11 @@
                     if (!sel) return;
                     if (sel.dataset.countWired === 'true') return;
                     sel.addEventListener('change', () => {
+                        try {
+                            if (selId.startsWith('plex.'))
+                                window.__plexUserModifiedSelection = true;
+                            if (selId.startsWith('jf.')) window.__jfUserModifiedSelection = true;
+                        } catch (_) {}
                         updateLibsMeta();
                         // Recompute counts too; we cannot filter by library in playlist, but keep it reactive
                         refreshOverviewCounts();
@@ -15061,8 +15161,45 @@
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
                     const prevMovies = new Set(getMultiSelectValues('plex.movies'));
                     const prevShows = new Set(getMultiSelectValues('plex.shows'));
-                    setMultiSelect('plex.movies', movies, Array.from(prevMovies));
-                    setMultiSelect('plex.shows', shows, Array.from(prevShows));
+                    // Auto-select all Plex libraries on very first successful load if user has none selected yet
+                    let appliedAutoSelect = false;
+                    if (
+                        !window.__plexAutoSelected &&
+                        prevMovies.size === 0 &&
+                        prevShows.size === 0
+                    ) {
+                        const allMovieValues = movies.map(m => m.value);
+                        const allShowValues = shows.map(s => s.value);
+                        setMultiSelect('plex.movies', movies, allMovieValues);
+                        setMultiSelect('plex.shows', shows, allShowValues);
+                        window.__plexAutoSelected = true;
+                        appliedAutoSelect = true;
+                    } else if (
+                        window.__plexAutoSelected &&
+                        prevMovies.size === 0 &&
+                        prevShows.size === 0
+                    ) {
+                        // We previously auto-selected but current selects appear empty (panel switch race). Reapply full selection.
+                        const allMovieValues = movies.map(m => m.value);
+                        const allShowValues = shows.map(s => s.value);
+                        setMultiSelect('plex.movies', movies, allMovieValues);
+                        setMultiSelect('plex.shows', shows, allShowValues);
+                        appliedAutoSelect = true;
+                    }
+                    if (!appliedAutoSelect) {
+                        setMultiSelect('plex.movies', movies, Array.from(prevMovies));
+                        setMultiSelect('plex.shows', shows, Array.from(prevShows));
+                    }
+                    // If we just auto-selected everything, schedule a deferred rebuild to catch cases
+                    // where the multiselect UI root wasn't wired yet at the exact moment of selection.
+                    if (appliedAutoSelect) {
+                        setTimeout(() => {
+                            try {
+                                rebuildMsForSelect('plex-ms-movies', 'plex.movies');
+                                rebuildMsForSelect('plex-ms-shows', 'plex.shows');
+                            } catch (_) {}
+                        }, 0);
+                    }
                     // Rebuild multiselect options
                     rebuildMsForSelect('plex-ms-movies', 'plex.movies');
                     rebuildMsForSelect('plex-ms-shows', 'plex.shows');
@@ -15104,6 +15241,10 @@
                     window.__plexLibsInFlight = null;
                     // Reset refresh request flag after one settled cycle
                     window.__plexLibsRefreshRequested = false;
+                    // Post-fetch integrity safeguard
+                    try {
+                        ensureLibrarySelectionIntegrity('plex');
+                    } catch (_) {}
                 }
             })();
             return window.__plexLibsInFlight;
@@ -15560,8 +15701,42 @@
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
                     const prevMovies = new Set(getMultiSelectValues('jf.movies'));
                     const prevShows = new Set(getMultiSelectValues('jf.shows'));
-                    setMultiSelect('jf.movies', movies, Array.from(prevMovies));
-                    setMultiSelect('jf.shows', shows, Array.from(prevShows));
+                    // Auto-select all Jellyfin libraries on very first successful load if user has none selected yet
+                    let appliedAutoSelect = false;
+                    if (!window.__jfAutoSelected && prevMovies.size === 0 && prevShows.size === 0) {
+                        const allMovieValues = movies.map(m => m.value);
+                        const allShowValues = shows.map(s => s.value);
+                        setMultiSelect('jf.movies', movies, allMovieValues);
+                        setMultiSelect('jf.shows', shows, allShowValues);
+                        window.__jfAutoSelected = true;
+                        appliedAutoSelect = true;
+                    } else if (
+                        window.__jfAutoSelected &&
+                        prevMovies.size === 0 &&
+                        prevShows.size === 0
+                    ) {
+                        // We previously auto-selected, but current selects came back empty (likely due to hidden panel rebuild timing).
+                        // Preserve full selection instead of clearing.
+                        const allMovieValues = movies.map(m => m.value);
+                        const allShowValues = shows.map(s => s.value);
+                        setMultiSelect('jf.movies', movies, allMovieValues);
+                        setMultiSelect('jf.shows', shows, allShowValues);
+                        appliedAutoSelect = true;
+                    }
+                    if (!appliedAutoSelect) {
+                        setMultiSelect('jf.movies', movies, Array.from(prevMovies));
+                        setMultiSelect('jf.shows', shows, Array.from(prevShows));
+                    }
+                    // If we just auto-selected everything, schedule a deferred rebuild to ensure chips render
+                    // even if the multiselect wasn't wired at the initial moment.
+                    if (appliedAutoSelect) {
+                        setTimeout(() => {
+                            try {
+                                rebuildMsForSelect('jf-ms-movies', 'jf.movies');
+                                rebuildMsForSelect('jf-ms-shows', 'jf.shows');
+                            } catch (_) {}
+                        }, 0);
+                    }
                     // Rebuild multiselect options
                     rebuildMsForSelect('jf-ms-movies', 'jf.movies');
                     rebuildMsForSelect('jf-ms-shows', 'jf.shows');
@@ -15608,6 +15783,10 @@
                     // Reset refresh request flag after one settled cycle
                     window.__jfLibsRefreshRequested = false;
                     console.log('[Admin][Jellyfin][Fetch] end');
+                    // Post-fetch integrity safeguard
+                    try {
+                        ensureLibrarySelectionIntegrity('jellyfin');
+                    } catch (_) {}
                 }
             })();
             return window.__jfLibsInFlight;
