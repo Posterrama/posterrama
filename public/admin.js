@@ -8,12 +8,65 @@
     // Provides quick confirmation in the browser console that the latest admin.js has loaded.
     // Type:  __diagUI   or  window.__diagUI.showScripts()  in DevTools.
     try {
-        if (!window.__diagUI) window.__diagUI = {};
+        if (!window.__diagUI) {
+            window.__diagUI = {};
+        }
         Object.assign(window.__diagUI, {
+            adminLoadedAt: new Date().toISOString(),
+            versionSentinel: 'notif-resilience-2',
+            hasNotifResiliencePatch: true,
             showScripts() {
                 const list = [...document.scripts].map(s => s.src || '[inline]');
                 console.info('[__diagUI] Scripts:', list);
                 return list;
+            },
+            getNotifPanelInfo() {
+                const panel = document.getElementById('notify-center');
+                if (!panel) return { exists: false };
+                const cs = getComputedStyle(panel);
+                const info = {
+                    exists: true,
+                    classes: [...panel.classList],
+                    inline: panel.getAttribute('style') || '',
+                    ariaHidden: panel.getAttribute('aria-hidden'),
+                    hiddenAttr: panel.hasAttribute('hidden'),
+                    bounding: panel.getBoundingClientRect().toJSON(),
+                    computed: {
+                        display: cs.display,
+                        visibility: cs.visibility,
+                        opacity: cs.opacity,
+                        pointerEvents: cs.pointerEvents,
+                        zIndex: cs.zIndex,
+                        transform: cs.transform,
+                    },
+                };
+                console.info('[__diagUI] Notif panel info:', info);
+                return info;
+            },
+            forceNotifOpen() {
+                try {
+                    const panel = document.getElementById('notify-center');
+                    if (!panel) {
+                        console.warn('[__diagUI] notify-center not found');
+                        return false;
+                    }
+                    panel.classList.add('open');
+                    panel.setAttribute('data-notif-force', 'true');
+                    panel.style.display = 'block';
+                    panel.style.visibility = 'visible';
+                    panel.style.opacity = '1';
+                    panel.style.pointerEvents = 'auto';
+                    panel.style.zIndex = '13000';
+                    panel.style.transform = 'translateY(0)';
+                    console.info('[__diagUI] Forced notif panel open');
+                    try {
+                        window.__diagUI.placePanelInView?.();
+                    } catch (_) {}
+                    return true;
+                } catch (err) {
+                    console.error('[__diagUI] forceNotifOpen failed', err);
+                    return false;
+                }
             },
             placePanelInView() {
                 try {
@@ -81,12 +134,12 @@
                 }
             },
         });
-    } catch (_) {}
-    // Clear any previous log guard to ensure visibility
-    try {
-        window.__adminTrace = window.__adminTrace || [];
-        window.__adminTrace.push('after:sentinel');
-    } catch (_) {}
+        // Clear any previous log guard to ensure visibility
+        // Removed admin boot sentinel log (was noisy in production)
+        try {
+            window.__adminTrace = window.__adminTrace || [];
+            window.__adminTrace.push('after:sentinel');
+        } catch (_) {}
         // Portal watchdog (deferred): only repairs after user opens panel at least once to avoid auto-open side effect
         try {
             if (!window.__notifPortalWatch) {
@@ -13242,65 +13295,9 @@
             );
         }
 
-        // Debug helpers (gated logging) - top-level so lint allows
-        if (typeof window.__MEDIA_DEBUG === 'undefined') window.__MEDIA_DEBUG = false;
-        function msDebugLog(msg, data) {
-            if (!window.__MEDIA_DEBUG) return;
-            try {
-                console.log('[Admin][MS]', msg, data || '');
-            } catch (_) {}
-        }
-        function msDebugWarn(msg, data) {
-            if (!window.__MEDIA_DEBUG) return;
-            try {
-                console.warn('[Admin][MS]', msg, data || '');
-            } catch (_) {}
-        }
-
-        // Placeholder Plex filters object (mirrors pattern from original codebase)
-        function buildPlexFilters() {
-            return {
-                years: getInput('plex.yearFilter')?.value || '',
-                genres: getInput('plex.genreFilter-hidden')?.value || '',
-                ratings: getInput('plex.ratingFilter-hidden')?.value || '',
-                qualities: getInput('plex.qualityFilter-hidden')?.value || '',
-                recentOnly: !!document.getElementById('plex.recentOnly')?.checked,
-                recentDays: Number(document.getElementById('plex.recentDays')?.value) || 0,
-            };
-        }
-        let plexFilters = buildPlexFilters();
-        // Update plexFilters opportunistically when overview refresh runs
-        // Try to infer Plex quality (simplified placeholder that prefers explicit qualityLabel)
-        function mapResToLabelTop(res) {
-            const r = (res || '').toString().toLowerCase();
-            if (!r || r === 'sd') return 'SD';
-            if (r === '720' || r === 'hd' || r === '720p') return '720p';
-            if (r === '1080' || r === '1080p' || r === 'fullhd') return '1080p';
-            if (r === '4k' || r === '2160' || r === '2160p' || r === 'uhd') return '4K';
-            return r.toUpperCase();
-        }
-        const inferPlexQuality = it => {
-            try {
-                if (it.qualityLabel) return it.qualityLabel;
-                // Heuristic: look at media object
-                const media = Array.isArray(it.Media)
-                    ? it.Media
-                    : Array.isArray(it.media)
-                      ? it.media
-                      : [];
-                for (const m of media) {
-                    if (m.videoResolution) return mapResToLabelTop(m.videoResolution);
-                    if (m.width && m.height) return mapResToLabelTop(m.height);
-                }
-            } catch (_) {}
-            return null;
-        };
-
         // Compute live filtered counts per source; when filters are active, use server-side uncapped preview
         async function refreshOverviewCounts() {
             try {
-                // Rebuild plexFilters each invocation so we capture UI changes even if events missed
-                plexFilters = buildPlexFilters();
                 // Fetch cached playlist first (fast fallback & used when no filters)
                 const res = await window.dedupJSON('/get-media', { credentials: 'include' });
                 let items = [];
@@ -13385,39 +13382,69 @@
                     if (r === '4k' || r === '2160' || r === '2160p' || r === 'uhd') return '4K';
                     return r.toUpperCase();
                 };
-                // Try to infer Jellyfin quality label from originalData MediaStreams (best-effort)
+                // Try to infer Jellyfin quality label from originalData MediaStreams
                 const inferJfQuality = it => {
-                    try {
-                        const od = it && (it.originalData || it._raw);
-                        const sources = od && Array.isArray(od.MediaSources) ? od.MediaSources : [];
-                        for (const source of sources) {
-                            const streams = Array.isArray(source.MediaStreams)
-                                ? source.MediaStreams
-                                : [];
-                            for (const s of streams) {
-                                // Prefer explicit Height then map to label
-                                if (s && (s.Height || s.height)) {
-                                    return mapResToLabel(s.Height || s.height);
-                                }
-                                if (s && s.DisplayTitle) {
-                                    // Heuristic: look for 1080 / 720 / 2160 in display title
-                                    const low = String(s.DisplayTitle).toLowerCase();
-                                    if (low.includes('2160') || low.includes('4k')) return '4K';
-                                    if (low.includes('1080')) return '1080p';
-                                    if (low.includes('720')) return '720p';
-                                }
-                            }
+                    const od = it && (it.originalData || it._raw);
+                    const sources = od && Array.isArray(od.MediaSources) ? od.MediaSources : [];
+                    for (const source of sources) {
+                        const streams = Array.isArray(source.MediaStreams)
+                            ? source.MediaStreams
+                            : [];
+                        const vid = streams.find(s => s.Type === 'Video');
+                        if (vid && Number.isFinite(Number(vid.Height))) {
+                            const h = Number(vid.Height);
+                            if (h <= 576) return 'SD';
+                            if (h <= 720) return '720p';
+                            if (h <= 1080) return '1080p';
+                            if (h >= 2160) return '4K';
+                            return `${h}p`;
                         }
-                    } catch (_) {
-                        /* no-op */
                     }
                     return null;
                 };
+                // Try to infer Plex quality label from raw Media videoResolution when available
+                const inferPlexQuality = it => {
+                    const raw = it && it._raw;
+                    const mediaArr = raw && Array.isArray(raw.Media) ? raw.Media : [];
+                    for (const m of mediaArr) {
+                        if (m && m.videoResolution) return mapResToLabel(m.videoResolution);
+                    }
+                    return null;
+                };
+
+                // Read current UI filters (live, unsaved)
+                const plexFilters = {
+                    years: (document.getElementById('plex.yearFilter')?.value || '').trim(),
+                    genres: (typeof getPlexGenreFilterHidden === 'function'
+                        ? getPlexGenreFilterHidden()
+                        : ''
+                    ).trim(),
+                    // MPAA/TV ratings
+                    ratings: (typeof getPlexHidden === 'function'
+                        ? getPlexHidden('plex.ratingFilter-hidden')
+                        : ''
+                    ).trim(),
+                    qualities: (typeof getPlexHidden === 'function'
+                        ? getPlexHidden('plex.qualityFilter-hidden')
+                        : ''
+                    ).trim(),
+                    recentOnly: !!document.getElementById('plex.recentOnlyHeader')?.checked,
+                    recentDays: Number(document.getElementById('plex.recentDays')?.value) || 0,
+                };
                 const jfFilters = {
-                    years: getInput('jf.yearFilter')?.value || '',
-                    genres: getInput('jf.genreFilter-hidden')?.value || '',
-                    ratings: getInput('jf.ratingFilter-hidden')?.value || '',
-                    qualities: '', // Jellyfin quality filter disabled currently
+                    years: (document.getElementById('jf.yearFilter')?.value || '').trim(),
+                    genres: (typeof getJfHidden === 'function'
+                        ? getJfHidden('jf.genreFilter-hidden')
+                        : ''
+                    ).trim(),
+                    ratings: (typeof getJfHidden === 'function'
+                        ? getJfHidden('jf.ratingFilter-hidden')
+                        : ''
+                    ).trim(),
+                    qualities: (typeof getJfHidden === 'function'
+                        ? getJfHidden('jf.qualityFilter-hidden')
+                        : ''
+                    ).trim(),
                     recentOnly: !!document.getElementById('jf.recentOnlyHeader')?.checked,
                     recentDays: Number(document.getElementById('jf.recentDays')?.value) || 0,
                 };
@@ -13484,62 +13511,45 @@
                 try {
                     const body = {
                         plex: getSelectedLibraries('plex'),
-                        const jfSel = getSelectedLibraries('jellyfin');
-                        const plexSel = getSelectedLibraries('plex');
-                        const selectedCountJf = jfSel.movies.length + jfSel.shows.length;
-                        const selectedCountPlex = plexSel.movies.length + plexSel.shows.length;
-                        let totalLibsJf = 0;
-                        if (window.__jfLibraryCounts instanceof Map) totalLibsJf = window.__jfLibraryCounts.size;
-                        let totalLibsPlex = 0;
-                        try { const plexMap = await fetchLibraryCounts('plex'); totalLibsPlex = plexMap.size; } catch (_) {}
-                        const noneSelectedJf = selectedCountJf === 0;
-                        const noneSelectedPlex = selectedCountPlex === 0;
-                        const allSelectedJf = totalLibsJf > 0 && selectedCountJf === totalLibsJf;
-                        const allSelectedPlex = totalLibsPlex > 0 && selectedCountPlex === totalLibsPlex;
-                        const modeFor = (noneSel, allSel) => (noneSel ? 'aggregate' : allSel ? 'all' : 'partial');
-                        const jfMode = modeFor(noneSelectedJf, allSelectedJf);
-                        const plexMode = modeFor(noneSelectedPlex, allSelectedPlex);
-                        const ensureBadge = (primaryId, fallbackId, mode) => {
-                            const host = document.getElementById(primaryId) || document.getElementById(fallbackId);
-                            if (!host) return;
-                            let badge = host.querySelector('.all-libs-badge');
-                            const shouldShow = mode === 'aggregate' || mode === 'all';
-                            if (shouldShow) {
-                                if (!badge) {
-                                    badge = document.createElement('span');
-                                    badge.className = 'all-libs-badge';
-                                    badge.style.marginLeft = '6px';
-                                    badge.style.fontSize = '0.62rem';
-                                    badge.style.padding = '2px 6px';
-                                    badge.style.borderRadius = '10px';
-                                    badge.style.letterSpacing = '0.5px';
-                                    badge.style.background = 'rgba(255,255,255,0.08)';
-                                    badge.style.border = '1px solid rgba(255,255,255,0.15)';
-                                    badge.style.textTransform = 'uppercase';
-                                    badge.style.display = 'inline-flex';
-                                    badge.style.alignItems = 'center';
-                                    badge.style.gap = '4px';
-                                    const icon = document.createElement('span');
-                                    icon.textContent = mode === 'aggregate' ? 'Σ' : '✓';
-                                    icon.style.fontSize = '0.65rem';
-                                    const label = document.createElement('span');
-                                    label.textContent = mode === 'aggregate' ? 'All (aggregate)' : 'All selected';
-                                    badge.appendChild(icon);
-                                    badge.appendChild(label);
-                                    host.appendChild(badge);
-                                } else {
-                                    // Update mode if it changed
-                                    const label = badge.querySelector('span:last-child');
-                                    if (label) {
-                                        label.textContent = mode === 'aggregate' ? 'All (aggregate)' : 'All selected';
-                                    }
-                                    const icon = badge.querySelector('span:first-child');
-                                    if (icon) icon.textContent = mode === 'aggregate' ? 'Σ' : '✓';
-                                }
-                            } else if (badge) {
-                                badge.remove();
-                            }
-                        };
+                        jellyfin: getSelectedLibraries('jellyfin'),
+                        // Send filters per source, matching server-side logic
+                        filtersPlex: plexFilters,
+                        filtersJellyfin: jfFilters,
+                    };
+                    const r = await fetch('/api/admin/filter-preview', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body),
+                    });
+                    if (r.ok) {
+                        const j = await r.json().catch(() => ({}));
+                        const c = j?.counts || {};
+                        if (Number.isFinite(c.plex)) filteredPlex = c.plex;
+                        if (Number.isFinite(c.jellyfin)) filteredJf = c.jellyfin;
+                    }
+                } catch (_) {
+                    // ignore and fall back to cached playlist derived counts
+                }
+
+                // Always compute true totals (sum of selected library counts)
+                let totalPlex = null;
+                let totalJf = null;
+                try {
+                    const map = await fetchLibraryCounts('plex');
+                    const { movies, shows } = getSelectedLibraries('plex');
+                    const sum = arr =>
+                        (arr || []).reduce((acc, name) => acc + (map.get(name)?.itemCount || 0), 0);
+                    totalPlex = sum(movies) + sum(shows);
+                } catch (_) {}
+                try {
+                    // We prefer the richer global map built during the last explicit Jellyfin library fetch
+                    let map = null;
+                    if (window.__jfLibraryCounts instanceof Map && window.__jfLibraryCounts.size) {
+                        map = window.__jfLibraryCounts;
+                    } else {
+                        // Fallback: fetch on-demand (may return empty if enablement cache stale)
+                        map = await fetchLibraryCounts('jellyfin');
                     }
                     const { movies, shows } = getSelectedLibraries('jellyfin');
                     const selectedMovies = Array.isArray(movies) ? movies : [];
@@ -13613,63 +13623,16 @@
                 const _fmt = v => (Number.isFinite(v) ? Number(v).toLocaleString() : '—');
                 const plexTooltip = `Items — filtered: ${_fmt(filteredPlex)} | total: ${_fmt(totalPlex)}`;
                 const jfTooltip = `Items — filtered: ${_fmt(filteredJf)} | total: ${_fmt(totalJf)}`;
-                msDebugLog('[Jellyfin][Counts]', {
-                    filteredJf,
-                    totalJf,
-                    displayJf,
-                    libraryCountMapSize: window.__jfLibraryCounts?.size,
-                    badgeAll:
-                        !getSelectedLibraries('jellyfin').movies.length &&
-                        !getSelectedLibraries('jellyfin').shows.length
-                            ? true
-                            : false,
-                });
+                try {
+                    console.log('[Admin][Jellyfin][Counts]', {
+                        filteredJf,
+                        totalJf,
+                        displayJf,
+                        libraryCountMapSize: window.__jfLibraryCounts?.size,
+                    });
+                } catch (_) {}
                 setCount('sc-plex-count', displayPlex, totalPlex, plexTooltip);
                 setCount('sc-jf-count', displayJf, totalJf, jfTooltip);
-                // Badge / indicator for "All libraries" (Plex & Jellyfin)
-                try {
-                    const jfSel = getSelectedLibraries('jellyfin');
-                    const plexSel = getSelectedLibraries('plex');
-                    const selectedCountJf = jfSel.movies.length + jfSel.shows.length;
-                    const selectedCountPlex = plexSel.movies.length + plexSel.shows.length;
-                    // Determine total available libraries for each source (movies + shows)
-                    let totalLibsJf = 0;
-                    if (window.__jfLibraryCounts instanceof Map)
-                        totalLibsJf = window.__jfLibraryCounts.size;
-                    let totalLibsPlex = 0;
-                    try {
-                        const plexMap = await fetchLibraryCounts('plex');
-                        totalLibsPlex = plexMap.size;
-                    } catch (_) {}
-                    const noneSelectedJf = selectedCountJf === 0;
-                    const noneSelectedPlex = selectedCountPlex === 0;
-                    const allSelectedJf = totalLibsJf > 0 && selectedCountJf === totalLibsJf;
-                    const allSelectedPlex =
-                        totalLibsPlex > 0 && selectedCountPlex === totalLibsPlex;
-                    const showBadgeJf = noneSelectedJf || allSelectedJf;
-                    const showBadgePlex = noneSelectedPlex || allSelectedPlex;
-                    const ensureBadge = (pillId, flag) => {
-                        const pill = document.getElementById(pillId);
-                        if (!pill) return;
-                        let badge = pill.querySelector('.all-libs-badge');
-                        if (flag) {
-                            if (!badge) {
-                                badge = document.createElement('span');
-                                badge.className = 'all-libs-badge';
-                                badge.textContent = 'All libraries';
-                                badge.style.marginLeft = '6px';
-                                badge.style.fontSize = '0.65rem';
-                                badge.style.opacity = '0.85';
-                                badge.style.textTransform = 'uppercase';
-                                pill.appendChild(badge);
-                            }
-                        } else if (badge) {
-                            badge.remove();
-                        }
-                    };
-                    ensureBadge('jf-count-pill', showBadgeJf);
-                    ensureBadge('plex-count-pill', showBadgePlex);
-                } catch (_) {}
                 // Default display for TMDB from cached playlist
                 let tmdbTotal = null;
                 try {
@@ -15098,16 +15061,8 @@
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
                     const prevMovies = new Set(getMultiSelectValues('plex.movies'));
                     const prevShows = new Set(getMultiSelectValues('plex.shows'));
-                    const hadPrevSelection = prevMovies.size + prevShows.size > 0;
-                    const autoSelectAll = !hadPrevSelection; // first load -> select everything
-                    const allMovieNames = autoSelectAll
-                        ? movies.map(m => m.value)
-                        : Array.from(prevMovies);
-                    const allShowNames = autoSelectAll
-                        ? shows.map(s => s.value)
-                        : Array.from(prevShows);
-                    setMultiSelect('plex.movies', movies, allMovieNames);
-                    setMultiSelect('plex.shows', shows, allShowNames);
+                    setMultiSelect('plex.movies', movies, Array.from(prevMovies));
+                    setMultiSelect('plex.shows', shows, Array.from(prevShows));
                     // Rebuild multiselect options
                     rebuildMsForSelect('plex-ms-movies', 'plex.movies');
                     rebuildMsForSelect('plex-ms-shows', 'plex.shows');
@@ -15511,7 +15466,7 @@
             if (window.__jfLibsInFlight) return window.__jfLibsInFlight;
             window.__jfLibsInFlight = (async () => {
                 try {
-                    msDebugLog('[Jellyfin][Fetch] start', { refreshFilters, silent });
+                    console.log('[Admin][Jellyfin][Fetch] start', { refreshFilters, silent });
                     const hostname = getInput('jf.hostname')?.value || undefined;
                     const port = getInput('jf.port')?.value || undefined;
                     const apiKey = getInput('jf.apikey')?.value || undefined;
@@ -15519,7 +15474,7 @@
                         document.getElementById('jf.insecureHttps')?.checked ||
                         document.getElementById('jf.insecureHttpsHeader')?.checked
                     );
-                    msDebugLog('[Jellyfin][Fetch] resolved inputs', {
+                    console.log('[Admin][Jellyfin][Fetch] resolved inputs', {
                         hostname: hostname || window.__JELLYFIN_ENTRY?.hostname,
                         port: port || window.__JELLYFIN_ENTRY?.port,
                         hasApiKey: !!(
@@ -15543,7 +15498,7 @@
                         return isJellyfinEnabledCached();
                     })();
                     if (!effHostname) {
-                        msDebugWarn('[Jellyfin][Fetch] abort: no hostname');
+                        console.warn('[Admin][Jellyfin][Fetch] abort: no hostname');
                         if (!silent) {
                             window.notify?.toast({
                                 type: 'warning',
@@ -15555,7 +15510,7 @@
                         return { skipped: true, libraries: [] };
                     }
                     if (!effEnabled) {
-                        msDebugWarn('[Jellyfin][Fetch] abort: disabled');
+                        console.warn('[Admin][Jellyfin][Fetch] abort: disabled');
                         if (!silent) {
                             window.notify?.toast?.({
                                 type: 'info',
@@ -15577,12 +15532,12 @@
                             insecureHttps,
                         }),
                     });
-                    msDebugLog('[Jellyfin][Fetch] response status', res.status);
+                    console.log('[Admin][Jellyfin][Fetch] response status', res.status);
                     const j = await res.json().catch(() => ({}));
                     if (!res.ok) throw new Error(j?.error || 'Failed to load Jellyfin libraries');
                     const libs = Array.isArray(j.libraries) ? j.libraries : [];
-                    msDebugLog(
-                        '[Jellyfin][Fetch] libs received',
+                    console.log(
+                        '[Admin][Jellyfin][Fetch] libs received',
                         libs.map(l => ({ name: l.name, type: l.type, count: l.itemCount }))
                     );
                     // Build internal map for overview counts (parity with Plex fetch flow)
@@ -15605,16 +15560,8 @@
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
                     const prevMovies = new Set(getMultiSelectValues('jf.movies'));
                     const prevShows = new Set(getMultiSelectValues('jf.shows'));
-                    const hadPrevSelectionJf = prevMovies.size + prevShows.size > 0;
-                    const autoSelectAllJf = !hadPrevSelectionJf; // first load -> select everything
-                    const allMovieNamesJf = autoSelectAllJf
-                        ? movies.map(m => m.value)
-                        : Array.from(prevMovies);
-                    const allShowNamesJf = autoSelectAllJf
-                        ? shows.map(s => s.value)
-                        : Array.from(prevShows);
-                    setMultiSelect('jf.movies', movies, allMovieNamesJf);
-                    setMultiSelect('jf.shows', shows, allShowNamesJf);
+                    setMultiSelect('jf.movies', movies, Array.from(prevMovies));
+                    setMultiSelect('jf.shows', shows, Array.from(prevShows));
                     // Rebuild multiselect options
                     rebuildMsForSelect('jf-ms-movies', 'jf.movies');
                     rebuildMsForSelect('jf-ms-shows', 'jf.shows');
@@ -15646,7 +15593,7 @@
                         }
                     }
                 } catch (e) {
-                    msDebugWarn('[Jellyfin][Fetch] failed', e);
+                    console.error('[Admin][Jellyfin][Fetch] failed', e);
                     if (!silent) {
                         window.notify?.toast({
                             type: 'error',
@@ -15660,7 +15607,7 @@
                     window.__jfLibsInFlight = null;
                     // Reset refresh request flag after one settled cycle
                     window.__jfLibsRefreshRequested = false;
-                    msDebugLog('[Jellyfin][Fetch] end');
+                    console.log('[Admin][Jellyfin][Fetch] end');
                 }
             })();
             return window.__jfLibsInFlight;
