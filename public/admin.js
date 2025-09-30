@@ -13324,6 +13324,14 @@
         let plexFilters = buildPlexFilters();
         // Update plexFilters opportunistically when overview refresh runs
         // Try to infer Plex quality (simplified placeholder that prefers explicit qualityLabel)
+        function mapResToLabelTop(res) {
+            const r = (res || '').toString().toLowerCase();
+            if (!r || r === 'sd') return 'SD';
+            if (r === '720' || r === 'hd' || r === '720p') return '720p';
+            if (r === '1080' || r === '1080p' || r === 'fullhd') return '1080p';
+            if (r === '4k' || r === '2160' || r === '2160p' || r === 'uhd') return '4K';
+            return r.toUpperCase();
+        }
         const inferPlexQuality = it => {
             try {
                 if (it.qualityLabel) return it.qualityLabel;
@@ -13334,8 +13342,8 @@
                       ? it.media
                       : [];
                 for (const m of media) {
-                    if (m.videoResolution) return mapResToLabel(m.videoResolution);
-                    if (m.width && m.height) return mapResToLabel(m.height);
+                    if (m.videoResolution) return mapResToLabelTop(m.videoResolution);
+                    if (m.width && m.height) return mapResToLabelTop(m.height);
                 }
             } catch (_) {}
             return null;
