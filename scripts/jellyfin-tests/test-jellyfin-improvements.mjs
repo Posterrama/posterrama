@@ -12,8 +12,8 @@ async function testJellyfinImprovements() {
     try {
         // Create client
         const client = new JellyfinHttpClient({
-            hostname: process.env.JELLYFIN_HOSTNAME,
-            port: process.env.JELLYFIN_PORT,
+            hostname: jf.hostname,
+            port: jf.port,
             apiKey: process.env.JELLYFIN_API_KEY,
             timeout: 10000,
         });

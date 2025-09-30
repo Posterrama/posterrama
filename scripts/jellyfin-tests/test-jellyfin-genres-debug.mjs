@@ -18,8 +18,8 @@ async function testJellyfinGenres() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                hostname: process.env.JELLYFIN_HOSTNAME,
-                port: process.env.JELLYFIN_PORT,
+                hostname: jf.hostname,
+                port: jf.port,
                 apiKey: process.env.JELLYFIN_API_KEY,
                 movieLibraries: ['Movies', '4K', 'Plexpool Mark'],
                 showLibraries: [],
@@ -52,8 +52,8 @@ async function testJellyfinGenres() {
 
 // Test environment variables
 console.log('🔧 Environment check:');
-console.log(`   JELLYFIN_HOSTNAME: ${process.env.JELLYFIN_HOSTNAME || 'NOT SET'}`);
-console.log(`   JELLYFIN_PORT: ${process.env.JELLYFIN_PORT || 'NOT SET'}`);
+console.log(`   JELLYFIN hostname: ${jf.hostname || 'NOT SET'}`);
+console.log(`   JELLYFIN port: ${jf.port || 'NOT SET'}`);
 console.log(`   JELLYFIN_API_KEY: ${process.env.JELLYFIN_API_KEY ? '[SET]' : 'NOT SET'}`);
 console.log('');
 

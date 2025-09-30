@@ -508,8 +508,9 @@ async function checkPlexConnectivityFallback() {
         const checks = [];
         for (const server of enabledServers) {
             const startTime = Date.now();
-            const hostname = process.env[server.hostnameEnvVar];
-            const port = process.env[server.portEnvVar] || '32400';
+            // Direct config fields (hostname/port) are now authoritative.
+            const hostname = server.hostname;
+            const port = server.port != null ? String(server.port) : '32400';
 
             if (!hostname) {
                 checks.push({
@@ -691,8 +692,8 @@ async function checkJellyfinConnectivityFallback() {
         const checks = [];
         for (const server of enabledServers) {
             const startTime = Date.now();
-            const hostname = process.env[server.hostnameEnvVar];
-            const port = process.env[server.portEnvVar] || '8096';
+            const hostname = server.hostname;
+            const port = server.port != null ? String(server.port) : '8096';
 
             if (!hostname) {
                 checks.push({

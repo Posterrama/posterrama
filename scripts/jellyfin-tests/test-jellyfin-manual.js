@@ -8,9 +8,20 @@ async function testJellyfinConnection() {
     console.log('🔧 Testing Jellyfin Connection...\n');
 
     // Get values from environment variables (as configured in config.json)
-    const hostname = process.env.JELLYFIN_HOSTNAME;
-    const port = process.env.JELLYFIN_PORT;
-    const apiKey = process.env.JELLYFIN_API_KEY;
+    const fs = require('fs');
+    const path = require('path');
+    let hostname, port, apiKey;
+    try {
+        const cfg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'config.json'), 'utf8'));
+        const jf = (cfg.mediaServers || []).find(s => s.type === 'jellyfin');
+        if (jf) {
+            hostname = jf.hostname;
+            port = jf.port;
+            apiKey = process.env[jf.tokenEnvVar || 'JELLYFIN_API_KEY'];
+        }
+    } catch (e) {
+        console.log('Failed to read config.json:', e.message);
+    }
 
     console.log('📋 Configuration:');
     console.log(`   Hostname: ${hostname || 'NOT SET'}`);
@@ -19,10 +30,10 @@ async function testJellyfinConnection() {
     console.log('');
 
     if (!hostname || !port || !apiKey) {
-        console.log('❌ Missing required environment variables:');
-        if (!hostname) console.log('   - JELLYFIN_HOSTNAME');
-        if (!port) console.log('   - JELLYFIN_PORT');
-        if (!apiKey) console.log('   - JELLYFIN_API_KEY');
+        console.log('Missing required Jellyfin configuration:');
+        if (!hostname) console.log('   - hostname (config.json)');
+        if (!port) console.log('   - port (config.json)');
+        if (!apiKey) console.log('   - API key env (tokenEnvVar)');
         console.log('\nPlease set these environment variables and try again.');
         return;
     }

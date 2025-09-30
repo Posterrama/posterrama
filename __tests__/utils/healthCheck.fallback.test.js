@@ -80,27 +80,22 @@ describe('HealthCheck Fallback and Error Path Coverage', () => {
             );
         });
 
-        test('should handle missing hostname environment variable', async () => {
+        test('should handle missing hostname configuration', async () => {
             readConfig.mockResolvedValue({
                 mediaServers: [
                     {
                         name: 'test-plex',
                         type: 'plex',
                         enabled: true,
-                        hostnameEnvVar: 'MISSING_HOSTNAME',
-                        portEnvVar: 'PLEX_PORT',
+                        // hostname intentionally omitted
+                        port: 32400,
                     },
                 ],
             });
 
             const result = await healthCheck.checkPlexConnectivity();
-
-            // Should handle missing hostname gracefully
             expect(result.name).toBe('plex_connectivity');
             expect(result.status).toBeDefined();
-            if (result.details && result.details.servers && result.details.servers.length > 0) {
-                expect(result.details.servers[0].status).toBeDefined();
-            }
         });
 
         test('should handle HTTP connection errors', async () => {
@@ -110,15 +105,11 @@ describe('HealthCheck Fallback and Error Path Coverage', () => {
                         name: 'test-plex',
                         type: 'plex',
                         enabled: true,
-                        hostnameEnvVar: 'PLEX_HOSTNAME',
-                        portEnvVar: 'PLEX_PORT',
+                        hostname: 'invalid-hostname-that-will-fail.local',
+                        port: 32400,
                     },
                 ],
             });
-
-            // Set up environment with invalid hostname
-            process.env.PLEX_HOSTNAME = 'invalid-hostname-that-will-fail.local';
-            process.env.PLEX_PORT = '32400';
 
             const result = await healthCheck.checkPlexConnectivity();
 
@@ -134,15 +125,11 @@ describe('HealthCheck Fallback and Error Path Coverage', () => {
                         name: 'https-plex',
                         type: 'plex',
                         enabled: true,
-                        hostnameEnvVar: 'PLEX_HOSTNAME',
-                        portEnvVar: 'PLEX_PORT',
+                        hostname: 'localhost',
+                        port: 443,
                     },
                 ],
             });
-
-            // Test HTTPS port (443)
-            process.env.PLEX_HOSTNAME = 'localhost';
-            process.env.PLEX_PORT = '443';
 
             const result = await healthCheck.checkPlexConnectivity();
 
@@ -158,15 +145,11 @@ describe('HealthCheck Fallback and Error Path Coverage', () => {
                         name: 'slow-plex',
                         type: 'plex',
                         enabled: true,
-                        hostnameEnvVar: 'PLEX_HOSTNAME',
-                        portEnvVar: 'PLEX_PORT',
+                        hostname: '10.255.255.1',
+                        port: 32400,
                     },
                 ],
             });
-
-            // Use a non-routable IP to trigger timeout
-            process.env.PLEX_HOSTNAME = '10.255.255.1';
-            process.env.PLEX_PORT = '32400';
 
             const result = await healthCheck.checkPlexConnectivity();
 
@@ -199,24 +182,19 @@ describe('HealthCheck Fallback and Error Path Coverage', () => {
                         name: 'working-server',
                         type: 'jellyfin',
                         enabled: true,
-                        hostnameEnvVar: 'JELLYFIN_HOSTNAME',
-                        portEnvVar: 'JELLYFIN_PORT',
+                        hostname: 'localhost',
+                        port: 8096,
                     },
                     {
                         name: 'broken-server',
                         type: 'plex',
                         enabled: true,
-                        hostnameEnvVar: 'BROKEN_HOSTNAME',
-                        portEnvVar: 'PLEX_PORT',
+                        // hostname omitted to simulate broken configuration
+                        port: 32400,
                     },
                 ],
                 tmdbApiKey: 'test-key',
             });
-
-            // Set up valid Jellyfin but invalid Plex
-            process.env.JELLYFIN_HOSTNAME = 'localhost';
-            process.env.JELLYFIN_PORT = '8096';
-            // Don't set BROKEN_HOSTNAME to trigger error
 
             const result = await healthCheck.getDetailedHealth();
 

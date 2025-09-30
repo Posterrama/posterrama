@@ -38,8 +38,8 @@ async function testAdminGenreAPI() {
         const genreResponse = await axios.post(
             'http://localhost:4000/api/admin/jellyfin-genres',
             {
-                hostname: process.env.JELLYFIN_HOSTNAME,
-                port: process.env.JELLYFIN_PORT,
+                hostname: jf.hostname,
+                port: jf.port,
                 apiKey: null, // Test with null to use env variable
                 movieLibraries: ['Movies', '4K'],
                 showLibraries: [],

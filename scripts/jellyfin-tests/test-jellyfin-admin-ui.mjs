@@ -115,8 +115,8 @@ const checks = [
     {
         name: 'Environment example has Jellyfin variables',
         test: () =>
-            configExample.includes('JELLYFIN_HOSTNAME') &&
-            configExample.includes('JELLYFIN_PORT') &&
+            // Host/port are no longer expected as env vars in example; just ensure token placeholder
+            configExample.includes('JELLYFIN_API_KEY') &&
             configExample.includes('JELLYFIN_API_KEY'),
     },
 ];

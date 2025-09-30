@@ -32,9 +32,6 @@ describe('admin-overview-compute', () => {
     });
 
     test('handles malformed mediaServers entries gracefully', () => {
-        const cfg = {
-            mediaServers: [null, undefined, 42, { foo: 'bar' }, { type: 'plex', enabled: true }],
-        };
         const env = { PLEX_TOKEN: 't' };
         const r = computeOverviewStatuses(
             {

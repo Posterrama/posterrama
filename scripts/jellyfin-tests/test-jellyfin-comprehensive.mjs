@@ -32,8 +32,8 @@ async function testJellyfinIntegration() {
                 name: 'Test Jellyfin',
                 type: 'jellyfin',
                 enabled: true,
-                hostnameEnvVar: 'JELLYFIN_HOSTNAME',
-                portEnvVar: 'JELLYFIN_PORT',
+                hostname: jf.hostname,
+                port: jf.port,
                 tokenEnvVar: 'JELLYFIN_API_KEY',
                 movieLibraryNames: ['Movies'],
                 showLibraryNames: ['TV Shows'],
@@ -79,8 +79,8 @@ async function testJellyfinIntegration() {
         const testConfig = {
             name: 'Test Jellyfin Server',
             type: 'jellyfin',
-            hostnameEnvVar: 'JELLYFIN_HOSTNAME',
-            portEnvVar: 'JELLYFIN_PORT',
+            hostname: jf.hostname,
+            port: jf.port,
             tokenEnvVar: 'JELLYFIN_API_KEY',
             enabled: true,
         };
@@ -148,8 +148,8 @@ async function testJellyfinIntegration() {
         const envExample = fs.readFileSync('./config.example.env', 'utf8');
 
         if (
-            envExample.includes('JELLYFIN_HOSTNAME') &&
-            envExample.includes('JELLYFIN_PORT') &&
+            // Host/port now come from config.json; only API key should be in env
+            envExample.includes('JELLYFIN_API_KEY') &&
             envExample.includes('JELLYFIN_API_KEY')
         ) {
             console.log('✓ config.example.env contains Jellyfin variables');
@@ -174,7 +174,7 @@ async function testJellyfinIntegration() {
     console.log('');
     console.log('🔧 To enable Jellyfin:');
     console.log(
-        '   1. Set environment variables: JELLYFIN_HOSTNAME, JELLYFIN_PORT, JELLYFIN_API_KEY'
+    '   1. Set environment variable for API key only (e.g. JELLYFIN_API_KEY)'
     );
     console.log('   2. Enable the Jellyfin server in config.json');
     console.log('   3. Configure library names for your Jellyfin setup');
