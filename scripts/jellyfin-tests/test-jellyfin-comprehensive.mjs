@@ -173,9 +173,7 @@ async function testJellyfinIntegration() {
     console.log('   • Example configuration and environment setup');
     console.log('');
     console.log('🔧 To enable Jellyfin:');
-    console.log(
-    '   1. Set environment variable for API key only (e.g. JELLYFIN_API_KEY)'
-    );
+    console.log('   1. Set environment variable for API key only (e.g. JELLYFIN_API_KEY)');
     console.log('   2. Enable the Jellyfin server in config.json');
     console.log('   3. Configure library names for your Jellyfin setup');
     console.log('   4. Restart the application');

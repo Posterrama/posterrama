@@ -41,7 +41,9 @@ async function testJellyfinIntegration() {
         console.log('❌ Missing Jellyfin configuration or API key:');
         console.log(`   hostname: ${jellyfinHost ? '✓' : '❌'}`);
         console.log(`   port: ${jellyfinPort ? '✓' : '❌'}`);
-        console.log(`   apiKey (env ${jellyfinServer.tokenEnvVar || 'JELLYFIN_API_KEY'}): ${jellyfinApiKey ? '✓' : '❌'}`);
+        console.log(
+            `   apiKey (env ${jellyfinServer.tokenEnvVar || 'JELLYFIN_API_KEY'}): ${jellyfinApiKey ? '✓' : '❌'}`
+        );
         return;
     }
     console.log('✓ Jellyfin configuration present\n');
