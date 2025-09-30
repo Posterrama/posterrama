@@ -13666,8 +13666,24 @@
                 try {
                     const jfSel = getSelectedLibraries('jellyfin');
                     const plexSel = getSelectedLibraries('plex');
-                    const allJf = !jfSel.movies.length && !jfSel.shows.length;
-                    const allPlex = !plexSel.movies.length && !plexSel.shows.length;
+                    const selectedCountJf = jfSel.movies.length + jfSel.shows.length;
+                    const selectedCountPlex = plexSel.movies.length + plexSel.shows.length;
+                    // Determine total available libraries for each source (movies + shows)
+                    let totalLibsJf = 0;
+                    if (window.__jfLibraryCounts instanceof Map)
+                        totalLibsJf = window.__jfLibraryCounts.size;
+                    let totalLibsPlex = 0;
+                    try {
+                        const plexMap = await fetchLibraryCounts('plex');
+                        totalLibsPlex = plexMap.size;
+                    } catch (_) {}
+                    const noneSelectedJf = selectedCountJf === 0;
+                    const noneSelectedPlex = selectedCountPlex === 0;
+                    const allSelectedJf = totalLibsJf > 0 && selectedCountJf === totalLibsJf;
+                    const allSelectedPlex =
+                        totalLibsPlex > 0 && selectedCountPlex === totalLibsPlex;
+                    const showBadgeJf = noneSelectedJf || allSelectedJf;
+                    const showBadgePlex = noneSelectedPlex || allSelectedPlex;
                     const ensureBadge = (pillId, flag) => {
                         const pill = document.getElementById(pillId);
                         if (!pill) return;
@@ -13687,8 +13703,8 @@
                             badge.remove();
                         }
                     };
-                    ensureBadge('jf-count-pill', allJf);
-                    ensureBadge('plex-count-pill', allPlex);
+                    ensureBadge('jf-count-pill', showBadgeJf);
+                    ensureBadge('plex-count-pill', showBadgePlex);
                 } catch (_) {}
                 // Default display for TMDB from cached playlist
                 let tmdbTotal = null;
