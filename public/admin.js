@@ -14035,7 +14035,36 @@
                             if (!window.__plexAutoRefreshed && !forceFresh) {
                                 window.__plexAutoRefreshed = true;
                                 console.log('[Admin][MediaSources] Auto refreshing Plex libraries');
-                                fetchPlexLibraries(true, true);
+                                // First perform a silent connection test to ensure token/host are valid
+                                (async () => {
+                                    try {
+                                        const testRes = await fetch('/api/admin/test-plex', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            credentials: 'include',
+                                            body: JSON.stringify({ hostname: host, port: portVal }),
+                                        });
+                                        if (testRes.ok) {
+                                            console.log(
+                                                '[Admin][MediaSources] Auto test-plex succeeded'
+                                            );
+                                        } else {
+                                            console.warn(
+                                                '[Admin][MediaSources] Auto test-plex failed status',
+                                                testRes.status
+                                            );
+                                        }
+                                    } catch (e) {
+                                        console.warn(
+                                            '[Admin][MediaSources] Auto test-plex error',
+                                            e?.message || e
+                                        );
+                                    } finally {
+                                        try {
+                                            fetchPlexLibraries(true, true);
+                                        } catch (_) {}
+                                    }
+                                })();
                             }
                         } catch (_) {}
                     } else {
