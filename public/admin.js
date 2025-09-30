@@ -15424,6 +15424,16 @@
                     const effHostname = hostname || window.__JELLYFIN_ENTRY?.hostname;
                     const effPort = port || window.__JELLYFIN_ENTRY?.port;
                     const effApiKey = apiKey || window.__JELLYFIN_ENTRY?.apiKey;
+                    const effEnabled = (() => {
+                        try {
+                            const cb = document.getElementById('jf.enabled');
+                            if (cb) return !!cb.checked;
+                        } catch (_) {}
+                        if (typeof window.__JELLYFIN_ENTRY?.enabled !== 'undefined') {
+                            return !!window.__JELLYFIN_ENTRY.enabled;
+                        }
+                        return isJellyfinEnabledCached();
+                    })();
                     if (!effHostname) {
                         console.warn('[Admin][Jellyfin][Fetch] abort: no hostname');
                         if (!silent) {
@@ -15436,7 +15446,7 @@
                         }
                         return { skipped: true, libraries: [] };
                     }
-                    if (!isJellyfinEnabledCached()) {
+                    if (!effEnabled) {
                         console.warn('[Admin][Jellyfin][Fetch] abort: disabled');
                         if (!silent) {
                             window.notify?.toast?.({
