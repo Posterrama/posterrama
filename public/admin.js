@@ -15477,6 +15477,18 @@
                         '[Admin][Jellyfin][Fetch] libs received',
                         libs.map(l => ({ name: l.name, type: l.type, count: l.itemCount }))
                     );
+                    // Build internal map for overview counts (parity with Plex fetch flow)
+                    try {
+                        window.__jfLibraryCounts = new Map();
+                        libs.forEach(l => {
+                            if (l && l.name) {
+                                window.__jfLibraryCounts.set(l.name, {
+                                    itemCount: Number(l.itemCount) || 0,
+                                    type: l.type,
+                                });
+                            }
+                        });
+                    } catch (_) {}
                     const movies = libs
                         .filter(l => l.type === 'movie')
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
@@ -15498,6 +15510,10 @@
                             duration: 2200,
                         });
                     }
+                    // Force recount after library data updates so totals reflect immediately
+                    try {
+                        refreshOverviewCounts();
+                    } catch (_) {}
                     // Optionally refresh dependent filters now that libraries are known
                     try {
                         // Refresh overview item counts now that libraries are known (parity with Plex)
