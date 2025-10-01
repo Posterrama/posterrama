@@ -142,5 +142,7 @@
         "enabled": true,
         "time": "03:30",
         "retention": 10
-    }
+    },
+    "testKeyConfig": "fromConfig",
+    "someInt": 42
 }
