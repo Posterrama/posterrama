@@ -2,7 +2,6 @@
 
 // Validate admin defaults for new installations
 const fs = require('fs');
-const path = require('path');
 
 // Color codes
 const colors = {

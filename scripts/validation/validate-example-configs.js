@@ -2,7 +2,6 @@
 
 // Validate and suggest updates for config.example.env and config.example.json
 const fs = require('fs');
-const path = require('path');
 
 // Color codes
 const colors = {
@@ -129,7 +128,7 @@ function validateExampleConfig(configFile, exampleFile, schemaFile) {
 
         // Check for missing keys
         for (const key in obj1) {
-            if (obj1.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(obj1, key)) {
                 const fullPath = path ? `${path}.${key}` : key;
 
                 if (!(key in obj2)) {
@@ -151,7 +150,7 @@ function validateExampleConfig(configFile, exampleFile, schemaFile) {
 
         // Check for extra keys
         for (const key in obj2) {
-            if (obj2.hasOwnProperty(key) && !(key in obj1)) {
+            if (Object.prototype.hasOwnProperty.call(obj2, key) && !(key in obj1)) {
                 const fullPath = path ? `${path}.${key}` : key;
                 extra.push(fullPath);
             }
@@ -180,30 +179,6 @@ function validateExampleConfig(configFile, exampleFile, schemaFile) {
     // Check if example follows schema defaults
     if (schema && schema.properties) {
         log('blue', '🔍 Checking if example uses recommended defaults...');
-
-        function checkDefaults(exampleObj, schemaProps, path = '') {
-            for (const [key, schemaProp] of Object.entries(schemaProps)) {
-                if ('default' in schemaProp) {
-                    const fullPath = path ? `${path}.${key}` : key;
-                    const exampleValue = getNestedValue(exampleObj, fullPath);
-
-                    if (
-                        exampleValue !== undefined &&
-                        JSON.stringify(exampleValue) !== JSON.stringify(schemaProp.default)
-                    ) {
-                        log(
-                            'blue',
-                            `ℹ️  ${fullPath}: Example uses custom value (${JSON.stringify(exampleValue)}) instead of schema default (${JSON.stringify(schemaProp.default)})`
-                        );
-                    }
-                }
-
-                if (schemaProp.type === 'object' && schemaProp.properties) {
-                    checkDefaults(exampleObj, schemaProp.properties, path ? `${path}.${key}` : key);
-                }
-            }
-        }
-
         checkDefaults(example, schema.properties);
     }
 
@@ -214,6 +189,29 @@ function validateExampleConfig(configFile, exampleFile, schemaFile) {
 
 function getNestedValue(obj, path) {
     return path.split('.').reduce((current, key) => current?.[key], obj);
+}
+
+function checkDefaults(exampleObj, schemaProps, path = '') {
+    for (const [key, schemaProp] of Object.entries(schemaProps)) {
+        if ('default' in schemaProp) {
+            const fullPath = path ? `${path}.${key}` : key;
+            const exampleValue = getNestedValue(exampleObj, fullPath);
+
+            if (
+                exampleValue !== undefined &&
+                JSON.stringify(exampleValue) !== JSON.stringify(schemaProp.default)
+            ) {
+                log(
+                    'blue',
+                    `ℹ️  ${fullPath}: Example uses custom value (${JSON.stringify(exampleValue)}) instead of schema default (${JSON.stringify(schemaProp.default)})`
+                );
+            }
+        }
+
+        if (schemaProp.type === 'object' && schemaProp.properties) {
+            checkDefaults(exampleObj, schemaProp.properties, path ? `${path}.${key}` : key);
+        }
+    }
 }
 
 function suggestUpdates() {

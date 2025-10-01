@@ -2,7 +2,6 @@
 
 // Validate if config.schema.json is up-to-date with current config files
 const fs = require('fs');
-const path = require('path');
 
 // Color codes
 const colors = {

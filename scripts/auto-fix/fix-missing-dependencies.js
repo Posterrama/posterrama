@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 // Auto-fix missing dependencies in package.json
-const fs = require('fs');
 const { execSync } = require('child_process');
 
 // Color codes

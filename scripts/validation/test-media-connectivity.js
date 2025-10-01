@@ -2,7 +2,6 @@
 
 // Test connectivity to configured media sources (Plex, Jellyfin, TMDB)
 const fs = require('fs');
-const path = require('path');
 
 // Color codes
 const colors = {
@@ -83,7 +82,7 @@ async function testTMDBConnectivity() {
     }
 }
 
-async function testPlexConnectivity(config, envVars) {
+async function testPlexConnectivity(config, _envVars) {
     const plexServers = config?.mediaServers?.plex || [];
 
     if (plexServers.length === 0) {
@@ -139,7 +138,7 @@ async function testPlexConnectivity(config, envVars) {
     }
 }
 
-async function testJellyfinConnectivity(config, envVars) {
+async function testJellyfinConnectivity(config, _envVars) {
     const jellyfinServers = config?.mediaServers?.jellyfin || [];
 
     if (jellyfinServers.length === 0) {
