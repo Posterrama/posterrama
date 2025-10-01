@@ -6,7 +6,7 @@ Manual verification steps for Posterrama releases.
 
 **Run automated checks with auto-fix:**
 ```bash
-cd private/ && ./release-check.sh
+cd scripts/ && ./release-check.sh
 ```
 *Script automatically detects and resolves issues when possible*
 
