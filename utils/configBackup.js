@@ -5,7 +5,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const BACKUP_DIR = path.join(ROOT, 'backups', 'config');
-const SCHEDULE_FILE = path.join(ROOT, 'config', 'config-backups.json');
+const CONFIG_FILE = path.join(ROOT, 'config.json');
 
 // Whitelisted config files at repo root
 const FILE_WHITELIST = [
@@ -144,12 +144,13 @@ async function deleteBackup(backupId) {
 
 async function readScheduleConfig() {
     try {
-        const raw = await fsp.readFile(SCHEDULE_FILE, 'utf8');
-        const j = JSON.parse(raw);
+        const raw = await fsp.readFile(CONFIG_FILE, 'utf8');
+        const config = JSON.parse(raw);
+        const backups = config.backups || {};
         return {
-            enabled: j.enabled !== false,
-            time: j.time || '02:30',
-            retention: Number.isFinite(j.retention) ? j.retention : 5,
+            enabled: backups.enabled !== false,
+            time: backups.time || '02:30',
+            retention: Number.isFinite(backups.retention) ? backups.retention : 5,
         };
     } catch (_) {
         return { enabled: true, time: '02:30', retention: 5 };
@@ -157,7 +158,7 @@ async function readScheduleConfig() {
 }
 
 async function writeScheduleConfig(cfg) {
-    const out = {
+    const backupConfig = {
         enabled: cfg && cfg.enabled !== false,
         time: (cfg && cfg.time) || '02:30',
         retention: Math.max(
@@ -165,9 +166,19 @@ async function writeScheduleConfig(cfg) {
             Math.min(60, Number(cfg && cfg.retention != null ? cfg.retention : 5))
         ),
     };
-    await fsp.mkdir(path.dirname(SCHEDULE_FILE), { recursive: true });
-    await fsp.writeFile(SCHEDULE_FILE, JSON.stringify(out, null, 2), 'utf8');
-    return out;
+
+    // Read current config.json and update backups section
+    let config = {};
+    try {
+        const raw = await fsp.readFile(CONFIG_FILE, 'utf8');
+        config = JSON.parse(raw);
+    } catch (_) {
+        // If config.json doesn't exist or is invalid, create minimal config
+    }
+
+    config.backups = backupConfig;
+    await fsp.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+    return backupConfig;
 }
 
 module.exports = {
