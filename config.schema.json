@@ -679,7 +679,7 @@
                 "maxSizeGB": {
                     "type": "number",
                     "minimum": 0,
-                    "default": 5
+                    "default": 2
                 },
                 "minFreeDiskSpaceMB": {
                     "type": "integer",

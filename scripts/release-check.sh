@@ -85,7 +85,7 @@ run_tests() {
     fi
     
     print_status "3. Package.json versie controleren..."
-    CURRENT_VERSION=$(node -p "require('../package.json').version")
+    CURRENT_VERSION=$(cd .. && node -p "require('./package.json').version")
     print_status "Huidige versie: $CURRENT_VERSION"
 
     print_status "3a. Media source connectiviteit testen..."
