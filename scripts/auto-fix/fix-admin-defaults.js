@@ -2,6 +2,13 @@
 
 // Auto-fix admin defaults for new installations
 const fs = require('fs');
+const path = require('path');
+
+// Determine the root directory - go up from scripts/auto-fix/ to root
+const rootDir = path.resolve(__dirname, '../../');
+const configExampleEnv = path.join(rootDir, 'config.example.env');
+const configJson = path.join(rootDir, 'config.json');
+const configExampleJson = path.join(rootDir, 'config.example.json');
 
 // Color codes
 const colors = {
@@ -23,13 +30,13 @@ let errors = 0;
 function fixExampleEnv() {
     log('blue', '🔧 Auto-fixing config.example.env...');
 
-    if (!fs.existsSync('../config.example.env')) {
+    if (!fs.existsSync(configExampleEnv)) {
         log('red', '❌ config.example.env not found');
         errors++;
         return;
     }
 
-    let content = fs.readFileSync('../config.example.env', 'utf8');
+    let content = fs.readFileSync(configExampleEnv, 'utf8');
     const lines = content.split('\n');
     let modified = false;
 
@@ -93,7 +100,7 @@ function fixExampleEnv() {
     });
 
     if (modified) {
-        fs.writeFileSync('../config.example.env', content);
+        fs.writeFileSync(configExampleEnv, content);
         log('green', '✅ config.example.env updated');
     } else {
         log('green', '✅ config.example.env is already clean');
@@ -108,11 +115,11 @@ function fixExampleConfig() {
     let exampleConfig = null;
 
     try {
-        if (fs.existsSync('../config.json')) {
-            currentConfig = JSON.parse(fs.readFileSync('../config.json', 'utf8'));
+        if (fs.existsSync(configJson)) {
+            currentConfig = JSON.parse(fs.readFileSync(configJson, 'utf8'));
         }
-        if (fs.existsSync('../config.example.json')) {
-            exampleConfig = JSON.parse(fs.readFileSync('../config.example.json', 'utf8'));
+        if (fs.existsSync(configExampleJson)) {
+            exampleConfig = JSON.parse(fs.readFileSync(configExampleJson, 'utf8'));
         }
     } catch (e) {
         log('red', `❌ Error loading config files: ${e.message}`);
@@ -171,7 +178,7 @@ function fixExampleConfig() {
     addMissingProps(currentConfig, exampleConfig);
 
     if (modified) {
-        fs.writeFileSync('../config.example.json', JSON.stringify(exampleConfig, null, 4));
+        fs.writeFileSync(configExampleJson, JSON.stringify(exampleConfig, null, 4));
         log('green', '✅ config.example.json updated with missing properties');
     } else {
         log('green', '✅ config.example.json structure is already up-to-date');

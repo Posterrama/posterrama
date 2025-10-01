@@ -112,11 +112,11 @@ cleanup_files() {
     fi
 
     print_status "4a. Admin defaults voor nieuwe installaties..."
-    if node validation/validate-admin-defaults.js 2>/dev/null; then
+    if node validation/validate-admin-defaults.js >/dev/null 2>&1; then
         print_success "Admin defaults: Geschikt voor nieuwe installaties"
     else
         print_status "🔧 Auto-fixing admin defaults..."
-        if node auto-fix/fix-admin-defaults.js 2>/dev/null; then
+        if node auto-fix/fix-admin-defaults.js >/dev/null 2>&1; then
             print_success "Admin defaults: Automatisch gecorrigeerd"
         else
             print_error "Admin defaults: Auto-fix gefaald - handmatige interventie vereist"
@@ -207,11 +207,11 @@ quality_checks() {
     fi
 
     print_status "13h. Config schema actueel controleren..."
-    if node validation/validate-config-schema.js 2>/dev/null; then
+    if node validation/validate-config-schema.js >/dev/null 2>&1; then
         print_success "Config schema: Up-to-date"
     else
         print_status "🔧 Auto-fixing config schema..."
-        if node auto-fix/fix-config-schema.js 2>/dev/null; then
+        if node auto-fix/fix-config-schema.js >/dev/null 2>&1; then
             print_success "Config schema: Automatisch bijgewerkt"
         else
             print_warning "Config schema: Auto-fix gefaald - handmatige controle vereist"
@@ -219,11 +219,11 @@ quality_checks() {
     fi
 
     print_status "13i. Example config bestanden controleren..."
-    if node validation/validate-example-configs.js 2>/dev/null; then
+    if node validation/validate-example-configs.js >/dev/null 2>&1; then
         print_success "Example configs: Up-to-date"
     else
         print_status "🔧 Auto-fixing example configs..."
-        if node auto-fix/fix-admin-defaults.js 2>/dev/null; then
+        if node auto-fix/fix-admin-defaults.js >/dev/null 2>&1; then
             print_success "Example configs: Automatisch bijgewerkt"
         else
             print_warning "Example configs: Auto-fix gefaald - handmatige controle vereist"
@@ -251,8 +251,9 @@ final_checks() {
     fi
 
     print_status "16b. Dependency audit..."
-    if npm audit --audit-level=high --quiet; then
-        print_success "Dependencies: Geen kritieke problemen"
+    # Use our filtered security audit that excludes known Plex API vulnerabilities
+    if ./scripts/security-audit-filtered.sh | grep -q "✅ No new actionable vulnerabilities"; then
+        print_success "Dependencies: Alleen geaccepteerde Plex API risks"
     else
         print_warning "Dependencies: Handmatige controle vereist"
     fi
