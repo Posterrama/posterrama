@@ -32,7 +32,11 @@
     "cinemaMode": false,
     "cinemaOrientation": "auto",
     "cinema": {
-        "header": { "enabled": true, "text": "Now Playing", "style": "classic" },
+        "header": {
+            "enabled": true,
+            "text": "Now Playing",
+            "style": "classic"
+        },
         "footer": {
             "enabled": true,
             "type": "specs",
@@ -51,7 +55,10 @@
             "headerTexts": ["Coming Soon", "Now Playing", "Home Cinema", "Feature Presentation"],
             "footerTexts": ["Coming Soon", "Now Playing", "Home Cinema", "Feature Presentation"]
         },
-        "ambilight": { "enabled": true, "strength": 60 }
+        "ambilight": {
+            "enabled": true,
+            "strength": 60
+        }
     },
     "transitionEffect": "kenburns",
     "effectPauseTime": 3,
@@ -106,7 +113,6 @@
         "yearFilter": null,
         "genreFilter": ""
     },
-
     "streamingSources": [],
     "siteServer": {
         "enabled": true,
@@ -131,5 +137,10 @@
     "syncEnabled": true,
     "syncAlignMaxDelayMs": 1200,
     "serverPort": 4000,
-    "plexClientOptions": {}
+    "plexClientOptions": {},
+    "backups": {
+        "enabled": true,
+        "time": "03:30",
+        "retention": 10
+    }
 }

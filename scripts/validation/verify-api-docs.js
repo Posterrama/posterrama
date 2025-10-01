@@ -207,13 +207,34 @@ if (undocumentedRoutes.filter(r => r.path.includes('/admin')).length > 0) {
     console.log('');
 }
 
-console.log('📋 VERIFICATION CHECKLIST:');
+// Find documented routes that don't have corresponding endpoints (unused docs)
+const actualPaths = new Set(allRoutes.map(r => `${r.method} ${r.path}`));
+const unusedDocs = documentedRoutes.filter(r => !actualPaths.has(`${r.method} ${r.path}`));
+
+console.log('🧹 UNUSED SWAGGER DOCUMENTATION');
+console.log('═'.repeat(50));
+if (unusedDocs.length === 0) {
+    console.log(
+        '✅ No unused documentation found! All Swagger docs correspond to actual endpoints.'
+    );
+} else {
+    console.log('The following Swagger documentation refers to non-existent endpoints:');
+    unusedDocs.forEach(doc => {
+        console.log(`  � ${doc.method} ${doc.path}`);
+    });
+    console.log(`\nUnused docs: ${unusedDocs.length}`);
+    console.log('💡 Consider removing these unused Swagger comments to keep docs clean.');
+}
+console.log('');
+
+console.log('�📋 VERIFICATION CHECKLIST:');
 console.log('  □ Start server and visit /api-docs to verify Swagger UI');
 console.log('  □ Test key endpoints: /get-config, /get-media, /api/v1/config');
 console.log('  □ Verify response schemas match actual API responses');
 console.log('  □ Check that error responses are documented');
 console.log('  □ Validate authentication requirements are correct');
 console.log('  □ Test API v1 aliases work as expected');
+console.log('  □ Remove unused Swagger documentation identified above');
 
 console.log('\n✨ DOCUMENTATION COMPLETENESS SUMMARY');
 console.log('═'.repeat(50));
@@ -221,6 +242,7 @@ const completeness = Math.round((documentedRoutes.length / allRoutes.length) * 1
 console.log(
     `Overall Documentation Coverage: ${completeness}% (${documentedRoutes.length}/${allRoutes.length})`
 );
+console.log(`Unused Documentation: ${unusedDocs.length} orphaned Swagger comments`);
 
 if (completeness >= 90) {
     console.log('🎉 Excellent! Your API documentation is very comprehensive.');
@@ -230,4 +252,8 @@ if (completeness >= 90) {
     console.log('⚠️  Moderate coverage. Focus on documenting public API endpoints first.');
 } else {
     console.log('🚨 Low coverage. Prioritize documenting key public endpoints.');
+}
+
+if (unusedDocs.length === 0) {
+    console.log('🧹 Clean! No unused Swagger documentation found.');
 }

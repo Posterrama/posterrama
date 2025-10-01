@@ -81,7 +81,7 @@
                 "density": {
                     "type": "string",
                     "enum": ["low", "medium", "high", "ludicrous"],
-                    "default": "medium",
+                    "default": "high",
                     "description": "Grid density preset that influences number of rows/columns"
                 },
                 "refreshRate": {
@@ -115,7 +115,7 @@
                         "chromaticShift",
                         "mosaicShatter"
                     ],
-                    "default": "fade",
+                    "default": "chromaticShift",
                     "description": "Animation style used for grid updates"
                 },
                 "layoutVariant": {
@@ -143,7 +143,7 @@
                                 "heroSide": {
                                     "type": "string",
                                     "enum": ["left", "right"],
-                                    "default": "left"
+                                    "default": "right"
                                 },
                                 "heroRotationMinutes": {
                                     "type": "integer",
@@ -160,7 +160,6 @@
                         }
                     }
                 },
-
                 "itemsPerScreen": {
                     "type": "number",
                     "minimum": 4,
@@ -202,8 +201,14 @@
                 "header": {
                     "type": "object",
                     "properties": {
-                        "enabled": { "type": "boolean", "default": true },
-                        "text": { "type": "string", "default": "Now Playing" },
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true
+                        },
+                        "text": {
+                            "type": "string",
+                            "default": "Now Playing"
+                        },
                         "style": {
                             "type": "string",
                             "enum": ["classic", "neon", "minimal", "theatre"],
@@ -211,18 +216,28 @@
                         }
                     },
                     "additionalProperties": false,
-                    "default": { "enabled": true, "text": "Now Playing", "style": "classic" }
+                    "default": {
+                        "enabled": true,
+                        "text": "Now Playing",
+                        "style": "classic"
+                    }
                 },
                 "footer": {
                     "type": "object",
                     "properties": {
-                        "enabled": { "type": "boolean", "default": true },
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true
+                        },
                         "type": {
                             "type": "string",
                             "enum": ["marquee", "specs"],
                             "default": "specs"
                         },
-                        "marqueeText": { "type": "string", "default": "Feature Presentation" },
+                        "marqueeText": {
+                            "type": "string",
+                            "default": "Feature Presentation"
+                        },
                         "marqueeStyle": {
                             "type": "string",
                             "enum": ["classic", "neon", "minimal", "theatre"],
@@ -231,10 +246,22 @@
                         "specs": {
                             "type": "object",
                             "properties": {
-                                "showResolution": { "type": "boolean", "default": true },
-                                "showAudio": { "type": "boolean", "default": true },
-                                "showAspectRatio": { "type": "boolean", "default": true },
-                                "showFlags": { "type": "boolean", "default": false },
+                                "showResolution": {
+                                    "type": "boolean",
+                                    "default": true
+                                },
+                                "showAudio": {
+                                    "type": "boolean",
+                                    "default": true
+                                },
+                                "showAspectRatio": {
+                                    "type": "boolean",
+                                    "default": true
+                                },
+                                "showFlags": {
+                                    "type": "boolean",
+                                    "default": true
+                                },
                                 "style": {
                                     "type": "string",
                                     "enum": ["subtle", "filled", "outline"],
@@ -251,7 +278,7 @@
                                 "showResolution": true,
                                 "showAudio": true,
                                 "showAspectRatio": true,
-                                "showFlags": false,
+                                "showFlags": true,
                                 "style": "subtle",
                                 "iconSet": "filled"
                             }
@@ -267,7 +294,7 @@
                             "showResolution": true,
                             "showAudio": true,
                             "showAspectRatio": true,
-                            "showFlags": false,
+                            "showFlags": true,
                             "style": "subtle",
                             "iconSet": "filled"
                         }
@@ -278,7 +305,9 @@
                     "properties": {
                         "headerTexts": {
                             "type": "array",
-                            "items": { "type": "string" },
+                            "items": {
+                                "type": "string"
+                            },
                             "default": [
                                 "Coming Soon",
                                 "Now Playing",
@@ -288,7 +317,9 @@
                         },
                         "footerTexts": {
                             "type": "array",
-                            "items": { "type": "string" },
+                            "items": {
+                                "type": "string"
+                            },
                             "default": [
                                 "Coming Soon",
                                 "Now Playing",
@@ -316,7 +347,10 @@
                 "ambilight": {
                     "type": "object",
                     "properties": {
-                        "enabled": { "type": "boolean", "default": true },
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true
+                        },
                         "strength": {
                             "type": "integer",
                             "minimum": 0,
@@ -325,12 +359,19 @@
                         }
                     },
                     "additionalProperties": false,
-                    "default": { "enabled": true, "strength": 60 }
+                    "default": {
+                        "enabled": true,
+                        "strength": 60
+                    }
                 }
             },
             "additionalProperties": false,
             "default": {
-                "header": { "enabled": true, "text": "Now Playing", "style": "classic" },
+                "header": {
+                    "enabled": true,
+                    "text": "Now Playing",
+                    "style": "classic"
+                },
                 "footer": {
                     "enabled": true,
                     "type": "specs",
@@ -340,10 +381,14 @@
                         "showResolution": true,
                         "showAudio": true,
                         "showAspectRatio": true,
-                        "showFlags": false,
+                        "showFlags": true,
                         "style": "subtle",
                         "iconSet": "filled"
                     }
+                },
+                "ambilight": {
+                    "enabled": true,
+                    "strength": 60
                 },
                 "presets": {
                     "headerTexts": [
@@ -358,8 +403,7 @@
                         "Home Cinema",
                         "Feature Presentation"
                     ]
-                },
-                "ambilight": { "enabled": true, "strength": 60 }
+                }
             }
         },
         "transitionEffect": {
@@ -372,8 +416,16 @@
             "description": "Legacy Ken Burns effect configuration (backward compatibility). Prefer using 'transitionEffect' where possible.",
             "type": "object",
             "properties": {
-                "enabled": { "type": "boolean", "default": true },
-                "durationSeconds": { "type": "integer", "minimum": 5, "maximum": 60, "default": 20 }
+                "enabled": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "durationSeconds": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 60,
+                    "default": 20
+                }
             },
             "additionalProperties": false
         },
@@ -556,7 +608,10 @@
             "description": "Feature flag for device management UI and APIs.",
             "type": "object",
             "properties": {
-                "enabled": { "type": "boolean", "default": true },
+                "enabled": {
+                    "type": "boolean",
+                    "default": true
+                },
                 "bypass": {
                     "description": "Optional bypass configuration. When a client IP matches ipAllowList, the frontend will skip device management (no registration, no heartbeats, no websocket). Useful for kiosk screens or trusted internal dashboards.",
                     "type": "object",
@@ -564,12 +619,16 @@
                         "ipAllowList": {
                             "description": "Array of IP addresses or CIDR ranges (IPv4/IPv6) that should bypass device management.",
                             "type": "array",
-                            "items": { "type": "string" },
-                            "default": []
+                            "items": {
+                                "type": "string"
+                            },
+                            "default": ["127.0.0.1", "10.255.0.0/16"]
                         }
                     },
                     "additionalProperties": false,
-                    "default": { "ipAllowList": [] }
+                    "default": {
+                        "ipAllowList": ["127.0.0.1", "10.255.0.0/16"]
+                    }
                 }
             }
         },
@@ -577,30 +636,70 @@
             "description": "Optional TMDB source configuration.",
             "type": "object",
             "properties": {
-                "enabled": { "type": "boolean", "default": false },
-                "category": { "type": "string", "default": "popular" },
-                "minRating": { "type": "number", "minimum": 0, "maximum": 10, "default": 0 },
-                "apiKey": { "type": "string", "default": "" },
-                "yearFilter": { "type": ["integer", "string", "null"], "default": null },
-                "genreFilter": { "type": "string", "default": "" }
+                "enabled": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "category": {
+                    "type": "string",
+                    "default": "popular"
+                },
+                "minRating": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 10,
+                    "default": 0
+                },
+                "apiKey": {
+                    "type": "string",
+                    "default": "89aa5677b995a625e1b873ff38701414"
+                },
+                "yearFilter": {
+                    "type": ["integer", "string", "null"],
+                    "default": null
+                },
+                "genreFilter": {
+                    "type": "string",
+                    "default": ""
+                }
             }
         },
-
         "streamingSources": {
             "description": "List of additional streaming sources (reserved for future use).",
             "type": "array",
-            "items": { "type": "object" },
+            "items": {
+                "type": "object"
+            },
             "default": []
         },
         "cache": {
             "description": "Cache tuning parameters.",
             "type": "object",
             "properties": {
-                "maxSizeGB": { "type": "number", "minimum": 0, "default": 2 },
-                "minFreeDiskSpaceMB": { "type": "integer", "minimum": 0, "default": 750 },
-                "autoCleanup": { "type": "boolean", "default": true },
-                "cleanupIntervalMinutes": { "type": "integer", "minimum": 1, "default": 15 },
-                "maxAgeHours": { "type": "integer", "minimum": 1, "default": 168 }
+                "maxSizeGB": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 5
+                },
+                "minFreeDiskSpaceMB": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 750
+                },
+                "autoCleanup": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "cleanupIntervalMinutes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 15
+                },
+                "maxAgeHours": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 168
+                }
             }
         },
         "serverName": {
@@ -644,14 +743,14 @@
                     "description": "Time of day to run backups in HH:MM format (24-hour).",
                     "type": "string",
                     "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
-                    "default": "02:30"
+                    "default": "03:30"
                 },
                 "retention": {
                     "description": "Number of backup sets to retain (1-60).",
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 60,
-                    "default": 5
+                    "default": 10
                 }
             },
             "required": ["enabled", "time", "retention"],
