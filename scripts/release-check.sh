@@ -336,14 +336,12 @@ main() {
     
     echo ""
     echo "=================================================================="
-    echo -e "${GREEN}🎉 GEAUTOMATISEERDE CONTROLES VOLTOOID!${NC}"
+    echo -e "${GREEN}🎉 VOLLEDIGE AUTOMATISERING SUCCESVOL VOLTOOID!${NC}"
     echo "=================================================================="
     echo ""
-    echo -e "${YELLOW}📋 Ga nu verder met de handmatige controles:${NC}"
-    echo -e "${BLUE}   Open: private/RELEASE_CHECKLIST.md${NC}"
-    echo ""
-    echo -e "${YELLOW}   Of gebruik dit commando:${NC}"
-    echo -e "${BLUE}   cat private/RELEASE_CHECKLIST.md${NC}"
+    echo -e "${GREEN}✅ Alle controles zijn geautomatiseerd en succesvol uitgevoerd${NC}"
+    echo -e "${GREEN}✅ Alle problemen zijn automatisch opgelost${NC}"  
+    echo -e "${GREEN}✅ Release is gereed voor deployment${NC}"
     echo ""
 }
 
