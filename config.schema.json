@@ -81,7 +81,7 @@
                 "density": {
                     "type": "string",
                     "enum": ["low", "medium", "high", "ludicrous"],
-                    "default": "high",
+                    "default": "medium",
                     "description": "Grid density preset that influences number of rows/columns"
                 },
                 "refreshRate": {
@@ -115,7 +115,7 @@
                         "chromaticShift",
                         "mosaicShatter"
                     ],
-                    "default": "chromaticShift",
+                    "default": "fade",
                     "description": "Animation style used for grid updates"
                 },
                 "layoutVariant": {
@@ -143,7 +143,7 @@
                                 "heroSide": {
                                     "type": "string",
                                     "enum": ["left", "right"],
-                                    "default": "right"
+                                    "default": "left"
                                 },
                                 "heroRotationMinutes": {
                                     "type": "integer",
@@ -260,7 +260,7 @@
                                 },
                                 "showFlags": {
                                     "type": "boolean",
-                                    "default": true
+                                    "default": false
                                 },
                                 "style": {
                                     "type": "string",
@@ -278,7 +278,7 @@
                                 "showResolution": true,
                                 "showAudio": true,
                                 "showAspectRatio": true,
-                                "showFlags": true,
+                                "showFlags": false,
                                 "style": "subtle",
                                 "iconSet": "filled"
                             }
@@ -294,7 +294,7 @@
                             "showResolution": true,
                             "showAudio": true,
                             "showAspectRatio": true,
-                            "showFlags": true,
+                            "showFlags": false,
                             "style": "subtle",
                             "iconSet": "filled"
                         }
@@ -381,14 +381,10 @@
                         "showResolution": true,
                         "showAudio": true,
                         "showAspectRatio": true,
-                        "showFlags": true,
+                        "showFlags": false,
                         "style": "subtle",
                         "iconSet": "filled"
                     }
-                },
-                "ambilight": {
-                    "enabled": true,
-                    "strength": 60
                 },
                 "presets": {
                     "headerTexts": [
@@ -403,6 +399,10 @@
                         "Home Cinema",
                         "Feature Presentation"
                     ]
+                },
+                "ambilight": {
+                    "enabled": true,
+                    "strength": 60
                 }
             }
         },
@@ -411,23 +411,6 @@
             "type": "string",
             "enum": ["none", "kenburns", "fade", "slide"],
             "default": "kenburns"
-        },
-        "kenBurnsEffect": {
-            "description": "Legacy Ken Burns effect configuration (backward compatibility). Prefer using 'transitionEffect' where possible.",
-            "type": "object",
-            "properties": {
-                "enabled": {
-                    "type": "boolean",
-                    "default": true
-                },
-                "durationSeconds": {
-                    "type": "integer",
-                    "minimum": 5,
-                    "maximum": 60,
-                    "default": 20
-                }
-            },
-            "additionalProperties": false
         },
         "effectPauseTime": {
             "description": "Time to pause after effect completes before next transition in seconds (not applied to Ken Burns effect).",
@@ -622,12 +605,12 @@
                             "items": {
                                 "type": "string"
                             },
-                            "default": ["127.0.0.1", "10.255.0.0/16"]
+                            "default": ["127.0.0.1", "::1", "192.168.0.0/16"]
                         }
                     },
                     "additionalProperties": false,
                     "default": {
-                        "ipAllowList": ["127.0.0.1", "10.255.0.0/16"]
+                        "ipAllowList": ["127.0.0.1", "::1", "192.168.0.0/16"]
                     }
                 }
             }
@@ -652,7 +635,7 @@
                 },
                 "apiKey": {
                     "type": "string",
-                    "default": "89aa5677b995a625e1b873ff38701414"
+                    "default": ""
                 },
                 "yearFilter": {
                     "type": ["integer", "string", "null"],
@@ -755,6 +738,14 @@
             },
             "required": ["enabled", "time", "retention"],
             "additionalProperties": false
+        },
+        "testKeyConfig": {
+            "type": "string",
+            "default": "fromConfig"
+        },
+        "someInt": {
+            "type": "number",
+            "default": 42
         }
     },
     "required": [

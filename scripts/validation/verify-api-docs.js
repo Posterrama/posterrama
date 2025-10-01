@@ -161,7 +161,8 @@ aliasChecks.forEach(({ alias, target }) => {
 console.log('\n⚙️  SWAGGER CONFIGURATION');
 console.log('═'.repeat(50));
 try {
-    const swaggerConfig = require('../swagger.js');
+    const path = require('path');
+    const swaggerConfig = require(path.resolve(__dirname, '../../swagger.js'));
     console.log('✅ swagger.js loads successfully');
     console.log(`✅ OpenAPI version: ${swaggerConfig.openapi}`);
     console.log(`✅ Title: ${swaggerConfig.info?.title}`);
