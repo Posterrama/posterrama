@@ -75,8 +75,8 @@ function extractSwaggerDocs(swaggerFilePath) {
 function removeUnusedSwaggerEndpoints() {
     log('blue', '🔧 Auto-fixing Swagger documentation...');
 
-    const routes = extractRoutes('server.js');
-    const swaggerFilePath = 'swagger.js';
+    const routes = extractRoutes('../server.js');
+    const swaggerFilePath = '../swagger.js';
 
     if (!fs.existsSync(swaggerFilePath)) {
         log('yellow', '⚠️  swagger.js not found - skipping');

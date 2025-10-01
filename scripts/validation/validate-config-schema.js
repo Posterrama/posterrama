@@ -177,9 +177,9 @@ function validateSchemaStructure(schema) {
 console.log('🔍 Validating config.schema.json completeness...\n');
 
 // Load all files
-const config = loadJSONFile('config.json', 'Current config');
-const exampleConfig = loadJSONFile('config.example.json', 'Example config');
-const schema = loadJSONFile('config.schema.json', 'Config schema');
+const config = loadJSONFile('../config.json', 'Current config');
+const exampleConfig = loadJSONFile('../config.example.json', 'Example config');
+const schema = loadJSONFile('../config.schema.json', 'Config schema');
 
 if (!config || !exampleConfig || !schema) {
     process.exit(1);

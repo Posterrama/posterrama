@@ -226,8 +226,8 @@ function suggestUpdates() {
 // Main validation
 console.log('🔍 Validating example configuration files...\n');
 
-validateExampleEnv('config.example.env');
-validateExampleConfig('config.json', 'config.example.json', 'config.schema.json');
+validateExampleEnv('../config.example.env');
+validateExampleConfig('../config.json', '../config.example.json', '../config.schema.json');
 
 suggestUpdates();
 

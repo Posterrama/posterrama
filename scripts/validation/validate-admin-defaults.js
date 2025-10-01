@@ -140,9 +140,9 @@ function validateAgainstSchema(config, schemaFile) {
 console.log('🔍 Validating admin defaults for new installations...\n');
 
 // Check if files exist
-const configExampleFile = checkFile('config.example.json', 'Example config');
-const envExampleFile = checkFile('config.example.env', 'Example environment');
-const schemaFile = checkFile('config.schema.json', 'Config schema');
+const configExampleFile = checkFile('../config.example.json', 'Example config');
+const envExampleFile = checkFile('../config.example.env', 'Example environment');
+const schemaFile = checkFile('../config.schema.json', 'Config schema');
 
 if (!configExampleFile || !envExampleFile) {
     process.exit(1);

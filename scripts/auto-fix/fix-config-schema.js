@@ -120,9 +120,9 @@ function updateSchemaWithMissingProperties() {
     log('blue', '🔧 Auto-updating config.schema.json...');
 
     // Load files
-    const config = loadJSONFile('config.json', 'Current config');
-    const exampleConfig = loadJSONFile('config.example.json', 'Example config');
-    const schema = loadJSONFile('config.schema.json', 'Config schema');
+    const config = loadJSONFile('../config.json', 'Current config');
+    const exampleConfig = loadJSONFile('../config.example.json', 'Example config');
+    const schema = loadJSONFile('../config.schema.json', 'Config schema');
 
     if (!config || !exampleConfig || !schema) {
         return;
@@ -193,14 +193,45 @@ function updateSchemaWithMissingProperties() {
         }
     }
 
-    // Update defaults based on current config
+    // Update defaults using smart priority (example config for defaults, unless current config has better values)
     if (schema.properties) {
-        updateDefaults(config, schema.properties);
+        // Use example config as the primary source for defaults (it's the canonical reference)
+        updateDefaults(exampleConfig, schema.properties);
+    }
+
+    // Remove unused schema properties
+    function removeUnusedProperties(schemaProps, configObj, exampleObj, path = '') {
+        const keysToRemove = [];
+
+        for (const [key, value] of Object.entries(schemaProps)) {
+            const fullPath = path ? `${path}.${key}` : key;
+            const inConfig = configObj && Object.prototype.hasOwnProperty.call(configObj, key);
+            const inExample = exampleObj && Object.prototype.hasOwnProperty.call(exampleObj, key);
+
+            if (!inConfig && !inExample) {
+                keysToRemove.push(key);
+                log('yellow', `🗑️  Removing unused schema property: ${fullPath}`);
+                modified = true;
+                fixed++;
+            } else if (value && value.properties && typeof value === 'object') {
+                // Recursively check nested objects
+                const configNested = configObj && configObj[key];
+                const exampleNested = exampleObj && exampleObj[key];
+                removeUnusedProperties(value.properties, configNested, exampleNested, fullPath);
+            }
+        }
+
+        // Remove the marked properties
+        keysToRemove.forEach(key => delete schemaProps[key]);
+    }
+
+    if (schema.properties) {
+        removeUnusedProperties(schema.properties, config, exampleConfig);
     }
 
     if (modified) {
         // Write updated schema
-        fs.writeFileSync('config.schema.json', JSON.stringify(schema, null, 4));
+        fs.writeFileSync('../config.schema.json', JSON.stringify(schema, null, 4));
         log(
             'green',
             '✅ config.schema.json updated with missing properties and corrected defaults'

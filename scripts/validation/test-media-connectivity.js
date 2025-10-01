@@ -23,13 +23,13 @@ let tested = 0;
 
 function loadConfig() {
     try {
-        if (fs.existsSync('config.json')) {
-            const content = fs.readFileSync('config.json', 'utf8');
+        if (fs.existsSync('../config.json')) {
+            const content = fs.readFileSync('../config.json', 'utf8');
             return JSON.parse(content);
         }
         log('yellow', '⚠️  config.json not found, using example config for structure check');
-        if (fs.existsSync('config.example.json')) {
-            const content = fs.readFileSync('config.example.json', 'utf8');
+        if (fs.existsSync('../config.example.json')) {
+            const content = fs.readFileSync('../config.example.json', 'utf8');
             return JSON.parse(content);
         }
         log('red', '❌ No config files found');
@@ -44,8 +44,8 @@ function loadEnvVars() {
     const envVars = {};
 
     // Load from .env if it exists
-    if (fs.existsSync('.env')) {
-        const content = fs.readFileSync('.env', 'utf8');
+    if (fs.existsSync('../.env')) {
+        const content = fs.readFileSync('../.env', 'utf8');
         content.split('\n').forEach(line => {
             const [key, ...valueParts] = line.split('=');
             if (key && !line.startsWith('#')) {
