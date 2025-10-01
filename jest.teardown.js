@@ -20,14 +20,23 @@ module.exports = async () => {
     // Wait a moment for cleanup to complete
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Remove generated device store files from test runs
+    // Remove generated test files from test runs
     try {
         const fs = require('fs');
         const path = require('path');
         const root = path.join(__dirname);
         const entries = fs.readdirSync(root);
         for (const name of entries) {
+            // Clean up device test files
             if (name.startsWith('devices.test.') && name.endsWith('.json')) {
+                try {
+                    fs.unlinkSync(path.join(root, name));
+                } catch (_) {
+                    // ignore unlink failures
+                }
+            }
+            // Clean up groups test files
+            if (name.endsWith('.groups.test.json')) {
                 try {
                     fs.unlinkSync(path.join(root, name));
                 } catch (_) {
