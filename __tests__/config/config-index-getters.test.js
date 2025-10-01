@@ -1,5 +1,8 @@
 const path = require('path');
 
+// Set up required environment variables before any config loading
+process.env.PLEX_TOKEN = 'test-token';
+
 /**
  * Tests for config/index.js getter helpers to raise coverage on simple
  * precedence + parsing logic (get, getInt, getBool, defaults).
