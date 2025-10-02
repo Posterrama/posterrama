@@ -234,7 +234,7 @@ describe('Public API Endpoints Validation', () => {
                 );
                 expect(true).toBe(true); // Pass the test
             }
-        }, 30000); // Increased timeout to 30s for external HTTP request
+        }, 60000); // Increased timeout to 60s for external HTTP request (httpbin can be slow)
     });
 
     describe('GET /health', () => {
