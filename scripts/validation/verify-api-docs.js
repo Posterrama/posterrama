@@ -10,8 +10,8 @@ const fs = require('fs');
 
 console.log('🔍 API Documentation Completeness Verification\n');
 
-// Read server.js file
-const serverContent = fs.readFileSync('./server.js', 'utf8');
+// Read server.js file from the correct path
+const serverContent = fs.readFileSync('../server.js', 'utf8');
 
 // Extract all HTTP routes from server.js
 function extractRoutes(content) {
@@ -162,7 +162,7 @@ console.log('\n⚙️  SWAGGER CONFIGURATION');
 console.log('═'.repeat(50));
 try {
     const path = require('path');
-    const swaggerConfig = require(path.resolve('./swagger.js'));
+    const swaggerConfig = require(path.resolve('../swagger.js'));
     console.log('✅ swagger.js loads successfully');
     console.log(`✅ OpenAPI version: ${swaggerConfig.openapi}`);
     console.log(`✅ Title: ${swaggerConfig.info?.title}`);

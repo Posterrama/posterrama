@@ -166,7 +166,7 @@ quality_checks() {
     fi
     
     print_status "13d. API documentatie verificatie..."
-    API_OUTPUT=$((cd scripts && node validation/verify-api-docs.js))
+    API_OUTPUT=$(cd scripts && node validation/verify-api-docs.js)
     
     if echo "$API_OUTPUT" | grep -q "Excellent\|very comprehensive"; then
         print_success "API docs: Uitstekende coverage gevonden"
