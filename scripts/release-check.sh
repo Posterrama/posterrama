@@ -89,7 +89,7 @@ run_tests() {
     print_status "Huidige versie: $CURRENT_VERSION"
 
     print_status "3a. Media source connectiviteit testen..."
-    if node validation/test-media-connectivity.js 2>/dev/null; then
+    if (cd scripts && node validation/test-media-connectivity.js) 2>/dev/null; then
         print_success "Media sources: Alle geconfigureerde bronnen bereikbaar"
     else
         print_warning "Media sources: Connectiviteitsproblemen - handmatige controle vereist"
@@ -112,11 +112,11 @@ cleanup_files() {
     fi
 
     print_status "4a. Admin defaults voor nieuwe installaties..."
-    if node validation/validate-admin-defaults.js >/dev/null 2>&1; then
-        print_success "Admin defaults: Geschikt voor nieuwe installaties"
+    if (cd scripts && node validation/validate-admin-defaults.js) >/dev/null 2>&1; then
+        print_success "Admin defaults: Up-to-date"
     else
         print_status "🔧 Auto-fixing admin defaults..."
-        if node auto-fix/fix-admin-defaults.js >/dev/null 2>&1; then
+        if (cd scripts && node auto-fix/fix-admin-defaults.js) >/dev/null 2>&1; then
             print_success "Admin defaults: Automatisch gecorrigeerd"
         else
             print_error "Admin defaults: Auto-fix gefaald - handmatige interventie vereist"
@@ -166,19 +166,19 @@ quality_checks() {
     fi
     
     print_status "13d. API documentatie verificatie..."
-    API_OUTPUT=$(node scripts/validation/verify-api-docs.js)
+    API_OUTPUT=$((cd scripts && node validation/verify-api-docs.js))
     
     if echo "$API_OUTPUT" | grep -q "Excellent\|very comprehensive"; then
         print_success "API docs: Uitstekende coverage gevonden"
     else
-        print_warning "API docs: Mogelijk incomplete documentatie - run: node scripts/validation/verify-api-docs.js"
+        print_warning "API docs: Mogelijk incomplete documentatie - run: (cd scripts && node validation/verify-api-docs.js)"
     fi
     
     if echo "$API_OUTPUT" | grep -q "No unused documentation found"; then
         print_success "Swagger cleanup: Geen ongebruikte documentatie gevonden"
     else
         print_status "🔧 Auto-fixing Swagger documentation..."
-        if node auto-fix/fix-swagger-cleanup.js 2>/dev/null; then
+        if (cd scripts && node auto-fix/fix-swagger-cleanup.js) 2>/dev/null; then
             print_success "Swagger: Automatisch opgeruimd"
         else
             print_error "Swagger: Auto-fix gefaald - handmatige interventie vereist"
@@ -207,11 +207,11 @@ quality_checks() {
     fi
 
     print_status "13h. Config schema actueel controleren..."
-    if node validation/validate-config-schema.js >/dev/null 2>&1; then
+    if (cd scripts && node validation/validate-config-schema.js) >/dev/null 2>&1; then
         print_success "Config schema: Up-to-date"
     else
         print_status "🔧 Auto-fixing config schema..."
-        if node auto-fix/fix-config-schema.js >/dev/null 2>&1; then
+        if (cd scripts && node auto-fix/fix-config-schema.js) >/dev/null 2>&1; then
             print_success "Config schema: Automatisch bijgewerkt"
         else
             print_warning "Config schema: Auto-fix gefaald - handmatige controle vereist"
@@ -219,11 +219,11 @@ quality_checks() {
     fi
 
     print_status "13i. Example config bestanden controleren..."
-    if node validation/validate-example-configs.js >/dev/null 2>&1; then
+    if (cd scripts && node validation/validate-example-configs.js) >/dev/null 2>&1; then
         print_success "Example configs: Up-to-date"
     else
         print_status "🔧 Auto-fixing example configs..."
-        if node auto-fix/fix-admin-defaults.js >/dev/null 2>&1; then
+        if (cd scripts && node auto-fix/fix-admin-defaults.js) >/dev/null 2>&1; then
             print_success "Example configs: Automatisch bijgewerkt"
         else
             print_warning "Example configs: Auto-fix gefaald - handmatige controle vereist"
@@ -281,7 +281,7 @@ final_checks() {
         print_success "Package.json: Alle dependencies aanwezig"
     else
         print_status "🔧 Auto-fixing missing dependencies..."
-        if node auto-fix/fix-missing-dependencies.js 2>/dev/null; then
+        if (cd scripts && node auto-fix/fix-missing-dependencies.js) 2>/dev/null; then
             print_success "Dependencies: Automatisch geïnstalleerd en toegevoegd aan package.json"
         else
             print_error "Dependencies: Auto-fix gefaald - handmatige interventie vereist"
