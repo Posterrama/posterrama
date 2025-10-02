@@ -31,7 +31,9 @@ if (!fs.existsSync(configPath)) {
 }
 
 const Ajv = require('ajv');
-require('dotenv').config();
+// Use example env during tests, real .env otherwise
+const envFileToUse = process.env.NODE_ENV === 'test' ? exampleEnvPath : envPath;
+require('dotenv').config({ path: envFileToUse });
 
 // --- Schema Validation ---
 const ajv = new Ajv({ allErrors: true, allowUnionTypes: true }); // allowUnionTypes to support multi-type definitions
