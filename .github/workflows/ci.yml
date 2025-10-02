@@ -88,7 +88,18 @@ jobs:
                     "serverName": "Test Server",
                     "baseUrl": "http://localhost:3000",
                     "port": 3000,
-                    "mediaServers": [],
+                    "mediaServers": [
+                      {
+                        "name": "Test Plex Server",
+                        "type": "plex",
+                        "enabled": false,
+                        "hostname": "127.0.0.1",
+                        "port": 32400,
+                        "tokenEnvVar": "PLEX_TOKEN",
+                        "movieLibraryNames": [],
+                        "showLibraryNames": []
+                      }
+                    ],
                     "cache": {
                       "maxSizeGB": 1.5,
                       "minFreeDiskSpaceMB": 750,
