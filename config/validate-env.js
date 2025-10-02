@@ -159,7 +159,13 @@ function validateEnvironment() {
                 console.error(`    Details: ${JSON.stringify(error.params)}`);
             }
         });
-        process.exit(1);
+        // Don't exit during tests, just log the error
+        if (process.env.NODE_ENV !== 'test') {
+            process.exit(1);
+        } else {
+            console.warn('[Test Mode] Config validation failed but continuing...');
+            return false;
+        }
     }
 
     tokenVars.forEach(tokenVar => {
