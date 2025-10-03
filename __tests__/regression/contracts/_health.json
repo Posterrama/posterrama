@@ -1,0 +1,18 @@
+{
+    "endpoint": "/health",
+    "status": 200,
+    "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "present"
+    },
+    "bodyStructure": {
+        "status": "string",
+        "service": "string",
+        "version": "string",
+        "timestamp": "string",
+        "uptime": "number"
+    },
+    "timestamp": "2025-10-03T08:33:41.528Z",
+    "description": "Health check endpoint - monitoring depends on this",
+    "criticality": "CRITICAL"
+}

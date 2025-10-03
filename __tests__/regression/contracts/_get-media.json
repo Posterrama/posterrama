@@ -1,0 +1,15 @@
+{
+    "endpoint": "/get-media",
+    "status": 503,
+    "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "present"
+    },
+    "bodyStructure": {
+        "status": "string",
+        "error": "string"
+    },
+    "timestamp": "2025-10-03T08:33:41.518Z",
+    "description": "Main media endpoint - core functionality",
+    "criticality": "HIGH"
+}

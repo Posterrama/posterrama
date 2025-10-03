@@ -1,0 +1,18 @@
+{
+    "endpoint": "/devices/qr",
+    "status": 404,
+    "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "present"
+    },
+    "bodyStructure": {
+        "error": "string",
+        "timestamp": "string",
+        "path": "string",
+        "method": "string",
+        "requestId": "string"
+    },
+    "timestamp": "2025-10-03T08:33:41.565Z",
+    "description": "Device pairing QR code endpoint",
+    "criticality": "MEDIUM"
+}

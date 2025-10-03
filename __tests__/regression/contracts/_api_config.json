@@ -1,0 +1,20 @@
+{
+    "endpoint": "/api/config",
+    "status": 200,
+    "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "present"
+    },
+    "bodyStructure": {
+        "plex": {
+            "server": "string",
+            "token": "boolean"
+        },
+        "tmdb": {
+            "enabled": "boolean"
+        }
+    },
+    "timestamp": "2025-10-03T08:33:41.556Z",
+    "description": "Full configuration API - admin panel depends on this",
+    "criticality": "HIGH"
+}
