@@ -54,7 +54,7 @@
       "global": "number"
     }
   },
-  "timestamp": "2025-10-03T10:03:54.208Z",
+  "timestamp": "2025-10-03T10:18:23.331Z",
   "description": "Primary configuration endpoint - breaking changes affect all clients",
   "criticality": "HIGH"
 }
