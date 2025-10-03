@@ -749,7 +749,7 @@
               <i class="fas fa-server" aria-hidden="true"></i>
               <h2 style="margin:0;">Media Sources</h2>
             </div>
-            <div class="panel-subtitle">Connect and configure sources across Plex, Jellyfin and TMDB</div>
+            <div class="panel-subtitle">Connect and configure sources across Plex, Jellyfin, TMDB and Local Directory</div>
           </div>
           <div class="panel-actions"></div>
         </div>
@@ -770,6 +770,10 @@
             <label class="seg" id="seg-tmdb" role="tab" aria-controls="panel-tmdb" aria-checked="false">
               <input type="radio" name="sources.active" id="src-tmdb" value="tmdb" />
               <i class="fas fa-database"></i> TMDB
+            </label>
+            <label class="seg" id="seg-local" role="tab" aria-controls="panel-local" aria-checked="false">
+              <input type="radio" name="sources.active" id="src-local" value="local" />
+              <i class="fas fa-folder"></i> Local Directory
             </label>
             
           </div>
@@ -1394,6 +1398,165 @@
           </div>
             </div>
           </section>
+        </div>
+      </section>
+
+      <!-- Local Directory Panel -->
+      <section class="panel" id="panel-local">
+        <div class="actions-home" id="local-actions-home" hidden>
+          <span class="status-pill" id="local-status-pill-header" title="Local directory configuration status">Not configured</span>
+          <span class="status-pill" id="local-count-pill" title="Items from local directory in the current playlist">Items: —</span>
+          <button class="btn btn-icon btn-sm" id="btn-local-scan" title="Scan directory"><i class="fas fa-sync"></i></button>
+          <button class="btn btn-icon btn-sm" id="btn-local-browse" title="Browse directory"><i class="fas fa-folder-open"></i></button>
+          <label class="header-toggle" for="localDirectory.enabled" title="Enable local directory source">
+            <input type="checkbox" id="localDirectory.enabled" />
+            <span class="ht-switch" aria-hidden="true"></span>
+            <span class="ht-text">Enabled</span>
+          </label>
+          <button class="btn btn-primary btn-sm" id="btn-save-local" title="Save local directory settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
+        </div>
+        <div class="panel-content">
+          <div class="loading-overlay" aria-hidden="true">
+            <div class="glass"></div>
+            <div class="loader"><span class="spinner"></span></div>
+          </div>
+
+          <!-- Directory Configuration -->
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-folder"></i> Directory</div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="localDirectory.path">Directory Path</label>
+              <div class="input-group">
+                <input type="text" id="localDirectory.path" placeholder="/path/to/media" autocomplete="off" spellcheck="false">
+                <button class="btn btn-outline btn-sm" id="btn-browse-path" title="Browse for directory">
+                  <i class="fas fa-folder-open"></i>
+                </button>
+              </div>
+              <small class="form-help">Path to the directory containing your media files</small>
+            </div>
+            <div class="form-group">
+              <label for="localDirectory.watchDirectories">Watch for Changes</label>
+              <label class="checkbox">
+                <input type="checkbox" id="localDirectory.watchDirectories">
+                <span class="checkmark"></span>
+                <span>Auto-scan when files change</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- File Operations -->
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-upload"></i> File Operations</div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label>Upload Files</label>
+              <div class="file-drop-zone" id="local-file-drop">
+                <div class="file-drop-content">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                  <div class="file-drop-text">
+                    <div>Drop files here or <button type="button" class="btn-link" id="btn-select-files">select files</button></div>
+                    <small>Supports JPG, PNG, PDF and ZIP files</small>
+                  </div>
+                </div>
+                <input type="file" id="local-file-input" multiple accept="image/*,.pdf,.zip" hidden>
+              </div>
+              <div class="file-upload-progress" id="local-upload-progress" hidden>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="progress-text">Uploading...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Directory Browser -->
+          <div class="form-section">
+            <div class="section-title">
+              <i class="fas fa-list"></i> Directory Contents
+              <div class="section-actions">
+                <button class="btn btn-outline btn-sm" id="btn-refresh-browser">
+                  <i class="fas fa-refresh"></i> Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="local-browser" id="local-browser">
+            <div class="browser-toolbar">
+              <div class="breadcrumb" id="local-breadcrumb">
+                <button class="breadcrumb-item" data-path="/">
+                  <i class="fas fa-home"></i>
+                </button>
+              </div>
+              <div class="browser-actions">
+                <button class="btn btn-icon btn-sm" id="btn-create-folder" title="Create folder">
+                  <i class="fas fa-folder-plus"></i>
+                </button>
+                <button class="btn btn-icon btn-sm" id="btn-delete-selected" title="Delete selected" disabled>
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div class="browser-content" id="local-browser-content">
+              <div class="browser-empty">
+                <i class="fas fa-folder-open"></i>
+                <div>No directory configured</div>
+                <small>Set a directory path above to browse files</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Posterpack Generation -->
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-archive"></i> Posterpack Generation</div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="localDirectory.posterpacks.naming">Naming Pattern</label>
+              <div class="select-wrap has-caret">
+                <select id="localDirectory.posterpacks.naming">
+                  <option value="timestamp">Timestamp (default)</option>
+                  <option value="title">Title-based</option>
+                  <option value="custom">Custom pattern</option>
+                </select>
+                <span class="select-caret" aria-hidden="true">▾</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="localDirectory.posterpacks.compression">Compression Level</label>
+              <div class="select-wrap has-caret">
+                <select id="localDirectory.posterpacks.compression">
+                  <option value="fast">Fast (larger files)</option>
+                  <option value="balanced">Balanced</option>
+                  <option value="best">Best compression</option>
+                </select>
+                <span class="select-caret" aria-hidden="true">▾</span>
+              </div>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <button class="btn btn-primary" id="btn-generate-posterpack">
+                <i class="fas fa-archive"></i>
+                Generate Posterpack
+              </button>
+              <small class="form-help">Create a downloadable ZIP archive of all posters</small>
+            </div>
+          </div>
+
+          <!-- Job Status -->
+          <div class="form-section" id="local-jobs-section" hidden>
+            <div class="section-title">
+              <i class="fas fa-tasks"></i> Background Jobs
+              <div class="section-actions">
+                <button class="btn btn-outline btn-sm" id="btn-clear-completed-jobs">
+                  <i class="fas fa-broom"></i> Clear Completed
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="job-list" id="local-job-list"></div>
+
         </div>
       </section>
 

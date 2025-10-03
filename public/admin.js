@@ -6941,7 +6941,12 @@
             // Put all panels into non-loading state first
             list.forEach(p => p.classList.remove('is-loading'));
             list.forEach(p => {
-                if (p.id === 'panel-plex' || p.id === 'panel-jellyfin' || p.id === 'panel-tmdb') {
+                if (
+                    p.id === 'panel-plex' ||
+                    p.id === 'panel-jellyfin' ||
+                    p.id === 'panel-tmdb' ||
+                    p.id === 'panel-local'
+                ) {
                     p.hidden = p.id !== panelId;
                 } else {
                     p.hidden = true; // hide overview panel when selecting a specific source
@@ -7021,6 +7026,8 @@
                     } else if (panelId === 'panel-tmdb') {
                         window.admin2?.maybeFetchTmdbOnOpen?.();
                         window.admin2?.maybeFetchStreamingProvidersOnOpen?.();
+                    } else if (panelId === 'panel-local') {
+                        window.admin2?.initLocalDirectoryPanel?.();
                     }
                 } catch (_) {
                     /* no-op */
@@ -7074,6 +7081,7 @@
                         hash: '#jellyfin',
                     },
                     { id: 'seg-tmdb', val: 'tmdb', panel: 'panel-tmdb', hash: '#tmdb' },
+                    { id: 'seg-local', val: 'local', panel: 'panel-local', hash: '#local' },
                 ];
 
                 // Forward declaration so early calls can use a no-op until real impl assigned
@@ -18315,4 +18323,618 @@ if (!document.__niwDelegatedFallback) {
         }
     });
     obs.observe(modal, { attributes: true, attributeFilter: ['class'] });
+})();
+
+/* ============================================= */
+/* Local Directory Management */
+/* ============================================= */
+(function initLocalDirectory() {
+    let currentPath = '/';
+    const selectedFiles = new Set();
+    const uploadProgress = null;
+
+    // Initialize the local directory panel
+    window.admin2 = window.admin2 || {};
+    window.admin2.initLocalDirectoryPanel = function () {
+        console.log('Initializing local directory panel');
+
+        // Initialize file drop zone
+        initFileDropZone();
+
+        // Initialize directory browser
+        initDirectoryBrowser();
+
+        // Initialize event listeners
+        initEventListeners();
+
+        // Load initial state
+        loadLocalDirectoryConfig();
+    };
+
+    function initFileDropZone() {
+        const dropZone = document.getElementById('local-file-drop');
+        const fileInput = document.getElementById('local-file-input');
+        const selectBtn = document.getElementById('btn-select-files');
+
+        if (!dropZone || !fileInput || !selectBtn) return;
+
+        // File selection
+        selectBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelection);
+
+        // Drag and drop
+        dropZone.addEventListener('dragover', handleDragOver);
+        dropZone.addEventListener('dragleave', handleDragLeave);
+        dropZone.addEventListener('drop', handleFileDrop);
+    }
+
+    function initDirectoryBrowser() {
+        const refreshBtn = document.getElementById('btn-refresh-browser');
+        const createFolderBtn = document.getElementById('btn-create-folder');
+        const deleteBtn = document.getElementById('btn-delete-selected');
+
+        if (refreshBtn)
+            refreshBtn.addEventListener('click', () => loadDirectoryContents(currentPath));
+        if (createFolderBtn) createFolderBtn.addEventListener('click', createFolder);
+        if (deleteBtn) deleteBtn.addEventListener('click', deleteSelected);
+    }
+
+    function initEventListeners() {
+        // Save settings button
+        const saveBtn = document.getElementById('btn-save-local');
+        if (saveBtn) saveBtn.addEventListener('click', saveLocalDirectorySettings);
+
+        // Directory scan button
+        const scanBtn = document.getElementById('btn-local-scan');
+        if (scanBtn) scanBtn.addEventListener('click', scanDirectory);
+
+        // Browse button
+        const browseBtn = document.getElementById('btn-local-browse');
+        if (browseBtn)
+            browseBtn.addEventListener('click', () => loadDirectoryContents(currentPath));
+
+        // Posterpack generation
+        const generateBtn = document.getElementById('btn-generate-posterpack');
+        if (generateBtn) generateBtn.addEventListener('click', generatePosterpack);
+
+        // Clear completed jobs
+        const clearJobsBtn = document.getElementById('btn-clear-completed-jobs');
+        if (clearJobsBtn) clearJobsBtn.addEventListener('click', clearCompletedJobs);
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.classList.remove('drag-over');
+    }
+
+    function handleFileDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.classList.remove('drag-over');
+
+        const files = Array.from(e.dataTransfer.files);
+        uploadFiles(files);
+    }
+
+    function handleFileSelection(e) {
+        const files = Array.from(e.target.files);
+        uploadFiles(files);
+    }
+
+    function uploadFiles(files) {
+        if (files.length === 0) return;
+
+        const formData = new FormData();
+        files.forEach((file, index) => {
+            formData.append('files', file);
+        });
+
+        const progressContainer = document.getElementById('local-upload-progress');
+        const progressBar = progressContainer?.querySelector('.progress-fill');
+        const progressText = progressContainer?.querySelector('.progress-text');
+
+        if (progressContainer) {
+            progressContainer.hidden = false;
+            if (progressBar) progressBar.style.width = '0%';
+            if (progressText) progressText.textContent = 'Uploading...';
+        }
+
+        fetch('/api/local/upload', {
+            method: 'POST',
+            body: formData,
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (progressContainer) progressContainer.hidden = true;
+
+                if (result.success) {
+                    showNotification('Files uploaded successfully', 'success');
+                    loadDirectoryContents(currentPath);
+                } else {
+                    showNotification(result.message || 'Upload failed', 'error');
+                }
+            })
+            .catch(error => {
+                if (progressContainer) progressContainer.hidden = true;
+                console.error('Upload error:', error);
+                showNotification('Upload failed', 'error');
+            });
+    }
+
+    function loadDirectoryContents(path = '/') {
+        currentPath = path;
+        updateBreadcrumb(path);
+
+        const browserContent = document.getElementById('local-browser-content');
+        if (!browserContent) return;
+
+        // Show loading state
+        browserContent.innerHTML =
+            '<div class="browser-empty"><i class="fas fa-spinner fa-spin"></i><div>Loading...</div></div>';
+
+        fetch(`/api/local/browse?path=${encodeURIComponent(path)}`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    renderDirectoryContents(result.contents);
+                } else {
+                    browserContent.innerHTML = `
+                        <div class="browser-empty">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>Error loading directory</div>
+                            <small>${result.message || 'Unknown error'}</small>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Directory browse error:', error);
+                browserContent.innerHTML = `
+                    <div class="browser-empty">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>Failed to load directory</div>
+                        <small>Check console for details</small>
+                    </div>
+                `;
+            });
+    }
+
+    function renderDirectoryContents(contents) {
+        const browserContent = document.getElementById('local-browser-content');
+        if (!browserContent) return;
+
+        if (!contents || contents.length === 0) {
+            browserContent.innerHTML = `
+                <div class="browser-empty">
+                    <i class="fas fa-folder-open"></i>
+                    <div>Empty directory</div>
+                    <small>No files or folders found</small>
+                </div>
+            `;
+            return;
+        }
+
+        const listHTML = contents
+            .map(
+                item => `
+            <div class="browser-item" data-path="${item.path}" data-type="${item.type}">
+                <div class="browser-item-icon ${item.type}">
+                    <i class="fas fa-${item.type === 'directory' ? 'folder' : 'file'}"></i>
+                </div>
+                <div class="browser-item-name">${item.name}</div>
+                ${item.size ? `<div class="browser-item-size">${formatFileSize(item.size)}</div>` : ''}
+                <div class="browser-item-actions">
+                    ${
+                        item.type === 'directory'
+                            ? `<button class="btn btn-icon btn-sm" onclick="openDirectory('${item.path}')" title="Open"><i class="fas fa-folder-open"></i></button>`
+                            : `<button class="btn btn-icon btn-sm" onclick="previewFile('${item.path}')" title="Preview"><i class="fas fa-eye"></i></button>`
+                    }
+                    <button class="btn btn-icon btn-sm" onclick="deleteFile('${item.path}')" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `
+            )
+            .join('');
+
+        browserContent.innerHTML = `<div class="browser-list">${listHTML}</div>`;
+
+        // Add click handlers for selection
+        browserContent.querySelectorAll('.browser-item').forEach(item => {
+            item.addEventListener('click', e => {
+                if (e.target.closest('.browser-item-actions')) return;
+
+                const path = item.dataset.path;
+                const type = item.dataset.type;
+
+                if (type === 'directory') {
+                    openDirectory(path);
+                } else {
+                    toggleFileSelection(item, path);
+                }
+            });
+        });
+    }
+
+    function updateBreadcrumb(path) {
+        const breadcrumb = document.getElementById('local-breadcrumb');
+        if (!breadcrumb) return;
+
+        const parts = path.split('/').filter(Boolean);
+        let currentPath = '';
+
+        let html = `<button class="breadcrumb-item" onclick="openDirectory('/')"><i class="fas fa-home"></i></button>`;
+
+        parts.forEach((part, index) => {
+            currentPath += '/' + part;
+            html += `<span>/</span><button class="breadcrumb-item" onclick="openDirectory('${currentPath}')">${part}</button>`;
+        });
+
+        breadcrumb.innerHTML = html;
+    }
+
+    function toggleFileSelection(element, path) {
+        if (selectedFiles.has(path)) {
+            selectedFiles.delete(path);
+            element.classList.remove('selected');
+        } else {
+            selectedFiles.add(path);
+            element.classList.add('selected');
+        }
+
+        const deleteBtn = document.getElementById('btn-delete-selected');
+        if (deleteBtn) {
+            deleteBtn.disabled = selectedFiles.size === 0;
+        }
+    }
+
+    function scanDirectory() {
+        const scanBtn = document.getElementById('btn-local-scan');
+        if (scanBtn) {
+            scanBtn.disabled = true;
+            scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        }
+
+        fetch('/api/local/scan', { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('Directory scan completed', 'success');
+                    loadDirectoryContents(currentPath);
+                } else {
+                    showNotification(result.message || 'Scan failed', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Scan error:', error);
+                showNotification('Scan failed', 'error');
+            })
+            .finally(() => {
+                if (scanBtn) {
+                    scanBtn.disabled = false;
+                    scanBtn.innerHTML = '<i class="fas fa-sync"></i>';
+                }
+            });
+    }
+
+    function generatePosterpack() {
+        const generateBtn = document.getElementById('btn-generate-posterpack');
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        }
+
+        const namingPattern =
+            document.getElementById('localDirectory.posterpacks.naming')?.value || 'timestamp';
+        const compression =
+            document.getElementById('localDirectory.posterpacks.compression')?.value || 'balanced';
+
+        fetch('/api/local/generate-posterpack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ namingPattern, compression }),
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('Posterpack generation started', 'success');
+                    startJobPolling(result.jobId);
+                } else {
+                    showNotification(result.message || 'Generation failed', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Generation error:', error);
+                showNotification('Generation failed', 'error');
+            })
+            .finally(() => {
+                if (generateBtn) {
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fas fa-archive"></i> Generate Posterpack';
+                }
+            });
+    }
+
+    function startJobPolling(jobId) {
+        const interval = setInterval(() => {
+            fetch(`/api/local/job-status/${jobId}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        updateJobDisplay(result.job);
+
+                        if (result.job.status === 'completed' || result.job.status === 'failed') {
+                            clearInterval(interval);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Job status error:', error);
+                    clearInterval(interval);
+                });
+        }, 1000);
+    }
+
+    function updateJobDisplay(job) {
+        const jobsList = document.getElementById('local-job-list');
+        if (!jobsList) return;
+
+        let jobElement = jobsList.querySelector(`[data-job-id="${job.id}"]`);
+        if (!jobElement) {
+            jobElement = document.createElement('div');
+            jobElement.className = 'job-item';
+            jobElement.dataset.jobId = job.id;
+            jobsList.appendChild(jobElement);
+        }
+
+        jobElement.innerHTML = `
+            <div class="job-header">
+                <div class="job-title">${job.type || 'Unknown Job'}</div>
+                <div class="job-status ${job.status}">${job.status.toUpperCase()}</div>
+            </div>
+            ${
+                job.progress !== undefined
+                    ? `
+                <div class="job-progress">
+                    <div class="job-progress-bar">
+                        <div class="job-progress-fill" style="width: ${job.progress}%"></div>
+                    </div>
+                </div>
+            `
+                    : ''
+            }
+            <div class="job-details">
+                ${job.message || 'No details available'}
+                ${job.downloadUrl ? `<a href="${job.downloadUrl}" class="btn btn-outline btn-sm" style="margin-left: 10px;"><i class="fas fa-download"></i> Download</a>` : ''}
+            </div>
+        `;
+
+        // Show jobs section if hidden
+        const jobsSection = document.getElementById('local-jobs-section');
+        if (jobsSection && jobsSection.hidden) {
+            jobsSection.hidden = false;
+        }
+    }
+
+    function loadLocalDirectoryConfig() {
+        fetch('/get-config')
+            .then(response => response.json())
+            .then(config => {
+                if (config.localDirectory) {
+                    const cfg = config.localDirectory;
+
+                    // Update form fields
+                    const pathInput = document.getElementById('localDirectory.path');
+                    if (pathInput) pathInput.value = cfg.path || '';
+
+                    const watchInput = document.getElementById('localDirectory.watchDirectories');
+                    if (watchInput) watchInput.checked = cfg.watchDirectories || false;
+
+                    const enabledInput = document.getElementById('localDirectory.enabled');
+                    if (enabledInput) enabledInput.checked = cfg.enabled || false;
+
+                    // Update status pill
+                    const statusPill = document.getElementById('local-status-pill-header');
+                    if (statusPill) {
+                        statusPill.textContent =
+                            cfg.enabled && cfg.path ? 'Configured' : 'Not configured';
+                        statusPill.className = `status-pill ${cfg.enabled && cfg.path ? 'sp-success' : 'sp-disabled'}`;
+                    }
+
+                    // Load directory if configured
+                    if (cfg.enabled && cfg.path) {
+                        loadDirectoryContents('/');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Config load error:', error);
+            });
+    }
+
+    function saveLocalDirectorySettings() {
+        const saveBtn = document.getElementById('btn-save-local');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        }
+
+        const config = {
+            localDirectory: {
+                enabled: document.getElementById('localDirectory.enabled')?.checked || false,
+                path: document.getElementById('localDirectory.path')?.value || '',
+                watchDirectories:
+                    document.getElementById('localDirectory.watchDirectories')?.checked || false,
+                posterpacks: {
+                    naming:
+                        document.getElementById('localDirectory.posterpacks.naming')?.value ||
+                        'timestamp',
+                    compression:
+                        document.getElementById('localDirectory.posterpacks.compression')?.value ||
+                        'balanced',
+                },
+            },
+        };
+
+        fetch('/save-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config),
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('Local directory settings saved', 'success');
+                    loadLocalDirectoryConfig(); // Refresh the display
+                } else {
+                    showNotification(result.message || 'Save failed', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Save error:', error);
+                showNotification('Save failed', 'error');
+            })
+            .finally(() => {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i><span>Save Settings</span>';
+                }
+            });
+    }
+
+    // Utility functions
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function showNotification(message, type = 'info') {
+        // Use the existing notification system if available
+        if (window.notify) {
+            window.notify(message, { type });
+        } else {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+    }
+
+    // Global functions for HTML event handlers
+    window.openDirectory = function (path) {
+        loadDirectoryContents(path);
+    };
+
+    window.previewFile = function (path) {
+        // Simple preview - could be enhanced with modal
+        window.open(`/api/local/preview?path=${encodeURIComponent(path)}`, '_blank');
+    };
+
+    window.deleteFile = function (path) {
+        if (!confirm(`Are you sure you want to delete "${path}"?`)) return;
+
+        fetch('/api/local/cleanup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: [path] }),
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('File deleted successfully', 'success');
+                    loadDirectoryContents(currentPath);
+                } else {
+                    showNotification(result.message || 'Delete failed', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Delete error:', error);
+                showNotification('Delete failed', 'error');
+            });
+    };
+
+    function createFolder() {
+        const name = prompt('Enter folder name:');
+        if (!name) return;
+
+        const path = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
+
+        fetch('/api/local/create-folder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path }),
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('Folder created successfully', 'success');
+                    loadDirectoryContents(currentPath);
+                } else {
+                    showNotification(result.message || 'Create folder failed', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Create folder error:', error);
+                showNotification('Create folder failed', 'error');
+            });
+    }
+
+    function deleteSelected() {
+        if (selectedFiles.size === 0) return;
+
+        const paths = Array.from(selectedFiles);
+        if (!confirm(`Are you sure you want to delete ${paths.length} selected item(s)?`)) return;
+
+        fetch('/api/local/cleanup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths }),
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('Selected items deleted successfully', 'success');
+                    selectedFiles.clear();
+                    loadDirectoryContents(currentPath);
+                } else {
+                    showNotification(result.message || 'Delete failed', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Delete error:', error);
+                showNotification('Delete failed', 'error');
+            });
+    }
+
+    function clearCompletedJobs() {
+        fetch('/api/local/clear-jobs', { method: 'POST' })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('Completed jobs cleared', 'success');
+                    // Remove completed job elements
+                    const jobsList = document.getElementById('local-job-list');
+                    if (jobsList) {
+                        jobsList.querySelectorAll('.job-item').forEach(item => {
+                            const status = item.querySelector('.job-status');
+                            if (status && status.textContent === 'COMPLETED') {
+                                item.remove();
+                            }
+                        });
+                    }
+                } else {
+                    showNotification(result.message || 'Clear jobs failed', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Clear jobs error:', error);
+                showNotification('Clear jobs failed', 'error');
+            });
+    }
 })();
