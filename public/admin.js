@@ -18331,7 +18331,6 @@ if (!document.__niwDelegatedFallback) {
 (function initLocalDirectory() {
     let currentPath = '/';
     const selectedFiles = new Set();
-    const uploadProgress = null;
 
     // Initialize the local directory panel
     window.admin2 = window.admin2 || {};
@@ -18432,7 +18431,7 @@ if (!document.__niwDelegatedFallback) {
         if (files.length === 0) return;
 
         const formData = new FormData();
-        files.forEach((file, index) => {
+        files.forEach(file => {
             formData.append('files', file);
         });
 
@@ -18533,10 +18532,10 @@ if (!document.__niwDelegatedFallback) {
                 <div class="browser-item-actions">
                     ${
                         item.type === 'directory'
-                            ? `<button class="btn btn-icon btn-sm" onclick="openDirectory('${item.path}')" title="Open"><i class="fas fa-folder-open"></i></button>`
-                            : `<button class="btn btn-icon btn-sm" onclick="previewFile('${item.path}')" title="Preview"><i class="fas fa-eye"></i></button>`
+                            ? `<button class="btn btn-icon btn-sm btn-open-dir" data-path="${item.path}" title="Open"><i class="fas fa-folder-open"></i></button>`
+                            : `<button class="btn btn-icon btn-sm btn-preview" data-path="${item.path}" title="Preview"><i class="fas fa-eye"></i></button>`
                     }
-                    <button class="btn btn-icon btn-sm" onclick="deleteFile('${item.path}')" title="Delete"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-icon btn-sm btn-delete" data-path="${item.path}" title="Delete"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
         `
@@ -18554,11 +18553,31 @@ if (!document.__niwDelegatedFallback) {
                 const type = item.dataset.type;
 
                 if (type === 'directory') {
-                    openDirectory(path);
+                    loadDirectoryContents(path);
                 } else {
                     toggleFileSelection(item, path);
                 }
             });
+        });
+
+        // Add event delegation for action buttons
+        browserContent.addEventListener('click', e => {
+            const openBtn = e.target.closest('.btn-open-dir');
+            const previewBtn = e.target.closest('.btn-preview');
+            const deleteBtn = e.target.closest('.btn-delete');
+
+            if (openBtn) {
+                const path = openBtn.dataset.path;
+                loadDirectoryContents(path);
+            } else if (previewBtn) {
+                const path = previewBtn.dataset.path;
+                window.open(`/api/local/preview?path=${encodeURIComponent(path)}`, '_blank');
+            } else if (deleteBtn) {
+                const path = deleteBtn.dataset.path;
+                if (confirm(`Are you sure you want to delete "${path}"?`)) {
+                    deleteFile(path);
+                }
+            }
         });
     }
 
@@ -18569,14 +18588,24 @@ if (!document.__niwDelegatedFallback) {
         const parts = path.split('/').filter(Boolean);
         let currentPath = '';
 
-        let html = `<button class="breadcrumb-item" onclick="openDirectory('/')"><i class="fas fa-home"></i></button>`;
+        let html = `<button class="breadcrumb-item" data-path="/"><i class="fas fa-home"></i></button>`;
 
-        parts.forEach((part, index) => {
+        parts.forEach(part => {
             currentPath += '/' + part;
-            html += `<span>/</span><button class="breadcrumb-item" onclick="openDirectory('${currentPath}')">${part}</button>`;
+            html += `<span>/</span><button class="breadcrumb-item" data-path="${currentPath}">${part}</button>`;
         });
 
         breadcrumb.innerHTML = html;
+
+        // Add event delegation for breadcrumb navigation
+        breadcrumb.addEventListener('click', e => {
+            if (e.target.closest('.breadcrumb-item')) {
+                const path = e.target.closest('.breadcrumb-item').dataset.path;
+                if (path) {
+                    loadDirectoryContents(path);
+                }
+            }
+        });
     }
 
     function toggleFileSelection(element, path) {
@@ -18826,19 +18855,8 @@ if (!document.__niwDelegatedFallback) {
         }
     }
 
-    // Global functions for HTML event handlers
-    window.openDirectory = function (path) {
-        loadDirectoryContents(path);
-    };
-
-    window.previewFile = function (path) {
-        // Simple preview - could be enhanced with modal
-        window.open(`/api/local/preview?path=${encodeURIComponent(path)}`, '_blank');
-    };
-
-    window.deleteFile = function (path) {
-        if (!confirm(`Are you sure you want to delete "${path}"?`)) return;
-
+    // Internal helper function for file deletion
+    function deleteFile(path) {
         fetch('/api/local/cleanup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -18857,7 +18875,7 @@ if (!document.__niwDelegatedFallback) {
                 console.error('Delete error:', error);
                 showNotification('Delete failed', 'error');
             });
-    };
+    }
 
     function createFolder() {
         const name = prompt('Enter folder name:');
