@@ -413,52 +413,6 @@ if (config.localDirectory && config.localDirectory.enabled) {
     localDirectorySource = new LocalDirectorySource(config.localDirectory, logger);
     uploadMiddleware = createUploadMiddleware(config.localDirectory);
 
-    // Function to update job queue dependencies
-    function updateJobQueueDependencies() {
-        if (!jobQueue) return;
-
-        const sourceAdapters = {};
-        const httpClients = {};
-
-        // Set up Plex adapters
-        const enabledServers = config.mediaServers?.filter(s => s.enabled) || [];
-        for (const server of enabledServers) {
-            try {
-                if (server.type === 'plex' && plexClients[server.name]) {
-                    sourceAdapters.plex = new PlexSource(
-                        server,
-                        getPlexClient,
-                        processPlexItem,
-                        getPlexLibraries,
-                        shuffleArray,
-                        config.rottenTomatoesMinimumScore,
-                        isDebug
-                    );
-                    httpClients.plex = plexClients[server.name];
-                } else if (server.type === 'jellyfin' && jellyfinClients[server.name]) {
-                    sourceAdapters.jellyfin = new JellyfinSource(
-                        server,
-                        getJellyfinClient,
-                        processJellyfinItem,
-                        getJellyfinLibraries,
-                        shuffleArray,
-                        config.rottenTomatoesMinimumScore,
-                        isDebug
-                    );
-                    httpClients.jellyfin = jellyfinClients[server.name];
-                }
-            } catch (error) {
-                logger.warn(
-                    `Failed to set up job queue adapter for ${server.name}:`,
-                    error.message
-                );
-            }
-        }
-
-        jobQueue.setSourceAdapters(sourceAdapters);
-        jobQueue.setHttpClients(httpClients);
-    }
-
     // Set up initial (empty) dependencies
     const sourceAdapters = {};
     const httpClients = {};

@@ -1,7 +1,6 @@
 const path = require('path');
 const fs = require('fs-extra');
 const chokidar = require('chokidar');
-const JSZip = require('jszip');
 const mimeTypes = require('mime-types');
 const FileType = require('file-type');
 const logger = require('../utils/logger');
@@ -74,7 +73,7 @@ class LocalDirectorySource {
      * @param {number} count - Maximum number of items to return
      * @returns {Array} Array of media items
      */
-    async fetchMedia(libraryNames = [], type = 'poster', count = 50) {
+    async fetchMedia(_libraryNames = [], type = 'poster', count = 50) {
         if (!this.enabled) {
             logger.debug('LocalDirectorySource: Disabled, returning empty array');
             return [];
@@ -289,7 +288,7 @@ class LocalDirectorySource {
     generateCleanName(originalName) {
         return originalName
             .toLowerCase()
-            .replace(/[^a-z0-9\s\-]/g, '') // Remove special chars except spaces and hyphens
+            .replace(/[^a-z0-9\s-]/g, '') // Remove special chars except spaces and hyphens
             .replace(/\s+/g, '-') // Replace spaces with hyphens
             .replace(/-+/g, '-') // Replace multiple hyphens with single
             .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens

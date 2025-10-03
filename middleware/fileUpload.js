@@ -20,15 +20,14 @@ function generateCleanFilename(originalName) {
     const nameWithoutExt = parsed.name;
     const ext = parsed.ext;
 
-    // Clean the name part
+    // Clean filename
     const cleanName = nameWithoutExt
-        .toLowerCase()
-        .replace(/[^a-z0-9\s\-]/g, '') // Remove special chars except spaces and hyphens
-        .replace(/\s+/g, '-') // Replace spaces with hyphens
-        .replace(/-+/g, '-') // Replace multiple hyphens with single
-        .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+        .replace(/[<>:"/\\|?*]/g, '') // Remove invalid characters
+        .replace(/-+/g, '-') // Normalize hyphens
+        .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+        .trim();
 
-    return cleanName + ext.toLowerCase();
+    return (cleanName || 'file') + ext.toLowerCase();
 }
 
 /**
@@ -203,7 +202,7 @@ function createUploadMiddleware(config) {
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
  */
-async function handleUploadComplete(req, res, next) {
+async function handleUploadComplete(req, res, _next) {
     try {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({
@@ -416,7 +415,7 @@ function getMetadataPath(filePath) {
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
  */
-function handleUploadError(error, req, res, next) {
+function handleUploadError(error, req, res, _next) {
     logger.error('FileUpload: Upload error:', error);
 
     // Handle specific error types
