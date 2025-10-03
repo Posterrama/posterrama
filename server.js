@@ -7520,7 +7520,7 @@ app.get(
  *         required: false
  *         schema:
  *           type: string
- *           enum: [plex, jellyfin, tmdb]
+ *           enum: [plex, jellyfin, tmdb, local]
  *         description: Filter results to a single content source
  *     responses:
  *       200:
@@ -7561,6 +7561,10 @@ app.get(
                 if (norm === 'tmdb') {
                     // Include classic TMDB plus streaming-provider items fetched via TMDB
                     return s === 'tmdb' || key.startsWith('tmdb-') || !!it.tmdbId;
+                }
+                if (norm === 'local') {
+                    // Include local directory items
+                    return s === 'local' || key.startsWith('local-');
                 }
                 return s === norm;
             });
