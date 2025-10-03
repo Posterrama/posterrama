@@ -55,3 +55,4 @@ __tests__/regression/visual-diffs/
 
 # Generated release summaries
 regression-summary-*.md
+private/regression-summary-*.md

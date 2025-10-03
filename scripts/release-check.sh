@@ -370,7 +370,9 @@ collect_badge_info() {
     print_status "Node.js versie: $NODE_VERSION"
     
     print_status "Regressie test status samenvatten..."
-    REGRESSION_REPORT="regression-summary-$(date +%Y%m%d-%H%M%S).md"
+    # Ensure private directory exists
+    mkdir -p private
+    REGRESSION_REPORT="private/regression-summary-$(date +%Y%m%d-%H%M%S).md"
     cat > "$REGRESSION_REPORT" << EOF
 # Regressie Test Rapport - Release $(date +%Y-%m-%d)
 
