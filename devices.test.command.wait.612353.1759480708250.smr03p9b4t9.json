@@ -1,0 +1,21 @@
+[
+  {
+    "id": "c5b2d9e1-cb86-44b5-af26-e579a4b994c2",
+    "installId": "iid-wait-offline",
+    "hardwareId": "hw-wait-offline",
+    "secretHash": "sha256:968097ac186a881d0087f6f81fa04757f25e465b647e941ec66ae4b53fbe3274",
+    "name": "",
+    "location": "",
+    "tags": [],
+    "groups": [],
+    "createdAt": "2025-10-03T08:38:28.625Z",
+    "updatedAt": "2025-10-03T08:38:28.625Z",
+    "lastSeenAt": null,
+    "status": "unknown",
+    "clientInfo": {},
+    "settingsOverride": {},
+    "preset": "",
+    "currentState": {},
+    "pairing": {}
+  }
+]

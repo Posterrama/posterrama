@@ -12,7 +12,7 @@
         "method": "string",
         "requestId": "string"
     },
-    "timestamp": "2025-10-03T08:33:41.544Z",
+    "timestamp": "2025-10-03T08:38:21.122Z",
     "description": "Media sources configuration endpoint",
     "criticality": "MEDIUM"
 }

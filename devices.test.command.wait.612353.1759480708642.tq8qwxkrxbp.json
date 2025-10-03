@@ -1,0 +1,21 @@
+[
+  {
+    "id": "a5146f80-454e-4190-98c6-b7dca962141d",
+    "installId": "iid-wait-timeout",
+    "hardwareId": "hw-wait-timeout",
+    "secretHash": "sha256:5502dd39b1b06935c6663533234ba45f9ba1a53cb76eba575a0dfc8909a1148d",
+    "name": "",
+    "location": "",
+    "tags": [],
+    "groups": [],
+    "createdAt": "2025-10-03T08:38:28.934Z",
+    "updatedAt": "2025-10-03T08:38:28.934Z",
+    "lastSeenAt": null,
+    "status": "unknown",
+    "clientInfo": {},
+    "settingsOverride": {},
+    "preset": "",
+    "currentState": {},
+    "pairing": {}
+  }
+]

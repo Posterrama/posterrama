@@ -6,7 +6,7 @@
         "content-length": "present"
     },
     "bodyStructure": {},
-    "timestamp": "2025-10-03T08:33:41.774Z",
+    "timestamp": "2025-10-03T08:38:21.208Z",
     "description": "Image proxy error handling - fallback behavior",
     "criticality": "MEDIUM"
 }

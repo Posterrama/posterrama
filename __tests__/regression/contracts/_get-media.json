@@ -9,7 +9,7 @@
         "status": "string",
         "error": "string"
     },
-    "timestamp": "2025-10-03T08:33:41.518Z",
+    "timestamp": "2025-10-03T08:38:21.101Z",
     "description": "Main media endpoint - core functionality",
     "criticality": "HIGH"
 }
