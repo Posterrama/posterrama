@@ -344,6 +344,7 @@ const FIXED_LIMITS = Object.freeze({
 const PlexSource = require('./sources/plex');
 const JellyfinSource = require('./sources/jellyfin');
 const TMDBSource = require('./sources/tmdb');
+const LocalDirectorySource = require('./sources/local');
 // INTENTIONAL-TODO(new-source): If you add a new source adapter under sources/<name>.js, require it here
 // const MyNewSource = require('./sources/mynew');
 const deepMerge = require('./utils/deep-merge');
@@ -355,6 +356,9 @@ const { ApiError, NotFoundError } = require('./utils/errors.js');
 const ratingCache = require('./utils/rating-cache.js');
 // Device management bypass (IP allow list)
 const { deviceBypassMiddleware } = require('./middleware/deviceBypass');
+// Local directory support
+const JobQueue = require('./utils/job-queue');
+const { createUploadMiddleware } = require('./middleware/fileUpload');
 
 // Use process.env with a fallback to config.json
 const port = process.env.SERVER_PORT || config.serverPort || 4000;
@@ -397,6 +401,76 @@ app.use(deviceBypassMiddleware);
 
 // Initialize cache disk manager
 const cacheDiskManager = new CacheDiskManager(imageCacheDir, config.cache || {});
+
+// Initialize job queue for local directory operations
+let jobQueue = null;
+let localDirectorySource = null;
+let uploadMiddleware = null;
+
+// Initialize local directory support if enabled
+if (config.localDirectory && config.localDirectory.enabled) {
+    jobQueue = new JobQueue(config);
+    localDirectorySource = new LocalDirectorySource(config.localDirectory, logger);
+    uploadMiddleware = createUploadMiddleware(config.localDirectory);
+
+    // Function to update job queue dependencies
+    function updateJobQueueDependencies() {
+        if (!jobQueue) return;
+
+        const sourceAdapters = {};
+        const httpClients = {};
+
+        // Set up Plex adapters
+        const enabledServers = config.mediaServers?.filter(s => s.enabled) || [];
+        for (const server of enabledServers) {
+            try {
+                if (server.type === 'plex' && plexClients[server.name]) {
+                    sourceAdapters.plex = new PlexSource(
+                        server,
+                        getPlexClient,
+                        processPlexItem,
+                        getPlexLibraries,
+                        shuffleArray,
+                        config.rottenTomatoesMinimumScore,
+                        isDebug
+                    );
+                    httpClients.plex = plexClients[server.name];
+                } else if (server.type === 'jellyfin' && jellyfinClients[server.name]) {
+                    sourceAdapters.jellyfin = new JellyfinSource(
+                        server,
+                        getJellyfinClient,
+                        processJellyfinItem,
+                        getJellyfinLibraries,
+                        shuffleArray,
+                        config.rottenTomatoesMinimumScore,
+                        isDebug
+                    );
+                    httpClients.jellyfin = jellyfinClients[server.name];
+                }
+            } catch (error) {
+                logger.warn(
+                    `Failed to set up job queue adapter for ${server.name}:`,
+                    error.message
+                );
+            }
+        }
+
+        jobQueue.setSourceAdapters(sourceAdapters);
+        jobQueue.setHttpClients(httpClients);
+    }
+
+    // Set up initial (empty) dependencies
+    const sourceAdapters = {};
+    const httpClients = {};
+    jobQueue.setSourceAdapters(sourceAdapters);
+    jobQueue.setHttpClients(httpClients);
+
+    logger.info('Local directory support initialized', {
+        rootPath: config.localDirectory.rootPath,
+        jobQueue: !!jobQueue,
+        localSource: !!localDirectorySource,
+    });
+}
 
 // Metrics system
 const metricsManager = require('./utils/metrics');
@@ -5647,7 +5721,7 @@ function processJellyfinItem(item, serverConfig, client) {
 async function getPlaylistMedia() {
     let allMedia = [];
     // Track latest lastFetch per source type during this aggregation
-    const latestLastFetch = { plex: null, jellyfin: null, tmdb: null };
+    const latestLastFetch = { plex: null, jellyfin: null, tmdb: null, local: null };
     const enabledServers = config.mediaServers.filter(s => s.enabled);
 
     // Process Plex/Media Servers with error resilience
@@ -5802,6 +5876,53 @@ async function getPlaylistMedia() {
         allMedia = allMedia.concat(tmdbMedia);
     }
 
+    // Process Local Directory Source
+    if (config.localDirectory && config.localDirectory.enabled && localDirectorySource) {
+        if (isDebug) logger.debug(`[Debug] Fetching from Local Directory source`);
+
+        try {
+            // Determine limits for local directory content
+            const localMovieLimit = FIXED_LIMITS.TMDB_MOVIES; // Use same limit as TMDB
+            const localShowLimit = FIXED_LIMITS.TMDB_TV;
+
+            const [localMovies, localShows] = await Promise.all([
+                localDirectorySource.fetchMedia([''], 'movie', localMovieLimit),
+                localDirectorySource.fetchMedia([''], 'show', localShowLimit),
+            ]);
+
+            // Update lastFetch for local directory
+            try {
+                const m = localDirectorySource.getMetrics();
+                const lf = m?.lastFetch ? new Date(m.lastFetch) : null;
+                if (lf && !isNaN(lf)) {
+                    latestLastFetch.local = Math.max(latestLastFetch.local || 0, lf.getTime());
+                }
+            } catch (_) {
+                // Non-fatal
+            }
+
+            const localMedia = localMovies.concat(localShows);
+
+            if (isDebug)
+                logger.debug(`[Debug] Fetched ${localMedia.length} items from Local Directory.`);
+
+            if (localMedia.length > 0) {
+                logger.info(
+                    `[Local Directory] Successfully fetched ${localMedia.length} items (${localMovies.length} movies, ${localShows.length} shows)`
+                );
+                allMedia = allMedia.concat(localMedia);
+            } else {
+                logger.info('[Local Directory] No media found in local directories');
+            }
+        } catch (error) {
+            logger.error('[Local Directory] Failed to fetch media:', {
+                error: error.message,
+                rootPath: config.localDirectory.rootPath,
+            });
+            // Continue with other sources
+        }
+    }
+
     // Process Streaming Sources
     if (config.streamingSources && Array.isArray(config.streamingSources)) {
         for (const streamingConfig of config.streamingSources) {
@@ -5856,6 +5977,7 @@ async function getPlaylistMedia() {
         if (latestLastFetch.plex) global.sourceLastFetch.plex = latestLastFetch.plex;
         if (latestLastFetch.jellyfin) global.sourceLastFetch.jellyfin = latestLastFetch.jellyfin;
         if (latestLastFetch.tmdb) global.sourceLastFetch.tmdb = latestLastFetch.tmdb;
+        if (latestLastFetch.local) global.sourceLastFetch.local = latestLastFetch.local;
     } catch (_) {
         /* capture lastFetch best-effort */
     }
@@ -6963,6 +7085,462 @@ app.get(
         }
         res.json(safeObjToSend);
     }
+);
+
+// --- Local Directory API Endpoints ---
+
+/**
+ * @swagger
+ * /api/local/browse:
+ *   get:
+ *     summary: Browse local directory structure
+ *     description: Get directory contents and file information for local media management
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: query
+ *         name: path
+ *         schema:
+ *           type: string
+ *         description: Relative path to browse (defaults to root)
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [all, directories, files, media]
+ *         description: Filter results by type
+ *     responses:
+ *       200:
+ *         description: Directory contents
+ *       404:
+ *         description: Directory not found
+ *       500:
+ *         description: Server error
+ */
+app.get(
+    '/api/local/browse',
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+
+        const { path: relativePath = '', type = 'all' } = req.query;
+
+        try {
+            const contents = await localDirectorySource.browseDirectory(relativePath, type);
+            res.json(contents);
+        } catch (error) {
+            logger.error('Local directory browse error:', error);
+            if (error.code === 'ENOENT') {
+                res.status(404).json({ error: 'Directory not found' });
+            } else {
+                res.status(500).json({ error: error.message });
+            }
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/local/upload:
+ *   post:
+ *     summary: Upload media files to local directory
+ *     description: Upload one or more media files with automatic organization
+ *     tags: ['Local Directory']
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *               targetPath:
+ *                 type: string
+ *                 description: Target directory path
+ *     responses:
+ *       200:
+ *         description: Upload successful
+ *       400:
+ *         description: Invalid request or files
+ *       500:
+ *         description: Upload failed
+ */
+app.post('/api/local/upload', (req, res) => {
+    if (!config.localDirectory?.enabled || !uploadMiddleware) {
+        return res.status(404).json({ error: 'Local directory support not enabled' });
+    }
+
+    uploadMiddleware(req, res, err => {
+        if (err) {
+            logger.error('Upload error:', err);
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({ error: 'File size too large' });
+            } else if (err.code === 'INVALID_FILE_TYPE') {
+                return res.status(400).json({ error: err.message });
+            }
+            return res.status(500).json({ error: err.message });
+        }
+
+        const uploadedFiles = req.files || [];
+        const targetPath = req.body.targetPath || '';
+
+        logger.info(`Upload completed: ${uploadedFiles.length} files to ${targetPath}`);
+
+        res.json({
+            success: true,
+            uploadedFiles: uploadedFiles.map(file => ({
+                filename: file.filename,
+                originalName: file.originalname,
+                size: file.size,
+                path: file.path,
+            })),
+            targetPath: targetPath,
+        });
+    });
+});
+
+/**
+ * @swagger
+ * /api/local/cleanup:
+ *   post:
+ *     summary: Clean up local directory
+ *     description: Remove empty directories, duplicate files, and orphaned metadata
+ *     tags: ['Local Directory']
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               operations:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [empty-directories, duplicates, orphaned-metadata, unused-images]
+ *                 description: Cleanup operations to perform
+ *               dryRun:
+ *                 type: boolean
+ *                 description: Perform dry run without making changes
+ *     responses:
+ *       200:
+ *         description: Cleanup completed
+ *       400:
+ *         description: Invalid request
+ *       500:
+ *         description: Cleanup failed
+ */
+app.post(
+    '/api/local/cleanup',
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+
+        const { operations = [], dryRun = false } = req.body;
+
+        if (!Array.isArray(operations) || operations.length === 0) {
+            return res.status(400).json({ error: 'No cleanup operations specified' });
+        }
+
+        try {
+            const results = await localDirectorySource.cleanupDirectory(operations, dryRun);
+            res.json({
+                success: true,
+                dryRun: dryRun,
+                results: results,
+            });
+        } catch (error) {
+            logger.error('Cleanup error:', error);
+            res.status(500).json({ error: error.message });
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/local/generate-posterpack:
+ *   post:
+ *     summary: Generate posterpack from media servers
+ *     description: Create ZIP archives of posters and metadata from Plex/Jellyfin libraries
+ *     tags: ['Local Directory']
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [sourceType, libraryIds]
+ *             properties:
+ *               sourceType:
+ *                 type: string
+ *                 enum: [plex, jellyfin]
+ *                 description: Source media server type
+ *               libraryIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of library IDs to process
+ *               options:
+ *                 type: object
+ *                 description: Generation options
+ *                 properties:
+ *                   includeAssets:
+ *                     type: object
+ *                     description: Asset types to include
+ *                   outputNaming:
+ *                     type: string
+ *                     description: Output filename template
+ *     responses:
+ *       200:
+ *         description: Generation job started
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Local directory or job queue not available
+ *       500:
+ *         description: Generation failed to start
+ */
+app.post(
+    '/api/local/generate-posterpack',
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !jobQueue) {
+            return res
+                .status(404)
+                .json({ error: 'Local directory support or job queue not available' });
+        }
+
+        const { sourceType, libraryIds, options = {} } = req.body;
+
+        if (!sourceType || !libraryIds || !Array.isArray(libraryIds)) {
+            return res.status(400).json({ error: 'sourceType and libraryIds array are required' });
+        }
+
+        if (!['plex', 'jellyfin'].includes(sourceType)) {
+            return res.status(400).json({ error: 'sourceType must be plex or jellyfin' });
+        }
+
+        try {
+            const jobId = await jobQueue.addPosterpackGenerationJob(
+                sourceType,
+                libraryIds,
+                options
+            );
+
+            res.json({
+                success: true,
+                jobId: jobId,
+                message: 'Posterpack generation job started',
+                sourceType: sourceType,
+                libraryCount: libraryIds.length,
+            });
+        } catch (error) {
+            logger.error('Posterpack generation error:', error);
+            res.status(500).json({ error: error.message });
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/local/jobs/{jobId}:
+ *   get:
+ *     summary: Get job status and progress
+ *     description: Retrieve detailed information about a specific background job
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: path
+ *         name: jobId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID
+ *     responses:
+ *       200:
+ *         description: Job information
+ *       404:
+ *         description: Job not found
+ */
+app.get('/api/local/jobs/:jobId', (req, res) => {
+    if (!jobQueue) {
+        return res.status(404).json({ error: 'Job queue not available' });
+    }
+
+    const { jobId } = req.params;
+    const job = jobQueue.getJob(jobId);
+
+    if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+    }
+
+    res.json(job);
+});
+
+/**
+ * @swagger
+ * /api/local/jobs:
+ *   get:
+ *     summary: List all jobs
+ *     description: Get list of all background jobs with optional status filtering
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [queued, running, completed, failed, cancelled]
+ *         description: Filter jobs by status
+ *     responses:
+ *       200:
+ *         description: List of jobs
+ */
+app.get('/api/local/jobs', (req, res) => {
+    if (!jobQueue) {
+        return res.status(404).json({ error: 'Job queue not available' });
+    }
+
+    const { status } = req.query;
+    const jobs = jobQueue.getAllJobs(status);
+
+    res.json({
+        jobs: jobs,
+        statistics: jobQueue.getStatistics(),
+    });
+});
+
+/**
+ * @swagger
+ * /api/local/jobs/{jobId}/cancel:
+ *   post:
+ *     summary: Cancel a queued job
+ *     description: Cancel a job that is currently in the queue (not yet running)
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: path
+ *         name: jobId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID to cancel
+ *     responses:
+ *       200:
+ *         description: Job cancelled successfully
+ *       400:
+ *         description: Job cannot be cancelled (not queued)
+ *       404:
+ *         description: Job not found
+ */
+app.post('/api/local/jobs/:jobId/cancel', (req, res) => {
+    if (!jobQueue) {
+        return res.status(404).json({ error: 'Job queue not available' });
+    }
+
+    const { jobId } = req.params;
+    const cancelled = jobQueue.cancelJob(jobId);
+
+    if (cancelled) {
+        res.json({ success: true, message: 'Job cancelled successfully' });
+    } else {
+        const job = jobQueue.getJob(jobId);
+        if (!job) {
+            res.status(404).json({ error: 'Job not found' });
+        } else {
+            res.status(400).json({
+                error: 'Job cannot be cancelled',
+                status: job.status,
+            });
+        }
+    }
+});
+
+/**
+ * @swagger
+ * /api/local/metadata:
+ *   get:
+ *     summary: Get metadata for local media files
+ *     description: Retrieve or generate metadata for files in the local directory
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: query
+ *         name: path
+ *         schema:
+ *           type: string
+ *         description: File or directory path
+ *       - in: query
+ *         name: refresh
+ *         schema:
+ *           type: boolean
+ *         description: Force refresh metadata from external sources
+ *     responses:
+ *       200:
+ *         description: Metadata information
+ *       404:
+ *         description: File not found or no metadata available
+ *       500:
+ *         description: Metadata retrieval failed
+ */
+app.get(
+    '/api/local/metadata',
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+
+        const { path: filePath = '', refresh = false } = req.query;
+
+        try {
+            const metadata = await localDirectorySource.getFileMetadata(filePath, refresh);
+            res.json(metadata);
+        } catch (error) {
+            logger.error('Metadata retrieval error:', error);
+            if (error.code === 'ENOENT') {
+                res.status(404).json({ error: 'File not found' });
+            } else {
+                res.status(500).json({ error: error.message });
+            }
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/local/stats:
+ *   get:
+ *     summary: Get local directory statistics
+ *     description: Retrieve usage statistics and summary information
+ *     tags: ['Local Directory']
+ *     responses:
+ *       200:
+ *         description: Directory statistics
+ *       404:
+ *         description: Local directory support not enabled
+ */
+app.get(
+    '/api/local/stats',
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+
+        try {
+            const stats = await localDirectorySource.getDirectoryStats();
+            const jobStats = jobQueue ? jobQueue.getStatistics() : null;
+
+            res.json({
+                directory: stats,
+                jobs: jobStats,
+            });
+        } catch (error) {
+            logger.error('Stats retrieval error:', error);
+            res.status(500).json({ error: error.message });
+        }
+    })
 );
 
 // --- Device bypass status endpoint (public) ---
