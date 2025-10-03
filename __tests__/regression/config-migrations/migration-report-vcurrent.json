@@ -1,0 +1,705 @@
+{
+  "version": "current",
+  "timestamp": "2025-10-03T10:03:41.370Z",
+  "results": {
+    "minimal": {
+      "oldConfigValid": false,
+      "oldConfigErrors": [
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "backgroundRefreshMinutes"
+          },
+          "message": "must have required property 'backgroundRefreshMinutes'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showClearLogo"
+          },
+          "message": "must have required property 'showClearLogo'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showRottenTomatoes"
+          },
+          "message": "must have required property 'showRottenTomatoes'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "rottenTomatoesMinimumScore"
+          },
+          "message": "must have required property 'rottenTomatoesMinimumScore'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showPoster"
+          },
+          "message": "must have required property 'showPoster'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showMetadata"
+          },
+          "message": "must have required property 'showMetadata'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "clockWidget"
+          },
+          "message": "must have required property 'clockWidget'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "transitionEffect"
+          },
+          "message": "must have required property 'transitionEffect'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "effectPauseTime"
+          },
+          "message": "must have required property 'effectPauseTime'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "mediaServers"
+          },
+          "message": "must have required property 'mediaServers'"
+        }
+      ],
+      "migrationValid": false,
+      "migrationErrors": [
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "backgroundRefreshMinutes"
+          },
+          "message": "must have required property 'backgroundRefreshMinutes'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showClearLogo"
+          },
+          "message": "must have required property 'showClearLogo'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showRottenTomatoes"
+          },
+          "message": "must have required property 'showRottenTomatoes'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "rottenTomatoesMinimumScore"
+          },
+          "message": "must have required property 'rottenTomatoesMinimumScore'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showPoster"
+          },
+          "message": "must have required property 'showPoster'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showMetadata"
+          },
+          "message": "must have required property 'showMetadata'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "clockWidget"
+          },
+          "message": "must have required property 'clockWidget'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "transitionEffect"
+          },
+          "message": "must have required property 'transitionEffect'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "effectPauseTime"
+          },
+          "message": "must have required property 'effectPauseTime'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "mediaServers"
+          },
+          "message": "must have required property 'mediaServers'"
+        }
+      ],
+      "migratedConfig": {
+        "transitionIntervalSeconds": 10
+      },
+      "needsMigration": false
+    },
+    "maximal": {
+      "oldConfigValid": true,
+      "oldConfigErrors": [],
+      "migrationValid": true,
+      "migrationErrors": [],
+      "migratedConfig": {
+        "transitionIntervalSeconds": 10,
+        "backgroundRefreshMinutes": 60,
+        "showClearLogo": true,
+        "showRottenTomatoes": true,
+        "rottenTomatoesMinimumScore": 0,
+        "showPoster": true,
+        "showMetadata": true,
+        "clockWidget": true,
+        "clockTimezone": "auto",
+        "clockFormat": "24h",
+        "wallartMode": {
+          "enabled": false,
+          "density": "medium",
+          "refreshRate": 6,
+          "randomness": 3,
+          "animationType": "fade",
+          "layoutVariant": "heroGrid",
+          "itemsPerScreen": 30,
+          "columns": 6,
+          "transitionInterval": 30,
+          "layoutSettings": {
+            "heroGrid": {
+              "heroSide": "left",
+              "heroRotationMinutes": 10,
+              "biasAmbientToHero": true
+            }
+          },
+          "ambientGradient": false,
+          "autoRefresh": true
+        },
+        "cinemaMode": false,
+        "cinemaOrientation": "auto",
+        "cinema": {
+          "header": {
+            "enabled": true,
+            "text": "Now Playing",
+            "style": "classic"
+          },
+          "footer": {
+            "enabled": true,
+            "type": "specs",
+            "marqueeText": "Feature Presentation",
+            "marqueeStyle": "classic",
+            "specs": {
+              "showResolution": true,
+              "showAudio": true,
+              "showAspectRatio": true,
+              "showFlags": false,
+              "style": "subtle",
+              "iconSet": "filled"
+            }
+          },
+          "presets": {
+            "headerTexts": [
+              "Coming Soon",
+              "Now Playing",
+              "Home Cinema",
+              "Feature Presentation"
+            ],
+            "footerTexts": [
+              "Coming Soon",
+              "Now Playing",
+              "Home Cinema",
+              "Feature Presentation"
+            ]
+          },
+          "ambilight": {
+            "enabled": true,
+            "strength": 60
+          }
+        },
+        "transitionEffect": "kenburns",
+        "effectPauseTime": 3,
+        "uiScaling": {
+          "content": 100,
+          "clearlogo": 100,
+          "clock": 100,
+          "global": 100
+        },
+        "mediaServers": [
+          {
+            "name": "Plex Server",
+            "type": "plex",
+            "enabled": false,
+            "hostname": "127.0.0.1",
+            "port": 32400,
+            "tokenEnvVar": "PLEX_TOKEN",
+            "movieLibraryNames": [],
+            "showLibraryNames": [],
+            "recentlyAddedOnly": false,
+            "recentlyAddedDays": 30,
+            "ratingFilter": [],
+            "genreFilter": "",
+            "qualityFilter": ""
+          },
+          {
+            "name": "Jellyfin Server",
+            "type": "jellyfin",
+            "enabled": false,
+            "hostname": "127.0.0.1",
+            "port": 8096,
+            "tokenEnvVar": "JELLYFIN_API_KEY",
+            "movieLibraryNames": [],
+            "showLibraryNames": [],
+            "recentlyAddedOnly": false,
+            "recentlyAddedDays": 30,
+            "ratingFilter": [],
+            "genreFilter": "",
+            "qualityFilter": "",
+            "ratingFilters": {
+              "minCommunityRating": 0,
+              "allowedOfficialRatings": [],
+              "minUserRating": 0
+            }
+          }
+        ],
+        "tmdbSource": {
+          "enabled": false,
+          "category": "popular",
+          "minRating": 0,
+          "apiKey": "",
+          "yearFilter": null,
+          "genreFilter": ""
+        },
+        "streamingSources": [],
+        "siteServer": {
+          "enabled": true,
+          "port": 4001
+        },
+        "deviceMgmt": {
+          "enabled": true,
+          "bypass": {
+            "ipAllowList": [
+              "127.0.0.1",
+              "::1",
+              "192.168.0.0/16"
+            ]
+          }
+        },
+        "cache": {
+          "maxSizeGB": 2,
+          "minFreeDiskSpaceMB": 750,
+          "autoCleanup": true,
+          "cleanupIntervalMinutes": 15,
+          "maxAgeHours": 168
+        },
+        "serverName": "Your Server Name",
+        "baseUrl": "http://localhost:4000",
+        "port": 4000,
+        "syncEnabled": true,
+        "syncAlignMaxDelayMs": 1200,
+        "serverPort": 4000,
+        "plexClientOptions": {},
+        "backups": {
+          "enabled": true,
+          "time": "03:30",
+          "retention": 10
+        },
+        "testKeyConfig": "fromConfig",
+        "someInt": 42
+      },
+      "needsMigration": false
+    },
+    "legacy_v2_5": {
+      "oldConfigValid": false,
+      "oldConfigErrors": [
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "backgroundRefreshMinutes"
+          },
+          "message": "must have required property 'backgroundRefreshMinutes'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showClearLogo"
+          },
+          "message": "must have required property 'showClearLogo'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showRottenTomatoes"
+          },
+          "message": "must have required property 'showRottenTomatoes'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "rottenTomatoesMinimumScore"
+          },
+          "message": "must have required property 'rottenTomatoesMinimumScore'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "clockWidget"
+          },
+          "message": "must have required property 'clockWidget'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "transitionEffect"
+          },
+          "message": "must have required property 'transitionEffect'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "effectPauseTime"
+          },
+          "message": "must have required property 'effectPauseTime'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "mediaServers"
+          },
+          "message": "must have required property 'mediaServers'"
+        }
+      ],
+      "migrationValid": false,
+      "migrationErrors": [
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "backgroundRefreshMinutes"
+          },
+          "message": "must have required property 'backgroundRefreshMinutes'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showClearLogo"
+          },
+          "message": "must have required property 'showClearLogo'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "showRottenTomatoes"
+          },
+          "message": "must have required property 'showRottenTomatoes'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "rottenTomatoesMinimumScore"
+          },
+          "message": "must have required property 'rottenTomatoesMinimumScore'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "clockWidget"
+          },
+          "message": "must have required property 'clockWidget'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "transitionEffect"
+          },
+          "message": "must have required property 'transitionEffect'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "effectPauseTime"
+          },
+          "message": "must have required property 'effectPauseTime'"
+        },
+        {
+          "instancePath": "",
+          "schemaPath": "#/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "mediaServers"
+          },
+          "message": "must have required property 'mediaServers'"
+        }
+      ],
+      "migratedConfig": {
+        "transitionIntervalSeconds": 15,
+        "showPoster": true,
+        "showMetadata": false,
+        "legacyShowAging": true
+      },
+      "needsMigration": false
+    },
+    "future_v2_7": {
+      "oldConfigValid": true,
+      "oldConfigErrors": [],
+      "migrationValid": true,
+      "migrationErrors": [],
+      "migratedConfig": {
+        "transitionIntervalSeconds": 10,
+        "backgroundRefreshMinutes": 60,
+        "showClearLogo": true,
+        "showRottenTomatoes": true,
+        "rottenTomatoesMinimumScore": 0,
+        "showPoster": true,
+        "showMetadata": true,
+        "clockWidget": true,
+        "clockTimezone": "auto",
+        "clockFormat": "24h",
+        "wallartMode": {
+          "enabled": false,
+          "density": "medium",
+          "refreshRate": 6,
+          "randomness": 3,
+          "animationType": "fade",
+          "layoutVariant": "heroGrid",
+          "itemsPerScreen": 30,
+          "columns": 6,
+          "transitionInterval": 30,
+          "layoutSettings": {
+            "heroGrid": {
+              "heroSide": "left",
+              "heroRotationMinutes": 10,
+              "biasAmbientToHero": true
+            }
+          },
+          "ambientGradient": false,
+          "autoRefresh": true
+        },
+        "cinemaMode": false,
+        "cinemaOrientation": "auto",
+        "cinema": {
+          "header": {
+            "enabled": true,
+            "text": "Now Playing",
+            "style": "classic"
+          },
+          "footer": {
+            "enabled": true,
+            "type": "specs",
+            "marqueeText": "Feature Presentation",
+            "marqueeStyle": "classic",
+            "specs": {
+              "showResolution": true,
+              "showAudio": true,
+              "showAspectRatio": true,
+              "showFlags": false,
+              "style": "subtle",
+              "iconSet": "filled"
+            }
+          },
+          "presets": {
+            "headerTexts": [
+              "Coming Soon",
+              "Now Playing",
+              "Home Cinema",
+              "Feature Presentation"
+            ],
+            "footerTexts": [
+              "Coming Soon",
+              "Now Playing",
+              "Home Cinema",
+              "Feature Presentation"
+            ]
+          },
+          "ambilight": {
+            "enabled": true,
+            "strength": 60
+          }
+        },
+        "transitionEffect": "kenburns",
+        "effectPauseTime": 3,
+        "uiScaling": {
+          "content": 100,
+          "clearlogo": 100,
+          "clock": 100,
+          "global": 100
+        },
+        "mediaServers": [
+          {
+            "name": "Plex Server",
+            "type": "plex",
+            "enabled": false,
+            "hostname": "127.0.0.1",
+            "port": 32400,
+            "tokenEnvVar": "PLEX_TOKEN",
+            "movieLibraryNames": [],
+            "showLibraryNames": [],
+            "recentlyAddedOnly": false,
+            "recentlyAddedDays": 30,
+            "ratingFilter": [],
+            "genreFilter": "",
+            "qualityFilter": ""
+          },
+          {
+            "name": "Jellyfin Server",
+            "type": "jellyfin",
+            "enabled": false,
+            "hostname": "127.0.0.1",
+            "port": 8096,
+            "tokenEnvVar": "JELLYFIN_API_KEY",
+            "movieLibraryNames": [],
+            "showLibraryNames": [],
+            "recentlyAddedOnly": false,
+            "recentlyAddedDays": 30,
+            "ratingFilter": [],
+            "genreFilter": "",
+            "qualityFilter": "",
+            "ratingFilters": {
+              "minCommunityRating": 0,
+              "allowedOfficialRatings": [],
+              "minUserRating": 0
+            }
+          }
+        ],
+        "tmdbSource": {
+          "enabled": false,
+          "category": "popular",
+          "minRating": 0,
+          "apiKey": "",
+          "yearFilter": null,
+          "genreFilter": ""
+        },
+        "streamingSources": [],
+        "siteServer": {
+          "enabled": true,
+          "port": 4001
+        },
+        "deviceMgmt": {
+          "enabled": true,
+          "bypass": {
+            "ipAllowList": [
+              "127.0.0.1",
+              "::1",
+              "192.168.0.0/16"
+            ]
+          }
+        },
+        "cache": {
+          "maxSizeGB": 2,
+          "minFreeDiskSpaceMB": 750,
+          "autoCleanup": true,
+          "cleanupIntervalMinutes": 15,
+          "maxAgeHours": 168
+        },
+        "serverName": "Your Server Name",
+        "baseUrl": "http://localhost:4000",
+        "port": 4000,
+        "syncEnabled": true,
+        "syncAlignMaxDelayMs": 1200,
+        "serverPort": 4000,
+        "plexClientOptions": {},
+        "backups": {
+          "enabled": true,
+          "time": "03:30",
+          "retention": 10
+        },
+        "testKeyConfig": "fromConfig",
+        "someInt": 42,
+        "newFeatureEnabled": true,
+        "advancedWallartMode": {
+          "aiSorting": true,
+          "dynamicDensity": "adaptive"
+        }
+      },
+      "needsMigration": false
+    }
+  },
+  "summary": {
+    "totalTests": 4,
+    "successful": 2,
+    "needsMigration": 0
+  }
+}

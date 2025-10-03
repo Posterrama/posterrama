@@ -1,18 +1,18 @@
 {
-    "endpoint": "/devices/qr",
-    "status": 404,
-    "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "present"
-    },
-    "bodyStructure": {
-        "error": "string",
-        "timestamp": "string",
-        "path": "string",
-        "method": "string",
-        "requestId": "string"
-    },
-    "timestamp": "2025-10-03T08:38:21.137Z",
-    "description": "Device pairing QR code endpoint",
-    "criticality": "MEDIUM"
+  "endpoint": "/devices/qr",
+  "status": 404,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "present"
+  },
+  "bodyStructure": {
+    "error": "string",
+    "timestamp": "string",
+    "path": "string",
+    "method": "string",
+    "requestId": "string"
+  },
+  "timestamp": "2025-10-03T10:03:54.253Z",
+  "description": "Device pairing QR code endpoint",
+  "criticality": "MEDIUM"
 }

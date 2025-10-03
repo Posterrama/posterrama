@@ -1,0 +1,23 @@
+{
+  "service": "jellyfin",
+  "endpoint": "system-info",
+  "timestamp": "2025-10-03T10:03:05.226Z",
+  "responseExample": {
+    "Id": "mock-server-id",
+    "Name": "Mock Jellyfin Server",
+    "Version": "10.8.0",
+    "OperatingSystem": "Linux"
+  },
+  "requiredFields": [
+    "Id",
+    "Name",
+    "Version",
+    "OperatingSystem"
+  ],
+  "fieldTypes": {
+    "Id": "string",
+    "Name": "string",
+    "Version": "string",
+    "OperatingSystem": "string"
+  }
+}

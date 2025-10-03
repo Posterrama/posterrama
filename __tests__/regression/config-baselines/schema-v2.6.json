@@ -1,0 +1,764 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Posterrama Configuration",
+    "description": "Schema for the Posterrama config.json file.",
+    "type": "object",
+    "properties": {
+        "syncEnabled": {
+            "description": "Enable global sync-tick alignment across devices.",
+            "type": "boolean",
+            "default": true
+        },
+        "syncAlignMaxDelayMs": {
+            "description": "Maximum milliseconds before a sync boundary at which clients will realign to the global tick.",
+            "type": "integer",
+            "minimum": 0,
+            "default": 1200
+        },
+        "transitionIntervalSeconds": {
+            "description": "How many seconds each poster is visible.",
+            "type": "integer",
+            "minimum": 5,
+            "default": 10
+        },
+        "backgroundRefreshMinutes": {
+            "description": "How often (in minutes) the entire media library is re-fetched. 0 to disable.",
+            "type": "integer",
+            "minimum": 5,
+            "default": 60
+        },
+        "showClearLogo": {
+            "description": "Shows the movie/series logo (if available).",
+            "type": "boolean",
+            "default": true
+        },
+        "showRottenTomatoes": {
+            "description": "Shows a 'Fresh' or 'Rotten' badge on the poster.",
+            "type": "boolean",
+            "default": true
+        },
+        "rottenTomatoesMinimumScore": {
+            "description": "Minimum score (0-10 scale) required for inclusion when Rotten Tomatoes data is available. Set to 0 to disable.",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "default": 0
+        },
+        "showPoster": {
+            "description": "Shows the poster.",
+            "type": "boolean",
+            "default": true
+        },
+        "showMetadata": {
+            "description": "Shows metadata (title, tagline, etc.). Requires 'showPoster' to be enabled.",
+            "type": "boolean",
+            "default": true
+        },
+        "clockWidget": {
+            "description": "Shows a clock in the top left of the screen.",
+            "type": "boolean",
+            "default": true
+        },
+        "clockTimezone": {
+            "description": "Timezone for the clock widget (IANA timezone identifier like 'Europe/Amsterdam', 'America/New_York'). Defaults to system timezone.",
+            "type": "string",
+            "default": "auto"
+        },
+        "clockFormat": {
+            "description": "Clock display format: '12h' for 12-hour format with AM/PM, '24h' for 24-hour format.",
+            "type": "string",
+            "enum": ["12h", "24h"],
+            "default": "24h"
+        },
+        "wallartMode": {
+            "description": "Enable wallart mode - displays multiple posters/covers in a grid layout. Shows many items simultaneously like a digital art gallery.",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "density": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high", "ludicrous"],
+                    "default": "medium",
+                    "description": "Grid density preset that influences number of rows/columns"
+                },
+                "refreshRate": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "default": 6,
+                    "description": "Relative refresh tempo (1=slow, 10=fast)"
+                },
+                "randomness": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10,
+                    "default": 3,
+                    "description": "Amount of random staggering in the cycle timing"
+                },
+                "animationType": {
+                    "type": "string",
+                    "enum": [
+                        "random",
+                        "fade",
+                        "slideLeft",
+                        "slideUp",
+                        "zoom",
+                        "flip",
+                        "staggered",
+                        "ripple",
+                        "scanline",
+                        "parallax",
+                        "neonPulse",
+                        "chromaticShift",
+                        "mosaicShatter"
+                    ],
+                    "default": "fade",
+                    "description": "Animation style used for grid updates"
+                },
+                "layoutVariant": {
+                    "type": "string",
+                    "enum": ["classic", "heroGrid"],
+                    "default": "heroGrid",
+                    "description": "Wallart layout variant - heroGrid recommended for modern look"
+                },
+                "ambientGradient": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable subtle ambient gradient background overlay"
+                },
+                "autoRefresh": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically refresh wallart content without manual interaction"
+                },
+                "layoutSettings": {
+                    "type": "object",
+                    "properties": {
+                        "heroGrid": {
+                            "type": "object",
+                            "properties": {
+                                "heroSide": {
+                                    "type": "string",
+                                    "enum": ["left", "right"],
+                                    "default": "left"
+                                },
+                                "heroRotationMinutes": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 60,
+                                    "default": 10
+                                },
+                                "biasAmbientToHero": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Weight ambient gradient sampling more toward the hero image"
+                                }
+                            }
+                        }
+                    }
+                },
+                "itemsPerScreen": {
+                    "type": "number",
+                    "minimum": 4,
+                    "maximum": 100,
+                    "default": 30,
+                    "description": "Number of posters to display simultaneously in grid layout"
+                },
+                "columns": {
+                    "type": "number",
+                    "minimum": 2,
+                    "maximum": 12,
+                    "default": 6,
+                    "description": "Number of columns in the grid layout"
+                },
+                "transitionInterval": {
+                    "type": "number",
+                    "minimum": 5,
+                    "maximum": 300,
+                    "default": 30,
+                    "description": "Seconds between grid updates (replacing old posters with new ones)"
+                }
+            }
+        },
+        "cinemaMode": {
+            "description": "Enable cinema mode for portrait displays with fullscreen poster layout.",
+            "type": "boolean",
+            "default": false
+        },
+        "cinemaOrientation": {
+            "description": "Force a specific portrait orientation for cinema mode instead of relying on device sensors.",
+            "type": "string",
+            "enum": ["auto", "portrait", "portrait-flipped"],
+            "default": "auto"
+        },
+        "cinema": {
+            "description": "Cinema mode overlays and presentation settings (header/footer, marquee, specs, ambilight).",
+            "type": "object",
+            "properties": {
+                "header": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true
+                        },
+                        "text": {
+                            "type": "string",
+                            "default": "Now Playing"
+                        },
+                        "style": {
+                            "type": "string",
+                            "enum": ["classic", "neon", "minimal", "theatre"],
+                            "default": "classic"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "enabled": true,
+                        "text": "Now Playing",
+                        "style": "classic"
+                    }
+                },
+                "footer": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true
+                        },
+                        "type": {
+                            "type": "string",
+                            "enum": ["marquee", "specs"],
+                            "default": "specs"
+                        },
+                        "marqueeText": {
+                            "type": "string",
+                            "default": "Feature Presentation"
+                        },
+                        "marqueeStyle": {
+                            "type": "string",
+                            "enum": ["classic", "neon", "minimal", "theatre"],
+                            "default": "classic"
+                        },
+                        "specs": {
+                            "type": "object",
+                            "properties": {
+                                "showResolution": {
+                                    "type": "boolean",
+                                    "default": true
+                                },
+                                "showAudio": {
+                                    "type": "boolean",
+                                    "default": true
+                                },
+                                "showAspectRatio": {
+                                    "type": "boolean",
+                                    "default": true
+                                },
+                                "showFlags": {
+                                    "type": "boolean",
+                                    "default": false
+                                },
+                                "style": {
+                                    "type": "string",
+                                    "enum": ["subtle", "filled", "outline"],
+                                    "default": "subtle"
+                                },
+                                "iconSet": {
+                                    "type": "string",
+                                    "enum": ["filled", "line"],
+                                    "default": "filled"
+                                }
+                            },
+                            "additionalProperties": false,
+                            "default": {
+                                "showResolution": true,
+                                "showAudio": true,
+                                "showAspectRatio": true,
+                                "showFlags": false,
+                                "style": "subtle",
+                                "iconSet": "filled"
+                            }
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "enabled": true,
+                        "type": "specs",
+                        "marqueeText": "Feature Presentation",
+                        "marqueeStyle": "classic",
+                        "specs": {
+                            "showResolution": true,
+                            "showAudio": true,
+                            "showAspectRatio": true,
+                            "showFlags": false,
+                            "style": "subtle",
+                            "iconSet": "filled"
+                        }
+                    }
+                },
+                "presets": {
+                    "type": "object",
+                    "properties": {
+                        "headerTexts": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "default": [
+                                "Coming Soon",
+                                "Now Playing",
+                                "Home Cinema",
+                                "Feature Presentation"
+                            ]
+                        },
+                        "footerTexts": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "default": [
+                                "Coming Soon",
+                                "Now Playing",
+                                "Home Cinema",
+                                "Feature Presentation"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "headerTexts": [
+                            "Coming Soon",
+                            "Now Playing",
+                            "Home Cinema",
+                            "Feature Presentation"
+                        ],
+                        "footerTexts": [
+                            "Coming Soon",
+                            "Now Playing",
+                            "Home Cinema",
+                            "Feature Presentation"
+                        ]
+                    }
+                },
+                "ambilight": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true
+                        },
+                        "strength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "default": 60
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "enabled": true,
+                        "strength": 60
+                    }
+                }
+            },
+            "additionalProperties": false,
+            "default": {
+                "header": {
+                    "enabled": true,
+                    "text": "Now Playing",
+                    "style": "classic"
+                },
+                "footer": {
+                    "enabled": true,
+                    "type": "specs",
+                    "marqueeText": "Feature Presentation",
+                    "marqueeStyle": "classic",
+                    "specs": {
+                        "showResolution": true,
+                        "showAudio": true,
+                        "showAspectRatio": true,
+                        "showFlags": false,
+                        "style": "subtle",
+                        "iconSet": "filled"
+                    }
+                },
+                "presets": {
+                    "headerTexts": [
+                        "Coming Soon",
+                        "Now Playing",
+                        "Home Cinema",
+                        "Feature Presentation"
+                    ],
+                    "footerTexts": [
+                        "Coming Soon",
+                        "Now Playing",
+                        "Home Cinema",
+                        "Feature Presentation"
+                    ]
+                },
+                "ambilight": {
+                    "enabled": true,
+                    "strength": 60
+                }
+            }
+        },
+        "transitionEffect": {
+            "description": "Visual transition effect for background images and posters. Duration is automatically calculated based on transition interval.",
+            "type": "string",
+            "enum": ["none", "kenburns", "fade", "slide"],
+            "default": "kenburns"
+        },
+        "effectPauseTime": {
+            "description": "Time to pause after effect completes before next transition in seconds (not applied to Ken Burns effect).",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "default": 3
+        },
+        "uiScaling": {
+            "description": "Scaling settings for UI elements to adapt to different screen sizes and resolutions.",
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 200,
+                    "default": 100,
+                    "description": "Poster and metadata content size scaling percentage (50-200%)"
+                },
+                "clearlogo": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 200,
+                    "default": 100,
+                    "description": "Clearlogo size scaling percentage (50-200%)"
+                },
+                "clock": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 200,
+                    "default": 100,
+                    "description": "Clock widget size scaling percentage (50-200%)"
+                },
+                "global": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 200,
+                    "default": 100,
+                    "description": "Global scaling multiplier for all UI elements (50-200%)"
+                }
+            },
+            "required": ["content", "clearlogo", "clock", "global"]
+        },
+        "mediaServers": {
+            "description": "An array of media server configurations.",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "A friendly name for this server.",
+                        "minLength": 1
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": ["plex", "jellyfin"],
+                        "description": "The type of the media server."
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "description": "Whether this server configuration is active."
+                    },
+                    "hostname": {
+                        "type": "string",
+                        "description": "Direct hostname or IP. Mandatory for enabled servers.",
+                        "minLength": 1
+                    },
+                    "port": {
+                        "type": "integer",
+                        "description": "Direct TCP port. Mandatory for enabled servers.",
+                        "minimum": 1
+                    },
+                    "tokenEnvVar": {
+                        "type": "string",
+                        "description": "Environment variable containing the authentication token (token itself stays out of config.json).",
+                        "minLength": 1
+                    },
+                    "token": {
+                        "type": "string",
+                        "description": "Optional direct token/API key (NOT recommended – prefer tokenEnvVar).",
+                        "minLength": 1
+                    },
+                    "movieLibraryNames": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "showLibraryNames": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "recentlyAddedOnly": {
+                        "type": "boolean",
+                        "description": "Only fetch recently added items.",
+                        "default": false
+                    },
+                    "recentlyAddedDays": {
+                        "type": "integer",
+                        "description": "Number of days to consider as 'recently added'.",
+                        "minimum": 1,
+                        "default": 30
+                    },
+                    "ratingFilter": {
+                        "type": "array",
+                        "description": "List of allowed content ratings (e.g., ['G', 'PG', 'PG-13']).",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "yearFilter": {
+                        "type": ["integer", "string", "null"],
+                        "description": "Release year filter: number (>=) or comma-separated years/ranges like '2010, 2015-2020'.",
+                        "default": null
+                    },
+                    "genreFilter": {
+                        "type": "string",
+                        "description": "Comma-separated list of allowed genres for filtering content.",
+                        "default": ""
+                    },
+                    "qualityFilter": {
+                        "type": "string",
+                        "description": "Optional quality filter e.g. '4k,1080p'.",
+                        "default": ""
+                    },
+                    "ratingFilters": {
+                        "type": "object",
+                        "description": "Rating-based filtering options (Jellyfin only).",
+                        "properties": {
+                            "minCommunityRating": {
+                                "type": "number",
+                                "description": "Minimum community rating (0-10 scale).",
+                                "minimum": 0,
+                                "maximum": 10,
+                                "default": 0
+                            },
+                            "allowedOfficialRatings": {
+                                "type": "array",
+                                "description": "List of allowed MPAA ratings (e.g., ['G', 'PG', 'PG-13']).",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "minUserRating": {
+                                "type": "number",
+                                "description": "Minimum user rating (personal rating 0-10 scale).",
+                                "minimum": 0,
+                                "maximum": 10,
+                                "default": 0
+                            }
+                        }
+                    }
+                },
+                "required": ["name", "type", "enabled", "hostname", "port", "tokenEnvVar"]
+            }
+        },
+        "siteServer": {
+            "description": "Configuration for the optional public-facing site server.",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "port": {
+                    "type": "integer",
+                    "minimum": 1024,
+                    "maximum": 65535,
+                    "default": 4001
+                }
+            },
+            "required": ["enabled", "port"]
+        },
+        "deviceMgmt": {
+            "description": "Feature flag for device management UI and APIs.",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "bypass": {
+                    "description": "Optional bypass configuration. When a client IP matches ipAllowList, the frontend will skip device management (no registration, no heartbeats, no websocket). Useful for kiosk screens or trusted internal dashboards.",
+                    "type": "object",
+                    "properties": {
+                        "ipAllowList": {
+                            "description": "Array of IP addresses or CIDR ranges (IPv4/IPv6) that should bypass device management.",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "default": ["127.0.0.1", "::1", "192.168.0.0/16"]
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "ipAllowList": ["127.0.0.1", "::1", "192.168.0.0/16"]
+                    }
+                }
+            }
+        },
+        "tmdbSource": {
+            "description": "Optional TMDB source configuration.",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "category": {
+                    "type": "string",
+                    "default": "popular"
+                },
+                "minRating": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 10,
+                    "default": 0
+                },
+                "apiKey": {
+                    "type": "string",
+                    "default": ""
+                },
+                "yearFilter": {
+                    "type": ["integer", "string", "null"],
+                    "default": null
+                },
+                "genreFilter": {
+                    "type": "string",
+                    "default": ""
+                }
+            }
+        },
+        "streamingSources": {
+            "description": "List of additional streaming sources (reserved for future use).",
+            "type": "array",
+            "items": {
+                "type": "object"
+            },
+            "default": []
+        },
+        "cache": {
+            "description": "Cache tuning parameters.",
+            "type": "object",
+            "properties": {
+                "maxSizeGB": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 2
+                },
+                "minFreeDiskSpaceMB": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 750
+                },
+                "autoCleanup": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "cleanupIntervalMinutes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 15
+                },
+                "maxAgeHours": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 168
+                }
+            }
+        },
+        "serverName": {
+            "description": "Friendly name for this Posterrama instance.",
+            "type": "string",
+            "default": "Your Server Name"
+        },
+        "baseUrl": {
+            "description": "Base URL where this instance is reachable (for links/tooling).",
+            "type": "string",
+            "default": "http://localhost:4000"
+        },
+        "port": {
+            "description": "Optional explicit port override for integrations/tests.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+        },
+        "plexClientOptions": {
+            "description": "Advanced options to pass to the plex-api client.",
+            "type": "object",
+            "default": {}
+        },
+        "serverPort": {
+            "description": "The port that the server listens on for HTTP connections.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535,
+            "default": 4000
+        },
+        "backups": {
+            "description": "Configuration for automated backups of configuration files.",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "description": "Whether automated backups are enabled.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "time": {
+                    "description": "Time of day to run backups in HH:MM format (24-hour).",
+                    "type": "string",
+                    "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+                    "default": "03:30"
+                },
+                "retention": {
+                    "description": "Number of backup sets to retain (1-60).",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 60,
+                    "default": 10
+                }
+            },
+            "required": ["enabled", "time", "retention"],
+            "additionalProperties": false
+        },
+        "testKeyConfig": {
+            "type": "string",
+            "default": "fromConfig"
+        },
+        "someInt": {
+            "type": "number",
+            "default": 42
+        }
+    },
+    "required": [
+        "transitionIntervalSeconds",
+        "backgroundRefreshMinutes",
+        "showClearLogo",
+        "showRottenTomatoes",
+        "rottenTomatoesMinimumScore",
+        "showPoster",
+        "showMetadata",
+        "clockWidget",
+        "transitionEffect",
+        "effectPauseTime",
+        "mediaServers"
+    ]
+}

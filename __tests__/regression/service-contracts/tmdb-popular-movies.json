@@ -1,0 +1,32 @@
+{
+  "service": "tmdb",
+  "endpoint": "popular-movies",
+  "timestamp": "2025-10-03T10:03:05.231Z",
+  "responseExample": {
+    "page": 1,
+    "total_pages": 100,
+    "total_results": 2000,
+    "results": [
+      {
+        "id": 12345,
+        "title": "Popular Movie 1",
+        "release_date": "2023-01-01",
+        "poster_path": "/poster1.jpg",
+        "overview": "Test movie description",
+        "vote_average": 8.5
+      }
+    ]
+  },
+  "requiredFields": [
+    "page",
+    "total_pages",
+    "total_results",
+    "results"
+  ],
+  "fieldTypes": {
+    "page": "number",
+    "total_pages": "number",
+    "total_results": "number",
+    "results": "array"
+  }
+}

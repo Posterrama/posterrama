@@ -1,60 +1,60 @@
 {
-    "endpoint": "/get-config",
-    "status": 200,
-    "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "cache-control": "public, max-age=30",
-        "content-length": "present"
-    },
-    "bodyStructure": {
-        "clockWidget": "boolean",
-        "clockTimezone": "string",
-        "clockFormat": "string",
-        "syncEnabled": "boolean",
-        "syncAlignMaxDelayMs": "number",
-        "cinemaMode": "boolean",
-        "cinemaOrientation": "string",
-        "wallartMode": {
-            "enabled": "boolean",
-            "density": "string",
-            "refreshRate": "number",
-            "randomness": "number",
-            "animationType": "string",
-            "layoutVariant": "string",
-            "itemsPerScreen": "number",
-            "columns": "number",
-            "transitionInterval": "number",
-            "layoutSettings": {
-                "heroGrid": {
-                    "heroSide": "string",
-                    "heroRotationMinutes": "number",
-                    "biasAmbientToHero": "boolean"
-                }
-            },
-            "ambientGradient": "boolean",
-            "autoRefresh": "boolean"
-        },
-        "transitionIntervalSeconds": "number",
-        "backgroundRefreshMinutes": "number",
-        "showClearLogo": "boolean",
-        "showPoster": "boolean",
-        "showMetadata": "boolean",
-        "showRottenTomatoes": "boolean",
-        "rottenTomatoesMinimumScore": "number",
-        "transitionEffect": "string",
-        "effectPauseTime": "number",
-        "kenBurnsEffect": {
-            "enabled": "boolean",
-            "durationSeconds": "number"
-        },
-        "uiScaling": {
-            "content": "number",
-            "clearlogo": "number",
-            "clock": "number",
-            "global": "number"
+  "endpoint": "/get-config",
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "public, max-age=30",
+    "content-length": "present"
+  },
+  "bodyStructure": {
+    "clockWidget": "boolean",
+    "clockTimezone": "string",
+    "clockFormat": "string",
+    "syncEnabled": "boolean",
+    "syncAlignMaxDelayMs": "number",
+    "cinemaMode": "boolean",
+    "cinemaOrientation": "string",
+    "wallartMode": {
+      "enabled": "boolean",
+      "density": "string",
+      "refreshRate": "number",
+      "randomness": "number",
+      "animationType": "string",
+      "layoutVariant": "string",
+      "itemsPerScreen": "number",
+      "columns": "number",
+      "transitionInterval": "number",
+      "layoutSettings": {
+        "heroGrid": {
+          "heroSide": "string",
+          "heroRotationMinutes": "number",
+          "biasAmbientToHero": "boolean"
         }
+      },
+      "ambientGradient": "boolean",
+      "autoRefresh": "boolean"
     },
-    "timestamp": "2025-10-03T08:38:21.090Z",
-    "description": "Primary configuration endpoint - breaking changes affect all clients",
-    "criticality": "HIGH"
+    "transitionIntervalSeconds": "number",
+    "backgroundRefreshMinutes": "number",
+    "showClearLogo": "boolean",
+    "showPoster": "boolean",
+    "showMetadata": "boolean",
+    "showRottenTomatoes": "boolean",
+    "rottenTomatoesMinimumScore": "number",
+    "transitionEffect": "string",
+    "effectPauseTime": "number",
+    "kenBurnsEffect": {
+      "enabled": "boolean",
+      "durationSeconds": "number"
+    },
+    "uiScaling": {
+      "content": "number",
+      "clearlogo": "number",
+      "clock": "number",
+      "global": "number"
+    }
+  },
+  "timestamp": "2025-10-03T10:03:54.208Z",
+  "description": "Primary configuration endpoint - breaking changes affect all clients",
+  "criticality": "HIGH"
 }

@@ -95,19 +95,43 @@ run_tests() {
         print_warning "Media sources: Connectiviteitsproblemen - handmatige controle vereist"
     fi
 
-    print_status "3b. Regressie testing - API contract validatie..."
+    print_status "3b. Comprehensive regressie testing..."
+    
+    # API Contract validation (BLOCKING)
+    print_status "   → API contract validatie..."
     if npm run test:regression:contracts >/dev/null 2>&1; then
-        print_success "API Contracts: Geen breaking changes gedetecteerd"
+        print_success "     API Contracts: Geen breaking changes gedetecteerd"
     else
-        print_error "API Contracts: REGRESSIE GEDETECTEERD - API breaking changes gevonden!"
-        print_status "Running contract tests with verbose output..."
+        print_error "     API Contracts: REGRESSIE GEDETECTEERD - API breaking changes gevonden!"
+        print_status "     Running contract tests with verbose output..."
         npm run test:regression:contracts || {
             print_error "Release BLOCKED - API regressie moet worden opgelost voor release"
             exit 1
         }
     fi
+    
+    # Config Schema validation (BLOCKING)
+    print_status "   → Config schema validatie..."
+    if npm run test:regression:config >/dev/null 2>&1; then
+        print_success "     Config Schema: Backward compatibility maintained"
+    else
+        print_error "     Config Schema: BREAKING CHANGES gedetecteerd!"
+        npm run test:regression:config || {
+            print_error "Release BLOCKED - Config schema regressie moet worden opgelost"
+            exit 1
+        }
+    fi
+    
+    # External Service contracts (WARNING only - external dependencies)  
+    print_status "   → External service contract validatie..."
+    if npm run test:regression:external >/dev/null 2>&1; then
+        print_success "     External Services: Alle service contracts geldig"
+    else
+        print_warning "     External Services: Mogelijke API wijzigingen gedetecteerd"
+        print_status "     Dit blokkeert release niet maar review aanbevolen"
+    fi
 
-    print_status "3c. Regressie testing - Critical path validatie (niet-blocking)..."
+    print_status "3c. Critical path E2E validatie (niet-blocking)..."
     if timeout 60s npm run test:regression:e2e >/dev/null 2>&1; then
         print_success "Critical Paths: Alle core workflows functioneel"
     else
@@ -117,7 +141,7 @@ run_tests() {
 
     print_status "3d. Performance baseline check..."
     START_TIME=$(date +%s)
-    if npm run health >/dev/null 2>&1; then
+    if npm run health:quick >/dev/null 2>&1; then
         END_TIME=$(date +%s)
         HEALTH_TIME=$((END_TIME - START_TIME))
         if [ $HEALTH_TIME -le 10 ]; then

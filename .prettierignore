@@ -43,3 +43,15 @@ npm-debug.log*
 # Test outputs / generated artifacts
 jest-results.json
 devices.test.*.json
+
+# Automatically generated regression test artifacts
+__tests__/regression/contracts/
+__tests__/regression/config-baselines/
+__tests__/regression/config-migrations/
+__tests__/regression/service-contracts/
+__tests__/regression/visual-baselines/
+__tests__/regression/visual-output/
+__tests__/regression/visual-diffs/
+
+# Generated release summaries
+regression-summary-*.md

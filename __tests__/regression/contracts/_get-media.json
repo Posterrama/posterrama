@@ -1,15 +1,15 @@
 {
-    "endpoint": "/get-media",
-    "status": 503,
-    "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "present"
-    },
-    "bodyStructure": {
-        "status": "string",
-        "error": "string"
-    },
-    "timestamp": "2025-10-03T08:38:21.101Z",
-    "description": "Main media endpoint - core functionality",
-    "criticality": "HIGH"
+  "endpoint": "/get-media",
+  "status": 503,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "present"
+  },
+  "bodyStructure": {
+    "status": "string",
+    "error": "string"
+  },
+  "timestamp": "2025-10-03T10:03:54.218Z",
+  "description": "Main media endpoint - core functionality",
+  "criticality": "HIGH"
 }
