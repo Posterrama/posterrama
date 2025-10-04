@@ -749,7 +749,7 @@
               <i class="fas fa-server" aria-hidden="true"></i>
               <h2 style="margin:0;">Media Sources</h2>
             </div>
-            <div class="panel-subtitle">Connect and configure sources across Plex, Jellyfin, TMDB and Local Directory</div>
+            <div class="panel-subtitle">Connect and configure sources across Plex, Jellyfin, TMDB and Local</div>
           </div>
           <div class="panel-actions"></div>
         </div>
@@ -773,7 +773,7 @@
             </label>
             <label class="seg" id="seg-local" role="tab" aria-controls="panel-local" aria-checked="false">
               <input type="radio" name="sources.active" id="src-local" value="local" />
-              <i class="fas fa-folder"></i> Local Directory
+              <i class="fas fa-folder"></i> Local
             </label>
             
           </div>
@@ -1427,9 +1427,9 @@
           </div>
           <div class="form-grid">
             <div class="form-group">
-              <label for="localDirectory.path">Directory Path</label>
+              <label for="localDirectory.rootPath">Directory Path</label>
               <div class="input-group">
-                <input type="text" id="localDirectory.path" placeholder="/path/to/media" autocomplete="off" spellcheck="false">
+                <input type="text" id="localDirectory.rootPath" placeholder="/path/to/media" autocomplete="off" spellcheck="false">
                 <button class="btn btn-outline btn-sm" id="btn-browse-path" title="Browse for directory">
                   <i class="fas fa-folder-open"></i>
                 </button>
@@ -1514,25 +1514,54 @@
           </div>
           <div class="form-grid">
             <div class="form-group">
-              <label for="localDirectory.posterpacks.naming">Naming Pattern</label>
+              <label for="posterpack.source">Content Source</label>
               <div class="select-wrap has-caret">
-                <select id="localDirectory.posterpacks.naming">
+                <select id="posterpack.source">
+                  <option value="local">Local Directory Files</option>
+                  <option value="plex">Plex Libraries</option>
+                  <option value="jellyfin">Jellyfin Libraries</option>
+                  <option value="tmdb">TMDB Collections</option>
+                  <option value="all">All Sources Combined</option>
+                </select>
+                <span class="select-caret" aria-hidden="true">▾</span>
+              </div>
+              <small class="form-help">Select which media source to generate posterpacks from</small>
+            </div>
+            <div class="form-group">
+              <label for="posterpack.naming">Naming Pattern</label>
+              <div class="select-wrap has-caret">
+                <select id="posterpack.naming">
                   <option value="timestamp">Timestamp (default)</option>
                   <option value="title">Title-based</option>
-                  <option value="custom">Custom pattern</option>
+                  <option value="source">Source-based</option>
                 </select>
                 <span class="select-caret" aria-hidden="true">▾</span>
               </div>
             </div>
-            <div class="form-group">
-              <label for="localDirectory.posterpacks.compression">Compression Level</label>
-              <div class="select-wrap has-caret">
-                <select id="localDirectory.posterpacks.compression">
-                  <option value="fast">Fast (larger files)</option>
-                  <option value="balanced">Balanced</option>
-                  <option value="best">Best compression</option>
-                </select>
-                <span class="select-caret" aria-hidden="true">▾</span>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <div class="form-subsection" id="posterpack-filters" hidden>
+                <h4>Content Filters</h4>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="posterpack.mediaType">Media Type</label>
+                    <div class="select-wrap has-caret">
+                      <select id="posterpack.mediaType">
+                        <option value="all">All Media</option>
+                        <option value="movies">Movies Only</option>
+                        <option value="shows">TV Shows Only</option>
+                      </select>
+                      <span class="select-caret" aria-hidden="true">▾</span>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="posterpack.yearFilter">Year Range</label>
+                    <input type="text" id="posterpack.yearFilter" placeholder="e.g. 2020-2024, 1995, 2010-" />
+                  </div>
+                  <div class="form-group">
+                    <label for="posterpack.limit">Max Items</label>
+                    <input type="number" id="posterpack.limit" min="1" max="10000" placeholder="1000" />
+                  </div>
+                </div>
               </div>
             </div>
             <div class="form-group" style="grid-column: 1 / -1;">
@@ -1540,7 +1569,11 @@
                 <i class="fas fa-archive"></i>
                 Generate Posterpack
               </button>
-              <small class="form-help">Create a downloadable ZIP archive of all posters</small>
+              <button class="btn btn-outline" id="btn-preview-posterpack" style="margin-left: 10px;">
+                <i class="fas fa-eye"></i>
+                Preview Selection
+              </button>
+              <small class="form-help">Create a downloadable ZIP archive from selected media source with optional filters</small>
             </div>
           </div>
 

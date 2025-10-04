@@ -7501,6 +7501,12 @@
                     window.admin2?.maybeFetchStreamingProvidersOnOpen?.();
                     return;
                 }
+                if (h === '#local') {
+                    showSourcePanel('panel-local', 'Local');
+                    // Initialize local directory panel
+                    window.admin2?.initLocalDirectoryPanel?.();
+                    return;
+                }
                 if (h === '#media-sources' || h === '#media-sources/overview') {
                     // Default Media Sources to Plex tab
                     showSection('section-media-sources');
@@ -18383,6 +18389,10 @@ if (!document.__niwDelegatedFallback) {
         const saveBtn = document.getElementById('btn-save-local');
         if (saveBtn) saveBtn.addEventListener('click', saveLocalDirectorySettings);
 
+        // Browse path button
+        const browsePathBtn = document.getElementById('btn-browse-path');
+        if (browsePathBtn) browsePathBtn.addEventListener('click', browseForDirectory);
+
         // Directory scan button
         const scanBtn = document.getElementById('btn-local-scan');
         if (scanBtn) scanBtn.addEventListener('click', scanDirectory);
@@ -18395,6 +18405,12 @@ if (!document.__niwDelegatedFallback) {
         // Posterpack generation
         const generateBtn = document.getElementById('btn-generate-posterpack');
         if (generateBtn) generateBtn.addEventListener('click', generatePosterpack);
+
+        const previewBtn = document.getElementById('btn-preview-posterpack');
+        if (previewBtn) previewBtn.addEventListener('click', previewPosterpackSelection);
+
+        const sourceSelect = document.getElementById('posterpack.source');
+        if (sourceSelect) sourceSelect.addEventListener('change', handleSourceSelection);
 
         // Clear completed jobs
         const clearJobsBtn = document.getElementById('btn-clear-completed-jobs');
@@ -18624,6 +18640,19 @@ if (!document.__niwDelegatedFallback) {
     }
 
     function scanDirectory() {
+        const pathInput = document.getElementById('localDirectory.rootPath');
+        const enabledInput = document.getElementById('localDirectory.enabled');
+
+        if (!enabledInput?.checked) {
+            showNotification('Please enable local directory first', 'warning');
+            return;
+        }
+
+        if (!pathInput?.value?.trim()) {
+            showNotification('Please configure a directory path first', 'warning');
+            return;
+        }
+
         const scanBtn = document.getElementById('btn-local-scan');
         if (scanBtn) {
             scanBtn.disabled = true;
@@ -18659,20 +18688,45 @@ if (!document.__niwDelegatedFallback) {
             generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
         }
 
-        const namingPattern =
-            document.getElementById('localDirectory.posterpacks.naming')?.value || 'timestamp';
-        const compression =
-            document.getElementById('localDirectory.posterpacks.compression')?.value || 'balanced';
+        // Get posterpack configuration
+        const config = {
+            source: document.getElementById('posterpack.source')?.value || 'local',
+            namingPattern: document.getElementById('posterpack.naming')?.value || 'timestamp',
+            compression: 'balanced', // Always use balanced compression
+            filters: {
+                mediaType: document.getElementById('posterpack.mediaType')?.value || 'all',
+                yearFilter: document.getElementById('posterpack.yearFilter')?.value || '',
+                limit: parseInt(document.getElementById('posterpack.limit')?.value) || 1000,
+            },
+        };
+
+        // Validate configuration
+        if (config.source === 'local') {
+            const pathInput = document.getElementById('localDirectory.rootPath');
+            const enabledInput = document.getElementById('localDirectory.enabled');
+
+            if (!enabledInput?.checked || !pathInput?.value?.trim()) {
+                showNotification('Please configure and enable local directory first', 'warning');
+                if (generateBtn) {
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fas fa-archive"></i> Generate Posterpack';
+                }
+                return;
+            }
+        }
 
         fetch('/api/local/generate-posterpack', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ namingPattern, compression }),
+            body: JSON.stringify(config),
         })
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
-                    showNotification('Posterpack generation started', 'success');
+                    showNotification(
+                        `${config.source.charAt(0).toUpperCase() + config.source.slice(1)} posterpack generation started`,
+                        'success'
+                    );
                     startJobPolling(result.jobId);
                 } else {
                     showNotification(result.message || 'Generation failed', 'error');
@@ -18688,6 +18742,60 @@ if (!document.__niwDelegatedFallback) {
                     generateBtn.innerHTML = '<i class="fas fa-archive"></i> Generate Posterpack';
                 }
             });
+    }
+
+    function previewPosterpackSelection() {
+        const config = {
+            source: document.getElementById('posterpack.source')?.value || 'local',
+            filters: {
+                mediaType: document.getElementById('posterpack.mediaType')?.value || 'all',
+                yearFilter: document.getElementById('posterpack.yearFilter')?.value || '',
+                limit: parseInt(document.getElementById('posterpack.limit')?.value) || 1000,
+            },
+        };
+
+        fetch('/api/local/preview-posterpack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config),
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    const count = result.items?.length || 0;
+                    const sources = result.sources || {};
+
+                    let message = `Preview: ${count} items selected`;
+                    if (Object.keys(sources).length > 0) {
+                        const breakdown = Object.entries(sources)
+                            .map(([source, count]) => `${source}: ${count}`)
+                            .join(', ');
+                        message += ` (${breakdown})`;
+                    }
+
+                    showNotification(message, 'info');
+                } else {
+                    showNotification(result.message || 'Preview failed', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Preview error:', error);
+                showNotification('Preview failed', 'error');
+            });
+    }
+
+    function handleSourceSelection(e) {
+        const source = e.target.value;
+        const filtersSection = document.getElementById('posterpack-filters');
+
+        if (filtersSection) {
+            // Show filters for all sources except local directory files
+            if (source === 'local') {
+                filtersSection.hidden = true;
+            } else {
+                filtersSection.hidden = false;
+            }
+        }
     }
 
     function startJobPolling(jobId) {
@@ -18759,8 +18867,8 @@ if (!document.__niwDelegatedFallback) {
                     const cfg = config.localDirectory;
 
                     // Update form fields
-                    const pathInput = document.getElementById('localDirectory.path');
-                    if (pathInput) pathInput.value = cfg.path || '';
+                    const pathInput = document.getElementById('localDirectory.rootPath');
+                    if (pathInput) pathInput.value = cfg.rootPath || '';
 
                     const watchInput = document.getElementById('localDirectory.watchDirectories');
                     if (watchInput) watchInput.checked = cfg.watchDirectories || false;
@@ -18772,14 +18880,20 @@ if (!document.__niwDelegatedFallback) {
                     const statusPill = document.getElementById('local-status-pill-header');
                     if (statusPill) {
                         statusPill.textContent =
-                            cfg.enabled && cfg.path ? 'Configured' : 'Not configured';
-                        statusPill.className = `status-pill ${cfg.enabled && cfg.path ? 'sp-success' : 'sp-disabled'}`;
+                            cfg.enabled && cfg.rootPath ? 'Configured' : 'Not configured';
+                        statusPill.className = `status-pill ${cfg.enabled && cfg.rootPath ? 'sp-success' : 'sp-disabled'}`;
                     }
 
                     // Load directory if configured
-                    if (cfg.enabled && cfg.path) {
+                    if (cfg.enabled && cfg.rootPath) {
                         loadDirectoryContents('/');
                     }
+                }
+
+                // Load posterpack defaults
+                const sourceSelect = document.getElementById('posterpack.source');
+                if (sourceSelect && sourceSelect.value === 'local') {
+                    handleSourceSelection({ target: sourceSelect });
                 }
             })
             .catch(error => {
@@ -18797,17 +18911,9 @@ if (!document.__niwDelegatedFallback) {
         const config = {
             localDirectory: {
                 enabled: document.getElementById('localDirectory.enabled')?.checked || false,
-                path: document.getElementById('localDirectory.path')?.value || '',
+                rootPath: document.getElementById('localDirectory.rootPath')?.value || '',
                 watchDirectories:
                     document.getElementById('localDirectory.watchDirectories')?.checked || false,
-                posterpacks: {
-                    naming:
-                        document.getElementById('localDirectory.posterpacks.naming')?.value ||
-                        'timestamp',
-                    compression:
-                        document.getElementById('localDirectory.posterpacks.compression')?.value ||
-                        'balanced',
-                },
             },
         };
 
@@ -18835,6 +18941,48 @@ if (!document.__niwDelegatedFallback) {
                     saveBtn.innerHTML = '<i class="fas fa-save"></i><span>Save Settings</span>';
                 }
             });
+    }
+
+    function browseForDirectory() {
+        const currentPath = document.getElementById('localDirectory.rootPath')?.value || '/';
+        const newPath = prompt('Enter directory path:', currentPath);
+
+        if (newPath && newPath.trim()) {
+            const pathInput = document.getElementById('localDirectory.rootPath');
+            if (pathInput) {
+                pathInput.value = newPath.trim();
+                // Trigger validation or preview
+                validateDirectoryPath(newPath.trim());
+            }
+        }
+    }
+
+    function validateDirectoryPath(path) {
+        // Simple client-side validation
+        if (!path.startsWith('/')) {
+            showNotification('Directory path must be absolute (start with /)', 'warning');
+            return false;
+        }
+
+        // Test if path is accessible by trying to browse it
+        fetch(`/api/local/browse?path=${encodeURIComponent(path)}`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('Directory path is accessible', 'success');
+                    // Optionally load directory contents
+                    currentPath = path;
+                    loadDirectoryContents(path);
+                } else {
+                    showNotification(`Directory not accessible: ${result.message}`, 'warning');
+                }
+            })
+            .catch(error => {
+                console.error('Directory validation error:', error);
+                showNotification('Could not validate directory path', 'error');
+            });
+
+        return true;
     }
 
     // Utility functions

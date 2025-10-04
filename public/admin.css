@@ -12866,3 +12866,27 @@ select:focus-visible {
     display: flex;
     gap: 0.5rem;
 }
+
+/* Form Subsections */
+.form-subsection {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: color-mix(in srgb, var(--surface-layer-2) 50%, transparent);
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+}
+
+.form-subsection h4 {
+    margin: 0 0 1rem 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-subsection h4:before {
+    content: '⚙️';
+    font-size: 0.75rem;
+}
