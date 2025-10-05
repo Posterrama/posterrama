@@ -18544,6 +18544,15 @@ if (!document.__niwDelegatedFallback) {
         if (refreshBtn)
             refreshBtn.addEventListener('click', () => loadDirectoryContents(currentPath));
         // Create-folder and Delete-selected are not present in maintenance mode
+        const dlBtn = document.getElementById('btn-download-dir');
+        if (dlBtn) {
+            dlBtn.addEventListener('click', e => {
+                e.preventDefault();
+                const pathToZip = currentPath || '/';
+                const url = `/api/local/download-all?path=${encodeURIComponent(pathToZip)}`;
+                window.location.href = url;
+            });
+        }
     }
 
     function initEventListeners() {
@@ -18753,7 +18762,13 @@ if (!document.__niwDelegatedFallback) {
                 <div class="browser-item-actions">
                     ${
                         item.type === 'directory'
-                            ? `<button class="btn btn-secondary btn-sm btn-upload-here" data-path="${item.path}" data-name="${item.name}" title="Upload"><span class="spinner"></span><i class="fas fa-upload"></i><span class="hide-on-xs">Upload</span></button>`
+                            ? `<button class="btn btn-secondary btn-sm btn-upload-here" data-path="${item.path}" data-name="${item.name}" title="Upload"><span class="spinner"></span><i class="fas fa-upload"></i><span class="hide-on-xs">Upload</span></button>
+                               <button class="btn btn-secondary btn-sm btn-download-all" data-path="${item.path}" title="Download all"><span class="spinner"></span><i class="fas fa-file-zipper"></i><span class="hide-on-xs">Download All</span></button>`
+                            : ''
+                    }
+                    ${
+                        item.type === 'file'
+                            ? `<button class=\"btn btn-secondary btn-sm btn-download-file\" data-path=\"${item.path}\" title=\"Download\"><span class=\"spinner\"></span><i class=\"fas fa-download\"></i><span class=\"hide-on-xs\">Download</span></button>`
                             : ''
                     }
                     <button class="btn btn-error btn-sm btn-delete" data-path="${item.path}" title="${
@@ -18789,6 +18804,8 @@ if (!document.__niwDelegatedFallback) {
         browserContent.addEventListener('click', e => {
             const uploadHereBtn = e.target.closest('.btn-upload-here');
             const deleteBtn = e.target.closest('.btn-delete');
+            const downloadDirBtn = e.target.closest('.btn-download-all');
+            const downloadFileBtn = e.target.closest('.btn-download-file');
 
             if (uploadHereBtn) {
                 const name = (uploadHereBtn.dataset.name || '').toLowerCase();
@@ -18833,6 +18850,18 @@ if (!document.__niwDelegatedFallback) {
                     input.click();
                 };
                 openFilePicker(fi, target);
+            } else if (downloadDirBtn) {
+                const p = downloadDirBtn.dataset.path;
+                if (p) {
+                    const url = `/api/local/download-all?path=${encodeURIComponent(p)}`;
+                    window.location.href = url;
+                }
+            } else if (downloadFileBtn) {
+                const p = downloadFileBtn.dataset.path;
+                if (p) {
+                    const url = `/api/local/download?path=${encodeURIComponent(p)}`;
+                    window.location.href = url;
+                }
             } else if (deleteBtn) {
                 const path = deleteBtn.dataset.path;
                 const itemEl = deleteBtn.closest('.browser-item');
@@ -19713,11 +19742,7 @@ if (!document.__niwDelegatedFallback) {
 
                         if (job.status === 'completed' || job.status === 'failed') {
                             clearInterval(interval);
-                            try {
-                                const srcSel = document.getElementById('posterpack.source');
-                                const src = srcSel ? srcSel.value : 'local';
-                                loadGeneratedPosterpacks(src);
-                            } catch (_) {}
+                            // No-op: "Generated Packs" panel removed; users can download from Directory Contents
                         }
                     }
                 })
@@ -19727,88 +19752,7 @@ if (!document.__niwDelegatedFallback) {
                 });
         }, 1000);
     }
-
-    // Generated packs listing and downloads
-    function humanSize(bytes) {
-        if (!Number.isFinite(bytes)) return '—';
-        const units = ['B', 'KB', 'MB', 'GB'];
-        let i = 0;
-        let n = bytes;
-        while (n >= 1024 && i < units.length - 1) {
-            n /= 1024;
-            i++;
-        }
-        return `${n.toFixed(n >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
-    }
-
-    function renderGeneratedPosterpacks(list) {
-        const container = document.getElementById('posterpack-list');
-        const btnAll = document.getElementById('btn-packs-download-all');
-        if (!container) return;
-
-        if (!Array.isArray(list) || list.length === 0) {
-            container.innerHTML =
-                '<div class="browser-empty"><i class="fas fa-box-open"></i><div>No generated packs yet</div></div>';
-            if (btnAll) btnAll.disabled = true;
-            return;
-        }
-
-        const rows = list
-            .map(
-                f => `
-            <div class="row" style="display:flex; align-items:center; gap:12px; padding:6px 0; border-bottom:1px solid var(--color-border);">
-              <div style="flex:1; min-width: 200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                <i class="fas fa-file-zipper" style="margin-right:8px; color:var(--color-text-secondary);"></i>${f.name}
-              </div>
-              <div style="width:90px; color:var(--color-text-secondary);">${humanSize(f.size)}</div>
-              <div style="width:180px; color:var(--color-text-secondary);">${new Date(f.mtime).toLocaleString?.() || ''}</div>
-              <div>
-                <a class="btn btn-outline btn-sm" href="${f.downloadUrl}" download><i class="fas fa-download"></i> Download</a>
-              </div>
-            </div>`
-            )
-            .join('');
-
-        container.innerHTML = rows;
-        if (btnAll) btnAll.disabled = false;
-    }
-
-    async function loadGeneratedPosterpacks(source) {
-        try {
-            const r = await fetch(`/api/local/posterpacks?source=${encodeURIComponent(source)}`, {
-                credentials: 'include',
-                cache: 'no-cache',
-            });
-            const j = await r.json();
-            renderGeneratedPosterpacks(j.files || []);
-        } catch (e) {
-            console.error('Failed to load generated packs', e);
-        }
-    }
-
-    // Hook up buttons
-    (function initPackListUI() {
-        const refreshBtn = document.getElementById('btn-packs-refresh');
-        const allBtn = document.getElementById('btn-packs-download-all');
-        const srcSel = document.getElementById('posterpack.source');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
-                const src = srcSel ? srcSel.value : 'local';
-                loadGeneratedPosterpacks(src);
-            });
-        }
-        if (allBtn) {
-            allBtn.addEventListener('click', () => {
-                const src = srcSel ? srcSel.value : 'local';
-                window.location.href = `/api/local/posterpacks/download-all?source=${encodeURIComponent(src)}`;
-            });
-        }
-        // Auto-load on panel init
-        try {
-            const src = srcSel ? srcSel.value : 'local';
-            loadGeneratedPosterpacks(src);
-        } catch (_) {}
-    })();
+    // Generated Packs UI removed; downloads are available directly in the Directory browser
 
     function updateJobDisplay(job) {
         const jobsList = document.getElementById('local-job-list');

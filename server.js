@@ -7204,6 +7204,175 @@ app.get(
 
 /**
  * @swagger
+ * /api/local/download:
+ *   get:
+ *     summary: Download a single file from the local directory
+ *     description: Streams a single file to the client after validating the path is within the configured root
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: query
+ *         name: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Absolute or relative path to the file under the local root
+ *     responses:
+ *       200:
+ *         description: File stream
+ *       400:
+ *         description: Invalid request or path
+ *       404:
+ *         description: File not found
+ */
+app.get(
+    '/api/local/download',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+
+        const requestedPath = String(req.query.path || '').trim();
+        if (!requestedPath) {
+            return res.status(400).json({ error: 'Missing path' });
+        }
+
+        try {
+            const base = path.resolve(config.localDirectory.rootPath);
+            let fullPath;
+            if (path.isAbsolute(requestedPath)) {
+                const abs = path.resolve(requestedPath);
+                fullPath = abs.startsWith(base)
+                    ? abs
+                    : path.resolve(base, requestedPath.replace(/^\/+/, ''));
+            } else {
+                fullPath = path.resolve(base, requestedPath);
+            }
+            // ensure within base
+            const within = fullPath === base || (fullPath + path.sep).startsWith(base + path.sep);
+            if (!within) return res.status(400).json({ error: 'Invalid path' });
+
+            const st = await fs.promises.stat(fullPath).catch(() => null);
+            if (!st || !st.isFile()) return res.status(404).json({ error: 'File not found' });
+
+            const mime = require('mime-types');
+            const type = mime.lookup(fullPath) || 'application/octet-stream';
+            res.setHeader('Content-Type', type);
+            // Set content-disposition using filename only
+            const filename = path.basename(fullPath);
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            return res.sendFile(fullPath);
+        } catch (error) {
+            logger.error('Local file download error:', error);
+            return res.status(500).json({ error: 'download_failed' });
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/local/download-all:
+ *   get:
+ *     summary: Download a directory as a ZIP (recursive)
+ *     description: Zips a directory under the local root and streams it to the client
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: query
+ *         name: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Absolute or relative path to the directory under the local root
+ *     responses:
+ *       200:
+ *         description: ZIP stream
+ *       400:
+ *         description: Invalid request or path
+ *       404:
+ *         description: Directory not found
+ */
+app.get(
+    '/api/local/download-all',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+
+        const requestedPath = String(req.query.path || '').trim();
+        if (!requestedPath) {
+            return res.status(400).json({ error: 'Missing path' });
+        }
+        try {
+            const base = path.resolve(config.localDirectory.rootPath);
+            let dirPath;
+            if (path.isAbsolute(requestedPath)) {
+                const abs = path.resolve(requestedPath);
+                dirPath = abs.startsWith(base)
+                    ? abs
+                    : path.resolve(base, requestedPath.replace(/^\/+/, ''));
+            } else {
+                dirPath = path.resolve(base, requestedPath);
+            }
+            // ensure within base
+            const within = dirPath === base || (dirPath + path.sep).startsWith(base + path.sep);
+            if (!within) return res.status(400).json({ error: 'Invalid path' });
+
+            const st = await fs.promises.stat(dirPath).catch(() => null);
+            if (!st || !st.isDirectory())
+                return res.status(404).json({ error: 'Directory not found' });
+
+            const JSZip = require('jszip');
+            const zip = new JSZip();
+
+            async function addDirToZip(rootDir, zipFolder, rel = '') {
+                const entries = await fs.promises.readdir(rootDir, { withFileTypes: true });
+                for (const entry of entries) {
+                    // Skip internal system dir and generated metadata
+                    if (entry.name === '.posterrama' || entry.name.endsWith('.poster.json'))
+                        continue;
+                    const full = path.join(rootDir, entry.name);
+                    const relPath = rel ? path.join(rel, entry.name) : entry.name;
+                    if (entry.isDirectory()) {
+                        const sub = zipFolder.folder(entry.name);
+                        await addDirToZip(full, sub, relPath);
+                    } else if (entry.isFile()) {
+                        try {
+                            const data = await fs.promises.readFile(full);
+                            zipFolder.file(entry.name, data);
+                        } catch (_) {
+                            // Skip unreadable files silently
+                        }
+                    }
+                }
+            }
+
+            const folderName = path.basename(dirPath) || 'download';
+            const rootZipFolder = zip.folder(folderName);
+            await addDirToZip(dirPath, rootZipFolder);
+
+            const ts = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const date = `${ts.getFullYear()}${pad(ts.getMonth() + 1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}`;
+            const filename = `${folderName}-${date}.zip`;
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+            const stream = zip.generateNodeStream({
+                type: 'nodebuffer',
+                compression: 'DEFLATE',
+                compressionOptions: { level: 6 },
+            });
+            stream.pipe(res);
+        } catch (error) {
+            logger.error('Local directory zip download error:', error);
+            return res.status(500).json({ error: 'zip_failed' });
+        }
+    })
+);
+
+/**
+ * @swagger
  * /api/local/upload:
  *   post:
  *     summary: Upload media files to local directory

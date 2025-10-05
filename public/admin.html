@@ -1438,6 +1438,9 @@
                 <button class="btn btn-secondary btn-sm" id="btn-refresh-browser">
                   <span class="spinner"></span><i class="fas fa-rotate"></i><span>Refresh</span>
                 </button>
+                <button class="btn btn-secondary btn-sm" id="btn-download-dir" title="Download this folder as ZIP">
+                  <span class="spinner"></span><i class="fas fa-file-zipper"></i><span>Download All</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1466,10 +1469,10 @@
           <div class="form-grid">
             <div class="form-group">
               <label for="posterpack.source">Content Source</label>
-              <div class="select-wrap has-caret">
+              <div class="select-wrap has-caret" id="posterpack-source-wrap">
                 <select id="posterpack.source">
                   <option value="plex">Plex</option>
-                  <option value="jellyfin">jellyfin</option>
+                  <option value="jellyfin">Jellyfin</option>
                 </select>
                 <span class="select-caret" aria-hidden="true">▾</span>
               </div>
@@ -1686,19 +1689,7 @@
               </button>
               <small class="form-help">Create a downloadable ZIP archive from selected media source with optional filters</small>
             </div>
-            <!-- Generated Packs -->
-            <div class="form-section" style="grid-column: 1 / -1; margin-top: 12px;">
-              <div class="section-title"><i class="fas fa-folder-zip"></i> Generated Packs</div>
-            </div>
-            <div class="form-group" style="grid-column: 1 / -1; display: flex; gap: 8px; align-items: center;">
-              <button class="btn btn-secondary btn-sm" id="btn-packs-refresh"><span class="spinner"></span><i class="fas fa-rotate"></i><span>Refresh</span></button>
-              <button class="btn btn-secondary btn-sm" id="btn-packs-download-all" disabled><span class="spinner"></span><i class="fas fa-download"></i><span>Download All</span></button>
-            </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
-              <div id="posterpack-list" class="table-like" style="border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; min-height: 80px;">
-                <div class="browser-empty"><i class="fas fa-box-open"></i><div>No generated packs yet</div></div>
-              </div>
-            </div>
+            <!-- Generated Packs panel removed; directory-level downloads are available in the browser above -->
           </div>
 
           <!-- Job Status -->

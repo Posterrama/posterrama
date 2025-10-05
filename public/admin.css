@@ -4849,6 +4849,16 @@ select:not([multiple]) {
     width: auto;
     max-width: 260px;
 }
+
+/* Posterpack: make Content Source select shrink to its content */
+#posterpack-source-wrap {
+    width: -moz-fit-content;
+    width: fit-content;
+}
+#posterpack-source-wrap select {
+    width: auto;
+    max-width: 320px;
+}
 .select-wrap.has-caret select {
     /* remove native background chevron since we render our own */
     background-image: none !important;
