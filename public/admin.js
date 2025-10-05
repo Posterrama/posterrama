@@ -657,6 +657,28 @@
                     }
                 }
 
+                // Update Posterpack Content Source labels with (not configured) when disabled or missing
+                try {
+                    const sel = document.getElementById('posterpack.source');
+                    if (sel) {
+                        const mark = (value, configuredAndEnabled) => {
+                            const opt = Array.from(sel.options).find(o => o.value === value);
+                            if (!opt) return;
+                            const base =
+                                opt.dataset.origLabel ||
+                                opt.textContent.replace(/\s*\(not configured\)$/i, '');
+                            opt.dataset.origLabel = base;
+                            opt.textContent = configuredAndEnabled
+                                ? base
+                                : `${base} (not configured)`;
+                        };
+                        const plexOk = !!(plex && plex.enabled === true);
+                        const jfOk = !!(jf && jf.enabled === true);
+                        mark('plex', plexOk);
+                        mark('jellyfin', jfOk);
+                    }
+                } catch (_) {}
+
                 // Active Mode snapshot: cinema > wallart > screensaver
                 try {
                     const c = config;
