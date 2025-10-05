@@ -657,25 +657,23 @@
                     }
                 }
 
-                // Update Posterpack Content Source labels with (not configured) when disabled or missing
+                // Update Posterpack Content Source labels with (not configured) only when missing (disabled still counts as configured)
                 try {
                     const sel = document.getElementById('posterpack.source');
                     if (sel) {
-                        const mark = (value, configuredAndEnabled) => {
+                        const mark = (value, isConfigured) => {
                             const opt = Array.from(sel.options).find(o => o.value === value);
                             if (!opt) return;
                             const base =
                                 opt.dataset.origLabel ||
                                 opt.textContent.replace(/\s*\(not configured\)$/i, '');
                             opt.dataset.origLabel = base;
-                            opt.textContent = configuredAndEnabled
-                                ? base
-                                : `${base} (not configured)`;
+                            opt.textContent = isConfigured ? base : `${base} (not configured)`;
                         };
-                        const plexOk = !!(plex && plex.enabled === true);
-                        const jfOk = !!(jf && jf.enabled === true);
-                        mark('plex', plexOk);
-                        mark('jellyfin', jfOk);
+                        const plexConfigured = !!plex; // presence in config is enough
+                        const jfConfigured = !!jf;
+                        mark('plex', plexConfigured);
+                        mark('jellyfin', jfConfigured);
                     }
                 } catch (_) {}
 
