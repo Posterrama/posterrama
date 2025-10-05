@@ -1626,6 +1626,17 @@ body {
     color: var(--color-text-muted);
 }
 
+/* Inline action row for form buttons */
+.actions-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+.actions-inline .btn {
+    width: auto;
+}
+
 /* Icon styling for better visibility */
 .btn i,
 .nav-item i,
