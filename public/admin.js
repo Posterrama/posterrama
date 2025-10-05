@@ -18876,6 +18876,11 @@ if (!document.__niwDelegatedFallback) {
         }
 
         // No global delete-selected button in maintenance mode
+        // Update Posterpack filters visibility when local file selection changes
+        try {
+            const sourceSelect = document.getElementById('posterpack.source');
+            if (sourceSelect) handleSourceSelection({ target: sourceSelect });
+        } catch (_) {}
     }
 
     function scanDirectory() {
@@ -19167,17 +19172,25 @@ if (!document.__niwDelegatedFallback) {
         const jfLibs = document.getElementById('pp-jf-libs');
 
         if (filtersSection) {
-            // Always show the filters shell; toggle between server vs local variants
-            filtersSection.hidden = false;
-            filtersSection.style.display = '';
-            filtersSection.setAttribute('aria-hidden', 'false');
+            // If Local source is active and there are selected local files, hide Content Filters entirely
+            const hasLocalSelection = source === 'local' && selectedFiles && selectedFiles.size > 0;
+            if (hasLocalSelection) {
+                filtersSection.hidden = true;
+                filtersSection.style.display = 'none';
+                filtersSection.setAttribute('aria-hidden', 'true');
+            } else {
+                // Show the filters shell; toggle between server vs local variants
+                filtersSection.hidden = false;
+                filtersSection.style.display = '';
+                filtersSection.setAttribute('aria-hidden', 'false');
+            }
             if (srvFilters) {
                 const showSrv = source === 'plex' || source === 'jellyfin';
                 srvFilters.hidden = !showSrv;
                 srvFilters.style.display = showSrv ? '' : 'none';
             }
             if (localFilters) {
-                const showLocal = source === 'local';
+                const showLocal = source === 'local' && !hasLocalSelection;
                 localFilters.hidden = !showLocal;
                 localFilters.style.display = showLocal ? '' : 'none';
                 if (showLocal) {
@@ -20080,6 +20093,11 @@ if (!document.__niwDelegatedFallback) {
                         showNotification('Selected items deleted successfully', 'success');
                         selectedFiles.clear();
                         loadDirectoryContents(currentPath);
+                        // Re-evaluate Posterpack filters visibility after clearing selection
+                        try {
+                            const sourceSelect = document.getElementById('posterpack.source');
+                            if (sourceSelect) handleSourceSelection({ target: sourceSelect });
+                        } catch (_) {}
                     } else {
                         showNotification(
                             result.message || result.error || 'Delete failed',
