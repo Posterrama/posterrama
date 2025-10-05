@@ -4,27 +4,7 @@
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
-    // Early resilient logger shim to avoid ReferenceError before full debug init
-    // Ensures __ppLog is always defined even if called before ppDebug setup
-    var __ppLog =
-        typeof __ppLog === 'function'
-            ? __ppLog
-            : function () {
-                  try {
-                      const dbg = (typeof window !== 'undefined' && window.__ppDebug) || null;
-                      if (dbg && typeof dbg.log === 'function') {
-                          return dbg.log.apply(dbg, arguments);
-                      }
-                  } catch (_) {}
-                  return undefined;
-              };
-    window.__ppLog = function () {
-        try {
-            const dbg = window.__ppDebug;
-            if (dbg && typeof dbg.log === 'function') return dbg.log.apply(dbg, arguments);
-        } catch (_) {}
-        return undefined;
-    };
+    // Posterpack debug logger removed
 
     // ---- Diagnostic Sentinel (notifications resilience) ----
     // Provides quick confirmation in the browser console that the latest admin.js has loaded.
@@ -195,9 +175,6 @@
         return `${b.toFixed(1)} ${units[i]}`;
     }
 
-    // Debug logger removed (no-op)
-    function __ppLog() {}
-
     // Simple HTML escaper available at module scope for safe rendering
     function escapeHtml(s) {
         return String(s || '')
@@ -322,12 +299,6 @@
                         buildOptions();
                         // Ensure all rows visible
                         Array.from(optsEl.children).forEach(ch => (ch.style.display = ''));
-                        __ppLog(
-                            'ms-open: rebuilt options on open for',
-                            idBase,
-                            'rows:',
-                            optsEl.children.length
-                        );
                     } else if (optsEl && optsEl.children.length > 0) {
                         // If rows exist but all are hidden (old filter), clear filter and unhide
                         const hiddenCount = Array.from(optsEl.children).filter(
@@ -336,7 +307,6 @@
                         if (hiddenCount === optsEl.children.length) {
                             if (search) search.value = '';
                             Array.from(optsEl.children).forEach(ch => (ch.style.display = ''));
-                            __ppLog('ms-open: all rows hidden, cleared filter for', idBase);
                         }
                     }
                 } catch (e) {
@@ -15761,9 +15731,6 @@
                     try {
                         const srcSel = document.getElementById('posterpack.source');
                         if (srcSel && srcSel.value === 'jellyfin') {
-                            __ppLog(
-                                'posterpacks: syncing Posterpack lists after fetchJellyfinLibraries'
-                            );
                             populatePosterpackLibraries('jellyfin');
                         }
                     } catch (_) {}
@@ -19234,7 +19201,7 @@ if (!document.__niwDelegatedFallback) {
 
     function handleSourceSelection(e) {
         const source = e.target.value;
-        __ppLog('Source change ->', source);
+
         const filtersSection = document.getElementById('posterpack-filters');
         const srvFilters = document.getElementById('posterpack-filters-srv');
         const localFilters = document.getElementById('posterpack-filters-local');
@@ -19377,7 +19344,7 @@ if (!document.__niwDelegatedFallback) {
     async function loadLocalFilterOptions() {
         if (window.__ppLocalFiltersLoaded) return;
         window.__ppLocalFiltersLoaded = true; // set early to avoid duplicate fetches
-        const dbg = (...a) => (window.__ppDebug ? console.debug('[PP Local]', ...a) : null);
+
         try {
             const [
                 plexRatingsRes,
@@ -19496,14 +19463,7 @@ if (!document.__niwDelegatedFallback) {
             fillSelect('pp-local.ratings', ratingsList);
             fillSelect('pp-local.qualities', qualitiesList);
             fillSelect('pp-local.genres', genresList);
-            dbg('Loaded Local filter options', {
-                ratings: ratingsList.length,
-                qualities: qualitiesList.length,
-                genres: genresList.length,
-            });
-        } catch (e) {
-            console.warn('[PP Local] Failed to load filter options', e);
-        }
+        } catch (e) {}
     }
 
     function populatePosterpackLibraries(kind) {
@@ -19527,11 +19487,7 @@ if (!document.__niwDelegatedFallback) {
                     const mainSh = document.getElementById('jf.shows');
                     const mvNames = mainMv ? Array.from(mainMv.options).map(o => o.value) : [];
                     const shNames = mainSh ? Array.from(mainSh.options).map(o => o.value) : [];
-                    __ppLog(
-                        'copyFromMainIfEmpty(jellyfin): main sizes',
-                        mvNames.length,
-                        shNames.length
-                    );
+
                     if (mvNames.length || shNames.length) {
                         fill('pp-jf.movies', mvNames);
                         fill('pp-jf.shows', shNames);
@@ -19551,7 +19507,6 @@ if (!document.__niwDelegatedFallback) {
                         `No ${src} libraries found for Posterpack selection`,
                         'warning'
                     );
-                    __ppLog('toastNoLibsOnce fired for', src);
                 }
             } catch (_) {}
         };
@@ -19617,16 +19572,10 @@ if (!document.__niwDelegatedFallback) {
                 const counts =
                     window.__plexLibraryCounts instanceof Map ? window.__plexLibraryCounts : null;
                 const allNames = Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
-                __ppLog(
-                    'Plex map size:',
-                    (map && map.size) || 0,
-                    'counts size:',
-                    (counts && counts.size) || 0
-                );
+
                 // If still empty, try the main fetcher as a fallback and retry using global maps
                 if (!allNames.length) {
                     try {
-                        __ppLog('Plex allNames empty; invoking fetchPlexLibraries fallback');
                         await Promise.resolve(fetchPlexLibraries(false, true));
                         const m2 =
                             window.__plexLibraryNameToId instanceof Map
@@ -19637,11 +19586,7 @@ if (!document.__niwDelegatedFallback) {
                                 ? window.__plexLibraryCounts
                                 : null;
                         const names2 = Array.from(m2.keys()).sort((a, b) => a.localeCompare(b));
-                        __ppLog(
-                            'Plex fallback maps -> sizes:',
-                            (m2 && m2.size) || 0,
-                            (c2 && c2.size) || 0
-                        );
+
                         if (c2 && c2.size) {
                             const movieNames2 = names2.filter(
                                 n => (c2.get(n)?.type || '').toLowerCase() === 'movie'
@@ -19665,12 +19610,7 @@ if (!document.__niwDelegatedFallback) {
                     const showNames = allNames.filter(
                         n => (counts.get(n)?.type || '').toLowerCase() === 'show'
                     );
-                    __ppLog(
-                        'Plex fill by counts -> movies:',
-                        movieNames.length,
-                        'shows:',
-                        showNames.length
-                    );
+
                     fill('pp-plex.movies', movieNames);
                     fill('pp-plex.shows', showNames);
                 } else if (Array.isArray(libs) && libs.length) {
@@ -19682,12 +19622,7 @@ if (!document.__niwDelegatedFallback) {
                         .filter(l => (l.type || '').toLowerCase() === 'show')
                         .map(l => l.name)
                         .sort((a, b) => a.localeCompare(b));
-                    __ppLog(
-                        'Plex fill by libs array -> movies:',
-                        movieNames.length,
-                        'shows:',
-                        showNames.length
-                    );
+
                     fill('pp-plex.movies', movieNames);
                     fill('pp-plex.shows', showNames);
                 } else if (!copyFromMainIfEmpty('plex')) {
@@ -19731,16 +19666,10 @@ if (!document.__niwDelegatedFallback) {
                 const counts =
                     window.__jfLibraryCounts instanceof Map ? window.__jfLibraryCounts : null;
                 const allNames = Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
-                __ppLog(
-                    'JF map size:',
-                    (map && map.size) || 0,
-                    'counts size:',
-                    (counts && counts.size) || 0
-                );
+
                 // If still empty, try the main fetcher as a fallback and retry using global maps
                 if (!allNames.length) {
                     try {
-                        __ppLog('JF allNames empty; invoking fetchJellyfinLibraries fallback');
                         await Promise.resolve(fetchJellyfinLibraries(false, true));
                         const m2 =
                             window.__jfLibraryNameToId instanceof Map
@@ -19751,11 +19680,7 @@ if (!document.__niwDelegatedFallback) {
                                 ? window.__jfLibraryCounts
                                 : null;
                         const names2 = Array.from(m2.keys()).sort((a, b) => a.localeCompare(b));
-                        __ppLog(
-                            'JF fallback maps -> sizes:',
-                            (m2 && m2.size) || 0,
-                            (c2 && c2.size) || 0
-                        );
+
                         if (c2 && c2.size) {
                             const movieNames2 = names2.filter(
                                 n => (c2.get(n)?.type || '').toLowerCase() === 'movie'
@@ -19779,12 +19704,7 @@ if (!document.__niwDelegatedFallback) {
                     const showNames = allNames.filter(
                         n => (counts.get(n)?.type || '').toLowerCase() === 'show'
                     );
-                    __ppLog(
-                        'JF fill by counts -> movies:',
-                        movieNames.length,
-                        'shows:',
-                        showNames.length
-                    );
+
                     fill('pp-jf.movies', movieNames);
                     fill('pp-jf.shows', showNames);
                 } else if (Array.isArray(libs) && libs.length) {
@@ -19796,17 +19716,11 @@ if (!document.__niwDelegatedFallback) {
                         .filter(l => l.type === 'show')
                         .map(l => l.name)
                         .sort((a, b) => a.localeCompare(b));
-                    __ppLog(
-                        'JF fill by libs array -> movies:',
-                        movieNames.length,
-                        'shows:',
-                        showNames.length
-                    );
+
                     fill('pp-jf.movies', movieNames);
                     fill('pp-jf.shows', showNames);
                 } else {
                     if (allNames.length) {
-                        __ppLog('JF fill by allNames both lists:', allNames.length);
                         fill('pp-jf.movies', allNames);
                         fill('pp-jf.shows', allNames);
                     } else if (!copyFromMainIfEmpty('jellyfin')) {
