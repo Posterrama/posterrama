@@ -4867,8 +4867,9 @@ select:not([multiple]) {
     width: fit-content;
 }
 #posterpack-source-wrap select {
-    width: auto;
-    max-width: 420px; /* widened a bit for longer labels */
+    /* Make roughly 2x wider while staying responsive */
+    width: 640px;
+    max-width: 100%;
 }
 .select-wrap.has-caret select {
     /* remove native background chevron since we render our own */
