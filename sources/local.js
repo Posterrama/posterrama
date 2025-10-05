@@ -11,12 +11,15 @@ const logger = require('../utils/logger');
  */
 class LocalDirectorySource {
     constructor(config) {
-        this.config = config;
-        this.rootPath = config.localDirectory?.rootPath || '';
-        this.enabled = config.localDirectory?.enabled || false;
-        this.scanInterval = config.localDirectory?.scanInterval || 300;
-        this.maxFileSize = config.localDirectory?.maxFileSize || 104857600; // 100MB
-        this.supportedFormats = config.localDirectory?.supportedFormats || [
+        // Accept either the full app config or the localDirectory sub-config
+        const ld = (config && config.localDirectory) || config || {};
+        this.config = { localDirectory: ld };
+        // Fixed default: use <install>/media when not explicitly set
+        this.rootPath = ld.rootPath || path.resolve(process.cwd(), 'media');
+        this.enabled = !!ld.enabled;
+        this.scanInterval = ld.scanInterval ?? 300;
+        this.maxFileSize = ld.maxFileSize ?? 104857600; // 100MB
+        this.supportedFormats = ld.supportedFormats || [
             'jpg',
             'jpeg',
             'png',
@@ -175,6 +178,86 @@ class LocalDirectorySource {
             return validFiles;
         } catch (error) {
             logger.error(`LocalDirectorySource: Error scanning directory ${targetPath}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Browse directory contents for admin interface
+     * @param {string} relativePath - Relative path from root directory
+     * @param {string} type - Type filter (all, files, directories)
+     * @returns {Object} Directory contents with files and directories
+     */
+    async browseDirectory(relativePath = '', type = 'all') {
+        try {
+            // Normalize and anchor to configured rootPath
+            const base = this.rootPath ? path.resolve(this.rootPath) : path.resolve('/');
+            const reqRaw = typeof relativePath === 'string' ? relativePath.trim() : '';
+
+            // Determine target path: absolute requested stays absolute, otherwise resolve from base
+            let targetPath;
+            if (!reqRaw || reqRaw === '/' || reqRaw === '.') {
+                targetPath = base;
+            } else if (path.isAbsolute(reqRaw)) {
+                targetPath = path.resolve(reqRaw);
+            } else {
+                targetPath = path.resolve(base, reqRaw);
+            }
+
+            // Security: restrict to base (rootPath). Allow base itself.
+            const withinBase =
+                targetPath === base || (targetPath + path.sep).startsWith(base + path.sep);
+            if (!withinBase) {
+                throw new Error('Path outside configured root');
+            }
+
+            // Check if directory exists
+            if (!fs.existsSync(targetPath)) {
+                throw new Error('Directory not found');
+            }
+
+            const stat = await fs.stat(targetPath);
+            if (!stat.isDirectory()) {
+                throw new Error('Path is not a directory');
+            }
+
+            // Read directory contents
+            const items = await fs.readdir(targetPath, { withFileTypes: true });
+
+            const directories = [];
+            const files = [];
+
+            for (const item of items) {
+                try {
+                    if (item.isDirectory()) {
+                        if (type === 'all' || type === 'directories') directories.push(item.name);
+                    } else if (item.isSymbolicLink()) {
+                        // Include symlinked directories
+                        const linkPath = path.join(targetPath, item.name);
+                        const s = await fs.stat(linkPath).catch(() => null);
+                        if (s?.isDirectory() && (type === 'all' || type === 'directories')) {
+                            directories.push(item.name);
+                        }
+                    } else if (item.isFile()) {
+                        if (type === 'all' || type === 'files') files.push(item.name);
+                    }
+                } catch (e) {
+                    // Skip entries we cannot stat
+                    logger.debug(
+                        `LocalDirectorySource: Skipped entry ${item.name} during browse due to error: ${e?.message}`
+                    );
+                }
+            }
+
+            return {
+                basePath: base,
+                currentPath: targetPath,
+                directories: directories.sort(),
+                files: files.sort(),
+                totalItems: directories.length + files.length,
+            };
+        } catch (error) {
+            logger.error('LocalDirectorySource: Browse directory error:', error);
             throw error;
         }
     }
@@ -419,9 +502,10 @@ class LocalDirectorySource {
         }
 
         try {
-            this.watcher = chokidar.watch(this.rootPath, {
+            const watchRoot = path.resolve(this.rootPath);
+            this.watcher = chokidar.watch(watchRoot, {
                 ignored: [
-                    path.join(this.rootPath, this.directories.system, '**'),
+                    path.join(watchRoot, this.directories.system, '**'),
                     /\.poster\.json$/, // Ignore metadata files
                 ],
                 persistent: true,
@@ -693,24 +777,189 @@ class LocalDirectorySource {
             return;
         }
 
-        if (!this.rootPath) {
-            logger.warn('LocalDirectorySource: No root path configured');
-            return;
-        }
+        // rootPath is always set (defaults to <cwd>/media)
 
         try {
-            // Ensure directory structure exists
+            // Ensure directory structure exists and start watcher
             await this.createDirectoryStructure();
-
-            // Start file watcher if enabled
-            if (this.config.localDirectory?.performance?.watcherEnabled !== false) {
-                await this.startFileWatcher();
-            }
+            await this.startFileWatcher();
 
             logger.info('LocalDirectorySource: Initialization completed');
         } catch (error) {
             await this.handleError('initialization', error);
         }
+    }
+
+    /**
+     * Clean up files and directories
+     * @param {Array} operations - Array of cleanup operations
+     * @param {boolean} dryRun - Whether to perform a dry run
+     * @returns {Object} Cleanup results
+     */
+    async cleanupDirectory(operations = [], dryRun = true) {
+        const results = {
+            success: true,
+            operations: [],
+            errors: [],
+        };
+
+        try {
+            for (const operation of operations) {
+                const { type, path: targetPath } = operation;
+
+                if (type === 'delete' && targetPath) {
+                    try {
+                        // Security check
+                        const resolvedPath = path.resolve(targetPath);
+                        if (resolvedPath.includes('..')) {
+                            throw new Error('Path traversal not allowed');
+                        }
+
+                        if (!dryRun) {
+                            await fs.remove(resolvedPath);
+                        }
+
+                        results.operations.push({
+                            type: 'delete',
+                            path: targetPath,
+                            status: dryRun ? 'would_delete' : 'deleted',
+                        });
+                    } catch (error) {
+                        results.errors.push({
+                            path: targetPath,
+                            error: error.message,
+                        });
+                    }
+                }
+            }
+
+            if (results.errors.length > 0) {
+                results.success = false;
+            }
+        } catch (error) {
+            logger.error('LocalDirectorySource: Cleanup error:', error);
+            results.success = false;
+            results.errors.push({ error: error.message });
+        }
+
+        return results;
+    }
+
+    /**
+     * Get file metadata
+     * @param {string} filePath - Path to file
+     * @param {boolean} refresh - Whether to refresh cached metadata
+     * @returns {Object} File metadata
+     */
+    async getFileMetadata(filePath, _refresh = false) {
+        try {
+            const resolvedPath = path.resolve(filePath);
+
+            // Security check
+            if (resolvedPath.includes('..')) {
+                throw new Error('Path traversal not allowed');
+            }
+
+            if (!fs.existsSync(resolvedPath)) {
+                throw new Error('File not found');
+            }
+
+            const stats = await fs.stat(resolvedPath);
+            const fileName = path.basename(resolvedPath);
+            const ext = path.extname(fileName).toLowerCase().substr(1);
+
+            return {
+                path: resolvedPath,
+                name: fileName,
+                size: stats.size,
+                modified: stats.mtime,
+                created: stats.birthtime,
+                extension: ext,
+                isDirectory: stats.isDirectory(),
+                isFile: stats.isFile(),
+            };
+        } catch (error) {
+            logger.error('LocalDirectorySource: Get file metadata error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get directory statistics
+     * @returns {Object} Directory statistics
+     */
+    async getDirectoryStats() {
+        try {
+            const stats = {
+                totalDirectories: 0,
+                totalFiles: 0,
+                totalSize: 0,
+                supportedFiles: 0,
+                lastScan: this.lastScanTime,
+            };
+
+            // Get stats for each configured directory
+            for (const dirName of Object.values(this.directories)) {
+                const dirPath = path.join(this.rootPath, dirName);
+
+                if (fs.existsSync(dirPath)) {
+                    const dirStats = await this.getDirectoryStatsRecursive(dirPath);
+                    stats.totalDirectories += dirStats.directories;
+                    stats.totalFiles += dirStats.files;
+                    stats.totalSize += dirStats.size;
+                    stats.supportedFiles += dirStats.supportedFiles;
+                }
+            }
+
+            return stats;
+        } catch (error) {
+            logger.error('LocalDirectorySource: Get directory stats error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get directory statistics recursively
+     * @param {string} dirPath - Directory path
+     * @returns {Object} Directory statistics
+     */
+    async getDirectoryStatsRecursive(dirPath) {
+        const stats = {
+            directories: 0,
+            files: 0,
+            size: 0,
+            supportedFiles: 0,
+        };
+
+        try {
+            const items = await fs.readdir(dirPath, { withFileTypes: true });
+
+            for (const item of items) {
+                const itemPath = path.join(dirPath, item.name);
+
+                if (item.isDirectory()) {
+                    stats.directories++;
+                    const subStats = await this.getDirectoryStatsRecursive(itemPath);
+                    stats.directories += subStats.directories;
+                    stats.files += subStats.files;
+                    stats.size += subStats.size;
+                    stats.supportedFiles += subStats.supportedFiles;
+                } else if (item.isFile()) {
+                    stats.files++;
+                    const fileStat = await fs.stat(itemPath);
+                    stats.size += fileStat.size;
+
+                    const ext = path.extname(item.name).toLowerCase().substr(1);
+                    if (this.supportedFormats.includes(ext)) {
+                        stats.supportedFiles++;
+                    }
+                }
+            }
+        } catch (error) {
+            logger.warn(`Error reading directory ${dirPath}:`, error.message);
+        }
+
+        return stats;
     }
 
     /**

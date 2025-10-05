@@ -12542,6 +12542,7 @@ select:focus-visible {
 
 /* ============================================= */
 /* Local Directory Interface Styles */
+/* Cache bust: 2025-10-04 15:07 */
 /* ============================================= */
 
 /* File Drop Zone */
@@ -12890,3 +12891,92 @@ select:focus-visible {
     content: '⚙️';
     font-size: 0.75rem;
 }
+
+/* Directory Browser Modal */
+#modal-directory-browser .directory-browser-modal {
+    max-height: min(85vh, 100svh);
+}
+
+.directory-browser-body {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.directory-browser-path {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+}
+
+.directory-browser-path-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.directory-browser-path-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--font-mono, 'Fira Code', 'Fira Mono', 'Menlo', monospace);
+    font-size: 0.85rem;
+    padding: 8px 12px;
+}
+
+.directory-browser-toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.directory-browser-panel {
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    background: var(--surface-layer-1);
+    max-height: 420px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.directory-browser-panel .browser-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.directory-browser-panel .browser-empty {
+    height: 220px;
+    padding: 24px;
+}
+
+.directory-browser-panel .browser-item {
+    font-family: var(--font-mono, 'Fira Code', 'Fira Mono', 'Menlo', monospace);
+    font-size: 0.88rem;
+}
+
+.directory-browser-panel .browser-item-icon {
+    color: var(--color-text-secondary);
+}
+
+.directory-browser-panel .browser-item-icon.directory {
+    color: var(--color-accent);
+}
+
+.directory-browser-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 16px 20px;
+}
+
+.directory-browser-footer .footer-left,
+.directory-browser-footer .footer-right {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Cache bust: 2025-10-04 17:24 */

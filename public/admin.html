@@ -1407,7 +1407,6 @@
           <span class="status-pill" id="local-status-pill-header" title="Local directory configuration status">Not configured</span>
           <span class="status-pill" id="local-count-pill" title="Items from local directory in the current playlist">Items: —</span>
           <button class="btn btn-icon btn-sm" id="btn-local-scan" title="Scan directory"><i class="fas fa-sync"></i></button>
-          <button class="btn btn-icon btn-sm" id="btn-local-browse" title="Browse directory"><i class="fas fa-folder-open"></i></button>
           <label class="header-toggle" for="localDirectory.enabled" title="Enable local directory source">
             <input type="checkbox" id="localDirectory.enabled" />
             <span class="ht-switch" aria-hidden="true"></span>
@@ -1421,30 +1420,7 @@
             <div class="loader"><span class="spinner"></span></div>
           </div>
 
-          <!-- Directory Configuration -->
-          <div class="form-section">
-            <div class="section-title"><i class="fas fa-folder"></i> Directory</div>
-          </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="localDirectory.rootPath">Directory Path</label>
-              <div class="input-group">
-                <input type="text" id="localDirectory.rootPath" placeholder="/path/to/media" autocomplete="off" spellcheck="false">
-                <button class="btn btn-outline btn-sm" id="btn-browse-path" title="Browse for directory">
-                  <i class="fas fa-folder-open"></i>
-                </button>
-              </div>
-              <small class="form-help">Path to the directory containing your media files</small>
-            </div>
-            <div class="form-group">
-              <label for="localDirectory.watchDirectories">Watch for Changes</label>
-              <label class="checkbox">
-                <input type="checkbox" id="localDirectory.watchDirectories">
-                <span class="checkmark"></span>
-                <span>Auto-scan when files change</span>
-              </label>
-            </div>
-          </div>
+          <!-- Directory configuration removed (fixed-path UX) -->
 
           <!-- File Operations -->
           <div class="form-section">
@@ -1502,8 +1478,8 @@
             <div class="browser-content" id="local-browser-content">
               <div class="browser-empty">
                 <i class="fas fa-folder-open"></i>
-                <div>No directory configured</div>
-                <small>Set a directory path above to browse files</small>
+                <div>No directory contents to show</div>
+                <small>Use the actions above to create folders or upload files into the fixed media directory.</small>
               </div>
             </div>
           </div>
@@ -1520,8 +1496,6 @@
                   <option value="local">Local Directory Files</option>
                   <option value="plex">Plex Libraries</option>
                   <option value="jellyfin">Jellyfin Libraries</option>
-                  <option value="tmdb">TMDB Collections</option>
-                  <option value="all">All Sources Combined</option>
                 </select>
                 <span class="select-caret" aria-hidden="true">▾</span>
               </div>
@@ -1574,6 +1548,19 @@
                 Preview Selection
               </button>
               <small class="form-help">Create a downloadable ZIP archive from selected media source with optional filters</small>
+            </div>
+            <!-- Generated Packs -->
+            <div class="form-section" style="grid-column: 1 / -1; margin-top: 12px;">
+              <div class="section-title"><i class="fas fa-folder-zip"></i> Generated Packs</div>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1; display: flex; gap: 8px; align-items: center;">
+              <button class="btn btn-outline btn-sm" id="btn-packs-refresh"><i class="fas fa-rotate"></i> Refresh</button>
+              <button class="btn btn-secondary btn-sm" id="btn-packs-download-all" disabled><i class="fas fa-download"></i> Download All</button>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <div id="posterpack-list" class="table-like" style="border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; min-height: 80px;">
+                <div class="browser-empty"><i class="fas fa-box-open"></i><div>No generated packs yet</div></div>
+              </div>
             </div>
           </div>
 

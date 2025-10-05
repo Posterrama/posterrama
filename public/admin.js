@@ -8,132 +8,37 @@
     // Provides quick confirmation in the browser console that the latest admin.js has loaded.
     // Type:  __diagUI   or  window.__diagUI.showScripts()  in DevTools.
     try {
-        if (!window.__diagUI) {
-            window.__diagUI = {};
-        }
-        Object.assign(window.__diagUI, {
-            adminLoadedAt: new Date().toISOString(),
-            versionSentinel: 'notif-resilience-2',
-            hasNotifResiliencePatch: true,
-            showScripts() {
-                const list = [...document.scripts].map(s => s.src || '[inline]');
-                console.info('[__diagUI] Scripts:', list);
-                return list;
-            },
-            getNotifPanelInfo() {
-                const panel = document.getElementById('notify-center');
-                if (!panel) return { exists: false };
-                const cs = getComputedStyle(panel);
-                const info = {
+        // Directory modal UI removed (fixed 'media' root)
+        // Minimal diagnostic helpers for modals (safe to keep in production)
+        window.__diagUI = window.__diagUI || {};
+        window.__diagUI.modalInfo = function modalInfo(id) {
+            try {
+                const el = document.getElementById(id);
+                if (!el) return { exists: false };
+                const r = el.getBoundingClientRect();
+                return {
                     exists: true,
-                    classes: [...panel.classList],
-                    inline: panel.getAttribute('style') || '',
-                    ariaHidden: panel.getAttribute('aria-hidden'),
-                    hiddenAttr: panel.hasAttribute('hidden'),
-                    bounding: panel.getBoundingClientRect().toJSON(),
-                    computed: {
-                        display: cs.display,
-                        visibility: cs.visibility,
-                        opacity: cs.opacity,
-                        pointerEvents: cs.pointerEvents,
-                        zIndex: cs.zIndex,
-                        transform: cs.transform,
-                    },
+                    id,
+                    classes: [...el.classList],
+                    rect: r.toJSON(),
+                    portal: el.hasAttribute('data-portal'),
+                    hiddenAttr: el.hasAttribute('hidden'),
+                    ariaHidden: el.getAttribute('aria-hidden'),
+                    open: el.classList.contains('open'),
+                    parent: el.parentElement?.id || el.parentElement?.className,
                 };
-                console.info('[__diagUI] Notif panel info:', info);
-                return info;
-            },
-            forceNotifOpen() {
-                try {
-                    const panel = document.getElementById('notify-center');
-                    if (!panel) {
-                        console.warn('[__diagUI] notify-center not found');
-                        return false;
-                    }
-                    panel.classList.add('open');
-                    panel.setAttribute('data-notif-force', 'true');
-                    panel.style.display = 'block';
-                    panel.style.visibility = 'visible';
-                    panel.style.opacity = '1';
-                    panel.style.pointerEvents = 'auto';
-                    panel.style.zIndex = '13000';
-                    panel.style.transform = 'translateY(0)';
-                    console.info('[__diagUI] Forced notif panel open');
-                    try {
-                        window.__diagUI.placePanelInView?.();
-                    } catch (_) {}
-                    return true;
-                } catch (err) {
-                    console.error('[__diagUI] forceNotifOpen failed', err);
-                    return false;
-                }
-            },
-            placePanelInView() {
-                try {
-                    const panel = document.getElementById('notify-center');
-                    if (!panel) return false;
-                    const r = panel.getBoundingClientRect();
-                    const vw = window.innerWidth;
-                    const vh = window.innerHeight;
-                    let adjust = false;
-                    if (r.right < 32 || r.left > vw) {
-                        panel.style.right = '16px';
-                        panel.style.left = 'auto';
-                        adjust = true;
-                    }
-                    if (r.top < 0 || r.bottom < 80) {
-                        panel.style.top = '60px';
-                        adjust = true;
-                    }
-                    if (r.bottom > vh) {
-                        const maxH = Math.max(200, vh - 100);
-                        panel.style.maxHeight = maxH + 'px';
-                        panel.style.overflowY = 'auto';
-                        adjust = true;
-                    }
-                    if (adjust) {
-                        console.info(
-                            '[__diagUI] panel repositioned into view',
-                            panel.getBoundingClientRect().toJSON()
-                        );
-                    } else {
-                        console.info('[__diagUI] panel already in view', r.toJSON());
-                    }
-                    return true;
-                } catch (e) {
-                    console.warn('[__diagUI] placePanelInView failed', e);
-                    return false;
-                }
-            },
-            modalInfo(id) {
-                try {
-                    const el = document.getElementById(id);
-                    if (!el) return { exists: false };
-                    const r = el.getBoundingClientRect();
-                    return {
-                        exists: true,
-                        id,
-                        classes: [...el.classList],
-                        rect: r.toJSON(),
-                        portal: el.hasAttribute('data-portal'),
-                        hiddenAttr: el.hasAttribute('hidden'),
-                        ariaHidden: el.getAttribute('aria-hidden'),
-                        open: el.classList.contains('open'),
-                        parent: el.parentElement?.id || el.parentElement?.className,
-                    };
-                } catch (e) {
-                    return { error: e?.message };
-                }
-            },
-            openModalTest(id) {
-                try {
-                    window.openModal?.(id);
-                    return this.modalInfo(id);
-                } catch (e) {
-                    return { error: e?.message };
-                }
-            },
-        });
+            } catch (e) {
+                return { error: e?.message };
+            }
+        };
+        window.__diagUI.openModalTest = function openModalTest(id) {
+            try {
+                window.openModal?.(id);
+                return window.__diagUI.modalInfo(id);
+            } catch (e) {
+                return { error: e?.message };
+            }
+        };
         // Clear any previous log guard to ensure visibility
         // Removed admin boot sentinel log (was noisy in production)
         try {
@@ -7027,7 +6932,8 @@
                         window.admin2?.maybeFetchTmdbOnOpen?.();
                         window.admin2?.maybeFetchStreamingProvidersOnOpen?.();
                     } else if (panelId === 'panel-local') {
-                        window.admin2?.initLocalDirectoryPanel?.();
+                        if (window.__autoFetchedLibs) window.__autoFetchedLibs.local = false;
+                        window.admin2?.maybeInitLocalDirectoryOnOpen?.();
                     }
                 } catch (_) {
                     /* no-op */
@@ -7219,6 +7125,8 @@
                             else if (s.panel === 'panel-tmdb') {
                                 window.admin2?.maybeFetchTmdbOnOpen?.();
                                 window.admin2?.maybeFetchStreamingProvidersOnOpen?.();
+                            } else if (s.panel === 'panel-local') {
+                                window.admin2?.maybeInitLocalDirectoryOnOpen?.();
                             }
                         } catch (_) {}
                     });
@@ -7232,6 +7140,7 @@
                     const h = (location.hash || '').toLowerCase();
                     if (h === '#jellyfin') setActive('jellyfin');
                     else if (h === '#tmdb') setActive('tmdb');
+                    else if (h === '#local') setActive('local');
                     else setActive('plex');
                 };
                 // Run on enter to sources and on hash changes
@@ -7503,8 +7412,7 @@
                 }
                 if (h === '#local') {
                     showSourcePanel('panel-local', 'Local');
-                    // Initialize local directory panel
-                    window.admin2?.initLocalDirectoryPanel?.();
+                    window.admin2?.maybeInitLocalDirectoryOnOpen?.();
                     return;
                 }
                 if (h === '#media-sources' || h === '#media-sources/overview') {
@@ -13154,6 +13062,15 @@
             return j;
         }
 
+        try {
+            if (typeof window !== 'undefined') {
+                window.saveConfigPatch = saveConfigPatch;
+                window.__saveConfigPatch = saveConfigPatch;
+            }
+        } catch (_) {
+            /* ignore exposure failure */
+        }
+
         // Helpers for Media Sources
         const getInput = id => document.getElementById(id);
         const toInt = v => {
@@ -15115,6 +15032,15 @@
                     const j = await res.json().catch(() => ({}));
                     if (!res.ok) throw new Error(j?.error || 'Failed to load Plex libraries');
                     const libs = Array.isArray(j.libraries) ? j.libraries : [];
+                    // Store Plex name -> key mapping for posterpack generation
+                    try {
+                        window.__plexLibraryNameToId = new Map();
+                        libs.forEach(l => {
+                            if (l && l.name && (l.key || l.key === 0)) {
+                                window.__plexLibraryNameToId.set(l.name, String(l.key));
+                            }
+                        });
+                    } catch (_) {}
                     const movies = libs
                         .filter(l => l.type === 'movie')
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
@@ -15630,6 +15556,16 @@
                     const j = await res.json().catch(() => ({}));
                     if (!res.ok) throw new Error(j?.error || 'Failed to load Jellyfin libraries');
                     const libs = Array.isArray(j.libraries) ? j.libraries : [];
+                    // Store Jellyfin name -> id mapping for posterpack generation
+                    try {
+                        window.__jfLibraryNameToId = new Map();
+                        libs.forEach(l => {
+                            if (l && l.name && (l.key || l.key === 0 || l.id)) {
+                                const id = String(l.key || l.id);
+                                window.__jfLibraryNameToId.set(l.name, id);
+                            }
+                        });
+                    } catch (_) {}
                     // debug removed: Jellyfin libs received
                     // Build internal map for overview counts (parity with Plex fetch flow)
                     try {
@@ -18333,28 +18269,57 @@ if (!document.__niwDelegatedFallback) {
 
 /* ============================================= */
 /* Local Directory Management */
+/* Cache bust: 2025-10-04 16:12 */
 /* ============================================= */
+
 (function initLocalDirectory() {
     let currentPath = '/';
     const selectedFiles = new Set();
 
-    // Initialize the local directory panel
+    // Directory picker modal removed (fixed root)
+
+    function resolveSaveConfigHelper() {
+        if (typeof saveConfigPatch === 'function') return saveConfigPatch;
+        if (typeof window !== 'undefined') {
+            if (typeof window.saveConfigPatch === 'function') return window.saveConfigPatch;
+            if (typeof window.__saveConfigPatch === 'function') return window.__saveConfigPatch;
+        }
+        return null;
+    }
+
+    // Path helpers removed with modal
+
+    // Initialize the local directory panel - following the same pattern as Plex/Jellyfin
     window.admin2 = window.admin2 || {};
-    window.admin2.initLocalDirectoryPanel = function () {
-        console.log('Initializing local directory panel');
 
-        // Initialize file drop zone
-        initFileDropZone();
+    function maybeInitLocalDirectoryOnOpen() {
+        try {
+            (async () => {
+                window.__autoFetchedLibs = window.__autoFetchedLibs || {
+                    plex: false,
+                    jf: false,
+                    local: false,
+                };
 
-        // Initialize directory browser
-        initDirectoryBrowser();
+                // Initialize local directory panel when opening for the first time
+                if (!window.__autoFetchedLibs.local) {
+                    window.__autoFetchedLibs.local = true;
 
-        // Initialize event listeners
-        initEventListeners();
+                    // Initialize components
+                    initFileDropZone();
+                    initDirectoryBrowser();
+                    initEventListeners();
 
-        // Load initial state
-        loadLocalDirectoryConfig();
-    };
+                    // Load initial state
+                    loadLocalDirectoryConfig();
+                }
+            })();
+        } catch (error) {
+            console.error('Error initializing local directory panel:', error);
+        }
+    }
+
+    window.admin2.maybeInitLocalDirectoryOnOpen = maybeInitLocalDirectoryOnOpen;
 
     function initFileDropZone() {
         const dropZone = document.getElementById('local-file-drop');
@@ -18387,20 +18352,24 @@ if (!document.__niwDelegatedFallback) {
     function initEventListeners() {
         // Save settings button
         const saveBtn = document.getElementById('btn-save-local');
-        if (saveBtn) saveBtn.addEventListener('click', saveLocalDirectorySettings);
+        if (saveBtn) {
+            // Remove existing listener if any
+            saveBtn.removeEventListener('click', saveLocalDirectorySettings);
+            saveBtn.addEventListener('click', saveLocalDirectorySettings);
+        }
 
         // Browse path button
         const browsePathBtn = document.getElementById('btn-browse-path');
-        if (browsePathBtn) browsePathBtn.addEventListener('click', browseForDirectory);
+        if (browsePathBtn) {
+            // Hide the browse button; path is fixed
+            browsePathBtn.style.display = 'none';
+        }
 
         // Directory scan button
         const scanBtn = document.getElementById('btn-local-scan');
         if (scanBtn) scanBtn.addEventListener('click', scanDirectory);
 
-        // Browse button
-        const browseBtn = document.getElementById('btn-local-browse');
-        if (browseBtn)
-            browseBtn.addEventListener('click', () => loadDirectoryContents(currentPath));
+        // Browse button removed (redundant with Refresh)
 
         // Posterpack generation
         const generateBtn = document.getElementById('btn-generate-posterpack');
@@ -18640,7 +18609,6 @@ if (!document.__niwDelegatedFallback) {
     }
 
     function scanDirectory() {
-        const pathInput = document.getElementById('localDirectory.rootPath');
         const enabledInput = document.getElementById('localDirectory.enabled');
 
         if (!enabledInput?.checked) {
@@ -18648,10 +18616,7 @@ if (!document.__niwDelegatedFallback) {
             return;
         }
 
-        if (!pathInput?.value?.trim()) {
-            showNotification('Please configure a directory path first', 'warning');
-            return;
-        }
+        // Fixed media path in use; no additional path validation needed
 
         const scanBtn = document.getElementById('btn-local-scan');
         if (scanBtn) {
@@ -18689,11 +18654,31 @@ if (!document.__niwDelegatedFallback) {
         }
 
         // Get posterpack configuration
+        const source = document.getElementById('posterpack.source')?.value || 'local';
+        // Resolve selected library IDs for plex/jellyfin
+        let libraryIds = [];
+        if (source === 'plex') {
+            const sel = getSelectedLibraries('plex');
+            const map = window.__plexLibraryNameToId || new Map();
+            const toIds = names =>
+                (Array.isArray(names) ? names : []).map(n => map.get(n) || null).filter(Boolean);
+            libraryIds = [...toIds(sel.movies), ...toIds(sel.shows)];
+        } else if (source === 'jellyfin') {
+            const sel = getSelectedLibraries('jellyfin');
+            const map = window.__jfLibraryNameToId || new Map();
+            const toIds = names =>
+                (Array.isArray(names) ? names : []).map(n => map.get(n) || null).filter(Boolean);
+            libraryIds = [...toIds(sel.movies), ...toIds(sel.shows)];
+        } else if (source === 'local') {
+            libraryIds = ['local'];
+        }
+
         const config = {
-            source: document.getElementById('posterpack.source')?.value || 'local',
-            namingPattern: document.getElementById('posterpack.naming')?.value || 'timestamp',
-            compression: 'balanced', // Always use balanced compression
-            filters: {
+            sourceType: source === 'local' ? 'local' : source,
+            libraryIds,
+            options: {
+                namingPattern: document.getElementById('posterpack.naming')?.value || 'timestamp',
+                compression: 'balanced',
                 mediaType: document.getElementById('posterpack.mediaType')?.value || 'all',
                 yearFilter: document.getElementById('posterpack.yearFilter')?.value || '',
                 limit: parseInt(document.getElementById('posterpack.limit')?.value) || 1000,
@@ -18701,11 +18686,10 @@ if (!document.__niwDelegatedFallback) {
         };
 
         // Validate configuration
-        if (config.source === 'local') {
-            const pathInput = document.getElementById('localDirectory.rootPath');
+        if (config.sourceType === 'local') {
             const enabledInput = document.getElementById('localDirectory.enabled');
 
-            if (!enabledInput?.checked || !pathInput?.value?.trim()) {
+            if (!enabledInput?.checked) {
                 showNotification('Please configure and enable local directory first', 'warning');
                 if (generateBtn) {
                     generateBtn.disabled = false;
@@ -18713,6 +18697,17 @@ if (!document.__niwDelegatedFallback) {
                 }
                 return;
             }
+        }
+        if (
+            (source === 'plex' || source === 'jellyfin') &&
+            (!Array.isArray(libraryIds) || libraryIds.length === 0)
+        ) {
+            showNotification('Select one or more libraries first', 'warning');
+            if (generateBtn) {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fas fa-archive"></i> Generate Posterpack';
+            }
+            return;
         }
 
         fetch('/api/local/generate-posterpack', {
@@ -18723,8 +18718,9 @@ if (!document.__niwDelegatedFallback) {
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
+                    const lbl = source || 'local';
                     showNotification(
-                        `${config.source.charAt(0).toUpperCase() + config.source.slice(1)} posterpack generation started`,
+                        `${lbl.charAt(0).toUpperCase() + lbl.slice(1)} posterpack generation started`,
                         'success'
                     );
                     startJobPolling(result.jobId);
@@ -18745,13 +18741,48 @@ if (!document.__niwDelegatedFallback) {
     }
 
     function previewPosterpackSelection() {
+        const source = document.getElementById('posterpack.source')?.value || 'local';
+        const mediaType = document.getElementById('posterpack.mediaType')?.value || 'all';
+        const yearFilter = document.getElementById('posterpack.yearFilter')?.value || '';
+        const limit = parseInt(document.getElementById('posterpack.limit')?.value) || 1000;
+
+        // Resolve library IDs same as generate
+        let libraryIds = [];
+        if (source === 'plex') {
+            const sel = getSelectedLibraries('plex');
+            const map = window.__plexLibraryNameToId || new Map();
+            const toIds = names =>
+                (Array.isArray(names) ? names : []).map(n => map.get(n)).filter(Boolean);
+            libraryIds = [...toIds(sel.movies), ...toIds(sel.shows)];
+            if (libraryIds.length === 0) {
+                showNotification('Select one or more Plex libraries first', 'warning');
+                return;
+            }
+        } else if (source === 'jellyfin') {
+            const sel = getSelectedLibraries('jellyfin');
+            const map = window.__jfLibraryNameToId || new Map();
+            const toIds = names =>
+                (Array.isArray(names) ? names : []).map(n => map.get(n)).filter(Boolean);
+            libraryIds = [...toIds(sel.movies), ...toIds(sel.shows)];
+            if (libraryIds.length === 0) {
+                showNotification('Select one or more Jellyfin libraries first', 'warning');
+                return;
+            }
+        } else if (source === 'local') {
+            const enabledInput = document.getElementById('localDirectory.enabled');
+            if (!enabledInput?.checked) {
+                showNotification('Please enable the local directory source first', 'warning');
+                return;
+            }
+            libraryIds = ['local'];
+        }
+
         const config = {
-            source: document.getElementById('posterpack.source')?.value || 'local',
-            filters: {
-                mediaType: document.getElementById('posterpack.mediaType')?.value || 'all',
-                yearFilter: document.getElementById('posterpack.yearFilter')?.value || '',
-                limit: parseInt(document.getElementById('posterpack.limit')?.value) || 1000,
-            },
+            sourceType: source,
+            libraryIds,
+            mediaType,
+            yearRange: yearFilter ? { min: yearFilter, max: yearFilter } : undefined,
+            limit,
         };
 
         fetch('/api/local/preview-posterpack', {
@@ -18761,21 +18792,14 @@ if (!document.__niwDelegatedFallback) {
         })
             .then(response => response.json())
             .then(result => {
-                if (result.success) {
-                    const count = result.items?.length || 0;
-                    const sources = result.sources || {};
-
-                    let message = `Preview: ${count} items selected`;
-                    if (Object.keys(sources).length > 0) {
-                        const breakdown = Object.entries(sources)
-                            .map(([source, count]) => `${source}: ${count}`)
-                            .join(', ');
-                        message += ` (${breakdown})`;
-                    }
-
-                    showNotification(message, 'info');
+                if (result?.summary) {
+                    const total = Number(result.summary.totalItems) || 0;
+                    const est = Number(result.estimatedToGenerate) || Math.min(total, limit);
+                    const src = result.summary.sourceType || source;
+                    const msg = `Preview (${src}): ${total.toLocaleString()} items available • estimated ${est.toLocaleString()} to generate`;
+                    showNotification(msg, 'info');
                 } else {
-                    showNotification(result.message || 'Preview failed', 'error');
+                    showNotification(result?.error || 'Preview failed', 'error');
                 }
             })
             .catch(error => {
@@ -18800,14 +18824,20 @@ if (!document.__niwDelegatedFallback) {
 
     function startJobPolling(jobId) {
         const interval = setInterval(() => {
-            fetch(`/api/local/job-status/${jobId}`)
+            fetch(`/api/local/jobs/${jobId}`)
                 .then(response => response.json())
                 .then(result => {
                     if (result.success) {
-                        updateJobDisplay(result.job);
+                        const job = result.job || result; // support both shapes
+                        updateJobDisplay(job);
 
-                        if (result.job.status === 'completed' || result.job.status === 'failed') {
+                        if (job.status === 'completed' || job.status === 'failed') {
                             clearInterval(interval);
+                            try {
+                                const srcSel = document.getElementById('posterpack.source');
+                                const src = srcSel ? srcSel.value : 'local';
+                                loadGeneratedPosterpacks(src);
+                            } catch (_) {}
                         }
                     }
                 })
@@ -18817,6 +18847,88 @@ if (!document.__niwDelegatedFallback) {
                 });
         }, 1000);
     }
+
+    // Generated packs listing and downloads
+    function humanSize(bytes) {
+        if (!Number.isFinite(bytes)) return '—';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let i = 0;
+        let n = bytes;
+        while (n >= 1024 && i < units.length - 1) {
+            n /= 1024;
+            i++;
+        }
+        return `${n.toFixed(n >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
+    }
+
+    function renderGeneratedPosterpacks(list) {
+        const container = document.getElementById('posterpack-list');
+        const btnAll = document.getElementById('btn-packs-download-all');
+        if (!container) return;
+
+        if (!Array.isArray(list) || list.length === 0) {
+            container.innerHTML =
+                '<div class="browser-empty"><i class="fas fa-box-open"></i><div>No generated packs yet</div></div>';
+            if (btnAll) btnAll.disabled = true;
+            return;
+        }
+
+        const rows = list
+            .map(
+                f => `
+            <div class="row" style="display:flex; align-items:center; gap:12px; padding:6px 0; border-bottom:1px solid var(--color-border);">
+              <div style="flex:1; min-width: 200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                <i class="fas fa-file-zipper" style="margin-right:8px; color:var(--color-text-secondary);"></i>${f.name}
+              </div>
+              <div style="width:90px; color:var(--color-text-secondary);">${humanSize(f.size)}</div>
+              <div style="width:180px; color:var(--color-text-secondary);">${new Date(f.mtime).toLocaleString?.() || ''}</div>
+              <div>
+                <a class="btn btn-outline btn-sm" href="${f.downloadUrl}" download><i class="fas fa-download"></i> Download</a>
+              </div>
+            </div>`
+            )
+            .join('');
+
+        container.innerHTML = rows;
+        if (btnAll) btnAll.disabled = false;
+    }
+
+    async function loadGeneratedPosterpacks(source) {
+        try {
+            const r = await fetch(`/api/local/posterpacks?source=${encodeURIComponent(source)}`, {
+                credentials: 'include',
+                cache: 'no-cache',
+            });
+            const j = await r.json();
+            renderGeneratedPosterpacks(j.files || []);
+        } catch (e) {
+            console.error('Failed to load generated packs', e);
+        }
+    }
+
+    // Hook up buttons
+    (function initPackListUI() {
+        const refreshBtn = document.getElementById('btn-packs-refresh');
+        const allBtn = document.getElementById('btn-packs-download-all');
+        const srcSel = document.getElementById('posterpack.source');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                const src = srcSel ? srcSel.value : 'local';
+                loadGeneratedPosterpacks(src);
+            });
+        }
+        if (allBtn) {
+            allBtn.addEventListener('click', () => {
+                const src = srcSel ? srcSel.value : 'local';
+                window.location.href = `/api/local/posterpacks/download-all?source=${encodeURIComponent(src)}`;
+            });
+        }
+        // Auto-load on panel init
+        try {
+            const src = srcSel ? srcSel.value : 'local';
+            loadGeneratedPosterpacks(src);
+        } catch (_) {}
+    })();
 
     function updateJobDisplay(job) {
         const jobsList = document.getElementById('local-job-list');
@@ -18860,18 +18972,30 @@ if (!document.__niwDelegatedFallback) {
     }
 
     function loadLocalDirectoryConfig() {
-        fetch('/get-config')
+        fetch('/api/admin/config', { credentials: 'include' })
             .then(response => response.json())
-            .then(config => {
-                if (config.localDirectory) {
+            .then(data => {
+                const config = data && (data.config || data);
+                if (config && config.localDirectory) {
                     const cfg = config.localDirectory;
 
                     // Update form fields
                     const pathInput = document.getElementById('localDirectory.rootPath');
-                    if (pathInput) pathInput.value = cfg.rootPath || '';
+                    if (pathInput) {
+                        const fixed = (cfg.rootPath && cfg.rootPath.trim()) || 'media';
+                        pathInput.value = fixed;
+                        pathInput.readOnly = true;
+                        pathInput.classList.add('input-readonly');
+                        const grid = document.getElementById('local-dir-config');
+                        if (grid) grid.hidden = true;
+                    }
 
                     const watchInput = document.getElementById('localDirectory.watchDirectories');
-                    if (watchInput) watchInput.checked = cfg.watchDirectories || false;
+                    if (watchInput) {
+                        watchInput.checked = true;
+                        const grp = watchInput.closest('.form-group');
+                        if (grp) grp.style.display = 'none';
+                    }
 
                     const enabledInput = document.getElementById('localDirectory.enabled');
                     if (enabledInput) enabledInput.checked = cfg.enabled || false;
@@ -18885,7 +19009,7 @@ if (!document.__niwDelegatedFallback) {
                     }
 
                     // Load directory if configured
-                    if (cfg.enabled && cfg.rootPath) {
+                    if (cfg.enabled) {
                         loadDirectoryContents('/');
                     }
                 }
@@ -18901,7 +19025,7 @@ if (!document.__niwDelegatedFallback) {
             });
     }
 
-    function saveLocalDirectorySettings() {
+    async function saveLocalDirectorySettings() {
         const saveBtn = document.getElementById('btn-save-local');
         if (saveBtn) {
             saveBtn.disabled = true;
@@ -18911,80 +19035,37 @@ if (!document.__niwDelegatedFallback) {
         const config = {
             localDirectory: {
                 enabled: document.getElementById('localDirectory.enabled')?.checked || false,
-                rootPath: document.getElementById('localDirectory.rootPath')?.value || '',
-                watchDirectories:
-                    document.getElementById('localDirectory.watchDirectories')?.checked || false,
+                rootPath: 'media',
+                watchDirectories: true,
             },
         };
 
-        fetch('/save-config', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(config),
-        })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    showNotification('Local directory settings saved', 'success');
-                    loadLocalDirectoryConfig(); // Refresh the display
-                } else {
-                    showNotification(result.message || 'Save failed', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Save error:', error);
-                showNotification('Save failed', 'error');
-            })
-            .finally(() => {
-                if (saveBtn) {
-                    saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fas fa-save"></i><span>Save Settings</span>';
-                }
-            });
-    }
+        const saveHelper = resolveSaveConfigHelper();
+        if (!saveHelper) {
+            showNotification('Save helper not ready. Please reload and try again.', 'error');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i><span>Save Settings</span>';
+            }
+            return;
+        }
 
-    function browseForDirectory() {
-        const currentPath = document.getElementById('localDirectory.rootPath')?.value || '/';
-        const newPath = prompt('Enter directory path:', currentPath);
-
-        if (newPath && newPath.trim()) {
-            const pathInput = document.getElementById('localDirectory.rootPath');
-            if (pathInput) {
-                pathInput.value = newPath.trim();
-                // Trigger validation or preview
-                validateDirectoryPath(newPath.trim());
+        try {
+            await saveHelper(config, {});
+            showNotification('Local directory settings saved', 'success');
+            loadLocalDirectoryConfig();
+        } catch (error) {
+            console.error('Save error:', error);
+            showNotification(error?.message || 'Save failed', 'error');
+        } finally {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i><span>Save Settings</span>';
             }
         }
     }
 
-    function validateDirectoryPath(path) {
-        // Simple client-side validation
-        if (!path.startsWith('/')) {
-            showNotification('Directory path must be absolute (start with /)', 'warning');
-            return false;
-        }
-
-        // Test if path is accessible by trying to browse it
-        fetch(`/api/local/browse?path=${encodeURIComponent(path)}`)
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    showNotification('Directory path is accessible', 'success');
-                    // Optionally load directory contents
-                    currentPath = path;
-                    loadDirectoryContents(path);
-                } else {
-                    showNotification(`Directory not accessible: ${result.message}`, 'warning');
-                }
-            })
-            .catch(error => {
-                console.error('Directory validation error:', error);
-                showNotification('Could not validate directory path', 'error');
-            });
-
-        return true;
-    }
-
+    // Path modal disabled: fixed media root in use
     // Utility functions
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 B';
@@ -18996,8 +19077,13 @@ if (!document.__niwDelegatedFallback) {
 
     function showNotification(message, type = 'info') {
         // Use the existing notification system if available
-        if (window.notify) {
-            window.notify(message, { type });
+        if (window.notify?.toast) {
+            window.notify.toast({
+                type: type === 'error' ? 'error' : type === 'success' ? 'success' : 'info',
+                title: type.charAt(0).toUpperCase() + type.slice(1),
+                message: message,
+                duration: type === 'error' ? 5000 : 3500,
+            });
         } else {
             console.log(`[${type.toUpperCase()}] ${message}`);
         }

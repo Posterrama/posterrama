@@ -1,4 +1,6 @@
 const logger = require('./utils/logger');
+const fs = require('fs');
+const path = require('path');
 
 // Test-safe wrapper for fatal exits: suppress actual process termination during Jest
 // so a single initialization failure doesn't abort the whole suite. In test mode we
@@ -12,100 +14,25 @@ function fatalExit(code) {
         }
         return; // Do not throw; allow tests to continue to inspect state.
     }
-
+    // In non-test environments, exit the process to surface fatal init errors
     process.exit(code);
 }
 
-// Override console methods to use the logger
-const originalConsoleLog = console.log;
-// INTENTIONAL-CONSOLE: Console output is wrapped to funnel through logger while preserving original behavior.
-// INTENTIONAL-CONSOLE
-console.log = (...args) => {
-    logger.info(...args);
-    originalConsoleLog.apply(console, args);
-};
-const originalConsoleError = console.error;
-console.error = (...args) => {
-    logger.error(...args);
-    originalConsoleError.apply(console, args);
-};
-const originalConsoleWarn = console.warn;
-console.warn = (...args) => {
-    logger.warn(...args);
-    originalConsoleWarn.apply(console, args);
-};
-
-const path = require('path');
-const multer = require('multer');
-const QRCode = require('qrcode');
-const fs = require('fs');
-require('dotenv').config();
-
-// Force reload .env on startup to ensure latest values (prevents PM2 cache issues)
+// Mitigate PM2 env caching issues by re-reading .env on boot (best-effort)
 function forceReloadEnv() {
     try {
-        const envPath = path.join(__dirname, '.env');
-        if (fs.existsSync(envPath)) {
-            const envContent = fs.readFileSync(envPath, 'utf8');
-            const lines = envContent.split('\n');
-
-            for (const line of lines) {
-                const trimmedLine = line.trim();
-                if (trimmedLine && !trimmedLine.startsWith('#') && trimmedLine.includes('=')) {
-                    const [key, ...valueParts] = trimmedLine.split('=');
-                    let value = valueParts.join('=');
-
-                    // Remove quotes if present
-                    if (
-                        (value.startsWith('"') && value.endsWith('"')) ||
-                        (value.startsWith("'") && value.endsWith("'"))
-                    ) {
-                        value = value.slice(1, -1);
-                    }
-
-                    const k = key.trim();
-                    const oldValue = process.env[k];
-                    // Never override NODE_ENV from .env — preserve the runtime environment
-                    // This is critical for tests (NODE_ENV=test) and PM2/host-provided values
-                    if (k === 'NODE_ENV') {
-                        continue;
-                    }
-                    // Force update for all other keys to reflect latest .env (PM2 cache fixes)
-                    process.env[k] = value;
-
-                    // Log changes for critical keys
-                    if (['JELLYFIN_API_KEY', 'PLEX_TOKEN'].includes(k) && oldValue !== value) {
-                        // Replaced raw console.log with logger.info (automated pre-review requirement)
-                        logger.info(`[Startup] Updated ${k} from PM2 cache`);
-                    }
-                }
-            }
-        }
+        require('dotenv').config({ override: false });
     } catch (error) {
-        console.warn('[Startup] Failed to force reload .env:', error.message);
+        try {
+            logger.debug('[Startup] forceReloadEnv skipped:', error.message);
+        } catch (_) {
+            /* noop */
+        }
     }
 }
 
 // Force reload environment on startup to prevent PM2 cache issues
 forceReloadEnv();
-
-const crypto = require('crypto');
-const { PassThrough } = require('stream');
-const fsp = fs.promises;
-const deviceStore = require('./utils/deviceStore');
-const wsHub = require('./utils/wsHub');
-const groupsStore = require('./utils/groupsStore');
-const dns = require('dns').promises;
-// Optional ownership normalization (only acts when POSTERRAMA_AUTO_CHOWN=true and running as root)
-try {
-    const { fixOwnership } = require('./utils/fixOwnership');
-    const result = fixOwnership();
-    if (result && result.skipped) {
-        logger.debug('[Ownership] Skipped:', result.reason);
-    }
-} catch (e) {
-    logger.warn('[Ownership] Initialization failed:', e.message);
-}
 
 // --- Auto Cache Busting ---
 const cachedVersions = {};
@@ -277,6 +204,10 @@ const bcrypt = require('bcrypt');
 const { exec } = require('child_process');
 const PlexAPI = require('plex-api');
 const fetch = require('node-fetch');
+const multer = require('multer');
+const crypto = require('crypto');
+const { PassThrough } = require('stream');
+const fsp = fs.promises;
 
 // Check if config.json exists, if not copy from config.example.json
 (function ensureConfigExists() {
@@ -348,6 +279,11 @@ const LocalDirectorySource = require('./sources/local');
 // INTENTIONAL-TODO(new-source): If you add a new source adapter under sources/<name>.js, require it here
 // const MyNewSource = require('./sources/mynew');
 const deepMerge = require('./utils/deep-merge');
+// Device management stores and WebSocket hub
+const deviceStore = require('./utils/deviceStore');
+const groupsStore = require('./utils/groupsStore');
+const wsHub = require('./utils/wsHub');
+const axios = require('axios');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 const rateLimit = require('express-rate-limit');
@@ -413,9 +349,116 @@ if (config.localDirectory && config.localDirectory.enabled) {
     localDirectorySource = new LocalDirectorySource(config.localDirectory, logger);
     uploadMiddleware = createUploadMiddleware(config.localDirectory);
 
-    // Set up initial (empty) dependencies
-    const sourceAdapters = {};
-    const httpClients = {};
+    // Set up source adapters and HTTP clients for posterpack generation
+    // Adapters expose fetchLibraryItems(libraryId) and return items with {title, year, id, poster, background, clearart?, fanart?}
+    const sourceAdapters = {
+        plex: {
+            fetchLibraryItems: async libraryId => {
+                try {
+                    // Pick first enabled Plex server
+                    const serverConfig = (config.mediaServers || []).find(
+                        s => s.type === 'plex' && s.enabled
+                    );
+                    if (!serverConfig) return [];
+                    const plex = getPlexClient(serverConfig);
+                    // Fetch all items from section by key
+                    const resp = await plex.query(`/library/sections/${libraryId}/all`);
+                    const items = resp?.MediaContainer?.Metadata || [];
+                    const results = [];
+                    for (const summary of items) {
+                        try {
+                            // Use existing processor to normalize and get art URLs
+                            const processed = await processPlexItem(summary, serverConfig, plex);
+                            if (!processed) continue;
+                            results.push({
+                                title: processed.title,
+                                year: processed.year,
+                                id:
+                                    processed.id ||
+                                    processed.key ||
+                                    summary.ratingKey ||
+                                    summary.key,
+                                // Map normalized URLs to expected fields for ZIP builder
+                                poster: processed.posterUrl || processed.poster,
+                                background: processed.backgroundUrl || processed.backdropUrl,
+                                clearart: processed.clearLogoUrl || null,
+                            });
+                        } catch (e) {
+                            // Skip problematic item
+                            if (isDebug)
+                                logger.debug('[Posterpack][Plex] process item failed:', e.message);
+                        }
+                    }
+                    return results;
+                } catch (e) {
+                    logger.error('[Posterpack][Plex] fetchLibraryItems failed:', e.message);
+                    return [];
+                }
+            },
+        },
+        jellyfin: {
+            fetchLibraryItems: async libraryId => {
+                try {
+                    // Pick first enabled Jellyfin server
+                    const serverConfig = (config.mediaServers || []).find(
+                        s => s.type === 'jellyfin' && s.enabled
+                    );
+                    if (!serverConfig) return [];
+                    const client = await getJellyfinClient(serverConfig);
+                    const pageSize = 200;
+                    let startIndex = 0;
+                    const all = [];
+                    // Page through items to avoid huge single responses
+                    while (true) {
+                        const data = await client.getItems({
+                            parentId: libraryId,
+                            includeItemTypes: ['Movie', 'Series'],
+                            recursive: true,
+                            limit: pageSize,
+                            startIndex,
+                            sortBy: ['SortName'],
+                        });
+                        const items = Array.isArray(data?.Items) ? data.Items : [];
+                        if (items.length === 0) break;
+                        for (const it of items) {
+                            try {
+                                const processed = processJellyfinItem(it, serverConfig, client);
+                                if (!processed) continue;
+                                all.push({
+                                    title: processed.title,
+                                    year: processed.year,
+                                    id: processed.id || it.Id,
+                                    poster: processed.posterUrl || processed.poster,
+                                    background:
+                                        processed.backgroundUrl || processed.backdropUrl || null,
+                                    clearart: processed.clearLogoUrl || null,
+                                });
+                            } catch (e) {
+                                if (isDebug)
+                                    logger.debug(
+                                        '[Posterpack][Jellyfin] process item failed:',
+                                        e.message
+                                    );
+                            }
+                        }
+                        startIndex += items.length;
+                        if (items.length < pageSize) break;
+                    }
+                    return all;
+                } catch (e) {
+                    logger.error('[Posterpack][Jellyfin] fetchLibraryItems failed:', e.message);
+                    return [];
+                }
+            },
+        },
+    };
+
+    // Use the app's own /image proxy via localhost for asset downloads
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const httpClients = {
+        plex: axios.create({ baseURL: baseUrl, timeout: 30000 }),
+        jellyfin: axios.create({ baseURL: baseUrl, timeout: 30000 }),
+    };
     jobQueue.setSourceAdapters(sourceAdapters);
     jobQueue.setHttpClients(httpClients);
 
@@ -7276,8 +7319,8 @@ app.post(
             return res.status(400).json({ error: 'sourceType and libraryIds array are required' });
         }
 
-        if (!['plex', 'jellyfin'].includes(sourceType)) {
-            return res.status(400).json({ error: 'sourceType must be plex or jellyfin' });
+        if (!['plex', 'jellyfin', 'local'].includes(sourceType)) {
+            return res.status(400).json({ error: 'sourceType must be plex, jellyfin, or local' });
         }
 
         try {
@@ -7301,6 +7344,285 @@ app.post(
     })
 );
 
+/**
+ * @swagger
+ * /api/local/preview-posterpack:
+ *   post:
+ *     summary: Preview posterpack generation
+ *     description: Estimate how many items would be included based on selected source and libraries
+ *     tags: ['Local Directory']
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [sourceType]
+ *             properties:
+ *               sourceType:
+ *                 type: string
+ *                 enum: [plex, jellyfin, local]
+ *               libraryIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               mediaType:
+ *                 type: string
+ *               yearRange:
+ *                 type: object
+ *               limit:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Preview data
+ *       400:
+ *         description: Invalid request
+ */
+app.post(
+    '/api/local/preview-posterpack',
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+
+        const {
+            sourceType,
+            libraryIds = [],
+            mediaType = 'all',
+            yearRange,
+            limit = 100,
+        } = req.body || {};
+
+        if (!sourceType) return res.status(400).json({ error: 'sourceType is required' });
+
+        const clamp = (n, max) => (Number.isFinite(n) ? Math.max(0, Math.min(n, max)) : 0);
+
+        try {
+            let totalItems = 0;
+            const perLibrary = [];
+
+            if (sourceType === 'plex') {
+                const serverConfig = (config.mediaServers || []).find(
+                    s => s.type === 'plex' && s.enabled
+                );
+                if (!serverConfig)
+                    return res.status(400).json({ error: 'No enabled Plex server configured' });
+                const plex = getPlexClient(serverConfig);
+                for (const id of libraryIds) {
+                    try {
+                        const r = await plex.query(
+                            `/library/sections/${id}/all?X-Plex-Container-Start=0&X-Plex-Container-Size=1`
+                        );
+                        const count = parseInt(r?.MediaContainer?.totalSize || 0);
+                        perLibrary.push({ id, count: Number.isFinite(count) ? count : 0 });
+                        totalItems += Number.isFinite(count) ? count : 0;
+                    } catch (e) {
+                        perLibrary.push({ id, count: 0, error: e.message });
+                    }
+                }
+            } else if (sourceType === 'jellyfin') {
+                const serverConfig = (config.mediaServers || []).find(
+                    s => s.type === 'jellyfin' && s.enabled
+                );
+                if (!serverConfig)
+                    return res.status(400).json({ error: 'No enabled Jellyfin server configured' });
+                const client = await getJellyfinClient(serverConfig);
+                for (const id of libraryIds) {
+                    try {
+                        const data = await client.getItems({
+                            parentId: id,
+                            includeItemTypes: ['Movie', 'Series'],
+                            recursive: true,
+                            limit: 1,
+                            startIndex: 0,
+                        });
+                        const count = parseInt(data?.TotalRecordCount || 0);
+                        perLibrary.push({ id, count: Number.isFinite(count) ? count : 0 });
+                        totalItems += Number.isFinite(count) ? count : 0;
+                    } catch (e) {
+                        perLibrary.push({ id, count: 0, error: e.message });
+                    }
+                }
+            } else if (sourceType === 'local') {
+                totalItems = 0;
+            }
+
+            const preview = {
+                summary: {
+                    sourceType,
+                    totalItems,
+                    mediaType,
+                    limit,
+                    filters: { yearRange },
+                },
+                libraries: perLibrary,
+                estimatedToGenerate: clamp(Math.min(totalItems, limit), 10000),
+            };
+            return res.json(preview);
+        } catch (error) {
+            logger.error('Preview posterpack failed:', error);
+            res.status(500).json({ error: error.message });
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/local/posterpacks:
+ *   get:
+ *     summary: List generated posterpacks
+ *     description: Return generated posterpack ZIP files for the given source (plex/jellyfin/local)
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: query
+ *         name: source
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [plex, jellyfin, local]
+ *         description: Source type to list
+ *     responses:
+ *       200:
+ *         description: List of ZIP files
+ */
+app.get(
+    '/api/local/posterpacks',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        try {
+            if (!config.localDirectory?.enabled) {
+                return res.status(404).json({ error: 'Local directory support not enabled' });
+            }
+            const source = String(req.query.source || '').toLowerCase();
+            if (!['plex', 'jellyfin', 'local'].includes(source)) {
+                return res.status(400).json({ error: 'Invalid source' });
+            }
+            const base = path.resolve(config.localDirectory.rootPath);
+            const exportDir = path.join(base, 'complete', `${source}-export`);
+            await fs.promises.mkdir(exportDir, { recursive: true });
+            const entries = await fs.promises.readdir(exportDir);
+            const files = [];
+            for (const name of entries) {
+                if (!name.toLowerCase().endsWith('.zip')) continue;
+                const full = path.join(exportDir, name);
+                const st = await fs.promises.stat(full).catch(() => null);
+                if (!st || !st.isFile()) continue;
+                files.push({
+                    name,
+                    size: st.size,
+                    mtime: st.mtimeMs,
+                    downloadUrl: `/api/local/posterpacks/download?source=${encodeURIComponent(source)}&file=${encodeURIComponent(name)}`,
+                });
+            }
+            // Sort newest first
+            files.sort((a, b) => b.mtime - a.mtime);
+            res.json({ files });
+        } catch (e) {
+            logger.error('List posterpacks failed:', e);
+            res.status(500).json({ error: 'list_failed' });
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/local/posterpacks/download:
+ *   get:
+ *     summary: Download a single posterpack ZIP
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: query
+ *         name: source
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [plex, jellyfin, local]
+ *       - in: query
+ *         name: file
+ *         required: true
+ *         schema:
+ *           type: string
+ */
+app.get(
+    '/api/local/posterpacks/download',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        try {
+            const source = String(req.query.source || '').toLowerCase();
+            const file = String(req.query.file || '');
+            if (!['plex', 'jellyfin', 'local'].includes(source) || !file.endsWith('.zip')) {
+                return res.status(400).json({ error: 'Invalid parameters' });
+            }
+            const base = path.resolve(config.localDirectory.rootPath);
+            const exportDir = path.join(base, 'complete', `${source}-export`);
+            const full = path.join(exportDir, path.basename(file));
+            // Ensure path is within exportDir
+            if (!full.startsWith(exportDir)) return res.status(400).json({ error: 'Invalid path' });
+            return res.download(full);
+        } catch (e) {
+            logger.error('Download posterpack failed:', e);
+            res.status(500).json({ error: 'download_failed' });
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/local/posterpacks/download-all:
+ *   get:
+ *     summary: Download all posterpacks for a source as a ZIP
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: query
+ *         name: source
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [plex, jellyfin, local]
+ */
+app.get(
+    '/api/local/posterpacks/download-all',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        try {
+            const source = String(req.query.source || '').toLowerCase();
+            if (!['plex', 'jellyfin', 'local'].includes(source)) {
+                return res.status(400).json({ error: 'Invalid source' });
+            }
+            const base = path.resolve(config.localDirectory.rootPath);
+            const exportDir = path.join(base, 'complete', `${source}-export`);
+            await fs.promises.mkdir(exportDir, { recursive: true });
+            const entries = await fs.promises.readdir(exportDir);
+
+            // Build zip stream
+            const JSZip = require('jszip');
+            const zip = new JSZip();
+            for (const name of entries) {
+                if (!name.toLowerCase().endsWith('.zip')) continue;
+                const full = path.join(exportDir, name);
+                const st = await fs.promises.stat(full).catch(() => null);
+                if (!st || !st.isFile()) continue;
+                const data = await fs.promises.readFile(full);
+                zip.file(name, data);
+            }
+
+            const filename = `${source}-posterpacks-${Date.now()}.zip`;
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+            const stream = zip.generateNodeStream({
+                type: 'nodebuffer',
+                compression: 'DEFLATE',
+                compressionOptions: { level: 6 },
+            });
+            stream.pipe(res);
+        } catch (e) {
+            logger.error('Download-all posterpacks failed:', e);
+            res.status(500).json({ error: 'download_all_failed' });
+        }
+    })
+);
 /**
  * @swagger
  * /api/local/jobs/{jobId}:
@@ -7946,6 +8268,37 @@ app.get(
         }
     })
 );
+
+// Lightweight fallback image to prevent broken redirects from the image proxy
+// Always available even if no static asset is present on disk.
+app.get('/fallback-poster.png', (req, res) => {
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+    <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#2b2b2b"/>
+            <stop offset="100%" stop-color="#1a1a1a"/>
+        </linearGradient>
+    </defs>
+    <rect width="600" height="900" fill="url(#g)"/>
+    <g fill="#555">
+        <rect x="110" y="160" width="380" height="570" rx="8" fill="#000" opacity="0.15"/>
+        <circle cx="300" cy="360" r="90" stroke="#777" stroke-width="10" fill="none"/>
+        <rect x="200" y="550" width="200" height="16" rx="8"/>
+    </g>
+    <text x="50%" y="780" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="28" fill="#888">
+        Poster unavailable
+    </text>
+    <text x="50%" y="820" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#666">
+        Source did not return an image
+    </text>
+    <metadata>posterrama-fallback</metadata>
+    <desc>Fallback placeholder image used when the origin server returns an error or is unreachable.</desc>
+    <title>Poster unavailable</title>
+</svg>`;
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.type('image/svg+xml').send(svg);
+});
 
 /**
  * @swagger
@@ -14541,6 +14894,19 @@ if (require.main === module) {
                 logger.debug(`Debug endpoint is available at http://localhost:${port}/admin/debug`);
 
             logger.info('Server startup complete - media cache is ready');
+
+            // Ensure local media directory structure exists on startup
+            try {
+                if (config.localDirectory?.enabled && localDirectorySource) {
+                    await localDirectorySource.createDirectoryStructure();
+                    logger.info('Local media directory structure ensured on startup');
+                }
+            } catch (e) {
+                logger.warn(
+                    'Failed to ensure local media directory structure on startup:',
+                    e?.message
+                );
+            }
 
             // Background refresh interval (minutes)
             const refreshMinutes = Number(config.backgroundRefreshMinutes ?? 60);
