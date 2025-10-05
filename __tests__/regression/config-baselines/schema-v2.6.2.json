@@ -827,6 +827,238 @@
     "someInt": {
       "type": "number",
       "default": 42
+    },
+    "localDirectory": {
+      "description": "Local directory support for managing poster collections and generating posterpacks.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Enable local directory as a media source.",
+          "type": "boolean",
+          "default": false
+        },
+        "rootPath": {
+          "description": "Root path for local media directory. Must be an absolute path.",
+          "type": "string",
+          "default": ""
+        },
+        "scanInterval": {
+          "description": "Interval in seconds to scan for file changes.",
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 3600,
+          "default": 300
+        },
+        "generateThumbnails": {
+          "description": "Automatically generate thumbnails for image files.",
+          "type": "boolean",
+          "default": true
+        },
+        "maxFileSize": {
+          "description": "Maximum file size in bytes (100MB = 104857600).",
+          "type": "integer",
+          "minimum": 1048576,
+          "maximum": 1073741824,
+          "default": 104857600
+        },
+        "supportedFormats": {
+          "description": "Array of supported file extensions.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "jpg",
+            "jpeg",
+            "png",
+            "webp",
+            "gif",
+            "bmp",
+            "mp4",
+            "webm",
+            "avi",
+            "zip"
+          ]
+        },
+        "posterpackGeneration": {
+          "description": "Configuration for automatic posterpack generation from Plex/Jellyfin.",
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "description": "Enable posterpack generation functionality.",
+              "type": "boolean",
+              "default": true
+            },
+            "plex": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "selectedLibraries": {
+                  "description": "Array of Plex library IDs to include in generation.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "schedule": {
+                  "description": "Generation schedule: manual, weekly, monthly.",
+                  "type": "string",
+                  "enum": [
+                    "manual",
+                    "weekly",
+                    "monthly"
+                  ],
+                  "default": "manual"
+                },
+                "lastGenerated": {
+                  "description": "Timestamp of last generation (ISO string).",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null
+                }
+              },
+              "additionalProperties": false
+            },
+            "jellyfin": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "selectedLibraries": {
+                  "description": "Array of Jellyfin library IDs to include in generation.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "schedule": {
+                  "description": "Generation schedule: manual, weekly, monthly.",
+                  "type": "string",
+                  "enum": [
+                    "manual",
+                    "weekly",
+                    "monthly"
+                  ],
+                  "default": "manual"
+                },
+                "lastGenerated": {
+                  "description": "Timestamp of last generation (ISO string).",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null
+                }
+              },
+              "additionalProperties": false
+            },
+            "includeAssets": {
+              "description": "Which asset types to include in posterpacks.",
+              "type": "object",
+              "properties": {
+                "poster": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "background": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "clearart": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "fanart": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "discart": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "cast": {
+                  "type": "boolean",
+                  "default": true
+                }
+              },
+              "additionalProperties": false
+            },
+            "outputNaming": {
+              "description": "Template for posterpack filename: {{title}} ({{year}}).",
+              "type": "string",
+              "default": "{{title}} ({{year}})"
+            },
+            "concurrentJobs": {
+              "description": "Maximum concurrent posterpack generation jobs.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5,
+              "default": 2
+            }
+          },
+          "additionalProperties": false
+        },
+        "security": {
+          "description": "Security settings for file operations.",
+          "type": "object",
+          "properties": {
+            "pathValidation": {
+              "description": "Enable strict path validation (prevent directory traversal).",
+              "type": "boolean",
+              "default": true
+            },
+            "fileTypeValidation": {
+              "description": "Enable file type validation (check file headers).",
+              "type": "boolean",
+              "default": true
+            },
+            "maxConcurrentUploads": {
+              "description": "Maximum concurrent file uploads.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 5
+            }
+          },
+          "additionalProperties": false
+        },
+        "performance": {
+          "description": "Performance tuning settings.",
+          "type": "object",
+          "properties": {
+            "thumbnailSize": {
+              "description": "Thumbnail size in pixels (width).",
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 500,
+              "default": 300
+            },
+            "indexCacheSize": {
+              "description": "Maximum number of file metadata entries to cache in memory.",
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 10000,
+              "default": 1000
+            },
+            "watcherEnabled": {
+              "description": "Enable real-time file system watching for changes.",
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [

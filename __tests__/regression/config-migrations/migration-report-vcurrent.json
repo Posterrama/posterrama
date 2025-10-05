@@ -1,6 +1,6 @@
 {
   "version": "current",
-  "timestamp": "2025-10-03T10:18:10.995Z",
+  "timestamp": "2025-10-05T09:15:26.333Z",
   "results": {
     "minimal": {
       "oldConfigValid": false,
@@ -359,7 +359,61 @@
           "retention": 10
         },
         "testKeyConfig": "fromConfig",
-        "someInt": 42
+        "someInt": 42,
+        "localDirectory": {
+          "enabled": false,
+          "rootPath": "",
+          "scanInterval": 300,
+          "generateThumbnails": true,
+          "maxFileSize": 104857600,
+          "supportedFormats": [
+            "jpg",
+            "jpeg",
+            "png",
+            "webp",
+            "gif",
+            "bmp",
+            "mp4",
+            "webm",
+            "avi",
+            "zip"
+          ],
+          "posterpackGeneration": {
+            "enabled": true,
+            "plex": {
+              "enabled": true,
+              "selectedLibraries": [],
+              "schedule": "manual",
+              "lastGenerated": null
+            },
+            "jellyfin": {
+              "enabled": true,
+              "selectedLibraries": [],
+              "schedule": "manual",
+              "lastGenerated": null
+            },
+            "includeAssets": {
+              "poster": true,
+              "background": true,
+              "clearart": true,
+              "fanart": true,
+              "discart": true,
+              "cast": true
+            },
+            "outputNaming": "{{title}} ({{year}})",
+            "concurrentJobs": 2
+          },
+          "security": {
+            "pathValidation": true,
+            "fileTypeValidation": true,
+            "maxConcurrentUploads": 5
+          },
+          "performance": {
+            "thumbnailSize": 300,
+            "indexCacheSize": 1000,
+            "watcherEnabled": true
+          }
+        }
       },
       "needsMigration": false
     },
@@ -688,6 +742,60 @@
         },
         "testKeyConfig": "fromConfig",
         "someInt": 42,
+        "localDirectory": {
+          "enabled": false,
+          "rootPath": "",
+          "scanInterval": 300,
+          "generateThumbnails": true,
+          "maxFileSize": 104857600,
+          "supportedFormats": [
+            "jpg",
+            "jpeg",
+            "png",
+            "webp",
+            "gif",
+            "bmp",
+            "mp4",
+            "webm",
+            "avi",
+            "zip"
+          ],
+          "posterpackGeneration": {
+            "enabled": true,
+            "plex": {
+              "enabled": true,
+              "selectedLibraries": [],
+              "schedule": "manual",
+              "lastGenerated": null
+            },
+            "jellyfin": {
+              "enabled": true,
+              "selectedLibraries": [],
+              "schedule": "manual",
+              "lastGenerated": null
+            },
+            "includeAssets": {
+              "poster": true,
+              "background": true,
+              "clearart": true,
+              "fanart": true,
+              "discart": true,
+              "cast": true
+            },
+            "outputNaming": "{{title}} ({{year}})",
+            "concurrentJobs": 2
+          },
+          "security": {
+            "pathValidation": true,
+            "fileTypeValidation": true,
+            "maxConcurrentUploads": 5
+          },
+          "performance": {
+            "thumbnailSize": 300,
+            "indexCacheSize": 1000,
+            "watcherEnabled": true
+          }
+        },
         "newFeatureEnabled": true,
         "advancedWallartMode": {
           "aiSorting": true,

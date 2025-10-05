@@ -18658,13 +18658,15 @@ if (!document.__niwDelegatedFallback) {
         // Resolve selected library IDs for plex/jellyfin
         let libraryIds = [];
         if (source === 'plex') {
-            const sel = getSelectedLibraries('plex');
+            const getSel = (window.admin2 && window.admin2.getSelectedLibraries) || null;
+            const sel = getSel ? getSel('plex') : { movies: [], shows: [] };
             const map = window.__plexLibraryNameToId || new Map();
             const toIds = names =>
                 (Array.isArray(names) ? names : []).map(n => map.get(n) || null).filter(Boolean);
             libraryIds = [...toIds(sel.movies), ...toIds(sel.shows)];
         } else if (source === 'jellyfin') {
-            const sel = getSelectedLibraries('jellyfin');
+            const getSel = (window.admin2 && window.admin2.getSelectedLibraries) || null;
+            const sel = getSel ? getSel('jellyfin') : { movies: [], shows: [] };
             const map = window.__jfLibraryNameToId || new Map();
             const toIds = names =>
                 (Array.isArray(names) ? names : []).map(n => map.get(n) || null).filter(Boolean);
@@ -18749,7 +18751,8 @@ if (!document.__niwDelegatedFallback) {
         // Resolve library IDs same as generate
         let libraryIds = [];
         if (source === 'plex') {
-            const sel = getSelectedLibraries('plex');
+            const getSel = (window.admin2 && window.admin2.getSelectedLibraries) || null;
+            const sel = getSel ? getSel('plex') : { movies: [], shows: [] };
             const map = window.__plexLibraryNameToId || new Map();
             const toIds = names =>
                 (Array.isArray(names) ? names : []).map(n => map.get(n)).filter(Boolean);
@@ -18759,7 +18762,8 @@ if (!document.__niwDelegatedFallback) {
                 return;
             }
         } else if (source === 'jellyfin') {
-            const sel = getSelectedLibraries('jellyfin');
+            const getSel = (window.admin2 && window.admin2.getSelectedLibraries) || null;
+            const sel = getSel ? getSel('jellyfin') : { movies: [], shows: [] };
             const map = window.__jfLibraryNameToId || new Map();
             const toIds = names =>
                 (Array.isArray(names) ? names : []).map(n => map.get(n)).filter(Boolean);

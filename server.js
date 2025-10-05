@@ -286,6 +286,10 @@ const wsHub = require('./utils/wsHub');
 const axios = require('axios');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
+// Some parts of the code use an uppercase alias
+const QRCode = qrcode;
+// DNS reverse lookup (promise API)
+const dns = require('dns').promises;
 const rateLimit = require('express-rate-limit');
 const app = express();
 const { ApiError, NotFoundError } = require('./utils/errors.js');
@@ -409,6 +413,8 @@ if (config.localDirectory && config.localDirectory.enabled) {
                     let startIndex = 0;
                     const all = [];
                     // Page through items to avoid huge single responses
+                    // Iterate until no more items are returned (intentional infinite loop)
+                    // eslint-disable-next-line no-constant-condition
                     while (true) {
                         const data = await client.getItems({
                             parentId: libraryId,
