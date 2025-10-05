@@ -19246,20 +19246,7 @@ if (!document.__niwDelegatedFallback) {
         }
     }
 
-    function getLocalPosterpackFilters() {
-        // Local multiselects mirror Plex/JF UI, but options may be empty if unsupported
-        const vals = id => {
-            if (typeof getMultiSelectValues === 'function') return getMultiSelectValues(id) || [];
-            const sel = document.getElementById(id);
-            return Array.from(sel?.selectedOptions || []).map(o => o.value);
-        };
-        return {
-            years: (document.getElementById('posterpack.yearFilter')?.value || '').trim(),
-            ratings: vals('pp-local.ratings').join(','),
-            genres: vals('pp-local.genres').join(','),
-            qualities: vals('pp-local.qualities').join(','),
-        };
-    }
+    // getLocalPosterpackFilters removed (Local source removed from Posterpack UI)
 
     async function loadLocalFilterOptions() {
         if (window.__ppLocalFiltersLoaded) return;
