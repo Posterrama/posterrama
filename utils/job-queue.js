@@ -382,7 +382,7 @@ class JobQueue extends EventEmitter {
      * @param {Object} options - Generation options
      * @returns {string} Filename
      */
-    generatePosterpackFilename(item, options) {
+    generatePosterpackFilename(item, _options) {
         // Enforce fixed naming convention: ignore client-provided overrides
         const template =
             this.config.localDirectory?.posterpackGeneration?.outputNaming ||
