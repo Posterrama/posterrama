@@ -7467,10 +7467,12 @@ app.post(
 
         const { sourceType, libraryIds = [], options = {} } = req.body || {};
         const mediaType = options.mediaType || 'all';
-        const limit = Number(options.limit) || 100;
+        // Use a higher default preview limit; UI hides limit for Local
+        const limit = Number(options.limit) || 10000;
         const yearFilterExpr = (options.yearFilter || '').trim();
         const filtersPlex = options.filtersPlex || {};
         const filtersJellyfin = options.filtersJellyfin || {};
+        const filtersLocal = options.filtersLocal || {};
 
         if (!sourceType) return res.status(400).json({ error: 'sourceType is required' });
 
@@ -7734,6 +7736,7 @@ app.post(
                         yearFilter: yearFilterExpr,
                         plex: filtersPlex,
                         jellyfin: filtersJellyfin,
+                        local: filtersLocal,
                     },
                 },
                 libraries: perLibrary,

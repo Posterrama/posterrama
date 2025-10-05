@@ -1477,28 +1477,203 @@
               <small class="form-help">Select which media source to generate posterpacks from</small>
             </div>
             
+            <!-- Posterpack Library Selection (per source) -->
+            <div class="form-group" id="posterpack-lib-section" style="grid-column: 1 / -1;" hidden>
+              <div class="form-subsection">
+                <h4>Libraries</h4>
+                <div class="form-grid">
+                  <!-- Plex libraries -->
+                  <div class="form-group" id="pp-plex-libs" hidden>
+                    <label for="pp-plex.movies">Plex Movie Libraries</label>
+                    <select id="pp-plex.movies" multiple style="display:none"></select>
+                    <div class="multiselect" id="pp-plex-ms-movies" tabindex="0">
+                      <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox" tabindex="0">
+                        <div class="ms-chips" id="pp-plex-ms-movies-chips"></div>
+                        <button class="ms-clear" id="pp-plex-ms-movies-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                        <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                      </div>
+                      <div class="ms-menu" id="pp-plex-ms-movies-menu" role="listbox">
+                        <div class="ms-search">
+                          <i class="fas fa-search"></i>
+                          <input id="pp-plex-ms-movies-search" type="text" placeholder="Search libraries…">
+                        </div>
+                        <div class="ms-actions">
+                          <button class="btn btn-outline btn-sm" id="pp-plex-ms-movies-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                          <button class="btn btn-outline btn-sm" id="pp-plex-ms-movies-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                        </div>
+                        <div class="ms-options" id="pp-plex-ms-movies-options"></div>
+                      </div>
+                    </div>
+                    <label for="pp-plex.shows" style="margin-top:8px;">Plex TV Libraries</label>
+                    <select id="pp-plex.shows" multiple style="display:none"></select>
+                    <div class="multiselect" id="pp-plex-ms-shows" tabindex="0">
+                      <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox" tabindex="0">
+                        <div class="ms-chips" id="pp-plex-ms-shows-chips"></div>
+                        <button class="ms-clear" id="pp-plex-ms-shows-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                        <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                      </div>
+                      <div class="ms-menu" id="pp-plex-ms-shows-menu" role="listbox">
+                        <div class="ms-search">
+                          <i class="fas fa-search"></i>
+                          <input id="pp-plex-ms-shows-search" type="text" placeholder="Search libraries…">
+                        </div>
+                        <div class="ms-actions">
+                          <button class="btn btn-outline btn-sm" id="pp-plex-ms-shows-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                          <button class="btn btn-outline btn-sm" id="pp-plex-ms-shows-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                        </div>
+                        <div class="ms-options" id="pp-plex-ms-shows-options"></div>
+                      </div>
+                    </div>
+                    <small class="form-help">Leave empty to include all Plex libraries</small>
+                  </div>
+                  <!-- Jellyfin libraries -->
+                  <div class="form-group" id="pp-jf-libs" hidden>
+                    <label for="pp-jf.movies">Jellyfin Movie Libraries</label>
+                    <select id="pp-jf.movies" multiple style="display:none"></select>
+                    <div class="multiselect" id="pp-jf-ms-movies" tabindex="0">
+                      <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox" tabindex="0">
+                        <div class="ms-chips" id="pp-jf-ms-movies-chips"></div>
+                        <button class="ms-clear" id="pp-jf-ms-movies-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                        <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                      </div>
+                      <div class="ms-menu" id="pp-jf-ms-movies-menu" role="listbox">
+                        <div class="ms-search">
+                          <i class="fas fa-search"></i>
+                          <input id="pp-jf-ms-movies-search" type="text" placeholder="Search libraries…">
+                        </div>
+                        <div class="ms-actions">
+                          <button class="btn btn-outline btn-sm" id="pp-jf-ms-movies-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                          <button class="btn btn-outline btn-sm" id="pp-jf-ms-movies-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                        </div>
+                        <div class="ms-options" id="pp-jf-ms-movies-options"></div>
+                      </div>
+                    </div>
+                    <label for="pp-jf.shows" style="margin-top:8px;">Jellyfin TV Libraries</label>
+                    <select id="pp-jf.shows" multiple style="display:none"></select>
+                    <div class="multiselect" id="pp-jf-ms-shows" tabindex="0">
+                      <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox" tabindex="0">
+                        <div class="ms-chips" id="pp-jf-ms-shows-chips"></div>
+                        <button class="ms-clear" id="pp-jf-ms-shows-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                        <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                      </div>
+                      <div class="ms-menu" id="pp-jf-ms-shows-menu" role="listbox">
+                        <div class="ms-search">
+                          <i class="fas fa-search"></i>
+                          <input id="pp-jf-ms-shows-search" type="text" placeholder="Search libraries…">
+                        </div>
+                        <div class="ms-actions">
+                          <button class="btn btn-outline btn-sm" id="pp-jf-ms-shows-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                          <button class="btn btn-outline btn-sm" id="pp-jf-ms-shows-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                        </div>
+                        <div class="ms-options" id="pp-jf-ms-shows-options"></div>
+                      </div>
+                    </div>
+                    <small class="form-help">Leave empty to include all Jellyfin libraries</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="form-group" style="grid-column: 1 / -1;">
               <div class="form-subsection" id="posterpack-filters" hidden>
                 <h4>Content Filters</h4>
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label for="posterpack.mediaType">Media Type</label>
-                    <div class="select-wrap has-caret">
-                      <select id="posterpack.mediaType">
-                        <option value="all">All Media</option>
-                        <option value="movies">Movies Only</option>
-                        <option value="shows">TV Shows Only</option>
-                      </select>
-                      <span class="select-caret" aria-hidden="true">▾</span>
-                    </div>
-                  </div>
+                <!-- Common (all sources) -->
+                <div id="posterpack-filters-common" class="form-grid">
                   <div class="form-group">
                     <label for="posterpack.yearFilter">Year Range</label>
                     <input type="text" id="posterpack.yearFilter" placeholder="e.g. 2020-2024, 1995, 2010-" />
                   </div>
+                </div>
+                <!-- Server sources (Plex/Jellyfin) variant -->
+                <div id="posterpack-filters-srv" class="form-grid">
+                  <!-- Media Type removed for Plex/Jellyfin by request -->
+                  
+                  <!-- Max Items removed for Plex/Jellyfin by request (server default 10,000) -->
+                  <!-- Simple in-section filters matching Plex/JF semantics -->
                   <div class="form-group">
-                    <label for="posterpack.limit">Max Items</label>
-                    <input type="number" id="posterpack.limit" min="1" max="10000" placeholder="1000" />
+                    <label for="pp.filters.genres">Genres (CSV)</label>
+                    <input type="text" id="pp.filters.genres" placeholder="e.g. Action, Comedy" />
+                  </div>
+                  <div class="form-group">
+                    <label for="pp.filters.ratings">Ratings (CSV)</label>
+                    <input type="text" id="pp.filters.ratings" placeholder="e.g. PG-13, R, TV-MA" />
+                  </div>
+                  <div class="form-group">
+                    <label for="pp.filters.qualities">Qualities (CSV)</label>
+                    <input type="text" id="pp.filters.qualities" placeholder="e.g. 720p, 1080p, 4K" />
+                  </div>
+                  <!-- Recently Added removed for Plex/Jellyfin by request -->
+                </div>
+                <!-- Local source variant: no media type, no max items, no recently added; multiselects like Plex/JF -->
+                <div id="posterpack-filters-local" class="form-grid" hidden>
+                  <!-- Ratings -->
+                  <div class="form-group">
+                    <label for="pp-local.ratings">Ratings</label>
+                    <select id="pp-local.ratings" multiple style="display:none"></select>
+                    <div class="multiselect" id="pp-local-ms-ratings">
+                      <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                        <div class="ms-chips" id="pp-local-ms-ratings-chips"></div>
+                        <button class="ms-clear" id="pp-local-ms-ratings-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                        <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                      </div>
+                      <div class="ms-menu" id="pp-local-ms-ratings-menu" role="listbox">
+                        <div class="ms-search">
+                          <i class="fas fa-search"></i>
+                          <input id="pp-local-ms-ratings-search" type="text" placeholder="Search ratings…">
+                        </div>
+                        <div class="ms-actions">
+                          <button class="btn btn-outline btn-sm" id="pp-local-ms-ratings-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                          <button class="btn btn-outline btn-sm" id="pp-local-ms-ratings-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                        </div>
+                        <div class="ms-options" id="pp-local-ms-ratings-options"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Genres -->
+                  <div class="form-group">
+                    <label for="pp-local.genres">Genres</label>
+                    <select id="pp-local.genres" multiple style="display:none"></select>
+                    <div class="multiselect" id="pp-local-ms-genres">
+                      <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                        <div class="ms-chips" id="pp-local-ms-genres-chips"></div>
+                        <button class="ms-clear" id="pp-local-ms-genres-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                        <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                      </div>
+                      <div class="ms-menu" id="pp-local-ms-genres-menu" role="listbox">
+                        <div class="ms-search">
+                          <i class="fas fa-search"></i>
+                          <input id="pp-local-ms-genres-search" type="text" placeholder="Search genres…">
+                        </div>
+                        <div class="ms-actions">
+                          <button class="btn btn-outline btn-sm" id="pp-local-ms-genres-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                          <button class="btn btn-outline btn-sm" id="pp-local-ms-genres-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                        </div>
+                        <div class="ms-options" id="pp-local-ms-genres-options"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Qualities -->
+                  <div class="form-group">
+                    <label for="pp-local.qualities">Qualities</label>
+                    <select id="pp-local.qualities" multiple style="display:none"></select>
+                    <div class="multiselect" id="pp-local-ms-qualities">
+                      <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                        <div class="ms-chips" id="pp-local-ms-qualities-chips"></div>
+                        <button class="ms-clear" id="pp-local-ms-qualities-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                        <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                      </div>
+                      <div class="ms-menu" id="pp-local-ms-qualities-menu" role="listbox">
+                        <div class="ms-search">
+                          <i class="fas fa-search"></i>
+                          <input id="pp-local-ms-qualities-search" type="text" placeholder="Search qualities…">
+                        </div>
+                        <div class="ms-actions">
+                          <button class="btn btn-outline btn-sm" id="pp-local-ms-qualities-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                          <button class="btn btn-outline btn-sm" id="pp-local-ms-qualities-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                        </div>
+                        <div class="ms-options" id="pp-local-ms-qualities-options"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

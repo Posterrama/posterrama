@@ -4,6 +4,32 @@
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
+    // Early resilient logger shim to avoid ReferenceError before full debug init
+    // Ensures __ppLog is always defined even if called before ppDebug setup
+    var __ppLog =
+        typeof __ppLog === 'function'
+            ? __ppLog
+            : function () {
+                  try {
+                      const dbg = (typeof window !== 'undefined' && window.__ppDebug) || null;
+                      if (dbg && typeof dbg.log === 'function') {
+                          return dbg.log.apply(dbg, arguments);
+                      }
+                  } catch (_) {}
+                  return undefined;
+              };
+    try {
+        if (typeof window !== 'undefined' && typeof window.__ppLog !== 'function') {
+            window.__ppLog = function () {
+                try {
+                    const dbg = window.__ppDebug;
+                    if (dbg && typeof dbg.log === 'function') return dbg.log.apply(dbg, arguments);
+                } catch (_) {}
+                return undefined;
+            };
+        }
+    } catch (_) {}
+
     // ---- Diagnostic Sentinel (notifications resilience) ----
     // Provides quick confirmation in the browser console that the latest admin.js has loaded.
     // Type:  __diagUI   or  window.__diagUI.showScripts()  in DevTools.
@@ -173,6 +199,52 @@
         return `${b.toFixed(1)} ${units[i]}`;
     }
 
+    // Lightweight debug helper for Posterpack flows (robust, globalized)
+    var ppDebug = (function initPPDebug() {
+        try {
+            if (window.__ppDebug) return window.__ppDebug;
+        } catch (_) {}
+        let enabled = false;
+        try {
+            // Enable if URL contains debug=posterpacks or localStorage flag is set
+            const hasHash = /(^|[?#&])debug=posterpacks(=1|&|$)/i.test(window.location.href);
+            const ls = localStorage.getItem('pp.debug') === '1';
+            enabled = hasHash || ls;
+        } catch (_) {}
+        const helper = {
+            get enabled() {
+                return enabled;
+            },
+            set(v) {
+                enabled = !!v;
+                try {
+                    localStorage.setItem('pp.debug', enabled ? '1' : '0');
+                } catch (_) {}
+            },
+            log: (...args) => {
+                try {
+                    if (!enabled) return;
+                    console.log('[PP]', ...args);
+                } catch (_) {}
+            },
+        };
+        try {
+            window.__ppDebug = helper;
+        } catch (_) {}
+        return typeof window !== 'undefined' && window.__ppDebug ? window.__ppDebug : helper;
+    })();
+
+    // Resilient logger that never throws even if ppDebug/window.__ppDebug is missing
+    function __ppLog() {
+        try {
+            const dbg = (typeof window !== 'undefined' && window.__ppDebug) || null;
+            if (dbg && typeof dbg.log === 'function') {
+                return dbg.log.apply(dbg, arguments);
+            }
+        } catch (_) {}
+        return undefined;
+    }
+
     // Simple HTML escaper available at module scope for safe rendering
     function escapeHtml(s) {
         return String(s || '')
@@ -290,6 +362,30 @@
                 try {
                     if (menu) menu.scrollTop = 0;
                     if (optsEl) optsEl.scrollTop = 0;
+                    // If options are empty but backing <select> has items, rebuild on-the-fly
+                    if (optsEl && optsEl.children.length === 0 && sel && sel.options.length > 0) {
+                        // Clear any stale search text
+                        if (search) search.value = '';
+                        buildOptions();
+                        // Ensure all rows visible
+                        Array.from(optsEl.children).forEach(ch => (ch.style.display = ''));
+                        __ppLog(
+                            'ms-open: rebuilt options on open for',
+                            idBase,
+                            'rows:',
+                            optsEl.children.length
+                        );
+                    } else if (optsEl && optsEl.children.length > 0) {
+                        // If rows exist but all are hidden (old filter), clear filter and unhide
+                        const hiddenCount = Array.from(optsEl.children).filter(
+                            ch => ch.style.display === 'none'
+                        ).length;
+                        if (hiddenCount === optsEl.children.length) {
+                            if (search) search.value = '';
+                            Array.from(optsEl.children).forEach(ch => (ch.style.display = ''));
+                            __ppLog('ms-open: all rows hidden, cleared filter for', idBase);
+                        }
+                    }
                 } catch (e) {
                     // scroll reset failed
                 }
@@ -300,12 +396,37 @@
         clearBtn?.addEventListener('mousedown', e => {
             e.stopPropagation();
         });
+        // Guard to avoid double-toggle when both mousedown and click fire
+        let lastPointerDownTs = 0;
+        // Open on mousedown (primary path)
         control.addEventListener('mousedown', e => {
             e.preventDefault();
             e.stopPropagation();
+            lastPointerDownTs = Date.now();
             const willOpen = !root.classList.contains('ms-open');
             openMenu(willOpen);
             if (willOpen) setTimeout(() => search.focus(), 0);
+        });
+        // Open on click as a fallback (e.g., keyboard-generated click); ignore if it immediately follows a mousedown
+        control.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (Date.now() - lastPointerDownTs < 300) return; // ignore synthetic click after mousedown
+            const willOpen = !root.classList.contains('ms-open');
+            openMenu(willOpen);
+            if (willOpen) setTimeout(() => search.focus(), 0);
+        });
+        // Keyboard access: Enter/Space toggles, Escape closes
+        control.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                const willOpen = !root.classList.contains('ms-open');
+                openMenu(willOpen);
+                if (willOpen) setTimeout(() => search.focus(), 0);
+            } else if (e.key === 'Escape') {
+                openMenu(false);
+            }
         });
         document.addEventListener('click', e => {
             if (!root.contains(e.target)) openMenu(false);
@@ -367,6 +488,7 @@
         const control = root.querySelector('.ms-control');
         const chipsEl = root.querySelector('.ms-chips');
         const optsEl = document.getElementById(`${idBase}-options`);
+        const search = document.getElementById(`${idBase}-search`);
         if (!control || !chipsEl || !optsEl) return;
         // Build options from current <select>
         const selected = new Set(Array.from(sel.selectedOptions).map(o => o.value));
@@ -388,6 +510,9 @@
             row.appendChild(span);
             optsEl.appendChild(row);
         });
+        // Clear any lingering search/filter and unhide all rows
+        if (search) search.value = '';
+        Array.from(optsEl.children).forEach(ch => (ch.style.display = ''));
         // Render chips
         chipsEl.innerHTML = '';
         selected.forEach(v => {
@@ -411,6 +536,40 @@
         });
         control.classList.toggle('has-selection', selected.size > 0);
     }
+
+    // Resilient late-binding: ensure known multiselects are wired even if earlier init missed
+    function __ensureMsWired(idBase, selectId) {
+        try {
+            const root = document.getElementById(idBase);
+            const sel = document.getElementById(selectId);
+            if (!root || !sel) return;
+            if (root.dataset.msWired === 'true') return;
+            initMsForSelect(idBase, selectId);
+        } catch (_) {}
+    }
+    function __ensureAllMultiselects() {
+        // Media Sources (main panels)
+        __ensureMsWired('plex-ms-movies', 'plex.movies');
+        __ensureMsWired('plex-ms-shows', 'plex.shows');
+        __ensureMsWired('jf-ms-movies', 'jf.movies');
+        __ensureMsWired('jf-ms-shows', 'jf.shows');
+        // Posterpack section
+        __ensureMsWired('pp-plex-ms-movies', 'pp-plex.movies');
+        __ensureMsWired('pp-plex-ms-shows', 'pp-plex.shows');
+        __ensureMsWired('pp-jf-ms-movies', 'pp-jf.movies');
+        __ensureMsWired('pp-jf-ms-shows', 'pp-jf.shows');
+    }
+    try {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () =>
+                setTimeout(__ensureAllMultiselects, 0)
+            );
+        } else {
+            setTimeout(__ensureAllMultiselects, 0);
+        }
+        window.addEventListener('hashchange', () => setTimeout(__ensureAllMultiselects, 35));
+        window.addEventListener('panelActivated', () => setTimeout(__ensureAllMultiselects, 25));
+    } catch (_) {}
 
     function ensureLibrarySelectionIntegrity(source) {
         try {
@@ -15011,6 +15170,7 @@
             if (window.__plexLibsInFlight) return window.__plexLibsInFlight;
             window.__plexLibsInFlight = (async () => {
                 try {
+                    __ppLog('fetchPlexLibraries: start');
                     const hostname =
                         getInput('plex.hostname')?.value ||
                         document.getElementById('plex_hostname')?.value ||
@@ -15032,12 +15192,23 @@
                     const j = await res.json().catch(() => ({}));
                     if (!res.ok) throw new Error(j?.error || 'Failed to load Plex libraries');
                     const libs = Array.isArray(j.libraries) ? j.libraries : [];
+                    __ppLog('fetchPlexLibraries: received', libs.length, 'libs');
                     // Store Plex name -> key mapping for posterpack generation
                     try {
                         window.__plexLibraryNameToId = new Map();
                         libs.forEach(l => {
                             if (l && l.name && (l.key || l.key === 0)) {
                                 window.__plexLibraryNameToId.set(l.name, String(l.key));
+                            }
+                        });
+                        // Also store type/counts for separation (movies vs shows)
+                        window.__plexLibraryCounts = new Map();
+                        libs.forEach(l => {
+                            if (l && l.name) {
+                                window.__plexLibraryCounts.set(l.name, {
+                                    itemCount: Number(l.itemCount) || 0,
+                                    type: l.type,
+                                });
                             }
                         });
                     } catch (_) {}
@@ -15047,6 +15218,7 @@
                     const shows = libs
                         .filter(l => l.type === 'show')
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+                    __ppLog('fetchPlexLibraries: movies', movies.length, 'shows', shows.length);
                     const prevMovies = new Set(getMultiSelectValues('plex.movies'));
                     const prevShows = new Set(getMultiSelectValues('plex.shows'));
                     // Auto-select all Plex libraries on very first successful load if user has none selected yet
@@ -15091,6 +15263,16 @@
                     // Rebuild multiselect options
                     rebuildMsForSelect('plex-ms-movies', 'plex.movies');
                     rebuildMsForSelect('plex-ms-shows', 'plex.shows');
+                    // If Posterpack source is currently Plex, immediately sync Posterpack lists
+                    try {
+                        const srcSel = document.getElementById('posterpack.source');
+                        if (srcSel && srcSel.value === 'plex') {
+                            __ppLog(
+                                'posterpacks: syncing Posterpack lists after fetchPlexLibraries'
+                            );
+                            populatePosterpackLibraries('plex');
+                        }
+                    } catch (_) {}
                     if (!silent) {
                         window.notify?.toast({
                             type: 'success',
@@ -15116,6 +15298,7 @@
                         }
                     }
                 } catch (e) {
+                    __ppLog('fetchPlexLibraries: error', e?.message || e);
                     if (!silent) {
                         window.notify?.toast({
                             type: 'error',
@@ -15125,6 +15308,7 @@
                         });
                     }
                 } finally {
+                    __ppLog('fetchPlexLibraries: finally');
                     // Clear in-flight marker after settle so subsequent manual fetches are allowed
                     window.__plexLibsInFlight = null;
                     // Reset refresh request flag after one settled cycle
@@ -15626,6 +15810,16 @@
                     // Rebuild multiselect options
                     rebuildMsForSelect('jf-ms-movies', 'jf.movies');
                     rebuildMsForSelect('jf-ms-shows', 'jf.shows');
+                    // If Posterpack source is currently Jellyfin, immediately sync Posterpack lists
+                    try {
+                        const srcSel = document.getElementById('posterpack.source');
+                        if (srcSel && srcSel.value === 'jellyfin') {
+                            __ppLog(
+                                'posterpacks: syncing Posterpack lists after fetchJellyfinLibraries'
+                            );
+                            populatePosterpackLibraries('jellyfin');
+                        }
+                    } catch (_) {}
                     if (!silent) {
                         window.notify?.toast({
                             type: 'success',
@@ -18446,7 +18640,23 @@ if (!document.__niwDelegatedFallback) {
         if (previewBtn) previewBtn.addEventListener('click', previewPosterpackSelection);
 
         const sourceSelect = document.getElementById('posterpack.source');
-        if (sourceSelect) sourceSelect.addEventListener('change', handleSourceSelection);
+        if (sourceSelect) {
+            sourceSelect.addEventListener('change', handleSourceSelection);
+            // trigger once on load to sync visibility and maybe populate libraries
+            handleSourceSelection({ target: sourceSelect });
+            // also re-sync shortly after load to defend against late DOM updates
+            setTimeout(() => handleSourceSelection({ target: sourceSelect }), 250);
+            setTimeout(() => handleSourceSelection({ target: sourceSelect }), 800);
+        }
+        // Initialize Posterpack multiselect widgets (empty; options populated later)
+        try {
+            if (typeof initMsForSelect === 'function') {
+                initMsForSelect('pp-plex-ms-movies', 'pp-plex.movies');
+                initMsForSelect('pp-plex-ms-shows', 'pp-plex.shows');
+                initMsForSelect('pp-jf-ms-movies', 'pp-jf.movies');
+                initMsForSelect('pp-jf-ms-shows', 'pp-jf.shows');
+            }
+        } catch (_) {}
 
         // Clear completed jobs
         const clearJobsBtn = document.getElementById('btn-clear-completed-jobs');
@@ -18799,7 +19009,7 @@ if (!document.__niwDelegatedFallback) {
 
         // Get posterpack configuration
         const source = document.getElementById('posterpack.source')?.value || 'local';
-        // Resolve selected library IDs for plex/jellyfin
+        // Resolve selected library IDs for plex/jellyfin (from Posterpack section; empty = all)
         let libraryIds = [];
         // Helper: read current Plex/Jellyfin filters from the main panels
         const getCurrentPlexFilters = () => {
@@ -18825,35 +19035,79 @@ if (!document.__niwDelegatedFallback) {
             };
         };
         if (source === 'plex') {
-            const getSel = (window.admin2 && window.admin2.getSelectedLibraries) || null;
-            const sel = getSel ? getSel('plex') : { movies: [], shows: [] };
+            const mvSel =
+                typeof getMultiSelectValues === 'function'
+                    ? getMultiSelectValues('pp-plex.movies')
+                    : Array.from(
+                          document.getElementById('pp-plex.movies')?.selectedOptions || []
+                      ).map(o => o.value);
+            const shSel =
+                typeof getMultiSelectValues === 'function'
+                    ? getMultiSelectValues('pp-plex.shows')
+                    : Array.from(
+                          document.getElementById('pp-plex.shows')?.selectedOptions || []
+                      ).map(o => o.value);
             const map = window.__plexLibraryNameToId || new Map();
             const toIds = names =>
                 (Array.isArray(names) ? names : []).map(n => map.get(n) || null).filter(Boolean);
-            libraryIds = [...toIds(sel.movies), ...toIds(sel.shows)];
+            const chosen = [...mvSel, ...shSel];
+            if (chosen.length) {
+                libraryIds = toIds(chosen);
+            } else {
+                // Empty => include all known libraries
+                const all = Array.from(map.keys());
+                libraryIds = toIds(all);
+            }
         } else if (source === 'jellyfin') {
-            const getSel = (window.admin2 && window.admin2.getSelectedLibraries) || null;
-            const sel = getSel ? getSel('jellyfin') : { movies: [], shows: [] };
+            const mvSel =
+                typeof getMultiSelectValues === 'function'
+                    ? getMultiSelectValues('pp-jf.movies')
+                    : Array.from(
+                          document.getElementById('pp-jf.movies')?.selectedOptions || []
+                      ).map(o => o.value);
+            const shSel =
+                typeof getMultiSelectValues === 'function'
+                    ? getMultiSelectValues('pp-jf.shows')
+                    : Array.from(document.getElementById('pp-jf.shows')?.selectedOptions || []).map(
+                          o => o.value
+                      );
             const map = window.__jfLibraryNameToId || new Map();
             const toIds = names =>
                 (Array.isArray(names) ? names : []).map(n => map.get(n) || null).filter(Boolean);
-            libraryIds = [...toIds(sel.movies), ...toIds(sel.shows)];
+            const chosen = [...mvSel, ...shSel];
+            if (chosen.length) {
+                libraryIds = toIds(chosen);
+            } else {
+                const all = Array.from(map.keys());
+                libraryIds = toIds(all);
+            }
         } else if (source === 'local') {
             libraryIds = ['local'];
         }
 
+        const commonYearFilter = document.getElementById('posterpack.yearFilter')?.value || '';
         const config = {
             sourceType: source === 'local' ? 'local' : source,
             libraryIds,
-            options: {
-                compression: 'balanced',
-                mediaType: document.getElementById('posterpack.mediaType')?.value || 'all',
-                yearFilter: document.getElementById('posterpack.yearFilter')?.value || '',
-                limit: parseInt(document.getElementById('posterpack.limit')?.value) || 1000,
-                // Pass current Plex/Jellyfin filters through so server can apply them
-                filtersPlex: source === 'plex' ? getCurrentPlexFilters() : undefined,
-                filtersJellyfin: source === 'jellyfin' ? getCurrentJfFilters() : undefined,
-            },
+            options:
+                source === 'local'
+                    ? {
+                          compression: 'balanced',
+                          yearFilter: commonYearFilter,
+                          // Local-specific multiselects
+                          filtersLocal: getLocalPosterpackFilters(),
+                      }
+                    : {
+                          compression: 'balanced',
+                          yearFilter: commonYearFilter,
+                          // Build filter set from in-section controls; when empty, default to no narrowing
+                          filtersPlex:
+                              source === 'plex' ? getPosterpackFilterObject('plex') : undefined,
+                          filtersJellyfin:
+                              source === 'jellyfin'
+                                  ? getPosterpackFilterObject('jellyfin')
+                                  : undefined,
+                      },
         };
 
         // Validate configuration
@@ -18913,11 +19167,9 @@ if (!document.__niwDelegatedFallback) {
 
     function previewPosterpackSelection() {
         const source = document.getElementById('posterpack.source')?.value || 'local';
-        const mediaType = document.getElementById('posterpack.mediaType')?.value || 'all';
         const yearFilter = document.getElementById('posterpack.yearFilter')?.value || '';
-        const limit = parseInt(document.getElementById('posterpack.limit')?.value) || 1000;
 
-        // Resolve library IDs same as generate
+        // Resolve library IDs same as generate (Posterpack section picks; empty = all)
         let libraryIds = [];
         const getCurrentPlexFilters = () => {
             const readHidden = id => (document.getElementById(id)?.value || '').trim();
@@ -18942,27 +19194,41 @@ if (!document.__niwDelegatedFallback) {
             };
         };
         if (source === 'plex') {
-            const getSel = (window.admin2 && window.admin2.getSelectedLibraries) || null;
-            const sel = getSel ? getSel('plex') : { movies: [], shows: [] };
+            const mvSel =
+                typeof getMultiSelectValues === 'function'
+                    ? getMultiSelectValues('pp-plex.movies')
+                    : Array.from(
+                          document.getElementById('pp-plex.movies')?.selectedOptions || []
+                      ).map(o => o.value);
+            const shSel =
+                typeof getMultiSelectValues === 'function'
+                    ? getMultiSelectValues('pp-plex.shows')
+                    : Array.from(
+                          document.getElementById('pp-plex.shows')?.selectedOptions || []
+                      ).map(o => o.value);
             const map = window.__plexLibraryNameToId || new Map();
             const toIds = names =>
                 (Array.isArray(names) ? names : []).map(n => map.get(n)).filter(Boolean);
-            libraryIds = [...toIds(sel.movies), ...toIds(sel.shows)];
-            if (libraryIds.length === 0) {
-                showNotification('Select one or more Plex libraries first', 'warning');
-                return;
-            }
+            const chosen = [...mvSel, ...shSel];
+            libraryIds = chosen.length ? toIds(chosen) : toIds(Array.from(map.keys()));
         } else if (source === 'jellyfin') {
-            const getSel = (window.admin2 && window.admin2.getSelectedLibraries) || null;
-            const sel = getSel ? getSel('jellyfin') : { movies: [], shows: [] };
+            const mvSel =
+                typeof getMultiSelectValues === 'function'
+                    ? getMultiSelectValues('pp-jf.movies')
+                    : Array.from(
+                          document.getElementById('pp-jf.movies')?.selectedOptions || []
+                      ).map(o => o.value);
+            const shSel =
+                typeof getMultiSelectValues === 'function'
+                    ? getMultiSelectValues('pp-jf.shows')
+                    : Array.from(document.getElementById('pp-jf.shows')?.selectedOptions || []).map(
+                          o => o.value
+                      );
             const map = window.__jfLibraryNameToId || new Map();
             const toIds = names =>
                 (Array.isArray(names) ? names : []).map(n => map.get(n)).filter(Boolean);
-            libraryIds = [...toIds(sel.movies), ...toIds(sel.shows)];
-            if (libraryIds.length === 0) {
-                showNotification('Select one or more Jellyfin libraries first', 'warning');
-                return;
-            }
+            const chosen = [...mvSel, ...shSel];
+            libraryIds = chosen.length ? toIds(chosen) : toIds(Array.from(map.keys()));
         } else if (source === 'local') {
             const enabledInput = document.getElementById('localDirectory.enabled');
             if (!enabledInput?.checked) {
@@ -18975,13 +19241,23 @@ if (!document.__niwDelegatedFallback) {
         const config = {
             sourceType: source,
             libraryIds,
-            options: {
-                mediaType,
-                yearFilter,
-                limit,
-                filtersPlex: source === 'plex' ? getCurrentPlexFilters() : undefined,
-                filtersJellyfin: source === 'jellyfin' ? getCurrentJfFilters() : undefined,
-            },
+            options:
+                source === 'local'
+                    ? {
+                          yearFilter,
+                          // No mediaType/limit for Local; server default is large
+                          filtersLocal: getLocalPosterpackFilters(),
+                      }
+                    : {
+                          yearFilter,
+                          // No mediaType/limit for Plex/Jellyfin; server handles sensible defaults
+                          filtersPlex:
+                              source === 'plex' ? getPosterpackFilterObject('plex') : undefined,
+                          filtersJellyfin:
+                              source === 'jellyfin'
+                                  ? getPosterpackFilterObject('jellyfin')
+                                  : undefined,
+                      },
         };
 
         fetch('/api/local/preview-posterpack', {
@@ -18993,7 +19269,9 @@ if (!document.__niwDelegatedFallback) {
             .then(result => {
                 if (result?.summary) {
                     const total = Number(result.summary.totalItems) || 0;
-                    const est = Number(result.estimatedToGenerate) || Math.min(total, limit);
+                    const limFromServer = Number(result.summary.limit) || 10000;
+                    const est =
+                        Number(result.estimatedToGenerate) || Math.min(total, limFromServer);
                     const src = result.summary.sourceType || source;
                     const msg = `Preview (${src}): ${total.toLocaleString()} items available • estimated ${est.toLocaleString()} to generate`;
                     showNotification(msg, 'info');
@@ -19009,16 +19287,648 @@ if (!document.__niwDelegatedFallback) {
 
     function handleSourceSelection(e) {
         const source = e.target.value;
+        __ppLog('Source change ->', source);
         const filtersSection = document.getElementById('posterpack-filters');
+        const srvFilters = document.getElementById('posterpack-filters-srv');
+        const localFilters = document.getElementById('posterpack-filters-local');
+        const libsSection = document.getElementById('posterpack-lib-section');
+        const plexLibs = document.getElementById('pp-plex-libs');
+        const jfLibs = document.getElementById('pp-jf-libs');
 
         if (filtersSection) {
-            // Show filters for all sources except local directory files
-            if (source === 'local') {
-                filtersSection.hidden = true;
-            } else {
-                filtersSection.hidden = false;
+            // Always show the filters shell; toggle between server vs local variants
+            filtersSection.hidden = false;
+            filtersSection.style.display = '';
+            filtersSection.setAttribute('aria-hidden', 'false');
+            if (srvFilters) {
+                const showSrv = source === 'plex' || source === 'jellyfin';
+                srvFilters.hidden = !showSrv;
+                srvFilters.style.display = showSrv ? '' : 'none';
+            }
+            if (localFilters) {
+                const showLocal = source === 'local';
+                localFilters.hidden = !showLocal;
+                localFilters.style.display = showLocal ? '' : 'none';
+                if (showLocal) {
+                    try {
+                        if (typeof initMsForSelect === 'function') {
+                            initMsForSelect('pp-local-ms-ratings', 'pp-local.ratings');
+                            initMsForSelect('pp-local-ms-genres', 'pp-local.genres');
+                            initMsForSelect('pp-local-ms-qualities', 'pp-local.qualities');
+                        }
+                        // Populate options lazily the first time Local filters are shown
+                        // Populate asynchronously; no need to block UI
+                        loadLocalFilterOptions()
+                            .then(() => {
+                                if (typeof rebuildMsForSelect === 'function') {
+                                    rebuildMsForSelect('pp-local-ms-ratings', 'pp-local.ratings');
+                                    rebuildMsForSelect('pp-local-ms-genres', 'pp-local.genres');
+                                    rebuildMsForSelect(
+                                        'pp-local-ms-qualities',
+                                        'pp-local.qualities'
+                                    );
+                                }
+                            })
+                            .catch(() => {});
+                    } catch (_) {}
+                }
             }
         }
+        const showLibs = source !== 'local';
+        if (libsSection) {
+            libsSection.hidden = !showLibs;
+            libsSection.style.display = showLibs ? '' : 'none';
+            libsSection.setAttribute('aria-hidden', showLibs ? 'false' : 'true');
+        }
+        const showPlex = source === 'plex';
+        if (plexLibs) {
+            plexLibs.hidden = !showPlex;
+            plexLibs.style.display = showPlex ? '' : 'none';
+            plexLibs.setAttribute('aria-hidden', showPlex ? 'false' : 'true');
+        }
+        const showJf = source === 'jellyfin';
+        if (jfLibs) {
+            jfLibs.hidden = !showJf;
+            jfLibs.style.display = showJf ? '' : 'none';
+            jfLibs.setAttribute('aria-hidden', showJf ? 'false' : 'true');
+        }
+        // Populate library lists lazily; the populate function will rebuild widgets after options are filled
+        if (source === 'plex') {
+            __ppLog('Init Posterpack widgets for Plex and populate');
+            // Ensure widgets are initialized; actual rebuild occurs inside populate after options are written
+            try {
+                if (typeof initMsForSelect === 'function') {
+                    initMsForSelect('pp-plex-ms-movies', 'pp-plex.movies');
+                    initMsForSelect('pp-plex-ms-shows', 'pp-plex.shows');
+                }
+            } catch (_) {}
+            // Proactively fetch Plex libraries using the main fetcher (reads config/inputs), then populate
+            try {
+                __ppLog('Calling fetchPlexLibraries(silent) before populate');
+                Promise.resolve(fetchPlexLibraries(false, true)).finally(() => {
+                    __ppLog(
+                        'fetchPlexLibraries settled; calling populatePosterpackLibraries(plex)'
+                    );
+                    try {
+                        populatePosterpackLibraries('plex');
+                    } catch (_) {}
+                });
+            } catch (_) {
+                __ppLog('fetchPlexLibraries call failed early; fallback populate');
+                populatePosterpackLibraries('plex');
+            }
+            // If still empty shortly after, copy from main selects as a last resort for instant UX
+            setTimeout(() => {
+                try {
+                    const mvSel = document.getElementById('pp-plex.movies');
+                    const shSel = document.getElementById('pp-plex.shows');
+                    __ppLog(
+                        'Post-delay check Plex PP selects sizes:',
+                        mvSel?.options?.length || 0,
+                        shSel?.options?.length || 0
+                    );
+                    if (
+                        mvSel &&
+                        shSel &&
+                        mvSel.options.length === 0 &&
+                        shSel.options.length === 0
+                    ) {
+                        __ppLog(
+                            'Still empty after delay; re-invoking populatePosterpackLibraries(plex)'
+                        );
+                        if (typeof populatePosterpackLibraries === 'function') {
+                            // Call with internal copy fallback via kind detection
+                            try {
+                                populatePosterpackLibraries('plex');
+                            } catch (_) {}
+                        }
+                    }
+                } catch (_) {}
+            }, 350);
+        } else if (source === 'jellyfin') {
+            try {
+                if (typeof initMsForSelect === 'function') {
+                    initMsForSelect('pp-jf-ms-movies', 'pp-jf.movies');
+                    initMsForSelect('pp-jf-ms-shows', 'pp-jf.shows');
+                }
+            } catch (_) {}
+            // Proactively fetch Jellyfin libraries using the main fetcher, then populate
+            try {
+                Promise.resolve(fetchJellyfinLibraries(false, true)).finally(() => {
+                    try {
+                        populatePosterpackLibraries('jellyfin');
+                    } catch (_) {}
+                });
+            } catch (_) {
+                populatePosterpackLibraries('jellyfin');
+            }
+        }
+    }
+
+    function getLocalPosterpackFilters() {
+        // Local multiselects mirror Plex/JF UI, but options may be empty if unsupported
+        const vals = id => {
+            if (typeof getMultiSelectValues === 'function') return getMultiSelectValues(id) || [];
+            const sel = document.getElementById(id);
+            return Array.from(sel?.selectedOptions || []).map(o => o.value);
+        };
+        return {
+            years: (document.getElementById('posterpack.yearFilter')?.value || '').trim(),
+            ratings: vals('pp-local.ratings').join(','),
+            genres: vals('pp-local.genres').join(','),
+            qualities: vals('pp-local.qualities').join(','),
+        };
+    }
+
+    async function loadLocalFilterOptions() {
+        if (window.__ppLocalFiltersLoaded) return;
+        window.__ppLocalFiltersLoaded = true; // set early to avoid duplicate fetches
+        const dbg = (...a) => (window.__ppDebug ? console.debug('[PP Local]', ...a) : null);
+        try {
+            const [
+                plexRatingsRes,
+                jfRatingsRes,
+                plexGenresRes,
+                jfGenresRes,
+                plexQualRes,
+                jfQualRes,
+            ] = await Promise.all([
+                window
+                    .dedupJSON('/api/sources/plex/ratings-with-counts', { credentials: 'include' })
+                    .catch(() => null),
+                window
+                    .dedupJSON('/api/sources/jellyfin/ratings-with-counts', {
+                        credentials: 'include',
+                    })
+                    .catch(() => null),
+                window
+                    .dedupJSON('/api/admin/plex-genres-with-counts', { credentials: 'include' })
+                    .catch(() => null),
+                window
+                    .dedupJSON('/api/admin/jellyfin-genres-with-counts', { credentials: 'include' })
+                    .catch(() => null),
+                window
+                    .dedupJSON('/api/admin/plex-qualities-with-counts', { credentials: 'include' })
+                    .catch(() => null),
+                window
+                    .dedupJSON('/api/admin/jellyfin-qualities-with-counts', {
+                        credentials: 'include',
+                    })
+                    .catch(() => null),
+            ]);
+
+            const ratings = new Set();
+            const qualities = new Set();
+            const genres = new Set();
+
+            const addRatings = res => {
+                const arr = Array.isArray(res?.ratings) ? res.ratings : [];
+                arr.forEach(r => {
+                    const key = (r?.rating || r)?.toString().trim().toUpperCase();
+                    if (key) ratings.add(key);
+                });
+            };
+            const addQuals = res => {
+                const arr = Array.isArray(res?.qualities) ? res.qualities : [];
+                arr.forEach(q => {
+                    const key = (q?.quality || q)?.toString().trim();
+                    if (key) qualities.add(key);
+                });
+            };
+            const addGenres = res => {
+                const arr = Array.isArray(res?.genres) ? res.genres : [];
+                arr.forEach(g => {
+                    const name = (g?.name || g)?.toString().trim();
+                    if (name) genres.add(name);
+                });
+            };
+
+            addRatings(plexRatingsRes);
+            addRatings(jfRatingsRes);
+            addQuals(plexQualRes);
+            addQuals(jfQualRes);
+            addGenres(plexGenresRes);
+            addGenres(jfGenresRes);
+
+            // Fallbacks
+            if (!ratings.size) {
+                [
+                    'G',
+                    'PG',
+                    'PG-13',
+                    'R',
+                    'NC-17',
+                    'NR',
+                    'UNRATED',
+                    'TV-Y',
+                    'TV-Y7',
+                    'TV-G',
+                    'TV-PG',
+                    'TV-14',
+                    'TV-MA',
+                ].forEach(r => ratings.add(r));
+            }
+            if (!qualities.size) {
+                ['SD', '720p', '1080p', '4K'].forEach(q => qualities.add(q));
+            }
+            // No hardcoded fallback for genres to avoid noise; leave empty if none
+
+            const fillSelect = (id, list) => {
+                const sel = document.getElementById(id);
+                if (!sel) return;
+                const prev = new Set(Array.from(sel.selectedOptions).map(o => o.value));
+                sel.innerHTML = '';
+                list.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v;
+                    opt.textContent = v;
+                    if (prev.has(v)) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            };
+
+            const ratingsList = Array.from(ratings).sort();
+            const qualitiesOrder = ['SD', '720p', '1080p', '4K'];
+            const qualitiesList = Array.from(qualities).sort((a, b) => {
+                const ia = qualitiesOrder.indexOf(a);
+                const ib = qualitiesOrder.indexOf(b);
+                if (ia !== -1 && ib !== -1) return ia - ib;
+                if (ia !== -1) return -1;
+                if (ib !== -1) return 1;
+                return a.localeCompare(b);
+            });
+            const genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
+
+            fillSelect('pp-local.ratings', ratingsList);
+            fillSelect('pp-local.qualities', qualitiesList);
+            fillSelect('pp-local.genres', genresList);
+            dbg('Loaded Local filter options', {
+                ratings: ratingsList.length,
+                qualities: qualitiesList.length,
+                genres: genresList.length,
+            });
+        } catch (e) {
+            console.warn('[PP Local] Failed to load filter options', e);
+        }
+    }
+
+    function populatePosterpackLibraries(kind) {
+        // Reuse global maps if available; otherwise fetch via existing admin endpoints
+        __ppLog('populatePosterpackLibraries start:', kind);
+        const copyFromMainIfEmpty = source => {
+            try {
+                if (source === 'plex') {
+                    const mainMv = document.getElementById('plex.movies');
+                    const mainSh = document.getElementById('plex.shows');
+                    const mvNames = mainMv ? Array.from(mainMv.options).map(o => o.value) : [];
+                    const shNames = mainSh ? Array.from(mainSh.options).map(o => o.value) : [];
+                    __ppLog(
+                        'copyFromMainIfEmpty(plex): main sizes',
+                        mvNames.length,
+                        shNames.length
+                    );
+                    if (mvNames.length || shNames.length) {
+                        fill('pp-plex.movies', mvNames);
+                        fill('pp-plex.shows', shNames);
+                        return true;
+                    }
+                } else if (source === 'jellyfin') {
+                    const mainMv = document.getElementById('jf.movies');
+                    const mainSh = document.getElementById('jf.shows');
+                    const mvNames = mainMv ? Array.from(mainMv.options).map(o => o.value) : [];
+                    const shNames = mainSh ? Array.from(mainSh.options).map(o => o.value) : [];
+                    __ppLog(
+                        'copyFromMainIfEmpty(jellyfin): main sizes',
+                        mvNames.length,
+                        shNames.length
+                    );
+                    if (mvNames.length || shNames.length) {
+                        fill('pp-jf.movies', mvNames);
+                        fill('pp-jf.shows', shNames);
+                        return true;
+                    }
+                }
+            } catch (_) {}
+            return false;
+        };
+        const toastNoLibsOnce = src => {
+            try {
+                const key = `__pp_no_libs_toast_${src}`;
+                if (window[key]) return;
+                window[key] = true;
+                if (typeof showNotification === 'function') {
+                    showNotification(
+                        `No ${src} libraries found for Posterpack selection`,
+                        'warning'
+                    );
+                    __ppLog('toastNoLibsOnce fired for', src);
+                }
+            } catch (_) {}
+        };
+        const fill = (selId, names) => {
+            const sel = document.getElementById(selId);
+            if (!sel) return;
+            // Preserve previously selected values where possible
+            const prevSelected = new Set(Array.from(sel.selectedOptions).map(o => o.value));
+            sel.innerHTML = '';
+            names.forEach(n => {
+                const opt = document.createElement('option');
+                opt.value = n;
+                opt.textContent = n;
+                if (prevSelected.has(n)) opt.selected = true;
+                sel.appendChild(opt);
+            });
+            __ppLog('fill()', selId, 'names:', names.length);
+            try {
+                if (typeof rebuildMsForSelect === 'function') {
+                    const map = {
+                        'pp-plex.movies': 'pp-plex-ms-movies',
+                        'pp-plex.shows': 'pp-plex-ms-shows',
+                        'pp-jf.movies': 'pp-jf-ms-movies',
+                        'pp-jf.shows': 'pp-jf-ms-shows',
+                    };
+                    const msId = map[selId];
+                    if (msId) rebuildMsForSelect(msId, selId);
+                }
+            } catch (_) {}
+        };
+        const fetchAndFillPlex = async () => {
+            try {
+                const { map, libs } = await (async () => {
+                    if (
+                        window.__plexLibraryNameToId instanceof Map &&
+                        window.__plexLibraryNameToId.size
+                    )
+                        return { map: window.__plexLibraryNameToId, libs: null };
+                    const r = await fetch('/api/admin/plex-libraries', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({}),
+                    });
+                    const j = r.ok ? await r.json().catch(() => ({})) : {};
+                    const libs = Array.isArray(j.libraries) ? j.libraries : [];
+                    const m = new Map();
+                    libs.forEach(l => m.set(l.name, l.id || l.key));
+                    window.__plexLibraryNameToId = m;
+                    // also store counts/types for separation if not present
+                    if (!(window.__plexLibraryCounts instanceof Map)) {
+                        window.__plexLibraryCounts = new Map();
+                        libs.forEach(l => {
+                            if (l && l.name)
+                                window.__plexLibraryCounts.set(l.name, {
+                                    itemCount: Number(l.itemCount) || 0,
+                                    type: l.type,
+                                });
+                        });
+                    }
+                    return { map: m, libs };
+                })();
+                const counts =
+                    window.__plexLibraryCounts instanceof Map ? window.__plexLibraryCounts : null;
+                const allNames = Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
+                __ppLog(
+                    'Plex map size:',
+                    (map && map.size) || 0,
+                    'counts size:',
+                    (counts && counts.size) || 0
+                );
+                // If still empty, try the main fetcher as a fallback and retry using global maps
+                if (!allNames.length) {
+                    try {
+                        __ppLog('Plex allNames empty; invoking fetchPlexLibraries fallback');
+                        await Promise.resolve(fetchPlexLibraries(false, true));
+                        const m2 =
+                            window.__plexLibraryNameToId instanceof Map
+                                ? window.__plexLibraryNameToId
+                                : new Map();
+                        const c2 =
+                            window.__plexLibraryCounts instanceof Map
+                                ? window.__plexLibraryCounts
+                                : null;
+                        const names2 = Array.from(m2.keys()).sort((a, b) => a.localeCompare(b));
+                        __ppLog(
+                            'Plex fallback maps -> sizes:',
+                            (m2 && m2.size) || 0,
+                            (c2 && c2.size) || 0
+                        );
+                        if (c2 && c2.size) {
+                            const movieNames2 = names2.filter(
+                                n => (c2.get(n)?.type || '').toLowerCase() === 'movie'
+                            );
+                            const showNames2 = names2.filter(
+                                n => (c2.get(n)?.type || '').toLowerCase() === 'show'
+                            );
+                            fill('pp-plex.movies', movieNames2);
+                            fill('pp-plex.shows', showNames2);
+                        } else {
+                            fill('pp-plex.movies', names2);
+                            fill('pp-plex.shows', names2);
+                        }
+                        return;
+                    } catch (_) {}
+                }
+                if (counts && counts.size) {
+                    const movieNames = allNames.filter(
+                        n => (counts.get(n)?.type || '').toLowerCase() === 'movie'
+                    );
+                    const showNames = allNames.filter(
+                        n => (counts.get(n)?.type || '').toLowerCase() === 'show'
+                    );
+                    __ppLog(
+                        'Plex fill by counts -> movies:',
+                        movieNames.length,
+                        'shows:',
+                        showNames.length
+                    );
+                    fill('pp-plex.movies', movieNames);
+                    fill('pp-plex.shows', showNames);
+                } else if (Array.isArray(libs) && libs.length) {
+                    const movieNames = libs
+                        .filter(l => (l.type || '').toLowerCase() === 'movie')
+                        .map(l => l.name)
+                        .sort((a, b) => a.localeCompare(b));
+                    const showNames = libs
+                        .filter(l => (l.type || '').toLowerCase() === 'show')
+                        .map(l => l.name)
+                        .sort((a, b) => a.localeCompare(b));
+                    __ppLog(
+                        'Plex fill by libs array -> movies:',
+                        movieNames.length,
+                        'shows:',
+                        showNames.length
+                    );
+                    fill('pp-plex.movies', movieNames);
+                    fill('pp-plex.shows', showNames);
+                } else if (!copyFromMainIfEmpty('plex')) {
+                    // As last resort, toast instead of mixing all into both lists
+                    toastNoLibsOnce('Plex');
+                }
+            } catch (_) {}
+        };
+        const fetchAndFillJf = async () => {
+            try {
+                const { map, libs } = await (async () => {
+                    if (
+                        window.__jfLibraryNameToId instanceof Map &&
+                        window.__jfLibraryNameToId.size
+                    )
+                        return { map: window.__jfLibraryNameToId, libs: null };
+                    const r = await fetch('/api/admin/jellyfin-libraries', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({}),
+                    });
+                    const j = r.ok ? await r.json().catch(() => ({})) : {};
+                    const libs = Array.isArray(j.libraries) ? j.libraries : [];
+                    const m = new Map();
+                    libs.forEach(l => m.set(l.name, l.id));
+                    window.__jfLibraryNameToId = m;
+                    if (!(window.__jfLibraryCounts instanceof Map)) {
+                        window.__jfLibraryCounts = new Map();
+                        libs.forEach(l => {
+                            if (l && l.name) {
+                                window.__jfLibraryCounts.set(l.name, {
+                                    itemCount: Number(l.itemCount) || 0,
+                                    type: l.type,
+                                });
+                            }
+                        });
+                    }
+                    return { map: m, libs };
+                })();
+                const counts =
+                    window.__jfLibraryCounts instanceof Map ? window.__jfLibraryCounts : null;
+                const allNames = Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
+                __ppLog(
+                    'JF map size:',
+                    (map && map.size) || 0,
+                    'counts size:',
+                    (counts && counts.size) || 0
+                );
+                // If still empty, try the main fetcher as a fallback and retry using global maps
+                if (!allNames.length) {
+                    try {
+                        __ppLog('JF allNames empty; invoking fetchJellyfinLibraries fallback');
+                        await Promise.resolve(fetchJellyfinLibraries(false, true));
+                        const m2 =
+                            window.__jfLibraryNameToId instanceof Map
+                                ? window.__jfLibraryNameToId
+                                : new Map();
+                        const c2 =
+                            window.__jfLibraryCounts instanceof Map
+                                ? window.__jfLibraryCounts
+                                : null;
+                        const names2 = Array.from(m2.keys()).sort((a, b) => a.localeCompare(b));
+                        __ppLog(
+                            'JF fallback maps -> sizes:',
+                            (m2 && m2.size) || 0,
+                            (c2 && c2.size) || 0
+                        );
+                        if (c2 && c2.size) {
+                            const movieNames2 = names2.filter(
+                                n => (c2.get(n)?.type || '').toLowerCase() === 'movie'
+                            );
+                            const showNames2 = names2.filter(
+                                n => (c2.get(n)?.type || '').toLowerCase() === 'show'
+                            );
+                            fill('pp-jf.movies', movieNames2);
+                            fill('pp-jf.shows', showNames2);
+                        } else {
+                            fill('pp-jf.movies', names2);
+                            fill('pp-jf.shows', names2);
+                        }
+                        return;
+                    } catch (_) {}
+                }
+                if (counts && counts.size) {
+                    const movieNames = allNames.filter(
+                        n => (counts.get(n)?.type || '').toLowerCase() === 'movie'
+                    );
+                    const showNames = allNames.filter(
+                        n => (counts.get(n)?.type || '').toLowerCase() === 'show'
+                    );
+                    __ppLog(
+                        'JF fill by counts -> movies:',
+                        movieNames.length,
+                        'shows:',
+                        showNames.length
+                    );
+                    fill('pp-jf.movies', movieNames);
+                    fill('pp-jf.shows', showNames);
+                } else if (Array.isArray(libs) && libs.length) {
+                    const movieNames = libs
+                        .filter(l => l.type === 'movie')
+                        .map(l => l.name)
+                        .sort((a, b) => a.localeCompare(b));
+                    const showNames = libs
+                        .filter(l => l.type === 'show')
+                        .map(l => l.name)
+                        .sort((a, b) => a.localeCompare(b));
+                    __ppLog(
+                        'JF fill by libs array -> movies:',
+                        movieNames.length,
+                        'shows:',
+                        showNames.length
+                    );
+                    fill('pp-jf.movies', movieNames);
+                    fill('pp-jf.shows', showNames);
+                } else {
+                    if (allNames.length) {
+                        __ppLog('JF fill by allNames both lists:', allNames.length);
+                        fill('pp-jf.movies', allNames);
+                        fill('pp-jf.shows', allNames);
+                    } else if (!copyFromMainIfEmpty('jellyfin')) {
+                        toastNoLibsOnce('Jellyfin');
+                    }
+                }
+            } catch (_) {}
+        };
+        if (kind === 'plex') fetchAndFillPlex();
+        else if (kind === 'jellyfin') fetchAndFillJf();
+    }
+
+    function getPosterpackFilterObject(kind) {
+        // Read from Posterpack section inputs; empty fields mean no narrowing
+        const read = id => (document.getElementById(id)?.value || '').trim();
+        const bool = id => !!document.getElementById(id)?.checked;
+        const obj = {
+            years: read('posterpack.yearFilter'),
+            genres: read('pp.filters.genres'),
+            ratings: read('pp.filters.ratings'),
+            qualities: read('pp.filters.qualities'),
+            recentOnly: bool('pp.filters.recentOnly'),
+            recentDays: Number(read('pp.filters.recentDays')) || 0,
+        };
+        const isEmpty =
+            !obj.years && !obj.genres && !obj.ratings && !obj.qualities && !obj.recentOnly;
+        if (isEmpty) {
+            // Fallback to current main panel filters if posterpack section is empty
+            const readHidden = id => (document.getElementById(id)?.value || '').trim();
+            if (kind === 'plex') {
+                return {
+                    years: (document.getElementById('plex.yearFilter')?.value || '').trim(),
+                    genres: readHidden('plex.genreFilter-hidden'),
+                    ratings: readHidden('plex.ratingFilter-hidden'),
+                    qualities: readHidden('plex.qualityFilter-hidden'),
+                    recentOnly: !!document.getElementById('plex.recentOnlyHeader')?.checked,
+                    recentDays: Number(document.getElementById('plex.recentDays')?.value) || 0,
+                };
+            }
+            if (kind === 'jellyfin') {
+                return {
+                    years: (document.getElementById('jf.yearFilter')?.value || '').trim(),
+                    genres: readHidden('jf.genreFilter-hidden'),
+                    ratings: readHidden('jf.ratingFilter-hidden'),
+                    qualities: readHidden('jf.qualityFilter-hidden'),
+                    recentOnly: !!document.getElementById('jf.recentOnlyHeader')?.checked,
+                    recentDays: Number(document.getElementById('jf.recentDays')?.value) || 0,
+                };
+            }
+        }
+        // For Jellyfin qualities are ignored server-side; OK to pass through
+        return obj;
     }
 
     function startJobPolling(jobId) {
