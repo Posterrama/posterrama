@@ -18801,6 +18801,29 @@ if (!document.__niwDelegatedFallback) {
         const source = document.getElementById('posterpack.source')?.value || 'local';
         // Resolve selected library IDs for plex/jellyfin
         let libraryIds = [];
+        // Helper: read current Plex/Jellyfin filters from the main panels
+        const getCurrentPlexFilters = () => {
+            const readHidden = id => (document.getElementById(id)?.value || '').trim();
+            return {
+                years: (document.getElementById('plex.yearFilter')?.value || '').trim(),
+                genres: readHidden('plex.genreFilter-hidden'),
+                ratings: readHidden('plex.ratingFilter-hidden'),
+                qualities: readHidden('plex.qualityFilter-hidden'),
+                recentOnly: !!document.getElementById('plex.recentOnlyHeader')?.checked,
+                recentDays: Number(document.getElementById('plex.recentDays')?.value) || 0,
+            };
+        };
+        const getCurrentJfFilters = () => {
+            const readHidden = id => (document.getElementById(id)?.value || '').trim();
+            return {
+                years: (document.getElementById('jf.yearFilter')?.value || '').trim(),
+                genres: readHidden('jf.genreFilter-hidden'),
+                ratings: readHidden('jf.ratingFilter-hidden'),
+                qualities: readHidden('jf.qualityFilter-hidden'),
+                recentOnly: !!document.getElementById('jf.recentOnlyHeader')?.checked,
+                recentDays: Number(document.getElementById('jf.recentDays')?.value) || 0,
+            };
+        };
         if (source === 'plex') {
             const getSel = (window.admin2 && window.admin2.getSelectedLibraries) || null;
             const sel = getSel ? getSel('plex') : { movies: [], shows: [] };
@@ -18827,6 +18850,9 @@ if (!document.__niwDelegatedFallback) {
                 mediaType: document.getElementById('posterpack.mediaType')?.value || 'all',
                 yearFilter: document.getElementById('posterpack.yearFilter')?.value || '',
                 limit: parseInt(document.getElementById('posterpack.limit')?.value) || 1000,
+                // Pass current Plex/Jellyfin filters through so server can apply them
+                filtersPlex: source === 'plex' ? getCurrentPlexFilters() : undefined,
+                filtersJellyfin: source === 'jellyfin' ? getCurrentJfFilters() : undefined,
             },
         };
 
@@ -18893,6 +18919,28 @@ if (!document.__niwDelegatedFallback) {
 
         // Resolve library IDs same as generate
         let libraryIds = [];
+        const getCurrentPlexFilters = () => {
+            const readHidden = id => (document.getElementById(id)?.value || '').trim();
+            return {
+                years: (document.getElementById('plex.yearFilter')?.value || '').trim(),
+                genres: readHidden('plex.genreFilter-hidden'),
+                ratings: readHidden('plex.ratingFilter-hidden'),
+                qualities: readHidden('plex.qualityFilter-hidden'),
+                recentOnly: !!document.getElementById('plex.recentOnlyHeader')?.checked,
+                recentDays: Number(document.getElementById('plex.recentDays')?.value) || 0,
+            };
+        };
+        const getCurrentJfFilters = () => {
+            const readHidden = id => (document.getElementById(id)?.value || '').trim();
+            return {
+                years: (document.getElementById('jf.yearFilter')?.value || '').trim(),
+                genres: readHidden('jf.genreFilter-hidden'),
+                ratings: readHidden('jf.ratingFilter-hidden'),
+                qualities: readHidden('jf.qualityFilter-hidden'),
+                recentOnly: !!document.getElementById('jf.recentOnlyHeader')?.checked,
+                recentDays: Number(document.getElementById('jf.recentDays')?.value) || 0,
+            };
+        };
         if (source === 'plex') {
             const getSel = (window.admin2 && window.admin2.getSelectedLibraries) || null;
             const sel = getSel ? getSel('plex') : { movies: [], shows: [] };
@@ -18927,9 +18975,13 @@ if (!document.__niwDelegatedFallback) {
         const config = {
             sourceType: source,
             libraryIds,
-            mediaType,
-            yearRange: yearFilter ? { min: yearFilter, max: yearFilter } : undefined,
-            limit,
+            options: {
+                mediaType,
+                yearFilter,
+                limit,
+                filtersPlex: source === 'plex' ? getCurrentPlexFilters() : undefined,
+                filtersJellyfin: source === 'jellyfin' ? getCurrentJfFilters() : undefined,
+            },
         };
 
         fetch('/api/local/preview-posterpack', {

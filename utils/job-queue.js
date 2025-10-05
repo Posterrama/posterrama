@@ -189,7 +189,107 @@ class JobQueue extends EventEmitter {
             }
         }
 
-        job.totalItems = allItems.length;
+        // Apply optional filtering based on options (mirrors Admin filter logic)
+        const parseCsv = v =>
+            String(v || '')
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+        const yearTester = expr => {
+            if (!expr) return null;
+            const parts = String(expr)
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+            const ranges = [];
+            for (const p of parts) {
+                const m1 = p.match(/^\d{4}$/);
+                const m2 = p.match(/^(\d{4})\s*-\s*(\d{4})$/);
+                if (m1) {
+                    const y = Number(m1[0]);
+                    if (y >= 1900) ranges.push([y, y]);
+                } else if (m2) {
+                    const a = Number(m2[1]);
+                    const b = Number(m2[2]);
+                    if (a >= 1900 && b >= a) ranges.push([a, b]);
+                }
+            }
+            if (!ranges.length) return null;
+            return y => ranges.some(([a, b]) => y >= a && y <= b);
+        };
+        const mapResToLabel = reso => {
+            const r = (reso || '').toString().toLowerCase();
+            if (!r || r === 'sd') return 'SD';
+            if (r === '720' || r === 'hd' || r === '720p') return '720p';
+            if (r === '1080' || r === '1080p' || r === 'fullhd') return '1080p';
+            if (r === '4k' || r === '2160' || r === '2160p' || r === 'uhd') return '4K';
+            return r.toUpperCase();
+        };
+        const yearOk = yearTester(options?.yearFilter || '');
+        const mediaType = (options?.mediaType || 'all').toLowerCase();
+        const filtersPlex = options?.filtersPlex || {};
+        const filtersJellyfin = options?.filtersJellyfin || {};
+        const allowedGenresP = parseCsv(filtersPlex.genres);
+        const allowedRatingsP = parseCsv(filtersPlex.ratings).map(r => r.toUpperCase());
+        const allowedQualP = parseCsv(filtersPlex.qualities);
+        const allowedGenresJ = parseCsv(filtersJellyfin.genres);
+        const allowedRatingsJ = parseCsv(filtersJellyfin.ratings).map(r => r.toUpperCase());
+
+        const filtered = allItems.filter(it => {
+            // Media type filter (movie/show)
+            if (mediaType !== 'all') {
+                const t = (it.type || '').toLowerCase();
+                // If type not provided by adapter, infer "movie" as default
+                if (t && t !== mediaType) return false;
+            }
+            // Year filter
+            if (yearOk) {
+                const y = Number(it.year);
+                if (!Number.isFinite(y) || !yearOk(y)) return false;
+            }
+            // Source-specific filters
+            if (sourceType === 'plex') {
+                if (allowedGenresP.length) {
+                    const g = Array.isArray(it.genre || it.genres)
+                        ? (it.genre || it.genres).map(x => String(x).toLowerCase())
+                        : [];
+                    if (!allowedGenresP.some(need => g.includes(String(need).toLowerCase()))) {
+                        return false;
+                    }
+                }
+                if (allowedRatingsP.length) {
+                    const r = it.contentRating || it.rating || null;
+                    const norm = r ? String(r).trim().toUpperCase() : '';
+                    if (!norm || !allowedRatingsP.includes(norm)) return false;
+                }
+                if (allowedQualP.length) {
+                    const lbl = it.qualityLabel || mapResToLabel(it.videoResolution);
+                    if (lbl && !allowedQualP.includes(lbl)) return false;
+                }
+            } else if (sourceType === 'jellyfin') {
+                if (allowedGenresJ.length) {
+                    const g = Array.isArray(it.genre || it.genres)
+                        ? (it.genre || it.genres).map(x => String(x).toLowerCase())
+                        : [];
+                    if (!allowedGenresJ.some(need => g.includes(String(need).toLowerCase()))) {
+                        return false;
+                    }
+                }
+                if (allowedRatingsJ.length) {
+                    const r = it.officialRating || it.rating || null;
+                    const norm = r ? String(r).trim().toUpperCase() : '';
+                    if (!norm || !allowedRatingsJ.includes(norm)) return false;
+                }
+            }
+            return true;
+        });
+
+        // Apply limit if provided
+        const limit = Number(options?.limit);
+        const itemsToProcess =
+            Number.isFinite(limit) && limit > 0 ? filtered.slice(0, limit) : filtered;
+
+        job.totalItems = itemsToProcess.length;
         job.logs.push(`Total items to process: ${job.totalItems}`);
 
         if (job.totalItems === 0) {
@@ -200,13 +300,13 @@ class JobQueue extends EventEmitter {
         const results = [];
         const errors = [];
 
-        for (let i = 0; i < allItems.length; i++) {
-            const item = allItems[i];
+        for (let i = 0; i < itemsToProcess.length; i++) {
+            const item = itemsToProcess[i];
 
             try {
                 // Update progress
                 job.processedItems = i;
-                job.progress = Math.round((i / job.totalItems) * 100);
+                job.progress = Math.round((i / Math.max(job.totalItems, 1)) * 100);
                 job.logs.push(`Processing: ${item.title} (${i + 1}/${job.totalItems})`);
 
                 this.emit('jobProgress', job);

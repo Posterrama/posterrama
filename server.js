@@ -382,10 +382,22 @@ if (config.localDirectory && config.localDirectory.enabled) {
                                     processed.key ||
                                     summary.ratingKey ||
                                     summary.key,
+                                type:
+                                    processed.type ||
+                                    (summary.type === 'movie'
+                                        ? 'movie'
+                                        : summary.type === 'show'
+                                          ? 'show'
+                                          : undefined),
                                 // Map normalized URLs to expected fields for ZIP builder
                                 poster: processed.posterUrl || processed.poster,
                                 background: processed.backgroundUrl || processed.backdropUrl,
                                 clearart: processed.clearLogoUrl || null,
+                                genres: Array.isArray(processed.genres)
+                                    ? processed.genres
+                                    : undefined,
+                                contentRating: processed.contentRating || undefined,
+                                qualityLabel: processed.qualityLabel || undefined,
                             });
                         } catch (e) {
                             // Skip problematic item
@@ -434,10 +446,16 @@ if (config.localDirectory && config.localDirectory.enabled) {
                                     title: processed.title,
                                     year: processed.year,
                                     id: processed.id || it.Id,
+                                    type: processed.type,
                                     poster: processed.posterUrl || processed.poster,
                                     background:
                                         processed.backgroundUrl || processed.backdropUrl || null,
                                     clearart: processed.clearLogoUrl || null,
+                                    genres: Array.isArray(processed.genres)
+                                        ? processed.genres
+                                        : undefined,
+                                    officialRating: processed.officialRating || undefined,
+                                    qualityLabel: processed.qualityLabel || undefined,
                                 });
                             } catch (e) {
                                 if (isDebug)
@@ -7447,13 +7465,12 @@ app.post(
             return res.status(404).json({ error: 'Local directory support not enabled' });
         }
 
-        const {
-            sourceType,
-            libraryIds = [],
-            mediaType = 'all',
-            yearRange,
-            limit = 100,
-        } = req.body || {};
+        const { sourceType, libraryIds = [], options = {} } = req.body || {};
+        const mediaType = options.mediaType || 'all';
+        const limit = Number(options.limit) || 100;
+        const yearFilterExpr = (options.yearFilter || '').trim();
+        const filtersPlex = options.filtersPlex || {};
+        const filtersJellyfin = options.filtersJellyfin || {};
 
         if (!sourceType) return res.status(400).json({ error: 'sourceType is required' });
 
@@ -7470,14 +7487,123 @@ app.post(
                 if (!serverConfig)
                     return res.status(400).json({ error: 'No enabled Plex server configured' });
                 const plex = getPlexClient(serverConfig);
+                // Build filter helpers
+                const parseCsv = v =>
+                    String(v || '')
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                const yearTester = expr => {
+                    if (!expr) return null;
+                    const parts = String(expr)
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                    const ranges = [];
+                    for (const p of parts) {
+                        const m1 = p.match(/^\d{4}$/);
+                        const m2 = p.match(/^(\d{4})\s*-\s*(\d{4})$/);
+                        if (m1) {
+                            const y = Number(m1[0]);
+                            if (y >= 1900) ranges.push([y, y]);
+                        } else if (m2) {
+                            const a = Number(m2[1]);
+                            const b = Number(m2[2]);
+                            if (a >= 1900 && b >= a) ranges.push([a, b]);
+                        }
+                    }
+                    if (!ranges.length) return null;
+                    return y => ranges.some(([a, b]) => y >= a && y <= b);
+                };
+                const mapResToLabel = reso => {
+                    const r = (reso || '').toString().toLowerCase();
+                    if (!r || r === 'sd') return 'SD';
+                    if (r === '720' || r === 'hd' || r === '720p') return '720p';
+                    if (r === '1080' || r === '1080p' || r === 'fullhd') return '1080p';
+                    if (r === '4k' || r === '2160' || r === '2160p' || r === 'uhd') return '4K';
+                    return r.toUpperCase();
+                };
+                const f = {
+                    years: (yearFilterExpr || filtersPlex.years || '').trim(),
+                    genres: parseCsv(filtersPlex.genres),
+                    ratings: parseCsv(filtersPlex.ratings).map(r => r.toUpperCase()),
+                    qualities: parseCsv(filtersPlex.qualities),
+                };
+                const yearOk = yearTester(f.years);
                 for (const id of libraryIds) {
                     try {
-                        const r = await plex.query(
-                            `/library/sections/${id}/all?X-Plex-Container-Start=0&X-Plex-Container-Size=1`
+                        // For estimation respecting filters, we need to scan items (shallow) and apply filters
+                        let start = 0;
+                        const pageSize = Math.max(
+                            1,
+                            Number(process.env.PLEX_PREVIEW_PAGE_SIZE) || 200
                         );
-                        const count = parseInt(r?.MediaContainer?.totalSize || 0);
-                        perLibrary.push({ id, count: Number.isFinite(count) ? count : 0 });
-                        totalItems += Number.isFinite(count) ? count : 0;
+                        let total = 0;
+                        let matched = 0;
+                        do {
+                            const q = `/library/sections/${id}/all?X-Plex-Container-Start=${start}&X-Plex-Container-Size=${pageSize}`;
+                            const resp = await plex.query(q);
+                            const mc = resp?.MediaContainer;
+                            const items = Array.isArray(mc?.Metadata) ? mc.Metadata : [];
+                            total = Number(mc?.totalSize || mc?.size || start + items.length);
+                            for (const it of items) {
+                                // Years
+                                if (yearOk) {
+                                    let y = undefined;
+                                    if (it.year != null) {
+                                        const yy = Number(it.year);
+                                        y = Number.isFinite(yy) ? yy : undefined;
+                                    }
+                                    if (y == null && it.originallyAvailableAt) {
+                                        const d = new Date(it.originallyAvailableAt);
+                                        if (!Number.isNaN(d.getTime())) y = d.getFullYear();
+                                    }
+                                    if (y == null && it.firstAired) {
+                                        const d = new Date(it.firstAired);
+                                        if (!Number.isNaN(d.getTime())) y = d.getFullYear();
+                                    }
+                                    if (y == null || !yearOk(y)) continue;
+                                }
+                                // Genres
+                                if (f.genres.length) {
+                                    const g = Array.isArray(it.Genre)
+                                        ? it.Genre.map(x =>
+                                              x && x.tag ? String(x.tag).toLowerCase() : ''
+                                          )
+                                        : [];
+                                    if (
+                                        !f.genres.some(need =>
+                                            g.includes(String(need).toLowerCase())
+                                        )
+                                    )
+                                        continue;
+                                }
+                                // Ratings
+                                if (f.ratings.length) {
+                                    const r = it.contentRating
+                                        ? String(it.contentRating).trim().toUpperCase()
+                                        : null;
+                                    if (!r || !f.ratings.includes(r)) continue;
+                                }
+                                // Qualities
+                                if (f.qualities.length) {
+                                    const medias = Array.isArray(it.Media) ? it.Media : [];
+                                    let ok = false;
+                                    for (const m of medias) {
+                                        const label = mapResToLabel(m?.videoResolution);
+                                        if (f.qualities.includes(label)) {
+                                            ok = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!ok) continue;
+                                }
+                                matched++;
+                            }
+                            start += items.length;
+                        } while (start < total && pageSize > 0);
+                        perLibrary.push({ id, count: matched });
+                        totalItems += matched;
                     } catch (e) {
                         perLibrary.push({ id, count: 0, error: e.message });
                     }
@@ -7489,18 +7615,107 @@ app.post(
                 if (!serverConfig)
                     return res.status(400).json({ error: 'No enabled Jellyfin server configured' });
                 const client = await getJellyfinClient(serverConfig);
+                // Build filter helpers
+                const parseCsv = v =>
+                    String(v || '')
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                const yearTester = expr => {
+                    if (!expr) return null;
+                    const parts = String(expr)
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                    const ranges = [];
+                    for (const p of parts) {
+                        const m1 = p.match(/^\d{4}$/);
+                        const m2 = p.match(/^(\d{4})\s*-\s*(\d{4})$/);
+                        if (m1) {
+                            const y = Number(m1[0]);
+                            if (y >= 1900) ranges.push([y, y]);
+                        } else if (m2) {
+                            const a = Number(m2[1]);
+                            const b = Number(m2[2]);
+                            if (a >= 1900 && b >= a) ranges.push([a, b]);
+                        }
+                    }
+                    if (!ranges.length) return null;
+                    return y => ranges.some(([a, b]) => y >= a && y <= b);
+                };
+                const f = {
+                    years: (yearFilterExpr || filtersJellyfin.years || '').trim(),
+                    genres: parseCsv(filtersJellyfin.genres),
+                    ratings: parseCsv(filtersJellyfin.ratings).map(r => r.toUpperCase()),
+                };
+                const yearOk = yearTester(f.years);
                 for (const id of libraryIds) {
                     try {
-                        const data = await client.getItems({
-                            parentId: id,
-                            includeItemTypes: ['Movie', 'Series'],
-                            recursive: true,
-                            limit: 1,
-                            startIndex: 0,
-                        });
-                        const count = parseInt(data?.TotalRecordCount || 0);
-                        perLibrary.push({ id, count: Number.isFinite(count) ? count : 0 });
-                        totalItems += Number.isFinite(count) ? count : 0;
+                        // Page and apply filters to estimate count
+                        const pageSize = Math.max(
+                            1,
+                            Number(process.env.JF_PREVIEW_PAGE_SIZE) || 1000
+                        );
+                        let startIndex = 0;
+                        let matched = 0;
+                        let fetched;
+                        do {
+                            const page = await client.getItems({
+                                parentId: id,
+                                includeItemTypes: ['Movie', 'Series'],
+                                recursive: true,
+                                // We don't need MediaStreams since we aren't filtering qualities here
+                                fields: [
+                                    'Genres',
+                                    'OfficialRating',
+                                    'ProductionYear',
+                                    'PremiereDate',
+                                ],
+                                sortBy: [],
+                                limit: pageSize,
+                                startIndex,
+                            });
+                            const items = Array.isArray(page?.Items) ? page.Items : [];
+                            fetched = items.length;
+                            startIndex += fetched;
+                            for (const it of items) {
+                                // Year
+                                if (yearOk) {
+                                    let y = undefined;
+                                    if (it.ProductionYear != null) {
+                                        const yy = Number(it.ProductionYear);
+                                        y = Number.isFinite(yy) ? yy : undefined;
+                                    }
+                                    if (y == null && it.PremiereDate) {
+                                        const d = new Date(it.PremiereDate);
+                                        if (!Number.isNaN(d.getTime())) y = d.getFullYear();
+                                    }
+                                    if (y == null || !yearOk(y)) continue;
+                                }
+                                // Genres
+                                if (f.genres.length) {
+                                    const g = Array.isArray(it.Genres)
+                                        ? it.Genres.map(x => String(x).toLowerCase())
+                                        : [];
+                                    if (
+                                        !f.genres.some(need =>
+                                            g.includes(String(need).toLowerCase())
+                                        )
+                                    )
+                                        continue;
+                                }
+                                // Ratings (MPAA/TV)
+                                if (f.ratings.length) {
+                                    const r = it.OfficialRating
+                                        ? String(it.OfficialRating).trim().toUpperCase()
+                                        : null;
+                                    if (!r || !f.ratings.includes(r)) continue;
+                                }
+                                matched++;
+                            }
+                        } while (fetched === pageSize);
+                        perLibrary.push({ id, count: matched });
+                        totalItems += matched;
                     } catch (e) {
                         perLibrary.push({ id, count: 0, error: e.message });
                     }
@@ -7515,7 +7730,11 @@ app.post(
                     totalItems,
                     mediaType,
                     limit,
-                    filters: { yearRange },
+                    filters: {
+                        yearFilter: yearFilterExpr,
+                        plex: filtersPlex,
+                        jellyfin: filtersJellyfin,
+                    },
                 },
                 libraries: perLibrary,
                 estimatedToGenerate: clamp(Math.min(totalItems, limit), 10000),
