@@ -690,6 +690,9 @@
 #modal-confirm .btn-confirm-accent {
     --accent-color: var(--color-secondary);
 }
+#modal-confirm .btn-confirm-accent.btn-magenta-accent {
+    --accent-color: var(--color-accent);
+}
 #modal-confirm .btn-confirm-accent.btn-danger-accent {
     --accent-color: var(--color-error);
 }
@@ -762,6 +765,18 @@
 }
 #modal-override .override-row .search-box.input-shell:focus-within input {
     outline: none;
+}
+
+/* Local browser: make directory trash icon red (error color) to signal destructive action */
+.browser-list .browser-item[data-type='directory'] .btn-delete i,
+.browser-list .browser-item[data-type='directory'] .btn-delete .fas {
+    color: var(--color-error);
+}
+.browser-list .browser-item[data-type='directory'] .btn-delete:hover i,
+.browser-list .browser-item[data-type='directory'] .btn-delete:focus-visible i,
+.browser-list .browser-item[data-type='directory'] .btn-delete:hover .fas,
+.browser-list .browser-item[data-type='directory'] .btn-delete:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-error) 85%, white);
 }
 
 /* Posterrama Admin Theme CSS */
@@ -12319,8 +12334,9 @@ select:focus-visible {
 
 /* =============================================================== */
 /* Media Sources — Save Settings button matches Operations style    */
+/* Includes Plex, Jellyfin, TMDB, and Local                        */
 /* =============================================================== */
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb) {
+#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local) {
     border: none !important;
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
@@ -12339,21 +12355,27 @@ select:focus-visible {
     gap: 6px;
     cursor: pointer;
 }
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb) i,
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb) .fas,
+#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local) i,
 #section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb)
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local)
+    .fas,
+#section-media-sources
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local)
     > span:not(.spinner) {
     color: color-mix(in srgb, var(--color-primary) 85%, var(--color-text-secondary));
 }
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb):hover,
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb):focus,
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb):focus-visible {
+#section-media-sources
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local):hover,
+#section-media-sources
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local):focus,
+#section-media-sources
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local):focus-visible {
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
         linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
 }
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb):active {
+#section-media-sources
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local):active {
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
         linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
@@ -12545,6 +12567,16 @@ select:focus-visible {
 /* Cache bust: 2025-10-04 15:07 */
 /* ============================================= */
 
+/* Use teal knob color (info) as the accent within the Local panel */
+#panel-local {
+    --color-accent: var(--color-info);
+}
+
+/* Make the dotted upload border use the accent color in Local */
+#panel-local .file-drop-zone {
+    border-color: var(--color-accent);
+}
+
 /* File Drop Zone */
 .file-drop-zone {
     border: 2px dashed var(--color-border);
@@ -12567,6 +12599,74 @@ select:focus-visible {
     flex-direction: column;
     align-items: center;
     gap: 1rem;
+}
+
+/* =============================================================== */
+/* Local panel — unify button styling with Operations surface       */
+/* Applies to all small buttons within the Local panel              */
+/* =============================================================== */
+#panel-local .btn.btn-sm {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+#panel-local .btn.btn-sm i,
+#panel-local .btn.btn-sm .fas {
+    color: color-mix(in srgb, var(--color-text-secondary) 92%, var(--color-text-secondary));
+}
+#panel-local .btn.btn-sm > span:not(.spinner) {
+    color: var(--color-text-secondary);
+}
+/* Variant foreground accents */
+#panel-local .btn.btn-primary.btn-sm i,
+#panel-local .btn.btn-primary.btn-sm .fas,
+#panel-local .btn.btn-primary.btn-sm > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-primary) 85%, var(--color-text-secondary));
+}
+#panel-local .btn.btn-success.btn-sm i,
+#panel-local .btn.btn-success.btn-sm .fas,
+#panel-local .btn.btn-success.btn-sm > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-success) 85%, var(--color-text-secondary));
+}
+#panel-local .btn.btn-error.btn-sm i,
+#panel-local .btn.btn-error.btn-sm .fas,
+#panel-local .btn.btn-error.btn-sm > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-error) 88%, var(--color-text-secondary));
+}
+#panel-local .btn.btn-icon.btn-sm i,
+#panel-local .btn.btn-icon.btn-sm .fas {
+    color: color-mix(in srgb, var(--color-text-secondary) 92%, var(--color-text-secondary));
+}
+/* Hover/Focus states */
+#panel-local .btn.btn-sm:hover,
+#panel-local .btn.btn-sm:focus,
+#panel-local .btn.btn-sm:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+/* Active state */
+#panel-local .btn.btn-sm:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
 }
 
 .file-drop-content i {

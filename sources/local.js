@@ -16,6 +16,11 @@ class LocalDirectorySource {
         this.config = { localDirectory: ld };
         // Fixed default: use <install>/media when not explicitly set
         this.rootPath = ld.rootPath || path.resolve(process.cwd(), 'media');
+        this.watchDirectories = Array.isArray(ld.watchDirectories) ? ld.watchDirectories : [];
+        // Consolidated list of absolute root directories to use
+        this.rootPaths = [this.rootPath, ...this.watchDirectories]
+            .filter(Boolean)
+            .map(p => path.resolve(p));
         this.enabled = !!ld.enabled;
         this.scanInterval = ld.scanInterval ?? 300;
         this.maxFileSize = ld.maxFileSize ?? 104857600; // 100MB
@@ -133,53 +138,49 @@ class LocalDirectorySource {
      * @returns {Array} Array of file objects
      */
     async scanDirectory(directoryName) {
-        const targetPath = path.join(this.rootPath, directoryName);
-
-        if (!(await fs.pathExists(targetPath))) {
-            logger.debug(`LocalDirectorySource: Directory does not exist: ${targetPath}`);
-            return [];
-        }
-
-        try {
-            const files = await fs.readdir(targetPath, { withFileTypes: true });
-            const validFiles = [];
-
-            for (const file of files) {
-                if (file.isFile()) {
-                    const filePath = path.join(targetPath, file.name);
-                    const ext = path.extname(file.name).toLowerCase().slice(1);
-
-                    // Check if file type is supported
-                    if (this.supportedFormats.includes(ext)) {
-                        const stats = await fs.stat(filePath);
-
-                        // Check file size limit
-                        if (stats.size <= this.maxFileSize) {
-                            validFiles.push({
-                                name: file.name,
-                                path: filePath,
-                                size: stats.size,
-                                modified: stats.mtime,
-                                extension: ext,
-                                directory: directoryName,
-                            });
-                        } else {
-                            logger.warn(
-                                `LocalDirectorySource: File too large: ${file.name} (${stats.size} bytes)`
-                            );
+        const allFiles = [];
+        for (const base of this.rootPaths) {
+            const targetPath = path.join(base, directoryName);
+            if (!(await fs.pathExists(targetPath))) {
+                logger.debug(`LocalDirectorySource: Directory does not exist: ${targetPath}`);
+                continue;
+            }
+            try {
+                const files = await fs.readdir(targetPath, { withFileTypes: true });
+                for (const file of files) {
+                    if (file.isFile()) {
+                        const filePath = path.join(targetPath, file.name);
+                        const ext = path.extname(file.name).toLowerCase().slice(1);
+                        if (this.supportedFormats.includes(ext)) {
+                            const stats = await fs.stat(filePath);
+                            if (stats.size <= this.maxFileSize) {
+                                allFiles.push({
+                                    name: file.name,
+                                    path: filePath,
+                                    size: stats.size,
+                                    modified: stats.mtime,
+                                    extension: ext,
+                                    directory: directoryName,
+                                });
+                            } else {
+                                logger.warn(
+                                    `LocalDirectorySource: File too large: ${file.name} (${stats.size} bytes)`
+                                );
+                            }
                         }
                     }
                 }
+            } catch (error) {
+                logger.error(
+                    `LocalDirectorySource: Error scanning directory ${targetPath}:`,
+                    error
+                );
             }
-
-            logger.debug(
-                `LocalDirectorySource: Found ${validFiles.length} valid files in ${directoryName}`
-            );
-            return validFiles;
-        } catch (error) {
-            logger.error(`LocalDirectorySource: Error scanning directory ${targetPath}:`, error);
-            throw error;
         }
+        logger.debug(
+            `LocalDirectorySource: Found ${allFiles.length} valid files in ${directoryName} across ${this.rootPaths.length} roots`
+        );
+        return allFiles;
     }
 
     /**
@@ -194,12 +195,23 @@ class LocalDirectorySource {
             const base = this.rootPath ? path.resolve(this.rootPath) : path.resolve('/');
             const reqRaw = typeof relativePath === 'string' ? relativePath.trim() : '';
 
-            // Determine target path: absolute requested stays absolute, otherwise resolve from base
+            // Determine target path: interpret incoming path as anchored to base
+            // Accept three forms:
+            // 1) empty or '/' → base
+            // 2) absolute that starts with base → use as-is
+            // 3) absolute that doesn't start with base → treat as relative to base (strip leading '/')
+            // 4) relative → join with base
             let targetPath;
             if (!reqRaw || reqRaw === '/' || reqRaw === '.') {
                 targetPath = base;
             } else if (path.isAbsolute(reqRaw)) {
-                targetPath = path.resolve(reqRaw);
+                const abs = path.resolve(reqRaw);
+                if (abs === base || (abs + path.sep).startsWith(base + path.sep)) {
+                    targetPath = abs;
+                } else {
+                    // Treat absolute-from-root UI paths like '/backgrounds' as relative to base
+                    targetPath = path.resolve(base, reqRaw.replace(/^\/+/, ''));
+                }
             } else {
                 targetPath = path.resolve(base, reqRaw);
             }
@@ -230,15 +242,27 @@ class LocalDirectorySource {
             for (const item of items) {
                 try {
                     if (item.isDirectory()) {
+                        // Hide internal system directory from listings
+                        if (item.name === this.directories.system) {
+                            continue;
+                        }
                         if (type === 'all' || type === 'directories') directories.push(item.name);
                     } else if (item.isSymbolicLink()) {
                         // Include symlinked directories
                         const linkPath = path.join(targetPath, item.name);
                         const s = await fs.stat(linkPath).catch(() => null);
-                        if (s?.isDirectory() && (type === 'all' || type === 'directories')) {
+                        if (
+                            s?.isDirectory() &&
+                            item.name !== this.directories.system &&
+                            (type === 'all' || type === 'directories')
+                        ) {
                             directories.push(item.name);
                         }
                     } else if (item.isFile()) {
+                        // Hide generated metadata files from listings
+                        if (item.name.endsWith('.poster.json')) {
+                            continue;
+                        }
                         if (type === 'all' || type === 'files') files.push(item.name);
                     }
                 } catch (e) {
@@ -414,7 +438,15 @@ class LocalDirectorySource {
      */
     createMediaItem(file, metadata) {
         // Generate URL path relative to local directory
-        const relativePath = path.relative(this.rootPath, file.path);
+        // Build URL relative to the first matching root
+        let relativePath = file.path;
+        for (const base of this.rootPaths) {
+            const rel = path.relative(base, file.path);
+            if (!rel.startsWith('..')) {
+                relativePath = rel;
+                break;
+            }
+        }
         const mediaUrl = `/local-media/${relativePath.replace(/\\/g, '/')}`;
 
         return {
@@ -465,25 +497,25 @@ class LocalDirectorySource {
                 path.join(this.directories.system, 'logs'),
             ];
 
-            for (const dir of dirsToCreate) {
-                const fullPath = path.join(this.rootPath, dir);
-                await fs.ensureDir(fullPath);
-                logger.debug(`LocalDirectorySource: Created directory ${fullPath}`);
+            for (const base of this.rootPaths) {
+                for (const dir of dirsToCreate) {
+                    const fullPath = path.join(base, dir);
+                    await fs.ensureDir(fullPath);
+                    logger.debug(`LocalDirectorySource: Created directory ${fullPath}`);
+                }
             }
 
             // Create system config file
-            const systemConfigPath = path.join(
-                this.rootPath,
-                this.directories.system,
-                'config.json'
-            );
-            if (!(await fs.pathExists(systemConfigPath))) {
-                const systemConfig = {
-                    version: '1.0.0',
-                    created: new Date().toISOString(),
-                    directories: this.directories,
-                };
-                await fs.writeJson(systemConfigPath, systemConfig, { spaces: 2 });
+            for (const base of this.rootPaths) {
+                const systemConfigPath = path.join(base, this.directories.system, 'config.json');
+                if (!(await fs.pathExists(systemConfigPath))) {
+                    const systemConfig = {
+                        version: '1.0.0',
+                        created: new Date().toISOString(),
+                        directories: this.directories,
+                    };
+                    await fs.writeJson(systemConfigPath, systemConfig, { spaces: 2 });
+                }
             }
 
             logger.info('LocalDirectorySource: Directory structure created successfully');
@@ -502,12 +534,12 @@ class LocalDirectorySource {
         }
 
         try {
-            const watchRoot = path.resolve(this.rootPath);
-            this.watcher = chokidar.watch(watchRoot, {
-                ignored: [
-                    path.join(watchRoot, this.directories.system, '**'),
-                    /\.poster\.json$/, // Ignore metadata files
-                ],
+            const watchRoots = this.rootPaths.map(p => path.resolve(p));
+            this.watcher = chokidar.watch(watchRoots, {
+                ignored: watchRoots
+                    .map(watchRoot => [path.join(watchRoot, this.directories.system, '**')])
+                    .flat()
+                    .concat(/\.poster\.json$/), // Ignore metadata files
                 persistent: true,
                 ignoreInitial: true,
                 depth: 2, // Limit depth to prevent excessive watching
@@ -807,7 +839,7 @@ class LocalDirectorySource {
             for (const operation of operations) {
                 const { type, path: targetPath } = operation;
 
-                if (type === 'delete' && targetPath) {
+                if ((type === 'delete-contents' || type === 'delete') && targetPath) {
                     try {
                         // Security check
                         const resolvedPath = path.resolve(targetPath);
@@ -815,15 +847,44 @@ class LocalDirectorySource {
                             throw new Error('Path traversal not allowed');
                         }
 
-                        if (!dryRun) {
-                            await fs.remove(resolvedPath);
+                        if (type === 'delete-contents') {
+                            // Only delete the contents within the target directory, not the directory itself
+                            const stat = await fs.stat(resolvedPath).catch(() => null);
+                            if (!stat || !stat.isDirectory()) {
+                                throw new Error('Target is not a directory');
+                            }
+                            let deletedCount = 0;
+                            if (!dryRun) {
+                                const entries = await fs.readdir(resolvedPath, {
+                                    withFileTypes: true,
+                                });
+                                for (const entry of entries) {
+                                    const childPath = path.join(resolvedPath, entry.name);
+                                    await fs.remove(childPath);
+                                    deletedCount++;
+                                }
+                            } else {
+                                // Dry run: count entries without deleting
+                                const entries = await fs.readdir(resolvedPath);
+                                deletedCount = entries.length;
+                            }
+                            results.operations.push({
+                                type: 'delete-contents',
+                                path: targetPath,
+                                deletedCount,
+                                status: dryRun ? 'would_delete_contents' : 'contents_deleted',
+                            });
+                        } else {
+                            // Full delete of file or directory
+                            if (!dryRun) {
+                                await fs.remove(resolvedPath);
+                            }
+                            results.operations.push({
+                                type: 'delete',
+                                path: targetPath,
+                                status: dryRun ? 'would_delete' : 'deleted',
+                            });
                         }
-
-                        results.operations.push({
-                            type: 'delete',
-                            path: targetPath,
-                            status: dryRun ? 'would_delete' : 'deleted',
-                        });
                     } catch (error) {
                         results.errors.push({
                             path: targetPath,
@@ -898,16 +959,17 @@ class LocalDirectorySource {
                 lastScan: this.lastScanTime,
             };
 
-            // Get stats for each configured directory
-            for (const dirName of Object.values(this.directories)) {
-                const dirPath = path.join(this.rootPath, dirName);
-
-                if (fs.existsSync(dirPath)) {
-                    const dirStats = await this.getDirectoryStatsRecursive(dirPath);
-                    stats.totalDirectories += dirStats.directories;
-                    stats.totalFiles += dirStats.files;
-                    stats.totalSize += dirStats.size;
-                    stats.supportedFiles += dirStats.supportedFiles;
+            // Get stats for each configured directory across all roots
+            for (const base of this.rootPaths) {
+                for (const dirName of Object.values(this.directories)) {
+                    const dirPath = path.join(base, dirName);
+                    if (fs.existsSync(dirPath)) {
+                        const dirStats = await this.getDirectoryStatsRecursive(dirPath);
+                        stats.totalDirectories += dirStats.directories;
+                        stats.totalFiles += dirStats.files;
+                        stats.totalSize += dirStats.size;
+                        stats.supportedFiles += dirStats.supportedFiles;
+                    }
                 }
             }
 
@@ -969,6 +1031,69 @@ class LocalDirectorySource {
         await this.stopFileWatcher();
         this.indexCache.clear();
         logger.info('LocalDirectorySource: Cleanup completed');
+    }
+
+    /**
+     * Rescan local media directories and optionally generate missing metadata
+     * @param {Object} options
+     * @param {boolean} [options.createMetadata=true] - Whether to create missing *.poster.json files
+     * @returns {Object} Summary of the rescan
+     */
+    async rescan(options = {}) {
+        const { createMetadata = true } = options;
+
+        const summary = {
+            success: true,
+            totalFilesScanned: 0,
+            metadataCreated: 0,
+            errors: [],
+        };
+
+        try {
+            // Ensure directory structure exists before scanning
+            await this.createDirectoryStructure();
+
+            const targetDirs = [
+                this.directories.posters,
+                this.directories.backgrounds,
+                this.directories.motion,
+            ];
+
+            for (const dirName of targetDirs) {
+                try {
+                    const files = await this.scanDirectory(dirName);
+                    for (const f of files) {
+                        summary.totalFilesScanned++;
+                        if (!createMetadata) continue;
+                        try {
+                            const mdPath = this.getMetadataPath(f.path);
+                            const exists = await fs.pathExists(mdPath);
+                            if (!exists) {
+                                const meta = this.parseFilename(f.name, f);
+                                await this.saveMetadata(mdPath, meta);
+                                summary.metadataCreated++;
+                            }
+                        } catch (err) {
+                            summary.errors.push({ file: f.path, error: err.message });
+                        }
+                    }
+                } catch (e) {
+                    summary.errors.push({ directory: dirName, error: e.message });
+                }
+            }
+
+            this.updateMetrics();
+            if (summary.errors.length > 0) summary.success = false;
+            return summary;
+        } catch (error) {
+            await this.handleError('rescan', error);
+            return {
+                success: false,
+                totalFilesScanned: 0,
+                metadataCreated: 0,
+                errors: [{ error: error.message }],
+            };
+        }
     }
 }
 

@@ -7094,6 +7094,48 @@ app.get(
 
 /**
  * @swagger
+ * /api/local/scan:
+ *   post:
+ *     summary: Scan local media directories
+ *     description: Rescan posters/backgrounds/motion folders and generate missing metadata files
+ *     tags: ['Local Directory']
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               createMetadata:
+ *                 type: boolean
+ *                 description: Create missing *.poster.json metadata files
+ *                 default: true
+ *     responses:
+ *       200:
+ *         description: Scan completed
+ *       404:
+ *         description: Local directory not enabled
+ */
+app.post(
+    '/api/local/scan',
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+        try {
+            const { createMetadata = true } = req.body || {};
+            const summary = await localDirectorySource.rescan({ createMetadata });
+            return res.json({ success: summary.success, ...summary });
+        } catch (e) {
+            logger.error('Local rescan failed:', e);
+            return res.status(500).json({ error: e.message || 'scan_failed' });
+        }
+    })
+);
+
+/**
+ * @swagger
  * /api/local/browse:
  *   get:
  *     summary: Browse local directory structure
@@ -7187,22 +7229,35 @@ app.post('/api/local/upload', (req, res) => {
             }
             return res.status(500).json({ error: err.message });
         }
+        try {
+            const uploadedFiles = req.files || [];
+            const targetDirectory =
+                req.body?.targetDirectory || req.query?.targetDirectory || 'posters';
+            const targetPath = req.uploadTargetPath || '';
 
-        const uploadedFiles = req.files || [];
-        const targetPath = req.body.targetPath || '';
+            if (!uploadedFiles.length) {
+                return res.status(400).json({ success: false, error: 'No files uploaded' });
+            }
 
-        logger.info(`Upload completed: ${uploadedFiles.length} files to ${targetPath}`);
+            logger.info(
+                `Upload completed: ${uploadedFiles.length} files to ${targetDirectory} (${targetPath})`
+            );
 
-        res.json({
-            success: true,
-            uploadedFiles: uploadedFiles.map(file => ({
-                filename: file.filename,
-                originalName: file.originalname,
-                size: file.size,
-                path: file.path,
-            })),
-            targetPath: targetPath,
-        });
+            res.json({
+                success: true,
+                uploadedFiles: uploadedFiles.map(file => ({
+                    filename: file.filename,
+                    originalName: file.originalname,
+                    size: file.size,
+                    path: file.path,
+                })),
+                targetDirectory,
+                targetPath,
+            });
+        } catch (e) {
+            logger.error('Upload post-processing error:', e);
+            res.status(500).json({ success: false, error: 'Upload processing failed' });
+        }
     });
 });
 

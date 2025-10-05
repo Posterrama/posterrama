@@ -148,6 +148,7 @@
     "localDirectory": {
         "enabled": false,
         "rootPath": "",
+        "watchDirectories": [],
         "scanInterval": 300,
         "generateThumbnails": true,
         "maxFileSize": 104857600,

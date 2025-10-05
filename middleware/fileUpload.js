@@ -60,25 +60,40 @@ function validateFilePath(filePath) {
  * @returns {Object} Multer storage configuration
  */
 function createStorage(config) {
+    // Accept either full app config or the localDirectory sub-config
+    const ld = (config && config.localDirectory) || config || {};
     return multer.diskStorage({
         destination: async (req, file, cb) => {
             try {
                 // Get target directory from request
-                const targetDirectory = req.body.targetDirectory || 'posters';
+                const targetDirectory =
+                    (req.body && req.body.targetDirectory) ||
+                    (req.query && req.query.targetDirectory) ||
+                    'posters';
 
                 // Validate directory name
-                const allowedDirectories = ['posters', 'backgrounds', 'motion', 'posterpacks'];
+                const allowedDirectories = [
+                    'posters',
+                    'backgrounds',
+                    'motion',
+                    'complete',
+                    'posterpacks',
+                ];
                 if (!allowedDirectories.includes(targetDirectory)) {
                     return cb(new Error(`Invalid target directory: ${targetDirectory}`));
                 }
 
                 // Construct full path
-                const rootPath = config.localDirectory?.rootPath;
+                const rootPath = ld.rootPath || path.resolve(process.cwd(), 'media');
                 if (!rootPath) {
                     return cb(new Error('Local directory not configured'));
                 }
 
-                const fullPath = path.join(rootPath, targetDirectory);
+                // Special-case: uploads to 'complete' go to the manual subfolder
+                const fullPath =
+                    targetDirectory === 'complete'
+                        ? path.join(rootPath, 'complete', 'manual')
+                        : path.join(rootPath, targetDirectory);
 
                 // Ensure directory exists
                 await fs.ensureDir(fullPath);
@@ -125,10 +140,26 @@ function createStorage(config) {
  * @returns {Function} File filter function
  */
 function createFileFilter(config) {
+    // Accept either full app config or the localDirectory sub-config
+    const ld = (config && config.localDirectory) || config || {};
     return (req, file, cb) => {
         try {
-            // Get supported formats from config
-            const supportedFormats = config.localDirectory?.supportedFormats || [
+            // Determine target directory early; support both body and query (order-safe)
+            const targetDirectory =
+                (req.body && req.body.targetDirectory) ||
+                (req.query && req.query.targetDirectory) ||
+                req.uploadTargetDirectory ||
+                'posters';
+
+            // Per-target allowed extensions
+            const allow = {
+                posters: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'],
+                backgrounds: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'],
+                motion: ['gif', 'mp4', 'webm', 'avi', 'mov', 'mkv'],
+                posterpacks: ['zip'],
+                complete: ['zip'],
+            };
+            const fallbackFormats = ld.supportedFormats || [
                 'jpg',
                 'jpeg',
                 'png',
@@ -140,6 +171,7 @@ function createFileFilter(config) {
                 'avi',
                 'zip',
             ];
+            const supportedFormats = allow[targetDirectory] || fallbackFormats;
 
             // Extract file extension
             const ext = path.extname(file.originalname).toLowerCase().slice(1);
@@ -147,7 +179,7 @@ function createFileFilter(config) {
             // Check if extension is supported
             if (!supportedFormats.includes(ext)) {
                 const error = new Error(
-                    `File type .${ext} not supported. Supported formats: ${supportedFormats.join(', ')}`
+                    `File type .${ext} not supported for ${targetDirectory}. Supported: ${supportedFormats.join(', ')}`
                 );
                 error.code = 'INVALID_FILE_TYPE';
                 return cb(error, false);
@@ -180,8 +212,9 @@ function createUploadMiddleware(config) {
     const fileFilter = createFileFilter(config);
 
     // Get limits from config
-    const maxFileSize = config.localDirectory?.maxFileSize || 104857600; // 100MB
-    const maxConcurrentUploads = config.localDirectory?.security?.maxConcurrentUploads || 5;
+    const ld = (config && config.localDirectory) || config || {};
+    const maxFileSize = ld.maxFileSize || 104857600; // 100MB
+    const maxConcurrentUploads = (ld.security && ld.security.maxConcurrentUploads) || 5;
 
     const upload = multer({
         storage: storage,

@@ -761,6 +761,14 @@
                     "type": "string",
                     "default": ""
                 },
+                "watchDirectories": {
+                    "description": "Additional absolute directories to scan/watch as local media roots (same expected subfolders as rootPath).",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": []
+                },
                 "scanInterval": {
                     "description": "Interval in seconds to scan for file changes.",
                     "type": "integer",
