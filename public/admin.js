@@ -19172,25 +19172,19 @@ if (!document.__niwDelegatedFallback) {
         const jfLibs = document.getElementById('pp-jf-libs');
 
         if (filtersSection) {
-            // If Local source is active and there are selected local files, hide Content Filters entirely
-            const hasLocalSelection = source === 'local' && selectedFiles && selectedFiles.size > 0;
-            if (hasLocalSelection) {
-                filtersSection.hidden = true;
-                filtersSection.style.display = 'none';
-                filtersSection.setAttribute('aria-hidden', 'true');
-            } else {
-                // Show the filters shell; toggle between server vs local variants
-                filtersSection.hidden = false;
-                filtersSection.style.display = '';
-                filtersSection.setAttribute('aria-hidden', 'false');
-            }
+            // Requirement: For Local source, do not show Content Filters at all
+            const isLocal = source === 'local';
+            filtersSection.hidden = isLocal ? true : false;
+            filtersSection.style.display = isLocal ? 'none' : '';
+            filtersSection.setAttribute('aria-hidden', isLocal ? 'true' : 'false');
             if (srvFilters) {
-                const showSrv = source === 'plex' || source === 'jellyfin';
+                const showSrv = !isLocal && (source === 'plex' || source === 'jellyfin');
                 srvFilters.hidden = !showSrv;
                 srvFilters.style.display = showSrv ? '' : 'none';
             }
             if (localFilters) {
-                const showLocal = source === 'local' && !hasLocalSelection;
+                const showLocal = !isLocal && source === 'local';
+                // This will always be false now because we hide the whole section for Local
                 localFilters.hidden = !showLocal;
                 localFilters.style.display = showLocal ? '' : 'none';
                 if (showLocal) {
@@ -19200,8 +19194,6 @@ if (!document.__niwDelegatedFallback) {
                             initMsForSelect('pp-local-ms-genres', 'pp-local.genres');
                             initMsForSelect('pp-local-ms-qualities', 'pp-local.qualities');
                         }
-                        // Populate options lazily the first time Local filters are shown
-                        // Populate asynchronously; no need to block UI
                         loadLocalFilterOptions()
                             .then(() => {
                                 if (typeof rebuildMsForSelect === 'function') {
