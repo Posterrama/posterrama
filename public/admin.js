@@ -1,6 +1,8 @@
 /* Admin v2 Dashboard (theme-based) */
 /* eslint-disable no-empty */
 /* global saveConfigPatch, miniCache, inflight, refreshOverviewLastSync */
+/* global initMsForSelect, rebuildMsForSelect, getMultiSelectValues, fetchPlexLibraries */
+/* global fetchJellyfinLibraries, populatePosterpackLibraries */
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -18925,29 +18927,6 @@ if (!document.__niwDelegatedFallback) {
         const source = document.getElementById('posterpack.source')?.value || 'local';
         // Resolve selected library IDs for plex/jellyfin (from Posterpack section; empty = all)
         let libraryIds = [];
-        // Helper: read current Plex/Jellyfin filters from the main panels
-        const getCurrentPlexFilters = () => {
-            const readHidden = id => (document.getElementById(id)?.value || '').trim();
-            return {
-                years: (document.getElementById('plex.yearFilter')?.value || '').trim(),
-                genres: readHidden('plex.genreFilter-hidden'),
-                ratings: readHidden('plex.ratingFilter-hidden'),
-                qualities: readHidden('plex.qualityFilter-hidden'),
-                recentOnly: !!document.getElementById('plex.recentOnlyHeader')?.checked,
-                recentDays: Number(document.getElementById('plex.recentDays')?.value) || 0,
-            };
-        };
-        const getCurrentJfFilters = () => {
-            const readHidden = id => (document.getElementById(id)?.value || '').trim();
-            return {
-                years: (document.getElementById('jf.yearFilter')?.value || '').trim(),
-                genres: readHidden('jf.genreFilter-hidden'),
-                ratings: readHidden('jf.ratingFilter-hidden'),
-                qualities: readHidden('jf.qualityFilter-hidden'),
-                recentOnly: !!document.getElementById('jf.recentOnlyHeader')?.checked,
-                recentDays: Number(document.getElementById('jf.recentDays')?.value) || 0,
-            };
-        };
         if (source === 'plex') {
             const mvSel =
                 typeof getMultiSelectValues === 'function'
@@ -19085,28 +19064,6 @@ if (!document.__niwDelegatedFallback) {
 
         // Resolve library IDs same as generate (Posterpack section picks; empty = all)
         let libraryIds = [];
-        const getCurrentPlexFilters = () => {
-            const readHidden = id => (document.getElementById(id)?.value || '').trim();
-            return {
-                years: (document.getElementById('plex.yearFilter')?.value || '').trim(),
-                genres: readHidden('plex.genreFilter-hidden'),
-                ratings: readHidden('plex.ratingFilter-hidden'),
-                qualities: readHidden('plex.qualityFilter-hidden'),
-                recentOnly: !!document.getElementById('plex.recentOnlyHeader')?.checked,
-                recentDays: Number(document.getElementById('plex.recentDays')?.value) || 0,
-            };
-        };
-        const getCurrentJfFilters = () => {
-            const readHidden = id => (document.getElementById(id)?.value || '').trim();
-            return {
-                years: (document.getElementById('jf.yearFilter')?.value || '').trim(),
-                genres: readHidden('jf.genreFilter-hidden'),
-                ratings: readHidden('jf.ratingFilter-hidden'),
-                qualities: readHidden('jf.qualityFilter-hidden'),
-                recentOnly: !!document.getElementById('jf.recentOnlyHeader')?.checked,
-                recentDays: Number(document.getElementById('jf.recentDays')?.value) || 0,
-            };
-        };
         if (source === 'plex') {
             const mvSel =
                 typeof getMultiSelectValues === 'function'
