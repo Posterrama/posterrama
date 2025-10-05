@@ -4857,7 +4857,7 @@ select:not([multiple]) {
 }
 #posterpack-source-wrap select {
     width: auto;
-    max-width: 320px;
+    max-width: 420px; /* widened a bit for longer labels */
 }
 .select-wrap.has-caret select {
     /* remove native background chevron since we render our own */
