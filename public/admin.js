@@ -18823,7 +18823,6 @@ if (!document.__niwDelegatedFallback) {
             sourceType: source === 'local' ? 'local' : source,
             libraryIds,
             options: {
-                namingPattern: document.getElementById('posterpack.naming')?.value || 'timestamp',
                 compression: 'balanced',
                 mediaType: document.getElementById('posterpack.mediaType')?.value || 'all',
                 yearFilter: document.getElementById('posterpack.yearFilter')?.value || '',
