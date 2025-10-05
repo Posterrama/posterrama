@@ -527,7 +527,6 @@
                 const mSel = document.getElementById('jf.movies');
                 const sSel = document.getElementById('jf.shows');
                 if (!mSel || !sSel) return;
-                const hasAny = mSel.selectedOptions.length + sSel.selectedOptions.length > 0;
                 const hasAny = mSel.selectedOptions.length > 0 || sSel.selectedOptions.length > 0;
                 if (!hasAny) {
                     const allMovies = Array.from(mSel.options).map(o => o.value);
