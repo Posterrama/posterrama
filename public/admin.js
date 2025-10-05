@@ -18,17 +18,13 @@
                   } catch (_) {}
                   return undefined;
               };
-    try {
-        if (typeof window !== 'undefined' && typeof window.__ppLog !== 'function') {
-            window.__ppLog = function () {
-                try {
-                    const dbg = window.__ppDebug;
-                    if (dbg && typeof dbg.log === 'function') return dbg.log.apply(dbg, arguments);
-                } catch (_) {}
-                return undefined;
-            };
-        }
-    } catch (_) {}
+    window.__ppLog = function () {
+        try {
+            const dbg = window.__ppDebug;
+            if (dbg && typeof dbg.log === 'function') return dbg.log.apply(dbg, arguments);
+        } catch (_) {}
+        return undefined;
+    };
 
     // ---- Diagnostic Sentinel (notifications resilience) ----
     // Provides quick confirmation in the browser console that the latest admin.js has loaded.
@@ -199,51 +195,8 @@
         return `${b.toFixed(1)} ${units[i]}`;
     }
 
-    // Lightweight debug helper for Posterpack flows (robust, globalized)
-    var ppDebug = (function initPPDebug() {
-        try {
-            if (window.__ppDebug) return window.__ppDebug;
-        } catch (_) {}
-        let enabled = false;
-        try {
-            // Enable if URL contains debug=posterpacks or localStorage flag is set
-            const hasHash = /(^|[?#&])debug=posterpacks(=1|&|$)/i.test(window.location.href);
-            const ls = localStorage.getItem('pp.debug') === '1';
-            enabled = hasHash || ls;
-        } catch (_) {}
-        const helper = {
-            get enabled() {
-                return enabled;
-            },
-            set(v) {
-                enabled = !!v;
-                try {
-                    localStorage.setItem('pp.debug', enabled ? '1' : '0');
-                } catch (_) {}
-            },
-            log: (...args) => {
-                try {
-                    if (!enabled) return;
-                    console.log('[PP]', ...args);
-                } catch (_) {}
-            },
-        };
-        try {
-            window.__ppDebug = helper;
-        } catch (_) {}
-        return typeof window !== 'undefined' && window.__ppDebug ? window.__ppDebug : helper;
-    })();
-
-    // Resilient logger that never throws even if ppDebug/window.__ppDebug is missing
-    function __ppLog() {
-        try {
-            const dbg = (typeof window !== 'undefined' && window.__ppDebug) || null;
-            if (dbg && typeof dbg.log === 'function') {
-                return dbg.log.apply(dbg, arguments);
-            }
-        } catch (_) {}
-        return undefined;
-    }
+    // Debug logger removed (no-op)
+    function __ppLog() {}
 
     // Simple HTML escaper available at module scope for safe rendering
     function escapeHtml(s) {
@@ -15170,7 +15123,6 @@
             if (window.__plexLibsInFlight) return window.__plexLibsInFlight;
             window.__plexLibsInFlight = (async () => {
                 try {
-                    __ppLog('fetchPlexLibraries: start');
                     const hostname =
                         getInput('plex.hostname')?.value ||
                         document.getElementById('plex_hostname')?.value ||
@@ -15192,7 +15144,7 @@
                     const j = await res.json().catch(() => ({}));
                     if (!res.ok) throw new Error(j?.error || 'Failed to load Plex libraries');
                     const libs = Array.isArray(j.libraries) ? j.libraries : [];
-                    __ppLog('fetchPlexLibraries: received', libs.length, 'libs');
+
                     // Store Plex name -> key mapping for posterpack generation
                     try {
                         window.__plexLibraryNameToId = new Map();
@@ -15218,7 +15170,7 @@
                     const shows = libs
                         .filter(l => l.type === 'show')
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
-                    __ppLog('fetchPlexLibraries: movies', movies.length, 'shows', shows.length);
+
                     const prevMovies = new Set(getMultiSelectValues('plex.movies'));
                     const prevShows = new Set(getMultiSelectValues('plex.shows'));
                     // Auto-select all Plex libraries on very first successful load if user has none selected yet
@@ -15267,9 +15219,6 @@
                     try {
                         const srcSel = document.getElementById('posterpack.source');
                         if (srcSel && srcSel.value === 'plex') {
-                            __ppLog(
-                                'posterpacks: syncing Posterpack lists after fetchPlexLibraries'
-                            );
                             populatePosterpackLibraries('plex');
                         }
                     } catch (_) {}
@@ -15298,7 +15247,6 @@
                         }
                     }
                 } catch (e) {
-                    __ppLog('fetchPlexLibraries: error', e?.message || e);
                     if (!silent) {
                         window.notify?.toast({
                             type: 'error',
@@ -15308,7 +15256,6 @@
                         });
                     }
                 } finally {
-                    __ppLog('fetchPlexLibraries: finally');
                     // Clear in-flight marker after settle so subsequent manual fetches are allowed
                     window.__plexLibsInFlight = null;
                     // Reset refresh request flag after one settled cycle
@@ -19354,7 +19301,6 @@ if (!document.__niwDelegatedFallback) {
         }
         // Populate library lists lazily; the populate function will rebuild widgets after options are filled
         if (source === 'plex') {
-            __ppLog('Init Posterpack widgets for Plex and populate');
             // Ensure widgets are initialized; actual rebuild occurs inside populate after options are written
             try {
                 if (typeof initMsForSelect === 'function') {
@@ -19364,17 +19310,12 @@ if (!document.__niwDelegatedFallback) {
             } catch (_) {}
             // Proactively fetch Plex libraries using the main fetcher (reads config/inputs), then populate
             try {
-                __ppLog('Calling fetchPlexLibraries(silent) before populate');
                 Promise.resolve(fetchPlexLibraries(false, true)).finally(() => {
-                    __ppLog(
-                        'fetchPlexLibraries settled; calling populatePosterpackLibraries(plex)'
-                    );
                     try {
                         populatePosterpackLibraries('plex');
                     } catch (_) {}
                 });
             } catch (_) {
-                __ppLog('fetchPlexLibraries call failed early; fallback populate');
                 populatePosterpackLibraries('plex');
             }
             // If still empty shortly after, copy from main selects as a last resort for instant UX
@@ -19382,20 +19323,13 @@ if (!document.__niwDelegatedFallback) {
                 try {
                     const mvSel = document.getElementById('pp-plex.movies');
                     const shSel = document.getElementById('pp-plex.shows');
-                    __ppLog(
-                        'Post-delay check Plex PP selects sizes:',
-                        mvSel?.options?.length || 0,
-                        shSel?.options?.length || 0
-                    );
+
                     if (
                         mvSel &&
                         shSel &&
                         mvSel.options.length === 0 &&
                         shSel.options.length === 0
                     ) {
-                        __ppLog(
-                            'Still empty after delay; re-invoking populatePosterpackLibraries(plex)'
-                        );
                         if (typeof populatePosterpackLibraries === 'function') {
                             // Call with internal copy fallback via kind detection
                             try {
@@ -19574,7 +19508,7 @@ if (!document.__niwDelegatedFallback) {
 
     function populatePosterpackLibraries(kind) {
         // Reuse global maps if available; otherwise fetch via existing admin endpoints
-        __ppLog('populatePosterpackLibraries start:', kind);
+
         const copyFromMainIfEmpty = source => {
             try {
                 if (source === 'plex') {
@@ -19582,11 +19516,7 @@ if (!document.__niwDelegatedFallback) {
                     const mainSh = document.getElementById('plex.shows');
                     const mvNames = mainMv ? Array.from(mainMv.options).map(o => o.value) : [];
                     const shNames = mainSh ? Array.from(mainSh.options).map(o => o.value) : [];
-                    __ppLog(
-                        'copyFromMainIfEmpty(plex): main sizes',
-                        mvNames.length,
-                        shNames.length
-                    );
+
                     if (mvNames.length || shNames.length) {
                         fill('pp-plex.movies', mvNames);
                         fill('pp-plex.shows', shNames);
@@ -19638,7 +19568,7 @@ if (!document.__niwDelegatedFallback) {
                 if (prevSelected.has(n)) opt.selected = true;
                 sel.appendChild(opt);
             });
-            __ppLog('fill()', selId, 'names:', names.length);
+
             try {
                 if (typeof rebuildMsForSelect === 'function') {
                     const map = {
