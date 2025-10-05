@@ -504,7 +504,7 @@
                 const mSel = document.getElementById('plex.movies');
                 const sSel = document.getElementById('plex.shows');
                 if (!mSel || !sSel) return;
-                const hasAny = mSel.selectedOptions.length + sSel.selectedOptions.length > 0;
+                const hasAny = mSel.selectedOptions.length > 0 || sSel.selectedOptions.length > 0;
                 if (!hasAny) {
                     const allMovies = Array.from(mSel.options).map(o => o.value);
                     const allShows = Array.from(sSel.options).map(o => o.value);
@@ -528,6 +528,7 @@
                 const sSel = document.getElementById('jf.shows');
                 if (!mSel || !sSel) return;
                 const hasAny = mSel.selectedOptions.length + sSel.selectedOptions.length > 0;
+                const hasAny = mSel.selectedOptions.length > 0 || sSel.selectedOptions.length > 0;
                 if (!hasAny) {
                     const allMovies = Array.from(mSel.options).map(o => o.value);
                     const allShows = Array.from(sSel.options).map(o => o.value);
@@ -18929,7 +18930,7 @@ if (!document.__niwDelegatedFallback) {
         }
 
         // Get posterpack configuration
-        const source = document.getElementById('posterpack.source')?.value || 'local';
+        const source = document.getElementById('posterpack.source')?.value || 'plex';
         // Resolve selected library IDs for plex/jellyfin (from Posterpack section; empty = all)
         let libraryIds = [];
         if (source === 'plex') {
@@ -18979,48 +18980,23 @@ if (!document.__niwDelegatedFallback) {
                 const all = Array.from(map.keys());
                 libraryIds = toIds(all);
             }
-        } else if (source === 'local') {
-            libraryIds = ['local'];
         }
 
         const commonYearFilter = document.getElementById('posterpack.yearFilter')?.value || '';
         const config = {
-            sourceType: source === 'local' ? 'local' : source,
+            sourceType: source,
             libraryIds,
-            options:
-                source === 'local'
-                    ? {
-                          compression: 'balanced',
-                          yearFilter: commonYearFilter,
-                          // Local-specific multiselects
-                          filtersLocal: getLocalPosterpackFilters(),
-                      }
-                    : {
-                          compression: 'balanced',
-                          yearFilter: commonYearFilter,
-                          // Build filter set from in-section controls; when empty, default to no narrowing
-                          filtersPlex:
-                              source === 'plex' ? getPosterpackFilterObject('plex') : undefined,
-                          filtersJellyfin:
-                              source === 'jellyfin'
-                                  ? getPosterpackFilterObject('jellyfin')
-                                  : undefined,
-                      },
+            options: {
+                compression: 'balanced',
+                yearFilter: commonYearFilter,
+                // Build filter set from in-section controls; when empty, default to no narrowing
+                filtersPlex: source === 'plex' ? getPosterpackFilterObject('plex') : undefined,
+                filtersJellyfin:
+                    source === 'jellyfin' ? getPosterpackFilterObject('jellyfin') : undefined,
+            },
         };
 
         // Validate configuration
-        if (config.sourceType === 'local') {
-            const enabledInput = document.getElementById('localDirectory.enabled');
-
-            if (!enabledInput?.checked) {
-                showNotification('Please configure and enable local directory first', 'warning');
-                if (generateBtn) {
-                    generateBtn.disabled = false;
-                    generateBtn.innerHTML = '<i class="fas fa-archive"></i> Generate Posterpack';
-                }
-                return;
-            }
-        }
         if (
             (source === 'plex' || source === 'jellyfin') &&
             (!Array.isArray(libraryIds) || libraryIds.length === 0)
@@ -19064,7 +19040,7 @@ if (!document.__niwDelegatedFallback) {
     }
 
     function previewPosterpackSelection() {
-        const source = document.getElementById('posterpack.source')?.value || 'local';
+        const source = document.getElementById('posterpack.source')?.value || 'plex';
         const yearFilter = document.getElementById('posterpack.yearFilter')?.value || '';
 
         // Resolve library IDs same as generate (Posterpack section picks; empty = all)
@@ -19105,35 +19081,18 @@ if (!document.__niwDelegatedFallback) {
                 (Array.isArray(names) ? names : []).map(n => map.get(n)).filter(Boolean);
             const chosen = [...mvSel, ...shSel];
             libraryIds = chosen.length ? toIds(chosen) : toIds(Array.from(map.keys()));
-        } else if (source === 'local') {
-            const enabledInput = document.getElementById('localDirectory.enabled');
-            if (!enabledInput?.checked) {
-                showNotification('Please enable the local directory source first', 'warning');
-                return;
-            }
-            libraryIds = ['local'];
         }
 
         const config = {
             sourceType: source,
             libraryIds,
-            options:
-                source === 'local'
-                    ? {
-                          yearFilter,
-                          // No mediaType/limit for Local; server default is large
-                          filtersLocal: getLocalPosterpackFilters(),
-                      }
-                    : {
-                          yearFilter,
-                          // No mediaType/limit for Plex/Jellyfin; server handles sensible defaults
-                          filtersPlex:
-                              source === 'plex' ? getPosterpackFilterObject('plex') : undefined,
-                          filtersJellyfin:
-                              source === 'jellyfin'
-                                  ? getPosterpackFilterObject('jellyfin')
-                                  : undefined,
-                      },
+            options: {
+                yearFilter,
+                // No mediaType/limit for Plex/Jellyfin; server handles sensible defaults
+                filtersPlex: source === 'plex' ? getPosterpackFilterObject('plex') : undefined,
+                filtersJellyfin:
+                    source === 'jellyfin' ? getPosterpackFilterObject('jellyfin') : undefined,
+            },
         };
 
         fetch('/api/local/preview-posterpack', {
@@ -19172,7 +19131,7 @@ if (!document.__niwDelegatedFallback) {
         const jfLibs = document.getElementById('pp-jf-libs');
 
         if (filtersSection) {
-            // Requirement: For Local source, do not show Content Filters at all
+            // Content Filters: shown for Plex/Jellyfin
             const isLocal = source === 'local';
             filtersSection.hidden = isLocal ? true : false;
             filtersSection.style.display = isLocal ? 'none' : '';
