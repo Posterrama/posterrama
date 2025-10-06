@@ -21,12 +21,19 @@ class APIContractValidator {
     constructor() {
         this.contractsPath = path.join(__dirname, 'contracts');
         this.ensureContractsDir();
+        this.updateEnabled = this.isUpdateEnabled();
     }
 
     ensureContractsDir() {
         if (!fs.existsSync(this.contractsPath)) {
             fs.mkdirSync(this.contractsPath, { recursive: true });
         }
+    }
+
+    isUpdateEnabled() {
+        const v = process.env.REGRESSION_UPDATE;
+        if (!v) return false;
+        return ['1', 'true', 'yes', 'y', 'on'].includes(String(v).toLowerCase());
     }
 
     /**
@@ -50,11 +57,16 @@ class APIContractValidator {
             const existingContract = JSON.parse(fs.readFileSync(contractFile, 'utf8'));
             this.compareContracts(existingContract, contract);
         } else {
-            console.log(`📝 Creating new API contract for ${endpoint}`);
+            console.log(`📝 Baseline ontbreekt voor ${endpoint} (${path.basename(contractFile)})`);
+            if (!this.updateEnabled) {
+                console.log('   ↪︎ Write skipped (REGRESSION_UPDATE not set)');
+            }
         }
 
-        // Sla huidige contract op
-        fs.writeFileSync(contractFile, JSON.stringify(contract, null, 2));
+        // Sla huidige contract alleen op als update modus actief is
+        if (this.updateEnabled) {
+            fs.writeFileSync(contractFile, JSON.stringify(contract, null, 2));
+        }
 
         return contract;
     }

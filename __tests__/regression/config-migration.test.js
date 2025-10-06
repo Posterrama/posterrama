@@ -21,8 +21,9 @@ class ConfigMigrationTester {
     constructor() {
         this.schemaPath = path.join(__dirname, '../../config.schema.json');
         this.examplePath = path.join(__dirname, '../../config.example.json');
-        this.migrationsDir = path.join(__dirname, 'config-migrations');
+        this.migrationsDir = path.join(__dirname, '../../private/regression');
         this.baselinesDir = path.join(__dirname, 'config-baselines');
+        this.updateEnabled = this.isUpdateEnabled();
 
         this.ensureDirectories();
         this.ajv = new Ajv({ allErrors: true, strict: false });
@@ -35,6 +36,12 @@ class ConfigMigrationTester {
                 fs.mkdirSync(dir, { recursive: true });
             }
         });
+    }
+
+    isUpdateEnabled() {
+        const v = process.env.REGRESSION_UPDATE;
+        if (!v) return false;
+        return ['1', 'true', 'yes', 'y', 'on'].includes(String(v).toLowerCase());
     }
 
     /**
@@ -66,8 +73,12 @@ class ConfigMigrationTester {
      */
     saveSchemaBaseline(version, schema) {
         const baselinePath = path.join(this.baselinesDir, `schema-v${version}.json`);
-        fs.writeFileSync(baselinePath, JSON.stringify(schema, null, 2));
-        console.log(`📝 Schema baseline opgeslagen: v${version}`);
+        if (this.updateEnabled) {
+            fs.writeFileSync(baselinePath, JSON.stringify(schema, null, 2));
+            console.log(`📝 Schema baseline opgeslagen: v${version}`);
+        } else {
+            console.log(`📝 Baseline write skipped (REGRESSION_UPDATE not set): v${version}`);
+        }
     }
 
     /**
@@ -239,7 +250,11 @@ class ConfigMigrationTester {
             },
         };
 
-        fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+        if (this.updateEnabled) {
+            fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+        } else {
+            console.log('📝 Migration report write skipped (REGRESSION_UPDATE not set)');
+        }
         return report;
     }
 }
