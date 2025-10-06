@@ -18963,9 +18963,16 @@ if (!document.__niwDelegatedFallback) {
                 sumCount('motion') +
                 sumCount('complete');
             if (Number.isFinite(totalLocal)) {
-                // setCount(id, display, total?, tooltip?)
                 const tt = `Local items — posters+backgrounds+motion+complete: ${totalLocal.toLocaleString()}`;
-                setCount('local-count-pill', totalLocal, null, tt);
+                if (typeof window.setCount === 'function') {
+                    window.setCount('local-count-pill', totalLocal, null, tt);
+                } else {
+                    const el = document.getElementById('local-count-pill');
+                    if (el) {
+                        el.textContent = totalLocal.toLocaleString();
+                        el.title = tt;
+                    }
+                }
             }
         } catch (_) {
             // non-fatal
