@@ -483,6 +483,13 @@
         __ensureMsWired('pp-plex-ms-shows', 'pp-plex.shows');
         __ensureMsWired('pp-jf-ms-movies', 'pp-jf.movies');
         __ensureMsWired('pp-jf-ms-shows', 'pp-jf.shows');
+        // Posterpack server filters (ratings/genres/qualities)
+        __ensureMsWired('pp-srv-ms-ratings', 'pp-server.ratings');
+        __ensureMsWired('pp-srv-ms-genres', 'pp-server.genres');
+        __ensureMsWired('pp-srv-ms-qualities', 'pp-server.qualities');
+        try {
+            loadPosterpackServerFilterOptions().catch(() => {});
+        } catch (_) {}
     }
     try {
         if (document.readyState === 'loading') {
@@ -19504,19 +19511,19 @@ if (!document.__niwDelegatedFallback) {
         const jfLibs = document.getElementById('pp-jf-libs');
 
         if (filtersSection) {
-            // Content Filters: shown for Plex/Jellyfin
             const isLocal = source === 'local';
-            filtersSection.hidden = isLocal ? true : false;
-            filtersSection.style.display = isLocal ? 'none' : '';
-            filtersSection.setAttribute('aria-hidden', isLocal ? 'true' : 'false');
+            // Always show the filters section for any source now
+            filtersSection.hidden = false;
+            filtersSection.style.display = '';
+            filtersSection.setAttribute('aria-hidden', 'false');
+
             if (srvFilters) {
-                const showSrv = !isLocal && (source === 'plex' || source === 'jellyfin');
+                const showSrv = source === 'plex' || source === 'jellyfin';
                 srvFilters.hidden = !showSrv;
                 srvFilters.style.display = showSrv ? '' : 'none';
             }
             if (localFilters) {
-                const showLocal = !isLocal && source === 'local';
-                // This will always be false now because we hide the whole section for Local
+                const showLocal = isLocal;
                 localFilters.hidden = !showLocal;
                 localFilters.style.display = showLocal ? '' : 'none';
                 if (showLocal) {
@@ -19567,7 +19574,13 @@ if (!document.__niwDelegatedFallback) {
                 if (typeof initMsForSelect === 'function') {
                     initMsForSelect('pp-plex-ms-movies', 'pp-plex.movies');
                     initMsForSelect('pp-plex-ms-shows', 'pp-plex.shows');
+                    initMsForSelect('pp-srv-ms-ratings', 'pp-server.ratings');
+                    initMsForSelect('pp-srv-ms-genres', 'pp-server.genres');
+                    initMsForSelect('pp-srv-ms-qualities', 'pp-server.qualities');
                 }
+            } catch (_) {}
+            try {
+                loadPosterpackServerFilterOptions().catch(() => {});
             } catch (_) {}
             // Proactively fetch Plex libraries using the main fetcher (reads config/inputs), then populate
             try {
@@ -19605,7 +19618,13 @@ if (!document.__niwDelegatedFallback) {
                 if (typeof initMsForSelect === 'function') {
                     initMsForSelect('pp-jf-ms-movies', 'pp-jf.movies');
                     initMsForSelect('pp-jf-ms-shows', 'pp-jf.shows');
+                    initMsForSelect('pp-srv-ms-ratings', 'pp-server.ratings');
+                    initMsForSelect('pp-srv-ms-genres', 'pp-server.genres');
+                    initMsForSelect('pp-srv-ms-qualities', 'pp-server.qualities');
                 }
+            } catch (_) {}
+            try {
+                loadPosterpackServerFilterOptions().catch(() => {});
             } catch (_) {}
             // Proactively fetch Jellyfin libraries using the main fetcher, then populate
             try {
@@ -20015,14 +20034,23 @@ if (!document.__niwDelegatedFallback) {
     }
 
     function getPosterpackFilterObject(kind) {
-        // Read from Posterpack section inputs; empty fields mean no narrowing
+        // Read from Posterpack section inputs; empty fields mean no narrowing.
+        // Server posterpack filters now use multiselects (hidden selects) mirroring Plex/JF style.
         const read = id => (document.getElementById(id)?.value || '').trim();
         const bool = id => !!document.getElementById(id)?.checked;
+        const msValues = id => {
+            const sel = document.getElementById(id);
+            if (!sel) return '';
+            const vals = Array.from(sel.selectedOptions)
+                .map(o => o.value)
+                .filter(Boolean);
+            return vals.join(',');
+        };
         const obj = {
             years: read('posterpack.yearFilter'),
-            genres: read('pp.filters.genres'),
-            ratings: read('pp.filters.ratings'),
-            qualities: read('pp.filters.qualities'),
+            genres: msValues('pp-server.genres'),
+            ratings: msValues('pp-server.ratings'),
+            qualities: msValues('pp-server.qualities'),
             recentOnly: bool('pp.filters.recentOnly'),
             recentDays: Number(read('pp.filters.recentDays')) || 0,
         };
@@ -20054,6 +20082,116 @@ if (!document.__niwDelegatedFallback) {
         }
         // For Jellyfin qualities are ignored server-side; OK to pass through
         return obj;
+    }
+
+    // Populate posterpack server multiselect filter options (ratings/genres/qualities)
+    async function loadPosterpackServerFilterOptions() {
+        if (window.__ppSrvFiltersLoaded) return; // load once
+        window.__ppSrvFiltersLoaded = true;
+        try {
+            const [plexRatings, jfRatings, plexGenres, jfGenres, plexQual, jfQual] =
+                await Promise.all([
+                    window
+                        .dedupJSON('/api/sources/plex/ratings-with-counts', {
+                            credentials: 'include',
+                        })
+                        .catch(() => null),
+                    window
+                        .dedupJSON('/api/sources/jellyfin/ratings-with-counts', {
+                            credentials: 'include',
+                        })
+                        .catch(() => null),
+                    window
+                        .dedupJSON('/api/admin/plex-genres-with-counts', { credentials: 'include' })
+                        .catch(() => null),
+                    window
+                        .dedupJSON('/api/admin/jellyfin-genres-with-counts', {
+                            credentials: 'include',
+                        })
+                        .catch(() => null),
+                    window
+                        .dedupJSON('/api/admin/plex-qualities-with-counts', {
+                            credentials: 'include',
+                        })
+                        .catch(() => null),
+                    window
+                        .dedupJSON('/api/admin/jellyfin-qualities-with-counts', {
+                            credentials: 'include',
+                        })
+                        .catch(() => null),
+                ]);
+
+            const ratings = new Set();
+            const genres = new Set();
+            const qualities = new Set();
+            const add = (res, key, set, normFn) => {
+                const arr = Array.isArray(res?.[key]) ? res[key] : [];
+                arr.forEach(v => {
+                    const val = normFn ? normFn(v) : (v?.[key.slice(0, -1)] || v)?.toString();
+                    const s = (val || '').trim();
+                    if (s) set.add(s);
+                });
+            };
+            add(plexRatings, 'ratings', ratings, r => (r?.rating || r)?.toString().toUpperCase());
+            add(jfRatings, 'ratings', ratings, r => (r?.rating || r)?.toString().toUpperCase());
+            add(plexGenres, 'genres', genres, g => (g?.name || g)?.toString());
+            add(jfGenres, 'genres', genres, g => (g?.name || g)?.toString());
+            add(plexQual, 'qualities', qualities, q => (q?.quality || q)?.toString());
+            add(jfQual, 'qualities', qualities, q => (q?.quality || q)?.toString());
+
+            if (!ratings.size)
+                [
+                    'G',
+                    'PG',
+                    'PG-13',
+                    'R',
+                    'NC-17',
+                    'NR',
+                    'UNRATED',
+                    'TV-Y',
+                    'TV-Y7',
+                    'TV-G',
+                    'TV-PG',
+                    'TV-14',
+                    'TV-MA',
+                ].forEach(r => ratings.add(r));
+            if (!qualities.size) ['SD', '720p', '1080p', '4K'].forEach(q => qualities.add(q));
+
+            const fill = (id, list, order) => {
+                const sel = document.getElementById(id);
+                if (!sel) return;
+                const prev = new Set(Array.from(sel.selectedOptions).map(o => o.value));
+                sel.innerHTML = '';
+                list.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v;
+                    opt.textContent = v;
+                    if (prev.has(v)) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            };
+            const ratingsList = Array.from(ratings).sort();
+            const qualitiesOrder = ['SD', '720p', '1080p', '4K'];
+            const qualitiesList = Array.from(qualities).sort((a, b) => {
+                const ia = qualitiesOrder.indexOf(a);
+                const ib = qualitiesOrder.indexOf(b);
+                if (ia !== -1 && ib !== -1) return ia - ib;
+                if (ia !== -1) return -1;
+                if (ib !== -1) return 1;
+                return a.localeCompare(b);
+            });
+            const genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
+
+            fill('pp-server.ratings', ratingsList);
+            fill('pp-server.genres', genresList);
+            fill('pp-server.qualities', qualitiesList);
+
+            if (typeof rebuildMsForSelect === 'function') {
+                rebuildMsForSelect('pp-srv-ms-ratings', 'pp-server.ratings');
+                rebuildMsForSelect('pp-srv-ms-genres', 'pp-server.genres');
+                rebuildMsForSelect('pp-srv-ms-qualities', 'pp-server.qualities');
+            }
+        } catch (_) {}
     }
 
     function startJobPolling(jobId) {

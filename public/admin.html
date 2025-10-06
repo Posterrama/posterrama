@@ -26,6 +26,42 @@
     referrerpolicy="no-referrer"
   />
   <link rel="stylesheet" href="/admin.css?v={{ASSET_VERSION}}" />
+  <style id="multiselect-overrides">
+    /* Multiselect dropdown visibility & layering fixes */
+    .multiselect { position: relative; }
+    .multiselect .ms-menu { 
+      position: absolute; 
+      top: 100%;
+      left: 0; 
+      right: auto;
+      min-width: 280px;
+      background: var(--color-bg-elevated, #1f2330);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      padding: 8px 0 6px; 
+      margin-top: 4px; 
+      box-shadow: 0 8px 24px -4px rgba(0,0,0,0.55), 0 4px 12px -2px rgba(0,0,0,0.4);
+      z-index: 1600; /* above side panels & other widgets */
+      max-height: 340px; 
+      overflow-y: auto; 
+      overscroll-behavior: contain;
+    }
+    /* Ensure ancestor containers don't clip */
+    .form-grid, .form-group, .panel-content, .panel, .form-subsection { overflow: visible !important; }
+    /* When open, raise the multiselect container to create a local stacking context */
+    .multiselect.ms-open { z-index: 1599; }
+    /* Option list styling tweak compatibility (if admin.css already styles .ms-option) */
+    .multiselect .ms-options { position: relative; }
+    /* Prevent accidental horizontal scrollbars */
+    .multiselect .ms-menu::-webkit-scrollbar { width: 10px; }
+    .multiselect .ms-menu::-webkit-scrollbar-track { background: transparent; }
+    .multiselect .ms-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 6px; }
+    .multiselect .ms-menu::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+    /* Defensive: if a parent has transform (creates new stacking context), allow body-level escape hatch */
+    @media (min-width:0) {
+      body.has-ms-portal .multiselect .ms-menu[data-portal="true"] { position: fixed; }
+    }
+  </style>
   
 </head>
 <body>
@@ -1588,23 +1624,78 @@
                 </div>
                 <!-- Server sources (Plex/Jellyfin) variant -->
                 <div id="posterpack-filters-srv" class="form-grid">
-                  <!-- Media Type removed for Plex/Jellyfin by request -->
-                  
-                  <!-- Max Items removed for Plex/Jellyfin by request (server default 10,000) -->
-                  <!-- Simple in-section filters matching Plex/JF semantics -->
+                  <!-- Ratings multiselect -->
                   <div class="form-group">
-                    <label for="pp.filters.ratings">Rating</label>
-                    <input type="text" id="pp.filters.ratings" placeholder="e.g. PG-13, R, TV-MA" />
+                    <label for="pp-server.ratings">Ratings</label>
+                    <select id="pp-server.ratings" multiple style="display:none"></select>
+                    <div class="multiselect" id="pp-srv-ms-ratings">
+                      <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                        <div class="ms-chips" id="pp-srv-ms-ratings-chips"></div>
+                        <button class="ms-clear" id="pp-srv-ms-ratings-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                        <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                      </div>
+                      <div class="ms-menu" id="pp-srv-ms-ratings-menu" role="listbox">
+                        <div class="ms-search">
+                          <i class="fas fa-search"></i>
+                          <input id="pp-srv-ms-ratings-search" type="text" placeholder="Search ratings…">
+                        </div>
+                        <div class="ms-actions">
+                          <button class="btn btn-outline btn-sm" id="pp-srv-ms-ratings-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                          <button class="btn btn-outline btn-sm" id="pp-srv-ms-ratings-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                        </div>
+                        <div class="ms-options" id="pp-srv-ms-ratings-options"></div>
+                      </div>
+                    </div>
+                    <small class="form-help">Select one or more ratings. Populated from Plex/Jellyfin libraries.</small>
                   </div>
+                  <!-- Genres multiselect -->
                   <div class="form-group">
-                    <label for="pp.filters.genres">Genres</label>
-                    <input type="text" id="pp.filters.genres" placeholder="e.g. Action, Comedy" />
+                    <label for="pp-server.genres">Genres</label>
+                    <select id="pp-server.genres" multiple style="display:none"></select>
+                    <div class="multiselect" id="pp-srv-ms-genres">
+                      <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                        <div class="ms-chips" id="pp-srv-ms-genres-chips"></div>
+                        <button class="ms-clear" id="pp-srv-ms-genres-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                        <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                      </div>
+                      <div class="ms-menu" id="pp-srv-ms-genres-menu" role="listbox">
+                        <div class="ms-search">
+                          <i class="fas fa-search"></i>
+                          <input id="pp-srv-ms-genres-search" type="text" placeholder="Search genres…">
+                        </div>
+                        <div class="ms-actions">
+                          <button class="btn btn-outline btn-sm" id="pp-srv-ms-genres-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                          <button class="btn btn-outline btn-sm" id="pp-srv-ms-genres-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                        </div>
+                        <div class="ms-options" id="pp-srv-ms-genres-options"></div>
+                      </div>
+                    </div>
+                    <small class="form-help">Select one or more genres. Populated from Plex/Jellyfin libraries.</small>
                   </div>
+                  <!-- Qualities multiselect -->
                   <div class="form-group">
-                    <label for="pp.filters.qualities">Qualities</label>
-                    <input type="text" id="pp.filters.qualities" placeholder="e.g. 720p, 1080p, 4K" />
+                    <label for="pp-server.qualities">Qualities</label>
+                    <select id="pp-server.qualities" multiple style="display:none"></select>
+                    <div class="multiselect" id="pp-srv-ms-qualities">
+                      <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                        <div class="ms-chips" id="pp-srv-ms-qualities-chips"></div>
+                        <button class="ms-clear" id="pp-srv-ms-qualities-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                        <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                      </div>
+                      <div class="ms-menu" id="pp-srv-ms-qualities-menu" role="listbox">
+                        <div class="ms-search">
+                          <i class="fas fa-search"></i>
+                          <input id="pp-srv-ms-qualities-search" type="text" placeholder="Search qualities…">
+                        </div>
+                        <div class="ms-actions">
+                          <button class="btn btn-outline btn-sm" id="pp-srv-ms-qualities-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                          <button class="btn btn-outline btn-sm" id="pp-srv-ms-qualities-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                        </div>
+                        <div class="ms-options" id="pp-srv-ms-qualities-options"></div>
+                      </div>
+                    </div>
+                    <small class="form-help">Select one or more qualities. Populated from Plex/Jellyfin libraries.</small>
                   </div>
-                  <!-- Recently Added removed for Plex/Jellyfin by request -->
                 </div>
                 <!-- Local source variant: no media type, no max items, no recently added; multiselects like Plex/JF -->
                 <div id="posterpack-filters-local" class="form-grid" hidden>
