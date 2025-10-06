@@ -511,8 +511,16 @@ if (config.localDirectory && config.localDirectory.enabled) {
     // Use the app's own /image proxy via localhost for asset downloads
     const baseUrl = `http://127.0.0.1:${port}`;
     const httpClients = {
-        plex: axios.create({ baseURL: baseUrl, timeout: 30000 }),
-        jellyfin: axios.create({ baseURL: baseUrl, timeout: 30000 }),
+        plex: axios.create({
+            baseURL: baseUrl,
+            timeout: 30000,
+            headers: { 'X-Posterrama-Internal': '1' },
+        }),
+        jellyfin: axios.create({
+            baseURL: baseUrl,
+            timeout: 30000,
+            headers: { 'X-Posterrama-Internal': '1' },
+        }),
     };
     jobQueue.setSourceAdapters(sourceAdapters);
     jobQueue.setHttpClients(httpClients);
@@ -916,7 +924,12 @@ app.use('/api/', (req, res, next) => {
 app.use('/get-config', apiLimiter);
 app.use('/get-media', apiLimiter);
 app.use('/get-media-by-key', apiLimiter);
-app.use('/image', apiLimiter);
+// For /image, allow internal job-queue traffic (identified by header) to bypass rate limiting
+app.use('/image', (req, res, next) => {
+    const internal = req.headers['x-posterrama-internal'] === '1';
+    if (internal) return next();
+    return apiLimiter(req, res, next);
+});
 
 // Lightweight template injection for admin.html to stamp asset version
 /**
