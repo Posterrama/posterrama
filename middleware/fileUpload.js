@@ -72,13 +72,7 @@ function createStorage(config) {
                     'posters';
 
                 // Validate directory name
-                const allowedDirectories = [
-                    'posters',
-                    'backgrounds',
-                    'motion',
-                    'complete',
-                    'posterpacks',
-                ];
+                const allowedDirectories = ['posters', 'backgrounds', 'motion', 'complete'];
                 if (!allowedDirectories.includes(targetDirectory)) {
                     return cb(new Error(`Invalid target directory: ${targetDirectory}`));
                 }
@@ -156,7 +150,6 @@ function createFileFilter(config) {
                 posters: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'],
                 backgrounds: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'],
                 motion: ['gif', 'mp4', 'webm', 'avi', 'mov', 'mkv'],
-                posterpacks: ['zip'],
                 complete: ['zip'],
             };
             const fallbackFormats = ld.supportedFormats || [
@@ -251,6 +244,8 @@ async function handleUploadComplete(req, res, _next) {
         for (let i = 0; i < req.files.length; i++) {
             const file = req.files[i];
             const originalName = req.originalFilenames[i];
+            const ext = path.extname(originalName).toLowerCase().slice(1);
+            const targetDir = req.uploadTargetDirectory;
 
             try {
                 // Validate uploaded file
@@ -266,12 +261,13 @@ async function handleUploadComplete(req, res, _next) {
                     continue;
                 }
 
-                // Generate metadata for the file
-                const metadata = await generateFileMetadata(file, originalName);
-
-                // Save metadata
-                const metadataPath = getMetadataPath(file.path);
-                await fs.outputJson(metadataPath, metadata, { spaces: 2 });
+                // Generate metadata for non-ZIP media only. ZIPs (posterpack uploads) do not get sidecar metadata.
+                let metadata = null;
+                if (!(targetDir === 'complete' || ext === 'zip')) {
+                    metadata = await generateFileMetadata(file, originalName);
+                    const metadataPath = getMetadataPath(file.path);
+                    await fs.outputJson(metadataPath, metadata, { spaces: 2 });
+                }
 
                 uploadResults.push({
                     originalName: originalName,
@@ -379,7 +375,7 @@ async function validateFileTypeFromHeader(filePath) {
         }
 
         // Check against valid types
-        const validTypes = ['jpg', 'png', 'gif', 'webp', 'bmp', 'mp4', 'webm', 'avi'];
+        const validTypes = ['jpg', 'png', 'gif', 'webp', 'bmp', 'mp4', 'webm', 'avi', 'zip'];
         return validTypes.includes(fileType.ext);
     } catch (error) {
         logger.error(`FileUpload: File type validation failed for ${filePath}:`, error);

@@ -2,6 +2,12 @@ const EventEmitter = require('events');
 const path = require('path');
 const fs = require('fs-extra');
 const JSZip = require('jszip');
+let sharp;
+try {
+    sharp = require('sharp');
+} catch (_) {
+    sharp = null;
+}
 const logger = require('./logger');
 
 /**
@@ -405,11 +411,13 @@ class JobQueue extends EventEmitter {
         }
 
         // Add optional assets
-        if (includeAssets?.clearart && item.clearart) {
-            const clearartData = await this.downloadAsset(item.clearart, sourceType);
-            if (clearartData) {
-                zip.file('clearart.png', clearartData);
-                assets.clearart = true;
+        // ClearLogo support (prefer new 'clearlogo' field)
+        if (item.clearlogo || (includeAssets?.clearart && item.clearart)) {
+            const logoUrl = item.clearlogo || item.clearart;
+            const clearlogoData = await this.downloadAsset(logoUrl, sourceType);
+            if (clearlogoData) {
+                zip.file('clearlogo.png', clearlogoData);
+                assets.clearlogo = true;
             }
         }
 
@@ -431,18 +439,111 @@ class JobQueue extends EventEmitter {
             }
         }
 
-        // Add metadata
+        // Prepare people images: download thumbs and map to local files
+        const peopleImages = [];
+        const addPeopleImages = async list => {
+            if (!Array.isArray(list)) return [];
+            const out = [];
+            for (const p of list) {
+                if (!p || !p.thumbUrl) {
+                    // Do not carry thumbUrl in metadata; only embed local file reference when available
+                    const rest = p
+                        ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'thumbUrl'))
+                        : {};
+                    out.push(rest);
+                    continue;
+                }
+                try {
+                    let data = await this.downloadAsset(p.thumbUrl, sourceType);
+                    // Skip obviously broken downloads (e.g. 1KB fallbacks)
+                    if (data && data.length > 2048) {
+                        // Optionally resize to fit within 500x500 while preserving aspect ratio
+                        if (sharp) {
+                            try {
+                                data = await sharp(data)
+                                    .resize({
+                                        width: 500,
+                                        height: 500,
+                                        fit: 'inside',
+                                        withoutEnlargement: true,
+                                    })
+                                    .jpeg({ quality: 85 })
+                                    .toBuffer();
+                            } catch (e) {
+                                // If resize fails, keep original buffer
+                                logger.warn('JobQueue: sharp resize failed for person image', {
+                                    error: e.message,
+                                });
+                            }
+                        }
+                        const safeName = (p.name || p.id || 'person')
+                            .toString()
+                            .replace(/[^a-z0-9_-]+/gi, '_');
+                        const filename = `people/${safeName}.jpg`;
+                        zip.file(filename, data);
+                        const rest = Object.fromEntries(
+                            Object.entries(p || {}).filter(([k]) => k !== 'thumbUrl')
+                        );
+                        out.push({ ...rest, thumb: filename });
+                        peopleImages.push(filename);
+                    } else {
+                        const rest = Object.fromEntries(
+                            Object.entries(p || {}).filter(([k]) => k !== 'thumbUrl')
+                        );
+                        out.push(rest);
+                    }
+                } catch (_) {
+                    const rest = Object.fromEntries(
+                        Object.entries(p || {}).filter(([k]) => k !== 'thumbUrl')
+                    );
+                    out.push(rest);
+                }
+            }
+            return out;
+        };
+
+        const castWithThumbs = await addPeopleImages(item.cast || []);
+        const directorsWithThumbs = await addPeopleImages(item.directorsDetailed || []);
+        const writersWithThumbs = await addPeopleImages(item.writersDetailed || []);
+        const producersWithThumbs = await addPeopleImages(item.producersDetailed || []);
+
+        // Add metadata (enriched)
         const metadata = {
             title: item.title,
             year: item.year,
-            genre: item.genre || [],
+            genres: item.genres || item.genre || [],
             rating: item.rating,
+            contentRating: item.contentRating || item.officialRating || null,
             overview: item.overview,
-            cast: item.cast || [],
+            tagline: item.tagline || null,
+            clearlogoPath: assets.clearlogo ? 'clearlogo.png' : null,
+            cast: castWithThumbs,
+            directors: item.directors || [],
+            writers: item.writers || [],
+            producers: item.producers || [],
+            directorsDetailed: directorsWithThumbs,
+            writersDetailed: writersWithThumbs,
+            producersDetailed: producersWithThumbs,
+            studios: item.studios || [],
+            guids: item.guids || [],
+            imdbUrl: item.imdbUrl || null,
+            rottenTomatoes: item.rottenTomatoes || null,
+            releaseDate: item.releaseDate || null,
+            runtimeMs: item.runtimeMs || null,
+            qualityLabel: item.qualityLabel || null,
+            mediaStreams: item.mediaStreams || null,
+            images: {
+                poster: !!assets.poster,
+                background: !!assets.background,
+                clearlogo: !!assets.clearlogo,
+                fanartCount: assets.fanart || 0,
+                discart: !!assets.discart,
+            },
             source: sourceType,
             sourceId: item.id,
             generated: new Date().toISOString(),
             assets: assets,
+            peopleImages: peopleImages,
         };
 
         zip.file('metadata.json', JSON.stringify(metadata, null, 2));

@@ -842,12 +842,25 @@
           "type": "string",
           "default": ""
         },
+        "watchDirectories": {
+          "description": "Additional absolute directories to scan/watch as local media roots (same expected subfolders as rootPath).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
         "scanInterval": {
           "description": "Interval in seconds to scan for file changes.",
           "type": "integer",
           "minimum": 60,
           "maximum": 3600,
           "default": 300
+        },
+        "autoImportPosterpacks": {
+          "description": "Automatically import generated posterpack ZIPs from complete/* into posters/backgrounds/clearlogos. When false, generation only writes ZIP files under complete and no assets are extracted.",
+          "type": "boolean",
+          "default": false
         },
         "generateThumbnails": {
           "description": "Automatically generate thumbnails for image files.",

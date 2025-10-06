@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const chokidar = require('chokidar');
 const mimeTypes = require('mime-types');
 const FileType = require('file-type');
+const AdmZip = require('adm-zip');
 const logger = require('../utils/logger');
 
 /**
@@ -17,6 +18,8 @@ class LocalDirectorySource {
         // Fixed default: use <install>/media when not explicitly set
         this.rootPath = ld.rootPath || path.resolve(process.cwd(), 'media');
         this.watchDirectories = Array.isArray(ld.watchDirectories) ? ld.watchDirectories : [];
+        // Gate automatic ZIP importing (default: off)
+        this.autoImportPosterpacks = ld.autoImportPosterpacks === true;
         // Consolidated list of absolute root directories to use
         this.rootPaths = [this.rootPath, ...this.watchDirectories]
             .filter(Boolean)
@@ -50,13 +53,12 @@ class LocalDirectorySource {
             posterpacks: 0,
         };
 
-        // Directory structure
+        // Directory structure (zip-only semantics: no separate posterpacks/clearlogos dirs)
         this.directories = {
             posters: 'posters',
             backgrounds: 'backgrounds',
             motion: 'motion',
             complete: 'complete',
-            posterpacks: 'posterpacks',
             system: '.posterrama',
         };
 
@@ -71,7 +73,104 @@ class LocalDirectorySource {
             enabled: this.enabled,
             rootPath: this.rootPath,
             scanInterval: this.scanInterval,
+            autoImportPosterpacks: this.autoImportPosterpacks,
         });
+    }
+
+    /**
+     * Helper: test if a filepath is inside one of the "complete" export directories
+     */
+    isInCompleteExport(filePath) {
+        try {
+            const p = path.resolve(filePath);
+            return this.rootPaths.some(base => {
+                const completeDir = path.resolve(base, this.directories.complete);
+                return (p + path.sep).startsWith(completeDir + path.sep) || p === completeDir;
+            });
+        } catch (_) {
+            return false;
+        }
+    }
+
+    /**
+     * Helper: test if a filepath is specifically inside complete/manual (user-provided posterpacks)
+     * Generated packs from Plex/Jellyfin must NOT be auto-imported to posters/backgrounds.
+     */
+    isInManualPosterpack(filePath) {
+        try {
+            const p = path.resolve(filePath);
+            return this.rootPaths.some(base => {
+                const manualDir = path.resolve(base, this.directories.complete, 'manual');
+                return (p + path.sep).startsWith(manualDir + path.sep) || p === manualDir;
+            });
+        } catch (_) {
+            return false;
+        }
+    }
+
+    /**
+     * Import all posterpack ZIPs from complete/*-export and manual folders into posters/backgrounds
+     * Best-effort and idempotent: skips if destination files already exist.
+     */
+    async importPosterpacks(options = {}) {
+        // ZIP-only semantics: do not extract. Optionally copy generated ZIPs into complete/manual.
+        const { includeGenerated = false } = options;
+        let copied = 0;
+        for (const base of this.rootPaths) {
+            const completeRoot = path.join(base, this.directories.complete);
+            const manualDir = path.join(completeRoot, 'manual');
+            try {
+                await fs.ensureDir(manualDir);
+            } catch (e) {
+                logger.warn(`LocalDirectorySource: Failed to ensure manual dir: ${e?.message}`);
+            }
+            if (includeGenerated) {
+                for (const sub of ['plex-export', 'jellyfin-export']) {
+                    const dir = path.join(completeRoot, sub);
+                    const exists = await fs.pathExists(dir);
+                    if (!exists) continue;
+                    let entries = [];
+                    try {
+                        entries = await fs.readdir(dir, { withFileTypes: true });
+                    } catch (e) {
+                        logger.debug(`LocalDirectorySource: Failed to read ${dir}: ${e?.message}`);
+                    }
+                    for (const ent of entries) {
+                        if (!ent.isFile()) continue;
+                        if (!/\.zip$/i.test(ent.name)) continue;
+                        const src = path.join(dir, ent.name);
+                        const dst = path.join(manualDir, ent.name);
+                        try {
+                            const existsDst = await fs.pathExists(dst);
+                            if (!existsDst) {
+                                await fs.copy(src, dst);
+                                copied++;
+                            }
+                        } catch (e) {
+                            logger.warn(
+                                `LocalDirectorySource: Failed to copy ${src} → ${dst}: ${e?.message}`
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        if (copied > 0) {
+            this.metrics.posterpacks += copied;
+            logger.info(
+                `LocalDirectorySource: Copied ${copied} posterpack ZIP(s) into complete/manual`
+            );
+        }
+        return copied;
+    }
+
+    /**
+     * Process a single posterpack ZIP and extract poster/background and metadata
+     * Returns true if at least one asset was imported, false otherwise
+     */
+    // Deprecated: no longer extracts posterpack ZIPs; kept for backward compatibility
+    async processPosterpackZip(_zipFilePath, _options = {}) {
+        return false;
     }
 
     /**
@@ -236,6 +335,81 @@ class LocalDirectorySource {
             // Read directory contents
             const items = await fs.readdir(targetPath, { withFileTypes: true });
 
+            // helper: compute recursive directory size with simple cycle guard
+            const dirSize = async dir => {
+                let total = 0;
+                const stack = [dir];
+                const visited = new Set();
+                while (stack.length) {
+                    const cur = stack.pop();
+                    if (visited.has(cur)) continue;
+                    visited.add(cur);
+                    let entries;
+                    try {
+                        entries = await fs.readdir(cur, { withFileTypes: true });
+                    } catch (_) {
+                        continue;
+                    }
+                    for (const ent of entries) {
+                        if (
+                            ent.name === this.directories.system ||
+                            ent.name.endsWith('.poster.json')
+                        )
+                            continue;
+                        const full = path.join(cur, ent.name);
+                        try {
+                            const st = await fs.stat(full);
+                            if (st.isDirectory()) stack.push(full);
+                            else if (st.isFile()) total += st.size;
+                        } catch (e) {
+                            logger.debug(
+                                `LocalDirectorySource: Failed to stat during size calc for ${full}: ${e?.message}`
+                            );
+                        }
+                    }
+                }
+                return total;
+            };
+
+            // helper: recursively count files (not directories) under a folder
+            const dirFileCount = async dir => {
+                let total = 0;
+                const stack = [dir];
+                const visited = new Set();
+                while (stack.length) {
+                    const cur = stack.pop();
+                    if (visited.has(cur)) continue;
+                    visited.add(cur);
+                    let entries;
+                    try {
+                        entries = await fs.readdir(cur, { withFileTypes: true });
+                    } catch (_) {
+                        continue;
+                    }
+                    for (const ent of entries) {
+                        if (
+                            ent.name === this.directories.system ||
+                            ent.name.endsWith('.poster.json')
+                        )
+                            continue;
+                        const full = path.join(cur, ent.name);
+                        try {
+                            const st = await fs.stat(full);
+                            if (st.isDirectory()) {
+                                stack.push(full);
+                            } else if (st.isFile()) {
+                                total += 1;
+                            }
+                        } catch (e) {
+                            logger.debug(
+                                `LocalDirectorySource: Failed to stat during count for ${full}: ${e?.message}`
+                            );
+                        }
+                    }
+                }
+                return total;
+            };
+
             const directories = [];
             const files = [];
 
@@ -246,7 +420,23 @@ class LocalDirectorySource {
                         if (item.name === this.directories.system) {
                             continue;
                         }
-                        if (type === 'all' || type === 'directories') directories.push(item.name);
+                        if (type === 'all' || type === 'directories') {
+                            // compute size recursively and count files recursively (folders not counted)
+                            let sizeBytes = 0;
+                            let itemCount = 0;
+                            try {
+                                sizeBytes = await dirSize(path.join(targetPath, item.name));
+                                itemCount = await dirFileCount(path.join(targetPath, item.name));
+                            } catch (e) {
+                                logger.debug(
+                                    `LocalDirectorySource: Failed to compute dir size for ${path.join(
+                                        targetPath,
+                                        item.name
+                                    )}: ${e?.message}`
+                                );
+                            }
+                            directories.push({ name: item.name, sizeBytes, itemCount });
+                        }
                     } else if (item.isSymbolicLink()) {
                         // Include symlinked directories
                         const linkPath = path.join(targetPath, item.name);
@@ -256,14 +446,76 @@ class LocalDirectorySource {
                             item.name !== this.directories.system &&
                             (type === 'all' || type === 'directories')
                         ) {
-                            directories.push(item.name);
+                            let sizeBytes = 0;
+                            let itemCount = 0;
+                            try {
+                                sizeBytes = await dirSize(linkPath);
+                                itemCount = await dirFileCount(linkPath);
+                            } catch (e) {
+                                logger.debug(
+                                    `LocalDirectorySource: Failed to compute symlinked dir size for ${linkPath}: ${e?.message}`
+                                );
+                            }
+                            directories.push({ name: item.name, sizeBytes, itemCount });
                         }
                     } else if (item.isFile()) {
                         // Hide generated metadata files from listings
                         if (item.name.endsWith('.poster.json')) {
                             continue;
                         }
-                        if (type === 'all' || type === 'files') files.push(item.name);
+                        if (type === 'all' || type === 'files') {
+                            let sizeBytes = 0;
+                            let zipPills = null;
+                            try {
+                                const st = await fs.stat(path.join(targetPath, item.name));
+                                if (st?.isFile()) sizeBytes = st.size;
+                                // If this is a ZIP inside complete/*, summarize its contents
+                                if (/\.zip$/i.test(item.name)) {
+                                    const fullZip = path.join(targetPath, item.name);
+                                    if (this.isInCompleteExport(fullZip)) {
+                                        try {
+                                            const zip = new AdmZip(fullZip);
+                                            const entries = zip
+                                                .getEntries()
+                                                .filter(e => !e.isDirectory);
+                                            const has = pattern =>
+                                                entries.some(e => pattern.test(e.entryName));
+                                            zipPills = [];
+                                            if (has(/(^|\/)poster\.(jpg|jpeg|png|webp)$/i))
+                                                zipPills.push('poster');
+                                            if (
+                                                has(
+                                                    /(^|\/)(background|backdrop)\.(jpg|jpeg|png|webp)$/i
+                                                )
+                                            )
+                                                zipPills.push('background');
+                                            if (has(/(^|\/)clearlogo\.(png|webp)$/i))
+                                                zipPills.push('clearlogo');
+                                            if (has(/(^|\/)metadata\.json$/i))
+                                                zipPills.push('metadata');
+                                            if (has(/(^|\/)cd\.(jpg|jpeg|png|webp|svg)$/i))
+                                                zipPills.push('cd');
+                                            if (has(/(^|\/)disc\.(jpg|jpeg|png|webp|svg)$/i))
+                                                zipPills.push('disc');
+                                        } catch (e) {
+                                            logger.debug(
+                                                `LocalDirectorySource: ZIP summary failed for ${fullZip}: ${e?.message}`
+                                            );
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                logger.debug(
+                                    `LocalDirectorySource: Failed to stat file for size ${path.join(
+                                        targetPath,
+                                        item.name
+                                    )}: ${e?.message}`
+                                );
+                            }
+                            const fileEntry = { name: item.name, sizeBytes };
+                            if (zipPills && zipPills.length) fileEntry.zipPills = zipPills;
+                            files.push(fileEntry);
+                        }
                     }
                 } catch (e) {
                     // Skip entries we cannot stat
@@ -276,8 +528,8 @@ class LocalDirectorySource {
             return {
                 basePath: base,
                 currentPath: targetPath,
-                directories: directories.sort(),
-                files: files.sort(),
+                directories: directories.sort((a, b) => a.name.localeCompare(b.name)),
+                files: files.sort((a, b) => a.name.localeCompare(b.name)),
                 totalItems: directories.length + files.length,
             };
         } catch (error) {
@@ -492,7 +744,6 @@ class LocalDirectorySource {
                 path.join(this.directories.complete, 'plex-export'),
                 path.join(this.directories.complete, 'jellyfin-export'),
                 path.join(this.directories.complete, 'manual'),
-                this.directories.posterpacks,
                 this.directories.system,
                 path.join(this.directories.system, 'logs'),
             ];
@@ -594,6 +845,8 @@ class LocalDirectorySource {
                 // Clear cache for this file
                 this.indexCache.delete(filePath);
                 logger.info(`LocalDirectorySource: New file detected: ${filePath}`);
+
+                // ZIP posterpacks under complete/manual are not extracted automatically.
             }
         } catch (error) {
             logger.error(`LocalDirectorySource: Error handling added file ${filePath}:`, error);
@@ -816,6 +1069,22 @@ class LocalDirectorySource {
             await this.createDirectoryStructure();
             await this.startFileWatcher();
 
+            // Import any existing posterpacks (manual only by default) so the screensaver can use them automatically
+            if (this.autoImportPosterpacks === true) {
+                try {
+                    // By default, only import from complete/manual to avoid mass-importing generated exports
+                    await this.importPosterpacks({ includeGenerated: false });
+                } catch (e) {
+                    logger.warn(
+                        `LocalDirectorySource: Initial posterpack import encountered issues: ${e?.message}`
+                    );
+                }
+            } else {
+                logger.info(
+                    'LocalDirectorySource: Auto-import of posterpacks is disabled (ZIPs will remain only under complete/*).'
+                );
+            }
+
             logger.info('LocalDirectorySource: Initialization completed');
         } catch (error) {
             await this.handleError('initialization', error);
@@ -884,6 +1153,35 @@ class LocalDirectorySource {
                                 path: targetPath,
                                 status: dryRun ? 'would_delete' : 'deleted',
                             });
+                        }
+
+                        // If caller deleted or cleared the 'complete' root, ensure its subdirectories exist again
+                        // We do this after either delete-contents or delete operations (only when not a dryRun)
+                        if (!dryRun) {
+                            for (const base of this.rootPaths) {
+                                const completeRoot = path.join(base, this.directories.complete);
+                                if (
+                                    resolvedPath === completeRoot ||
+                                    // handle delete-contents on complete root
+                                    (type === 'delete-contents' && resolvedPath === completeRoot)
+                                ) {
+                                    try {
+                                        // Recreate the known subdirectories under complete
+                                        await fs.ensureDir(path.join(completeRoot, 'plex-export'));
+                                        await fs.ensureDir(
+                                            path.join(completeRoot, 'jellyfin-export')
+                                        );
+                                        await fs.ensureDir(path.join(completeRoot, 'manual'));
+                                        logger.info(
+                                            'LocalDirectorySource: Recreated complete/* subdirectories after cleanup operation'
+                                        );
+                                    } catch (e) {
+                                        logger.warn(
+                                            `LocalDirectorySource: Failed to recreate complete subdirectories: ${e?.message}`
+                                        );
+                                    }
+                                }
+                            }
                         }
                     } catch (error) {
                         results.errors.push({

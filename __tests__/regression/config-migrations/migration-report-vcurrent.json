@@ -1,6 +1,6 @@
 {
   "version": "current",
-  "timestamp": "2025-10-05T09:24:56.033Z",
+  "timestamp": "2025-10-06T11:22:39.154Z",
   "results": {
     "minimal": {
       "oldConfigValid": false,
@@ -363,6 +363,8 @@
         "localDirectory": {
           "enabled": false,
           "rootPath": "",
+          "watchDirectories": [],
+          "autoImportPosterpacks": false,
           "scanInterval": 300,
           "generateThumbnails": true,
           "maxFileSize": 104857600,
@@ -745,6 +747,8 @@
         "localDirectory": {
           "enabled": false,
           "rootPath": "",
+          "watchDirectories": [],
+          "autoImportPosterpacks": false,
           "scanInterval": 300,
           "generateThumbnails": true,
           "maxFileSize": 104857600,

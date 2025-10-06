@@ -16,23 +16,23 @@
     "cinemaOrientation": "string",
     "wallartMode": {
       "enabled": "boolean",
+      "itemsPerScreen": "number",
+      "columns": "number",
+      "transitionInterval": "number",
       "density": "string",
       "refreshRate": "number",
       "randomness": "number",
       "animationType": "string",
       "layoutVariant": "string",
-      "itemsPerScreen": "number",
-      "columns": "number",
-      "transitionInterval": "number",
+      "ambientGradient": "boolean",
+      "autoRefresh": "boolean",
       "layoutSettings": {
         "heroGrid": {
           "heroSide": "string",
           "heroRotationMinutes": "number",
           "biasAmbientToHero": "boolean"
         }
-      },
-      "ambientGradient": "boolean",
-      "autoRefresh": "boolean"
+      }
     },
     "transitionIntervalSeconds": "number",
     "backgroundRefreshMinutes": "number",
@@ -48,13 +48,13 @@
       "durationSeconds": "number"
     },
     "uiScaling": {
+      "global": "number",
       "content": "number",
       "clearlogo": "number",
-      "clock": "number",
-      "global": "number"
+      "clock": "number"
     }
   },
-  "timestamp": "2025-10-05T09:25:09.176Z",
+  "timestamp": "2025-10-06T11:22:53.792Z",
   "description": "Primary configuration endpoint - breaking changes affect all clients",
   "criticality": "HIGH"
 }

@@ -4863,13 +4863,11 @@ select:not([multiple]) {
 
 /* Posterpack: make Content Source select shrink to its content */
 #posterpack-source-wrap {
-    width: -moz-fit-content;
-    width: fit-content;
+    width: 640px; /* ensure wrapper itself is wide */
+    max-width: 100%;
 }
 #posterpack-source-wrap select {
-    /* Make roughly 2x wider while staying responsive */
-    width: 640px;
-    max-width: 100%;
+    width: 100%; /* fill wrapper width */
 }
 .select-wrap.has-caret select {
     /* remove native background chevron since we render our own */
@@ -5321,6 +5319,11 @@ select:not([multiple]) {
 
 /* Search box adaptation within override keys head */
 #modal-override .override-keys-panel .search-box {
+    .status-pill.sp-size.sp-zip {
+        opacity: 0.85;
+        background: rgba(120, 120, 120, 0.12);
+        border-color: rgba(120, 120, 120, 0.28);
+    }
     height: 30px;
     padding: 0 6px 0 8px;
     background: var(--color-bg-tertiary);
@@ -12861,12 +12864,25 @@ select:focus-visible {
 .browser-item-name {
     flex: 1;
     font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center; /* vertical center alignment for text and pill */
+    gap: 6px; /* slightly tighter space between name and pill */
+    min-width: 0; /* allow text to truncate if needed */
 }
 
+/* Deprecated: we no longer use a separate size column; keep minimal width to avoid layout shift if present */
 .browser-item-size {
-    font-size: 0.75rem;
-    color: var(--color-text-tertiary);
-    margin-left: 1rem;
+    display: none;
+}
+
+/* Compact pill next to names for sizes */
+.status-pill.sp-size {
+    margin-left: 6px; /* closer to the name */
+    padding: 1px 6px; /* smaller, subtler */
+    line-height: 1.1; /* visual centering */
+    background: rgba(255, 255, 255, 0.04); /* lighter contrast */
+    border-color: rgba(255, 255, 255, 0.08); /* soften border */
+    font-size: var(--font-size-xs); /* smaller than regular pills */
 }
 
 .browser-item-actions {
@@ -12925,9 +12941,18 @@ select:focus-visible {
     color: var(--color-accent);
 }
 
+/* Alias running to processing for consistent look */
+.job-status.running {
+    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+    color: var(--color-accent);
+}
+
 .job-status.completed {
-    background: color-mix(in srgb, green 20%, transparent);
-    color: green;
+    /* Lighter background, clearer border, readable green text */
+    background: color-mix(in srgb, #37d27a 28%, transparent);
+    color: #37d27a;
+    border: 1px solid color-mix(in srgb, #37d27a 40%, transparent);
+    font-weight: 600;
 }
 
 .job-status.failed {

@@ -1,6 +1,7 @@
 const logger = require('./utils/logger');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
 // Test-safe wrapper for fatal exits: suppress actual process termination during Jest
 // so a single initialization failure doesn't abort the whole suite. In test mode we
@@ -283,7 +284,6 @@ const deepMerge = require('./utils/deep-merge');
 const deviceStore = require('./utils/deviceStore');
 const groupsStore = require('./utils/groupsStore');
 const wsHub = require('./utils/wsHub');
-const axios = require('axios');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 // Some parts of the code use an uppercase alias
@@ -359,10 +359,8 @@ if (config.localDirectory && config.localDirectory.enabled) {
         plex: {
             fetchLibraryItems: async libraryId => {
                 try {
-                    // Pick first enabled Plex server
-                    const serverConfig = (config.mediaServers || []).find(
-                        s => s.type === 'plex' && s.enabled
-                    );
+                    // Pick first configured Plex server (enabled or not) for generation
+                    const serverConfig = (config.mediaServers || []).find(s => s.type === 'plex');
                     if (!serverConfig) return [];
                     const plex = getPlexClient(serverConfig);
                     // Fetch all items from section by key
@@ -392,12 +390,29 @@ if (config.localDirectory && config.localDirectory.enabled) {
                                 // Map normalized URLs to expected fields for ZIP builder
                                 poster: processed.posterUrl || processed.poster,
                                 background: processed.backgroundUrl || processed.backdropUrl,
-                                clearart: processed.clearLogoUrl || null,
+                                clearlogo: processed.clearLogoUrl || null,
                                 genres: Array.isArray(processed.genres)
                                     ? processed.genres
                                     : undefined,
                                 contentRating: processed.contentRating || undefined,
                                 qualityLabel: processed.qualityLabel || undefined,
+                                // Rich metadata (best-effort)
+                                overview: processed.overview || processed.tagline || undefined,
+                                tagline: processed.tagline || undefined,
+                                imdbUrl: processed.imdbUrl || undefined,
+                                rottenTomatoes: processed.rottenTomatoes || undefined,
+                                studios: processed.studios || undefined,
+                                cast: processed.cast || undefined,
+                                directorsDetailed: processed.directorsDetailed || undefined,
+                                writersDetailed: processed.writersDetailed || undefined,
+                                producersDetailed: processed.producersDetailed || undefined,
+                                directors: processed.directors || undefined,
+                                writers: processed.writers || undefined,
+                                producers: processed.producers || undefined,
+                                guids: processed.guids || undefined,
+                                releaseDate: processed.releaseDate || undefined,
+                                runtimeMs: processed.runtimeMs || undefined,
+                                mediaStreams: processed.mediaStreams || undefined,
                             });
                         } catch (e) {
                             // Skip problematic item
@@ -415,9 +430,9 @@ if (config.localDirectory && config.localDirectory.enabled) {
         jellyfin: {
             fetchLibraryItems: async libraryId => {
                 try {
-                    // Pick first enabled Jellyfin server
+                    // Pick first configured Jellyfin server (enabled or not) for generation
                     const serverConfig = (config.mediaServers || []).find(
-                        s => s.type === 'jellyfin' && s.enabled
+                        s => s.type === 'jellyfin'
                     );
                     if (!serverConfig) return [];
                     const client = await getJellyfinClient(serverConfig);
@@ -450,12 +465,27 @@ if (config.localDirectory && config.localDirectory.enabled) {
                                     poster: processed.posterUrl || processed.poster,
                                     background:
                                         processed.backgroundUrl || processed.backdropUrl || null,
-                                    clearart: processed.clearLogoUrl || null,
+                                    clearlogo: processed.clearLogoUrl || null,
                                     genres: Array.isArray(processed.genres)
                                         ? processed.genres
                                         : undefined,
                                     officialRating: processed.officialRating || undefined,
                                     qualityLabel: processed.qualityLabel || undefined,
+                                    // Rich metadata from Jellyfin
+                                    overview: processed.overview || processed.tagline || undefined,
+                                    tagline: processed.tagline || undefined,
+                                    studios: processed.studios || undefined,
+                                    cast: processed.cast || undefined,
+                                    directorsDetailed: processed.directorsDetailed || undefined,
+                                    writersDetailed: processed.writersDetailed || undefined,
+                                    producersDetailed: processed.producersDetailed || undefined,
+                                    directors: processed.directors || undefined,
+                                    writers: processed.writers || undefined,
+                                    producers: processed.producers || undefined,
+                                    guids: processed.guids || undefined,
+                                    releaseDate: processed.releaseDate || undefined,
+                                    runtimeMs: processed.runtimeMs || undefined,
+                                    mediaStreams: processed.mediaStreams || undefined,
                                 });
                             } catch (e) {
                                 if (isDebug)
@@ -491,6 +521,17 @@ if (config.localDirectory && config.localDirectory.enabled) {
         jobQueue: !!jobQueue,
         localSource: !!localDirectorySource,
     });
+
+    // Initialize local directory source (create folders, start watcher)
+    try {
+        // Fire and forget; errors are handled inside initialize()
+        Promise.resolve(localDirectorySource.initialize()).catch(() => {});
+    } catch (_) {
+        // non-fatal
+    }
+
+    // Note: We intentionally do not auto-import generated ZIPs after posterpack jobs complete.
+    // Generation should only create ZIPs under complete/*-export; importing into posters/backgrounds is a manual action.
 }
 
 // Metrics system
@@ -1202,6 +1243,53 @@ const adminFilterPreviewCache = new Map(); // key -> { ts, value }
 app.get('/api/_internal/health-debug', (req, res) => {
     res.json({ ok: true, ts: Date.now(), pid: process.pid });
 });
+
+// Serve Local Directory media (images/videos) securely from configured roots
+// Example URL shape produced by LocalDirectorySource: /local-media/posters/My%20Movie.jpg
+app.get(
+    '/local-media/*',
+    asyncHandler(async (req, res) => {
+        try {
+            if (!config.localDirectory?.enabled || !localDirectorySource) {
+                return res.status(404).send('Local directory support not enabled');
+            }
+
+            // Decode and sanitize the requested relative path
+            const encodedRel = req.path.replace(/^\/local-media\//, '');
+            const rel = decodeURIComponent(encodedRel);
+
+            // Basic traversal protection
+            if (!rel || rel.includes('..') || path.isAbsolute(rel)) {
+                return res.status(400).send('Invalid path');
+            }
+
+            // Try to resolve against each configured root path
+            const bases = Array.isArray(localDirectorySource.rootPaths)
+                ? localDirectorySource.rootPaths
+                : [localDirectorySource.rootPath].filter(Boolean);
+
+            for (const base of bases) {
+                const full = path.resolve(base, rel);
+                const withinBase = full === base || (full + path.sep).startsWith(base + path.sep);
+                if (!withinBase) continue;
+                try {
+                    const stat = await fsp.stat(full);
+                    if (!stat.isFile()) continue;
+                    // Set sensible cache headers; images are immutable once placed
+                    res.setHeader('Cache-Control', 'public, max-age=86400');
+                    return res.sendFile(full);
+                } catch (_) {
+                    // try next base
+                }
+            }
+
+            return res.status(404).send('File not found');
+        } catch (err) {
+            logger.error('[Local Media] Failed to serve file', { error: err.message });
+            return res.status(500).send('Internal server error');
+        }
+    })
+);
 
 /**
  * @swagger
@@ -4808,6 +4896,111 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
                 ? sourceItem.Genre.map(genre => genre.tag)
                 : null;
 
+        // Gather rich metadata (best-effort)
+        const studios = Array.isArray(sourceItem.Studio)
+            ? sourceItem.Studio.map(s => (s && s.tag) || s).filter(Boolean)
+            : sourceItem.studio
+              ? [sourceItem.studio]
+              : null;
+        const cast = Array.isArray(sourceItem.Role)
+            ? sourceItem.Role.map(r => {
+                  const name = r.tag || r.tagKey || r.tagValue || r.role || undefined;
+                  if (!name && !r.role) return null;
+                  const thumbPath = r.thumb || r.Thumb;
+                  let thumbUrl = null;
+                  if (thumbPath) {
+                      const isAbsolute = /^https?:\/\//i.test(String(thumbPath));
+                      thumbUrl = isAbsolute
+                          ? `/image?url=${encodeURIComponent(String(thumbPath))}`
+                          : `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(
+                                String(thumbPath)
+                            )}`;
+                  }
+                  return {
+                      name,
+                      role: r.role || undefined,
+                      id: r.id || undefined,
+                      thumbUrl: thumbUrl || undefined,
+                  };
+              }).filter(x => x && (x.name || x.role))
+            : null;
+        const directors = Array.isArray(sourceItem.Director)
+            ? sourceItem.Director.map(d => d.tag).filter(Boolean)
+            : null;
+        const writers = Array.isArray(sourceItem.Writer)
+            ? sourceItem.Writer.map(w => w.tag).filter(Boolean)
+            : null;
+        const producers = Array.isArray(sourceItem.Producer)
+            ? sourceItem.Producer.map(p => p.tag).filter(Boolean)
+            : null;
+        // Detailed lists including thumbs
+        const directorsDetailed = Array.isArray(sourceItem.Director)
+            ? sourceItem.Director.map(d => {
+                  const thumbPath = d.thumb || d.Thumb;
+                  const isAbsolute = thumbPath && /^https?:\/\//i.test(String(thumbPath));
+                  return {
+                      name: d.tag,
+                      id: d.id || undefined,
+                      thumbUrl: thumbPath
+                          ? isAbsolute
+                              ? `/image?url=${encodeURIComponent(String(thumbPath))}`
+                              : `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(
+                                    String(thumbPath)
+                                )}`
+                          : undefined,
+                  };
+              }).filter(e => e.name)
+            : null;
+        const writersDetailed = Array.isArray(sourceItem.Writer)
+            ? sourceItem.Writer.map(w => {
+                  const thumbPath = w.thumb || w.Thumb;
+                  const isAbsolute = thumbPath && /^https?:\/\//i.test(String(thumbPath));
+                  return {
+                      name: w.tag,
+                      id: w.id || undefined,
+                      thumbUrl: thumbPath
+                          ? isAbsolute
+                              ? `/image?url=${encodeURIComponent(String(thumbPath))}`
+                              : `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(
+                                    String(thumbPath)
+                                )}`
+                          : undefined,
+                  };
+              }).filter(e => e.name)
+            : null;
+        const producersDetailed = Array.isArray(sourceItem.Producer)
+            ? sourceItem.Producer.map(p => {
+                  const thumbPath = p.thumb || p.Thumb;
+                  const isAbsolute = thumbPath && /^https?:\/\//i.test(String(thumbPath));
+                  return {
+                      name: p.tag,
+                      id: p.id || undefined,
+                      thumbUrl: thumbPath
+                          ? isAbsolute
+                              ? `/image?url=${encodeURIComponent(String(thumbPath))}`
+                              : `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(
+                                    String(thumbPath)
+                                )}`
+                          : undefined,
+                  };
+              }).filter(e => e.name)
+            : null;
+        const guids = Array.isArray(sourceItem.Guid) ? sourceItem.Guid.map(g => g.id) : null;
+        const releaseDate = sourceItem.originallyAvailableAt || sourceItem.firstAired || null;
+        const runtimeMs = Number.isFinite(Number(sourceItem.duration))
+            ? Number(sourceItem.duration)
+            : null;
+        // Flatten minimal media streams info (video/audio codecs and resolution)
+        let mediaStreams = null;
+        if (Array.isArray(sourceItem.Media)) {
+            mediaStreams = sourceItem.Media.map(m => ({
+                videoResolution: m.videoResolution || null,
+                videoCodec: m.videoCodec || null,
+                audioCodec: m.audioCodec || null,
+                audioChannels: m.audioChannels || null,
+            }));
+        }
+
         return {
             key: uniqueKey,
             title: sourceItem.title,
@@ -4828,6 +5021,19 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
                     ? sourceItem.Genre.map(genre => genre.id)
                     : null,
             qualityLabel: qualityLabel,
+            overview: sourceItem.summary || null,
+            studios,
+            cast,
+            directors,
+            writers,
+            producers,
+            directorsDetailed,
+            writersDetailed,
+            producersDetailed,
+            guids,
+            releaseDate,
+            runtimeMs,
+            mediaStreams,
             // Expose a unified timestamp for "recently added" client-side filtering
             // Plex provides addedAt as seconds since epoch; convert to ms. If missing, use null.
             addedAtMs:
@@ -5721,6 +5927,84 @@ function processJellyfinItem(item, serverConfig, client) {
             addedAtMs: item.DateCreated ? new Date(item.DateCreated).getTime() : null,
         };
 
+        // Enrich with best-effort fields for posterpack metadata
+        try {
+            processedItem.studios = Array.isArray(item.Studios)
+                ? item.Studios.map(s => (s && (s.Name || s.Id)) || s).filter(Boolean)
+                : [];
+        } catch (_) {
+            // ignore enrichment failures for studios
+        }
+        try {
+            const people = Array.isArray(item.People) ? item.People : [];
+            const mapThumb = pid =>
+                pid ? `/image?url=${encodeURIComponent(client.getImageUrl(pid, 'Primary'))}` : null;
+            processedItem.cast = people
+                .filter(p => p && p.Type === 'Actor')
+                .map(p => ({
+                    name: p.Name,
+                    role: p.Role || p.Type,
+                    id: p.Id,
+                    thumbUrl: mapThumb(p.Id) || undefined,
+                }))
+                .filter(x => x && x.name);
+            processedItem.directors = people
+                .filter(p => p && p.Type === 'Director')
+                .map(p => p.Name)
+                .filter(Boolean);
+            processedItem.writers = people
+                .filter(p => p && (p.Type === 'Writer' || p.Type === 'Screenwriter'))
+                .map(p => p.Name)
+                .filter(Boolean);
+            processedItem.producers = people
+                .filter(p => p && p.Type === 'Producer')
+                .map(p => p.Name)
+                .filter(Boolean);
+            // Detailed lists for people with thumbs
+            processedItem.directorsDetailed = people
+                .filter(p => p && p.Type === 'Director')
+                .map(p => ({ name: p.Name, id: p.Id, thumbUrl: mapThumb(p.Id) || undefined }))
+                .filter(e => e.name);
+            processedItem.writersDetailed = people
+                .filter(p => p && (p.Type === 'Writer' || p.Type === 'Screenwriter'))
+                .map(p => ({ name: p.Name, id: p.Id, thumbUrl: mapThumb(p.Id) || undefined }))
+                .filter(e => e.name);
+            processedItem.producersDetailed = people
+                .filter(p => p && p.Type === 'Producer')
+                .map(p => ({ name: p.Name, id: p.Id, thumbUrl: mapThumb(p.Id) || undefined }))
+                .filter(e => e.name);
+        } catch (_) {
+            // ignore enrichment failures for people extraction
+        }
+        try {
+            processedItem.releaseDate = item.PremiereDate || item.ProductionYear || null;
+            processedItem.runtimeMs = Number.isFinite(Number(item.RunTimeTicks))
+                ? Math.round(Number(item.RunTimeTicks) / 10000) // ticks to ms
+                : null;
+        } catch (_) {
+            // ignore enrichment failures for release/runtime fields
+        }
+        try {
+            // Flatten minimal media stream info
+            const mediaStreams = [];
+            const sources2 = Array.isArray(item.MediaSources) ? item.MediaSources : [];
+            for (const source of sources2) {
+                const streams = Array.isArray(source.MediaStreams) ? source.MediaStreams : [];
+                const v = streams.find(s => s.Type === 'Video');
+                const a = streams.find(s => s.Type === 'Audio');
+                mediaStreams.push({
+                    videoResolution:
+                        v?.Height || v?.Width ? `${v.Height || ''}x${v.Width || ''}` : null,
+                    videoCodec: v?.Codec || null,
+                    audioCodec: a?.Codec || null,
+                    audioChannels: a?.Channels || null,
+                });
+            }
+            if (mediaStreams.length) processedItem.mediaStreams = mediaStreams;
+        } catch (_) {
+            // ignore mediaStreams extraction issues
+        }
+
         // Add type-specific metadata
         if (mediaType === 'movie') {
             processedItem.runtime = item.RunTimeTicks
@@ -5902,19 +6186,56 @@ async function getPlaylistMedia() {
         if (isDebug) logger.debug(`[Debug] Fetching from Local Directory source`);
 
         try {
-            // Determine limits for local directory content
-            const localMovieLimit = FIXED_LIMITS.TMDB_MOVIES; // Use same limit as TMDB
-            const localShowLimit = FIXED_LIMITS.TMDB_TV;
+            // Determine limits for local directory content (treat as posters/backgrounds)
+            const localPosterLimit = FIXED_LIMITS.TMDB_MOVIES; // reuse TMDB limits for balance
+            const localBackgroundLimit = FIXED_LIMITS.TMDB_TV;
 
-            const [localMovies, localShows] = await Promise.all([
-                localDirectorySource.fetchMedia([''], 'movie', localMovieLimit),
-                localDirectorySource.fetchMedia([''], 'show', localShowLimit),
+            let [localPosters, localBackgrounds] = await Promise.all([
+                localDirectorySource.fetchMedia([''], 'poster', localPosterLimit),
+                localDirectorySource.fetchMedia([''], 'background', localBackgroundLimit),
             ]);
+
+            // If nothing found and auto-import is enabled, try importing once (manual posterpacks only) and retry fetch
+            if (
+                Array.isArray(localPosters) &&
+                Array.isArray(localBackgrounds) &&
+                localPosters.length === 0 &&
+                localBackgrounds.length === 0 &&
+                config.localDirectory.autoImportPosterpacks === true &&
+                typeof localDirectorySource.importPosterpacks === 'function'
+            ) {
+                try {
+                    // Only attempt manual imports here; generated exports should not be auto-imported during fetch
+                    const imported = await localDirectorySource.importPosterpacks({
+                        includeGenerated: false,
+                    });
+                    if (imported > 0) {
+                        const retried = await Promise.all([
+                            localDirectorySource.fetchMedia([''], 'poster', localPosterLimit),
+                            localDirectorySource.fetchMedia(
+                                [''],
+                                'background',
+                                localBackgroundLimit
+                            ),
+                        ]);
+                        localPosters = retried[0] || [];
+                        localBackgrounds = retried[1] || [];
+                        logger.info(
+                            '[Local Directory] Performed auto-import from manual posterpacks and retried fetch',
+                            { imported }
+                        );
+                    }
+                } catch (e) {
+                    logger.warn('[Local Directory] Auto-import on empty fetch failed', {
+                        error: e?.message,
+                    });
+                }
+            }
 
             // Update lastFetch for local directory
             try {
                 const m = localDirectorySource.getMetrics();
-                const lf = m?.lastFetch ? new Date(m.lastFetch) : null;
+                const lf = m?.lastScan ? new Date(m.lastScan) : null;
                 if (lf && !isNaN(lf)) {
                     latestLastFetch.local = Math.max(latestLastFetch.local || 0, lf.getTime());
                 }
@@ -5922,16 +6243,42 @@ async function getPlaylistMedia() {
                 // Non-fatal
             }
 
-            const localMedia = localMovies.concat(localShows);
+            // Normalize Local items to the common shape expected by the client (posterUrl/backgroundUrl)
+            const normalizeLocalItem = item => {
+                const baseId =
+                    item?.sourceId ||
+                    item?.id ||
+                    (item?.localPath ? path.basename(item.localPath) : item?.originalFilename) ||
+                    item?.poster ||
+                    Math.random().toString(36).slice(2);
+                const isBackground = (item?.directory || '').toLowerCase() === 'backgrounds';
+                return {
+                    id: `local-${baseId}`,
+                    title: item?.title || item?.originalFilename || 'Local Item',
+                    year: item?.year || null,
+                    posterUrl: isBackground ? null : item?.poster || null,
+                    backgroundUrl: isBackground ? item?.poster || null : null,
+                    clearLogoUrl: item?.metadata?.clearlogoPath || item?.clearlogoPath || null,
+                    source: 'local',
+                };
+            };
+
+            const normalized = []
+                .concat(Array.isArray(localPosters) ? localPosters.map(normalizeLocalItem) : [])
+                .concat(
+                    Array.isArray(localBackgrounds) ? localBackgrounds.map(normalizeLocalItem) : []
+                );
 
             if (isDebug)
-                logger.debug(`[Debug] Fetched ${localMedia.length} items from Local Directory.`);
-
-            if (localMedia.length > 0) {
-                logger.info(
-                    `[Local Directory] Successfully fetched ${localMedia.length} items (${localMovies.length} movies, ${localShows.length} shows)`
+                logger.debug(
+                    `[Debug] Fetched ${normalized.length} items from Local Directory (${localPosters.length} posters, ${localBackgrounds.length} backgrounds)`
                 );
-                allMedia = allMedia.concat(localMedia);
+
+            if (normalized.length > 0) {
+                logger.info(
+                    `[Local Directory] Successfully fetched ${normalized.length} items (${localPosters.length} posters, ${localBackgrounds.length} backgrounds)`
+                );
+                allMedia = allMedia.concat(normalized);
             } else {
                 logger.info('[Local Directory] No media found in local directories');
             }
@@ -6948,6 +7295,29 @@ app.get(
         }
 
         // Base public config
+        // Ensure wallartMode has required defaults even if config.wallartMode exists without them
+        const wallartDefaults = {
+            enabled: false,
+            // legacy list/grid parameters
+            itemsPerScreen: 30,
+            columns: 6,
+            transitionInterval: 30,
+            // new wallart UX parameters with safe defaults
+            density: 'medium',
+            refreshRate: 6,
+            randomness: 3,
+            animationType: 'fade',
+            layoutVariant: 'heroGrid',
+            ambientGradient: false,
+            autoRefresh: true,
+            layoutSettings: {
+                heroGrid: {
+                    heroSide: 'left',
+                    heroRotationMinutes: 10,
+                    biasAmbientToHero: true,
+                },
+            },
+        };
         const baseConfig = {
             clockWidget: config.clockWidget !== false,
             clockTimezone: config.clockTimezone || 'auto',
@@ -6958,12 +7328,7 @@ app.get(
                 : 1200,
             cinemaMode: config.cinemaMode || false,
             cinemaOrientation: config.cinemaOrientation || 'auto',
-            wallartMode: config.wallartMode || {
-                enabled: false,
-                itemsPerScreen: 30,
-                columns: 6,
-                transitionInterval: 30,
-            },
+            wallartMode: { ...wallartDefaults, ...(config.wallartMode || {}) },
             transitionIntervalSeconds: config.transitionIntervalSeconds || 15,
             backgroundRefreshMinutes: Number.isFinite(Number(config.backgroundRefreshMinutes))
                 ? Number(config.backgroundRefreshMinutes)
@@ -7189,6 +7554,8 @@ app.get(
         const { path: relativePath = '', type = 'all' } = req.query;
 
         try {
+            // Prevent intermediaries from caching directory listings; sizes should reflect realtime state
+            res.setHeader('Cache-Control', 'no-store');
             const contents = await localDirectorySource.browseDirectory(relativePath, type);
             res.json(contents);
         } catch (error) {
@@ -7325,7 +7692,7 @@ app.get(
             const JSZip = require('jszip');
             const zip = new JSZip();
 
-            async function addDirToZip(rootDir, zipFolder, rel = '') {
+            const addDirToZip = async (rootDir, zipFolder, rel = '') => {
                 const entries = await fs.promises.readdir(rootDir, { withFileTypes: true });
                 for (const entry of entries) {
                     // Skip internal system dir and generated metadata
@@ -7345,7 +7712,7 @@ app.get(
                         }
                     }
                 }
-            }
+            };
 
             const folderName = path.basename(dirPath) || 'download';
             const rootZipFolder = zip.folder(folderName);
@@ -7373,10 +7740,63 @@ app.get(
 
 /**
  * @swagger
+ * /api/local/import-posterpacks:
+ *   post:
+ *     summary: Manage posterpack ZIPs (ZIP-only)
+ *     description: ZIPs are never extracted. By default this operation does nothing (manual ZIPs already live under complete/manual). When includeGenerated=true, it copies any ZIPs from complete/plex-export and complete/jellyfin-export into complete/manual for safekeeping.
+ *     tags: ['Local Directory']
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               includeGenerated:
+ *                 type: boolean
+ *                 description: Also import from generated export folders (plex-export, jellyfin-export)
+ *                 default: true
+ *               refresh:
+ *                 type: boolean
+ *                 description: Trigger a playlist refresh after import
+ *                 default: true
+ *     responses:
+ *       200:
+ *         description: Import completed
+ *       404:
+ *         description: Local directory not enabled
+ */
+app.post(
+    '/api/local/import-posterpacks',
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+        const { includeGenerated = false, refresh = true } = req.body || {};
+        try {
+            const imported = await localDirectorySource.importPosterpacks({ includeGenerated });
+            if (refresh) {
+                try {
+                    await refreshPlaylistCache();
+                } catch (_) {
+                    /* non-fatal */
+                }
+            }
+            return res.json({ success: true, imported });
+        } catch (e) {
+            logger.error('Local import-posterpacks failed:', e);
+            return res.status(500).json({ error: e.message || 'import_failed' });
+        }
+    })
+);
+
+/**
+ * @swagger
  * /api/local/upload:
  *   post:
  *     summary: Upload media files to local directory
- *     description: Upload one or more media files with automatic organization
+ *     description: Upload one or more media files with automatic organization. For posterpack ZIPs, use targetDirectory=complete (stored under complete/manual).
  *     tags: ['Local Directory']
  *     requestBody:
  *       required: true
@@ -7652,11 +8072,9 @@ app.post(
             const perLibrary = [];
 
             if (sourceType === 'plex') {
-                const serverConfig = (config.mediaServers || []).find(
-                    s => s.type === 'plex' && s.enabled
-                );
+                const serverConfig = (config.mediaServers || []).find(s => s.type === 'plex');
                 if (!serverConfig)
-                    return res.status(400).json({ error: 'No enabled Plex server configured' });
+                    return res.status(400).json({ error: 'No Plex server configured' });
                 const plex = getPlexClient(serverConfig);
                 // Build filter helpers
                 const parseCsv = v =>
@@ -7780,11 +8198,9 @@ app.post(
                     }
                 }
             } else if (sourceType === 'jellyfin') {
-                const serverConfig = (config.mediaServers || []).find(
-                    s => s.type === 'jellyfin' && s.enabled
-                );
+                const serverConfig = (config.mediaServers || []).find(s => s.type === 'jellyfin');
                 if (!serverConfig)
-                    return res.status(400).json({ error: 'No enabled Jellyfin server configured' });
+                    return res.status(400).json({ error: 'No Jellyfin server configured' });
                 const client = await getJellyfinClient(serverConfig);
                 // Build filter helpers
                 const parseCsv = v =>

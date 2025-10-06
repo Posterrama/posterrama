@@ -149,6 +149,7 @@
         "enabled": false,
         "rootPath": "",
         "watchDirectories": [],
+        "autoImportPosterpacks": false,
         "scanInterval": 300,
         "generateThumbnails": true,
         "maxFileSize": 104857600,

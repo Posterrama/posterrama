@@ -776,6 +776,11 @@
                     "maximum": 3600,
                     "default": 300
                 },
+                "autoImportPosterpacks": {
+                    "description": "Automatically import generated posterpack ZIPs from complete/* into posters/backgrounds/clearlogos. When false, generation only writes ZIP files under complete and no assets are extracted.",
+                    "type": "boolean",
+                    "default": false
+                },
                 "generateThumbnails": {
                     "description": "Automatically generate thumbnails for image files.",
                     "type": "boolean",

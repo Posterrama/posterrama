@@ -13955,6 +13955,18 @@
                 setCount('jf-count-pill', displayJf, totalJf);
                 // TMDB header pill
                 setCount('tmdb-count-pill', displayTmdb, null, tmdbTooltip);
+                // Local header pill — show cached playlist count (no per-source totals API yet)
+                try {
+                    const filteredLocal = items.filter(it => inferSource(it) === 'local').length;
+                    setCount(
+                        'local-count-pill',
+                        filteredLocal,
+                        null,
+                        `Local items — cached: ${fmt(filteredLocal)}`
+                    );
+                } catch (_) {
+                    // ignore; leave as-is if items not available
+                }
             } catch (_) {
                 // ignore
             }
@@ -18621,8 +18633,8 @@ if (!document.__niwDelegatedFallback) {
             if (/\/backgrounds\/?$/.test(p) || /\/(?:^|.*\/)backgrounds(\/|$)/.test(p))
                 return 'backgrounds';
             if (/\/motion\/?$/.test(p) || /\/(?:^|.*\/)motion(\/|$)/.test(p)) return 'motion';
-            if (/\/posterpacks\/?$/.test(p) || /\/(?:^|.*\/)posterpacks(\/|$)/.test(p))
-                return 'posterpacks';
+            // Posterpack uploads should always target 'complete' (manual)
+            if (/\/(?:^|.*\/)posterpacks(\/|$)/.test(p)) return 'complete';
             if (/\/complete\/?$/.test(p) || /\/(?:^|.*\/)complete(\/|$)/.test(p)) return 'complete';
             return 'posters';
         } catch (_) {
@@ -18654,7 +18666,8 @@ if (!document.__niwDelegatedFallback) {
                         `Uploaded ${result.uploadedFiles?.length || files.length} file(s) to ${td}`,
                         'success'
                     );
-                    loadDirectoryContents(currentPath);
+                    // Update view while keeping handlers intact
+                    refreshDirectorySafe(true);
                 } else {
                     showNotification(result.message || 'Upload failed', 'error');
                 }
@@ -18692,6 +18705,8 @@ if (!document.__niwDelegatedFallback) {
                         result.currentPath.startsWith(result.basePath)
                             ? result.currentPath.slice(result.basePath.length) || '/'
                             : result.currentPath || '/';
+                    // Ensure realtime size updates are active when viewing local browser
+                    startRealtimeDirectoryRefresh();
                     updateBreadcrumb(rel);
                     renderDirectoryContents(result);
                 } else {
@@ -18716,6 +18731,94 @@ if (!document.__niwDelegatedFallback) {
             });
     }
 
+    // --- Realtime Directory size updates (safe and throttled) ---
+    let __browserRefreshTimer = null;
+    let __browserRefreshInFlight = null;
+    let __browserRefreshCooldownUntil = 0;
+    const BROWSER_MIN_INTERVAL = 3000; // 3s between refreshes (adaptive)
+    async function refreshDirectorySafe(forceFresh = false) {
+        try {
+            const now = Date.now();
+            if (now < __browserRefreshCooldownUntil) return;
+            if (__browserRefreshInFlight) {
+                await __browserRefreshInFlight;
+                return;
+            }
+            // Only refresh when Local browser is visible
+            const host = document.getElementById('local-browser-content');
+            const visible = !!host && host.offsetParent !== null; // not display:none
+            if (!visible) {
+                stopRealtimeDirectoryRefresh();
+                return;
+            }
+            const url = `/api/local/browse?path=${encodeURIComponent(currentPath || '/')}${
+                forceFresh ? `&_=${Date.now()}` : ''
+            }`;
+            // Prefer dedupJSON to re-use its 10s mini cache and status handling
+            const p = (async () => {
+                let res, data;
+                if (typeof window.dedupJSON === 'function') {
+                    const headers = forceFresh
+                        ? { Pragma: 'no-cache', 'Cache-Control': 'no-cache' }
+                        : undefined;
+                    res = await window.dedupJSON(url, { credentials: 'include', headers });
+                    if (res && res.status === 429) {
+                        __browserRefreshCooldownUntil = Date.now() + 15_000; // 15s cool-down
+                        return null;
+                    }
+                    data = res && res.ok ? await res.json() : null;
+                } else {
+                    const r = await fetch(url, {
+                        credentials: 'include',
+                        headers: forceFresh
+                            ? { Pragma: 'no-cache', 'Cache-Control': 'no-cache' }
+                            : undefined,
+                    }).catch(() => null);
+                    if (!r) return null;
+                    if (r.status === 429) {
+                        __browserRefreshCooldownUntil = Date.now() + 15_000;
+                        return null;
+                    }
+                    data = r.ok ? await r.json().catch(() => null) : null;
+                }
+                if (!data) return null;
+                // Only re-render sizes; preserve handlers (we re-render the list anyway with a single delegated handler)
+                renderDirectoryContents(data);
+                // If this was a forced refresh, schedule a quick follow-up to catch rapid changes
+                if (forceFresh) {
+                    setTimeout(() => {
+                        // Fire-and-forget; internal guards prevent overlap
+                        refreshDirectorySafe(false);
+                    }, 600);
+                }
+                return data;
+            })();
+            __browserRefreshInFlight = p;
+            await p;
+        } catch (_) {
+            // ignore
+        } finally {
+            __browserRefreshInFlight = null;
+        }
+    }
+    function startRealtimeDirectoryRefresh() {
+        if (__browserRefreshTimer) return;
+        const tick = async () => {
+            try {
+                await refreshDirectorySafe();
+            } finally {
+                __browserRefreshTimer = setTimeout(tick, BROWSER_MIN_INTERVAL);
+            }
+        };
+        __browserRefreshTimer = setTimeout(tick, BROWSER_MIN_INTERVAL);
+    }
+    function stopRealtimeDirectoryRefresh() {
+        if (__browserRefreshTimer) {
+            clearTimeout(__browserRefreshTimer);
+            __browserRefreshTimer = null;
+        }
+    }
+
     function renderDirectoryContents(contents) {
         const browserContent = document.getElementById('local-browser-content');
         if (!browserContent) return;
@@ -18723,8 +18826,19 @@ if (!document.__niwDelegatedFallback) {
         // Normalize payload: expect { basePath, currentPath, directories: [], files: [] }
         const basePath = contents?.basePath || '';
         const curr = contents?.currentPath || '';
-        const dirs = Array.isArray(contents?.directories) ? contents.directories : [];
-        const files = Array.isArray(contents?.files) ? contents.files : [];
+        const dirsRaw = Array.isArray(contents?.directories) ? contents.directories : [];
+        const filesRaw = Array.isArray(contents?.files) ? contents.files : [];
+        const normEntry = e =>
+            typeof e === 'string'
+                ? { name: e, sizeBytes: undefined, zipPills: undefined, itemCount: undefined }
+                : {
+                      name: e.name,
+                      sizeBytes: e.sizeBytes,
+                      zipPills: e.zipPills,
+                      itemCount: e.itemCount,
+                  };
+        const dirs = dirsRaw.map(normEntry);
+        const files = filesRaw.map(normEntry);
 
         if (dirs.length === 0 && files.length === 0) {
             browserContent.innerHTML = `
@@ -18743,13 +18857,45 @@ if (!document.__niwDelegatedFallback) {
         };
 
         const items = [
-            ...dirs.map(name => ({
-                name,
+            ...dirs.map(d => ({
+                name: d.name,
+                sizeBytes: d.sizeBytes,
                 type: 'directory',
-                path: joinPath(curr || basePath, name),
+                itemCount: d.itemCount,
+                path: joinPath(curr || basePath, d.name),
             })),
-            ...files.map(name => ({ name, type: 'file', path: joinPath(curr || basePath, name) })),
+            ...files.map(f => ({
+                name: f.name,
+                sizeBytes: f.sizeBytes,
+                zipPills: f.zipPills,
+                type: 'file',
+                path: joinPath(curr || basePath, f.name),
+            })),
         ];
+
+        const humanSize = bytes => {
+            const n = Number(bytes);
+            if (!Number.isFinite(n)) return '';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let i = 0;
+            let v = n;
+            while (v >= 1024 && i < units.length - 1) {
+                v /= 1024;
+                i++;
+            }
+            const prec = v >= 100 || i === 0 ? 0 : 1;
+            return `${v.toFixed(prec)} ${units[i]}`;
+        };
+
+        const pillLabel = k =>
+            ({
+                poster: 'Poster',
+                background: 'Background',
+                clearlogo: 'ClearLogo',
+                metadata: 'Metadata',
+                cd: 'CD',
+                disc: 'Disc',
+            })[k] || k;
 
         const listHTML = items
             .map(
@@ -18758,7 +18904,29 @@ if (!document.__niwDelegatedFallback) {
                 <div class="browser-item-icon ${item.type}">
                     <i class="fas fa-${item.type === 'directory' ? 'folder' : 'file'}"></i>
                 </div>
-                <div class="browser-item-name">${item.name}</div>
+                <div class="browser-item-name">
+                    <span class="name-text">${item.name}</span>
+                    ${
+                        item.sizeBytes != null
+                            ? `<span class="status-pill sp-size">${humanSize(item.sizeBytes)}</span>`
+                            : ''
+                    }
+                    ${
+                        item.type === 'directory' && Number.isFinite(Number(item.itemCount))
+                            ? `<span class="status-pill sp-size" title="Item count">${Number(item.itemCount).toLocaleString()}</span>`
+                            : ''
+                    }
+                    ${
+                        Array.isArray(item.zipPills) && item.zipPills.length
+                            ? item.zipPills
+                                  .map(
+                                      k =>
+                                          `<span class="status-pill sp-size sp-zip">${pillLabel(k)}</span>`
+                                  )
+                                  .join(' ')
+                            : ''
+                    }
+                </div>
                 <div class="browser-item-actions">
                     ${
                         item.type === 'directory'
@@ -18768,7 +18936,7 @@ if (!document.__niwDelegatedFallback) {
                     }
                     ${
                         item.type === 'file'
-                            ? `<button class=\"btn btn-secondary btn-sm btn-download-file\" data-path=\"${item.path}\" title=\"Download\"><span class=\"spinner\"></span><i class=\"fas fa-download\"></i><span class=\"hide-on-xs\">Download</span></button>`
+                            ? `<button class="btn btn-secondary btn-sm btn-download-file" data-path="${item.path}" title="Download"><span class="spinner"></span><i class="fas fa-download"></i><span class="hide-on-xs">Download</span></button>`
                             : ''
                     }
                     <button class="btn btn-error btn-sm btn-delete" data-path="${item.path}" title="${
@@ -18784,108 +18952,103 @@ if (!document.__niwDelegatedFallback) {
 
         browserContent.innerHTML = `<div class="browser-list">${listHTML}</div>`;
 
-        // Add click handlers for selection
-        browserContent.querySelectorAll('.browser-item').forEach(item => {
-            item.addEventListener('click', e => {
-                if (e.target.closest('.browser-item-actions')) return;
-
-                const path = item.dataset.path;
-                const type = item.dataset.type;
-
-                if (type === 'directory') {
-                    loadDirectoryContents(path);
-                } else {
-                    toggleFileSelection(item, path);
+        // Single delegated click handler for selection and actions (attach once)
+        if (!browserContent.__handlersAttached) {
+            browserContent.__handlersAttached = true;
+            browserContent.addEventListener('click', e => {
+                // Handle item click (navigation/select) when not clicking on actions
+                const itemEl = e.target.closest('.browser-item');
+                if (itemEl && !e.target.closest('.browser-item-actions')) {
+                    const p = itemEl.dataset.path;
+                    const t = itemEl.dataset.type;
+                    if (t === 'directory') loadDirectoryContents(p);
+                    else toggleFileSelection(itemEl, p);
+                    return;
                 }
-            });
-        });
 
-        // Add event delegation for action buttons
-        browserContent.addEventListener('click', e => {
-            const uploadHereBtn = e.target.closest('.btn-upload-here');
-            const deleteBtn = e.target.closest('.btn-delete');
-            const downloadDirBtn = e.target.closest('.btn-download-all');
-            const downloadFileBtn = e.target.closest('.btn-download-file');
+                // Action buttons
+                const uploadHereBtn = e.target.closest('.btn-upload-here');
+                const deleteBtn = e.target.closest('.btn-delete');
+                const downloadDirBtn = e.target.closest('.btn-download-all');
+                const downloadFileBtn = e.target.closest('.btn-download-file');
 
-            if (uploadHereBtn) {
-                const name = (uploadHereBtn.dataset.name || '').toLowerCase();
-                // Map directory name to targetDirectory and input element
-                let target = 'posters';
-                let fi = document.getElementById('file-input-posters');
-                if (name === 'backgrounds') {
-                    target = 'backgrounds';
-                    fi = document.getElementById('file-input-backgrounds');
-                } else if (name === 'motion') {
-                    target = 'motion';
-                    fi = document.getElementById('file-input-motion');
-                } else if (name === 'posterpacks') {
-                    target = 'posterpacks';
-                    fi = document.getElementById('file-input-packs');
-                } else if (name === 'complete') {
-                    target = 'complete';
-                    fi = document.getElementById('file-input-packs');
-                }
-                // Use the same robust opening logic as per-directory buttons
-                const openFilePicker = (input, td) => {
-                    if (!input) return;
-                    if (input.__opening) return;
-                    input.__opening = true;
-                    try {
-                        input.value = '';
-                    } catch (_) {}
-                    const clearOpen = () => {
-                        input.__opening = false;
-                    };
-                    const clearTimer = setTimeout(clearOpen, 1200);
-                    const onChange = ev => {
-                        clearTimeout(clearTimer);
-                        input.__opening = false;
-                        handleFileSelection(ev, td);
+                if (uploadHereBtn) {
+                    const name = (uploadHereBtn.dataset.name || '').toLowerCase();
+                    // Map directory name to targetDirectory and input element
+                    let target = 'posters';
+                    let fi = document.getElementById('file-input-posters');
+                    if (name === 'backgrounds') {
+                        target = 'backgrounds';
+                        fi = document.getElementById('file-input-backgrounds');
+                    } else if (name === 'motion') {
+                        target = 'motion';
+                        fi = document.getElementById('file-input-motion');
+                    } else if (name === 'posterpacks' || name === 'complete') {
+                        target = 'complete';
+                        fi = document.getElementById('file-input-packs');
+                    }
+                    // Use the same robust opening logic as per-directory buttons
+                    const openFilePicker = (input, td) => {
+                        if (!input) return;
+                        if (input.__opening) return;
+                        input.__opening = true;
                         try {
                             input.value = '';
                         } catch (_) {}
-                        input.removeEventListener('change', onChange);
+                        const clearOpen = () => {
+                            input.__opening = false;
+                        };
+                        const clearTimer = setTimeout(clearOpen, 1200);
+                        const onChange = ev => {
+                            clearTimeout(clearTimer);
+                            input.__opening = false;
+                            handleFileSelection(ev, td);
+                            try {
+                                input.value = '';
+                            } catch (_) {}
+                            input.removeEventListener('change', onChange);
+                        };
+                        input.addEventListener('change', onChange);
+                        input.click();
                     };
-                    input.addEventListener('change', onChange);
-                    input.click();
-                };
-                openFilePicker(fi, target);
-            } else if (downloadDirBtn) {
-                const p = downloadDirBtn.dataset.path;
-                if (p) {
-                    const url = `/api/local/download-all?path=${encodeURIComponent(p)}`;
-                    window.location.href = url;
+                    openFilePicker(fi, target);
+                } else if (downloadDirBtn) {
+                    const p = downloadDirBtn.dataset.path;
+                    if (p) {
+                        const url = `/api/local/download-all?path=${encodeURIComponent(p)}`;
+                        window.location.href = url;
+                    }
+                } else if (downloadFileBtn) {
+                    const p = downloadFileBtn.dataset.path;
+                    if (p) {
+                        const url = `/api/local/download?path=${encodeURIComponent(p)}`;
+                        window.location.href = url;
+                    }
+                } else if (deleteBtn) {
+                    const path = deleteBtn.dataset.path;
+                    const itemEl = deleteBtn.closest('.browser-item');
+                    const type = itemEl?.dataset?.type || 'file';
+                    // Use themed confirm modal; customize message for directories
+                    const message =
+                        type === 'directory'
+                            ? `This will remove all files and subfolders inside:<br><code>${path}</code><br><br><strong>The folder itself will be kept.</strong>`
+                            : `This will permanently delete:<br><code>${path}</code>`;
+                    const okText = type === 'directory' ? 'Delete contents' : 'Delete';
+                    const okClass =
+                        type === 'directory' ? 'btn-confirm-accent btn-danger-accent' : 'btn-error';
+                    (window.confirmAction || (() => Promise.resolve(confirm('Are you sure?'))))({
+                        title: type === 'directory' ? 'Delete folder contents' : 'Delete file',
+                        message,
+                        okText: okText,
+                        okClass,
+                        okIcon: 'trash',
+                    }).then(ok => {
+                        if (!ok) return;
+                        deletePath(path, type);
+                    });
                 }
-            } else if (downloadFileBtn) {
-                const p = downloadFileBtn.dataset.path;
-                if (p) {
-                    const url = `/api/local/download?path=${encodeURIComponent(p)}`;
-                    window.location.href = url;
-                }
-            } else if (deleteBtn) {
-                const path = deleteBtn.dataset.path;
-                const itemEl = deleteBtn.closest('.browser-item');
-                const type = itemEl?.dataset?.type || 'file';
-                // Use themed confirm modal; customize message for directories
-                const message =
-                    type === 'directory'
-                        ? `This will remove all files and subfolders inside:<br><code>${path}</code><br><br><strong>The folder itself will be kept.</strong>`
-                        : `This will permanently delete:<br><code>${path}</code>`;
-                const okText = type === 'directory' ? 'Delete contents' : 'Delete';
-                const okClass =
-                    type === 'directory' ? 'btn-confirm-accent btn-danger-accent' : 'btn-error';
-                (window.confirmAction || (() => Promise.resolve(confirm('Are you sure?'))))({
-                    title: type === 'directory' ? 'Delete folder contents' : 'Delete file',
-                    message,
-                    okText: okText,
-                    okClass,
-                    okIcon: 'trash',
-                }).then(ok => {
-                    if (!ok) return;
-                    deletePath(path, type);
-                });
-            }
-        });
+            });
+        }
     }
 
     function updateBreadcrumb(path) {
@@ -18904,15 +19067,17 @@ if (!document.__niwDelegatedFallback) {
 
         breadcrumb.innerHTML = html;
 
-        // Add event delegation for breadcrumb navigation
-        breadcrumb.addEventListener('click', e => {
-            if (e.target.closest('.breadcrumb-item')) {
-                const path = e.target.closest('.breadcrumb-item').dataset.path;
-                if (path) {
-                    loadDirectoryContents(path);
+        // Add event delegation for breadcrumb navigation (attach once)
+        if (!breadcrumb.__handlersAttached) {
+            breadcrumb.__handlersAttached = true;
+            breadcrumb.addEventListener('click', e => {
+                const btn = e.target.closest('.breadcrumb-item');
+                if (btn) {
+                    const path = btn.dataset.path;
+                    if (path) loadDirectoryContents(path);
                 }
-            }
-        });
+            });
+        }
     }
 
     function toggleFileSelection(element, path) {
@@ -18953,7 +19118,8 @@ if (!document.__niwDelegatedFallback) {
             .then(result => {
                 if (result.success) {
                     showNotification('Directory scan completed', 'success');
-                    loadDirectoryContents(currentPath);
+                    // Update view while keeping handlers intact (force fresh)
+                    refreshDirectorySafe(true);
                 } else {
                     showNotification(result.message || 'Scan failed', 'error');
                 }
@@ -19732,23 +19898,76 @@ if (!document.__niwDelegatedFallback) {
     }
 
     function startJobPolling(jobId) {
+        let progressToast = null;
         const interval = setInterval(() => {
             fetch(`/api/local/jobs/${jobId}`)
                 .then(response => response.json())
                 .then(result => {
-                    if (result.success) {
-                        const job = result.job || result; // support both shapes
-                        updateJobDisplay(job);
+                    // Server returns the job object directly. Support legacy wrappers too.
+                    const job = result?.job || result;
+                    if (!job || !job.status) return;
+                    updateJobDisplay(job);
 
-                        if (job.status === 'completed' || job.status === 'failed') {
-                            clearInterval(interval);
-                            // No-op: "Generated Packs" panel removed; users can download from Directory Contents
+                    // Keep Directory Contents fresh while work is running
+                    if (job.status === 'running') {
+                        startRealtimeDirectoryRefresh();
+                    }
+
+                    // Create or update a persistent progress toast
+                    if (job.status === 'running') {
+                        const pct = Number(job.progress) || 0;
+                        const done = Number(job.processedItems) || 0;
+                        const total = Number(job.totalItems) || 0;
+                        const suffix = total ? ` (${done}/${total})` : '';
+                        const msg = `Generating posterpacks… ${pct}%${suffix}`;
+                        if (!progressToast) {
+                            progressToast = window.notify?.toast({
+                                type: 'info',
+                                title: 'Working',
+                                message: msg,
+                                duration: 0,
+                            });
+                        } else if (progressToast.element) {
+                            const m = progressToast.element.querySelector('.toast-message');
+                            if (m) m.textContent = msg;
                         }
+                    }
+
+                    if (job.status === 'completed' || job.status === 'failed') {
+                        clearInterval(interval);
+                        stopRealtimeDirectoryRefresh();
+                        // One last refresh so sizes reflect final state (force bypass cache)
+                        refreshDirectorySafe(true);
+                        if (progressToast?.dismiss) progressToast.dismiss();
+                        const ok = job.status === 'completed';
+                        const title = ok ? 'Posterpack ready' : 'Posterpack failed';
+                        const count = job?.results?.totalGenerated;
+                        const totalMsg =
+                            typeof count === 'number'
+                                ? ` (${count} file${count === 1 ? '' : 's'})`
+                                : '';
+                        const exportHint = (() => {
+                            try {
+                                const src = job.sourceType || 'plex';
+                                return `Open “complete/${src}-export” in Directory Contents to download.`;
+                            } catch (_) {
+                                return '';
+                            }
+                        })();
+                        window.notify?.toast({
+                            type: ok ? 'success' : 'error',
+                            title,
+                            message: ok
+                                ? `Generation finished${totalMsg}. ${exportHint}`
+                                : job.error || 'See logs for details',
+                            duration: ok ? 6000 : 7000,
+                        });
                     }
                 })
                 .catch(error => {
                     console.error('Job status error:', error);
                     clearInterval(interval);
+                    if (progressToast?.dismiss) progressToast.dismiss();
                 });
         }, 1000);
     }
@@ -19765,6 +19984,18 @@ if (!document.__niwDelegatedFallback) {
             jobElement.dataset.jobId = job.id;
             jobsList.appendChild(jobElement);
         }
+
+        const totalOk = Number(job?.results?.totalGenerated || 0);
+        const totalErr = Number(job?.results?.totalFailed || 0);
+        const totalsStr = totalOk + totalErr > 0 ? `${totalOk} ok • ${totalErr} failed` : '';
+        const exportDir = (() => {
+            try {
+                const src = job.sourceType || 'plex';
+                return `complete/${src}-export`;
+            } catch (_) {
+                return '';
+            }
+        })();
 
         jobElement.innerHTML = `
             <div class="job-header">
@@ -19783,7 +20014,16 @@ if (!document.__niwDelegatedFallback) {
                     : ''
             }
             <div class="job-details">
-                ${job.message || 'No details available'}
+                ${
+                    job.status === 'completed'
+                        ? totalsStr || 'Completed'
+                        : job.message || 'No details available'
+                }
+                ${
+                    job.status === 'completed'
+                        ? `<span class="status-pill" style="margin-left:8px"><i class="fas fa-folder"></i> ${exportDir}</span>`
+                        : ''
+                }
                 ${job.downloadUrl ? `<a href="${job.downloadUrl}" class="btn btn-outline btn-sm" style="margin-left: 10px;"><i class="fas fa-download"></i> Download</a>` : ''}
             </div>
         `;
@@ -19873,7 +20113,9 @@ if (!document.__niwDelegatedFallback) {
             localDirectory: {
                 enabled: document.getElementById('localDirectory.enabled')?.checked || false,
                 rootPath: 'media',
-                watchDirectories: true,
+                // Schema requires an array of absolute paths; UI currently doesn't expose inputs,
+                // so send an empty array to satisfy validation.
+                watchDirectories: [],
             },
         };
 
@@ -19946,7 +20188,7 @@ if (!document.__niwDelegatedFallback) {
                     } else {
                         showNotification('File deleted successfully', 'success');
                     }
-                    loadDirectoryContents(currentPath);
+                    refreshDirectorySafe();
                 } else {
                     showNotification(result.message || result.error || 'Delete failed', 'error');
                 }
@@ -19993,7 +20235,7 @@ if (!document.__niwDelegatedFallback) {
                     if (result.success) {
                         showNotification('Selected items deleted successfully', 'success');
                         selectedFiles.clear();
-                        loadDirectoryContents(currentPath);
+                        refreshDirectorySafe(true);
                         // Re-evaluate Posterpack filters visibility after clearing selection
                         try {
                             const sourceSelect = document.getElementById('posterpack.source');
