@@ -2322,23 +2322,44 @@ app.get('/api/v1/metrics/dashboard', (req, res) => {
         : 0;
 
     // Compute aggregated library totals (movies/series) with a short in-memory cache
-    // to avoid expensive calls on every request.
+    // to avoid expensive calls on every request. Cache is keyed by the set of enabled
+    // Plex/Jellyfin servers so toggling sources doesn't surface stale totals.
     if (!global.__libraryTotalsCache) {
-        global.__libraryTotalsCache = { value: null, ts: 0 };
+        global.__libraryTotalsCache = { value: null, ts: 0, key: '' };
     }
     const now = Date.now();
     const TTL = 10 * 60 * 1000; // 10 minutes
 
     const getTotals = async () => {
-        // If cache is fresh, return it
-        if (global.__libraryTotalsCache.value && now - global.__libraryTotalsCache.ts < TTL) {
+        const allServers = Array.isArray(config?.mediaServers) ? config.mediaServers : [];
+        const enabledServers = allServers.filter(
+            s => s && s.enabled === true && (s.type === 'plex' || s.type === 'jellyfin')
+        );
+        const cacheKey = JSON.stringify(
+            enabledServers.map(s => ({ type: s.type, hostname: s.hostname, port: s.port }))
+        );
+
+        // If no external servers are enabled, library totals should be zero. Also
+        // avoid returning a previously cached non-zero value for a different setup.
+        if (enabledServers.length === 0) {
+            const value = { movies: 0, shows: 0, total: 0 };
+            global.__libraryTotalsCache = { value, ts: Date.now(), key: cacheKey };
+            return value;
+        }
+
+        // If cache is fresh and for the same server set, return it
+        if (
+            global.__libraryTotalsCache.value &&
+            global.__libraryTotalsCache.key === cacheKey &&
+            now - global.__libraryTotalsCache.ts < TTL
+        ) {
             return global.__libraryTotalsCache.value;
         }
 
         let movies = 0;
         let shows = 0;
 
-        const servers = Array.isArray(config?.mediaServers) ? config.mediaServers : [];
+        const servers = enabledServers;
         for (const s of servers) {
             if (!s || s.enabled !== true) continue;
             try {
@@ -2434,7 +2455,7 @@ app.get('/api/v1/metrics/dashboard', (req, res) => {
         }
 
         const value = { movies, shows, total: movies + shows };
-        global.__libraryTotalsCache = { value, ts: Date.now() };
+        global.__libraryTotalsCache = { value, ts: Date.now(), key: cacheKey };
         return value;
     };
 

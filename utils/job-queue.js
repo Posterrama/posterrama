@@ -9,6 +9,7 @@ try {
     sharp = null;
 }
 const logger = require('./logger');
+const { createExportLogger } = require('./export-logger');
 
 /**
  * Background Job Queue System for Posterpack Generation
@@ -64,6 +65,20 @@ class JobQueue extends EventEmitter {
             sourceType: sourceType,
             libraryIds: libraryIds,
         });
+
+        // Attach dedicated export logger for this job
+        try {
+            job.exportLogger = createExportLogger(this.config, jobId);
+            await job.exportLogger.info('Job added', {
+                jobId,
+                type: job.type,
+                sourceType,
+                libraryIds,
+                options,
+            });
+        } catch (_) {
+            // ignore logger init failures
+        }
 
         // Emit job added event
         this.emit('jobAdded', job);
@@ -124,6 +139,7 @@ class JobQueue extends EventEmitter {
         job.started = new Date();
 
         logger.info(`JobQueue: Starting job ${jobId}`);
+        if (job.exportLogger) await job.exportLogger.info('Job starting', { jobId });
         this.emit('jobStarted', job);
 
         try {
@@ -145,6 +161,18 @@ class JobQueue extends EventEmitter {
                 duration: job.completed - job.started,
                 processedItems: job.processedItems,
             });
+            if (job.exportLogger)
+                await job.exportLogger.info('Job completed', {
+                    jobId,
+                    durationMs: job.completed - job.started,
+                    processedItems: job.processedItems,
+                    totalItems: job.totalItems,
+                    results: {
+                        successful: job.results?.totalGenerated,
+                        failed: job.results?.totalFailed,
+                        totalSize: job.results?.totalSize,
+                    },
+                });
 
             this.emit('jobCompleted', job);
         } catch (error) {
@@ -154,6 +182,8 @@ class JobQueue extends EventEmitter {
             job.completed = new Date();
 
             logger.error(`JobQueue: Job ${jobId} failed:`, error);
+            if (job.exportLogger)
+                await job.exportLogger.error('Job failed', { jobId, error: error.message });
             this.emit('jobFailed', job);
         } finally {
             // Remove from active jobs
@@ -189,9 +219,19 @@ class JobQueue extends EventEmitter {
                 allItems.push(...items);
 
                 job.logs.push(`Found ${items.length} items in library ${libraryId}`);
+                if (job.exportLogger)
+                    await job.exportLogger.info('Fetched library', {
+                        libraryId,
+                        count: items.length,
+                    });
             } catch (error) {
                 job.logs.push(`Error fetching library ${libraryId}: ${error.message}`);
                 logger.error(`JobQueue: Error fetching library ${libraryId}:`, error);
+                if (job.exportLogger)
+                    await job.exportLogger.error('Fetch library failed', {
+                        libraryId,
+                        error: error.message,
+                    });
             }
         }
 
@@ -241,17 +281,33 @@ class JobQueue extends EventEmitter {
         const allowedGenresJ = parseCsv(filtersJellyfin.genres);
         const allowedRatingsJ = parseCsv(filtersJellyfin.ratings).map(r => r.toUpperCase());
 
+        const excludeCounters = {
+            mediaType: 0,
+            year: 0,
+            plex_genre: 0,
+            plex_rating: 0,
+            plex_quality: 0,
+            jellyfin_genre: 0,
+            jellyfin_rating: 0,
+        };
+
         const filtered = allItems.filter(it => {
             // Media type filter (movie/show)
             if (mediaType !== 'all') {
                 const t = (it.type || '').toLowerCase();
                 // If type not provided by adapter, infer "movie" as default
-                if (t && t !== mediaType) return false;
+                if (t && t !== mediaType) {
+                    excludeCounters.mediaType++;
+                    return false;
+                }
             }
             // Year filter
             if (yearOk) {
                 const y = Number(it.year);
-                if (!Number.isFinite(y) || !yearOk(y)) return false;
+                if (!Number.isFinite(y) || !yearOk(y)) {
+                    excludeCounters.year++;
+                    return false;
+                }
             }
             // Source-specific filters
             if (sourceType === 'plex') {
@@ -260,17 +316,24 @@ class JobQueue extends EventEmitter {
                         ? (it.genre || it.genres).map(x => String(x).toLowerCase())
                         : [];
                     if (!allowedGenresP.some(need => g.includes(String(need).toLowerCase()))) {
+                        excludeCounters.plex_genre++;
                         return false;
                     }
                 }
                 if (allowedRatingsP.length) {
                     const r = it.contentRating || it.rating || null;
                     const norm = r ? String(r).trim().toUpperCase() : '';
-                    if (!norm || !allowedRatingsP.includes(norm)) return false;
+                    if (!norm || !allowedRatingsP.includes(norm)) {
+                        excludeCounters.plex_rating++;
+                        return false;
+                    }
                 }
                 if (allowedQualP.length) {
                     const lbl = it.qualityLabel || mapResToLabel(it.videoResolution);
-                    if (lbl && !allowedQualP.includes(lbl)) return false;
+                    if (lbl && !allowedQualP.includes(lbl)) {
+                        excludeCounters.plex_quality++;
+                        return false;
+                    }
                 }
             } else if (sourceType === 'jellyfin') {
                 if (allowedGenresJ.length) {
@@ -278,13 +341,17 @@ class JobQueue extends EventEmitter {
                         ? (it.genre || it.genres).map(x => String(x).toLowerCase())
                         : [];
                     if (!allowedGenresJ.some(need => g.includes(String(need).toLowerCase()))) {
+                        excludeCounters.jellyfin_genre++;
                         return false;
                     }
                 }
                 if (allowedRatingsJ.length) {
                     const r = it.officialRating || it.rating || null;
                     const norm = r ? String(r).trim().toUpperCase() : '';
-                    if (!norm || !allowedRatingsJ.includes(norm)) return false;
+                    if (!norm || !allowedRatingsJ.includes(norm)) {
+                        excludeCounters.jellyfin_rating++;
+                        return false;
+                    }
                 }
             }
             return true;
@@ -297,6 +364,17 @@ class JobQueue extends EventEmitter {
 
         job.totalItems = itemsToProcess.length;
         job.logs.push(`Total items to process: ${job.totalItems}`);
+        if (job.exportLogger) {
+            await job.exportLogger.info('Filter summary', {
+                sourceType,
+                requested: allItems.length,
+                kept: filtered.length,
+                limit: Number.isFinite(limit) && limit > 0 ? limit : null,
+                toProcess: job.totalItems,
+                excludeCounters,
+                options,
+            });
+        }
 
         if (job.totalItems === 0) {
             throw new Error('No items found in selected libraries');
@@ -316,9 +394,22 @@ class JobQueue extends EventEmitter {
                 job.logs.push(`Processing: ${item.title} (${i + 1}/${job.totalItems})`);
 
                 this.emit('jobProgress', job);
+                if (job.exportLogger)
+                    await job.exportLogger.info('Processing item', {
+                        index: i + 1,
+                        total: job.totalItems,
+                        title: item.title,
+                        year: item.year,
+                        id: item.id,
+                    });
 
                 // Generate posterpack for item
-                const result = await this.generatePosterpackForItem(item, sourceType, options);
+                const result = await this.generatePosterpackForItem(
+                    item,
+                    sourceType,
+                    options,
+                    job.exportLogger || null
+                );
 
                 results.push({
                     item: {
@@ -333,6 +424,13 @@ class JobQueue extends EventEmitter {
                 });
 
                 job.logs.push(`✅ Generated: ${item.title}`);
+                if (job.exportLogger)
+                    await job.exportLogger.info('Generated posterpack', {
+                        title: item.title,
+                        outputPath: result.outputPath,
+                        size: result.size,
+                        assets: Object.keys(result.assets || {}),
+                    });
             } catch (error) {
                 logger.error(`JobQueue: Failed to generate posterpack for ${item.title}:`, error);
 
@@ -347,6 +445,12 @@ class JobQueue extends EventEmitter {
                 });
 
                 job.logs.push(`❌ Failed: ${item.title} - ${error.message}`);
+                if (job.exportLogger)
+                    await job.exportLogger.error('Generate failed', {
+                        title: item.title,
+                        id: item.id,
+                        error: error.message,
+                    });
             }
         }
 
@@ -361,6 +465,11 @@ class JobQueue extends EventEmitter {
         };
 
         job.logs.push(`Generation complete: ${results.length} successful, ${errors.length} failed`);
+        if (job.exportLogger)
+            await job.exportLogger.info('Generation summary', {
+                successful: results.length,
+                failed: errors.length,
+            });
     }
 
     /**
@@ -370,7 +479,7 @@ class JobQueue extends EventEmitter {
      * @param {Object} options - Generation options
      * @returns {Object} Generation result
      */
-    async generatePosterpackForItem(item, sourceType, options) {
+    async generatePosterpackForItem(item, sourceType, options, exportLogger = null) {
         // Generate output filename
         const outputFilename = this.generatePosterpackFilename(item, options);
         const outputDir = path.join(
@@ -393,20 +502,39 @@ class JobQueue extends EventEmitter {
             this.config.localDirectory?.posterpackGeneration?.includeAssets;
 
         // Add poster (required)
+        if (!item.poster && exportLogger) {
+            await exportLogger.warn('Item has no poster URL', { title: item.title, id: item.id });
+        }
         if (item.poster) {
             const posterData = await this.downloadAsset(item.poster, sourceType);
             if (posterData) {
                 zip.file('poster.jpg', posterData);
                 assets.poster = true;
+            } else if (exportLogger) {
+                await exportLogger.warn('Poster download failed', {
+                    title: item.title,
+                    url: item.poster,
+                });
             }
         }
 
         // Add background (required)
+        if (!item.background && exportLogger) {
+            await exportLogger.warn('Item has no background URL', {
+                title: item.title,
+                id: item.id,
+            });
+        }
         if (item.background) {
             const backgroundData = await this.downloadAsset(item.background, sourceType);
             if (backgroundData) {
                 zip.file('background.jpg', backgroundData);
                 assets.background = true;
+            } else if (exportLogger) {
+                await exportLogger.warn('Background download failed', {
+                    title: item.title,
+                    url: item.background,
+                });
             }
         }
 
@@ -418,6 +546,11 @@ class JobQueue extends EventEmitter {
             if (clearlogoData) {
                 zip.file('clearlogo.png', clearlogoData);
                 assets.clearlogo = true;
+            } else if (exportLogger) {
+                await exportLogger.warn('Clearlogo download failed', {
+                    title: item.title,
+                    url: logoUrl,
+                });
             }
         }
 
@@ -427,6 +560,12 @@ class JobQueue extends EventEmitter {
                 if (fanartData) {
                     zip.file(`fanart-${i + 1}.jpg`, fanartData);
                     assets.fanart = (assets.fanart || 0) + 1;
+                } else if (exportLogger) {
+                    await exportLogger.warn('Fanart download failed', {
+                        title: item.title,
+                        url: item.fanart[i],
+                        index: i + 1,
+                    });
                 }
             }
         }
@@ -436,6 +575,11 @@ class JobQueue extends EventEmitter {
             if (discartData) {
                 zip.file('disc.png', discartData);
                 assets.discart = true;
+            } else if (exportLogger) {
+                await exportLogger.warn('Discart download failed', {
+                    title: item.title,
+                    url: item.discart,
+                });
             }
         }
 
@@ -550,6 +694,13 @@ class JobQueue extends EventEmitter {
 
         // Validate minimum requirements
         if (!assets.poster || !assets.background) {
+            if (exportLogger) {
+                await exportLogger.error('Missing required assets', {
+                    title: item.title,
+                    hasPoster: !!assets.poster,
+                    hasBackground: !!assets.background,
+                });
+            }
             throw new Error('Missing required assets (poster and/or background)');
         }
 

@@ -656,14 +656,18 @@
                     data = await fetchJSON('/api/v1/metrics/dashboard').catch(() => null);
                 }
                 if (data) {
-                    const totalMedia =
-                        Number(data?.media?.libraryTotals?.total) ||
-                        Number(data?.media?.playlistItems) ||
-                        0;
-                    // Compute Local total in parallel and display the better total
+                    const playlistCount = Number(data?.media?.playlistItems) || 0;
+                    const libTotals = Number(data?.media?.libraryTotals?.total) || 0;
+                    // Compute Local total in parallel
                     const localTotal = await computeLocalTotalSafe();
-                    const display = Math.max(totalMedia, localTotal);
+                    // If external library totals are zero (no Plex/Jellyfin contributing), prefer Local
+                    // to avoid counting both poster and background assets as separate "items" for Local.
+                    // Otherwise, use the larger of playlist vs Local as before.
+                    const display =
+                        libTotals === 0 ? localTotal : Math.max(playlistCount, localTotal);
                     setText('metric-media-items', formatNumber(display));
+                    // Stash for later reconciliation after config fetch (to enforce only-Local case)
+                    window.__lastLocalTotal = localTotal;
                 }
                 return data;
             })();
@@ -694,6 +698,20 @@
                 if (jf?.enabled) enabledSources++;
                 if (config.tmdbSource?.enabled) enabledSources++;
                 if (config.localDirectory?.enabled) enabledSources++;
+
+                // If only Local is enabled, force dashboard Items to Local directory total
+                try {
+                    const onlyLocal =
+                        !!config.localDirectory?.enabled &&
+                        !plex?.enabled &&
+                        !jf?.enabled &&
+                        !config.tmdbSource?.enabled;
+                    if (onlyLocal) {
+                        const localTotal = Number(window.__lastLocalTotal) || 0;
+                        if (localTotal >= 0)
+                            setText('metric-media-items', formatNumber(localTotal));
+                    }
+                } catch (_) {}
 
                 const mediaSub = document.getElementById('metric-media-sub');
                 if (mediaSub) {
@@ -14004,14 +14022,43 @@
                 setCount('jf-count-pill', displayJf, totalJf);
                 // TMDB header pill
                 setCount('tmdb-count-pill', displayTmdb, null, tmdbTooltip);
-                // Local header pill — show cached playlist count (no per-source totals API yet)
+                // Local header pill — prefer directory totals if available, fallback to cached playlist
                 try {
-                    const filteredLocal = items.filter(it => inferSource(it) === 'local').length;
+                    const [dirTotal, filteredLocal] = await Promise.all([
+                        (async () => {
+                            try {
+                                const url = '/api/local/browse?path=/';
+                                const r = await (typeof window.dedupJSON === 'function'
+                                    ? window.dedupJSON(url)
+                                    : fetch(url, { credentials: 'include' }));
+                                if (!r || !r.ok) return null;
+                                const j = await r.json().catch(() => null);
+                                const map = new Map(
+                                    (Array.isArray(j?.directories) ? j.directories : []).map(d => [
+                                        String(d.name || '').toLowerCase(),
+                                        d,
+                                    ])
+                                );
+                                const sum = name => Number(map.get(name)?.itemCount || 0);
+                                const total =
+                                    sum('posters') +
+                                    sum('backgrounds') +
+                                    sum('motion') +
+                                    sum('complete');
+                                return Number.isFinite(total) ? total : null;
+                            } catch (_) {
+                                return null;
+                            }
+                        })(),
+                        Promise.resolve(items.filter(it => inferSource(it) === 'local').length),
+                    ]);
+                    const val =
+                        Number.isFinite(dirTotal) && dirTotal != null ? dirTotal : filteredLocal;
                     setCount(
                         'local-count-pill',
-                        filteredLocal,
+                        val,
                         null,
-                        `Local items — cached: ${fmt(filteredLocal)}`
+                        `Local items — ${Number.isFinite(dirTotal) ? 'directory total' : 'cached'}: ${fmt(val)}`
                     );
                 } catch (_) {
                     // ignore; leave as-is if items not available
