@@ -18952,6 +18952,25 @@ if (!document.__niwDelegatedFallback) {
 
         browserContent.innerHTML = `<div class="browser-list">${listHTML}</div>`;
 
+        // Also update the Local header count by summing top-level directory itemCounts
+        try {
+            // Sum files-only counts for posters, backgrounds, motion, and complete
+            const topDirs = new Map(dirs.map(d => [String(d.name).toLowerCase(), d]));
+            const sumCount = name => Number(topDirs.get(name)?.itemCount || 0);
+            const totalLocal =
+                sumCount('posters') +
+                sumCount('backgrounds') +
+                sumCount('motion') +
+                sumCount('complete');
+            if (Number.isFinite(totalLocal)) {
+                // setCount(id, display, total?, tooltip?)
+                const tt = `Local items — posters+backgrounds+motion+complete: ${totalLocal.toLocaleString()}`;
+                setCount('local-count-pill', totalLocal, null, tt);
+            }
+        } catch (_) {
+            // non-fatal
+        }
+
         // Single delegated click handler for selection and actions (attach once)
         if (!browserContent.__handlersAttached) {
             browserContent.__handlersAttached = true;
