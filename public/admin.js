@@ -472,6 +472,9 @@
             initMsForSelect(idBase, selectId);
         } catch (_) {}
     }
+    // Forward declaration for linter (defined later)
+    function loadPosterpackServerFilterOptions() {}
+
     function __ensureAllMultiselects() {
         // Media Sources (main panels)
         __ensureMsWired('plex-ms-movies', 'plex.movies');
@@ -20157,7 +20160,7 @@ if (!document.__niwDelegatedFallback) {
                 ].forEach(r => ratings.add(r));
             if (!qualities.size) ['SD', '720p', '1080p', '4K'].forEach(q => qualities.add(q));
 
-            const fill = (id, list, order) => {
+            const fill = (id, list) => {
                 const sel = document.getElementById(id);
                 if (!sel) return;
                 const prev = new Set(Array.from(sel.selectedOptions).map(o => o.value));
