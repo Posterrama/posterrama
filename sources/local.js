@@ -664,7 +664,9 @@ class LocalDirectorySource {
             if (this.indexCache.has(metadataPath)) {
                 return this.indexCache.get(metadataPath);
             }
-        } catch (_) {}
+        } catch (_) {
+            // Intentionally ignore cache lookup errors (cache may be in transient state)
+        }
 
         // Try to load existing metadata
         if (await fs.pathExists(metadataPath)) {
@@ -673,7 +675,9 @@ class LocalDirectorySource {
                 // Cache for subsequent accesses during this cycle
                 try {
                     this.indexCache.set(metadataPath, metadata);
-                } catch (_) {}
+                } catch (_) {
+                    // Non-fatal: cache insertion failed, continue without cache
+                }
                 logger.debug(`LocalDirectorySource: Loaded metadata for ${file.name}`);
                 return metadata;
             } catch (error) {
@@ -771,7 +775,9 @@ class LocalDirectorySource {
             try {
                 // Keep metadata in cache for this session to prevent duplicate reload/log lines
                 this.indexCache.set(metadataPath, metadata);
-            } catch (_) {}
+            } catch (_) {
+                // Non-fatal: if caching fails we still proceed
+            }
             logger.debug(`LocalDirectorySource: Saved metadata to ${metadataPath}`);
         } catch (error) {
             logger.error(
