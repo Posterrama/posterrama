@@ -581,12 +581,57 @@
         }
     }
 
+    // Small helpers for Local media total caching
+    const LS_LOCAL_TOTAL_KEY = 'admin2:localTotal';
+    function getCachedLocalTotal() {
+        try {
+            const v = sessionStorage.getItem(LS_LOCAL_TOTAL_KEY);
+            const n = Number(v);
+            return Number.isFinite(n) ? n : 0;
+        } catch (_) {
+            return 0;
+        }
+    }
+    function setCachedLocalTotal(n) {
+        try {
+            sessionStorage.setItem(LS_LOCAL_TOTAL_KEY, String(Number(n) || 0));
+        } catch (_) {}
+    }
+
+    async function computeLocalTotalSafe() {
+        try {
+            const url = '/api/local/browse?path=/';
+            let data = null;
+            if (typeof window.dedupJSON === 'function') {
+                const res = await window.dedupJSON(url);
+                if (!res || !res.ok) return 0;
+                data = await res.json().catch(() => null);
+            } else {
+                const res = await fetch(url, { credentials: 'include' }).catch(() => null);
+                if (!res || !res.ok) return 0;
+                data = await res.json().catch(() => null);
+            }
+            if (!data || !Array.isArray(data.directories)) return 0;
+            const map = new Map(data.directories.map(d => [String(d.name || '').toLowerCase(), d]));
+            const sum = name => Number(map.get(name)?.itemCount || 0);
+            const total = sum('posters') + sum('backgrounds') + sum('motion') + sum('complete');
+            if (Number.isFinite(total)) setCachedLocalTotal(total);
+            return Number.isFinite(total) ? total : 0;
+        } catch (_) {
+            return 0;
+        }
+    }
+
     async function refreshDashboardMetrics() {
         // Populate media totals and Active Mode for the top dashboard cards
         // Apply client-side dedupe and 429 backoff to avoid hammering the server
         if (!window.__metricsCooldownUntil) window.__metricsCooldownUntil = 0;
         if (!window.__metricsInFlight) window.__metricsInFlight = null;
         try {
+            // Show cached Local total immediately as a placeholder
+            const cachedLocal = getCachedLocalTotal();
+            if (cachedLocal > 0) setText('metric-media-items', formatNumber(cachedLocal));
+
             const now = Date.now();
             if (now < window.__metricsCooldownUntil) {
                 // Respect cooldown after server rate-limited us
@@ -615,7 +660,10 @@
                         Number(data?.media?.libraryTotals?.total) ||
                         Number(data?.media?.playlistItems) ||
                         0;
-                    setText('metric-media-items', formatNumber(totalMedia));
+                    // Compute Local total in parallel and display the better total
+                    const localTotal = await computeLocalTotalSafe();
+                    const display = Math.max(totalMedia, localTotal);
+                    setText('metric-media-items', formatNumber(display));
                 }
                 return data;
             })();
@@ -645,6 +693,7 @@
                 if (plex?.enabled) enabledSources++;
                 if (jf?.enabled) enabledSources++;
                 if (config.tmdbSource?.enabled) enabledSources++;
+                if (config.localDirectory?.enabled) enabledSources++;
 
                 const mediaSub = document.getElementById('metric-media-sub');
                 if (mediaSub) {
