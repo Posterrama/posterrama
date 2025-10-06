@@ -18810,7 +18810,8 @@ if (!document.__niwDelegatedFallback) {
                 __browserRefreshTimer = setTimeout(tick, BROWSER_MIN_INTERVAL);
             }
         };
-        __browserRefreshTimer = setTimeout(tick, BROWSER_MIN_INTERVAL);
+        // Trigger an immediate refresh so header pills and sizes update without initial delay
+        tick();
     }
     function stopRealtimeDirectoryRefresh() {
         if (__browserRefreshTimer) {
@@ -18969,7 +18970,7 @@ if (!document.__niwDelegatedFallback) {
                 } else {
                     const el = document.getElementById('local-count-pill');
                     if (el) {
-                        el.textContent = totalLocal.toLocaleString();
+                        el.textContent = `Items: ${totalLocal.toLocaleString()}`;
                         el.title = tt;
                     }
                 }
