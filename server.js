@@ -2,6 +2,7 @@ const logger = require('./utils/logger');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const AdmZip = require('adm-zip');
 
 // Test-safe wrapper for fatal exits: suppress actual process termination during Jest
 // so a single initialization failure doesn't abort the whole suite. In test mode we
@@ -1286,6 +1287,82 @@ app.get(
             return res.status(404).send('File not found');
         } catch (err) {
             logger.error('[Local Media] Failed to serve file', { error: err.message });
+            return res.status(500).send('Internal server error');
+        }
+    })
+);
+
+// Stream poster/background/clearlogo directly from a posterpack ZIP without extraction
+// Example: /local-posterpack?zip=complete/manual/Movie%20(2024).zip&entry=poster
+app.get(
+    '/local-posterpack',
+    asyncHandler(async (req, res) => {
+        try {
+            if (!config.localDirectory?.enabled || !localDirectorySource) {
+                return res.status(404).send('Local directory support not enabled');
+            }
+
+            const entryKey = String(req.query.entry || '').toLowerCase();
+            const zipRel = String(req.query.zip || '').trim();
+            if (!zipRel || !entryKey) return res.status(400).send('Missing parameters');
+            if (zipRel.includes('..') || zipRel.startsWith('/') || zipRel.startsWith('\\'))
+                return res.status(400).send('Invalid zip path');
+
+            // Allow only known entry types
+            const allowed = new Set(['poster', 'background', 'clearlogo']);
+            if (!allowed.has(entryKey)) return res.status(400).send('Invalid entry type');
+
+            const bases = Array.isArray(localDirectorySource.rootPaths)
+                ? localDirectorySource.rootPaths
+                : [localDirectorySource.rootPath].filter(Boolean);
+
+            // Resolve the ZIP against configured bases
+            let zipFull = null;
+            for (const base of bases) {
+                const full = path.resolve(base, zipRel);
+                const withinBase = full === base || (full + path.sep).startsWith(base + path.sep);
+                if (!withinBase) continue;
+                try {
+                    const st = await fsp.stat(full);
+                    if (st.isFile() && /\.zip$/i.test(full)) {
+                        zipFull = full;
+                        break;
+                    }
+                } catch (_) {
+                    /* try next base */
+                }
+            }
+
+            if (!zipFull) return res.status(404).send('ZIP not found');
+
+            // Open ZIP and locate the requested entry (case-insensitive, top-level or nested)
+            let zip;
+            try {
+                zip = new AdmZip(zipFull);
+            } catch (e) {
+                return res.status(500).send('Failed to open ZIP');
+            }
+
+            const entries = zip.getEntries();
+            // Preferred extensions order
+            const exts = ['jpg', 'jpeg', 'png', 'webp'];
+            let target = null;
+            for (const ext of exts) {
+                const re = new RegExp(`(^|/)${entryKey}\\.${ext}$`, 'i');
+                target = entries.find(e => re.test(e.entryName));
+                if (target) break;
+            }
+
+            if (!target) return res.status(404).send('Entry not found in ZIP');
+
+            const data = target.getData();
+            const mime = require('mime-types');
+            const ctype = mime.lookup(target.entryName) || 'application/octet-stream';
+            res.setHeader('Content-Type', ctype);
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            return res.end(data);
+        } catch (err) {
+            logger.error('[Local Posterpack] Failed to stream zip entry', { error: err.message });
             return res.status(500).send('Internal server error');
         }
     })

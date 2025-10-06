@@ -194,8 +194,21 @@ class LocalDirectorySource {
                 return [];
             }
 
-            // Scan directory for files
+            // Scan directory for native files (images/videos)
             const files = await this.scanDirectory(targetDirectory);
+
+            // Augment with ZIP-based poster/background assets from complete/manual without extraction
+            // We only consider manual posterpacks to avoid mass duplicates from generated exports.
+            if (type === 'poster' || type === 'background') {
+                try {
+                    const zipFiles = await this.scanZipPosterpacks(type);
+                    files.push(...zipFiles);
+                } catch (e) {
+                    logger.warn(
+                        `LocalDirectorySource: Failed to scan ZIP posterpacks for ${type}: ${e?.message}`
+                    );
+                }
+            }
 
             // Process files and create media items
             const mediaItems = await this.processFiles(files, count);
@@ -280,6 +293,78 @@ class LocalDirectorySource {
             `LocalDirectorySource: Found ${allFiles.length} valid files in ${directoryName} across ${this.rootPaths.length} roots`
         );
         return allFiles;
+    }
+
+    /**
+     * Scan complete/manual for posterpack ZIPs that contain the requested entry type
+     * Returns synthetic file records representing poster/background items backed by ZIP entries
+     * @param {('poster'|'background')} type
+     * @returns {Promise<Array<{name:string,path:string,size:number,modified:Date,extension:string,directory:string,type:string}>>}
+     */
+    async scanZipPosterpacks(type) {
+        const results = [];
+        const want = type === 'background' ? 'background' : 'poster';
+        const exts = ['jpg', 'jpeg', 'png', 'webp'];
+        // Priority order: manual > plex-export > jellyfin-export
+        const subdirs = ['manual', 'plex-export', 'jellyfin-export'];
+        const seen = new Set(); // de-dup by basename (without .zip)
+        for (const base of this.rootPaths) {
+            const completeRoot = path.join(base, this.directories.complete);
+            for (const sub of subdirs) {
+                const dir = path.join(completeRoot, sub);
+                const exists = await fs.pathExists(dir);
+                if (!exists) continue;
+                let entries = [];
+                try {
+                    entries = await fs.readdir(dir, { withFileTypes: true });
+                } catch (e) {
+                    logger.debug(
+                        `LocalDirectorySource: Failed to read posterpacks at ${dir}: ${e?.message}`
+                    );
+                }
+                for (const ent of entries) {
+                    if (!ent.isFile()) continue;
+                    if (!/\.zip$/i.test(ent.name)) continue;
+                    const baseName = ent.name.replace(/\.zip$/i, '');
+                    if (seen.has(baseName)) continue; // keep higher-priority one
+                    const zipFull = path.join(dir, ent.name);
+                    try {
+                        const zip = new AdmZip(zipFull);
+                        const zipEntries = zip.getEntries();
+                        let found = false;
+                        for (const ext of exts) {
+                            const re = new RegExp(`(^|/)${want}\\.${ext}$`, 'i');
+                            if (zipEntries.some(e => re.test(e.entryName))) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) continue;
+                        const st = await fs.stat(zipFull);
+                        results.push({
+                            name: ent.name,
+                            path: zipFull,
+                            size: st.size,
+                            modified: st.mtime,
+                            extension: 'zip',
+                            directory: want === 'background' ? 'backgrounds' : 'posters',
+                            type: want,
+                        });
+                        seen.add(baseName);
+                    } catch (e) {
+                        logger.debug(
+                            `LocalDirectorySource: Failed to inspect ZIP ${zipFull}: ${e?.message}`
+                        );
+                    }
+                }
+            }
+        }
+        if (results.length) {
+            logger.debug(
+                `LocalDirectorySource: Found ${results.length} ${want} items inside ZIP posterpacks (manual/plex/jellyfin)`
+            );
+        }
+        return results;
     }
 
     /**
@@ -699,7 +784,18 @@ class LocalDirectorySource {
                 break;
             }
         }
-        const mediaUrl = `/local-media/${relativePath.replace(/\\/g, '/')}`;
+        const relUrlPath = relativePath.replace(/\\/g, '/');
+        const isZip = (file.extension || '').toLowerCase() === 'zip';
+        // If this media is backed by a ZIP posterpack, stream the inner entry on demand
+        let mediaUrl = `/local-media/${relUrlPath}`;
+        let clearlogoPath = null;
+        if (isZip) {
+            const entry = file.type === 'background' ? 'background' : 'poster';
+            const encoded = encodeURIComponent(relUrlPath);
+            mediaUrl = `/local-posterpack?zip=${encoded}&entry=${entry}`;
+            // Provide clearlogo path if available; client normalizer may pick this up
+            clearlogoPath = `/local-posterpack?zip=${encoded}&entry=clearlogo`;
+        }
 
         return {
             title: metadata.title,
@@ -707,6 +803,7 @@ class LocalDirectorySource {
             poster: mediaUrl,
             background: metadata.backgroundPath || null,
             clearart: metadata.clearartPath || null,
+            clearlogoPath: clearlogoPath || metadata.clearlogoPath || null,
             metadata: {
                 genre: metadata.genre || [],
                 rating: metadata.rating || null,
