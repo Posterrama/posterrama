@@ -531,6 +531,39 @@ if (config.localDirectory && config.localDirectory.enabled) {
         localSource: !!localDirectorySource,
     });
 
+    // Auto-refresh playlist when posterpack jobs complete or fail, so new Local items show up without restarts
+    try {
+        jobQueue.on('jobCompleted', async job => {
+            try {
+                if (job && job.type === 'posterpack-generation') {
+                    logger.info('[Posterpack] Job completed – refreshing playlist cache');
+                    await refreshPlaylistCache();
+                }
+            } catch (e) {
+                logger.warn('[Posterpack] Auto-refresh after completion failed', {
+                    error: e?.message,
+                });
+            }
+        });
+        jobQueue.on('jobFailed', async job => {
+            try {
+                if (job && job.type === 'posterpack-generation') {
+                    // Even after a failed run, we may have partial outputs; refresh is cheap and keeps UI in sync
+                    logger.info(
+                        '[Posterpack] Job failed – refreshing playlist cache to reflect any outputs'
+                    );
+                    await refreshPlaylistCache();
+                }
+            } catch (e) {
+                logger.warn('[Posterpack] Auto-refresh after failure failed', {
+                    error: e?.message,
+                });
+            }
+        });
+    } catch (_) {
+        // Non-fatal: event wiring issues should not break server startup
+    }
+
     // Initialize local directory source (create folders, start watcher)
     try {
         // Fire and forget; errors are handled inside initialize()

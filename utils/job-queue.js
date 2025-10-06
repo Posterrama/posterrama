@@ -1,4 +1,5 @@
 const EventEmitter = require('events');
+const os = require('os');
 const path = require('path');
 const fs = require('fs-extra');
 const JSZip = require('jszip');
@@ -27,7 +28,20 @@ class JobQueue extends EventEmitter {
         // Job ID counter
         this.jobCounter = 0;
 
-        logger.info('JobQueue initialized', { maxConcurrentJobs: this.maxConcurrentJobs });
+        // Global in-flight HTTP download limiter (optional)
+        const maxInflight = Number(
+            process.env.POSTERPACK_MAX_INFLIGHT_DOWNLOADS ||
+                config.localDirectory?.posterpackGeneration?.maxInflightDownloads ||
+                0
+        );
+        this._maxInflightDownloads = Math.max(0, maxInflight);
+        this._inflight = 0;
+        this._waiters = [];
+
+        logger.info('JobQueue initialized', {
+            maxConcurrentJobs: this.maxConcurrentJobs,
+            maxInflightDownloads: this._maxInflightDownloads || 'unlimited',
+        });
     }
 
     /**
@@ -114,6 +128,38 @@ class JobQueue extends EventEmitter {
 
         if (queuedJob) {
             this.processJob(queuedJob.id);
+        }
+    }
+
+    // Global in-flight download limiter
+    async _withInflightLimit(fn) {
+        if (!this._maxInflightDownloads || this._maxInflightDownloads <= 0) {
+            return fn();
+        }
+        await this._acquire();
+        try {
+            return await fn();
+        } finally {
+            this._release();
+        }
+    }
+
+    _acquire() {
+        if (this._inflight < this._maxInflightDownloads) {
+            this._inflight++;
+            return Promise.resolve();
+        }
+        return new Promise(resolve => {
+            this._waiters.push(resolve);
+        });
+    }
+
+    _release() {
+        if (this._inflight > 0) this._inflight--;
+        const next = this._waiters.shift();
+        if (next) {
+            this._inflight++;
+            next();
         }
     }
 
@@ -380,49 +426,73 @@ class JobQueue extends EventEmitter {
             throw new Error('No items found in selected libraries');
         }
 
-        // Process each item
+        // Batch timing and containers
+        const batchStart = Date.now();
+        const itemDurations = [];
+
+        // Process each item with controlled concurrency
         const results = [];
         const errors = [];
 
-        for (let i = 0; i < itemsToProcess.length; i++) {
-            const item = itemsToProcess[i];
+        const cores = Math.max(1, Number(os.cpus()?.length || 2));
+        const itemConcurrency = Math.max(
+            1,
+            Number(
+                process.env.POSTERPACK_ITEM_CONCURRENCY ||
+                    this.config?.localDirectory?.posterpackGeneration?.itemConcurrency ||
+                    Math.min(2, cores)
+            )
+        );
 
+        let processedSoFar = 0;
+        const runWithLimit = async (arr, limit, worker) => {
+            const queue = arr.slice();
+            const runners = new Array(Math.min(limit, queue.length)).fill(0).map(async () => {
+                while (queue.length) {
+                    const item = queue.shift();
+                    const idx = ++processedSoFar; // 1-based
+                    try {
+                        // Update progress
+                        job.processedItems = Math.min(processedSoFar, job.totalItems);
+                        job.progress = Math.round(
+                            (job.processedItems / Math.max(job.totalItems, 1)) * 100
+                        );
+                        job.logs.push(`Processing: ${item.title} (${idx}/${job.totalItems})`);
+                        this.emit('jobProgress', job);
+                        if (job.exportLogger)
+                            await job.exportLogger.info('Processing item', {
+                                index: idx,
+                                total: job.totalItems,
+                                title: item.title,
+                                year: item.year,
+                                id: item.id,
+                            });
+
+                        await worker(item);
+                    } catch (e) {
+                        // Worker should handle logging; ensure we continue
+                    }
+                }
+            });
+            await Promise.all(runners);
+        };
+
+        await runWithLimit(itemsToProcess, itemConcurrency, async item => {
+            const itemStart = Date.now();
             try {
-                // Update progress
-                job.processedItems = i;
-                job.progress = Math.round((i / Math.max(job.totalItems, 1)) * 100);
-                job.logs.push(`Processing: ${item.title} (${i + 1}/${job.totalItems})`);
-
-                this.emit('jobProgress', job);
-                if (job.exportLogger)
-                    await job.exportLogger.info('Processing item', {
-                        index: i + 1,
-                        total: job.totalItems,
-                        title: item.title,
-                        year: item.year,
-                        id: item.id,
-                    });
-
-                // Generate posterpack for item
                 const result = await this.generatePosterpackForItem(
                     item,
                     sourceType,
                     options,
                     job.exportLogger || null
                 );
-
                 results.push({
-                    item: {
-                        title: item.title,
-                        year: item.year,
-                        id: item.id,
-                    },
+                    item: { title: item.title, year: item.year, id: item.id },
                     success: true,
                     outputPath: result.outputPath,
                     size: result.size,
                     assets: result.assets,
                 });
-
                 job.logs.push(`✅ Generated: ${item.title}`);
                 if (job.exportLogger)
                     await job.exportLogger.info('Generated posterpack', {
@@ -430,29 +500,27 @@ class JobQueue extends EventEmitter {
                         outputPath: result.outputPath,
                         size: result.size,
                         assets: Object.keys(result.assets || {}),
+                        ms: Date.now() - itemStart,
                     });
+                itemDurations.push(Date.now() - itemStart);
             } catch (error) {
                 logger.error(`JobQueue: Failed to generate posterpack for ${item.title}:`, error);
-
                 errors.push({
-                    item: {
-                        title: item.title,
-                        year: item.year,
-                        id: item.id,
-                    },
+                    item: { title: item.title, year: item.year, id: item.id },
                     success: false,
                     error: error.message,
                 });
-
                 job.logs.push(`❌ Failed: ${item.title} - ${error.message}`);
                 if (job.exportLogger)
                     await job.exportLogger.error('Generate failed', {
                         title: item.title,
                         id: item.id,
                         error: error.message,
+                        ms: Date.now() - itemStart,
                     });
+                itemDurations.push(Date.now() - itemStart);
             }
-        }
+        });
 
         // Set final results
         job.processedItems = allItems.length;
@@ -465,11 +533,26 @@ class JobQueue extends EventEmitter {
         };
 
         job.logs.push(`Generation complete: ${results.length} successful, ${errors.length} failed`);
-        if (job.exportLogger)
+        if (job.exportLogger) {
+            const totalMs = Date.now() - batchStart;
+            const sorted = itemDurations.slice().sort((a, b) => a - b);
+            const avg = sorted.length
+                ? Math.round(sorted.reduce((a, b) => a + b, 0) / sorted.length)
+                : 0;
+            const p95 = sorted.length
+                ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))]
+                : 0;
+            const throughput =
+                totalMs > 0 ? Number((results.length / (totalMs / 1000)).toFixed(2)) : 0;
             await job.exportLogger.info('Generation summary', {
                 successful: results.length,
                 failed: errors.length,
+                totalMs,
+                avgItemMs: avg,
+                p95ItemMs: p95,
+                throughputItemsPerSec: throughput,
             });
+        }
     }
 
     /**
@@ -505,17 +588,34 @@ class JobQueue extends EventEmitter {
         if (!item.poster && exportLogger) {
             await exportLogger.warn('Item has no poster URL', { title: item.title, id: item.id });
         }
+        // Prepare concurrent downloads for poster/background/clearlogo
+        const assetConcurrency = Math.max(
+            1,
+            Number(
+                process.env.POSTERPACK_ASSET_CONCURRENCY ||
+                    this.config?.localDirectory?.posterpackGeneration?.assetConcurrency ||
+                    4
+            )
+        );
+
+        const basicDownloads = [];
         if (item.poster) {
-            const posterData = await this.downloadAsset(item.poster, sourceType);
-            if (posterData) {
-                zip.file('poster.jpg', posterData);
-                assets.poster = true;
-            } else if (exportLogger) {
-                await exportLogger.warn('Poster download failed', {
-                    title: item.title,
-                    url: item.poster,
-                });
-            }
+            basicDownloads.push(
+                (async () => {
+                    const posterData = await this._withInflightLimit(() =>
+                        this.downloadAsset(item.poster, sourceType, exportLogger)
+                    );
+                    if (posterData) {
+                        zip.file('poster.jpg', posterData);
+                        assets.poster = true;
+                    } else if (exportLogger) {
+                        await exportLogger.warn('Poster download failed', {
+                            title: item.title,
+                            url: item.poster,
+                        });
+                    }
+                })()
+            );
         }
 
         // Add background (required)
@@ -526,52 +626,83 @@ class JobQueue extends EventEmitter {
             });
         }
         if (item.background) {
-            const backgroundData = await this.downloadAsset(item.background, sourceType);
-            if (backgroundData) {
-                zip.file('background.jpg', backgroundData);
-                assets.background = true;
-            } else if (exportLogger) {
-                await exportLogger.warn('Background download failed', {
-                    title: item.title,
-                    url: item.background,
-                });
-            }
+            basicDownloads.push(
+                (async () => {
+                    const backgroundData = await this._withInflightLimit(() =>
+                        this.downloadAsset(item.background, sourceType, exportLogger)
+                    );
+                    if (backgroundData) {
+                        zip.file('background.jpg', backgroundData);
+                        assets.background = true;
+                    } else if (exportLogger) {
+                        await exportLogger.warn('Background download failed', {
+                            title: item.title,
+                            url: item.background,
+                        });
+                    }
+                })()
+            );
         }
 
         // Add optional assets
         // ClearLogo support (prefer new 'clearlogo' field)
         if (item.clearlogo || (includeAssets?.clearart && item.clearart)) {
             const logoUrl = item.clearlogo || item.clearart;
-            const clearlogoData = await this.downloadAsset(logoUrl, sourceType);
-            if (clearlogoData) {
-                zip.file('clearlogo.png', clearlogoData);
-                assets.clearlogo = true;
-            } else if (exportLogger) {
-                await exportLogger.warn('Clearlogo download failed', {
-                    title: item.title,
-                    url: logoUrl,
-                });
-            }
+            basicDownloads.push(
+                (async () => {
+                    const clearlogoData = await this._withInflightLimit(() =>
+                        this.downloadAsset(logoUrl, sourceType, exportLogger)
+                    );
+                    if (clearlogoData) {
+                        zip.file('clearlogo.png', clearlogoData);
+                        assets.clearlogo = true;
+                    } else if (exportLogger) {
+                        await exportLogger.warn('Clearlogo download failed', {
+                            title: item.title,
+                            url: logoUrl,
+                        });
+                    }
+                })()
+            );
+        }
+
+        // Execute base asset downloads in parallel
+        if (basicDownloads.length) {
+            await Promise.all(basicDownloads);
         }
 
         if (includeAssets?.fanart && item.fanart) {
-            for (let i = 0; i < item.fanart.length && i < 5; i++) {
-                const fanartData = await this.downloadAsset(item.fanart[i], sourceType);
-                if (fanartData) {
-                    zip.file(`fanart-${i + 1}.jpg`, fanartData);
-                    assets.fanart = (assets.fanart || 0) + 1;
-                } else if (exportLogger) {
-                    await exportLogger.warn('Fanart download failed', {
-                        title: item.title,
-                        url: item.fanart[i],
-                        index: i + 1,
-                    });
-                }
-            }
+            const fan = item.fanart.slice(0, 5);
+            let idxFan = 0;
+            const fanQueue = fan.slice();
+            const workers = new Array(Math.min(assetConcurrency, fanQueue.length))
+                .fill(0)
+                .map(async () => {
+                    while (fanQueue.length) {
+                        const url = fanQueue.shift();
+                        const iLocal = idxFan++;
+                        const fanartData = await this._withInflightLimit(() =>
+                            this.downloadAsset(url, sourceType, exportLogger)
+                        );
+                        if (fanartData) {
+                            zip.file(`fanart-${iLocal + 1}.jpg`, fanartData);
+                            assets.fanart = (assets.fanart || 0) + 1;
+                        } else if (exportLogger) {
+                            await exportLogger.warn('Fanart download failed', {
+                                title: item.title,
+                                url,
+                                index: iLocal + 1,
+                            });
+                        }
+                    }
+                });
+            await Promise.all(workers);
         }
 
         if (includeAssets?.discart && item.discart) {
-            const discartData = await this.downloadAsset(item.discart, sourceType);
+            const discartData = await this._withInflightLimit(() =>
+                this.downloadAsset(item.discart, sourceType, exportLogger)
+            );
             if (discartData) {
                 zip.file('disc.png', discartData);
                 assets.discart = true;
@@ -587,62 +718,77 @@ class JobQueue extends EventEmitter {
         const peopleImages = [];
         const addPeopleImages = async list => {
             if (!Array.isArray(list)) return [];
-            const out = [];
-            for (const p of list) {
-                if (!p || !p.thumbUrl) {
-                    // Do not carry thumbUrl in metadata; only embed local file reference when available
-                    const rest = p
-                        ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'thumbUrl'))
-                        : {};
-                    out.push(rest);
-                    continue;
-                }
-                try {
-                    let data = await this.downloadAsset(p.thumbUrl, sourceType);
-                    // Skip obviously broken downloads (e.g. 1KB fallbacks)
-                    if (data && data.length > 2048) {
-                        // Optionally resize to fit within 500x500 while preserving aspect ratio
-                        if (sharp) {
-                            try {
-                                data = await sharp(data)
-                                    .resize({
-                                        width: 500,
-                                        height: 500,
-                                        fit: 'inside',
-                                        withoutEnlargement: true,
-                                    })
-                                    .jpeg({ quality: 85 })
-                                    .toBuffer();
-                            } catch (e) {
-                                // If resize fails, keep original buffer
-                                logger.warn('JobQueue: sharp resize failed for person image', {
-                                    error: e.message,
-                                });
-                            }
+            const out = new Array(list.length).fill(null);
+            const queue = list.map((p, i) => ({ p, i }));
+            const personConcurrency = Math.min(assetConcurrency, 6);
+            const workers = new Array(Math.min(personConcurrency, queue.length))
+                .fill(0)
+                .map(async () => {
+                    while (queue.length) {
+                        const { p, i } = queue.shift();
+                        if (!p || !p.thumbUrl) {
+                            // Do not carry thumbUrl in metadata; only embed local file reference when available
+                            const rest = p
+                                ? Object.fromEntries(
+                                      Object.entries(p).filter(([k]) => k !== 'thumbUrl')
+                                  )
+                                : {};
+                            out[i] = rest;
+                            continue;
                         }
-                        const safeName = (p.name || p.id || 'person')
-                            .toString()
-                            .replace(/[^a-z0-9_-]+/gi, '_');
-                        const filename = `people/${safeName}.jpg`;
-                        zip.file(filename, data);
-                        const rest = Object.fromEntries(
-                            Object.entries(p || {}).filter(([k]) => k !== 'thumbUrl')
-                        );
-                        out.push({ ...rest, thumb: filename });
-                        peopleImages.push(filename);
-                    } else {
-                        const rest = Object.fromEntries(
-                            Object.entries(p || {}).filter(([k]) => k !== 'thumbUrl')
-                        );
-                        out.push(rest);
+                        try {
+                            let data = await this._withInflightLimit(() =>
+                                this.downloadAsset(p.thumbUrl, sourceType, exportLogger)
+                            );
+                            // Skip obviously broken downloads (e.g. 1KB fallbacks)
+                            if (data && data.length > 2048) {
+                                // Optionally resize to fit within 500x500 while preserving aspect ratio
+                                if (sharp) {
+                                    try {
+                                        data = await sharp(data)
+                                            .resize({
+                                                width: 500,
+                                                height: 500,
+                                                fit: 'inside',
+                                                withoutEnlargement: true,
+                                            })
+                                            .jpeg({ quality: 85 })
+                                            .toBuffer();
+                                    } catch (e) {
+                                        // If resize fails, keep original buffer
+                                        logger.warn(
+                                            'JobQueue: sharp resize failed for person image',
+                                            {
+                                                error: e.message,
+                                            }
+                                        );
+                                    }
+                                }
+                                const safeName = (p.name || p.id || 'person')
+                                    .toString()
+                                    .replace(/[^a-z0-9_-]+/gi, '_');
+                                const filename = `people/${safeName}.jpg`;
+                                zip.file(filename, data);
+                                const rest = Object.fromEntries(
+                                    Object.entries(p || {}).filter(([k]) => k !== 'thumbUrl')
+                                );
+                                out[i] = { ...rest, thumb: filename };
+                                peopleImages.push(filename);
+                            } else {
+                                const rest = Object.fromEntries(
+                                    Object.entries(p || {}).filter(([k]) => k !== 'thumbUrl')
+                                );
+                                out[i] = rest;
+                            }
+                        } catch (_) {
+                            const rest = Object.fromEntries(
+                                Object.entries(p || {}).filter(([k]) => k !== 'thumbUrl')
+                            );
+                            out[i] = rest;
+                        }
                     }
-                } catch (_) {
-                    const rest = Object.fromEntries(
-                        Object.entries(p || {}).filter(([k]) => k !== 'thumbUrl')
-                    );
-                    out.push(rest);
-                }
-            }
+                });
+            await Promise.all(workers);
             return out;
         };
 
@@ -705,10 +851,12 @@ class JobQueue extends EventEmitter {
         }
 
         // Generate ZIP file
+        const comp = (options && options.compression) || 'balanced';
+        const level = comp === 'fast' ? 3 : comp === 'max' ? 9 : 6; // balanced default
         const zipBuffer = await zip.generateAsync({
             type: 'nodebuffer',
             compression: 'DEFLATE',
-            compressionOptions: { level: 6 },
+            compressionOptions: { level },
         });
 
         // Write to file
@@ -759,31 +907,74 @@ class JobQueue extends EventEmitter {
      * @param {string} sourceType - Source type
      * @returns {Buffer} Asset data
      */
-    async downloadAsset(assetUrl, sourceType) {
-        try {
-            // Get appropriate HTTP client for source type
-            const httpClient = this.getHttpClient(sourceType);
+    async downloadAsset(assetUrl, sourceType, exportLogger = null) {
+        // Configurable retry params
+        const maxRetries = Number(
+            process.env.POSTERPACK_DOWNLOAD_RETRIES ||
+                this.config?.localDirectory?.posterpackGeneration?.retryMaxRetries ||
+                2
+        );
+        const baseDelay = Number(
+            process.env.POSTERPACK_DOWNLOAD_BASE_DELAY_MS ||
+                this.config?.localDirectory?.posterpackGeneration?.retryBaseDelay ||
+                300
+        );
 
-            if (!httpClient) {
-                logger.warn(`JobQueue: No HTTP client available for ${sourceType}`);
-                return null;
-            }
-
-            // Download asset
-            const response = await httpClient.get(assetUrl, { responseType: 'arraybuffer' });
-
-            if (response.status === 200 && response.data) {
-                return Buffer.from(response.data);
-            }
-
-            logger.warn(
-                `JobQueue: Failed to download asset: ${assetUrl} (status: ${response.status})`
-            );
-            return null;
-        } catch (error) {
-            logger.error(`JobQueue: Asset download error for ${assetUrl}:`, error);
+        const httpClient = this.getHttpClient(sourceType);
+        if (!httpClient) {
+            logger.warn(`JobQueue: No HTTP client available for ${sourceType}`);
             return null;
         }
+
+        const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await httpClient.get(assetUrl, { responseType: 'arraybuffer' });
+                if (response.status === 200 && response.data) {
+                    return Buffer.from(response.data);
+                }
+                const status = response?.status;
+                const retriable = status === 429 || (status >= 500 && status < 600);
+                if (!retriable || attempt === maxRetries) {
+                    logger.warn(
+                        `JobQueue: Failed to download asset: ${assetUrl} (status: ${status})`
+                    );
+                    return null;
+                }
+            } catch (error) {
+                const code = error?.code || '';
+                const retriableCodes = new Set([
+                    'ECONNRESET',
+                    'ETIMEDOUT',
+                    'ENOTFOUND',
+                    'EAI_AGAIN',
+                    'ECONNABORTED',
+                ]);
+                const status = error?.response?.status;
+                const retriable =
+                    retriableCodes.has(code) || status === 429 || (status >= 500 && status < 600);
+                if (!retriable || attempt === maxRetries) {
+                    logger.error(`JobQueue: Asset download error for ${assetUrl}:`, error);
+                    return null;
+                }
+                if (exportLogger) {
+                    await exportLogger.info('Download retry', {
+                        url: assetUrl,
+                        attempt: attempt + 1,
+                        remaining: Math.max(0, maxRetries - attempt),
+                        status: status || null,
+                        code,
+                    });
+                }
+            }
+            // Exponential backoff with jitter
+            const delay = Math.round(baseDelay * Math.pow(2, attempt));
+            const jitter = Math.floor(Math.random() * Math.max(50, baseDelay / 2));
+            await sleep(delay + jitter);
+        }
+
+        return null;
     }
 
     /**
