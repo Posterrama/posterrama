@@ -6388,6 +6388,8 @@ async function getPlaylistMedia() {
             }
 
             // Normalize Local items to the common shape expected by the client (posterUrl/backgroundUrl)
+            // Also load metadata.json from posterpack ZIPs to propagate tagline/overview/rating/rottenTomatoes/imdbUrl
+            const zipMetaCache = new Map(); // key: absolute zip path -> partial meta
             const normalizeLocalItem = item => {
                 const baseId =
                     item?.sourceId ||
@@ -6399,6 +6401,14 @@ async function getPlaylistMedia() {
                 // If this item came from a ZIP (extension .zip), derive poster/background URLs
                 let posterUrl = null;
                 let backgroundUrl = null;
+                let tagline = item?.tagline || item?.metadata?.tagline || null;
+                let overview = item?.overview || item?.metadata?.overview || null;
+                let rating =
+                    (typeof item?.rating === 'number' ? item.rating : null) ??
+                    (typeof item?.metadata?.rating === 'number' ? item.metadata.rating : null);
+                let contentRating = item?.contentRating || item?.metadata?.contentRating || null;
+                let rottenTomatoes = item?.rottenTomatoes || item?.metadata?.rottenTomatoes || null;
+                let imdbUrl = item?.imdbUrl || item?.metadata?.imdbUrl || null;
                 const lp = item?.localPath || '';
                 const isZip = typeof lp === 'string' && lp.toLowerCase().endsWith('.zip');
                 if (isZip) {
@@ -6421,6 +6431,80 @@ async function getPlaylistMedia() {
                     const enc = encodeURIComponent(relZip);
                     posterUrl = `/local-posterpack?zip=${enc}&entry=poster`;
                     backgroundUrl = `/local-posterpack?zip=${enc}&entry=background`;
+                    // Attempt to read metadata.json inside the ZIP (once) to pull tagline/overview/rating/rottenTomatoes/imdbUrl
+                    try {
+                        if (!zipMetaCache.has(lp)) {
+                            const zip = new AdmZip(lp);
+                            const metaEntry = zip
+                                .getEntries()
+                                .find(e => /(^|\/)metadata\.json$/i.test(e.entryName));
+                            if (metaEntry) {
+                                try {
+                                    const raw = metaEntry.getData().toString('utf8');
+                                    const j = JSON.parse(raw) || {};
+                                    let parsedRating = null;
+                                    if (typeof j.rating === 'number') parsedRating = j.rating;
+                                    else if (typeof j.rating === 'string') {
+                                        const n = parseFloat(j.rating);
+                                        if (!Number.isNaN(n)) parsedRating = n;
+                                    }
+                                    zipMetaCache.set(lp, {
+                                        tagline: j.tagline ?? null,
+                                        overview: j.overview ?? null,
+                                        rating: parsedRating,
+                                        contentRating: j.contentRating ?? null,
+                                        rottenTomatoes: j.rottenTomatoes ?? null,
+                                        imdbUrl: j.imdbUrl ?? null,
+                                    });
+                                } catch (_) {
+                                    zipMetaCache.set(lp, {
+                                        tagline: null,
+                                        overview: null,
+                                        rating: null,
+                                        contentRating: null,
+                                        rottenTomatoes: null,
+                                        imdbUrl: null,
+                                    });
+                                }
+                            } else {
+                                zipMetaCache.set(lp, {
+                                    tagline: null,
+                                    overview: null,
+                                    rating: null,
+                                    contentRating: null,
+                                    rottenTomatoes: null,
+                                    imdbUrl: null,
+                                });
+                            }
+                        }
+                        const zm = zipMetaCache.get(lp);
+                        if (zm) {
+                            if (!tagline && zm.tagline) tagline = zm.tagline;
+                            if (!overview && zm.overview) overview = zm.overview;
+                            if (
+                                (rating == null || Number.isNaN(rating)) &&
+                                typeof zm.rating === 'number'
+                            )
+                                rating = zm.rating;
+                            if (!contentRating && zm.contentRating)
+                                contentRating = zm.contentRating;
+                            if (!rottenTomatoes && zm.rottenTomatoes)
+                                rottenTomatoes = zm.rottenTomatoes;
+                            if (!imdbUrl && zm.imdbUrl) imdbUrl = zm.imdbUrl;
+                            // Fallback: if rating is still missing, derive from Rotten Tomatoes originalScore (0-10)
+                            if ((rating == null || Number.isNaN(rating)) && zm.rottenTomatoes) {
+                                const os = zm.rottenTomatoes.originalScore;
+                                if (typeof os === 'number' && !Number.isNaN(os)) rating = os;
+                                else if (
+                                    typeof zm.rottenTomatoes.score === 'number' &&
+                                    !Number.isNaN(zm.rottenTomatoes.score)
+                                )
+                                    rating = zm.rottenTomatoes.score / 10;
+                            }
+                        }
+                    } catch (_) {
+                        // ignore failure to read zip metadata
+                    }
                 } else {
                     posterUrl = item?.poster || null;
                     backgroundUrl = isBackground ? item?.poster || null : null;
@@ -6432,6 +6516,12 @@ async function getPlaylistMedia() {
                     posterUrl: isBackground ? posterUrl || null : posterUrl,
                     backgroundUrl: backgroundUrl,
                     clearLogoUrl: item?.metadata?.clearlogoPath || item?.clearlogoPath || null,
+                    tagline: tagline || null,
+                    overview: overview || null,
+                    rating: typeof rating === 'number' ? rating : null,
+                    contentRating: contentRating || null,
+                    rottenTomatoes: rottenTomatoes || null,
+                    imdbUrl: imdbUrl || null,
                     source: 'local',
                 };
             };
@@ -6466,6 +6556,18 @@ async function getPlaylistMedia() {
                         existing.backgroundUrl = it.backgroundUrl || existing.backgroundUrl;
                     if (preferIncoming || (!existing.clearLogoUrl && it.clearLogoUrl))
                         existing.clearLogoUrl = it.clearLogoUrl || existing.clearLogoUrl;
+                    if (
+                        (existing.rating == null || Number.isNaN(existing.rating)) &&
+                        typeof it.rating === 'number'
+                    )
+                        existing.rating = it.rating;
+                    if (!existing.contentRating && it.contentRating)
+                        existing.contentRating = it.contentRating;
+                    if (!existing.rottenTomatoes && it.rottenTomatoes)
+                        existing.rottenTomatoes = it.rottenTomatoes;
+                    if (!existing.imdbUrl && it.imdbUrl) existing.imdbUrl = it.imdbUrl;
+                    if (!existing.tagline && it.tagline) existing.tagline = it.tagline;
+                    if (!existing.overview && it.overview) existing.overview = it.overview;
                     // Keep the earliest year/title if missing
                     if (!existing.title && it.title) existing.title = it.title;
                     if (!existing.year && it.year) existing.year = it.year;
