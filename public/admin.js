@@ -19092,7 +19092,26 @@ if (!document.__niwDelegatedFallback) {
                     const p = downloadDirBtn.dataset.path;
                     if (p) {
                         const url = `/api/local/download-all?path=${encodeURIComponent(p)}`;
-                        window.location.href = url;
+                        const dlg =
+                            window.confirmAction ||
+                            (opts =>
+                                Promise.resolve(
+                                    window.confirm(
+                                        opts?.message || 'Download all files in this folder?'
+                                    )
+                                ));
+                        dlg({
+                            title: 'Download folder as ZIP',
+                            message:
+                                `This will bundle and download all files inside:<br><code>${p}</code><br><br>` +
+                                `Large folders may take time to prepare. Continue?`,
+                            okText: 'Download',
+                            okClass: 'btn-confirm-accent',
+                            okIcon: 'file-zipper',
+                        }).then(ok => {
+                            if (!ok) return;
+                            window.location.href = url;
+                        });
                     }
                 } else if (downloadFileBtn) {
                     const p = downloadFileBtn.dataset.path;
