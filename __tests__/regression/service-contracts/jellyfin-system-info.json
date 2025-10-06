@@ -1,7 +1,7 @@
 {
   "service": "jellyfin",
   "endpoint": "system-info",
-  "timestamp": "2025-10-06T11:22:01.261Z",
+  "timestamp": "2025-10-06T11:28:43.198Z",
   "responseExample": {
     "Id": "mock-server-id",
     "Name": "Mock Jellyfin Server",

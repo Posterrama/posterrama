@@ -1,7 +1,7 @@
 {
   "service": "plex",
   "endpoint": "library-sections",
-  "timestamp": "2025-10-06T11:22:01.254Z",
+  "timestamp": "2025-10-06T11:28:43.191Z",
   "responseExample": {
     "MediaContainer": {
       "size": 2,
