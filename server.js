@@ -6435,9 +6435,24 @@ async function getPlaylistMedia() {
                     try {
                         if (!zipMetaCache.has(lp)) {
                             const zip = new AdmZip(lp);
-                            const metaEntry = zip
-                                .getEntries()
-                                .find(e => /(^|\/)metadata\.json$/i.test(e.entryName));
+                            const entries = zip.getEntries();
+                            const metaEntry = entries.find(e =>
+                                /(^|\/)metadata\.json$/i.test(e.entryName)
+                            );
+                            // Detect presence of poster/background/clearlogo files inside the ZIP (case-insensitive)
+                            let hasPoster = false;
+                            let hasBackground = false;
+                            let hasClearLogo = false;
+                            try {
+                                const posterRe = /(^|\/)poster\.(jpg|jpeg|png|webp)$/i;
+                                const backgroundRe = /(^|\/)background\.(jpg|jpeg|png|webp)$/i;
+                                const clearlogoRe = /(^|\/)clearlogo\.(png|webp|jpg|jpeg)$/i;
+                                hasPoster = entries.some(e => posterRe.test(e.entryName));
+                                hasBackground = entries.some(e => backgroundRe.test(e.entryName));
+                                hasClearLogo = entries.some(e => clearlogoRe.test(e.entryName));
+                            } catch (_) {
+                                // best-effort detection only
+                            }
                             if (metaEntry) {
                                 try {
                                     const raw = metaEntry.getData().toString('utf8');
@@ -6455,6 +6470,9 @@ async function getPlaylistMedia() {
                                         contentRating: j.contentRating ?? null,
                                         rottenTomatoes: j.rottenTomatoes ?? null,
                                         imdbUrl: j.imdbUrl ?? null,
+                                        hasPoster,
+                                        hasBackground,
+                                        hasClearLogo,
                                     });
                                 } catch (_) {
                                     zipMetaCache.set(lp, {
@@ -6464,6 +6482,9 @@ async function getPlaylistMedia() {
                                         contentRating: null,
                                         rottenTomatoes: null,
                                         imdbUrl: null,
+                                        hasPoster,
+                                        hasBackground,
+                                        hasClearLogo,
                                     });
                                 }
                             } else {
@@ -6474,6 +6495,9 @@ async function getPlaylistMedia() {
                                     contentRating: null,
                                     rottenTomatoes: null,
                                     imdbUrl: null,
+                                    hasPoster,
+                                    hasBackground,
+                                    hasClearLogo,
                                 });
                             }
                         }
@@ -6491,6 +6515,28 @@ async function getPlaylistMedia() {
                             if (!rottenTomatoes && zm.rottenTomatoes)
                                 rottenTomatoes = zm.rottenTomatoes;
                             if (!imdbUrl && zm.imdbUrl) imdbUrl = zm.imdbUrl;
+                            // Fallbacks: if background missing in ZIP, use poster (and vice versa)
+                            try {
+                                const hasPoster = !!zm.hasPoster;
+                                const hasBackground = !!zm.hasBackground;
+                                if (!hasBackground && hasPoster && posterUrl && !backgroundUrl) {
+                                    backgroundUrl = posterUrl;
+                                } else if (
+                                    !hasPoster &&
+                                    hasBackground &&
+                                    backgroundUrl &&
+                                    !posterUrl
+                                ) {
+                                    posterUrl = backgroundUrl;
+                                } else if (!hasBackground && hasPoster && posterUrl) {
+                                    // Even if backgroundUrl has a default value, prefer explicit fallback to poster
+                                    backgroundUrl = posterUrl;
+                                } else if (!hasPoster && hasBackground && backgroundUrl) {
+                                    posterUrl = backgroundUrl;
+                                }
+                            } catch (_) {
+                                // ignore fallback errors
+                            }
                             // Fallback: if rating is still missing, derive from Rotten Tomatoes originalScore (0-10)
                             if ((rating == null || Number.isNaN(rating)) && zm.rottenTomatoes) {
                                 const os = zm.rottenTomatoes.originalScore;

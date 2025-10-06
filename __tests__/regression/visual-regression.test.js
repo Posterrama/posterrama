@@ -43,6 +43,7 @@ class VisualRegressionTester {
         this.screenshotsDir = path.join(__dirname, 'visual-baselines');
         this.testOutputDir = path.join(__dirname, 'visual-output');
         this.diffDir = path.join(__dirname, 'visual-diffs');
+        this.updateEnabled = this.isUpdateEnabled();
 
         this.ensureDirectories();
 
@@ -103,6 +104,12 @@ class VisualRegressionTester {
                 fs.mkdirSync(dir, { recursive: true });
             }
         });
+    }
+
+    isUpdateEnabled() {
+        const v = process.env.REGRESSION_UPDATE;
+        if (!v) return false;
+        return ['1', 'true', 'yes', 'y', 'on'].includes(String(v).toLowerCase());
     }
 
     /**
@@ -239,8 +246,14 @@ class VisualRegressionTester {
 
         // Als er geen baseline bestaat, maak deze aan
         if (!fs.existsSync(baselinePath)) {
-            fs.copyFileSync(currentPath, baselinePath);
-            console.log(`📁 Created baseline for ${scenarioName}`);
+            if (this.updateEnabled) {
+                fs.copyFileSync(currentPath, baselinePath);
+                console.log(`📁 Created baseline for ${scenarioName}`);
+            } else {
+                console.log(
+                    `📁 Baseline missing for ${scenarioName} (write skipped - set REGRESSION_UPDATE=1 to persist)`
+                );
+            }
             return {
                 isMatch: true,
                 newBaseline: true,
@@ -285,8 +298,14 @@ class VisualRegressionTester {
         const percentageDifference = (numDiffPixels / totalPixels) * 100;
 
         // Save diff image als er verschillen zijn
-        if (numDiffPixels > 0) {
+        if (numDiffPixels > 0 && this.updateEnabled) {
             fs.writeFileSync(diffPath, PNG.sync.write(diffImg));
+        } else if (numDiffPixels > 0) {
+            console.log(
+                `📝 Diff for ${scenarioName} detected (${percentageDifference.toFixed(
+                    2
+                )}%) - write skipped (REGRESSION_UPDATE not set)`
+            );
         }
 
         const isMatch = percentageDifference < this.config.threshold * 100;
@@ -312,9 +331,15 @@ class VisualRegressionTester {
         const baselinePath = path.join(this.screenshotsDir, `${scenarioName}.png`);
 
         if (fs.existsSync(currentPath)) {
-            fs.copyFileSync(currentPath, baselinePath);
-            console.log(`✅ Updated baseline for ${scenarioName}`);
-            return true;
+            if (this.updateEnabled) {
+                fs.copyFileSync(currentPath, baselinePath);
+                console.log(`✅ Updated baseline for ${scenarioName}`);
+            } else {
+                console.log(
+                    `✅ Baseline update requested for ${scenarioName} but skipped (REGRESSION_UPDATE not set)`
+                );
+            }
+            return this.updateEnabled;
         }
 
         return false;
@@ -413,10 +438,15 @@ class VisualRegressionTester {
 </body>
 </html>`;
 
-        fs.writeFileSync(reportPath, html);
-        console.log(`📊 Visual regression report generated: ${reportPath}`);
-
-        return reportPath;
+        if (this.updateEnabled) {
+            fs.writeFileSync(reportPath, html);
+            console.log(`📊 Visual regression report generated: ${reportPath}`);
+        } else {
+            console.log(
+                '📊 Visual regression report generation skipped (REGRESSION_UPDATE not set)'
+            );
+        }
+        return this.updateEnabled ? reportPath : null;
     }
 
     /**

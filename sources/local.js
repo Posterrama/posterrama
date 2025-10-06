@@ -659,10 +659,21 @@ class LocalDirectorySource {
     async loadOrCreateMetadata(file) {
         const metadataPath = this.getMetadataPath(file.path);
 
+        // Fast-path: return cached metadata if available to avoid duplicate IO/logging
+        try {
+            if (this.indexCache.has(metadataPath)) {
+                return this.indexCache.get(metadataPath);
+            }
+        } catch (_) {}
+
         // Try to load existing metadata
         if (await fs.pathExists(metadataPath)) {
             try {
                 const metadata = await fs.readJson(metadataPath);
+                // Cache for subsequent accesses during this cycle
+                try {
+                    this.indexCache.set(metadataPath, metadata);
+                } catch (_) {}
                 logger.debug(`LocalDirectorySource: Loaded metadata for ${file.name}`);
                 return metadata;
             } catch (error) {
@@ -757,6 +768,10 @@ class LocalDirectorySource {
     async saveMetadata(metadataPath, metadata) {
         try {
             await fs.outputJson(metadataPath, metadata, { spaces: 2 });
+            try {
+                // Keep metadata in cache for this session to prevent duplicate reload/log lines
+                this.indexCache.set(metadataPath, metadata);
+            } catch (_) {}
             logger.debug(`LocalDirectorySource: Saved metadata to ${metadataPath}`);
         } catch (error) {
             logger.error(

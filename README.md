@@ -7,7 +7,7 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 <div align="center">
 
 <p style="margin: 0; line-height: 1.1;">
-  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.6.2-blue.svg"></a>
+  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.7.0-blue.svg"></a>
   <a href="https://github.com/Posterrama/posterrama/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Posterrama/posterrama/total.svg"></a>
   <a href="./coverage/lcov-report/index.html"><img alt="Coverage" src="https://img.shields.io/badge/coverage-85.08%25-green.svg"></a>
   <a href="https://nodejs.org/"><img alt="Node.js" src="https://img.shields.io/badge/node.js-%E2%89%A518.0.0-blue"></a>
@@ -113,6 +113,8 @@ Get a clear overview of your setup the moment you sign in. The Dashboard highlig
 
 Connect your Plex or Jellyfin server, or add popular sources like TMDB. Your collection is always up to date.
 
+Local library: Use the built‑in upload workflow to add standard posters, cinematic backgrounds, motion posters, and complete posterpack ZIPs (poster.jpg, background.jpg, clearlogo.png, metadata.json). You can also generate sharable posterpacks from any configured Plex or Jellyfin libraries—download them, archive them, or share with others. New packs are automatically detected, assets stream directly from ZIPs (no manual extraction), and everything becomes instantly available across Screensaver, Wallart, and Cinema modes.
+
 <!-- Content source features heading and intro removed per request; keep the actionable bullets below -->
 
 - Enable/disable each source (Plex, Jellyfin, TMDB)
@@ -172,7 +174,6 @@ A quick peek at what's next. We're actively building these high‑impact upgrade
 **Cinema & visual experience**
 
 - [ ] Cinema mode: major expansion planned with many new features
-- [ ] Advanced transition effects
 - [ ] Motion posters with AI
 - [ ] Now playing mode (cinema)
 - [ ] Trailer support
@@ -183,7 +184,6 @@ A quick peek at what's next. We're actively building these high‑impact upgrade
 
 **Media sources & libraries**
 
-- [ ] Local photo directory support
 - [ ] Emby integration
 - [ ] Additional poster services
 - [ ] Music library support
@@ -197,7 +197,6 @@ A quick peek at what's next. We're actively building these high‑impact upgrade
 **Content & curation**
 
 - [ ] Online art galleries — browse and feature curated artwork streams alongside your library
-- [ ] Movie poster packs — themed, ready‑to‑use packs to quickly set a vibe for events, seasons, or franchises
 
 And that's just the beginning — much more is on the way.
 

@@ -20,6 +20,7 @@ class ExternalServiceTester {
     constructor() {
         this.contractsDir = path.join(__dirname, 'service-contracts');
         this.ensureContractsDir();
+        this.updateEnabled = this.isUpdateEnabled();
 
         // Service configurations
         this.services = {
@@ -45,6 +46,12 @@ class ExternalServiceTester {
         if (!fs.existsSync(this.contractsDir)) {
             fs.mkdirSync(this.contractsDir, { recursive: true });
         }
+    }
+
+    isUpdateEnabled() {
+        const v = process.env.REGRESSION_UPDATE;
+        if (!v) return false;
+        return ['1', 'true', 'yes', 'y', 'on'].includes(String(v).toLowerCase());
     }
 
     /**
@@ -381,7 +388,13 @@ class ExternalServiceTester {
             fieldTypes: this.extractFieldTypes(responseExample),
         };
 
-        fs.writeFileSync(contractPath, JSON.stringify(contract, null, 2));
+        if (this.updateEnabled) {
+            fs.writeFileSync(contractPath, JSON.stringify(contract, null, 2));
+        } else {
+            console.log(
+                `📝 Service contract write skipped (REGRESSION_UPDATE not set): ${path.basename(contractPath)}`
+            );
+        }
         return contract;
     }
 
