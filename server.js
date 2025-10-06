@@ -6396,26 +6396,86 @@ async function getPlaylistMedia() {
                     item?.poster ||
                     Math.random().toString(36).slice(2);
                 const isBackground = (item?.directory || '').toLowerCase() === 'backgrounds';
+                // If this item came from a ZIP (extension .zip), derive poster/background URLs
+                let posterUrl = null;
+                let backgroundUrl = null;
+                const lp = item?.localPath || '';
+                const isZip = typeof lp === 'string' && lp.toLowerCase().endsWith('.zip');
+                if (isZip) {
+                    // Compute path relative to a configured root so /local-posterpack can access it
+                    let relZip = lp;
+                    try {
+                        const bases = Array.isArray(localDirectorySource.rootPaths)
+                            ? localDirectorySource.rootPaths
+                            : [localDirectorySource.rootPath].filter(Boolean);
+                        for (const b of bases) {
+                            const r = path.relative(b, lp).replace(/\\/g, '/');
+                            if (!r.startsWith('..')) {
+                                relZip = r;
+                                break;
+                            }
+                        }
+                    } catch (_) {
+                        // keep absolute as fallback; handler also supports absolute
+                    }
+                    const enc = encodeURIComponent(relZip);
+                    posterUrl = `/local-posterpack?zip=${enc}&entry=poster`;
+                    backgroundUrl = `/local-posterpack?zip=${enc}&entry=background`;
+                } else {
+                    posterUrl = item?.poster || null;
+                    backgroundUrl = isBackground ? item?.poster || null : null;
+                }
                 return {
                     id: `local-${baseId}`,
                     title: item?.title || item?.originalFilename || 'Local Item',
                     year: item?.year || null,
-                    posterUrl: isBackground ? null : item?.poster || null,
-                    backgroundUrl: isBackground ? item?.poster || null : null,
+                    posterUrl: isBackground ? posterUrl || null : posterUrl,
+                    backgroundUrl: backgroundUrl,
                     clearLogoUrl: item?.metadata?.clearlogoPath || item?.clearlogoPath || null,
                     source: 'local',
                 };
             };
 
-            const normalized = []
+            // Normalize and then de-duplicate ZIP-backed items so each posterpack yields a single entry
+            const normalizedAll = []
                 .concat(Array.isArray(localPosters) ? localPosters.map(normalizeLocalItem) : [])
                 .concat(
                     Array.isArray(localBackgrounds) ? localBackgrounds.map(normalizeLocalItem) : []
                 );
 
+            // Build a deduped list keyed by stable media id (derived from sourceId/cleanTitle)
+            const dedupMap = new Map();
+            for (const it of normalizedAll) {
+                const key = it.id;
+                const incomingIsZip =
+                    typeof it.posterUrl === 'string' &&
+                    it.posterUrl.startsWith('/local-posterpack?');
+                const existing = dedupMap.get(key);
+                if (!existing) {
+                    dedupMap.set(key, { ...it });
+                } else {
+                    // Merge missing fields conservatively; prefer ZIP-backed URLs when present
+                    const existingIsZip =
+                        typeof existing.posterUrl === 'string' &&
+                        existing.posterUrl.startsWith('/local-posterpack?');
+
+                    const preferIncoming = incomingIsZip && !existingIsZip;
+                    if (preferIncoming || (!existing.posterUrl && it.posterUrl))
+                        existing.posterUrl = it.posterUrl || existing.posterUrl;
+                    if (preferIncoming || (!existing.backgroundUrl && it.backgroundUrl))
+                        existing.backgroundUrl = it.backgroundUrl || existing.backgroundUrl;
+                    if (preferIncoming || (!existing.clearLogoUrl && it.clearLogoUrl))
+                        existing.clearLogoUrl = it.clearLogoUrl || existing.clearLogoUrl;
+                    // Keep the earliest year/title if missing
+                    if (!existing.title && it.title) existing.title = it.title;
+                    if (!existing.year && it.year) existing.year = it.year;
+                }
+            }
+            const normalized = Array.from(dedupMap.values());
+
             if (isDebug)
                 logger.debug(
-                    `[Debug] Fetched ${normalized.length} items from Local Directory (${localPosters.length} posters, ${localBackgrounds.length} backgrounds)`
+                    `[Debug] Fetched ${normalizedAll.length} raw Local items -> ${normalized.length} after dedup (${localPosters.length} posters, ${localBackgrounds.length} backgrounds)`
                 );
 
             if (normalized.length > 0) {
