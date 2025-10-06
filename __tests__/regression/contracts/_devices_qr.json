@@ -12,7 +12,7 @@
     "method": "string",
     "requestId": "string"
   },
-  "timestamp": "2025-10-06T12:13:44.472Z",
+  "timestamp": "2025-10-06T18:39:42.356Z",
   "description": "Device pairing QR code endpoint",
   "criticality": "MEDIUM"
 }

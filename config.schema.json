@@ -4,6 +4,11 @@
     "description": "Schema for the Posterrama config.json file.",
     "type": "object",
     "properties": {
+        "syncEnabled": {
+            "description": "Enable synchronized transitions across devices. When false, each device advances independently.",
+            "type": "boolean",
+            "default": true
+        },
         "syncAlignMaxDelayMs": {
             "description": "Maximum milliseconds before a sync boundary at which clients will realign to the global tick.",
             "type": "integer",

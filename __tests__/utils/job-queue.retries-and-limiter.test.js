@@ -1,5 +1,4 @@
-const path = require('path');
-const fs = require('fs');
+// Note: Removed unused 'path' and 'fs' imports to satisfy ESLint
 
 // Ensure test mode for validators/loggers
 process.env.NODE_ENV = 'test';

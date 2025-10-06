@@ -12,7 +12,7 @@
     "timestamp": "string",
     "uptime": "number"
   },
-  "timestamp": "2025-10-06T12:13:44.421Z",
+  "timestamp": "2025-10-06T18:39:42.291Z",
   "description": "Health check endpoint - monitoring depends on this",
   "criticality": "CRITICAL"
 }

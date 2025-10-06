@@ -14,7 +14,7 @@
       "enabled": "boolean"
     }
   },
-  "timestamp": "2025-10-06T12:13:44.454Z",
+  "timestamp": "2025-10-06T18:39:42.338Z",
   "description": "Full configuration API - admin panel depends on this",
   "criticality": "HIGH"
 }
