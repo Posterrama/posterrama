@@ -782,7 +782,7 @@
                     "default": false
                 },
                 "generateThumbnails": {
-                    "description": "Automatically generate thumbnails for image files.",
+                    "description": "No-op (reserved): previously intended to generate thumbnails automatically; currently not used by the app.",
                     "type": "boolean",
                     "default": true
                 },

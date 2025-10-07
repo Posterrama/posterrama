@@ -8222,7 +8222,7 @@ app.post('/api/local/upload', (req, res) => {
  * /api/local/cleanup:
  *   post:
  *     summary: Clean up local directory
- *     description: Remove empty directories, duplicate files, and orphaned metadata
+ *     description: Perform maintenance operations (empty-directories, duplicates, orphaned-metadata, unused-images) or administrative deletes.
  *     tags: ['Local Directory']
  *     requestBody:
  *       required: true
@@ -8232,11 +8232,23 @@ app.post('/api/local/upload', (req, res) => {
  *             type: object
  *             properties:
  *               operations:
- *                 type: array
- *                 items:
- *                   type: string
- *                   enum: [empty-directories, duplicates, orphaned-metadata, unused-images]
- *                 description: Cleanup operations to perform
+ *                 oneOf:
+ *                   - type: array
+ *                     items:
+ *                       type: string
+ *                       enum: [empty-directories, duplicates, orphaned-metadata, unused-images]
+ *                     description: Cleanup operations to perform
+ *                   - type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         type:
+ *                           type: string
+ *                           enum: [delete, delete-contents]
+ *                         path:
+ *                           type: string
+ *                           description: Absolute or root-relative path to delete
+ *                     description: Administrative delete operations
  *               dryRun:
  *                 type: boolean
  *                 description: Perform dry run without making changes
@@ -8293,7 +8305,7 @@ app.post(
  *             properties:
  *               sourceType:
  *                 type: string
- *                 enum: [plex, jellyfin]
+ *                 enum: [plex, jellyfin, local]
  *                 description: Source media server type
  *               libraryIds:
  *                 type: array
@@ -8686,6 +8698,74 @@ app.post(
 
 /**
  * @swagger
+ * /api/local/index:
+ *   get:
+ *     summary: Query a flattened index of local media
+ *     description: Returns a paginated, searchable list of local media files across configured roots.
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [all, posters, backgrounds, motions, poster, background, motion]
+ *         description: Media type filter
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Case-insensitive substring match against filename
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *         description: Max items to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Offset for pagination
+ *       - in: query
+ *         name: includeMetadata
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *     responses:
+ *       200:
+ *         description: Index result
+ */
+app.get(
+    '/api/local/index',
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+        try {
+            const type = String(req.query.type || 'all');
+            const q = String(req.query.q || '');
+            const limit = Math.max(0, Math.min(1000, parseInt(req.query.limit) || 100));
+            const offset = Math.max(0, parseInt(req.query.offset) || 0);
+            const includeMetadata =
+                String(req.query.includeMetadata || 'false').toLowerCase() === 'true';
+            const result = await localDirectorySource.getIndex({
+                type,
+                q,
+                limit,
+                offset,
+                includeMetadata,
+            });
+            res.json(result);
+        } catch (e) {
+            logger.error('Local index query failed:', e);
+            res.status(500).json({ error: 'index_failed' });
+        }
+    })
+);
+
+/**
+ * @swagger
  * /api/local/posterpacks:
  *   get:
  *     summary: List generated posterpacks
@@ -8997,6 +9077,89 @@ app.get(
             } else {
                 res.status(500).json({ error: error.message });
             }
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/local/metadata:
+ *   put:
+ *     summary: Update poster.json metadata for a media file
+ *     tags: ['Local Directory']
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               path:
+ *                 type: string
+ *                 description: Absolute or root-relative path to the media file
+ *               metadata:
+ *                 type: object
+ *                 description: Partial metadata fields to merge into poster.json
+ *     responses:
+ *       200:
+ *         description: Metadata updated
+ */
+app.put(
+    '/api/local/metadata',
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+        const { path: filePath, metadata } = req.body || {};
+        if (!filePath || typeof metadata !== 'object') {
+            return res.status(400).json({ error: 'path and metadata are required' });
+        }
+        try {
+            const result = await localDirectorySource.writePosterJson(filePath, metadata);
+            res.json({ success: true, ...result });
+        } catch (e) {
+            logger.error('Metadata update error:', e);
+            res.status(500).json({ error: e.message || 'metadata_update_failed' });
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/local/metadata/regenerate:
+ *   post:
+ *     summary: Regenerate poster.json from filename for a media file
+ *     tags: ['Local Directory']
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               path:
+ *                 type: string
+ *                 description: Absolute or root-relative path to the media file
+ *     responses:
+ *       200:
+ *         description: Metadata regenerated
+ */
+app.post(
+    '/api/local/metadata/regenerate',
+    express.json(),
+    asyncHandler(async (req, res) => {
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).json({ error: 'Local directory support not enabled' });
+        }
+        const { path: filePath } = req.body || {};
+        if (!filePath) return res.status(400).json({ error: 'path is required' });
+        try {
+            const result = await localDirectorySource.regeneratePosterJson(filePath);
+            res.json({ success: true, ...result });
+        } catch (e) {
+            logger.error('Metadata regenerate error:', e);
+            res.status(500).json({ error: e.message || 'metadata_regenerate_failed' });
         }
     })
 );
@@ -12267,14 +12430,19 @@ app.post(
                             JSON.stringify(prev.watchDirectories || []) !==
                                 JSON.stringify(localDirectorySource.watchDirectories || []);
                         if (!prev.enabled && localDirectorySource.enabled) {
-                            Promise.resolve(localDirectorySource.initialize()).catch(() => {});
+                            // Initialize LocalDirectorySource when just enabled
+                            Promise.resolve(localDirectorySource.initialize()).catch(() => {
+                                /* init failed, logged internally */
+                            });
                         } else if (rootsChanged && localDirectorySource.enabled) {
                             try {
                                 await localDirectorySource.stopFileWatcher();
-                            } catch (_) {}
-                            Promise.resolve(localDirectorySource.startFileWatcher()).catch(
-                                () => {}
-                            );
+                            } catch (_) {
+                                /* best-effort stop */
+                            }
+                            Promise.resolve(localDirectorySource.startFileWatcher()).catch(() => {
+                                /* restart watcher failed, logged internally */
+                            });
                         }
                     } catch (e) {
                         logger.warn('[Admin API] Failed to live-update LocalDirectorySource:', e);
@@ -12285,7 +12453,9 @@ app.post(
                 if (localDirectorySource) {
                     try {
                         await localDirectorySource.stopFileWatcher();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* best-effort stop */
+                    }
                 }
                 localDirectorySource = null;
                 jobQueue = null;
@@ -12947,6 +13117,28 @@ app.post(
     })
 );
 
+/**
+ * @swagger
+ * /api/admin/jellyfin-genres-all:
+ *   get:
+ *     summary: Get all unique Jellyfin genres across all libraries
+ *     description: Fallback endpoint that returns unique genres from all libraries on the configured Jellyfin server.
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of unique genres
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 genres:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ */
 // Fallback: return unique Jellyfin genres across all libraries of the configured server
 app.get(
     '/api/admin/jellyfin-genres-all',

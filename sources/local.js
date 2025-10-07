@@ -40,8 +40,9 @@ class LocalDirectorySource {
         // File system watcher
         this.watcher = null;
 
-        // In-memory cache for file metadata
+        // In-memory cache for file metadata (bounded by config.performance.indexCacheSize if provided)
         this.indexCache = new Map();
+        this.indexCacheMax = (ld.performance && Number(ld.performance.indexCacheSize)) || 0; // 0 = unbounded
         this.lastScanTime = null;
 
         // Metrics tracking
@@ -775,6 +776,11 @@ class LocalDirectorySource {
             try {
                 // Keep metadata in cache for this session to prevent duplicate reload/log lines
                 this.indexCache.set(metadataPath, metadata);
+                if (this.indexCacheMax > 0 && this.indexCache.size > this.indexCacheMax) {
+                    // Evict oldest (Map preserves insertion order)
+                    const firstKey = this.indexCache.keys().next().value;
+                    if (firstKey) this.indexCache.delete(firstKey);
+                }
             } catch (_) {
                 // Non-fatal: if caching fails we still proceed
             }
@@ -903,6 +909,13 @@ class LocalDirectorySource {
         }
 
         try {
+            // Respect performance.watcherEnabled toggle (default true if undefined)
+            const watcherEnabled =
+                this.config?.localDirectory?.performance?.watcherEnabled !== false;
+            if (!watcherEnabled) {
+                logger.info('LocalDirectorySource: File watcher disabled by configuration');
+                return;
+            }
             const watchRoots = this.rootPaths.map(p => path.resolve(p));
             this.watcher = chokidar.watch(watchRoots, {
                 ignored: watchRoots
@@ -1222,20 +1235,255 @@ class LocalDirectorySource {
             errors: [],
         };
 
-        try {
-            for (const operation of operations) {
-                const { type, path: targetPath } = operation;
+        // Helper walkers
+        const safeReaddir = async dir => {
+            try {
+                return await fs.readdir(dir, { withFileTypes: true });
+            } catch (_) {
+                return [];
+            }
+        };
+        const withinAnyBase = p => {
+            try {
+                const pr = path.resolve(p);
+                return this.rootPaths.some(
+                    base => pr === base || (pr + path.sep).startsWith(path.resolve(base) + path.sep)
+                );
+            } catch (_) {
+                return false;
+            }
+        };
+        const contentDirs = [
+            this.directories.posters,
+            this.directories.backgrounds,
+            this.directories.motion,
+        ];
 
+        try {
+            for (const op of operations || []) {
+                // Normalize op: either string (enum) or object { type, path }
+                if (typeof op === 'string') {
+                    const type = op;
+                    if (type === 'empty-directories') {
+                        // remove empty directories (excluding system dir)
+                        let scanned = 0;
+                        let removed = 0;
+                        for (const base of this.rootPaths) {
+                            for (const dirName of [...contentDirs, this.directories.complete]) {
+                                const start = path.join(base, dirName);
+                                // Depth-first traversal to remove deepest empties first
+                                const stack = [start];
+                                while (stack.length) {
+                                    const cur = stack.pop();
+                                    const entries = await safeReaddir(cur);
+                                    for (const ent of entries) {
+                                        const full = path.join(cur, ent.name);
+                                        if (ent.isDirectory()) stack.push(full);
+                                    }
+                                    // After pushing children, evaluate current dir
+                                    scanned++;
+                                    const after = await safeReaddir(cur);
+                                    const visible = after.filter(
+                                        e =>
+                                            e.name !== this.directories.system &&
+                                            !e.name.endsWith('.poster.json')
+                                    );
+                                    if (visible.length === 0 && cur !== start) {
+                                        if (!dryRun) {
+                                            try {
+                                                await fs.remove(cur);
+                                                removed++;
+                                            } catch (_) {
+                                                // ignore
+                                            }
+                                        } else {
+                                            removed++;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        results.operations.push({
+                            type: 'empty-directories',
+                            scanned,
+                            removed,
+                            status: dryRun ? 'would_remove' : 'removed',
+                        });
+                        continue;
+                    }
+                    if (type === 'orphaned-metadata') {
+                        let checked = 0;
+                        let deleted = 0;
+                        const checkDir = async root => {
+                            const entries = await safeReaddir(root);
+                            for (const ent of entries) {
+                                const full = path.join(root, ent.name);
+                                if (ent.isDirectory()) {
+                                    if (ent.name !== this.directories.system) await checkDir(full);
+                                } else if (ent.isFile() && ent.name.endsWith('.poster.json')) {
+                                    checked++;
+                                    const media = full.replace(/\.poster\.json$/i, '');
+                                    const mediaExists = await fs.pathExists(media);
+                                    if (!mediaExists) {
+                                        if (!dryRun) {
+                                            await fs.remove(full).catch(() => {});
+                                        }
+                                        deleted++;
+                                    }
+                                }
+                            }
+                        };
+                        for (const base of this.rootPaths) {
+                            for (const dirName of contentDirs) {
+                                await checkDir(path.join(base, dirName));
+                            }
+                        }
+                        results.operations.push({
+                            type: 'orphaned-metadata',
+                            checked,
+                            deleted,
+                            status: dryRun ? 'would_delete' : 'deleted',
+                        });
+                        continue;
+                    }
+                    if (type === 'unused-images') {
+                        let checked = 0;
+                        let deleted = 0;
+                        const scan = async root => {
+                            const entries = await safeReaddir(root);
+                            for (const ent of entries) {
+                                const full = path.join(root, ent.name);
+                                if (ent.isDirectory()) {
+                                    if (ent.name !== this.directories.system) await scan(full);
+                                } else if (ent.isFile()) {
+                                    if (ent.name.endsWith('.poster.json')) continue;
+                                    const ext = path.extname(ent.name).slice(1).toLowerCase();
+                                    if (!this.supportedFormats.includes(ext)) continue;
+                                    checked++;
+                                    const md = full + '.poster.json';
+                                    const hasMeta = await fs.pathExists(md);
+                                    if (!hasMeta) {
+                                        if (!dryRun) {
+                                            await fs.remove(full).catch(() => {});
+                                        }
+                                        deleted++;
+                                    }
+                                }
+                            }
+                        };
+                        for (const base of this.rootPaths) {
+                            for (const dirName of contentDirs) {
+                                await scan(path.join(base, dirName));
+                            }
+                        }
+                        results.operations.push({
+                            type: 'unused-images',
+                            checked,
+                            deleted,
+                            status: dryRun ? 'would_delete' : 'deleted',
+                        });
+                        continue;
+                    }
+                    if (type === 'duplicates') {
+                        const crypto = require('crypto');
+                        let examined = 0;
+                        let dupCount = 0;
+                        let deleted = 0;
+                        const buckets = new Map(); // signature -> [{full,size}]
+                        const sampleHash = async full => {
+                            try {
+                                const st = await fs.stat(full);
+                                const size = st.size;
+                                const fd = await fs.open(full, 'r');
+                                const first = Buffer.alloc(Math.min(65536, size));
+                                await fs.read(fd, first, 0, first.length, 0);
+                                let last = Buffer.alloc(0);
+                                if (size > 65536) {
+                                    const tail = Buffer.alloc(Math.min(65536, size - 65536));
+                                    await fs.read(
+                                        fd,
+                                        tail,
+                                        0,
+                                        tail.length,
+                                        Math.max(0, size - tail.length)
+                                    );
+                                    last = tail;
+                                }
+                                await fs.close(fd);
+                                const h = crypto.createHash('sha1');
+                                h.update(String(size));
+                                h.update(first);
+                                h.update(last);
+                                return h.digest('hex');
+                            } catch (_) {
+                                return null;
+                            }
+                        };
+                        const collect = async root => {
+                            const entries = await safeReaddir(root);
+                            for (const ent of entries) {
+                                const full = path.join(root, ent.name);
+                                if (ent.isDirectory()) {
+                                    if (ent.name !== this.directories.system) await collect(full);
+                                } else if (ent.isFile()) {
+                                    if (ent.name.endsWith('.poster.json')) continue;
+                                    const ext = path.extname(ent.name).slice(1).toLowerCase();
+                                    if (!this.supportedFormats.includes(ext)) continue;
+                                    examined++;
+                                    const sig = await sampleHash(full);
+                                    if (!sig) continue;
+                                    const arr = buckets.get(sig) || [];
+                                    arr.push({ full });
+                                    buckets.set(sig, arr);
+                                }
+                            }
+                        };
+                        for (const base of this.rootPaths) {
+                            for (const dirName of contentDirs) {
+                                await collect(path.join(base, dirName));
+                            }
+                        }
+                        for (const [, arr] of buckets) {
+                            if (arr.length > 1) {
+                                // keep first, others are duplicates
+                                dupCount += arr.length - 1;
+                                const victims = arr.slice(1);
+                                if (!dryRun) {
+                                    for (const v of victims) {
+                                        await fs.remove(v.full).catch(() => {});
+                                        deleted++;
+                                    }
+                                } else {
+                                    deleted += victims.length;
+                                }
+                            }
+                        }
+                        results.operations.push({
+                            type: 'duplicates',
+                            examined,
+                            duplicatesFound: dupCount,
+                            deleted,
+                            status: dryRun ? 'would_delete' : 'deleted',
+                        });
+                        continue;
+                    }
+                    // Unknown string op: record error
+                    results.errors.push({ error: `Unsupported operation: ${type}` });
+                    results.success = false;
+                    continue;
+                }
+
+                // Object form { type, path }
+                const { type, path: targetPath } = op || {};
                 if ((type === 'delete-contents' || type === 'delete') && targetPath) {
                     try {
-                        // Security check
+                        // Security + base anchoring
                         const resolvedPath = path.resolve(targetPath);
-                        if (resolvedPath.includes('..')) {
-                            throw new Error('Path traversal not allowed');
+                        if (!withinAnyBase(resolvedPath)) {
+                            throw new Error('Path outside configured roots');
                         }
 
                         if (type === 'delete-contents') {
-                            // Only delete the contents within the target directory, not the directory itself
                             const stat = await fs.stat(resolvedPath).catch(() => null);
                             if (!stat || !stat.isDirectory()) {
                                 throw new Error('Target is not a directory');
@@ -1251,7 +1499,6 @@ class LocalDirectorySource {
                                     deletedCount++;
                                 }
                             } else {
-                                // Dry run: count entries without deleting
                                 const entries = await fs.readdir(resolvedPath);
                                 deletedCount = entries.length;
                             }
@@ -1262,7 +1509,6 @@ class LocalDirectorySource {
                                 status: dryRun ? 'would_delete_contents' : 'contents_deleted',
                             });
                         } else {
-                            // Full delete of file or directory
                             if (!dryRun) {
                                 await fs.remove(resolvedPath);
                             }
@@ -1273,18 +1519,15 @@ class LocalDirectorySource {
                             });
                         }
 
-                        // If caller deleted or cleared the 'complete' root, ensure its subdirectories exist again
-                        // We do this after either delete-contents or delete operations (only when not a dryRun)
+                        // If caller modified the complete root, ensure its subdirectories exist again
                         if (!dryRun) {
                             for (const base of this.rootPaths) {
                                 const completeRoot = path.join(base, this.directories.complete);
                                 if (
                                     resolvedPath === completeRoot ||
-                                    // handle delete-contents on complete root
                                     (type === 'delete-contents' && resolvedPath === completeRoot)
                                 ) {
                                     try {
-                                        // Recreate the known subdirectories under complete
                                         await fs.ensureDir(path.join(completeRoot, 'plex-export'));
                                         await fs.ensureDir(
                                             path.join(completeRoot, 'jellyfin-export')
@@ -1302,24 +1545,22 @@ class LocalDirectorySource {
                             }
                         }
                     } catch (error) {
-                        results.errors.push({
-                            path: targetPath,
-                            error: error.message,
-                        });
+                        results.errors.push({ path: targetPath, error: error.message });
+                        results.success = false;
                     }
+                } else {
+                    results.errors.push({ error: 'Invalid cleanup operation' });
+                    results.success = false;
                 }
             }
 
-            if (results.errors.length > 0) {
-                results.success = false;
-            }
+            return results;
         } catch (error) {
             logger.error('LocalDirectorySource: Cleanup error:', error);
             results.success = false;
             results.errors.push({ error: error.message });
+            return results;
         }
-
-        return results;
     }
 
     /**
@@ -1510,6 +1751,120 @@ class LocalDirectorySource {
                 errors: [{ error: error.message }],
             };
         }
+    }
+
+    // --- New helpers: poster.json read/write/regenerate ---
+    async readPosterJson(filePath) {
+        const full = path.resolve(filePath);
+        const mdPath = this.getMetadataPath(full);
+        try {
+            if (await fs.pathExists(mdPath)) {
+                const data = await fs.readJson(mdPath);
+                return { exists: true, path: mdPath, data };
+            }
+            return { exists: false, path: mdPath, data: null };
+        } catch (e) {
+            throw new Error(`Failed to read poster.json: ${e.message}`);
+        }
+    }
+
+    async writePosterJson(filePath, metadataPatch = {}) {
+        const full = path.resolve(filePath);
+        const st = await fs.stat(full).catch(() => null);
+        if (!st || !st.isFile()) throw new Error('File not found');
+        const file = {
+            name: path.basename(full),
+            path: full,
+            size: st.size,
+            modified: st.mtime,
+            directory: path.basename(path.dirname(full)),
+            extension: path.extname(full).slice(1).toLowerCase(),
+        };
+        const mdPath = this.getMetadataPath(full);
+        let current = {};
+        if (await fs.pathExists(mdPath)) {
+            current = (await fs.readJson(mdPath).catch(() => ({}))) || {};
+        } else {
+            current = this.parseFilename(file.name, file);
+        }
+        const updated = { ...current, ...metadataPatch };
+        await this.saveMetadata(mdPath, updated);
+        return { path: mdPath, data: updated };
+    }
+
+    async regeneratePosterJson(filePath) {
+        const full = path.resolve(filePath);
+        const st = await fs.stat(full).catch(() => null);
+        if (!st || !st.isFile()) throw new Error('File not found');
+        const file = {
+            name: path.basename(full),
+            path: full,
+            size: st.size,
+            modified: st.mtime,
+            directory: path.basename(path.dirname(full)),
+            extension: path.extname(full).slice(1).toLowerCase(),
+        };
+        const mdPath = this.getMetadataPath(full);
+        const generated = this.parseFilename(file.name, file);
+        await this.saveMetadata(mdPath, generated);
+        return { path: mdPath, data: generated };
+    }
+
+    // --- New: build a flattened index across roots with basic filtering/pagination ---
+    async getIndex(options = {}) {
+        const {
+            type = 'all',
+            q = '',
+            limit = 100,
+            offset = 0,
+            includeMetadata = false,
+        } = options || {};
+
+        const dirs = [];
+        if (type === 'poster' || type === 'posters') dirs.push(this.directories.posters);
+        if (type === 'background' || type === 'backgrounds')
+            dirs.push(this.directories.backgrounds);
+        if (type === 'motion' || type === 'motions') dirs.push(this.directories.motion);
+        if (type === 'all')
+            dirs.push(
+                ...[this.directories.posters, this.directories.backgrounds, this.directories.motion]
+            );
+
+        const records = [];
+        for (const dir of dirs) {
+            const files = await this.scanDirectory(dir);
+            for (const f of files) {
+                records.push({
+                    name: f.name,
+                    path: f.path,
+                    size: f.size,
+                    modified: f.modified,
+                    directory: f.directory,
+                    extension: f.extension,
+                });
+            }
+        }
+        const qlc = (q || '').toString().trim().toLowerCase();
+        let filtered = records;
+        if (qlc) {
+            filtered = records.filter(r => r.name.toLowerCase().includes(qlc));
+        }
+
+        const total = filtered.length;
+        const page = filtered.slice(Math.max(0, offset), Math.max(0, offset) + Math.max(0, limit));
+
+        if (includeMetadata) {
+            for (let i = 0; i < page.length; i++) {
+                try {
+                    const md = await this.readPosterJson(page[i].path);
+                    if (md.exists) page[i].metadata = md.data;
+                } catch (_) {
+                    // ignore
+                }
+            }
+        }
+
+        return { total, count: page.length, items: page };
     }
 }
 
