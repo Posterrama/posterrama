@@ -19440,13 +19440,22 @@ if (!document.__niwDelegatedFallback) {
             });
     }
 
-    function previewPosterpackSelection() {
+    async function previewPosterpackSelection() {
         const source = document.getElementById('posterpack.source')?.value || 'plex';
         const yearFilter = document.getElementById('posterpack.yearFilter')?.value || '';
 
         // Resolve library IDs same as generate (Posterpack section picks; empty = all)
         let libraryIds = [];
         if (source === 'plex') {
+            // Ensure Plex map is populated
+            try {
+                const ok =
+                    window.__plexLibraryNameToId instanceof Map &&
+                    window.__plexLibraryNameToId.size > 0;
+                if (!ok && typeof fetchPlexLibraries === 'function') {
+                    await Promise.resolve(fetchPlexLibraries(false, true)).catch(() => {});
+                }
+            } catch (_) {}
             const mvSel =
                 typeof getMultiSelectValues === 'function'
                     ? getMultiSelectValues('pp-plex.movies')
@@ -19463,8 +19472,25 @@ if (!document.__niwDelegatedFallback) {
             const toIds = names =>
                 (Array.isArray(names) ? names : []).map(n => map.get(n)).filter(Boolean);
             const chosen = [...mvSel, ...shSel];
-            libraryIds = chosen.length ? toIds(chosen) : toIds(Array.from(map.keys()));
+            libraryIds = chosen.length
+                ? toIds(chosen)
+                : map.size
+                  ? toIds(Array.from(map.keys()))
+                  : [];
+            // If mapping failed but we have names, fall back to using all known IDs
+            if ((!libraryIds || libraryIds.length === 0) && map.size) {
+                libraryIds = Array.from(map.values()).map(String);
+            }
         } else if (source === 'jellyfin') {
+            // Ensure Jellyfin map is populated
+            try {
+                const ok =
+                    window.__jfLibraryNameToId instanceof Map &&
+                    window.__jfLibraryNameToId.size > 0;
+                if (!ok && typeof fetchJellyfinLibraries === 'function') {
+                    await Promise.resolve(fetchJellyfinLibraries(false, true)).catch(() => {});
+                }
+            } catch (_) {}
             const mvSel =
                 typeof getMultiSelectValues === 'function'
                     ? getMultiSelectValues('pp-jf.movies')
@@ -19481,7 +19507,14 @@ if (!document.__niwDelegatedFallback) {
             const toIds = names =>
                 (Array.isArray(names) ? names : []).map(n => map.get(n)).filter(Boolean);
             const chosen = [...mvSel, ...shSel];
-            libraryIds = chosen.length ? toIds(chosen) : toIds(Array.from(map.keys()));
+            libraryIds = chosen.length
+                ? toIds(chosen)
+                : map.size
+                  ? toIds(Array.from(map.keys()))
+                  : [];
+            if ((!libraryIds || libraryIds.length === 0) && map.size) {
+                libraryIds = Array.from(map.values()).map(String);
+            }
         }
 
         const config = {
