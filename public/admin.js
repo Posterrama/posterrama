@@ -19752,9 +19752,9 @@ if (!document.__niwDelegatedFallback) {
                         const arr = Array.isArray(data?.genres) ? data.genres : [];
                         if (arr.length) return data;
                         // Fallback: if user entered Plex connection params, try test endpoint to fetch genres-with-counts directly
-                        const hostname = getInput?.('plex.hostname')?.value;
-                        const port = getInput?.('plex.port')?.value;
-                        const token = getInput?.('plex.token')?.value || undefined;
+                        const hostname = document.getElementById('plex.hostname')?.value;
+                        const port = document.getElementById('plex.port')?.value;
+                        const token = document.getElementById('plex.token')?.value || undefined;
                         if (hostname && port) {
                             const res2 = await fetch('/api/admin/plex-genres-with-counts-test', {
                                 method: 'POST',
@@ -20099,7 +20099,7 @@ if (!document.__niwDelegatedFallback) {
                     const j = r.ok ? await r.json().catch(() => ({})) : {};
                     const libs = Array.isArray(j.libraries) ? j.libraries : [];
                     const m = new Map();
-                    libs.forEach(l => m.set(l.name, l.id));
+                    libs.forEach(l => m.set(l.name, l.id || l.key));
                     window.__jfLibraryNameToId = m;
                     if (!(window.__jfLibraryCounts instanceof Map)) {
                         window.__jfLibraryCounts = new Map();
@@ -20297,9 +20297,9 @@ if (!document.__niwDelegatedFallback) {
                         const data = res ? await res.json().catch(() => ({})) : {};
                         const arr = Array.isArray(data?.genres) ? data.genres : [];
                         if (arr.length) return data;
-                        const hostname = getInput?.('plex.hostname')?.value;
-                        const port = getInput?.('plex.port')?.value;
-                        const token = getInput?.('plex.token')?.value || undefined;
+                        const hostname = document.getElementById('plex.hostname')?.value;
+                        const port = document.getElementById('plex.port')?.value;
+                        const token = document.getElementById('plex.token')?.value || undefined;
                         if (hostname && port) {
                             const res2 = await fetch('/api/admin/plex-genres-with-counts-test', {
                                 method: 'POST',
