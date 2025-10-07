@@ -20000,6 +20000,30 @@ if (!document.__niwDelegatedFallback) {
                     return a.localeCompare(b);
                 });
                 let genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
+                if (!genresList.length) {
+                    const DEFAULT_GENRES = [
+                        'Action',
+                        'Adventure',
+                        'Animation',
+                        'Comedy',
+                        'Crime',
+                        'Documentary',
+                        'Drama',
+                        'Family',
+                        'Fantasy',
+                        'History',
+                        'Horror',
+                        'Music',
+                        'Mystery',
+                        'Romance',
+                        'Science Fiction',
+                        'Thriller',
+                        'War',
+                        'Western',
+                    ];
+                    DEFAULT_GENRES.forEach(g => genres.add(g));
+                    genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
+                }
 
                 fillSelect('pp-local.ratings', ratingsList);
                 fillSelect('pp-local.qualities', qualitiesList);
@@ -20433,22 +20457,43 @@ if (!document.__niwDelegatedFallback) {
                             });
                             if (res2.ok) return await res2.json().catch(() => ({}));
                         }
+                        // Last resort: plain genres list from any enabled Plex server
+                        try {
+                            const res3 = await window.dedupJSON('/api/admin/plex-genres', {
+                                credentials: 'include',
+                            });
+                            if (res3?.ok) return await res3.json().catch(() => ({}));
+                        } catch (_) {}
                     } catch (_) {}
                     return null;
                 })();
                 const jfGenresReq = (async () => {
-                    if (!jfMovieLibs.length && !jfShowLibs.length) return null;
                     try {
-                        const res = await fetch('/api/admin/jellyfin-genres-with-counts', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({
-                                movieLibraries: jfMovieLibs,
-                                showLibraries: jfShowLibs,
-                            }),
-                        });
-                        return res.ok ? await res.json().catch(() => ({})) : null;
+                        if (jfMovieLibs.length || jfShowLibs.length) {
+                            try {
+                                const res = await fetch('/api/admin/jellyfin-genres-with-counts', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
+                                    body: JSON.stringify({
+                                        movieLibraries: jfMovieLibs,
+                                        showLibraries: jfShowLibs,
+                                    }),
+                                });
+                                if (res.ok) {
+                                    const js = await res.json().catch(() => ({}));
+                                    if (Array.isArray(js?.genres) && js.genres.length) return js;
+                                }
+                            } catch (_) {}
+                        }
+                        // Fallback: try all-libraries GET to avoid empty genres
+                        try {
+                            const r2 = await window.dedupJSON('/api/admin/jellyfin-genres-all', {
+                                credentials: 'include',
+                            });
+                            if (r2?.ok) return await r2.json().catch(() => ({}));
+                        } catch (_) {}
+                        return null;
                     } catch (_) {
                         return null;
                     }
@@ -20550,7 +20595,31 @@ if (!document.__niwDelegatedFallback) {
                     if (ib !== -1) return 1;
                     return a.localeCompare(b);
                 });
-                const genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
+                let genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
+                if (!genresList.length) {
+                    const DEFAULT_GENRES = [
+                        'Action',
+                        'Adventure',
+                        'Animation',
+                        'Comedy',
+                        'Crime',
+                        'Documentary',
+                        'Drama',
+                        'Family',
+                        'Fantasy',
+                        'History',
+                        'Horror',
+                        'Music',
+                        'Mystery',
+                        'Romance',
+                        'Science Fiction',
+                        'Thriller',
+                        'War',
+                        'Western',
+                    ];
+                    DEFAULT_GENRES.forEach(g => genres.add(g));
+                    genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
+                }
 
                 fill('pp-server.ratings', ratingsList);
                 fill('pp-server.genres', genresList);
