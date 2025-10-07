@@ -19855,22 +19855,28 @@ if (!document.__niwDelegatedFallback) {
                     return null;
                 })();
                 const jfGenresReq = (async () => {
-                    if (!jfMovieLibs.length && !jfShowLibs.length) return null;
                     try {
-                        const res = await fetch('/api/admin/jellyfin-genres-with-counts', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({
-                                movieLibraries: jfMovieLibs,
-                                showLibraries: jfShowLibs,
-                            }),
-                        });
-                        if (res.ok) {
-                            const js = await res.json().catch(() => ({}));
-                            if (Array.isArray(js?.genres) && js.genres.length) return js;
+                        // If we have selected or discovered library names, try the precise with-counts endpoint first
+                        if (jfMovieLibs.length || jfShowLibs.length) {
+                            try {
+                                const res = await fetch('/api/admin/jellyfin-genres-with-counts', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
+                                    body: JSON.stringify({
+                                        movieLibraries: jfMovieLibs,
+                                        showLibraries: jfShowLibs,
+                                    }),
+                                });
+                                if (res.ok) {
+                                    const js = await res.json().catch(() => ({}));
+                                    if (Array.isArray(js?.genres) && js.genres.length) return js;
+                                }
+                            } catch (_) {
+                                // fall through to all-libraries fallback
+                            }
                         }
-                        // Fallback: try all-libraries GET
+                        // Always attempt the all-libraries fallback so Local never ends up empty
                         try {
                             const r2 = await window.dedupJSON('/api/admin/jellyfin-genres-all', {
                                 credentials: 'include',
