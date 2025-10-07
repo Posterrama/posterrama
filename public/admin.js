@@ -207,6 +207,17 @@
     }
 
     // Multiselect helper functions (moved to top-level scope to fix lint errors)
+    function __closeAllMsExcept(exceptRoot = null) {
+        try {
+            document.querySelectorAll('.multiselect.ms-open').forEach(el => {
+                if (exceptRoot && el === exceptRoot) return;
+                el.classList.remove('ms-open');
+                const ctrl = el.querySelector('.ms-control');
+                if (ctrl) ctrl.setAttribute('aria-expanded', 'false');
+                // Do not force menu.style.display; CSS tied to .ms-open handles visibility
+            });
+        } catch (_) {}
+    }
     function initMsForSelect(idBase, selectId) {
         const sel = document.getElementById(selectId);
         const root = document.getElementById(`${idBase}`);
@@ -291,6 +302,8 @@
             root.classList.toggle('ms-open', !!open);
             control.setAttribute('aria-expanded', open ? 'true' : 'false');
             if (open) {
+                // Ensure only one dropdown is open at a time
+                __closeAllMsExcept(root);
                 try {
                     if (menu) menu.scrollTop = 0;
                     if (optsEl) optsEl.scrollTop = 0;
@@ -328,6 +341,8 @@
             e.preventDefault();
             e.stopPropagation();
             lastPointerDownTs = Date.now();
+            // Close all other multiselects before opening this one
+            __closeAllMsExcept(root);
             const willOpen = !root.classList.contains('ms-open');
             openMenu(willOpen);
             if (willOpen) setTimeout(() => search.focus(), 0);
@@ -337,6 +352,7 @@
             e.preventDefault();
             e.stopPropagation();
             if (Date.now() - lastPointerDownTs < 300) return; // ignore synthetic click after mousedown
+            __closeAllMsExcept(root);
             const willOpen = !root.classList.contains('ms-open');
             openMenu(willOpen);
             if (willOpen) setTimeout(() => search.focus(), 0);
@@ -354,7 +370,9 @@
             }
         });
         document.addEventListener('click', e => {
-            if (!root.contains(e.target)) openMenu(false);
+            // If click is outside this multiselect and its menu, close only this one
+            const insideThis = root.contains(e.target) || (menu && menu.contains(e.target));
+            if (!insideThis) openMenu(false);
         });
         search.addEventListener('focus', () => openMenu(true));
         search.addEventListener('keydown', e => {
@@ -19645,128 +19663,225 @@ if (!document.__niwDelegatedFallback) {
     // getLocalPosterpackFilters removed (Local source removed from Posterpack UI)
 
     async function loadLocalFilterOptions() {
-        if (window.__ppLocalFiltersLoaded) return;
-        window.__ppLocalFiltersLoaded = true; // set early to avoid duplicate fetches
+        // Deduplicate concurrent loads but allow refreshing on each open
+        if (window.__ppLocalFiltersInFlight) return window.__ppLocalFiltersInFlight;
+        window.__ppLocalFiltersInFlight = (async () => {
+            try {
+                // Ensure Jellyfin libraries are known so we can query genres across all libs
+                try {
+                    const jfMapOk =
+                        window.__jfLibraryNameToId instanceof Map &&
+                        window.__jfLibraryNameToId.size > 0;
+                    if (!jfMapOk && typeof fetchJellyfinLibraries === 'function') {
+                        await Promise.resolve(fetchJellyfinLibraries(false, true)).catch(() => {});
+                    }
+                } catch (_) {}
 
-        try {
-            const [
-                plexRatingsRes,
-                jfRatingsRes,
-                plexGenresRes,
-                jfGenresRes,
-                plexQualRes,
-                jfQualRes,
-            ] = await Promise.all([
-                window
+                // Build Jellyfin movie/show library name arrays if available
+                let jfMovieLibs = [];
+                let jfShowLibs = [];
+                try {
+                    const counts =
+                        window.__jfLibraryCounts instanceof Map ? window.__jfLibraryCounts : null;
+                    const names =
+                        window.__jfLibraryNameToId instanceof Map
+                            ? Array.from(window.__jfLibraryNameToId.keys())
+                            : [];
+                    if (counts && counts.size) {
+                        jfMovieLibs = names.filter(
+                            n => (counts.get(n)?.type || '').toLowerCase() === 'movie'
+                        );
+                        jfShowLibs = names.filter(
+                            n => (counts.get(n)?.type || '').toLowerCase() === 'show'
+                        );
+                    } else if (names.length) {
+                        // If we can't distinguish, include all names in both so endpoint returns union
+                        jfMovieLibs = names.slice();
+                        jfShowLibs = names.slice();
+                    }
+                } catch (_) {}
+
+                // Prepare requests
+                const plexRatingsReq = window
                     .dedupJSON('/api/sources/plex/ratings-with-counts', { credentials: 'include' })
-                    .catch(() => null),
-                window
+                    .catch(() => null);
+                const jfRatingsReq = window
                     .dedupJSON('/api/sources/jellyfin/ratings-with-counts', {
                         credentials: 'include',
                     })
-                    .catch(() => null),
-                window
-                    .dedupJSON('/api/admin/plex-genres-with-counts', { credentials: 'include' })
-                    .catch(() => null),
-                window
-                    .dedupJSON('/api/admin/jellyfin-genres-with-counts', { credentials: 'include' })
-                    .catch(() => null),
-                window
+                    .catch(() => null);
+                const plexGenresReq = (async () => {
+                    try {
+                        const res = await window.dedupJSON('/api/admin/plex-genres-with-counts', {
+                            credentials: 'include',
+                        });
+                        const data = res ? await res.json().catch(() => ({})) : {};
+                        const arr = Array.isArray(data?.genres) ? data.genres : [];
+                        if (arr.length) return data;
+                        // Fallback: if user entered Plex connection params, try test endpoint to fetch genres-with-counts directly
+                        const hostname = getInput?.('plex.hostname')?.value;
+                        const port = getInput?.('plex.port')?.value;
+                        const token = getInput?.('plex.token')?.value || undefined;
+                        if (hostname && port) {
+                            const res2 = await fetch('/api/admin/plex-genres-with-counts-test', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ hostname, port, token }),
+                            });
+                            if (res2.ok) return await res2.json().catch(() => ({}));
+                        }
+                    } catch (_) {}
+                    return null;
+                })();
+                const jfGenresReq = (async () => {
+                    if (!jfMovieLibs.length && !jfShowLibs.length) return null;
+                    try {
+                        const res = await fetch('/api/admin/jellyfin-genres-with-counts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                movieLibraries: jfMovieLibs,
+                                showLibraries: jfShowLibs,
+                            }),
+                        });
+                        return res.ok ? await res.json().catch(() => ({})) : null;
+                    } catch (_) {
+                        return null;
+                    }
+                })();
+                const plexQualReq = window
                     .dedupJSON('/api/admin/plex-qualities-with-counts', { credentials: 'include' })
-                    .catch(() => null),
-                window
+                    .catch(() => null);
+                const jfQualReq = window
                     .dedupJSON('/api/admin/jellyfin-qualities-with-counts', {
                         credentials: 'include',
                     })
-                    .catch(() => null),
-            ]);
+                    .catch(() => null);
 
-            const ratings = new Set();
-            const qualities = new Set();
-            const genres = new Set();
+                const [
+                    plexRatingsRes,
+                    jfRatingsRes,
+                    plexGenresRes,
+                    jfGenresRes,
+                    plexQualRes,
+                    jfQualRes,
+                ] = await Promise.all([
+                    plexRatingsReq,
+                    jfRatingsReq,
+                    plexGenresReq,
+                    jfGenresReq,
+                    plexQualReq,
+                    jfQualReq,
+                ]);
 
-            const addRatings = res => {
-                const arr = Array.isArray(res?.ratings) ? res.ratings : [];
-                arr.forEach(r => {
-                    const key = (r?.rating || r)?.toString().trim().toUpperCase();
-                    if (key) ratings.add(key);
+                const ratings = new Set();
+                const qualities = new Set();
+                const genres = new Set();
+
+                const addRatings = res => {
+                    const arr = Array.isArray(res?.data)
+                        ? res.data
+                        : Array.isArray(res?.ratings)
+                          ? res.ratings
+                          : [];
+                    arr.forEach(r => {
+                        const key = (r?.rating || r)?.toString().trim().toUpperCase();
+                        if (key) ratings.add(key);
+                    });
+                };
+                const addQuals = res => {
+                    const arr = Array.isArray(res?.qualities) ? res.qualities : [];
+                    arr.forEach(q => {
+                        const key = (q?.quality || q)?.toString().trim();
+                        if (key) qualities.add(key);
+                    });
+                };
+                const addGenres = res => {
+                    const arr = Array.isArray(res?.genres) ? res.genres : [];
+                    arr.forEach(g => {
+                        const name = (g?.genre || g?.name || g?.Title || g?.value || g)
+                            ?.toString()
+                            .trim();
+                        if (name && name !== '[object Object]') genres.add(name);
+                    });
+                };
+
+                addRatings(plexRatingsRes);
+                addRatings(jfRatingsRes);
+                addQuals(plexQualRes);
+                addQuals(jfQualRes);
+                addGenres(plexGenresRes);
+                addGenres(jfGenresRes);
+
+                // Fallbacks
+                if (!ratings.size) {
+                    [
+                        'G',
+                        'PG',
+                        'PG-13',
+                        'R',
+                        'NC-17',
+                        'NR',
+                        'UNRATED',
+                        'TV-Y',
+                        'TV-Y7',
+                        'TV-G',
+                        'TV-PG',
+                        'TV-14',
+                        'TV-MA',
+                    ].forEach(r => ratings.add(r));
+                }
+                if (!qualities.size) {
+                    ['SD', '720p', '1080p', '4K'].forEach(q => qualities.add(q));
+                }
+                // No hardcoded fallback for genres to avoid noise; leave empty if none
+
+                const fillSelect = (id, list) => {
+                    const sel = document.getElementById(id);
+                    if (!sel) return;
+                    const prev = new Set(Array.from(sel.selectedOptions).map(o => o.value));
+                    sel.innerHTML = '';
+                    list.forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v;
+                        opt.textContent = v;
+                        if (prev.has(v)) opt.selected = true;
+                        sel.appendChild(opt);
+                    });
+                };
+
+                const ratingsList = Array.from(ratings).sort();
+                const qualitiesOrder = ['SD', '720p', '1080p', '4K'];
+                const qualitiesList = Array.from(qualities).sort((a, b) => {
+                    const ia = qualitiesOrder.indexOf(a);
+                    const ib = qualitiesOrder.indexOf(b);
+                    if (ia !== -1 && ib !== -1) return ia - ib;
+                    if (ia !== -1) return -1;
+                    if (ib !== -1) return 1;
+                    return a.localeCompare(b);
                 });
-            };
-            const addQuals = res => {
-                const arr = Array.isArray(res?.qualities) ? res.qualities : [];
-                arr.forEach(q => {
-                    const key = (q?.quality || q)?.toString().trim();
-                    if (key) qualities.add(key);
-                });
-            };
-            const addGenres = res => {
-                const arr = Array.isArray(res?.genres) ? res.genres : [];
-                arr.forEach(g => {
-                    const name = (g?.name || g)?.toString().trim();
-                    if (name) genres.add(name);
-                });
-            };
+                const genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
 
-            addRatings(plexRatingsRes);
-            addRatings(jfRatingsRes);
-            addQuals(plexQualRes);
-            addQuals(jfQualRes);
-            addGenres(plexGenresRes);
-            addGenres(jfGenresRes);
+                fillSelect('pp-local.ratings', ratingsList);
+                fillSelect('pp-local.qualities', qualitiesList);
+                fillSelect('pp-local.genres', genresList);
 
-            // Fallbacks
-            if (!ratings.size) {
-                [
-                    'G',
-                    'PG',
-                    'PG-13',
-                    'R',
-                    'NC-17',
-                    'NR',
-                    'UNRATED',
-                    'TV-Y',
-                    'TV-Y7',
-                    'TV-G',
-                    'TV-PG',
-                    'TV-14',
-                    'TV-MA',
-                ].forEach(r => ratings.add(r));
-            }
-            if (!qualities.size) {
-                ['SD', '720p', '1080p', '4K'].forEach(q => qualities.add(q));
-            }
-            // No hardcoded fallback for genres to avoid noise; leave empty if none
-
-            const fillSelect = (id, list) => {
-                const sel = document.getElementById(id);
-                if (!sel) return;
-                const prev = new Set(Array.from(sel.selectedOptions).map(o => o.value));
-                sel.innerHTML = '';
-                list.forEach(v => {
-                    const opt = document.createElement('option');
-                    opt.value = v;
-                    opt.textContent = v;
-                    if (prev.has(v)) opt.selected = true;
-                    sel.appendChild(opt);
-                });
-            };
-
-            const ratingsList = Array.from(ratings).sort();
-            const qualitiesOrder = ['SD', '720p', '1080p', '4K'];
-            const qualitiesList = Array.from(qualities).sort((a, b) => {
-                const ia = qualitiesOrder.indexOf(a);
-                const ib = qualitiesOrder.indexOf(b);
-                if (ia !== -1 && ib !== -1) return ia - ib;
-                if (ia !== -1) return -1;
-                if (ib !== -1) return 1;
-                return a.localeCompare(b);
-            });
-            const genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
-
-            fillSelect('pp-local.ratings', ratingsList);
-            fillSelect('pp-local.qualities', qualitiesList);
-            fillSelect('pp-local.genres', genresList);
-        } catch (e) {}
+                // If the widgets are already wired, rebuild them to reflect new options
+                try {
+                    if (typeof rebuildMsForSelect === 'function') {
+                        rebuildMsForSelect('pp-local-ms-ratings', 'pp-local.ratings');
+                        rebuildMsForSelect('pp-local-ms-genres', 'pp-local.genres');
+                        rebuildMsForSelect('pp-local-ms-qualities', 'pp-local.qualities');
+                    }
+                } catch (_) {}
+            } catch (_) {}
+        })();
+        try {
+            await window.__ppLocalFiltersInFlight;
+        } catch (_) {}
+        window.__ppLocalFiltersInFlight = null;
     }
 
     function populatePosterpackLibraries(kind) {
@@ -20089,112 +20204,212 @@ if (!document.__niwDelegatedFallback) {
 
     // Populate posterpack server multiselect filter options (ratings/genres/qualities)
     async function loadPosterpackServerFilterOptions() {
-        if (window.__ppSrvFiltersLoaded) return; // load once
-        window.__ppSrvFiltersLoaded = true;
+        if (window.__ppSrvFiltersInFlight) return window.__ppSrvFiltersInFlight;
+        window.__ppSrvFiltersInFlight = (async () => {
+            try {
+                // Ensure Jellyfin libs are known for genres
+                try {
+                    const jfMapOk =
+                        window.__jfLibraryNameToId instanceof Map &&
+                        window.__jfLibraryNameToId.size > 0;
+                    if (!jfMapOk && typeof fetchJellyfinLibraries === 'function') {
+                        await Promise.resolve(fetchJellyfinLibraries(false, true)).catch(() => {});
+                    }
+                } catch (_) {}
+
+                // Gather selected Posterpack Jellyfin libraries if available, else fallback to discovered/all
+                const readSelected = id =>
+                    Array.from(document.getElementById(id)?.selectedOptions || []).map(
+                        o => o.value
+                    );
+                let jfMovieLibs = readSelected('pp-jf.movies');
+                let jfShowLibs = readSelected('pp-jf.shows');
+                if (jfMovieLibs.length === 0 && jfShowLibs.length === 0) {
+                    try {
+                        const counts =
+                            window.__jfLibraryCounts instanceof Map
+                                ? window.__jfLibraryCounts
+                                : null;
+                        const names =
+                            window.__jfLibraryNameToId instanceof Map
+                                ? Array.from(window.__jfLibraryNameToId.keys())
+                                : [];
+                        if (counts && counts.size) {
+                            jfMovieLibs = names.filter(
+                                n => (counts.get(n)?.type || '').toLowerCase() === 'movie'
+                            );
+                            jfShowLibs = names.filter(
+                                n => (counts.get(n)?.type || '').toLowerCase() === 'show'
+                            );
+                        } else {
+                            jfMovieLibs = names.slice();
+                            jfShowLibs = names.slice();
+                        }
+                    } catch (_) {}
+                }
+
+                const plexRatingsReq = window
+                    .dedupJSON('/api/sources/plex/ratings-with-counts', { credentials: 'include' })
+                    .catch(() => null);
+                const jfRatingsReq = window
+                    .dedupJSON('/api/sources/jellyfin/ratings-with-counts', {
+                        credentials: 'include',
+                    })
+                    .catch(() => null);
+                const plexGenresReq = (async () => {
+                    try {
+                        const res = await window.dedupJSON('/api/admin/plex-genres-with-counts', {
+                            credentials: 'include',
+                        });
+                        const data = res ? await res.json().catch(() => ({})) : {};
+                        const arr = Array.isArray(data?.genres) ? data.genres : [];
+                        if (arr.length) return data;
+                        const hostname = getInput?.('plex.hostname')?.value;
+                        const port = getInput?.('plex.port')?.value;
+                        const token = getInput?.('plex.token')?.value || undefined;
+                        if (hostname && port) {
+                            const res2 = await fetch('/api/admin/plex-genres-with-counts-test', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ hostname, port, token }),
+                            });
+                            if (res2.ok) return await res2.json().catch(() => ({}));
+                        }
+                    } catch (_) {}
+                    return null;
+                })();
+                const jfGenresReq = (async () => {
+                    if (!jfMovieLibs.length && !jfShowLibs.length) return null;
+                    try {
+                        const res = await fetch('/api/admin/jellyfin-genres-with-counts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                movieLibraries: jfMovieLibs,
+                                showLibraries: jfShowLibs,
+                            }),
+                        });
+                        return res.ok ? await res.json().catch(() => ({})) : null;
+                    } catch (_) {
+                        return null;
+                    }
+                })();
+                const plexQualReq = window
+                    .dedupJSON('/api/admin/plex-qualities-with-counts', { credentials: 'include' })
+                    .catch(() => null);
+                const jfQualReq = window
+                    .dedupJSON('/api/admin/jellyfin-qualities-with-counts', {
+                        credentials: 'include',
+                    })
+                    .catch(() => null);
+
+                const [plexRatings, jfRatings, plexGenres, jfGenres, plexQual, jfQual] =
+                    await Promise.all([
+                        plexRatingsReq,
+                        jfRatingsReq,
+                        plexGenresReq,
+                        jfGenresReq,
+                        plexQualReq,
+                        jfQualReq,
+                    ]);
+
+                const ratings = new Set();
+                const genres = new Set();
+                const qualities = new Set();
+                const addRatings = res => {
+                    const arr = Array.isArray(res?.data)
+                        ? res.data
+                        : Array.isArray(res?.ratings)
+                          ? res.ratings
+                          : [];
+                    arr.forEach(r => {
+                        const s = (r?.rating || r)?.toString().trim().toUpperCase();
+                        if (s) ratings.add(s);
+                    });
+                };
+                const addQuals = res => {
+                    const arr = Array.isArray(res?.qualities) ? res.qualities : [];
+                    arr.forEach(q => {
+                        const s = (q?.quality || q)?.toString().trim();
+                        if (s) qualities.add(s);
+                    });
+                };
+                const addGenres = res => {
+                    const arr = Array.isArray(res?.genres) ? res.genres : [];
+                    arr.forEach(g => {
+                        const s = (g?.genre || g?.name || g?.Title || g?.value || g)
+                            ?.toString()
+                            .trim();
+                        if (s && s !== '[object Object]') genres.add(s);
+                    });
+                };
+                addRatings(plexRatings);
+                addRatings(jfRatings);
+                addQuals(plexQual);
+                addQuals(jfQual);
+                addGenres(plexGenres);
+                addGenres(jfGenres);
+
+                if (!ratings.size)
+                    [
+                        'G',
+                        'PG',
+                        'PG-13',
+                        'R',
+                        'NC-17',
+                        'NR',
+                        'UNRATED',
+                        'TV-Y',
+                        'TV-Y7',
+                        'TV-G',
+                        'TV-PG',
+                        'TV-14',
+                        'TV-MA',
+                    ].forEach(r => ratings.add(r));
+                if (!qualities.size) ['SD', '720p', '1080p', '4K'].forEach(q => qualities.add(q));
+
+                const fill = (id, list) => {
+                    const sel = document.getElementById(id);
+                    if (!sel) return;
+                    const prev = new Set(Array.from(sel.selectedOptions).map(o => o.value));
+                    sel.innerHTML = '';
+                    list.forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v;
+                        opt.textContent = v;
+                        if (prev.has(v)) opt.selected = true;
+                        sel.appendChild(opt);
+                    });
+                };
+                const ratingsList = Array.from(ratings).sort();
+                const qualitiesOrder = ['SD', '720p', '1080p', '4K'];
+                const qualitiesList = Array.from(qualities).sort((a, b) => {
+                    const ia = qualitiesOrder.indexOf(a);
+                    const ib = qualitiesOrder.indexOf(b);
+                    if (ia !== -1 && ib !== -1) return ia - ib;
+                    if (ia !== -1) return -1;
+                    if (ib !== -1) return 1;
+                    return a.localeCompare(b);
+                });
+                const genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
+
+                fill('pp-server.ratings', ratingsList);
+                fill('pp-server.genres', genresList);
+                fill('pp-server.qualities', qualitiesList);
+
+                if (typeof rebuildMsForSelect === 'function') {
+                    rebuildMsForSelect('pp-srv-ms-ratings', 'pp-server.ratings');
+                    rebuildMsForSelect('pp-srv-ms-genres', 'pp-server.genres');
+                    rebuildMsForSelect('pp-srv-ms-qualities', 'pp-server.qualities');
+                }
+            } catch (_) {}
+        })();
         try {
-            const [plexRatings, jfRatings, plexGenres, jfGenres, plexQual, jfQual] =
-                await Promise.all([
-                    window
-                        .dedupJSON('/api/sources/plex/ratings-with-counts', {
-                            credentials: 'include',
-                        })
-                        .catch(() => null),
-                    window
-                        .dedupJSON('/api/sources/jellyfin/ratings-with-counts', {
-                            credentials: 'include',
-                        })
-                        .catch(() => null),
-                    window
-                        .dedupJSON('/api/admin/plex-genres-with-counts', { credentials: 'include' })
-                        .catch(() => null),
-                    window
-                        .dedupJSON('/api/admin/jellyfin-genres-with-counts', {
-                            credentials: 'include',
-                        })
-                        .catch(() => null),
-                    window
-                        .dedupJSON('/api/admin/plex-qualities-with-counts', {
-                            credentials: 'include',
-                        })
-                        .catch(() => null),
-                    window
-                        .dedupJSON('/api/admin/jellyfin-qualities-with-counts', {
-                            credentials: 'include',
-                        })
-                        .catch(() => null),
-                ]);
-
-            const ratings = new Set();
-            const genres = new Set();
-            const qualities = new Set();
-            const add = (res, key, set, normFn) => {
-                const arr = Array.isArray(res?.[key]) ? res[key] : [];
-                arr.forEach(v => {
-                    const val = normFn ? normFn(v) : (v?.[key.slice(0, -1)] || v)?.toString();
-                    const s = (val || '').trim();
-                    if (s) set.add(s);
-                });
-            };
-            add(plexRatings, 'ratings', ratings, r => (r?.rating || r)?.toString().toUpperCase());
-            add(jfRatings, 'ratings', ratings, r => (r?.rating || r)?.toString().toUpperCase());
-            add(plexGenres, 'genres', genres, g => (g?.name || g)?.toString());
-            add(jfGenres, 'genres', genres, g => (g?.name || g)?.toString());
-            add(plexQual, 'qualities', qualities, q => (q?.quality || q)?.toString());
-            add(jfQual, 'qualities', qualities, q => (q?.quality || q)?.toString());
-
-            if (!ratings.size)
-                [
-                    'G',
-                    'PG',
-                    'PG-13',
-                    'R',
-                    'NC-17',
-                    'NR',
-                    'UNRATED',
-                    'TV-Y',
-                    'TV-Y7',
-                    'TV-G',
-                    'TV-PG',
-                    'TV-14',
-                    'TV-MA',
-                ].forEach(r => ratings.add(r));
-            if (!qualities.size) ['SD', '720p', '1080p', '4K'].forEach(q => qualities.add(q));
-
-            const fill = (id, list) => {
-                const sel = document.getElementById(id);
-                if (!sel) return;
-                const prev = new Set(Array.from(sel.selectedOptions).map(o => o.value));
-                sel.innerHTML = '';
-                list.forEach(v => {
-                    const opt = document.createElement('option');
-                    opt.value = v;
-                    opt.textContent = v;
-                    if (prev.has(v)) opt.selected = true;
-                    sel.appendChild(opt);
-                });
-            };
-            const ratingsList = Array.from(ratings).sort();
-            const qualitiesOrder = ['SD', '720p', '1080p', '4K'];
-            const qualitiesList = Array.from(qualities).sort((a, b) => {
-                const ia = qualitiesOrder.indexOf(a);
-                const ib = qualitiesOrder.indexOf(b);
-                if (ia !== -1 && ib !== -1) return ia - ib;
-                if (ia !== -1) return -1;
-                if (ib !== -1) return 1;
-                return a.localeCompare(b);
-            });
-            const genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
-
-            fill('pp-server.ratings', ratingsList);
-            fill('pp-server.genres', genresList);
-            fill('pp-server.qualities', qualitiesList);
-
-            if (typeof rebuildMsForSelect === 'function') {
-                rebuildMsForSelect('pp-srv-ms-ratings', 'pp-server.ratings');
-                rebuildMsForSelect('pp-srv-ms-genres', 'pp-server.genres');
-                rebuildMsForSelect('pp-srv-ms-qualities', 'pp-server.qualities');
-            }
+            await window.__ppSrvFiltersInFlight;
         } catch (_) {}
+        window.__ppSrvFiltersInFlight = null;
     }
 
     function startJobPolling(jobId) {

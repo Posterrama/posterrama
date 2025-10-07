@@ -9,7 +9,7 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 <p style="margin: 0; line-height: 1.1;">
   <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.7.0-blue.svg"></a>
   <a href="https://github.com/Posterrama/posterrama/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Posterrama/posterrama/total.svg"></a>
-  <a href="./coverage/lcov-report/index.html"><img alt="Coverage" src="https://img.shields.io/badge/coverage-85.08%25-green.svg"></a>
+  <a href="./coverage/lcov-report/index.html"><img alt="Coverage" src="https://img.shields.io/badge/coverage-93.52%25-brightgreen.svg"></a>
   <a href="https://nodejs.org/"><img alt="Node.js" src="https://img.shields.io/badge/node.js-%E2%89%A518.0.0-blue"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue"></a>
 </p>
@@ -113,9 +113,10 @@ Get a clear overview of your setup the moment you sign in. The Dashboard highlig
 
 Connect your Plex or Jellyfin server, or add popular sources like TMDB. Your collection is always up to date.
 
-Local library: Use the built‑in upload workflow to add standard posters, cinematic backgrounds, motion posters, and complete posterpack ZIPs (poster.jpg, background.jpg, clearlogo.png, metadata.json). You can also generate sharable posterpacks from any configured Plex or Jellyfin libraries—download them, archive them, or share with others. New packs are automatically detected, assets stream directly from ZIPs (no manual extraction), and everything becomes instantly available across Screensaver, Wallart, and Cinema modes.
+Local library: Add your own artwork with a simple upload—posters, cinematic backgrounds, motion posters, or complete posterpacks. You can also create shareable posterpacks directly from your Plex or Jellyfin libraries. New packs are picked up automatically—no unzipping or manual steps—and are instantly available in Screensaver, Wallart, and Cinema.
 
 <!-- Content source features heading and intro removed per request; keep the actionable bullets below -->
+ <!-- Content source features heading and intro removed per request; keep the actionable bullets below -->
 
 - Enable/disable each source (Plex, Jellyfin, TMDB)
 - Set server address and authentication (token, username/password)
