@@ -3901,7 +3901,8 @@ body .modal-overlay.open {
     gap: 6px;
     flex-wrap: wrap;
     min-height: 42px;
-    padding: 6px 36px 6px 10px;
+    /* More right padding to accommodate Clear + boxed caret, matching styled selects */
+    padding: 6px 90px 6px 10px;
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
     background: var(--color-bg-card);
@@ -3911,6 +3912,26 @@ body .modal-overlay.open {
     /* Unified modal-style focus ring (no extra blue glow) */
     border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+}
+/* Vertical divider before caret, like select wrappers */
+.multiselect:has(.ms-control)::after {
+    content: '';
+    position: absolute;
+    /* Place divider left of both Clear (×) and caret */
+    right: 74px;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: var(--color-border);
+    opacity: 0.7;
+    pointer-events: none;
+}
+/* Hover/focus tint for the caret box to match selects */
+.multiselect:has(.ms-control):hover .ms-caret {
+    background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-card));
+}
+.multiselect:has(.ms-control) .ms-control:focus-within .ms-caret {
+    border-color: color-mix(in srgb, var(--color-primary) 48%, var(--color-border));
 }
 .ms-chips {
     display: flex;
@@ -3955,20 +3976,46 @@ body .modal-overlay.open {
 }
 .ms-clear {
     position: absolute;
-    right: 28px;
+    right: 40px; /* sits between divider and caret */
+    top: 50%;
+    transform: translateY(-50%);
     background: transparent;
     border: none;
     color: var(--color-text-secondary);
     cursor: pointer;
     display: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s ease;
 }
 .ms-control.has-selection .ms-clear {
     display: inline-flex;
 }
+.ms-control.has-selection .ms-clear:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
 .ms-caret {
+    /* Convert the caret icon into a boxed caret like .select-caret */
     position: absolute;
     right: 10px;
-    color: var(--color-submenu-indicator);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    font-size: 12px;
+    line-height: 1;
+    opacity: 0.95;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
     pointer-events: none;
 }
 
@@ -3976,13 +4023,18 @@ body .modal-overlay.open {
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
-    right: 0;
+    right: auto;
+    min-width: 280px; /* match select dropdown min width */
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-lg);
+    border-radius: 6px;
+    box-shadow:
+        0 8px 24px -4px rgba(0, 0, 0, 0.55),
+        0 4px 12px -2px rgba(0, 0, 0, 0.4);
     display: none;
-    z-index: 1200;
+    z-index: 1600; /* keep above other UI like pills */
+    max-height: 340px;
+    overflow-y: auto;
 }
 .ms-open .ms-menu {
     display: block;
