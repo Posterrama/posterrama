@@ -19999,11 +19999,31 @@ if (!document.__niwDelegatedFallback) {
                     if (ib !== -1) return 1;
                     return a.localeCompare(b);
                 });
-                const genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
+                let genresList = Array.from(genres).sort((a, b) => a.localeCompare(b));
 
                 fillSelect('pp-local.ratings', ratingsList);
                 fillSelect('pp-local.qualities', qualitiesList);
                 fillSelect('pp-local.genres', genresList);
+
+                // Last-resort fallback: if Local Genres are still empty, mirror from Server filters after loading them
+                try {
+                    if (
+                        !genresList.length &&
+                        typeof loadPosterpackServerFilterOptions === 'function'
+                    ) {
+                        await Promise.resolve(loadPosterpackServerFilterOptions()).catch(() => {});
+                        const srvGenresSel = document.getElementById('pp-server.genres');
+                        if (srvGenresSel && srvGenresSel.options && srvGenresSel.options.length) {
+                            const srvList = Array.from(srvGenresSel.options)
+                                .map(o => o.value)
+                                .filter(Boolean);
+                            if (srvList.length) {
+                                genresList = srvList.slice().sort((a, b) => a.localeCompare(b));
+                                fillSelect('pp-local.genres', genresList);
+                            }
+                        }
+                    }
+                } catch (_) {}
 
                 // If the widgets are already wired, rebuild them to reflect new options
                 try {
