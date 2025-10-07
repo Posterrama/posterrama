@@ -18587,6 +18587,60 @@ if (!document.__niwDelegatedFallback) {
 
     window.admin2.maybeInitLocalDirectoryOnOpen = maybeInitLocalDirectoryOnOpen;
 
+    // Safety net: if the Local panel becomes visible and the browser still shows the
+    // initial placeholder, auto-initialize and trigger a directory load. This guards
+    // against rare timing issues where the init function isn't called by the router
+    // or segmented-tabs handler.
+    try {
+        const panel = document.getElementById('panel-local');
+        if (panel && !panel.__localObs) {
+            const checkAndInit = () => {
+                if (panel.hidden) return;
+                // Ensure init is attempted
+                try {
+                    window.admin2?.maybeInitLocalDirectoryOnOpen?.();
+                } catch (_) {}
+                // If content remains the static placeholder, force a config load
+                setTimeout(() => {
+                    try {
+                        const host = document.getElementById('local-browser-content');
+                        if (!host) return;
+                        const hasList = !!host.querySelector('.browser-list');
+                        const hasEmpty = !!host.querySelector('.browser-empty');
+                        if (!hasList && hasEmpty) {
+                            loadLocalDirectoryConfig();
+                        }
+                    } catch (_) {}
+                }, 50);
+            };
+            const mo = new MutationObserver(() => checkAndInit());
+            mo.observe(panel, { attributes: true, attributeFilter: ['hidden', 'class'] });
+            panel.__localObs = mo;
+            // If already visible on load, run once immediately
+            if (!panel.hidden) checkAndInit();
+        }
+        // Also handle direct navigation to #local via hash changes
+        window.addEventListener('hashchange', () => {
+            try {
+                const h = (location.hash || '').toLowerCase();
+                if (h === '#local') {
+                    setTimeout(() => {
+                        try {
+                            const p = document.getElementById('panel-local');
+                            if (p && !p.hidden) {
+                                window.admin2?.maybeInitLocalDirectoryOnOpen?.();
+                                const host = document.getElementById('local-browser-content');
+                                if (host && !host.querySelector('.browser-list')) {
+                                    loadLocalDirectoryConfig();
+                                }
+                            }
+                        } catch (_) {}
+                    }, 40);
+                }
+            } catch (_) {}
+        });
+    } catch (_) {}
+
     function initFileDropZone() {
         // Quick Upload removed; only wire per-directory buttons/inputs
         const dropZone = document.getElementById('local-file-drop');
@@ -19633,6 +19687,17 @@ if (!document.__niwDelegatedFallback) {
                     initMsForSelect('pp-srv-ms-qualities', 'pp-server.qualities');
                 }
             } catch (_) {}
+            // Ensure Qualities (entire form-group) is visible for Plex
+            try {
+                const qSel = document.getElementById('pp-server.qualities');
+                const group = qSel?.closest('.form-group');
+                if (group) {
+                    group.hidden = false;
+                    group.style.display = '';
+                }
+                const qRoot = document.getElementById('pp-srv-ms-qualities');
+                if (qRoot) qRoot.classList.remove('disabled');
+            } catch (_) {}
             try {
                 loadPosterpackServerFilterOptions().catch(() => {});
             } catch (_) {}
@@ -19674,11 +19739,26 @@ if (!document.__niwDelegatedFallback) {
                     initMsForSelect('pp-jf-ms-shows', 'pp-jf.shows');
                     initMsForSelect('pp-srv-ms-ratings', 'pp-server.ratings');
                     initMsForSelect('pp-srv-ms-genres', 'pp-server.genres');
-                    initMsForSelect('pp-srv-ms-qualities', 'pp-server.qualities');
+                    // Do not wire Qualities for Jellyfin — feature not supported; hide it
                 }
             } catch (_) {}
             try {
                 loadPosterpackServerFilterOptions().catch(() => {});
+            } catch (_) {}
+            // Hide and clear Qualities (entire form-group) when source is Jellyfin
+            try {
+                const qSel = document.getElementById('pp-server.qualities');
+                const group = qSel?.closest('.form-group');
+                if (group) {
+                    group.hidden = true;
+                    group.style.display = 'none';
+                }
+                const qRoot = document.getElementById('pp-srv-ms-qualities');
+                if (qRoot) qRoot.classList.add('disabled');
+                if (qSel) {
+                    Array.from(qSel.options).forEach(o => (o.selected = false));
+                    qSel.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             } catch (_) {}
             // Proactively fetch Jellyfin libraries using the main fetcher, then populate
             try {
@@ -19764,6 +19844,13 @@ if (!document.__niwDelegatedFallback) {
                             });
                             if (res2.ok) return await res2.json().catch(() => ({}));
                         }
+                        // Last resort: plain genres list from any enabled Plex server
+                        try {
+                            const res3 = await window.dedupJSON('/api/admin/plex-genres', {
+                                credentials: 'include',
+                            });
+                            if (res3?.ok) return await res3.json().catch(() => ({}));
+                        } catch (_) {}
                     } catch (_) {}
                     return null;
                 })();
@@ -19779,7 +19866,18 @@ if (!document.__niwDelegatedFallback) {
                                 showLibraries: jfShowLibs,
                             }),
                         });
-                        return res.ok ? await res.json().catch(() => ({})) : null;
+                        if (res.ok) {
+                            const js = await res.json().catch(() => ({}));
+                            if (Array.isArray(js?.genres) && js.genres.length) return js;
+                        }
+                        // Fallback: try all-libraries GET
+                        try {
+                            const r2 = await window.dedupJSON('/api/admin/jellyfin-genres-all', {
+                                credentials: 'include',
+                            });
+                            if (r2?.ok) return await r2.json().catch(() => ({}));
+                        } catch (_) {}
+                        return null;
                     } catch (_) {
                         return null;
                     }
@@ -20633,10 +20731,16 @@ if (!document.__niwDelegatedFallback) {
                         }
                     }
 
-                    // Load directory if configured
-                    if (cfg.enabled) {
-                        loadDirectoryContents('/');
-                    }
+                    // Toggle Directory Browser visibility based on enabled flag
+                    const browser = document.getElementById('local-browser');
+                    const refreshBtn = document.getElementById('btn-refresh-browser');
+                    const dlBtn = document.getElementById('btn-download-dir');
+                    // Always show the browser, regardless of Local enabled state
+                    if (browser) browser.hidden = false;
+                    if (refreshBtn) refreshBtn.disabled = false;
+                    if (dlBtn) dlBtn.disabled = false;
+                    // Load directory listing (will show meaningful error if misconfigured)
+                    loadDirectoryContents('/');
                 }
 
                 // Load posterpack defaults

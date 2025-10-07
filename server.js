@@ -7899,8 +7899,13 @@ app.post(
 app.get(
     '/api/local/browse',
     asyncHandler(async (req, res) => {
-        if (!config.localDirectory?.enabled || !localDirectorySource) {
-            return res.status(404).json({ error: 'Local directory support not enabled' });
+        // Permit browsing even if Local source is disabled for playlist purposes.
+        if (!localDirectorySource) {
+            try {
+                localDirectorySource = new LocalDirectorySource(config.localDirectory, logger);
+            } catch (e) {
+                return res.status(500).json({ error: 'Local directory unavailable' });
+            }
         }
 
         const { path: relativePath = '', type = 'all' } = req.query;
@@ -7947,10 +7952,6 @@ app.get(
     '/api/local/download',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (!config.localDirectory?.enabled || !localDirectorySource) {
-            return res.status(404).json({ error: 'Local directory support not enabled' });
-        }
-
         const requestedPath = String(req.query.path || '').trim();
         if (!requestedPath) {
             return res.status(400).json({ error: 'Missing path' });
@@ -8014,10 +8015,6 @@ app.get(
     '/api/local/download-all',
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        if (!config.localDirectory?.enabled || !localDirectorySource) {
-            return res.status(404).json({ error: 'Local directory support not enabled' });
-        }
-
         const requestedPath = String(req.query.path || '').trim();
         if (!requestedPath) {
             return res.status(400).json({ error: 'Missing path' });
@@ -12228,6 +12225,76 @@ app.post(
         // Clear the /get-config cache so changes are immediately visible
         cacheManager.delete('GET:/get-config');
 
+        // --- Live-apply Local Directory changes without restart ---
+        try {
+            // Shallow-assign to the in-memory config so subsequent routes read the latest values
+            Object.assign(config, mergedConfig);
+            // Recreate or dispose Local directory components to match the new config
+            if (config.localDirectory && config.localDirectory.enabled) {
+                // (Re)initialize if missing or if root/watch settings changed
+                if (!localDirectorySource) {
+                    jobQueue = new (require('./utils/job-queue'))(config);
+                    localDirectorySource = new LocalDirectorySource(config.localDirectory, logger);
+                    uploadMiddleware = require('./middleware/fileUpload').createUploadMiddleware(
+                        config.localDirectory
+                    );
+                    Promise.resolve(localDirectorySource.initialize()).catch(() => {});
+                } else {
+                    // If already present, update its config fields and restart watcher if needed
+                    try {
+                        const prev = {
+                            enabled: localDirectorySource.enabled,
+                            rootPath: localDirectorySource.rootPath,
+                            watchDirectories: localDirectorySource.watchDirectories,
+                        };
+                        localDirectorySource.enabled = !!config.localDirectory.enabled;
+                        localDirectorySource.rootPath =
+                            config.localDirectory.rootPath || localDirectorySource.rootPath;
+                        localDirectorySource.watchDirectories = Array.isArray(
+                            config.localDirectory.watchDirectories
+                        )
+                            ? config.localDirectory.watchDirectories
+                            : [];
+                        localDirectorySource.rootPaths = [
+                            localDirectorySource.rootPath,
+                            ...localDirectorySource.watchDirectories,
+                        ]
+                            .filter(Boolean)
+                            .map(p => require('path').resolve(p));
+                        // If toggled from disabled->enabled or roots changed, re-init the watcher
+                        const rootsChanged =
+                            prev.rootPath !== localDirectorySource.rootPath ||
+                            JSON.stringify(prev.watchDirectories || []) !==
+                                JSON.stringify(localDirectorySource.watchDirectories || []);
+                        if (!prev.enabled && localDirectorySource.enabled) {
+                            Promise.resolve(localDirectorySource.initialize()).catch(() => {});
+                        } else if (rootsChanged && localDirectorySource.enabled) {
+                            try {
+                                await localDirectorySource.stopFileWatcher();
+                            } catch (_) {}
+                            Promise.resolve(localDirectorySource.startFileWatcher()).catch(
+                                () => {}
+                            );
+                        }
+                    } catch (e) {
+                        logger.warn('[Admin API] Failed to live-update LocalDirectorySource:', e);
+                    }
+                }
+            } else {
+                // Disabled now: stop watchers and drop refs so routes return 404 quickly
+                if (localDirectorySource) {
+                    try {
+                        await localDirectorySource.stopFileWatcher();
+                    } catch (_) {}
+                }
+                localDirectorySource = null;
+                jobQueue = null;
+                uploadMiddleware = null;
+            }
+        } catch (e) {
+            logger.warn('[Admin API] Live-apply of Local Directory changes failed:', e?.message);
+        }
+
         // Trigger a background refresh of the playlist with the new settings.
         // We don't await this, so the admin UI gets a fast response.
         // Add a small delay to prevent overwhelming the server during rapid config changes
@@ -12876,6 +12943,38 @@ app.post(
                     error.message
                 );
             throw new ApiError(400, `Failed to get Jellyfin genres with counts: ${error.message}`);
+        }
+    })
+);
+
+// Fallback: return unique Jellyfin genres across all libraries of the configured server
+app.get(
+    '/api/admin/jellyfin-genres-all',
+    isAuthenticated,
+    asyncHandler(async (_req, res) => {
+        try {
+            const jellyfinServerConfig = config.mediaServers.find(s => s.type === 'jellyfin');
+            if (!jellyfinServerConfig) return res.json({ genres: [] });
+            const client = await createJellyfinClient({
+                hostname: jellyfinServerConfig.hostname,
+                port: jellyfinServerConfig.port,
+                apiKey: process.env[jellyfinServerConfig.tokenEnvVar],
+                timeout: 8000,
+                insecureHttps: process.env.JELLYFIN_INSECURE_HTTPS === 'true',
+                retryMaxRetries: 0,
+                retryBaseDelay: 300,
+            });
+            const libs = await fetchJellyfinLibraries(client);
+            const ids = libs.map(l => l.Id);
+            const genres = await client.getGenres(ids);
+            // De-duplicate and sort
+            const unique = Array.from(
+                new Set(genres.map(g => (g.genre || g.name || g).toString()))
+            ).sort((a, b) => a.localeCompare(b));
+            return res.json({ genres: unique });
+        } catch (e) {
+            logger.warn('[Admin API] jellyfin-genres-all failed:', e?.message);
+            return res.json({ genres: [] });
         }
     })
 );
