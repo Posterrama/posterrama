@@ -13,6 +13,16 @@
         const urlParams = new URLSearchParams(window.location.search);
         const vParam = urlParams.get('v');
         const refreshParam = urlParams.get('_refresh');
+        const hardParam = urlParams.get('_hard');
+        
+        // If we already did a hard reload, stop checking - avoid infinite loop
+        if (hardParam) {
+          console.warn('[Cache Check] Hard reload already attempted, skipping further checks');
+          // Just clean up the URL
+          const cleanUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, '', cleanUrl);
+          return;
+        }
         
         // Only redirect if:
         // 1. v param exists and is not numeric (old base36 format)
@@ -32,23 +42,26 @@
         
         // AGGRESSIVE: Check if the actual admin.js script has the old version
         // This catches cases where HTML is fresh but browser still serves cached JS
-        setTimeout(function() {
-          const scriptTags = document.querySelectorAll('script[src*="admin.js"]');
-          scriptTags.forEach(function(script) {
-            const src = script.src || '';
-            const match = /admin\.js\?v=([^&\s]+)/.exec(src);
-            if (match) {
-              const loadedVersion = match[1];
-              // If it's not a pure number (timestamp), it's old base36 format
-              if (!/^\d{13}/.test(loadedVersion)) {
-                console.error('[Cache Check] CRITICAL: Old admin.js version still loaded:', loadedVersion);
-                console.error('[Cache Check] Force-reloading with cache bypass...');
-                // Nuclear option: force reload with cache bypass
-                window.location.href = window.location.pathname + '?_bust=' + Date.now() + '&_hard=1' + window.location.hash;
+        // Only do this once (no _hard param yet)
+        if (!hardParam) {
+          setTimeout(function() {
+            const scriptTags = document.querySelectorAll('script[src*="admin.js"]');
+            scriptTags.forEach(function(script) {
+              const src = script.src || '';
+              const match = /admin\.js\?v=([^&\s]+)/.exec(src);
+              if (match) {
+                const loadedVersion = match[1];
+                // If it's not a pure number (timestamp), it's old base36 format
+                if (!/^\d{13}/.test(loadedVersion)) {
+                  console.error('[Cache Check] CRITICAL: Old admin.js version still loaded:', loadedVersion);
+                  console.error('[Cache Check] Force-reloading with cache bypass (ONCE)...');
+                  // Nuclear option: force reload with cache bypass (mark with _hard to prevent loop)
+                  window.location.href = window.location.pathname + '?_bust=' + Date.now() + '&_hard=1' + window.location.hash;
+                }
               }
-            }
-          });
-        }, 100);
+            });
+          }, 100);
+        }
         
       } catch(e) {
         console.error('[Cache Check] Failed:', e);
