@@ -12793,6 +12793,25 @@ app.post(
 
         const { config: newConfig, env: newEnv } = req.body;
 
+        // Extra logging to debug old frontend behavior
+        logger.info('[Admin API] Received env keys:', Object.keys(newEnv || {}));
+        logger.info(
+            '[Admin API] Received env values (masked):',
+            Object.fromEntries(
+                Object.entries(newEnv || {}).map(([k, v]) => {
+                    if (k.includes('TOKEN') || k.includes('KEY') || k.includes('SECRET')) {
+                        return [
+                            k,
+                            typeof v === 'string'
+                                ? `${v.substring(0, 5)}...(${v.length})`
+                                : `${typeof v}`,
+                        ];
+                    }
+                    return [k, v];
+                })
+            )
+        );
+
         if (!newConfig || !newEnv) {
             if (isDebug)
                 logger.debug('[Admin API] Invalid request body. Missing "config" or "env".');
