@@ -14946,7 +14946,16 @@
                         updateJfHealth('Testing');
                         const body = { hostname: jf.hostname, port: jf.port };
                         const apiKeyEl = getInput('jf.apikey');
-                        if (apiKeyEl?.value) body.apiKey = apiKeyEl.value;
+                        // Get API key with fallback chain (same as save logic)
+                        const apiKey =
+                            apiKeyEl?.dataset?.actualToken ||
+                            apiKeyEl?.value?.trim() ||
+                            window.__tokenStore?.jfApiKey ||
+                            localStorage.getItem('jf_apikey_temp');
+                        // Only add if not masked and not empty
+                        if (apiKey && !/^[•]+$/.test(apiKey) && apiKey !== 'EXISTING_TOKEN') {
+                            body.apiKey = apiKey;
+                        }
                         const insecureHttps = !!(
                             document.getElementById('jf.insecureHttps')?.checked ||
                             document.getElementById('jf.insecureHttpsHeader')?.checked
