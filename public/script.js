@@ -4085,12 +4085,38 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     ? cfgJson.config.mediaServers
                                     : [];
                             const enabled = servers.filter(s => s && s.enabled !== false); // default true
-                            if (savedSrc && enabled.length > 0) {
-                                const existsEnabled = enabled.some(
-                                    s => (s.type || '').toLowerCase() === savedSrc.toLowerCase()
-                                );
-                                if (!existsEnabled) {
-                                    const fallback = (enabled[0].type || '').toLowerCase();
+                            if (enabled.length > 0) {
+                                // Compute fallback using shared helper (duplicated logic if module unavailable client-side)
+                                let fallback = null;
+                                try {
+                                    // Attempt to use the helper if bundled
+                                    // eslint-disable-next-line no-undef
+                                    if (
+                                        window.Posterrama &&
+                                        typeof window.Posterrama.decideFallbackSource === 'function'
+                                    ) {
+                                        fallback = window.Posterrama.decideFallbackSource({
+                                            savedSource: savedSrc,
+                                            enabledServers: enabled,
+                                        });
+                                    }
+                                } catch (_) {}
+                                // Fallback to inline logic if helper not present in client bundle
+                                if (!fallback) {
+                                    const norm = s => (typeof s === 'string' ? s.toLowerCase() : s);
+                                    const existsEnabled = savedSrc
+                                        ? enabled.some(s => norm(s.type) === norm(savedSrc))
+                                        : false;
+                                    if (!existsEnabled) {
+                                        const hasLocal = enabled.find(
+                                            s => norm(s.type) === 'local'
+                                        );
+                                        fallback = hasLocal ? 'local' : norm(enabled[0].type || '');
+                                    } else {
+                                        fallback = norm(savedSrc);
+                                    }
+                                }
+                                if (fallback && savedSrc?.toLowerCase() !== fallback) {
                                     console.info(
                                         '[Media] Auto-fallback: switching inactive source',
                                         savedSrc,
