@@ -13,6 +13,14 @@ module.exports = {
     // This prevents confusion and ensures a clean project structure.
     roots: ['<rootDir>/__tests__'],
 
+    // Only match actual test files (not route definitions or utilities)
+    testMatch: [
+        '**/__tests__/**/*.test.js',
+        '**/__tests__/**/*.spec.js',
+        '**/__tests__/**/test-*.js',
+        '!**/__tests__/routes/**', // Exclude route definitions
+    ],
+
     // Add timeout and force exit to prevent hanging
     // Use longer timeout in CI environment due to resource constraints
     testTimeout: process.env.CI === 'true' ? 60000 : 30000, // 60s in CI, 30s locally

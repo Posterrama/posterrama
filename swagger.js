@@ -1118,7 +1118,7 @@ function generateSwaggerSpec() {
                 },
             },
         },
-        apis: ['./server.js', './routes.test-endpoints.js'], // Include test routes file for documentation
+        apis: ['./server.js', './__tests__/routes/test-endpoints.js'], // Include test routes file for documentation
     };
 
     const spec = swaggerJSDoc(options);

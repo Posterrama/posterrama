@@ -3,6 +3,15 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 describe('Swagger Verifier', () => {
+    beforeAll(() => {
+        // Enable internal endpoints for comprehensive verification
+        process.env.EXPOSE_INTERNAL_ENDPOINTS = 'true';
+    });
+
+    afterAll(() => {
+        delete process.env.EXPOSE_INTERNAL_ENDPOINTS;
+    });
+
     test('module verifySwagger returns empty missing/orphaned', () => {
         const { missing, orphaned } = verifySwagger();
         expect(Array.isArray(missing)).toBe(true);

@@ -17851,7 +17851,7 @@ try {
 if (process.env.EXPOSE_INTERNAL_ENDPOINTS === 'true') {
     try {
         // Lazy require only when needed
-        testRoutes = require('./routes.test-endpoints');
+        testRoutes = require('./__tests__/routes/test-endpoints');
         app.use(testRoutes);
         logger.debug?.('[init] internal test routes mounted (EXPOSE_INTERNAL_ENDPOINTS)');
     } catch (e) {

@@ -2,11 +2,14 @@
  * Test-only endpoints for log generation and clearing
  * These routes are only available when EXPOSE_INTERNAL_ENDPOINTS=true
  * Used for testing and debugging purposes
+ * 
+ * Location: __tests__/routes/test-endpoints.js
+ * Mounted in server.js when EXPOSE_INTERNAL_ENDPOINTS=true
  */
 
 const express = require('express');
 const router = express.Router();
-const logger = require('./utils/logger');
+const logger = require('../../utils/logger');
 
 /**
  * @swagger
@@ -15,6 +18,7 @@ const logger = require('./utils/logger');
  *     summary: Generate test log entries
  *     description: Creates dummy log entries for testing purposes
  *     tags: [Testing]
+ *     x-internal: true
  *     parameters:
  *       - in: query
  *         name: count
@@ -61,6 +65,7 @@ router.get('/api/test/generate-logs', (req, res) => {
  *     summary: Clear in-memory log buffer
  *     description: Empties the logger's memory buffer for testing
  *     tags: [Testing]
+ *     x-internal: true
  *     responses:
  *       200:
  *         description: Logs cleared successfully
@@ -100,6 +105,7 @@ router.get('/api/test/clear-logs', (req, res) => {
  *     summary: Test SSE broadcast
  *     description: Broadcasts a test event via Server-Sent Events for testing purposes
  *     tags: [Testing, Admin]
+ *     x-internal: true
  *     security:
  *       - sessionAuth: []
  *     responses:

@@ -16,7 +16,7 @@ beforeAll(() => {
     // to achieve focused coverage without full server side‑effects.
     app = require('express')();
 
-    const testRouter = require('../../routes.test-endpoints');
+    const testRouter = require('../routes/test-endpoints');
     app.use(testRouter);
     // Ensure logger captures info-level entries for generated logs
     const logger = require('../../utils/logger');

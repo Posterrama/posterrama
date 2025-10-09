@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 /* CLI wrapper delegating to scripts/lib/swaggerVerifier.js */
+
+// Enable internal test endpoints for verification
+process.env.EXPOSE_INTERNAL_ENDPOINTS = 'true';
+
 const { verifySwagger } = require('./lib/swaggerVerifier');
 
 try {

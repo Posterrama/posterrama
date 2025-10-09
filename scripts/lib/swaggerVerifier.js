@@ -92,8 +92,11 @@ function verifySwagger() {
     for (const key of uniqueExpress.keys()) if (!documented.has(key)) missing.push(key);
     const orphaned = []; // exists in spec but not in code
     for (const key of documented) {
-        const [, p] = key.split(' ');
+        const [method, p] = key.split(' ');
         if (!isMonitoredPath(p)) continue;
+        // Skip x-internal routes from orphaned check - they may be conditionally mounted
+        const pathSpec = spec.paths[p];
+        if (pathSpec && pathSpec[method] && pathSpec[method]['x-internal'] === true) continue;
         if (!uniqueExpress.has(key)) orphaned.push(key);
     }
     return { missing: missing.sort(), orphaned: orphaned.sort() };
