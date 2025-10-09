@@ -398,7 +398,9 @@
                     paused: payload.paused,
                     hasThumb: !!(payload.thumbnailUrl || payload.posterUrl),
                 });
-            } catch (_) {}
+            } catch (_) {
+                /* debug logging unavailable */
+            }
             const res = await fetch('/api/devices/heartbeat', {
                 method: 'POST',
                 headers: {
