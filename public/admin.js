@@ -4846,6 +4846,53 @@
                 };
 
                 establishSSE();
+                // When SSE is available, listen for device updates and reconcile immediately
+                try {
+                    const attachDeviceListeners = () => {
+                        const s = window.__adminSSE;
+                        if (!s) return;
+                        const onNudge = async () => {
+                            try {
+                                const sec = document.getElementById('section-devices');
+                                if (!sec || !sec.classList.contains('active')) return;
+                                const list = await fetchJSON('/api/devices').catch(() => null);
+                                if (Array.isArray(list)) window.admin2?.reconcileDevicesNow?.(list);
+                            } catch (_) {}
+                        };
+                        // Store on the instance so we can remove on reconnect
+                        s.__onDeviceNudge = onNudge;
+                        try {
+                            s.addEventListener('device-updated', onNudge);
+                        } catch (_) {}
+                        try {
+                            s.addEventListener('device-ws', onNudge);
+                        } catch (_) {}
+                    };
+                    const detachDeviceListeners = () => {
+                        const s = window.__adminSSE;
+                        if (!s || !s.__onDeviceNudge) return;
+                        try {
+                            s.removeEventListener('device-updated', s.__onDeviceNudge);
+                        } catch (_) {}
+                        try {
+                            s.removeEventListener('device-ws', s.__onDeviceNudge);
+                        } catch (_) {}
+                        try {
+                            delete s.__onDeviceNudge;
+                        } catch (_) {}
+                    };
+                    // Attach now
+                    attachDeviceListeners();
+                    // Re-attach on SSE reconnect by polling for handle changes
+                    let lastSse = window.__adminSSE;
+                    setInterval(() => {
+                        if (window.__adminSSE !== lastSse) {
+                            detachDeviceListeners();
+                            lastSse = window.__adminSSE;
+                            attachDeviceListeners();
+                        }
+                    }, 1500);
+                } catch (_) {}
             } catch (_) {
                 // Ignore if EventSource not available or endpoint not reachable; polling remains
             }
@@ -11418,9 +11465,12 @@
                     return true;
                 }
             }
-            async function reconcileDeviceToolbarStatesOnce() {
+            async function reconcileDeviceToolbarStatesOnce(listOverride) {
                 try {
-                    const list = await fetchJSON('/api/devices').catch(() => null);
+                    const list =
+                        Array.isArray(listOverride) && listOverride.length >= 0
+                            ? listOverride
+                            : await fetchJSON('/api/devices').catch(() => null);
                     if (!Array.isArray(list)) return;
                     // Keep in-memory state fresh for hovercards and filters
                     try {
@@ -11739,6 +11789,11 @@
                     devicesLiveTimer = null;
                 }
             }
+            // Expose an immediate reconcile hook for SSE push events
+            try {
+                window.admin2 = window.admin2 || {};
+                window.admin2.reconcileDevicesNow = list => reconcileDeviceToolbarStatesOnce(list);
+            } catch (_) {}
             // Start live reconcile now and on tab visibility changes
             startDevicesLiveReconcile();
             document.addEventListener('visibilitychange', () => {

@@ -3496,7 +3496,7 @@ if (isDeviceMgmtEnabled()) {
             if (pinned === false) {
                 currentState.pinMediaId = '';
             }
-            await deviceStore.updateHeartbeat(deviceId, {
+            const updated = await deviceStore.updateHeartbeat(deviceId, {
                 clientInfo: { userAgent, screen, mode },
                 currentState,
                 installId,
@@ -3529,6 +3529,22 @@ if (isDeviceMgmtEnabled()) {
             } catch (_) {
                 // reverse DNS is best-effort; ignore lookup errors
             }
+            // Proactively notify any connected admin dashboards via SSE so UI updates immediately
+            try {
+                const payload = {
+                    id: deviceId,
+                    status: 'online',
+                    lastSeenAt: updated?.lastSeenAt || new Date().toISOString(),
+                    wsConnected: wsHub.isConnected(deviceId),
+                    currentState,
+                };
+                if (typeof global.__adminSSEBroadcast === 'function') {
+                    global.__adminSSEBroadcast('device-updated', payload);
+                }
+            } catch (_) {
+                /* best-effort SSE push */
+            }
+
             const commandsQueued = deviceStore.popCommands(deviceId);
             res.json({ serverTime: Date.now(), commandsQueued });
         } catch (e) {
@@ -17046,6 +17062,24 @@ try {
         }
     };
     logger.events.on('log', __onLog);
+    // Expose a safe broadcaster for other modules/routes
+    global.__adminSSEBroadcast = function (eventName, data) {
+        try {
+            const payload =
+                `event: ${String(eventName || 'message')}\n` +
+                `data: ${JSON.stringify(data || {})}\n\n`;
+            for (const c of __sseClients) {
+                try {
+                    c.res.write(payload);
+                } catch (_) {
+                    /* ignore */
+                }
+            }
+            return true;
+        } catch (_) {
+            return false;
+        }
+    };
     // Cleanup hook for tests or hot-reload
     if (!global.__adminSSECleanup) {
         global.__adminSSECleanup = () => {

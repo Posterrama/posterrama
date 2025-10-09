@@ -54,6 +54,19 @@ function registerConnection(ws, deviceId) {
         totalConnections: deviceToSocket.size,
         timestamp: new Date().toISOString(),
     });
+
+    // Notify admin dashboards via SSE for instant UI updates
+    try {
+        if (typeof global.__adminSSEBroadcast === 'function') {
+            global.__adminSSEBroadcast('device-ws', {
+                id: deviceId,
+                wsConnected: true,
+                timestamp: Date.now(),
+            });
+        }
+    } catch (_) {
+        /* ignore */
+    }
 }
 
 function unregister(ws) {
@@ -87,6 +100,19 @@ function unregister(ws) {
             totalConnections: deviceToSocket.size,
             timestamp: new Date().toISOString(),
         });
+
+        // Notify admin dashboards via SSE for instant UI updates
+        try {
+            if (typeof global.__adminSSEBroadcast === 'function') {
+                global.__adminSSEBroadcast('device-ws', {
+                    id: deviceId,
+                    wsConnected: false,
+                    timestamp: Date.now(),
+                });
+            }
+        } catch (_) {
+            /* ignore */
+        }
     }
 }
 
