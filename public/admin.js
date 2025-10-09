@@ -15143,6 +15143,28 @@
                 // Show masked value when a key exists, or keep empty for user to fill
                 const hasKey = !!env[jfKeyVar];
                 const el = getInput('jf.apikey');
+
+                // ALWAYS try to restore API key from localStorage first
+                const savedKey = localStorage.getItem('jf_apikey_temp');
+
+                // Priority: localStorage key > existing key marker > empty
+                if (savedKey && savedKey !== 'EXISTING_TOKEN') {
+                    el.dataset.actualToken = savedKey;
+                    console.log(
+                        '[Jellyfin Init] ✓ Restored from localStorage:',
+                        savedKey.length,
+                        'chars'
+                    );
+                } else if (hasKey) {
+                    el.dataset.actualToken = 'EXISTING_TOKEN';
+                    console.log(
+                        '[Jellyfin Init] ⚠ Set placeholder: EXISTING_TOKEN (no localStorage)'
+                    );
+                } else {
+                    el.dataset.actualToken = '';
+                    console.log('[Jellyfin Init] ✗ No API key found');
+                }
+
                 if (hasKey) {
                     // Set a special masked value that indicates key is set
                     el.value = '••••••••••••••••••••';
@@ -15154,6 +15176,24 @@
                     el.setAttribute('placeholder', 'Jellyfin API Key');
                     el.classList.remove('token-masked');
                 }
+
+                // Capture the actual API key when user types it
+                el.addEventListener(
+                    'input',
+                    e => {
+                        const val = e.target.value.trim();
+                        if (val && !/^[•]+$/.test(val)) {
+                            el.dataset.actualToken = val;
+                            localStorage.setItem('jf_apikey_temp', val);
+                            console.log(
+                                '[Jellyfin Input] Saved to dataset and localStorage:',
+                                val.length,
+                                'chars'
+                            );
+                        }
+                    },
+                    { once: false }
+                );
             }
             // Initialize Jellyfin Insecure HTTPS header toggle from env or default false
             try {
@@ -15248,6 +15288,26 @@
             if (getInput('tmdb.apikey')) {
                 // Show masked value when an API key exists, or keep empty for user to fill
                 const el = getInput('tmdb.apikey');
+
+                // ALWAYS try to restore API key from localStorage first
+                const savedKey = localStorage.getItem('tmdb_apikey_temp');
+
+                // Priority: localStorage key > existing key marker > empty
+                if (savedKey && savedKey !== 'EXISTING_TOKEN') {
+                    el.dataset.actualToken = savedKey;
+                    console.log(
+                        '[TMDB Init] ✓ Restored from localStorage:',
+                        savedKey.length,
+                        'chars'
+                    );
+                } else if (tmdb.apiKey) {
+                    el.dataset.actualToken = 'EXISTING_TOKEN';
+                    console.log('[TMDB Init] ⚠ Set placeholder: EXISTING_TOKEN (no localStorage)');
+                } else {
+                    el.dataset.actualToken = '';
+                    console.log('[TMDB Init] ✗ No API key found');
+                }
+
                 if (tmdb.apiKey) {
                     // Set a special masked value that indicates key is set
                     el.value = '••••••••••••••••••••';
@@ -15259,6 +15319,24 @@
                     el.setAttribute('placeholder', 'TMDB API Key');
                     el.classList.remove('token-masked');
                 }
+
+                // Capture the actual API key when user types it
+                el.addEventListener(
+                    'input',
+                    e => {
+                        const val = e.target.value.trim();
+                        if (val && !/^[•]+$/.test(val)) {
+                            el.dataset.actualToken = val;
+                            localStorage.setItem('tmdb_apikey_temp', val);
+                            console.log(
+                                '[TMDB Input] Saved to dataset and localStorage:',
+                                val.length,
+                                'chars'
+                            );
+                        }
+                    },
+                    { once: false }
+                );
             }
             if (getInput('tmdb.category')) {
                 const el = getInput('tmdb.category');
@@ -16846,7 +16924,9 @@
             try {
                 const hostname = getInput('jf.hostname')?.value || '';
                 const port = getInput('jf.port')?.value || '';
-                const apiKey = getInput('jf.apikey')?.value || '';
+                // Get API key from dataset first (actual key), fallback to input value
+                const apiKeyInput = getInput('jf.apikey');
+                const apiKey = apiKeyInput?.dataset?.actualToken || apiKeyInput?.value || '';
                 const insecureHttps = !!(
                     document.getElementById('jf.insecureHttps')?.checked ||
                     document.getElementById('jf.insecureHttpsHeader')?.checked
@@ -16865,6 +16945,18 @@
                 });
                 const j = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(j?.error || 'Connection failed');
+
+                // SUCCESS! Save the API key to dataset and localStorage
+                if (apiKey && apiKeyInput) {
+                    apiKeyInput.dataset.actualToken = apiKey;
+                    localStorage.setItem('jf_apikey_temp', apiKey);
+                    console.log(
+                        '[Jellyfin Test] Success! Key saved to dataset and localStorage:',
+                        apiKey.length,
+                        'chars'
+                    );
+                }
+
                 window.notify?.toast({
                     type: 'success',
                     title: 'Jellyfin',
@@ -16922,9 +17014,9 @@
             const btn = document.getElementById('btn-tmdb-test');
             startBtnSpinner(btn);
             try {
-                const rawVal = getInput('tmdb.apikey')?.value || '';
-                // Treat masked placeholder as "use stored"; also fallback if empty
-                const apiKey = !rawVal || rawVal === '••••••••' ? 'stored_key' : rawVal;
+                // Get API key from dataset first (actual key), fallback to input value
+                const apiKeyInput = getInput('tmdb.apikey');
+                const apiKey = apiKeyInput?.dataset?.actualToken || apiKeyInput?.value || '';
                 const category = getInput('tmdb.category')?.value || 'popular';
                 const res = await fetch('/api/admin/test-tmdb', {
                     method: 'POST',
@@ -16934,6 +17026,18 @@
                 });
                 const j = await res.json().catch(() => ({}));
                 if (!res.ok || !j?.success) throw new Error(j?.error || 'TMDB test failed');
+
+                // SUCCESS! Save the API key to dataset and localStorage
+                if (apiKey && apiKeyInput) {
+                    apiKeyInput.dataset.actualToken = apiKey;
+                    localStorage.setItem('tmdb_apikey_temp', apiKey);
+                    console.log(
+                        '[TMDB Test] Success! Key saved to dataset and localStorage:',
+                        apiKey.length,
+                        'chars'
+                    );
+                }
+
                 window.notify?.toast({
                     type: 'success',
                     title: 'TMDB',
@@ -17260,12 +17364,20 @@
                     if (val != null && String(val).trim() !== '')
                         envPatch[key] = String(val).trim();
                 };
-                const jfKey = getInput('jf.apikey')?.value?.trim();
-                // Check if it's a masked value (all bullet points)
-                const isMaskedKey = jfKey && /^[•]+$/.test(jfKey);
+                // Get API key from dataset first (actual key), fallback to input value
+                const jfKeyInput = getInput('jf.apikey');
+                const jfKey = jfKeyInput?.dataset?.actualToken || jfKeyInput?.value?.trim();
+                // Check if it's a masked value (all bullet points) or EXISTING_TOKEN marker
+                const isMaskedKey = jfKey && (/^[•]+$/.test(jfKey) || jfKey === 'EXISTING_TOKEN');
                 // Only update API key if user entered a new value (not empty, not masked)
                 if (jfKey && !isMaskedKey) {
                     setIfProvided(jf.tokenEnvVar, jfKey);
+                    localStorage.setItem('jf_apikey_temp', jfKey);
+                    console.log(
+                        '[Jellyfin Save] Key saved to localStorage:',
+                        jfKey.length,
+                        'chars'
+                    );
                 }
                 // If empty or masked, key is intentionally omitted so backend preserves existing value
                 envPatch.JELLYFIN_INSECURE_HTTPS =
@@ -17345,12 +17457,23 @@
                 }
                 // Selected genres as CSV from hidden field
                 tmdb.genreFilter = getTMDBGenreFilterHidden();
-                const tmdbApiKeyVal = getInput('tmdb.apikey')?.value?.trim() || '';
-                // Check if it's a masked value (all bullet points)
-                const isMaskedApiKey = tmdbApiKeyVal && /^[•]+$/.test(tmdbApiKeyVal);
+                // Get API key from dataset first (actual key), fallback to input value
+                const tmdbApiKeyInput = getInput('tmdb.apikey');
+                const tmdbApiKeyVal =
+                    tmdbApiKeyInput?.dataset?.actualToken || tmdbApiKeyInput?.value?.trim() || '';
+                // Check if it's a masked value (all bullet points) or EXISTING_TOKEN marker
+                const isMaskedApiKey =
+                    tmdbApiKeyVal &&
+                    (/^[•]+$/.test(tmdbApiKeyVal) || tmdbApiKeyVal === 'EXISTING_TOKEN');
                 // Only update API key if user entered a new value (not empty, not masked)
                 if (tmdbApiKeyVal && !isMaskedApiKey) {
                     tmdb.apiKey = tmdbApiKeyVal;
+                    localStorage.setItem('tmdb_apikey_temp', tmdbApiKeyVal);
+                    console.log(
+                        '[TMDB Save] Key saved to localStorage:',
+                        tmdbApiKeyVal.length,
+                        'chars'
+                    );
                 } else {
                     // Omit apiKey so backend preserves existing value (send null to signal "don't change")
                     tmdb.apiKey = null;
