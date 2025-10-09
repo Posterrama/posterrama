@@ -730,13 +730,23 @@ class CacheDiskManager {
      * Update cache configuration
      */
     updateConfig(config) {
-        this.maxSizeBytes = (config.maxSizeGB || 2) * 1024 * 1024 * 1024;
-        this.minFreeDiskSpaceBytes = (config.minFreeDiskSpaceMB || 500) * 1024 * 1024;
+        // Preserve existing values if new config doesn't specify them
+        const newMaxSizeGB =
+            config.maxSizeGB !== undefined
+                ? config.maxSizeGB
+                : this.maxSizeBytes / (1024 * 1024 * 1024);
+        const newMinFreeMB =
+            config.minFreeDiskSpaceMB !== undefined
+                ? config.minFreeDiskSpaceMB
+                : this.minFreeDiskSpaceBytes / (1024 * 1024);
+
+        this.maxSizeBytes = newMaxSizeGB * 1024 * 1024 * 1024;
+        this.minFreeDiskSpaceBytes = newMinFreeMB * 1024 * 1024;
         this.autoCleanup = config.autoCleanup !== false;
 
         logger.info('Cache configuration updated', {
-            maxSizeGB: config.maxSizeGB,
-            minFreeDiskSpaceMB: config.minFreeDiskSpaceMB,
+            maxSizeGB: newMaxSizeGB,
+            minFreeDiskSpaceMB: newMinFreeMB,
             autoCleanup: this.autoCleanup,
         });
     }

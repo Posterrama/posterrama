@@ -1931,7 +1931,6 @@
     }
 
     function showSection(id) {
-        dbg('showSection()', { id });
         const sections = document.querySelectorAll('.app-section');
         sections.forEach(s => {
             s.classList.remove('active');
@@ -1986,7 +1985,6 @@
                 if (subtitle) subtitle.textContent = 'Devices, media, and health at a glance';
             }
         }
-        dbg('showSection() applied', { activeId: id, sections: sections.length });
 
         // Ensure Operations number inputs are enhanced when the section becomes visible
         if (id === 'section-operations') {
@@ -4862,10 +4860,6 @@
                         if (!s) return;
                         const onNudge = async evtName => {
                             try {
-                                // Debug: surface which SSE event triggered the reconcile
-                                try {
-                                    ddbg('SSE device event → nudge', evtName || '(unknown)');
-                                } catch (_) {}
                                 const sec = document.getElementById('section-devices');
                                 if (!sec || !sec.classList.contains('active')) return;
                                 const t0 = performance.now();
@@ -4906,7 +4900,6 @@
                         } catch (_) {}
                     };
                     // Attach now
-                    ddbg('SSE attach device listeners');
                     attachDeviceListeners();
                     // Re-attach on SSE reconnect by polling for handle changes
                     let lastSse = window.__adminSSE;
@@ -5215,11 +5208,6 @@
                     if (!force) {
                         if (__notifInflight) return __notifInflight;
                         if (__notifCache.data && now - __notifCache.ts < FETCH_TTL_MS) {
-                            try {
-                                console.debug('[NotifDebug] fetchAlertsAndLogs cache-hit', {
-                                    age: now - __notifCache.ts,
-                                });
-                            } catch (_) {}
                             return __notifCache.data;
                         }
                     }
@@ -5227,9 +5215,6 @@
 
                 // Build a single-flight promise for both alerts and logs
                 __notifInflight = (async () => {
-                    try {
-                        console.debug('[NotifDebug] fetchAlertsAndLogs start', { force });
-                    } catch (_) {}
                     // Dedup + backoff for dashboard metrics inside notifications too
                     if (!window.__metricsCooldownUntil) window.__metricsCooldownUntil = 0;
                     const nowInner = Date.now();
@@ -14613,7 +14598,6 @@
             const j = r.ok ? await r.json() : {};
             const env = j?.env || {}; // used by updateOverviewCards and subsequent helpers
             const cfg = j?.config || j || {};
-            dbg('loadMediaSources()', { hasConfig: !!cfg, hasEnv: !!env });
             // Initialize once-per-session auto-fetch guards
             window.__autoFetchedLibs = window.__autoFetchedLibs || { plex: false, jf: false };
             // Plex/Jellyfin server entries
@@ -17979,13 +17963,10 @@
         document.getElementById('btn-save-plex')?.addEventListener('click', savePlex);
         document.getElementById('btn-save-jellyfin')?.addEventListener('click', saveJellyfin);
         document.getElementById('btn-save-tmdb')?.addEventListener('click', saveTMDB);
-        console.log('=== SAVE BUTTONS BOUND ===');
         // No extra handlers needed here; dependent refresh is driven by fetchPlexLibraries(true)
 
         // Initial population
-        loadMediaSources()
-            .then(() => dbg('loadMediaSources() initial done'))
-            .catch(err => dbg('loadMediaSources() initial failed', err));
+        loadMediaSources().catch(() => {});
 
         btnSaveServer?.addEventListener('click', async () => {
             const portEl = document.getElementById('SERVER_PORT');
