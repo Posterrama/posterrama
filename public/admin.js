@@ -8347,7 +8347,12 @@
                 const pinPressed = initiallyPinned ? 'true' : 'false';
                 // Now-playing info (uses device-reported currentState URLs)
                 const cs = d && d.currentState ? d.currentState : {};
-                const thumbSrc = cs.thumbnailUrl || cs.posterUrl || cs.backgroundUrl || '';
+                // For wallart mode, prefer background (hero) image over poster
+                const currentMode = (d?.clientInfo?.mode || d?.mode || '').toLowerCase();
+                const isWallart = currentMode === 'wallart' || currentMode === 'wallart mode';
+                const thumbSrc = isWallart
+                    ? cs.backgroundUrl || cs.thumbnailUrl || cs.posterUrl || ''
+                    : cs.thumbnailUrl || cs.posterUrl || cs.backgroundUrl || '';
                 const thumbAlt = escapeHtml(cs.title || d.name || '');
                 const hasNowplay = !!thumbSrc;
                 const thumbRightHtml = hasNowplay
