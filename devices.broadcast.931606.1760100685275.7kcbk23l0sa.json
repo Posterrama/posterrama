@@ -1,0 +1,40 @@
+[
+    {
+        "id": "530c59c7-dbb7-4d3f-a507-2416a9389c95",
+        "installId": "iid-b1",
+        "hardwareId": "hw-b1",
+        "secretHash": "sha256:8130c6ece7628b6c8d92c61dd24d68132debe16110dde311d4ec5a12dd5b19bc",
+        "name": "",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-10-10T12:51:25.724Z",
+        "updatedAt": "2025-10-10T12:51:25.724Z",
+        "lastSeenAt": null,
+        "status": "unknown",
+        "clientInfo": {},
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "e84d03c1-9cc0-4e7c-8adf-511dab3ffb9c",
+        "installId": "iid-b2",
+        "hardwareId": "hw-b2",
+        "secretHash": "sha256:84f3b3cefe119779c9b1bbc1039ef895c32368ed2b76fbd7f599868d118a65cb",
+        "name": "",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-10-10T12:51:25.747Z",
+        "updatedAt": "2025-10-10T12:51:25.747Z",
+        "lastSeenAt": null,
+        "status": "unknown",
+        "clientInfo": {},
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    }
+]

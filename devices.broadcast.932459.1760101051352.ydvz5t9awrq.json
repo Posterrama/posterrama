@@ -1,0 +1,40 @@
+[
+    {
+        "id": "b9cbdfad-ded8-400d-93ac-d99452906a1f",
+        "installId": "iid-cr1",
+        "hardwareId": "hw-cr1",
+        "secretHash": "sha256:6f8e03d0a364bb456fd6e2a9900de1d9578ab1a7acf5c8d1a76c1cf47736009e",
+        "name": "",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-10-10T12:57:31.673Z",
+        "updatedAt": "2025-10-10T12:57:31.673Z",
+        "lastSeenAt": null,
+        "status": "unknown",
+        "clientInfo": {},
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    },
+    {
+        "id": "c35100c1-999c-42e5-ac16-68e1b545c8ee",
+        "installId": "iid-cr2",
+        "hardwareId": "hw-cr2",
+        "secretHash": "sha256:b019440069524d3b85c72c4a6f0f3d9bcc02c8c1dcbc170e2a732fb704a7508d",
+        "name": "",
+        "location": "",
+        "tags": [],
+        "groups": [],
+        "createdAt": "2025-10-10T12:57:31.693Z",
+        "updatedAt": "2025-10-10T12:57:31.693Z",
+        "lastSeenAt": null,
+        "status": "unknown",
+        "clientInfo": {},
+        "settingsOverride": {},
+        "preset": "",
+        "currentState": {},
+        "pairing": {}
+    }
+]
