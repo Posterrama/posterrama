@@ -11620,6 +11620,7 @@
                     message: `Cleared cache on ${ids.length} device${ids.length !== 1 ? 's' : ''}`,
                 });
             });
+            // Note: 'All devices' Clear+Reload button removed from Operations; bulk actions remain under Device Management.
             document.getElementById('bulk-pair')?.addEventListener('click', async () => {
                 const ids = Array.from(
                     document.querySelectorAll('#device-grid .device-card.selected')

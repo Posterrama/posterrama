@@ -4531,6 +4531,153 @@ if (isDeviceMgmtEnabled()) {
             res.status(500).json({ error: 'group_command_failed' });
         }
     });
+
+    // Admin: send a command to ALL devices (optional wait for per-device acks)
+    /**
+     * @swagger
+     * /api/devices/command:
+     *   post:
+     *     summary: Broadcast a command to all devices
+     *     description: Sends a command to all known devices. Use wait=true to collect per-device ACKs from online devices; queues commands for offline devices.
+     *     tags: ['Devices', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: query
+     *         name: wait
+     *         required: false
+     *         schema:
+     *           type: boolean
+     *           default: false
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/DeviceCommandRequest'
+     *     responses:
+     *       200:
+     *         description: Broadcast result
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/GroupCommandResponse'
+     *       401:
+     *         description: Unauthorized
+     *       500:
+     *         description: Global device command failed
+     */
+    app.post('/api/devices/command', adminAuth, express.json(), async (req, res) => {
+        try {
+            const { type, payload } = req.body || {};
+            if (!type) return res.status(400).json({ error: 'type_required' });
+
+            const all = await deviceStore.getAll();
+            const wait = String(req.query.wait || '').toLowerCase() === 'true';
+            let live = 0;
+            let queued = 0;
+
+            if (wait) {
+                const results = [];
+                await Promise.all(
+                    all.map(async d => {
+                        if (wsHub.isConnected(d.id)) {
+                            try {
+                                const ack = await wsHub
+                                    .sendCommandAwait(d.id, { type, payload, timeoutMs: 3000 })
+                                    .catch(err => {
+                                        throw err;
+                                    });
+                                live++;
+                                results.push({ deviceId: d.id, status: ack?.status || 'ok' });
+                            } catch (e) {
+                                const msg = String(e && e.message ? e.message : e);
+                                if (msg === 'ack_timeout') {
+                                    live++;
+                                    results.push({ deviceId: d.id, status: 'timeout' });
+                                } else if (msg === 'not_connected') {
+                                    deviceStore.queueCommand(d.id, { type, payload });
+                                    queued++;
+                                    results.push({ deviceId: d.id, status: 'queued' });
+                                } else {
+                                    results.push({ deviceId: d.id, status: 'error', detail: msg });
+                                }
+                            }
+                        } else {
+                            deviceStore.queueCommand(d.id, { type, payload });
+                            queued++;
+                            results.push({ deviceId: d.id, status: 'queued' });
+                        }
+                    })
+                );
+                return res.json({ ok: true, live, queued, total: all.length, results });
+            }
+
+            // no-wait: fire-and-forget broadcast
+            for (const d of all) {
+                const sent = wsHub.sendCommand(d.id, { type, payload });
+                if (sent) live++;
+                else {
+                    deviceStore.queueCommand(d.id, { type, payload });
+                    queued++;
+                }
+            }
+            res.json({ ok: true, live, queued, total: all.length });
+        } catch (e) {
+            res.status(500).json({ error: 'devices_command_failed' });
+        }
+    });
+
+    /**
+     * @swagger
+     * /api/devices/clear-reload:
+     *   post:
+     *     summary: Clear cache and reload on all devices
+     *     description: Sends clearCache then reload commands to all devices. Queues for offline devices.
+     *     tags: ['Devices', 'Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     responses:
+     *       200:
+     *         description: Broadcast result
+     *       401:
+     *         description: Unauthorized
+     *       500:
+     *         description: Clear+Reload failed
+     */
+    app.post('/api/devices/clear-reload', adminAuth, async (req, res) => {
+        try {
+            const all = await deviceStore.getAll();
+            let live = 0;
+            let queued = 0;
+            for (const d of all) {
+                const sentClear = wsHub.sendCommand(d.id, {
+                    type: 'core.mgmt.clearCache',
+                    payload: {},
+                });
+                const scheduleReload = () => {
+                    setTimeout(() => {
+                        try {
+                            wsHub.sendCommand(d.id, { type: 'core.mgmt.reload', payload: {} });
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    }, 500);
+                };
+                if (sentClear) {
+                    live++;
+                    scheduleReload();
+                } else {
+                    deviceStore.queueCommand(d.id, { type: 'core.mgmt.clearCache', payload: {} });
+                    deviceStore.queueCommand(d.id, { type: 'core.mgmt.reload', payload: {} });
+                    queued++;
+                }
+            }
+            res.json({ ok: true, live, queued, total: all.length });
+        } catch (e) {
+            res.status(500).json({ error: 'devices_clear_reload_failed' });
+        }
+    });
 }
 
 // Minimal CSP violation report endpoint
