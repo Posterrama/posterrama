@@ -871,15 +871,26 @@ class JobQueue extends EventEmitter {
             runtimeMs: item.runtimeMs || null,
             qualityLabel: item.qualityLabel || null,
             mediaStreams: item.mediaStreams || null,
-            // Enriched metadata fields
+            // Enriched metadata fields (phase 1)
             collections: item.collections || null,
             countries: item.countries || null,
             audienceRating: item.audienceRating || null,
             viewCount: item.viewCount || null,
+            skipCount: item.skipCount || null,
             lastViewedAt: item.lastViewedAt || null,
             userRating: item.userRating || null,
             originalTitle: item.originalTitle || null,
             titleSort: item.titleSort || null,
+            // Enriched metadata fields (phase 2)
+            slug: item.slug || null,
+            contentRatingAge: item.contentRatingAge || null,
+            addedAt: item.addedAt || null,
+            updatedAt: item.updatedAt || null,
+            ultraBlurColors: item.ultraBlurColors || null,
+            ratingsDetailed: item.ratingsDetailed || null,
+            parentalGuidance: item.parentalGuidance || null,
+            chapters: item.chapters || null,
+            markers: item.markers || null,
             images: {
                 poster: !!assets.poster,
                 background: !!assets.background,

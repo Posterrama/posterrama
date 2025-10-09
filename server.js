@@ -5445,7 +5445,19 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
                   };
               }).filter(e => e.name)
             : null;
-        const guids = Array.isArray(sourceItem.Guid) ? sourceItem.Guid.map(g => g.id) : null;
+        // Extract structured GUIDs with source identification
+        const guids = Array.isArray(sourceItem.Guid)
+            ? sourceItem.Guid.map(g => {
+                  const id = g.id || '';
+                  // Parse source from GUID format (e.g., "imdb://tt31193180" -> {source: 'imdb', id: 'tt31193180'})
+                  const match = id.match(/^([^:]+):\/\/(.+)$/);
+                  if (match) {
+                      return { source: match[1], id: match[2] };
+                  }
+                  return { source: 'unknown', id };
+              }).filter(g => g.id)
+            : null;
+
         const releaseDate = sourceItem.originallyAvailableAt || sourceItem.firstAired || null;
         const runtimeMs = Number.isFinite(Number(sourceItem.duration))
             ? Number(sourceItem.duration)
@@ -5483,6 +5495,9 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         const viewCount = Number.isFinite(Number(sourceItem.viewCount))
             ? Number(sourceItem.viewCount)
             : null;
+        const skipCount = Number.isFinite(Number(sourceItem.skipCount))
+            ? Number(sourceItem.skipCount)
+            : null;
         const lastViewedAt =
             sourceItem.lastViewedAt && !isNaN(Number(sourceItem.lastViewedAt))
                 ? Number(sourceItem.lastViewedAt) * 1000
@@ -5493,11 +5508,101 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             ? Number(sourceItem.userRating)
             : null;
 
+        // Metadata timestamps (Plex provides seconds, convert to milliseconds)
+        const addedAt =
+            sourceItem.addedAt && !isNaN(Number(sourceItem.addedAt))
+                ? Number(sourceItem.addedAt) * 1000
+                : null;
+        const updatedAt =
+            sourceItem.updatedAt && !isNaN(Number(sourceItem.updatedAt))
+                ? Number(sourceItem.updatedAt) * 1000
+                : null;
+
+        // URL slug (e.g., "sinners-2025")
+        const slug = sourceItem.slug || null;
+
+        // Content rating age (numeric age, e.g., 16)
+        const contentRatingAge = Number.isFinite(Number(sourceItem.contentRatingAge))
+            ? Number(sourceItem.contentRatingAge)
+            : null;
+
         // Original title (for foreign films)
         const originalTitle = sourceItem.originalTitle || null;
 
         // Sort title (for proper alphabetical sorting)
         const titleSort = sourceItem.titleSort || null;
+
+        // UltraBlurColors (hex color palette for blur effects/theming)
+        const ultraBlurColors = sourceItem.UltraBlurColors
+            ? {
+                  topLeft: sourceItem.UltraBlurColors.topLeft || null,
+                  topRight: sourceItem.UltraBlurColors.topRight || null,
+                  bottomRight: sourceItem.UltraBlurColors.bottomRight || null,
+                  bottomLeft: sourceItem.UltraBlurColors.bottomLeft || null,
+              }
+            : null;
+
+        // Extract detailed ratings per source (IMDb, Rotten Tomatoes, TMDB, etc.)
+        const ratingsDetailed = {};
+        if (Array.isArray(sourceItem.Rating)) {
+            sourceItem.Rating.forEach(r => {
+                const value = Number.isFinite(Number(r.value)) ? Number(r.value) : null;
+                const type = r.type || 'unknown'; // 'critic', 'audience', etc.
+                const image = r.image || null;
+
+                // Parse source from image URL (e.g., "imdb://image.rating" -> "imdb")
+                let source = 'unknown';
+                if (image) {
+                    const match = image.match(/^([^:]+):\/\//);
+                    if (match) source = match[1];
+                }
+
+                if (!ratingsDetailed[source]) ratingsDetailed[source] = {};
+                ratingsDetailed[source][type] = { value, image };
+            });
+        }
+
+        // CommonSenseMedia parental guidance
+        const parentalGuidance = sourceItem.CommonSenseMedia
+            ? {
+                  oneLiner: sourceItem.CommonSenseMedia.oneLiner || null,
+                  recommendedAge:
+                      sourceItem.CommonSenseMedia.AgeRating &&
+                      Number.isFinite(Number(sourceItem.CommonSenseMedia.AgeRating.age))
+                          ? Number(sourceItem.CommonSenseMedia.AgeRating.age)
+                          : null,
+              }
+            : null;
+
+        // Extract chapter information (for timeline preview)
+        const chapters = Array.isArray(sourceItem.Chapter)
+            ? sourceItem.Chapter.map(ch => ({
+                  index: ch.index || null,
+                  startMs: Number.isFinite(Number(ch.startTimeOffset))
+                      ? Number(ch.startTimeOffset) / 1000
+                      : null,
+                  endMs: Number.isFinite(Number(ch.endTimeOffset))
+                      ? Number(ch.endTimeOffset) / 1000
+                      : null,
+                  thumbUrl: ch.thumb
+                      ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(ch.thumb)}`
+                      : null,
+              })).filter(ch => ch.index !== null)
+            : null;
+
+        // Extract marker information (credits, intro skip points)
+        const markers = Array.isArray(sourceItem.Marker)
+            ? sourceItem.Marker.map(m => ({
+                  type: m.type || null, // 'credits', 'intro', etc.
+                  startMs: Number.isFinite(Number(m.startTimeOffset))
+                      ? Number(m.startTimeOffset) / 1000
+                      : null,
+                  endMs: Number.isFinite(Number(m.endTimeOffset))
+                      ? Number(m.endTimeOffset) / 1000
+                      : null,
+                  final: m.final === '1' || m.final === true,
+              })).filter(m => m.type !== null)
+            : null;
 
         // Banner image URL (primarily for TV shows)
         const bannerUrl = sourceItem.banner
@@ -5559,17 +5664,28 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             releaseDate,
             runtimeMs,
             mediaStreams,
-            // New enriched metadata fields
+            // Enriched metadata fields (phase 1)
             collections,
             countries,
             audienceRating,
             viewCount,
+            skipCount,
             lastViewedAt,
             userRating,
             originalTitle,
             titleSort,
             bannerUrl,
             fanart: fanart.length > 0 ? fanart : null,
+            // Enriched metadata fields (phase 2)
+            slug,
+            contentRatingAge,
+            addedAt,
+            updatedAt,
+            ultraBlurColors,
+            ratingsDetailed: Object.keys(ratingsDetailed).length > 0 ? ratingsDetailed : null,
+            parentalGuidance,
+            chapters,
+            markers,
             // Expose a unified timestamp for "recently added" client-side filtering
             // Plex provides addedAt as seconds since epoch; convert to ms. If missing, use null.
             addedAtMs:
