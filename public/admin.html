@@ -22,12 +22,34 @@
           // Remove all query params and add fresh timestamp
           const cleanUrl = window.location.pathname + '?_refresh=' + Date.now() + window.location.hash;
           window.location.replace(cleanUrl);
+          return; // Stop execution
         } else if (vParam && refreshParam) {
           // We've already refreshed but still have v param - just remove it
           console.warn('[Cache Check] Removing stale v param after refresh...');
           const cleanUrl = window.location.pathname + '?_refresh=' + refreshParam + window.location.hash;
           window.history.replaceState({}, '', cleanUrl);
         }
+        
+        // AGGRESSIVE: Check if the actual admin.js script has the old version
+        // This catches cases where HTML is fresh but browser still serves cached JS
+        setTimeout(function() {
+          const scriptTags = document.querySelectorAll('script[src*="admin.js"]');
+          scriptTags.forEach(function(script) {
+            const src = script.src || '';
+            const match = /admin\.js\?v=([^&\s]+)/.exec(src);
+            if (match) {
+              const loadedVersion = match[1];
+              // If it's not a pure number (timestamp), it's old base36 format
+              if (!/^\d{13}/.test(loadedVersion)) {
+                console.error('[Cache Check] CRITICAL: Old admin.js version still loaded:', loadedVersion);
+                console.error('[Cache Check] Force-reloading with cache bypass...');
+                // Nuclear option: force reload with cache bypass
+                window.location.href = window.location.pathname + '?_bust=' + Date.now() + '&_hard=1' + window.location.hash;
+              }
+            }
+          });
+        }, 100);
+        
       } catch(e) {
         console.error('[Cache Check] Failed:', e);
       }
