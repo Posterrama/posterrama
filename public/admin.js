@@ -10927,11 +10927,18 @@
                                         const rating = Number.isFinite(Number(cs.rating))
                                             ? Number(cs.rating).toFixed(1)
                                             : '—';
-                                        const runtime = Number.isFinite(
-                                            Number(cs.runtime || cs.duration)
-                                        )
-                                            ? `${Math.round(Number(cs.runtime || cs.duration) / 60000)} min`
-                                            : '—';
+                                        // Runtime: handle both ms and minutes, with safety checks
+                                        let runtime = '—';
+                                        const runtimeVal = Number(cs.runtime || cs.duration);
+                                        if (Number.isFinite(runtimeVal) && runtimeVal > 0) {
+                                            // If value is very large (>1000), assume it's in milliseconds
+                                            // Otherwise assume it's already in minutes
+                                            const minutes =
+                                                runtimeVal > 1000
+                                                    ? Math.round(runtimeVal / 60000)
+                                                    : Math.round(runtimeVal);
+                                            runtime = minutes > 0 ? `${minutes} min` : '—';
+                                        }
                                         const genres = Array.isArray(cs.genres)
                                             ? cs.genres.join(', ')
                                             : '—';
