@@ -14925,9 +14925,14 @@
                 const hasToken = !!env[plexTokenVar];
                 const el = getInput('plex.token');
 
+                // Try to restore token from sessionStorage (set during save)
+                const sessionToken = sessionStorage.getItem('plex_token_temp');
+
                 // Store the actual token value in a data attribute so it persists even if field is cleared
                 if (!el.dataset.actualToken) {
-                    el.dataset.actualToken = hasToken ? 'EXISTING_TOKEN' : '';
+                    // Use session token if available, otherwise placeholder
+                    el.dataset.actualToken = sessionToken || (hasToken ? 'EXISTING_TOKEN' : '');
+                    console.debug('[Token Init] Set actualToken from session:', !!sessionToken);
                 }
 
                 if (hasToken) {
@@ -14950,6 +14955,9 @@
                         if (val && !/^[•]+$/.test(val)) {
                             // User entered a real token, store it
                             el.dataset.actualToken = val;
+                            // Also save to session for persistence across reloads
+                            sessionStorage.setItem('plex_token_temp', val);
+                            console.debug('[Token Input] Saved to dataset and session');
                         }
                     },
                     { once: false }
@@ -17084,10 +17092,13 @@
                 // Only update token if user entered a new value (not empty, not masked)
                 if (actualToken && !isMaskedToken) {
                     setIfProvided(plex.tokenEnvVar, actualToken);
+                    // Save token to sessionStorage so it persists after page reload
+                    sessionStorage.setItem('plex_token_temp', actualToken);
                     console.log(
                         '[PLEX SAVE DEBUG] Token added to envPatch with key:',
                         plex.tokenEnvVar
                     );
+                    console.log('[PLEX SAVE DEBUG] Token saved to sessionStorage');
                 } else {
                     console.log(
                         '[PLEX SAVE DEBUG] Token SKIPPED - will preserve existing value on server'
