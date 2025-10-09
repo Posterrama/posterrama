@@ -14921,15 +14921,20 @@
                 console.warn('Jellyfin health indicator init failed', e);
             }
             if (getInput('plex.token')) {
-                // Show grey hint instead of masked value when a token exists
+                // Show masked placeholder when a token exists, or keep empty for user to fill
                 const hasToken = !!env[plexTokenVar];
                 const el = getInput('plex.token');
-                el.value = '';
-                el.setAttribute(
-                    'placeholder',
-                    hasToken ? 'Plex token already set' : 'X-Plex-Token'
-                );
-                el.classList.add('token-masked');
+                if (hasToken) {
+                    // Set a special masked value that indicates token is set
+                    el.value = '••••••••••••••••••••';
+                    el.setAttribute('placeholder', 'Plex token already set');
+                    el.classList.add('token-masked');
+                } else {
+                    // No token set, let user fill it in
+                    el.value = '';
+                    el.setAttribute('placeholder', 'X-Plex-Token');
+                    el.classList.remove('token-masked');
+                }
             }
             // Support legacy ID used in some templates
             (function () {
@@ -15086,14 +15091,20 @@
                 jfPortInput.classList.toggle('is-placeholder', !jfPortInput.value);
             }
             if (getInput('jf.apikey')) {
-                // Use grey hint text when a key exists
+                // Show masked value when a key exists, or keep empty for user to fill
                 const hasKey = !!env[jfKeyVar];
                 const el = getInput('jf.apikey');
-                el.value = '';
-                el.setAttribute(
-                    'placeholder',
-                    hasKey ? 'Jellyfin API Key already set' : 'Jellyfin API Key'
-                );
+                if (hasKey) {
+                    // Set a special masked value that indicates key is set
+                    el.value = '••••••••••••••••••••';
+                    el.setAttribute('placeholder', 'Jellyfin API Key already set');
+                    el.classList.add('token-masked');
+                } else {
+                    // No key set, let user fill it in
+                    el.value = '';
+                    el.setAttribute('placeholder', 'Jellyfin API Key');
+                    el.classList.remove('token-masked');
+                }
             }
             // Initialize Jellyfin Insecure HTTPS header toggle from env or default false
             try {
@@ -15186,13 +15197,19 @@
                 /* no-op */
             }
             if (getInput('tmdb.apikey')) {
-                // Prefer placeholder hint over masked value
+                // Show masked value when an API key exists, or keep empty for user to fill
                 const el = getInput('tmdb.apikey');
-                el.value = '';
-                el.setAttribute(
-                    'placeholder',
-                    tmdb.apiKey ? 'TMDB API Key already set' : 'TMDB API Key'
-                );
+                if (tmdb.apiKey) {
+                    // Set a special masked value that indicates key is set
+                    el.value = '••••••••••••••••••••';
+                    el.setAttribute('placeholder', 'TMDB API Key already set');
+                    el.classList.add('token-masked');
+                } else {
+                    // No key set, let user fill it in
+                    el.value = '';
+                    el.setAttribute('placeholder', 'TMDB API Key');
+                    el.classList.remove('token-masked');
+                }
             }
             if (getInput('tmdb.category')) {
                 const el = getInput('tmdb.category');
@@ -17005,11 +17022,29 @@
                         envPatch[key] = String(val).trim();
                 };
                 const plexToken = getInput('plex.token')?.value?.trim();
-                // Only update token if user entered a new value (not empty, not masked placeholder)
-                if (plexToken && plexToken !== '••••••••') {
+                // DEBUG: Log token state for troubleshooting
+                console.log(
+                    '[PLEX SAVE DEBUG] Token input value:',
+                    plexToken ? `"${plexToken.substring(0, 10)}..."` : '(empty)'
+                );
+                console.log('[PLEX SAVE DEBUG] Token length:', plexToken ? plexToken.length : 0);
+                // Check if it's a masked value (all bullet points)
+                const isMaskedToken = plexToken && /^[•]+$/.test(plexToken);
+                console.log('[PLEX SAVE DEBUG] Is masked token:', isMaskedToken);
+                console.log('[PLEX SAVE DEBUG] Will send token:', !!(plexToken && !isMaskedToken));
+                // Only update token if user entered a new value (not empty, not masked)
+                if (plexToken && !isMaskedToken) {
                     setIfProvided(plex.tokenEnvVar, plexToken);
+                    console.log(
+                        '[PLEX SAVE DEBUG] Token added to envPatch with key:',
+                        plex.tokenEnvVar
+                    );
+                } else {
+                    console.log(
+                        '[PLEX SAVE DEBUG] Token SKIPPED - will preserve existing value on server'
+                    );
                 }
-                // If empty, token is intentionally omitted so backend preserves existing value
+                // If empty or masked, token is intentionally omitted so backend preserves existing value
                 // Persist direct hostname/port inside mediaServers entry
                 // Some templates (legacy or cached) still render inputs with ids 'plex_hostname' / 'plex_port'.
                 // Use both modern (dot) and legacy (underscore) IDs so a stale cached HTML file does not block saving.
@@ -17020,6 +17055,9 @@
                 if (hostRaw) plex.hostname = hostRaw;
                 const portRaw = portEl?.value?.trim();
                 if (portRaw && !Number.isNaN(Number(portRaw))) plex.port = Number(portRaw);
+                // DEBUG: Log what we're sending
+                console.log('[PLEX SAVE DEBUG] envPatch keys:', Object.keys(envPatch));
+                console.log('[PLEX SAVE DEBUG] envPatch:', envPatch);
                 await saveConfigPatch({ mediaServers: servers }, envPatch);
                 window.notify?.toast({
                     type: 'success',
@@ -17135,11 +17173,13 @@
                         envPatch[key] = String(val).trim();
                 };
                 const jfKey = getInput('jf.apikey')?.value?.trim();
-                // Only update API key if user entered a new value (not empty, not masked placeholder)
-                if (jfKey && jfKey !== '••••••••') {
+                // Check if it's a masked value (all bullet points)
+                const isMaskedKey = jfKey && /^[•]+$/.test(jfKey);
+                // Only update API key if user entered a new value (not empty, not masked)
+                if (jfKey && !isMaskedKey) {
                     setIfProvided(jf.tokenEnvVar, jfKey);
                 }
-                // If empty, key is intentionally omitted so backend preserves existing value
+                // If empty or masked, key is intentionally omitted so backend preserves existing value
                 envPatch.JELLYFIN_INSECURE_HTTPS =
                     document.getElementById('jf.insecureHttpsHeader')?.checked ||
                     document.getElementById('jf.insecureHttps')?.checked
@@ -17218,8 +17258,10 @@
                 // Selected genres as CSV from hidden field
                 tmdb.genreFilter = getTMDBGenreFilterHidden();
                 const tmdbApiKeyVal = getInput('tmdb.apikey')?.value?.trim() || '';
-                // Only update API key if user entered a new value (not empty, not masked placeholder)
-                if (tmdbApiKeyVal && tmdbApiKeyVal !== '••••••••') {
+                // Check if it's a masked value (all bullet points)
+                const isMaskedApiKey = tmdbApiKeyVal && /^[•]+$/.test(tmdbApiKeyVal);
+                // Only update API key if user entered a new value (not empty, not masked)
+                if (tmdbApiKeyVal && !isMaskedApiKey) {
                     tmdb.apiKey = tmdbApiKeyVal;
                 } else {
                     // Omit apiKey so backend preserves existing value (send null to signal "don't change")
