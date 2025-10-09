@@ -12968,17 +12968,42 @@ app.post(
         }
 
         const maskedPattern = /^\*{3,}$/; // e.g., *** or ******
+        const bulletPattern = /^[•]+$/; // e.g., ••••••••••••••
         const sanitizedEnv = { ...newEnv };
+
+        // Log what we received for debugging
+        logger.info('[Admin API] Received env update keys:', Object.keys(sanitizedEnv));
+
         for (const key of sensitiveEnvKeys) {
-            if (!(key in sanitizedEnv)) continue; // not being updated
+            // If key is not being sent at all, skip (writeEnvFile will preserve existing)
+            if (!(key in sanitizedEnv)) {
+                if (process.env[key]) {
+                    logger.info(
+                        `[Admin API] Token key ${key} not in update, will preserve existing value`
+                    );
+                }
+                continue;
+            }
+
             const val = sanitizedEnv[key];
             const str = val == null ? '' : String(val).trim();
-            if (str === '' || maskedPattern.test(str)) {
-                // Drop the key so writeEnvFile preserves existing value
+
+            // If value is empty, masked (***), or bullet points (••••), preserve existing
+            if (str === '' || maskedPattern.test(str) || bulletPattern.test(str)) {
                 if (process.env[key]) {
-                    if (isDebug) logger.debug(`[Admin API] Preserving sensitive env var ${key}`);
-                    delete sanitizedEnv[key];
+                    logger.info(
+                        `[Admin API] Preserving sensitive env var ${key} (received: ${str ? 'masked/empty' : 'empty'})`
+                    );
+                    delete sanitizedEnv[key]; // Remove so writeEnvFile keeps existing
+                } else {
+                    logger.warn(
+                        `[Admin API] Token key ${key} is empty but no existing value to preserve`
+                    );
                 }
+            } else {
+                logger.info(
+                    `[Admin API] Updating sensitive env var ${key} with new value (length: ${str.length})`
+                );
             }
         }
 
