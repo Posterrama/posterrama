@@ -360,13 +360,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (currentIndex < 0 || currentIndex >= mediaQueue.length) return null;
                 const it = mediaQueue[currentIndex];
                 if (!it) return null;
+                // For wallart mode, use backgroundUrl as thumbnail for better visual representation
+                const isWallart = appConfig?.wallartMode?.enabled === true;
+                const thumbUrl = isWallart ? it.backgroundUrl || it.thumbnailUrl : it.thumbnailUrl;
                 return {
                     title: it.title || null,
                     year: it.year || null,
                     rating: it.rating != null ? Number(it.rating) : null,
                     posterUrl: it.posterUrl || null,
                     backgroundUrl: it.backgroundUrl || null,
-                    thumbnailUrl: it.thumbnailUrl || null,
+                    thumbnailUrl: thumbUrl || null,
                     runtime: it.runtimeMs || it.duration || null,
                     genres: it.genres || null,
                     overview: it.overview || it.summary || it.plot || null,
