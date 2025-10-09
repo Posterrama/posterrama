@@ -981,7 +981,13 @@ class LocalDirectorySource {
                     ) {
                         this.events.emit('posterpacks-changed', { path: filePath, kind: 'add' });
                     }
-                } catch (_) {}
+                } catch (e) {
+                    // Emitting events should never crash the watcher; ignore but log for diagnostics
+                    logger.debug(
+                        'LocalDirectorySource: emit on file-added failed (ignored):',
+                        e?.message || e
+                    );
+                }
 
                 // ZIP posterpacks under complete/* are never extracted automatically; they are streamed on demand.
             }
@@ -1017,7 +1023,13 @@ class LocalDirectorySource {
                 ) {
                     this.events.emit('posterpacks-changed', { path: filePath, kind: 'remove' });
                 }
-            } catch (_) {}
+            } catch (e) {
+                // Emitting events should never crash the watcher; ignore but log for diagnostics
+                logger.debug(
+                    'LocalDirectorySource: emit on file-removed failed (ignored):',
+                    e?.message || e
+                );
+            }
         } catch (error) {
             logger.error(`LocalDirectorySource: Error handling removed file ${filePath}:`, error);
         }
@@ -1043,7 +1055,13 @@ class LocalDirectorySource {
                 ) {
                     this.events.emit('posterpacks-changed', { path: filePath, kind: 'change' });
                 }
-            } catch (_) {}
+            } catch (e) {
+                // Emitting events should never crash the watcher; ignore but log for diagnostics
+                logger.debug(
+                    'LocalDirectorySource: emit on file-changed failed (ignored):',
+                    e?.message || e
+                );
+            }
         } catch (error) {
             logger.error(`LocalDirectorySource: Error handling changed file ${filePath}:`, error);
         }

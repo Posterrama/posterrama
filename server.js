@@ -8286,8 +8286,17 @@ app.post('/api/local/upload', (req, res) => {
                     cacheManager.clear('media');
                 }
                 // Fire-and-forget refresh (does its own locking); do not block upload response
-                Promise.resolve(refreshPlaylistCache()).catch(() => {});
-            } catch (_) {}
+                Promise.resolve(refreshPlaylistCache()).catch(err => {
+                    // Non-fatal: background refresh is best-effort after upload
+                    logger.debug(
+                        'refreshPlaylistCache after upload failed (ignored):',
+                        err?.message || err
+                    );
+                });
+            } catch (e) {
+                // Non-fatal: cache nudge after upload failed; upload still considered successful
+                logger.debug('Post-upload cache nudge failed (ignored):', e?.message || e);
+            }
 
             res.json(payload);
         } catch (e) {
@@ -8350,9 +8359,18 @@ app.post(
                     if (cacheManager && typeof cacheManager.clear === 'function') {
                         cacheManager.clear('media');
                     }
-                    Promise.resolve(refreshPlaylistCache()).catch(() => {});
+                    Promise.resolve(refreshPlaylistCache()).catch(err => {
+                        // Non-fatal: background refresh is best-effort after cleanup
+                        logger.debug(
+                            'refreshPlaylistCache after cleanup failed (ignored):',
+                            err?.message || err
+                        );
+                    });
                 }
-            } catch (_) {}
+            } catch (e) {
+                // Non-fatal: cache clear/refresh after cleanup failed
+                logger.debug('Post-cleanup cache nudge failed (ignored):', e?.message || e);
+            }
             res.json({
                 success: true,
                 dryRun: dryRun,
@@ -12356,14 +12374,27 @@ app.post(
                             JSON.stringify(prev.watchDirectories || []) !==
                                 JSON.stringify(localDirectorySource.watchDirectories || []);
                         if (!prev.enabled && localDirectorySource.enabled) {
-                            Promise.resolve(localDirectorySource.initialize()).catch(() => {});
+                            Promise.resolve(localDirectorySource.initialize()).catch(err => {
+                                logger.debug(
+                                    'LocalDirectorySource.initialize failed (ignored):',
+                                    err?.message || err
+                                );
+                            });
                         } else if (rootsChanged && localDirectorySource.enabled) {
                             try {
                                 await localDirectorySource.stopFileWatcher();
-                            } catch (_) {}
-                            Promise.resolve(localDirectorySource.startFileWatcher()).catch(
-                                () => {}
-                            );
+                            } catch (e) {
+                                logger.debug(
+                                    'LocalDirectorySource.stopFileWatcher failed (ignored):',
+                                    e?.message || e
+                                );
+                            }
+                            Promise.resolve(localDirectorySource.startFileWatcher()).catch(err => {
+                                logger.debug(
+                                    'LocalDirectorySource.startFileWatcher failed (ignored):',
+                                    err?.message || err
+                                );
+                            });
                         }
                     } catch (e) {
                         logger.warn('[Admin API] Failed to live-update LocalDirectorySource:', e);
@@ -12374,7 +12405,12 @@ app.post(
                 if (localDirectorySource) {
                     try {
                         await localDirectorySource.stopFileWatcher();
-                    } catch (_) {}
+                    } catch (e) {
+                        logger.debug(
+                            'LocalDirectorySource.stopFileWatcher on disable failed (ignored):',
+                            e?.message || e
+                        );
+                    }
                 }
                 localDirectorySource = null;
                 jobQueue = null;
