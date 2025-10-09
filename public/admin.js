@@ -6994,21 +6994,16 @@
             croppedCanvas.toBlob(callback, 'image/jpeg', 0.9);
         }
 
-        // Restart action under settings (resilient to immediate POST failure)
-        const restartLink = document.getElementById('menu-restart');
-        restartLink?.addEventListener('click', async e => {
-            e.preventDefault();
-            // Immediately close the settings menu and trigger restart on single click
-            try {
-                closeMenu();
-            } catch (_) {}
-            const el = e.currentTarget;
-            el.classList.add('disabled');
-            // Show persistent toast up-front so users get feedback even if POST fails mid-restart
+        // Shared restart helper: triggers server restart and polls /health until it's back
+        async function triggerRestartAndPoll({
+            title = 'Restarting…',
+            message = 'Posterrama is restarting. This may take a few seconds.',
+        } = {}) {
+            // Persistent toast so users get feedback even if POST fails mid-restart
             const t = window.notify?.toast({
                 type: 'info',
-                title: 'Restarting…',
-                message: 'Posterrama is restarting. This may take a few seconds.',
+                title,
+                message,
                 duration: 0,
             });
             // Fire-and-forget the restart request; errors are non-fatal because the server may drop during restart
@@ -7053,6 +7048,25 @@
             };
             // Short delay to allow restart to begin, then poll
             setTimeout(poll, 1500);
+        }
+
+        // Expose to window so save functions in other scopes can use it
+        window.triggerRestartAndPoll = triggerRestartAndPoll;
+
+        // Restart action under settings (resilient to immediate POST failure)
+        const restartLink = document.getElementById('menu-restart');
+        restartLink?.addEventListener('click', async e => {
+            e.preventDefault();
+            // Immediately close the settings menu and trigger restart on single click
+            try {
+                closeMenu();
+            } catch (_) {}
+            const el = e.currentTarget;
+            el.classList.add('disabled');
+            window.triggerRestartAndPoll({
+                title: 'Restarting…',
+                message: 'Posterrama is restarting. This may take a few seconds.',
+            });
             // Keep the control enabled after we initiate restart to allow navigation if needed
             el.classList.remove('disabled');
         });
@@ -13659,6 +13673,22 @@
                 const base = cfgRes.ok ? await cfgRes.json() : {};
                 const currentCfg = base?.config || base || {};
                 const envPatch = {}; // no env changes for toggle
+                // Capture previous enabled state to decide on restart
+                const prev = (() => {
+                    try {
+                        if (sourceKey === 'plex' || sourceKey === 'jellyfin') {
+                            const servers = Array.isArray(currentCfg.mediaServers)
+                                ? currentCfg.mediaServers
+                                : [];
+                            const s = servers.find(x => x?.type === sourceKey) || {};
+                            return !!s.enabled;
+                        }
+                        if (sourceKey === 'tmdb') {
+                            return !!(currentCfg.tmdbSource && currentCfg.tmdbSource.enabled);
+                        }
+                    } catch (_) {}
+                    return undefined;
+                })();
 
                 if (sourceKey === 'plex' || sourceKey === 'jellyfin') {
                     const servers = Array.isArray(currentCfg.mediaServers)
@@ -13681,6 +13711,41 @@
                     message: `${sourceKey.toUpperCase()} ${enabled ? 'enabled' : 'disabled'}`,
                     duration: 1800,
                 });
+                // Sync main form toggle state marker if present
+                try {
+                    const mirrorId =
+                        sourceKey === 'plex'
+                            ? 'plex.enabled'
+                            : sourceKey === 'jellyfin'
+                              ? 'jf.enabled'
+                              : null;
+                    if (mirrorId) {
+                        const m = document.getElementById(mirrorId);
+                        if (m) {
+                            m.checked = !!enabled;
+                            m.dataset.originalEnabled = enabled ? 'true' : 'false';
+                            if (typeof updateSourceSaveButtonLabel === 'function') {
+                                updateSourceSaveButtonLabel(sourceKey);
+                            }
+                        }
+                    }
+                } catch (_) {}
+                // Restart app when toggled on/off (only if state changed where detectable)
+                try {
+                    const shouldRestart = typeof prev === 'boolean' ? prev !== !!enabled : true;
+                    if (shouldRestart) {
+                        window.notify?.toast({
+                            type: 'info',
+                            title: 'Restarting…',
+                            message: 'Applying source changes and restarting.',
+                            duration: 0,
+                        });
+                        await fetch('/api/admin/restart-app', {
+                            method: 'POST',
+                            credentials: 'include',
+                        }).catch(() => {});
+                    }
+                } catch (_) {}
                 return true;
             } catch (e) {
                 window.notify?.toast({
@@ -14590,7 +14655,15 @@
             const plexEnabled = !!plex.enabled;
             // Direct config model: use stored hostname/port directly (legacy *EnvVar removed)
             const plexTokenVar = plex.tokenEnvVar || 'PLEX_TOKEN';
-            getInput('plex.enabled') && (getInput('plex.enabled').checked = plexEnabled);
+            if (getInput('plex.enabled')) {
+                const cb = getInput('plex.enabled');
+                cb.checked = plexEnabled;
+                // Establish baseline so later changes can flip the Save label
+                cb.dataset.originalEnabled = plexEnabled ? 'true' : 'false';
+                try {
+                    updateSourceSaveButtonLabel('plex');
+                } catch (_) {}
+            }
             try {
                 requestAnimationFrame(() => forceUpdateHeaderToggleText('plex.enabled'));
             } catch (_) {}
@@ -14706,7 +14779,13 @@
                 // console.log removed: Loaded jellyfin entry
                 // Populate visible inputs if present
                 const jfEnabledInput = document.getElementById('jf.enabled');
-                if (jfEnabledInput) jfEnabledInput.checked = !!jf.enabled;
+                if (jfEnabledInput) {
+                    jfEnabledInput.checked = !!jf.enabled;
+                    jfEnabledInput.dataset.originalEnabled = jfEnabled ? 'true' : 'false';
+                    try {
+                        updateSourceSaveButtonLabel('jellyfin');
+                    } catch (_) {}
+                }
                 const jfHostInput = document.getElementById('jf.hostname');
                 if (jfHostInput && jf.hostname) jfHostInput.value = jf.hostname;
                 const jfPortInput = document.getElementById('jf.port');
@@ -16861,11 +16940,34 @@
             const btn = document.getElementById('btn-save-plex');
             btn?.classList.add('btn-loading');
             try {
+                // Capture pre-click restart intent as a fallback
+                let preNeedsRestart = false;
+                try {
+                    preNeedsRestart = !!sourceRestartNeeded?.('plex');
+                    if (preNeedsRestart && btn) btn.dataset.restartRequired = 'true';
+                } catch (_) {}
                 const cfgRes = await window.dedupJSON('/api/admin/config', {
                     credentials: 'include',
                 });
                 const base = cfgRes.ok ? await cfgRes.json() : {};
                 const currentCfg = base?.config || base || {};
+                // Determine pre-save enabled state based on persisted config first (source of truth)
+                const plexToggle = getInput('plex.enabled');
+                let originalEnabled;
+                const sCfg = (
+                    Array.isArray(currentCfg.mediaServers) ? currentCfg.mediaServers : []
+                ).find(x => x.type === 'plex');
+                if (sCfg && typeof sCfg.enabled === 'boolean') {
+                    originalEnabled = !!sCfg.enabled;
+                } else {
+                    // Fallback to UI baseline if config parsing failed
+                    originalEnabled =
+                        plexToggle?.dataset?.originalEnabled === 'true'
+                            ? true
+                            : plexToggle?.dataset?.originalEnabled === 'false'
+                              ? false
+                              : undefined;
+                }
                 const servers = Array.isArray(currentCfg.mediaServers)
                     ? [...currentCfg.mediaServers]
                     : [];
@@ -16916,6 +17018,32 @@
                     message: 'Plex settings updated',
                     duration: 2500,
                 });
+                // After saving, if enabled state changed, update marker and restart
+                try {
+                    if (plexToggle) {
+                        plexToggle.dataset.originalEnabled = plex.enabled ? 'true' : 'false';
+                    }
+                    const changed =
+                        typeof originalEnabled === 'boolean'
+                            ? originalEnabled !== !!plex.enabled
+                            : true;
+                    // Also detect by pre-click need or visible label text
+                    const spanText = (btn?.querySelector('span')?.textContent || '').toLowerCase();
+                    const needsRestart =
+                        changed ||
+                        preNeedsRestart ||
+                        btn?.dataset?.restartRequired === 'true' ||
+                        spanText.includes('restart');
+
+                    if (needsRestart) {
+                        const span = btn?.querySelector('span');
+                        if (span) span.textContent = 'Save Settings & Restart';
+                        btn && (btn.dataset.restartRequired = 'true');
+                        await window.triggerRestartAndPoll();
+                    }
+                } catch (e) {
+                    console.error('Plex restart check error:', e);
+                }
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -16942,11 +17070,33 @@
             const btn = document.getElementById('btn-save-jellyfin');
             btn?.classList.add('btn-loading');
             try {
+                // Capture pre-click restart intent as a fallback
+                let preNeedsRestart = false;
+                try {
+                    preNeedsRestart = !!sourceRestartNeeded?.('jellyfin');
+                    if (preNeedsRestart && btn) btn.dataset.restartRequired = 'true';
+                } catch (_) {}
                 const cfgRes = await window.dedupJSON('/api/admin/config', {
                     credentials: 'include',
                 });
                 const base = cfgRes.ok ? await cfgRes.json() : {};
                 const currentCfg = base?.config || base || {};
+                // Determine pre-save enabled state for restart decision
+                const jfToggle = getInput('jf.enabled');
+                let originalEnabled;
+                const sCfg = (
+                    Array.isArray(currentCfg.mediaServers) ? currentCfg.mediaServers : []
+                ).find(x => x.type === 'jellyfin');
+                if (sCfg && typeof sCfg.enabled === 'boolean') {
+                    originalEnabled = !!sCfg.enabled;
+                } else {
+                    originalEnabled =
+                        jfToggle?.dataset?.originalEnabled === 'true'
+                            ? true
+                            : jfToggle?.dataset?.originalEnabled === 'false'
+                              ? false
+                              : undefined;
+                }
                 const servers = Array.isArray(currentCfg.mediaServers)
                     ? [...currentCfg.mediaServers]
                     : [];
@@ -16992,6 +17142,28 @@
                     message: 'Jellyfin settings updated',
                     duration: 2500,
                 });
+                try {
+                    if (jfToggle) jfToggle.dataset.originalEnabled = jf.enabled ? 'true' : 'false';
+                    const changed =
+                        typeof originalEnabled === 'boolean'
+                            ? originalEnabled !== !!jf.enabled
+                            : true;
+                    const spanText = (btn?.querySelector('span')?.textContent || '').toLowerCase();
+                    const needsRestart =
+                        changed ||
+                        preNeedsRestart ||
+                        btn?.dataset?.restartRequired === 'true' ||
+                        spanText.includes('restart');
+
+                    if (needsRestart) {
+                        const span = btn?.querySelector('span');
+                        if (span) span.textContent = 'Save Settings & Restart';
+                        btn && (btn.dataset.restartRequired = 'true');
+                        await window.triggerRestartAndPoll();
+                    }
+                } catch (e) {
+                    console.error('Jellyfin restart check error:', e);
+                }
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -17708,6 +17880,65 @@
             }
         }, 350);
 
+        // --- Save & Restart helpers for source toggles ---
+        function sourceRestartNeeded(sourceKey) {
+            try {
+                const id =
+                    sourceKey === 'plex'
+                        ? 'plex.enabled'
+                        : sourceKey === 'jellyfin'
+                          ? 'jf.enabled'
+                          : sourceKey === 'local'
+                            ? 'localDirectory.enabled'
+                            : null;
+                if (!id) return false;
+                const el = document.getElementById(id);
+                if (!el) return false;
+                // If original baseline is not known yet, do not infer or mutate it here.
+                // We prefer to avoid false negatives caused by accidentally setting the baseline to the new value.
+                if (el.dataset.originalEnabled == null) return false;
+                const orig = el.dataset.originalEnabled === 'true';
+                const curr = !!el.checked;
+                return orig !== curr;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function updateSourceSaveButtonLabel(sourceKey) {
+            const map = {
+                plex: 'btn-save-plex',
+                jellyfin: 'btn-save-jellyfin',
+                local: 'btn-save-local',
+            };
+            const btnId = map[sourceKey];
+            if (!btnId) return;
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            const span = btn.querySelector('span');
+            const needs = sourceRestartNeeded(sourceKey);
+            if (span) span.textContent = needs ? 'Save Settings & Restart' : 'Save Settings';
+            btn.dataset.restartRequired = needs ? 'true' : 'false';
+        }
+
+        function wireSourceRestartLabel(sourceKey) {
+            const id =
+                sourceKey === 'plex'
+                    ? 'plex.enabled'
+                    : sourceKey === 'jellyfin'
+                      ? 'jf.enabled'
+                      : sourceKey === 'local'
+                        ? 'localDirectory.enabled'
+                        : null;
+            if (!id) return;
+            const el = document.getElementById(id);
+            if (!el || el.dataset.restartWired === 'true') return;
+            el.addEventListener('change', () => updateSourceSaveButtonLabel(sourceKey));
+            el.dataset.restartWired = 'true';
+            // Initialize label once only if original baseline is known
+            if (el.dataset.originalEnabled != null) updateSourceSaveButtonLabel(sourceKey);
+        }
+
         // Attach listeners
         ['plex.enabled', 'plex.hostname', 'plex.port'].forEach(id => {
             const el = document.getElementById(id);
@@ -17717,6 +17948,8 @@
                 el.addEventListener('input', autoFetchPlexIfReady);
             }
         });
+        // Keep Plex Save label in sync when enabling/disabling
+        wireSourceRestartLabel('plex');
         ['jf.enabled', 'jf.hostname', 'jf.port'].forEach(id => {
             const el = document.getElementById(id);
             el?.addEventListener('change', autoFetchJfIfReady);
@@ -17724,10 +17957,29 @@
                 el.addEventListener('input', autoFetchJfIfReady);
             }
         });
+        // Keep Jellyfin Save label in sync when enabling/disabling
+        wireSourceRestartLabel('jellyfin');
+
+        // Initialize Local baseline early so first toggle updates the label instantly
+        (function initLocalRestartLabelEarly() {
+            try {
+                const el = document.getElementById('localDirectory.enabled');
+                if (!el) return;
+                if (el.dataset.originalEnabled == null) {
+                    el.dataset.originalEnabled = el.checked ? 'true' : 'false';
+                }
+                wireSourceRestartLabel('local');
+                // If baseline exists, reflect button label
+                try {
+                    updateSourceSaveButtonLabel('local');
+                } catch (_) {}
+            } catch (_) {}
+        })();
 
         document.getElementById('btn-save-plex')?.addEventListener('click', savePlex);
         document.getElementById('btn-save-jellyfin')?.addEventListener('click', saveJellyfin);
         document.getElementById('btn-save-tmdb')?.addEventListener('click', saveTMDB);
+        console.log('=== SAVE BUTTONS BOUND ===');
         // No extra handlers needed here; dependent refresh is driven by fetchPlexLibraries(true)
 
         // Initial population
@@ -17876,21 +18128,10 @@
 
                 const needsRestart = btn.dataset.restartRequired === 'true' || opsRestartNeeded();
                 if (needsRestart) {
-                    // Immediately trigger restart
-                    window.notify?.toast({
-                        type: 'info',
+                    await triggerRestartAndPoll({
                         title: 'Restarting…',
                         message: 'Port changed. Applying changes and restarting.',
-                        duration: 0,
                     });
-                    try {
-                        await fetch('/api/admin/restart-app', {
-                            method: 'POST',
-                            credentials: 'include',
-                        });
-                    } catch (_) {
-                        // Non-fatal: server may restart before responding
-                    }
                 } else {
                     window.notify?.toast({
                         type: 'success',
@@ -21139,7 +21380,26 @@ if (!document.__niwDelegatedFallback) {
                     }
 
                     const enabledInput = document.getElementById('localDirectory.enabled');
-                    if (enabledInput) enabledInput.checked = cfg.enabled || false;
+                    if (enabledInput) {
+                        enabledInput.checked = cfg.enabled || false;
+                        // Store original enabled state for Save & Restart logic
+                        enabledInput.dataset.originalEnabled = enabledInput.checked
+                            ? 'true'
+                            : 'false';
+                        // Ensure label reflects clean state
+                        try {
+                            updateSourceSaveButtonLabel('local');
+                        } catch (_) {}
+                        // Wire label updater once
+                        try {
+                            if (enabledInput && enabledInput.dataset.restartWired !== 'true') {
+                                enabledInput.addEventListener('change', () =>
+                                    updateSourceSaveButtonLabel('local')
+                                );
+                                enabledInput.dataset.restartWired = 'true';
+                            }
+                        } catch (_) {}
+                    }
 
                     // Update status pill (match Plex/Jellyfin styling)
                     const statusPill = document.getElementById('local-status-pill-header');
@@ -21212,10 +21472,59 @@ if (!document.__niwDelegatedFallback) {
             return;
         }
 
+        const enabledInput = document.getElementById('localDirectory.enabled');
+        // Prefer persisted config for baseline; fallback to dataset only if config is unavailable
+        let originalEnabled;
+        try {
+            const cfgRes = await window.dedupJSON('/api/admin/config', {
+                credentials: 'include',
+            });
+            const base = cfgRes.ok ? await cfgRes.json() : {};
+            const currentCfg = base?.config || base || {};
+            if (
+                currentCfg &&
+                currentCfg.localDirectory &&
+                typeof currentCfg.localDirectory.enabled === 'boolean'
+            ) {
+                originalEnabled = !!currentCfg.localDirectory.enabled;
+            } else {
+                originalEnabled =
+                    enabledInput?.dataset?.originalEnabled === 'true'
+                        ? true
+                        : enabledInput?.dataset?.originalEnabled === 'false'
+                          ? false
+                          : undefined;
+            }
+        } catch (_) {
+            originalEnabled =
+                enabledInput?.dataset?.originalEnabled === 'true'
+                    ? true
+                    : enabledInput?.dataset?.originalEnabled === 'false'
+                      ? false
+                      : undefined;
+        }
         try {
             await saveHelper(config, {});
             showNotification('Local directory settings saved', 'success');
             loadLocalDirectoryConfig();
+            // Restart if enabled state changed
+            try {
+                const currEnabled = !!config.localDirectory.enabled;
+                const changed =
+                    typeof originalEnabled === 'boolean' ? originalEnabled !== currEnabled : true; // if unknown, treat as changed to ensure restart
+                const needsRestart = changed || saveBtn?.dataset?.restartRequired === 'true';
+
+                if (enabledInput)
+                    enabledInput.dataset.originalEnabled = currEnabled ? 'true' : 'false';
+                if (needsRestart) {
+                    const span = saveBtn?.querySelector('span');
+                    if (span) span.textContent = 'Save Settings & Restart';
+                    saveBtn && (saveBtn.dataset.restartRequired = 'true');
+                    await window.triggerRestartAndPoll();
+                }
+            } catch (e) {
+                console.error('Local restart check error:', e);
+            }
         } catch (error) {
             console.error('Save error:', error);
             showNotification(error?.message || 'Save failed', 'error');
