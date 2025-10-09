@@ -13972,9 +13972,11 @@
                     const port =
                         document.getElementById('plex.port')?.value?.trim() ||
                         document.getElementById('plex_port')?.value?.trim();
-                    const token =
-                        document.getElementById('plex.token')?.value?.trim() ||
-                        document.getElementById('plex_token')?.value?.trim();
+                    // Get token from dataset first (actual token), fallback to input value
+                    const tokenInput =
+                        document.getElementById('plex.token') ||
+                        document.getElementById('plex_token');
+                    const token = tokenInput?.dataset?.actualToken || tokenInput?.value?.trim();
                     res = await fetch('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -13988,7 +13990,9 @@
                 } else if (kind === 'jf') {
                     const hostname = document.getElementById('jf.hostname')?.value?.trim();
                     const port = document.getElementById('jf.port')?.value?.trim();
-                    let apiKey = document.getElementById('jf.apikey')?.value?.trim();
+                    // Get API key from dataset first (actual key), fallback to input value
+                    const apiKeyInput = document.getElementById('jf.apikey');
+                    let apiKey = apiKeyInput?.dataset?.actualToken || apiKeyInput?.value?.trim();
                     if (!apiKey) {
                         try {
                             const cfgRes = await window.dedupJSON('/api/admin/config', {
@@ -15750,10 +15754,11 @@
                         getInput('plex.port')?.value ||
                         document.getElementById('plex_port')?.value ||
                         undefined;
+                    // Get token from dataset first (actual token), fallback to input value
+                    const tokenInput =
+                        getInput('plex.token') || document.getElementById('plex_token');
                     const token =
-                        getInput('plex.token')?.value ||
-                        document.getElementById('plex_token')?.value ||
-                        undefined;
+                        tokenInput?.dataset?.actualToken || tokenInput?.value || undefined;
                     const res = await fetch('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -16040,7 +16045,9 @@
                 // Prefer test endpoint if user provided connection params
                 const hostname = getInput('plex.hostname')?.value;
                 const port = getInput('plex.port')?.value;
-                const token = getInput('plex.token')?.value;
+                // Get token from dataset first (actual token), fallback to input value
+                const tokenInput = getInput('plex.token') || document.getElementById('plex_token');
+                const token = tokenInput?.dataset?.actualToken || tokenInput?.value;
                 let res;
                 if (hostname && port) {
                     res = await window.dedupJSON('/api/admin/plex-genres-with-counts-test', {
@@ -16248,7 +16255,10 @@
                     // debug removed: Jellyfin fetch start
                     const hostname = getInput('jf.hostname')?.value || undefined;
                     const port = getInput('jf.port')?.value || undefined;
-                    const apiKey = getInput('jf.apikey')?.value || undefined;
+                    // Get API key from dataset first (actual key), fallback to input value
+                    const apiKeyInput = getInput('jf.apikey');
+                    const apiKey =
+                        apiKeyInput?.dataset?.actualToken || apiKeyInput?.value || undefined;
                     const insecureHttps = !!(
                         document.getElementById('jf.insecureHttps')?.checked ||
                         document.getElementById('jf.insecureHttpsHeader')?.checked
@@ -16693,7 +16703,9 @@
             try {
                 const hostname = getInput('jf.hostname')?.value;
                 const port = getInput('jf.port')?.value;
-                const apiKey = getInput('jf.apikey')?.value;
+                // Get API key from dataset first (actual key), fallback to input value
+                const apiKeyInput = getInput('jf.apikey');
+                const apiKey = apiKeyInput?.dataset?.actualToken || apiKeyInput?.value;
                 const movieLibraries = getMultiSelectValues('jf.movies');
                 const showLibraries = getMultiSelectValues('jf.shows');
                 // If no libraries are selected yet, don't call the API (it requires at least one)
