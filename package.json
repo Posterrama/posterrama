@@ -38,6 +38,7 @@
         "test:quick-regression": "npm run test:regression:contracts && npm run health",
         "test:full-regression": "npm run test:regression:contracts && npm run test:regression:config && npm run test:regression:external",
         "test:pre-deployment": "./scripts/pre-deployment-regression.sh",
+        "test:cleanup": "./scripts/cleanup-test-artifacts.sh",
         "coverage:table": "node scripts/generate-coverage-table.js",
         "badges:update": "node scripts/update-badges.js",
         "lint": "eslint .",

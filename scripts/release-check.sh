@@ -459,6 +459,11 @@ main() {
     final_checks
     collect_badge_info
     
+    # Cleanup test artifacts
+    print_status "Cleaning up test artifacts..."
+    rm -f devices.broadcast.*.json 2>/dev/null || true
+    print_success "Test artifacts cleaned"
+    
     echo ""
     echo "=================================================================="
     echo -e "${GREEN}🎉 VOLLEDIGE AUTOMATISERING SUCCESVOL VOLTOOID!${NC}"

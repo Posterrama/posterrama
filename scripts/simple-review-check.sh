@@ -5,6 +5,9 @@ echo "🔍 Pre-Review Checklist"
 echo "======================="
 echo ""
 
+# Cleanup test artifacts first
+rm -f devices.broadcast.*.json 2>/dev/null || true
+
 # Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'

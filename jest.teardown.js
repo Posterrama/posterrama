@@ -43,6 +43,14 @@ module.exports = async () => {
                     // ignore unlink failures
                 }
             }
+            // Clean up device broadcast test files
+            if (name.startsWith('devices.broadcast.') && name.endsWith('.json')) {
+                try {
+                    fs.unlinkSync(path.join(root, name));
+                } catch (_) {
+                    // ignore unlink failures
+                }
+            }
         }
     } catch (_) {
         // ignore cleanup errors
