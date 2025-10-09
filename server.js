@@ -564,6 +564,40 @@ if (config.localDirectory && config.localDirectory.enabled) {
         // Non-fatal: event wiring issues should not break server startup
     }
 
+    // Wire LocalDirectorySource events to a debounced playlist refresh so new assets show without restart
+    try {
+        const debounce = (fn, wait) => {
+            let t = null;
+            return (...args) => {
+                if (t) clearTimeout(t);
+                t = setTimeout(() => fn(...args), wait);
+            };
+        };
+        const refreshAfterLocalChange = async why => {
+            try {
+                if (cacheManager && typeof cacheManager.clear === 'function') {
+                    cacheManager.clear('media');
+                }
+                await refreshPlaylistCache();
+                logger.info('[Local Directory] Playlist refreshed after change', { reason: why });
+            } catch (e) {
+                logger.warn('[Local Directory] Auto-refresh after change failed', {
+                    reason: why,
+                    error: e?.message,
+                });
+            }
+        };
+        const debouncedRefresh = debounce(refreshAfterLocalChange, 750);
+        if (localDirectorySource?.events?.on) {
+            localDirectorySource.events.on('media-changed', ev => debouncedRefresh(ev?.kind));
+            localDirectorySource.events.on('posterpacks-changed', ev =>
+                debouncedRefresh(`posterpack:${ev?.kind || 'changed'}`)
+            );
+        }
+    } catch (_) {
+        // non-fatal
+    }
+
     // Initialize local directory source (create folders, start watcher)
     try {
         // Fire and forget; errors are handled inside initialize()
@@ -8199,7 +8233,7 @@ app.post('/api/local/upload', (req, res) => {
                 `Upload completed: ${uploadedFiles.length} files to ${targetDirectory} (${targetPath})`
             );
 
-            res.json({
+            const payload = {
                 success: true,
                 uploadedFiles: uploadedFiles.map(file => ({
                     filename: file.filename,
@@ -8209,7 +8243,18 @@ app.post('/api/local/upload', (req, res) => {
                 })),
                 targetDirectory,
                 targetPath,
-            });
+            };
+
+            // Nudge playlist/media cache so UI pills and screensaver pick up new files immediately
+            try {
+                if (cacheManager && typeof cacheManager.clear === 'function') {
+                    cacheManager.clear('media');
+                }
+                // Fire-and-forget refresh (does its own locking); do not block upload response
+                Promise.resolve(refreshPlaylistCache()).catch(() => {});
+            } catch (_) {}
+
+            res.json(payload);
         } catch (e) {
             logger.error('Upload post-processing error:', e);
             res.status(500).json({ success: false, error: 'Upload processing failed' });
@@ -8264,6 +8309,15 @@ app.post(
 
         try {
             const results = await localDirectorySource.cleanupDirectory(operations, dryRun);
+            // After destructive operations, refresh playlist/media cache so UI reflects current state
+            try {
+                if (!dryRun) {
+                    if (cacheManager && typeof cacheManager.clear === 'function') {
+                        cacheManager.clear('media');
+                    }
+                    Promise.resolve(refreshPlaylistCache()).catch(() => {});
+                }
+            } catch (_) {}
             res.json({
                 success: true,
                 dryRun: dryRun,
@@ -12948,6 +13002,31 @@ app.post(
 );
 
 // Fallback: return unique Jellyfin genres across all libraries of the configured server
+/**
+ * @swagger
+ * /api/admin/jellyfin-genres-all:
+ *   get:
+ *     summary: Get Jellyfin genres across all libraries
+ *     description: >
+ *       Returns a de-duplicated, sorted list of all Jellyfin genres across all configured and
+ *       enabled Jellyfin libraries. This serves as a lightweight fallback when per-library counts
+ *       are unavailable. Requires admin authentication.
+ *     tags: ['Admin']
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved genres
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 genres:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       401:
+ *         description: Authentication required
+ */
 app.get(
     '/api/admin/jellyfin-genres-all',
     isAuthenticated,
@@ -15593,7 +15672,11 @@ app.get('/api/admin/logs', isAuthenticated, (req, res) => {
     const parsedOffset = parseInt(offset) || 0;
     const testOnlyMode = testOnly === 'true';
 
-    res.json(logger.getRecentLogs(level, parsedLimit, parsedOffset, testOnlyMode));
+    // Base logger returns chronological (oldest->newest) for the selected window.
+    // For the admin UI, we want newest-first so latest entries appear at the top.
+    const chronological = logger.getRecentLogs(level, parsedLimit, parsedOffset, testOnlyMode);
+    const newestFirst = chronological.slice().reverse();
+    res.json(newestFirst);
 });
 
 /**

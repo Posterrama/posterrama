@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs-extra');
 const chokidar = require('chokidar');
+const { EventEmitter } = require('events');
 const mimeTypes = require('mime-types');
 const FileType = require('file-type');
 const AdmZip = require('adm-zip');
@@ -39,6 +40,11 @@ class LocalDirectorySource {
 
         // File system watcher
         this.watcher = null;
+
+        // Lightweight event hub for server integration (playlist refresh, UI updates)
+        // Consumers can subscribe to: 'media-changed', 'posterpacks-changed', 'file-added',
+        // 'file-removed', 'file-changed'
+        this.events = new EventEmitter();
 
         // In-memory cache for file metadata
         this.indexCache = new Map();
@@ -963,8 +969,21 @@ class LocalDirectorySource {
                 // Clear cache for this file
                 this.indexCache.delete(filePath);
                 logger.info(`LocalDirectorySource: New file detected: ${filePath}`);
+                // Notify listeners so the server can refresh playlist/UI promptly
+                try {
+                    this.events.emit('file-added', { path: filePath });
+                    this.events.emit('media-changed', { path: filePath, kind: 'add' });
+                    // Special signal when a ZIP appears under complete/* (manual or exports)
+                    const isZip = /\.zip$/i.test(filePath);
+                    if (
+                        isZip &&
+                        (this.isInCompleteExport(filePath) || this.isInManualPosterpack(filePath))
+                    ) {
+                        this.events.emit('posterpacks-changed', { path: filePath, kind: 'add' });
+                    }
+                } catch (_) {}
 
-                // ZIP posterpacks under complete/manual are not extracted automatically.
+                // ZIP posterpacks under complete/* are never extracted automatically; they are streamed on demand.
             }
         } catch (error) {
             logger.error(`LocalDirectorySource: Error handling added file ${filePath}:`, error);
@@ -986,8 +1005,19 @@ class LocalDirectorySource {
                 await fs.remove(metadataPath);
                 logger.debug(`LocalDirectorySource: Removed metadata file: ${metadataPath}`);
             }
-
             logger.info(`LocalDirectorySource: File removed: ${filePath}`);
+            // Notify listeners so the server can refresh playlist/UI promptly
+            try {
+                this.events.emit('file-removed', { path: filePath });
+                this.events.emit('media-changed', { path: filePath, kind: 'remove' });
+                const wasZip = /\.zip$/i.test(filePath);
+                if (
+                    wasZip &&
+                    (this.isInCompleteExport(filePath) || this.isInManualPosterpack(filePath))
+                ) {
+                    this.events.emit('posterpacks-changed', { path: filePath, kind: 'remove' });
+                }
+            } catch (_) {}
         } catch (error) {
             logger.error(`LocalDirectorySource: Error handling removed file ${filePath}:`, error);
         }
@@ -1002,6 +1032,18 @@ class LocalDirectorySource {
             // Clear cache for this file to force reload
             this.indexCache.delete(filePath);
             logger.debug(`LocalDirectorySource: File changed, cache cleared: ${filePath}`);
+            // Notify listeners so the server can refresh playlist/UI promptly
+            try {
+                this.events.emit('file-changed', { path: filePath });
+                this.events.emit('media-changed', { path: filePath, kind: 'change' });
+                const isZip = /\.zip$/i.test(filePath);
+                if (
+                    isZip &&
+                    (this.isInCompleteExport(filePath) || this.isInManualPosterpack(filePath))
+                ) {
+                    this.events.emit('posterpacks-changed', { path: filePath, kind: 'change' });
+                }
+            } catch (_) {}
         } catch (error) {
             logger.error(`LocalDirectorySource: Error handling changed file ${filePath}:`, error);
         }

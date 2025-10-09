@@ -238,7 +238,7 @@ logger.debug = (...args) => logger.log('debug', ...args);
  *  - Logs are stored oldest -> newest in logger.memoryLogs.
  *  - This function selects from the end (newest) applying offset & limit, but
  *    returns the slice in chronological order (oldest -> newest within the window)
- *    so UI components can append naturally.
+ *    so consumers can append naturally when paginating.
  * Filtering semantics:
  *  - level (optional): case-insensitive log level threshold. Using ERROR returns only ERROR,
  *    WARN returns WARN+ERROR, INFO returns INFO+WARN+ERROR, etc. Unknown level -> no filtering.
@@ -288,7 +288,7 @@ function computeRecentLogs(sourceLogs, level = null, limit = 500, offset = 0, te
     const sliceEndExclusive = total - offset; // exclude offset items from newest end
     const sliceStart = Math.max(0, sliceEndExclusive - limit);
     const slice = logs.slice(sliceStart, sliceEndExclusive);
-    return slice; // already chronological (oldest→newest within requested window)
+    return slice; // chronological (oldest→newest within requested window)
 }
 
 baseLogger.getRecentLogs = (level = null, limit = 500, offset = 0, testOnly = false) => {
