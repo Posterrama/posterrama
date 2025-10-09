@@ -8653,6 +8653,7 @@ app.get(
             const results = [];
             const maxResults = 100; // Limit results to prevent overwhelming the UI
 
+            // eslint-disable-next-line no-inner-declarations
             async function searchRecursive(dir, relativePath = '') {
                 if (results.length >= maxResults) return;
 
@@ -16704,12 +16705,16 @@ app.post('/api/admin/sse-test', isAuthenticated, (req, res) => {
             if (typeof global.__adminSSEBroadcast === 'function') {
                 global.__adminSSEBroadcast('device-updated', payload);
             }
-        } catch (_) {}
+        } catch (_) {
+            // Ignore broadcast errors
+        }
         try {
             if (typeof broadcastAdminEvent === 'function') {
                 broadcastAdminEvent('device-updated', payload);
             }
-        } catch (_) {}
+        } catch (_) {
+            // Ignore broadcast errors
+        }
         sseDbg?.('device-updated broadcast (manual test)', { id: payload.id });
         res.json({ ok: true });
     } catch (e) {

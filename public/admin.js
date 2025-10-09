@@ -4858,7 +4858,7 @@
                     const attachDeviceListeners = () => {
                         const s = window.__adminSSE;
                         if (!s) return;
-                        const onNudge = async evtName => {
+                        const onNudge = async _evtName => {
                             try {
                                 const sec = document.getElementById('section-devices');
                                 if (!sec || !sec.classList.contains('active')) return;
@@ -4880,10 +4880,10 @@
                         // Store on the instance so we can remove on reconnect
                         s.__onDeviceNudge = onNudge;
                         try {
-                            s.addEventListener('device-updated', e => onNudge('device-updated'));
+                            s.addEventListener('device-updated', () => onNudge('device-updated'));
                         } catch (_) {}
                         try {
-                            s.addEventListener('device-ws', e => onNudge('device-ws'));
+                            s.addEventListener('device-ws', () => onNudge('device-ws'));
                         } catch (_) {}
                     };
                     const detachDeviceListeners = () => {
@@ -18416,6 +18416,7 @@
 
                 const needsRestart = btn.dataset.restartRequired === 'true' || opsRestartNeeded();
                 if (needsRestart) {
+                    // eslint-disable-next-line no-undef
                     await triggerRestartAndPoll({
                         title: 'Restarting…',
                         message: 'Port changed. Applying changes and restarting.',
@@ -19335,6 +19336,7 @@ if (!document.__niwDelegatedFallback) {
     let currentPath = '/';
     let currentRelativePath = ''; // Relative path from rootPath for API calls
     let isSearchMode = false;
+    // eslint-disable-next-line no-unused-vars
     let currentSearchQuery = '';
     const selectedFiles = new Set();
 
@@ -21889,12 +21891,14 @@ if (!document.__niwDelegatedFallback) {
                             : 'false';
                         // Ensure label reflects clean state
                         try {
+                            // eslint-disable-next-line no-undef
                             updateSourceSaveButtonLabel('local');
                         } catch (_) {}
                         // Wire label updater once
                         try {
                             if (enabledInput && enabledInput.dataset.restartWired !== 'true') {
                                 enabledInput.addEventListener('change', () =>
+                                    // eslint-disable-next-line no-undef
                                     updateSourceSaveButtonLabel('local')
                                 );
                                 enabledInput.dataset.restartWired = 'true';
