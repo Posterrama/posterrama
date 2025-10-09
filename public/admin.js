@@ -1893,6 +1893,15 @@
             }
         }
     };
+    // Focused devices debug helper (uses same debug flag)
+    const ddbg = (...args) => {
+        if (!__debugOn) return;
+        try {
+            console.debug('[devices]', ...args);
+        } catch (_) {
+            /* silent */
+        }
+    };
 
     // Authoritative nav activation logic (idempotent + microtask re-assert)
     function ensureNavActive(sectionId) {
