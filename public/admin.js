@@ -4882,11 +4882,13 @@
                         } catch (_) {}
                     };
                     // Attach now
+                    ddbg('SSE attach device listeners');
                     attachDeviceListeners();
                     // Re-attach on SSE reconnect by polling for handle changes
                     let lastSse = window.__adminSSE;
                     setInterval(() => {
                         if (window.__adminSSE !== lastSse) {
+                            ddbg('SSE handle changed → reattach');
                             detachDeviceListeners();
                             lastSse = window.__adminSSE;
                             attachDeviceListeners();
@@ -11467,6 +11469,7 @@
             }
             async function reconcileDeviceToolbarStatesOnce(listOverride) {
                 try {
+                    const t0 = performance.now?.() || Date.now();
                     const list =
                         Array.isArray(listOverride) && listOverride.length >= 0
                             ? listOverride
@@ -11757,6 +11760,8 @@
                             }
                         }
                     } catch (_) {}
+                    const t1 = performance.now?.() || Date.now();
+                    ddbg('reconcileDeviceToolbarStatesOnce duration', Math.round(t1 - t0) + 'ms');
                 } catch (_) {
                     /* ignore transient errors */
                 }

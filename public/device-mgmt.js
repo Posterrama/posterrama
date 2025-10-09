@@ -390,6 +390,15 @@
             thumbnailUrl: curr && curr.thumbnailUrl,
         };
         try {
+            // Lightweight debug to help diagnose admin-device sync issues
+            try {
+                liveDbg('[Live] heartbeat payload', {
+                    mediaId,
+                    title: curr && curr.title,
+                    paused: payload.paused,
+                    hasThumb: !!(payload.thumbnailUrl || payload.posterUrl),
+                });
+            } catch (_) {}
             const res = await fetch('/api/devices/heartbeat', {
                 method: 'POST',
                 headers: {

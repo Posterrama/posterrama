@@ -64,6 +64,9 @@ function registerConnection(ws, deviceId) {
                 timestamp: Date.now(),
             });
         }
+        if (process.env.DEBUG_DEVICE_SSE === 'true') {
+            logger.debug('[SSE] device-ws connect', { deviceId });
+        }
     } catch (_) {
         /* ignore */
     }
@@ -109,6 +112,9 @@ function unregister(ws) {
                     wsConnected: false,
                     timestamp: Date.now(),
                 });
+            }
+            if (process.env.DEBUG_DEVICE_SSE === 'true') {
+                logger.debug('[SSE] device-ws disconnect', { deviceId });
             }
         } catch (_) {
             /* ignore */

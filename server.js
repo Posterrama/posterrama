@@ -301,6 +301,16 @@ const { deviceBypassMiddleware } = require('./middleware/deviceBypass');
 const JobQueue = require('./utils/job-queue');
 const { createUploadMiddleware } = require('./middleware/fileUpload');
 
+// Dev debug helper for SSE/device events (enable with DEBUG_DEVICE_SSE=true)
+function sseDbg() {
+    try {
+        if (process.env.DEBUG_DEVICE_SSE !== 'true') return;
+        logger.debug.apply(logger, ['[SSE]', ...arguments]);
+    } catch (_) {
+        /* ignore */
+    }
+}
+
 // Use process.env with a fallback to config.json
 const port = process.env.SERVER_PORT || config.serverPort || 4000;
 const isDebug = process.env.DEBUG === 'true';
@@ -3541,6 +3551,12 @@ if (isDeviceMgmtEnabled()) {
                 if (typeof global.__adminSSEBroadcast === 'function') {
                     global.__adminSSEBroadcast('device-updated', payload);
                 }
+                sseDbg('device-updated broadcast', {
+                    id: deviceId,
+                    hasThumb: !!currentState.thumbnailUrl,
+                    hasPoster: !!currentState.posterUrl,
+                    hasBg: !!currentState.backgroundUrl,
+                });
             } catch (_) {
                 /* best-effort SSE push */
             }
