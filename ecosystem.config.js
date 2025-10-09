@@ -49,11 +49,12 @@ module.exports = {
             env: {
                 NODE_ENV: 'production',
                 APP_VERSION: pkg.version,
+                NODE_OPTIONS: '--max-old-space-size=8192', // 8GB heap limit
                 ...loadEnvFile(), // Always load fresh .env values
             },
             // Force environment update on restart
             restart_delay: 1000,
-            max_memory_restart: '512M',
+            max_memory_restart: '8192M', // Restart if memory exceeds 8GB
         },
     ],
 };
