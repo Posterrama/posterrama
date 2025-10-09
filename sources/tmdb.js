@@ -843,6 +843,7 @@ class TMDBSource {
                 ? `${this.imageBaseUrl}original${item.backdrop_path}`
                 : null,
             posterUrl: item.poster_path ? `${this.imageBaseUrl}w500${item.poster_path}` : null,
+            thumbnailUrl: item.poster_path ? `${this.imageBaseUrl}w500${item.poster_path}` : null,
             clearLogoUrl: null, // TMDB doesn't provide clear logos
             tagline: item.overview || '',
             rating: item.vote_average || 0,

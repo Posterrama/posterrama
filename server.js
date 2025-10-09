@@ -5465,6 +5465,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             title: sourceItem.title,
             backgroundUrl: `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(backgroundArt)}`,
             posterUrl: `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(sourceItem.thumb)}`,
+            thumbnailUrl: `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(sourceItem.thumb)}`,
             clearLogoUrl: clearLogoPath
                 ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(clearLogoPath)}`
                 : null,
@@ -6364,6 +6365,7 @@ function processJellyfinItem(item, serverConfig, client) {
             type: mediaType,
             year: item.ProductionYear || null,
             posterUrl: posterUrl,
+            thumbnailUrl: posterUrl,
             backgroundUrl: backdropUrl, // Use backgroundUrl for consistency with Plex
             clearLogoUrl: clearLogoUrl, // Add clear logo support
             poster: posterUrl, // Keep legacy property for backward compatibility
