@@ -7,9 +7,9 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 <div align="center">
 
 <p style="margin: 0; line-height: 1.1;">
-  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.7.0-blue.svg"></a>
+  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.7.5-blue.svg"></a>
   <a href="https://github.com/Posterrama/posterrama/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Posterrama/posterrama/total.svg"></a>
-  <a href="./coverage/lcov-report/index.html"><img alt="Coverage" src="https://img.shields.io/badge/coverage-93.52%25-brightgreen.svg"></a>
+  <a href="./coverage/lcov-report/index.html"><img alt="Coverage" src="https://img.shields.io/badge/coverage-93.58%25-brightgreen.svg"></a>
   <a href="https://nodejs.org/"><img alt="Node.js" src="https://img.shields.io/badge/node.js-%E2%89%A518.0.0-blue"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue"></a>
 </p>
@@ -215,8 +215,6 @@ And that's just the beginning — much more is on the way.
 
 - Posterrama automatically uses up to 8GB heap memory for large libraries
 - Image caching reduces bandwidth after initial load
-- Core dumps are disabled to prevent unnecessary disk usage
-- PM2 auto-restarts on crashes for high availability
 
 ## Get started
 
