@@ -50,7 +50,7 @@ router.get('/api/test/generate-logs', (req, res) => {
     res.json({
         success: true,
         count,
-        message: `Generated ${count} test log entries with TEST-LOG marker`,
+        message: `Generated ${count} test logs with TEST-LOG marker`,
     });
 });
 
