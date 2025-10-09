@@ -4860,21 +4860,36 @@
                     const attachDeviceListeners = () => {
                         const s = window.__adminSSE;
                         if (!s) return;
-                        const onNudge = async () => {
+                        const onNudge = async evtName => {
                             try {
+                                // Debug: surface which SSE event triggered the reconcile
+                                try {
+                                    ddbg('SSE device event → nudge', evtName || '(unknown)');
+                                } catch (_) {}
                                 const sec = document.getElementById('section-devices');
                                 if (!sec || !sec.classList.contains('active')) return;
+                                const t0 = performance.now();
                                 const list = await fetchJSON('/api/devices').catch(() => null);
-                                if (Array.isArray(list)) window.admin2?.reconcileDevicesNow?.(list);
+                                if (Array.isArray(list)) {
+                                    window.admin2?.reconcileDevicesNow?.(list);
+                                    try {
+                                        const dt = Math.round(performance.now() - t0);
+                                        ddbg(
+                                            'reconcileDeviceToolbarStatesOnce duration',
+                                            dt + 'ms',
+                                            `(${list.length} devices)`
+                                        );
+                                    } catch (_) {}
+                                }
                             } catch (_) {}
                         };
                         // Store on the instance so we can remove on reconnect
                         s.__onDeviceNudge = onNudge;
                         try {
-                            s.addEventListener('device-updated', onNudge);
+                            s.addEventListener('device-updated', e => onNudge('device-updated'));
                         } catch (_) {}
                         try {
-                            s.addEventListener('device-ws', onNudge);
+                            s.addEventListener('device-ws', e => onNudge('device-ws'));
                         } catch (_) {}
                     };
                     const detachDeviceListeners = () => {

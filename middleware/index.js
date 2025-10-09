@@ -45,7 +45,19 @@ function securityMiddleware() {
 function compressionMiddleware() {
     return (req, res, next) => {
         // Skip compression for specific problematic endpoints
+        // 1) Media endpoints stream a lot and benefit little from compression
         if (req.path === '/get-media' || req.path.includes('get-media')) {
+            return next();
+        }
+
+        // 2) NEVER compress Server‑Sent Events (SSE) — compression buffers small chunks and
+        //    prevents immediate delivery, breaking EventSource open/heartbeat behavior.
+        //    Detect by path or Accept header, since Content-Type is set later in the route.
+        const accept = req.headers['accept'] || '';
+        if (
+            req.path === '/api/admin/events' ||
+            (typeof accept === 'string' && accept.includes('text/event-stream'))
+        ) {
             return next();
         }
 
@@ -62,6 +74,15 @@ function compressionMiddleware() {
                     req.url.endsWith('.webp')
                 ) {
                     return false;
+                }
+                // Also skip compression for SSE based on Content-Type when available
+                try {
+                    const ct = res.getHeader('Content-Type');
+                    if (typeof ct === 'string' && ct.includes('text/event-stream')) {
+                        return false;
+                    }
+                } catch (_) {
+                    /* ignore */
                 }
                 return compression.filter(req, res);
             },

@@ -4714,6 +4714,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Update poster and metadata BEFORE starting background transition
             renderMediaItem(currentMedia);
 
+            // After content is ready, update current media identifier and nudge device heartbeat
+            // so the Admin Devices view updates instantly (no 20s wait).
+            try {
+                const id =
+                    currentMedia.id ||
+                    currentMedia.guid ||
+                    currentMedia.ratingKey ||
+                    currentMedia.tmdbId ||
+                    currentMedia.imdbId ||
+                    currentMedia.title ||
+                    null;
+                if (id !== currentMediaId) {
+                    currentMediaId = id;
+                    if (
+                        window.PosterramaDevice &&
+                        typeof window.PosterramaDevice.beat === 'function'
+                    ) {
+                        window.PosterramaDevice.beat();
+                    }
+                }
+            } catch (_) {
+                // best-effort: ignore heartbeat update errors
+            }
+
             // First load: avoid any fade/kenburns to prevent black flashes
             if (isFirstLoad && inactiveLayer && activeLayer) {
                 try {

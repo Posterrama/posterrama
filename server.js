@@ -3551,6 +3551,14 @@ if (isDeviceMgmtEnabled()) {
                 if (typeof global.__adminSSEBroadcast === 'function') {
                     global.__adminSSEBroadcast('device-updated', payload);
                 }
+                // Also broadcast via legacy/admin-scoped SSE pool if present
+                try {
+                    if (typeof broadcastAdminEvent === 'function') {
+                        broadcastAdminEvent('device-updated', payload);
+                    }
+                } catch (_) {
+                    /* best-effort */
+                }
                 sseDbg('device-updated broadcast', {
                     id: deviceId,
                     hasThumb: !!currentState.thumbnailUrl,
@@ -16206,6 +16214,35 @@ app.post('/api/admin/notify/test', isAuthenticated, express.json(), (req, res) =
         });
     }
 });
+
+// Admin SSE: simple test endpoint to broadcast a sample device event for debugging
+// Usage (in Admin console while logged in): fetch('/api/admin/sse-test', { method: 'POST' })
+app.post('/api/admin/sse-test', isAuthenticated, (req, res) => {
+    try {
+        const payload = {
+            id: 'SSE_TEST_DEVICE',
+            status: 'online',
+            lastSeenAt: new Date().toISOString(),
+            wsConnected: false,
+            currentState: { title: 'SSE Test Broadcast', paused: false },
+        };
+        // Broadcast via both mechanisms to reach any connected admin SSE clients
+        try {
+            if (typeof global.__adminSSEBroadcast === 'function') {
+                global.__adminSSEBroadcast('device-updated', payload);
+            }
+        } catch (_) {}
+        try {
+            if (typeof broadcastAdminEvent === 'function') {
+                broadcastAdminEvent('device-updated', payload);
+            }
+        } catch (_) {}
+        sseDbg?.('device-updated broadcast (manual test)', { id: payload.id });
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e?.message || 'sse-test failed' });
+    }
+});
 // --- Admin SSE (Server-Sent Events) for live updates ---
 const adminSseClients = new Set(); // Set<res>
 
@@ -16544,13 +16581,16 @@ app.get(
     isAuthenticated,
     asyncHandler(async (req, res) => {
         // SSE headers
-        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Connection', 'keep-alive');
         res.setHeader('X-Accel-Buffering', 'no'); // disable nginx buffering if present
+        res.flushHeaders?.();
 
         // Add client and send an initial hello
         adminSseClients.add(res);
+        // Initial comment line improves compatibility with some proxies/browsers
+        res.write(`: connected\n\n`);
         res.write(`event: hello\n` + `data: {"t":${Date.now()}}\n\n`);
 
         // Heartbeat to keep connection alive
@@ -17090,6 +17130,24 @@ try {
                 } catch (_) {
                     /* ignore */
                 }
+            }
+            // Also broadcast to adminSseClients (older handler above) if available
+            try {
+                if (
+                    typeof adminSseClients !== 'undefined' &&
+                    adminSseClients &&
+                    adminSseClients.size
+                ) {
+                    for (const res of adminSseClients) {
+                        try {
+                            res.write(payload);
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    }
+                }
+            } catch (_) {
+                /* ignore */
             }
             return true;
         } catch (_) {
