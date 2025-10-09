@@ -16727,10 +16727,19 @@
                     getInput('plex.port')?.value ||
                     document.getElementById('plex_port')?.value ||
                     '';
-                const token =
-                    getInput('plex.token')?.value ||
-                    document.getElementById('plex_token')?.value ||
-                    '';
+                // Get token from dataset first (actual token), fallback to input value
+                const tokenInput = getInput('plex.token') || document.getElementById('plex_token');
+                const token = tokenInput?.dataset?.actualToken || tokenInput?.value || '';
+
+                if (__debugOn) {
+                    console.debug('[Admin][Plex][Test] Token resolution', {
+                        hasDatasetToken: !!tokenInput?.dataset?.actualToken,
+                        hasInputValue: !!tokenInput?.value,
+                        tokenLength: token.length,
+                        usingDataset: !!tokenInput?.dataset?.actualToken,
+                    });
+                }
+
                 if (__debugOn) {
                     console.debug('[Admin][Plex][Test] Resolved inputs', {
                         fromNewHostname: getInput('plex.hostname')?.value,
