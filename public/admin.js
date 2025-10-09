@@ -8281,7 +8281,7 @@
                 const thumbRightHtml = hasNowplay
                     ? `<div class="nowplay-thumb nowplay-thumb-right js-media-hover"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="48" height="72"></div>`
                     : '';
-                const titleRowHtml = '';
+                // Title rendering handled via live reconcile; no separate inline row here
                 return `
                                 <div class="device-card${dupeList && dupeList.length ? ' has-dupes' : ''}${hasNowplay ? ' has-nowplay' : ''}" data-id="${d.id}" data-status="${status}" data-room="${(room || '').toLowerCase().replace(/\s+/g, '-')}" data-dupes-count="${dupeList ? dupeList.length : 0}">
                                     ${d.wsConnected && state.syncEnabled !== false ? '<div class="device-corner"><span class="synced-dot" role="status" aria-label="Device will align to sync ticks" title="Device will align to sync ticks"></span></div>' : ''}

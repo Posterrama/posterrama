@@ -117,7 +117,8 @@
 /* Keep pills on one line for Devices section */
 #section-devices .device-badges {
     flex-wrap: nowrap;
-    overflow: hidden; /* avoid wrapping into the next line */
+    /* Keep pills on one line without clipping outer shadows */
+    overflow: visible;
     gap: 8px; /* a touch more breathing room for three pills */
 }
 #section-devices .device-badges .status-pill {
