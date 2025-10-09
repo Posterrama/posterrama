@@ -21362,16 +21362,17 @@ if (!document.__niwDelegatedFallback) {
 
                     // Get connection details (same logic as fetchPlexLibraries)
                     const hostname =
-                        getInput('plex.hostname')?.value ||
+                        document.getElementById('plex.hostname')?.value ||
                         document.getElementById('plex_hostname')?.value ||
                         undefined;
                     const port =
-                        getInput('plex.port')?.value ||
+                        document.getElementById('plex.port')?.value ||
                         document.getElementById('plex_port')?.value ||
                         undefined;
                     // Get token from: 1) dataset, 2) input value, 3) global token store, 4) undefined
                     const tokenInput =
-                        getInput('plex.token') || document.getElementById('plex_token');
+                        document.getElementById('plex.token') ||
+                        document.getElementById('plex_token');
                     const token =
                         tokenInput?.dataset?.actualToken ||
                         tokenInput?.value ||

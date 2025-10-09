@@ -1445,12 +1445,21 @@ app.get(
             const entryKey = String(req.query.entry || '').toLowerCase();
             const zipRel = String(req.query.zip || '').trim();
 
+            // Validate required parameters
             if (!zipRel || !entryKey) return res.status(400).send('Missing parameters');
-            if (zipRel.includes('..') || zipRel.startsWith('/') || zipRel.startsWith('\\'))
+
+            // Security: prevent path traversal attacks and absolute paths
+            if (
+                zipRel.includes('..') ||
+                zipRel.startsWith('/') ||
+                zipRel.startsWith('\\') ||
+                /^[a-zA-Z]:/.test(zipRel)
+            ) {
                 return res.status(400).send('Invalid zip path');
+            }
 
             // Allow only known entry types
-            const allowed = new Set(['poster', 'background', 'clearlogo', 'thumbnail']);
+            const allowed = new Set(['poster', 'background', 'clearlogo', 'thumbnail', 'banner']);
             if (!allowed.has(entryKey)) return res.status(400).send('Invalid entry type');
 
             const bases = Array.isArray(localDirectorySource.rootPaths)
@@ -1478,13 +1487,25 @@ app.get(
 
             // Open ZIP and locate the requested entry (case-insensitive, top-level or nested)
             let zip;
+            let entries;
             try {
                 zip = new AdmZip(zipFull);
+                entries = zip.getEntries();
             } catch (e) {
+                logger.error('[Local Posterpack] Corrupted or invalid ZIP file', {
+                    zipPath: zipFull,
+                    error: e.message,
+                    stack: e.stack,
+                });
                 return res.status(500).send('Failed to open ZIP');
             }
 
-            const entries = zip.getEntries();
+            // Validate ZIP has entries
+            if (!entries || entries.length === 0) {
+                logger.warn('[Local Posterpack] Empty ZIP file', { zipPath: zipFull });
+                return res.status(404).send('Entry not found in ZIP');
+            }
+
             // Preferred extensions order
             const exts = ['jpg', 'jpeg', 'png', 'webp'];
             let target = null;
@@ -1499,14 +1520,37 @@ app.get(
 
             if (!target) return res.status(404).send('Entry not found in ZIP');
 
-            const data = target.getData();
+            // Extract data with error handling
+            let data;
+            try {
+                data = target.getData();
+                if (!data || data.length === 0) {
+                    logger.warn('[Local Posterpack] Empty entry data', {
+                        zipPath: zipFull,
+                        entry: target.entryName,
+                    });
+                    return res.status(404).send('Entry contains no data');
+                }
+            } catch (e) {
+                logger.error('[Local Posterpack] Failed to extract entry from ZIP', {
+                    zipPath: zipFull,
+                    entry: target.entryName,
+                    error: e.message,
+                });
+                return res.status(500).send('Failed to read entry from ZIP');
+            }
+
             const mime = require('mime-types');
             const ctype = mime.lookup(target.entryName) || 'application/octet-stream';
             res.setHeader('Content-Type', ctype);
             res.setHeader('Cache-Control', 'public, max-age=86400');
+            res.setHeader('Content-Length', data.length);
             return res.end(data);
         } catch (err) {
-            logger.error('[Local Posterpack] Failed to stream zip entry', { error: err.message });
+            logger.error('[Local Posterpack] Failed to stream zip entry', {
+                error: err.message,
+                stack: err.stack,
+            });
             return res.status(500).send('Internal server error');
         }
     })
@@ -1522,10 +1566,21 @@ app.head(
             }
             const entryKey = String(req.query.entry || '').toLowerCase();
             const zipRel = String(req.query.zip || '').trim();
+
+            // Validate required parameters
             if (!zipRel || !entryKey) return res.sendStatus(400);
-            if (zipRel.includes('..') || zipRel.startsWith('/') || zipRel.startsWith('\\'))
+
+            // Security: prevent path traversal and absolute paths
+            if (
+                zipRel.includes('..') ||
+                zipRel.startsWith('/') ||
+                zipRel.startsWith('\\') ||
+                /^[a-zA-Z]:/.test(zipRel)
+            ) {
                 return res.sendStatus(400);
-            const allowed = new Set(['poster', 'background', 'clearlogo', 'thumbnail']);
+            }
+
+            const allowed = new Set(['poster', 'background', 'clearlogo', 'thumbnail', 'banner']);
             if (!allowed.has(entryKey)) return res.sendStatus(400);
 
             const bases = Array.isArray(localDirectorySource.rootPaths)
@@ -1547,13 +1602,25 @@ app.head(
                 }
             }
             if (!zipFull) return res.sendStatus(404);
+
             let zip;
+            let entries;
             try {
                 zip = new AdmZip(zipFull);
-            } catch (_) {
+                entries = zip.getEntries();
+            } catch (e) {
+                logger.error('[Local Posterpack HEAD] Failed to open ZIP', {
+                    zipPath: zipFull,
+                    error: e.message,
+                });
                 return res.sendStatus(500);
             }
-            const entries = zip.getEntries();
+
+            // Check for empty ZIP
+            if (!entries || entries.length === 0) {
+                return res.sendStatus(404);
+            }
+
             const exts = ['jpg', 'jpeg', 'png', 'webp'];
             let found = false;
             for (const ext of exts) {
@@ -1568,7 +1635,11 @@ app.head(
             }
             if (!found) return res.sendStatus(404);
             return res.sendStatus(200);
-        } catch (_) {
+        } catch (e) {
+            logger.error('[Local Posterpack HEAD] Unexpected error', {
+                error: e.message,
+                stack: e.stack,
+            });
             return res.sendStatus(500);
         }
     })
