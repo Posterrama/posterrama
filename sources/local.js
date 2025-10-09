@@ -618,6 +618,8 @@ class LocalDirectorySource {
                                                 zipPills.push('clearlogo');
                                             if (has(/(^|\/)metadata\.json$/i))
                                                 zipPills.push('metadata');
+                                            if (has(/(^|\/)people\/.*\.(jpg|jpeg|png|webp)$/i))
+                                                zipPills.push('cast');
                                             if (has(/(^|\/)cd\.(jpg|jpeg|png|webp|svg)$/i))
                                                 zipPills.push('cd');
                                             if (has(/(^|\/)disc\.(jpg|jpeg|png|webp|svg)$/i))

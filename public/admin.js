@@ -19792,6 +19792,7 @@ if (!document.__niwDelegatedFallback) {
                 background: 'Background',
                 clearlogo: 'ClearLogo',
                 metadata: 'Metadata',
+                cast: 'Cast',
                 cd: 'CD',
                 disc: 'Disc',
             })[k] || k;
