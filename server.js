@@ -1389,7 +1389,7 @@ app.get(
                 return res.status(400).send('Invalid zip path');
 
             // Allow only known entry types
-            const allowed = new Set(['poster', 'background', 'clearlogo']);
+            const allowed = new Set(['poster', 'background', 'clearlogo', 'thumbnail']);
             if (!allowed.has(entryKey)) return res.status(400).send('Invalid entry type');
 
             const bases = Array.isArray(localDirectorySource.rootPaths)
@@ -1428,7 +1428,10 @@ app.get(
             const exts = ['jpg', 'jpeg', 'png', 'webp'];
             let target = null;
             for (const ext of exts) {
-                const re = new RegExp(`(^|/)${entryKey}\\.${ext}$`, 'i');
+                const re = new RegExp(
+                    `(^|/)${entryKey === 'thumbnail' ? '(thumb|thumbnail)' : entryKey}\\.${ext}$`,
+                    'i'
+                );
                 target = entries.find(e => re.test(e.entryName));
                 if (target) break;
             }
@@ -1444,6 +1447,66 @@ app.get(
         } catch (err) {
             logger.error('[Local Posterpack] Failed to stream zip entry', { error: err.message });
             return res.status(500).send('Internal server error');
+        }
+    })
+);
+
+// HEAD support to quickly check presence of a posterpack entry (no body streamed)
+app.head(
+    '/local-posterpack',
+    asyncHandler(async (req, res) => {
+        try {
+            if (!config.localDirectory?.enabled || !localDirectorySource) {
+                return res.sendStatus(404);
+            }
+            const entryKey = String(req.query.entry || '').toLowerCase();
+            const zipRel = String(req.query.zip || '').trim();
+            if (!zipRel || !entryKey) return res.sendStatus(400);
+            if (zipRel.includes('..') || zipRel.startsWith('/') || zipRel.startsWith('\\'))
+                return res.sendStatus(400);
+            const allowed = new Set(['poster', 'background', 'clearlogo', 'thumbnail']);
+            if (!allowed.has(entryKey)) return res.sendStatus(400);
+
+            const bases = Array.isArray(localDirectorySource.rootPaths)
+                ? localDirectorySource.rootPaths
+                : [localDirectorySource.rootPath].filter(Boolean);
+            let zipFull = null;
+            for (const base of bases) {
+                const full = path.resolve(base, zipRel);
+                const withinBase = full === base || (full + path.sep).startsWith(base + path.sep);
+                if (!withinBase) continue;
+                try {
+                    const st = await fsp.stat(full);
+                    if (st.isFile() && /\.zip$/i.test(full)) {
+                        zipFull = full;
+                        break;
+                    }
+                } catch (_) {}
+            }
+            if (!zipFull) return res.sendStatus(404);
+            let zip;
+            try {
+                zip = new AdmZip(zipFull);
+            } catch (_) {
+                return res.sendStatus(500);
+            }
+            const entries = zip.getEntries();
+            const exts = ['jpg', 'jpeg', 'png', 'webp'];
+            let found = false;
+            for (const ext of exts) {
+                const re = new RegExp(
+                    `(^|/)${entryKey === 'thumbnail' ? '(thumb|thumbnail)' : entryKey}\\.${ext}$`,
+                    'i'
+                );
+                if (entries.some(e => re.test(e.entryName))) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return res.sendStatus(404);
+            return res.sendStatus(200);
+        } catch (_) {
+            return res.sendStatus(500);
         }
     })
 );
@@ -6582,6 +6645,7 @@ async function getPlaylistMedia() {
                 // If this item came from a ZIP (extension .zip), derive poster/background URLs
                 let posterUrl = null;
                 let backgroundUrl = null;
+                let thumbnailUrl = null;
                 let tagline = item?.tagline || item?.metadata?.tagline || null;
                 let overview = item?.overview || item?.metadata?.overview || null;
                 let rating =
@@ -6612,6 +6676,8 @@ async function getPlaylistMedia() {
                     const enc = encodeURIComponent(relZip);
                     posterUrl = `/local-posterpack?zip=${enc}&entry=poster`;
                     backgroundUrl = `/local-posterpack?zip=${enc}&entry=background`;
+                    // tentative thumbnail URL; will keep only if found in ZIP
+                    thumbnailUrl = `/local-posterpack?zip=${enc}&entry=thumbnail`;
                     // Attempt to read metadata.json inside the ZIP (once) to pull tagline/overview/rating/rottenTomatoes/imdbUrl
                     try {
                         if (!zipMetaCache.has(lp)) {
@@ -6624,13 +6690,17 @@ async function getPlaylistMedia() {
                             let hasPoster = false;
                             let hasBackground = false;
                             let hasClearLogo = false;
+                            let hasThumbnail = false;
                             try {
                                 const posterRe = /(^|\/)poster\.(jpg|jpeg|png|webp)$/i;
                                 const backgroundRe = /(^|\/)background\.(jpg|jpeg|png|webp)$/i;
                                 const clearlogoRe = /(^|\/)clearlogo\.(png|webp|jpg|jpeg)$/i;
+                                const thumbnailRe =
+                                    /(^|\/)(thumb|thumbnail)\.(jpg|jpeg|png|webp)$/i;
                                 hasPoster = entries.some(e => posterRe.test(e.entryName));
                                 hasBackground = entries.some(e => backgroundRe.test(e.entryName));
                                 hasClearLogo = entries.some(e => clearlogoRe.test(e.entryName));
+                                hasThumbnail = entries.some(e => thumbnailRe.test(e.entryName));
                             } catch (_) {
                                 // best-effort detection only
                             }
@@ -6654,6 +6724,7 @@ async function getPlaylistMedia() {
                                         hasPoster,
                                         hasBackground,
                                         hasClearLogo,
+                                        hasThumbnail,
                                     });
                                 } catch (_) {
                                     zipMetaCache.set(lp, {
@@ -6666,6 +6737,7 @@ async function getPlaylistMedia() {
                                         hasPoster,
                                         hasBackground,
                                         hasClearLogo,
+                                        hasThumbnail,
                                     });
                                 }
                             } else {
@@ -6679,6 +6751,7 @@ async function getPlaylistMedia() {
                                     hasPoster,
                                     hasBackground,
                                     hasClearLogo,
+                                    hasThumbnail,
                                 });
                             }
                         }
@@ -6700,6 +6773,7 @@ async function getPlaylistMedia() {
                             try {
                                 const hasPoster = !!zm.hasPoster;
                                 const hasBackground = !!zm.hasBackground;
+                                const hasThumbnail = !!zm.hasThumbnail;
                                 if (!hasBackground && hasPoster && posterUrl && !backgroundUrl) {
                                     backgroundUrl = posterUrl;
                                 } else if (
@@ -6715,6 +6789,8 @@ async function getPlaylistMedia() {
                                 } else if (!hasPoster && hasBackground && backgroundUrl) {
                                     posterUrl = backgroundUrl;
                                 }
+                                // Only keep thumbnailUrl if actually present
+                                if (!hasThumbnail) thumbnailUrl = null;
                             } catch (_) {
                                 // ignore fallback errors
                             }
@@ -6742,6 +6818,7 @@ async function getPlaylistMedia() {
                     year: item?.year || null,
                     posterUrl: isBackground ? posterUrl || null : posterUrl,
                     backgroundUrl: backgroundUrl,
+                    thumbnailUrl: thumbnailUrl || null,
                     clearLogoUrl: item?.metadata?.clearlogoPath || item?.clearlogoPath || null,
                     tagline: tagline || null,
                     overview: overview || null,
@@ -9686,6 +9763,19 @@ app.get(
                 // Check if auto cleanup is enabled and perform cleanup if needed
                 const config = await readConfig();
                 if (config.cache?.autoCleanup !== false) {
+                    // Ensure disk manager reflects the latest on-disk settings before cleanup
+                    try {
+                        if (
+                            cacheDiskManager &&
+                            typeof cacheDiskManager.updateConfig === 'function'
+                        ) {
+                            cacheDiskManager.updateConfig(config.cache || {});
+                        }
+                    } catch (e) {
+                        logger.warn('Failed to refresh cache config before cleanup', {
+                            error: e?.message,
+                        });
+                    }
                     try {
                         const cleanupResult = await cacheDiskManager.cleanupCache();
                         if (cleanupResult.cleaned && cleanupResult.deletedFiles > 0) {

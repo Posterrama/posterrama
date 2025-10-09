@@ -19599,6 +19599,28 @@ if (!document.__niwDelegatedFallback) {
                     const src = result.summary.sourceType || source;
                     const msg = `Preview (${src}): ${total.toLocaleString()} items available • estimated ${est.toLocaleString()} to generate`;
                     showNotification(msg, 'info');
+
+                    // Optional: if there is a preview gallery element, render a tiny visual using thumbnails when available
+                    try {
+                        const previewHost = document.getElementById('posterpack-preview-thumbs');
+                        if (previewHost && Array.isArray(result.exampleItems)) {
+                            previewHost.innerHTML = '';
+                            const sample = result.exampleItems.slice(0, 12);
+                            for (const it of sample) {
+                                const img = document.createElement('img');
+                                img.loading = 'lazy';
+                                img.decoding = 'async';
+                                img.referrerPolicy = 'no-referrer';
+                                img.alt = it.title || 'preview';
+                                img.width = 64;
+                                img.height = 96;
+                                img.className = 'pp-thumb';
+                                img.src = it.thumbnailUrl || it.posterUrl || it.backgroundUrl || '';
+                                previewHost.appendChild(img);
+                            }
+                            previewHost.style.display = sample.length ? '' : 'none';
+                        }
+                    } catch (_) {}
                 } else {
                     showNotification(result?.error || 'Preview failed', 'error');
                 }

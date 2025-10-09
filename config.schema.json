@@ -816,6 +816,11 @@
                     "description": "Configuration for automatic posterpack generation from Plex/Jellyfin.",
                     "type": "object",
                     "properties": {
+                        "generateThumbnail": {
+                            "type": "boolean",
+                            "description": "When true, derive a small thumbnail (thumbnail.jpg) from poster.jpg inside generated posterpack ZIPs.",
+                            "default": true
+                        },
                         "itemConcurrency": {
                             "type": "integer",
                             "minimum": 1,

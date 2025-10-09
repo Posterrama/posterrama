@@ -598,6 +598,13 @@ function generateSwaggerSpec() {
                                 format: 'uri',
                                 description: 'URL to the poster image, proxied through the app.',
                             },
+                            thumbnailUrl: {
+                                type: 'string',
+                                format: 'uri',
+                                nullable: true,
+                                description:
+                                    'URL to the thumbnail image when available (e.g., from Local posterpacks).',
+                            },
                             clearLogoUrl: {
                                 type: 'string',
                                 format: 'uri',

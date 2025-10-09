@@ -338,13 +338,25 @@ class LocalDirectorySource {
                         const zip = new AdmZip(zipFull);
                         const zipEntries = zip.getEntries();
                         let found = false;
+                        const has = {
+                            poster: false,
+                            background: false,
+                            thumbnail: false,
+                            clearlogo: false,
+                        };
                         for (const ext of exts) {
-                            const re = new RegExp(`(^|/)${want}\\.${ext}$`, 'i');
-                            if (zipEntries.some(e => re.test(e.entryName))) {
-                                found = true;
-                                break;
-                            }
+                            const rePoster = new RegExp(`(^|/)poster\.${ext}$`, 'i');
+                            const reBg = new RegExp(`(^|/)background\.${ext}$`, 'i');
+                            const reThumb = new RegExp(`(^|/)(thumb|thumbnail)\.${ext}$`, 'i');
+                            const reClearLogo = new RegExp(`(^|/)clearlogo\.${ext}$`, 'i');
+                            if (zipEntries.some(e => rePoster.test(e.entryName))) has.poster = true;
+                            if (zipEntries.some(e => reBg.test(e.entryName))) has.background = true;
+                            if (zipEntries.some(e => reThumb.test(e.entryName)))
+                                has.thumbnail = true;
+                            if (zipEntries.some(e => reClearLogo.test(e.entryName)))
+                                has.clearlogo = true;
                         }
+                        found = has[want];
                         if (!found) continue;
                         const st = await fs.stat(zipFull);
                         results.push({
@@ -355,6 +367,7 @@ class LocalDirectorySource {
                             extension: 'zip',
                             directory: want === 'background' ? 'backgrounds' : 'posters',
                             type: want,
+                            zipHas: has,
                         });
                         seen.add(baseName);
                     } catch (e) {
@@ -816,21 +829,38 @@ class LocalDirectorySource {
         // If this media is backed by a ZIP posterpack, stream the inner entry on demand
         let mediaUrl = `/local-media/${relUrlPath}`;
         let clearlogoPath = null;
+        let backgroundUrl = metadata.backgroundPath || null;
+        let thumbnailUrl = metadata.thumbnailPath || null;
         if (isZip) {
             const entry = file.type === 'background' ? 'background' : 'poster';
             const encoded = encodeURIComponent(relUrlPath);
             mediaUrl = `/local-posterpack?zip=${encoded}&entry=${entry}`;
             // Provide clearlogo path if available; client normalizer may pick this up
             clearlogoPath = `/local-posterpack?zip=${encoded}&entry=clearlogo`;
+            // If ZIP contains background/thumbnail, expose streaming URLs
+            try {
+                if (file.zipHas && file.zipHas.background) {
+                    backgroundUrl = `/local-posterpack?zip=${encoded}&entry=background`;
+                }
+                if (file.zipHas && file.zipHas.thumbnail) {
+                    thumbnailUrl = `/local-posterpack?zip=${encoded}&entry=thumbnail`;
+                }
+            } catch (_) {
+                /* ignore */
+            }
         }
 
         return {
             title: metadata.title,
             year: metadata.year,
             poster: mediaUrl,
-            background: metadata.backgroundPath || null,
+            background: backgroundUrl,
             clearart: metadata.clearartPath || null,
             clearlogoPath: clearlogoPath || metadata.clearlogoPath || null,
+            // Compat with UI schema
+            backgroundUrl: backgroundUrl,
+            clearLogoUrl: clearlogoPath || metadata.clearlogoPath || null,
+            thumbnailUrl: thumbnailUrl,
             metadata: {
                 genre: metadata.genre || [],
                 rating: metadata.rating || null,

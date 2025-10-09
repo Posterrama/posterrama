@@ -166,6 +166,7 @@
             "zip"
         ],
         "posterpackGeneration": {
+            "generateThumbnail": true,
             "enabled": true,
             "plex": {
                 "enabled": true,

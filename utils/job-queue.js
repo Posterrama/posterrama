@@ -608,6 +608,39 @@ class JobQueue extends EventEmitter {
                     if (posterData) {
                         zip.file('poster.jpg', posterData);
                         assets.poster = true;
+                        // Optionally derive thumbnail from poster
+                        try {
+                            const cfgFlag =
+                                this.config?.localDirectory?.posterpackGeneration
+                                    ?.generateThumbnail;
+                            const wantThumb =
+                                options.generateThumbnail !== undefined
+                                    ? options.generateThumbnail
+                                    : cfgFlag === undefined
+                                      ? true
+                                      : cfgFlag;
+                            if (wantThumb && posterData && sharp) {
+                                const thumb = await sharp(posterData)
+                                    .resize({
+                                        width: 300,
+                                        height: 300,
+                                        fit: 'inside',
+                                        withoutEnlargement: true,
+                                    })
+                                    .jpeg({ quality: 80 })
+                                    .toBuffer();
+                                if (thumb && thumb.length > 0) {
+                                    zip.file('thumbnail.jpg', thumb);
+                                    assets.thumbnail = true;
+                                }
+                            }
+                        } catch (e) {
+                            if (exportLogger) {
+                                await exportLogger.warn('Thumbnail generation failed', {
+                                    error: e.message,
+                                });
+                            }
+                        }
                     } else if (exportLogger) {
                         await exportLogger.warn('Poster download failed', {
                             title: item.title,
@@ -826,6 +859,7 @@ class JobQueue extends EventEmitter {
                 poster: !!assets.poster,
                 background: !!assets.background,
                 clearlogo: !!assets.clearlogo,
+                thumbnail: !!assets.thumbnail,
                 fanartCount: assets.fanart || 0,
                 discart: !!assets.discart,
             },
