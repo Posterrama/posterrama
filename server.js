@@ -3450,6 +3450,9 @@ if (isDeviceMgmtEnabled()) {
             const posterUrl = b.posterUrl;
             const backgroundUrl = b.backgroundUrl;
             const thumbnailUrl = b.thumbnailUrl;
+            const runtime = b.runtime;
+            const genres = b.genres;
+            const overview = b.overview;
             const poweredOff = b.poweredOff; // optional powered off state (blackout)
             // Support pinned state from clients (accept several aliases for compatibility)
             const pinned =
@@ -3503,6 +3506,10 @@ if (isDeviceMgmtEnabled()) {
             if (pUrl) currentState.posterUrl = pUrl;
             if (bUrl) currentState.backgroundUrl = bUrl;
             if (tUrl) currentState.thumbnailUrl = tUrl;
+            // Additional media metadata fields
+            if (Number.isFinite(Number(runtime))) currentState.runtime = Number(runtime);
+            if (Array.isArray(genres)) currentState.genres = genres.slice(0, 20); // limit array size
+            if (overview != null) currentState.overview = String(overview).slice(0, 1000);
             // If the client reports explicitly unpinned, proactively clear any lingering pinMediaId
             if (pinned === false) {
                 currentState.pinMediaId = '';

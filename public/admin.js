@@ -10930,7 +10930,7 @@
                                         const runtime = Number.isFinite(
                                             Number(cs.runtime || cs.duration)
                                         )
-                                            ? `${Math.round(Number(cs.runtime || cs.duration) / 60)} min`
+                                            ? `${Math.round(Number(cs.runtime || cs.duration) / 60000)} min`
                                             : '—';
                                         const genres = Array.isArray(cs.genres)
                                             ? cs.genres.join(', ')
