@@ -353,6 +353,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             return pinnedMediaId;
         },
     });
+    // Expose current media details to device-mgmt (thumbnail/poster/background + basics)
+    Object.defineProperty(window, '__posterramaCurrentMedia', {
+        get() {
+            try {
+                if (currentIndex < 0 || currentIndex >= mediaQueue.length) return null;
+                const it = mediaQueue[currentIndex];
+                if (!it) return null;
+                return {
+                    title: it.title || null,
+                    year: it.year || null,
+                    rating: it.rating != null ? Number(it.rating) : null,
+                    posterUrl: it.posterUrl || null,
+                    backgroundUrl: it.backgroundUrl || null,
+                    thumbnailUrl: it.thumbnailUrl || null,
+                };
+            } catch (_) {
+                return null;
+            }
+        },
+    });
     // Expose minimal playback control API for WS/admin control
     // Unified programmatic pause/resume that mirrors the UI button behavior
     function setPaused(val) {

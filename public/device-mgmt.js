@@ -355,6 +355,15 @@
         } catch (_) {
             // ignore inability to read runtime media state
         }
+        // Pull current media details from the main app if exposed
+        let curr = null;
+        try {
+            if (typeof window !== 'undefined' && window.__posterramaCurrentMedia) {
+                curr = window.__posterramaCurrentMedia;
+            }
+        } catch (_) {
+            // noop: unable to read current media from main app
+        }
         const payload = {
             deviceId: state.deviceId,
             deviceSecret: state.deviceSecret,
@@ -372,6 +381,13 @@
             // When unpinned, force pinMediaId to '' so the server clears lingering values
             pinMediaId: pinned === false ? '' : pinMediaId,
             poweredOff,
+            // Optional media context (used by admin device list for tiny preview)
+            title: curr && curr.title,
+            year: curr && curr.year,
+            rating: curr && curr.rating,
+            posterUrl: curr && curr.posterUrl,
+            backgroundUrl: curr && curr.backgroundUrl,
+            thumbnailUrl: curr && curr.thumbnailUrl,
         };
         try {
             const res = await fetch('/api/devices/heartbeat', {
