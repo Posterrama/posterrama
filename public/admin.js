@@ -14925,21 +14925,26 @@
                 const hasToken = !!env[plexTokenVar];
                 const el = getInput('plex.token');
 
-                // Try to restore token from localStorage (more persistent than sessionStorage)
+                // ALWAYS try to restore token from localStorage first (more persistent than sessionStorage)
                 const savedToken = localStorage.getItem('plex_token_temp');
 
-                // Store the actual token value in a data attribute so it persists even if field is cleared
-                if (!el.dataset.actualToken) {
-                    // Use saved token if available, otherwise placeholder
-                    el.dataset.actualToken = savedToken || (hasToken ? 'EXISTING_TOKEN' : '');
+                // Priority: localStorage token > existing token marker > empty
+                // ALWAYS set dataset.actualToken from localStorage if available
+                if (savedToken && savedToken !== 'EXISTING_TOKEN') {
+                    el.dataset.actualToken = savedToken;
                     console.log(
-                        '[Token Init] Set actualToken:',
-                        savedToken
-                            ? `${savedToken.length} chars from localStorage`
-                            : hasToken
-                              ? 'EXISTING_TOKEN'
-                              : 'empty'
+                        '[Token Init] ✓ Restored from localStorage:',
+                        savedToken.length,
+                        'chars'
                     );
+                } else if (hasToken) {
+                    el.dataset.actualToken = 'EXISTING_TOKEN';
+                    console.log(
+                        '[Token Init] ⚠ Set placeholder: EXISTING_TOKEN (no localStorage)'
+                    );
+                } else {
+                    el.dataset.actualToken = '';
+                    console.log('[Token Init] ✗ No token found');
                 }
 
                 if (hasToken) {
