@@ -17004,9 +17004,12 @@
                     if (val != null && String(val).trim() !== '')
                         envPatch[key] = String(val).trim();
                 };
-                const plexToken = getInput('plex.token')?.value;
-                if (plexToken && plexToken !== '••••••••')
+                const plexToken = getInput('plex.token')?.value?.trim();
+                // Only update token if user entered a new value (not empty, not masked placeholder)
+                if (plexToken && plexToken !== '••••••••') {
                     setIfProvided(plex.tokenEnvVar, plexToken);
+                }
+                // If empty, token is intentionally omitted so backend preserves existing value
                 // Persist direct hostname/port inside mediaServers entry
                 // Some templates (legacy or cached) still render inputs with ids 'plex_hostname' / 'plex_port'.
                 // Use both modern (dot) and legacy (underscore) IDs so a stale cached HTML file does not block saving.
@@ -17131,8 +17134,12 @@
                     if (val != null && String(val).trim() !== '')
                         envPatch[key] = String(val).trim();
                 };
-                const jfKey = getInput('jf.apikey')?.value;
-                if (jfKey && jfKey !== '••••••••') setIfProvided(jf.tokenEnvVar, jfKey);
+                const jfKey = getInput('jf.apikey')?.value?.trim();
+                // Only update API key if user entered a new value (not empty, not masked placeholder)
+                if (jfKey && jfKey !== '••••••••') {
+                    setIfProvided(jf.tokenEnvVar, jfKey);
+                }
+                // If empty, key is intentionally omitted so backend preserves existing value
                 envPatch.JELLYFIN_INSECURE_HTTPS =
                     document.getElementById('jf.insecureHttpsHeader')?.checked ||
                     document.getElementById('jf.insecureHttps')?.checked
@@ -17210,8 +17217,14 @@
                 }
                 // Selected genres as CSV from hidden field
                 tmdb.genreFilter = getTMDBGenreFilterHidden();
-                const tmdbApiKeyVal = getInput('tmdb.apikey')?.value || '';
-                if (tmdbApiKeyVal && tmdbApiKeyVal !== '••••••••') tmdb.apiKey = tmdbApiKeyVal;
+                const tmdbApiKeyVal = getInput('tmdb.apikey')?.value?.trim() || '';
+                // Only update API key if user entered a new value (not empty, not masked placeholder)
+                if (tmdbApiKeyVal && tmdbApiKeyVal !== '••••••••') {
+                    tmdb.apiKey = tmdbApiKeyVal;
+                } else {
+                    // Omit apiKey so backend preserves existing value (send null to signal "don't change")
+                    tmdb.apiKey = null;
+                }
                 // Include Streaming Releases selections (server converts object -> array)
                 const streaming = {
                     enabled: !!document.getElementById('streamingSources.enabled')?.checked,
