@@ -76,11 +76,68 @@
 #section-devices .nowplay-thumb img {
     display: block;
     border-radius: 3px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    box-shadow:
+        0 8px 20px rgba(0, 0, 0, 0.35),
+        0 2px 6px rgba(0, 0, 0, 0.4);
     width: 48px;
     height: 72px;
     object-fit: cover;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+}
+/* Straddle the separator: half in body, half in bottom cell */
+#section-devices .nowplay-thumb-right {
+    position: absolute;
+    right: 18px;
+    top: -36px; /* place half of the 72px thumb above the bottom row to straddle the divider */
+    z-index: 1;
+}
+/* Make the body a positioning context and reserve space for the right thumb */
+#section-devices .device-card-body {
+    position: relative;
+}
+#section-devices .device-card.has-nowplay .device-card-body .device-body-main {
+    /* Reserve (right offset 18px + 48px thumb + 12px gap) = 78px */
+    padding-right: 78px;
+}
+/* Old inline title hidden (we moved the title to the bottom cell) */
+#section-devices .nowplay-title-row {
+    display: none;
+}
+/* Bottom title style */
+.app-section#section-devices .device-card.has-nowplay .nowplay-title-bottom {
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+    margin: 8px 78px 0 0; /* align with reserved right space (78px) */
+}
+/* Keep pills on one line for Devices section */
+#section-devices .device-badges {
+    flex-wrap: nowrap;
+    overflow: hidden; /* avoid wrapping into the next line */
+    gap: 8px; /* a touch more breathing room for three pills */
+}
+#section-devices .device-badges .status-pill {
+    white-space: nowrap;
+}
+/* Inline meta beside the thumbnail (single-line, no extra height) */
+#section-devices .nowplay-thumb .nowplay-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0; /* enable text truncation */
+}
+#section-devices .nowplay-thumb .nowplay-title {
+    font-size: 12px;
+    line-height: 1.2;
+    color: var(--color-text-secondary);
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 #modal-merge .btn-merge-accent {
     --accent-color: var(--color-warning);
@@ -4594,6 +4651,28 @@ body .modal-overlay.open {
     border-bottom-left-radius: var(--border-radius-lg);
     border-bottom-right-radius: var(--border-radius-lg);
     overflow: hidden;
+}
+.app-section#section-devices .device-actions {
+    position: relative;
+}
+.app-section#section-devices .device-card.has-nowplay .device-actions {
+    padding-right: calc(
+        var(--space-lg) + 78px
+    ); /* leave room for floating thumb when thumb exists */
+    justify-content: flex-start; /* keep meta pills aligned to the left */
+    overflow: visible; /* allow the thumbnail to overlap upwards */
+}
+.app-section#section-devices .device-actions .meta-pills {
+    flex: 1;
+}
+/* Bottom title is absolutely positioned near the thumbnail */
+.app-section#section-devices .device-card.has-nowplay .nowplay-title-bottom {
+    position: absolute;
+    right: 78px; /* align to the edge of reserved space */
+    bottom: calc(var(--space-md) + 2px);
+    z-index: 2;
+    margin: 0; /* no flow margin when absolute */
+    pointer-events: none;
 }
 .device-tools {
     display: flex;

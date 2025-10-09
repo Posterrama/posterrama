@@ -8273,15 +8273,17 @@
                 const pinIcon = initiallyPinned ? 'fa-map-pin' : 'fa-thumbtack';
                 const pinTitle = initiallyPinned ? 'Unpin poster' : 'Pin current poster';
                 const pinPressed = initiallyPinned ? 'true' : 'false';
-                // Small now-playing thumbnail (uses device-reported currentState URLs)
+                // Now-playing info (uses device-reported currentState URLs)
                 const cs = d && d.currentState ? d.currentState : {};
                 const thumbSrc = cs.thumbnailUrl || cs.posterUrl || cs.backgroundUrl || '';
                 const thumbAlt = escapeHtml(cs.title || d.name || '');
-                const thumbHtml = thumbSrc
-                    ? `<div class="nowplay-thumb"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="64" height="96"></div>`
+                const hasNowplay = !!thumbSrc;
+                const thumbRightHtml = hasNowplay
+                    ? `<div class="nowplay-thumb nowplay-thumb-right js-media-hover"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="48" height="72"></div>`
                     : '';
+                const titleRowHtml = '';
                 return `
-                                <div class="device-card${dupeList && dupeList.length ? ' has-dupes' : ''}" data-id="${d.id}" data-status="${status}" data-room="${(room || '').toLowerCase().replace(/\s+/g, '-')}" data-dupes-count="${dupeList ? dupeList.length : 0}">
+                                <div class="device-card${dupeList && dupeList.length ? ' has-dupes' : ''}${hasNowplay ? ' has-nowplay' : ''}" data-id="${d.id}" data-status="${status}" data-room="${(room || '').toLowerCase().replace(/\s+/g, '-')}" data-dupes-count="${dupeList ? dupeList.length : 0}">
                                     ${d.wsConnected && state.syncEnabled !== false ? '<div class="device-corner"><span class="synced-dot" role="status" aria-label="Device will align to sync ticks" title="Device will align to sync ticks"></span></div>' : ''}
                                                                         <div class="device-card-header">
                                                                                 <div class="device-select-wrap">
@@ -8332,9 +8334,9 @@
                                                         <div class="dropdown-menu"></div>
                                                 </div>
                                     </div>
-                        <div class="device-card-body">
-                            ${thumbHtml}
-                              <div class="device-badges">
+                                                                        <div class="device-card-body">
+                                                                                <div class="device-body-main">
+                                                                                    <div class="device-badges">
                                             <span class="status-pill status-${status} js-status-hover" tabindex="0">
                                                 <i class="${iconForStatus(isPoweredOff && status === 'live' ? 'offline' : status)}"></i> ${statusLabel}
                                             </span>
@@ -8368,11 +8370,10 @@
                                                                                       })()}
                                                                                      
                                                                                 </div>
-                                        <div class="pill-grid">
-                                            ${Number.isFinite(Number(d?.currentState?.rating)) ? `<span class="pill pill-rating">${Number(d.currentState.rating).toFixed(1)}</span>` : ''}
-                                        </div>
-                                    </div>
+                                                        </div>
+                                                </div>
                                     <div class="device-actions">
+                                        ${thumbRightHtml}
                                         <div class="meta-pills" style="display:flex; gap:6px; flex-wrap:wrap;">
                                             <span class="status-pill" title="Location"><i class="fas fa-location-dot"></i> ${escapeHtml(room)}</span>
                                             ${presetName ? `<span class="status-pill" title="Preset"><i class="fas fa-star"></i> ${escapeHtml(presetName)}</span>` : ''}
@@ -10434,6 +10435,8 @@
                 try {
                     bindHover('.js-status-hover', statusCard);
                     bindHover('.js-dupes-hover', dupesCard);
+                    // Also bind media hover for now-playing thumbnails on freshly rendered cards
+                    bindHover('.js-media-hover', mediaCard);
                 } catch (_) {}
             }
 
@@ -10759,6 +10762,17 @@
                 '\n                <div class="hc-title">Duplicates found</div>\n                <div class="hc-list"><div class="hc-row"><span>No details</span></div></div>';
             const statusCard = createHovercard('hc-status', statusHoverHTML);
             const dupesCard = createHovercard('hc-dupes', dupesHoverHTML);
+            const mediaHoverHTML = `
+                <div class="hc-title"><i class="fas fa-film"></i><span>Media</span></div>
+                <div class="hc-list">
+                    <div class="hc-row"><i class="fas fa-heading"></i><span>Title</span><span class="mono value dim">—</span></div>
+                    <div class="hc-row"><i class="fas fa-calendar"></i><span>Year</span><span class="mono value dim">—</span></div>
+                    <div class="hc-row"><i class="fas fa-star"></i><span>Rating</span><span class="mono value dim">—</span></div>
+                    <div class="hc-row"><i class="fas fa-clock"></i><span>Runtime</span><span class="mono value dim">—</span></div>
+                    <div class="hc-row"><i class="fas fa-shapes"></i><span>Genres</span><span class="mono value dim">—</span></div>
+                    <div class="hc-row"><i class="fas fa-align-left"></i><span>Overview</span><span class="mono value dim">—</span></div>
+                </div>`;
+            const mediaCard = createHovercard('hc-media', mediaHoverHTML);
             function positionHover(el, trigger) {
                 const r = trigger.getBoundingClientRect();
                 const margin = 8;
@@ -10781,51 +10795,88 @@
                     };
                     const show = () => {
                         clearHide();
-                        // If status hovercard, rebuild from the device referenced by trigger
+                        // If status or media hovercard, rebuild from the device referenced by trigger
                         try {
-                            if (card && card.id === 'hc-status') {
+                            if (card && (card.id === 'hc-status' || card.id === 'hc-media')) {
                                 const cardEl = tr.closest('.device-card');
                                 const id = cardEl?.getAttribute('data-id');
                                 const d = (state.all || []).find(x => x.id === id);
                                 if (d) {
-                                    const status = getStatusClass(d);
-                                    const ws = d.wsConnected ? 'Connected' : 'Not connected';
-                                    const lastTs = Date.parse(d.lastSeenAt || 0) || 0;
-                                    const last = lastTs
-                                        ? `${fmtAgo(lastTs)}\u00A0·\u00A0${new Date(lastTs).toLocaleString()}`
-                                        : '—';
-                                    const sc = d?.clientInfo?.screen || {};
-                                    const w = Number(sc.w || sc.width || 0) || 0;
-                                    const h = Number(sc.h || sc.height || 0) || 0;
-                                    const dpr = Number(sc.dpr || sc.scale || 1) || 1;
-                                    const res =
-                                        w && h
-                                            ? `${w}×${h}${dpr && dpr !== 1 ? ` @${dpr}x` : ''}`
+                                    if (card.id === 'hc-status') {
+                                        const status = getStatusClass(d);
+                                        const ws = d.wsConnected ? 'Connected' : 'Not connected';
+                                        const lastTs = Date.parse(d.lastSeenAt || 0) || 0;
+                                        const last = lastTs
+                                            ? `${fmtAgo(lastTs)}\u00A0·\u00A0${new Date(lastTs).toLocaleString()}`
                                             : '—';
-                                    const mode = d?.clientInfo?.mode || d?.mode || '';
-                                    const ua = (
-                                        d?.clientInfo?.userAgent ||
-                                        d?.clientInfo?.ua ||
-                                        ''
-                                    ).trim();
-                                    const isPO = d?.currentState?.poweredOff === true;
-                                    const dotCls =
-                                        isPO && status === 'live'
-                                            ? 'sd-poweredoff'
-                                            : statusDotClass(status);
-                                    const titleHTML = `<div class="hc-title"><span class="status-dot ${dotCls}"></span><span>${escapeHtml(isPO && status === 'live' ? 'Powered off' : statusPretty(status))}</span></div>`;
-                                    const html = [
-                                        titleHTML,
-                                        '<div class="hc-list">',
-                                        `<div class="hc-row"><i class="fas fa-plug"></i><span>WebSocket</span><span class="mono value ${d.wsConnected ? '' : 'dim'}">${escapeHtml(ws)}</span></div>`,
-                                        `<div class="hc-row"><i class="fas fa-clock"></i><span>Last seen</span><span class="mono value ${lastTs ? '' : 'dim'}">${escapeHtml(last)}</span></div>`,
-                                        `<div class="hc-row"><i class="fas fa-hashtag"></i><span>Device ID</span><span class="mono value">${escapeHtml(d.id || '—')}</span></div>`,
-                                        `<div class="hc-row"><i class="fas fa-expand"></i><span>Resolution</span><span class="mono value ${w && h ? '' : 'dim'}">${escapeHtml(res)}</span></div>`,
-                                        `<div class="hc-row"><i class="fas fa-sliders"></i><span>Mode</span><span class="mono value ${mode ? '' : 'dim'}">${escapeHtml(modeLabel(mode) || '—')}</span></div>`,
-                                        `<div class="hc-row hc-ua"><i class="fas fa-globe"></i><span>User agent</span><span class="mono value ${ua ? '' : 'dim'}" title="${escapeHtml(ua)}">${escapeHtml(ua || '—')}</span></div>`,
-                                        '</div>',
-                                    ].join('');
-                                    card.innerHTML = html;
+                                        const sc = d?.clientInfo?.screen || {};
+                                        const w = Number(sc.w || sc.width || 0) || 0;
+                                        const h = Number(sc.h || sc.height || 0) || 0;
+                                        const dpr = Number(sc.dpr || sc.scale || 1) || 1;
+                                        const res =
+                                            w && h
+                                                ? `${w}×${h}${dpr && dpr !== 1 ? ` @${dpr}x` : ''}`
+                                                : '—';
+                                        const mode = d?.clientInfo?.mode || d?.mode || '';
+                                        const ua = (
+                                            d?.clientInfo?.userAgent ||
+                                            d?.clientInfo?.ua ||
+                                            ''
+                                        ).trim();
+                                        const isPO = d?.currentState?.poweredOff === true;
+                                        const dotCls =
+                                            isPO && status === 'live'
+                                                ? 'sd-poweredoff'
+                                                : statusDotClass(status);
+                                        const titleHTML = `<div class="hc-title"><span class="status-dot ${dotCls}"></span><span>${escapeHtml(isPO && status === 'live' ? 'Powered off' : statusPretty(status))}</span></div>`;
+                                        const html = [
+                                            titleHTML,
+                                            '<div class="hc-list">',
+                                            `<div class="hc-row"><i class="fas fa-plug"></i><span>WebSocket</span><span class="mono value ${d.wsConnected ? '' : 'dim'}">${escapeHtml(ws)}</span></div>`,
+                                            `<div class="hc-row"><i class="fas fa-clock"></i><span>Last seen</span><span class="mono value ${lastTs ? '' : 'dim'}">${escapeHtml(last)}</span></div>`,
+                                            `<div class="hc-row"><i class="fas fa-hashtag"></i><span>Device ID</span><span class="mono value">${escapeHtml(d.id || '—')}</span></div>`,
+                                            `<div class="hc-row"><i class="fas fa-expand"></i><span>Resolution</span><span class="mono value ${w && h ? '' : 'dim'}">${escapeHtml(res)}</span></div>`,
+                                            `<div class="hc-row"><i class="fas fa-sliders"></i><span>Mode</span><span class="mono value ${mode ? '' : 'dim'}">${escapeHtml(modeLabel(mode))}</span></div>`,
+                                            `<div class="hc-row hc-ua"><i class="fas fa-globe"></i><span>User agent</span><span class="mono value ${ua ? '' : 'dim'}" title="${escapeHtml(ua)}">${escapeHtml(ua || '—')}</span></div>`,
+                                            '</div>',
+                                        ].join('');
+                                        card.innerHTML = html;
+                                    } else {
+                                        // Media card
+                                        const cs = d?.currentState || {};
+                                        const title = cs.title || '—';
+                                        const year = Number.isFinite(Number(cs.year))
+                                            ? String(cs.year)
+                                            : '—';
+                                        const rating = Number.isFinite(Number(cs.rating))
+                                            ? Number(cs.rating).toFixed(1)
+                                            : '—';
+                                        const runtime = Number.isFinite(
+                                            Number(cs.runtime || cs.duration)
+                                        )
+                                            ? `${Math.round(Number(cs.runtime || cs.duration) / 60)} min`
+                                            : '—';
+                                        const genres = Array.isArray(cs.genres)
+                                            ? cs.genres.join(', ')
+                                            : '—';
+                                        const overview = (cs.overview || cs.plot || '').trim();
+                                        const ov = overview
+                                            ? overview.slice(0, 320) +
+                                              (overview.length > 320 ? '…' : '')
+                                            : '—';
+                                        const html = [
+                                            '<div class="hc-title"><i class="fas fa-film"></i><span>Media</span></div>',
+                                            '<div class="hc-list">',
+                                            `<div class="hc-row"><i class="fas fa-heading"></i><span>Title</span><span class="mono value ${title === '—' ? 'dim' : ''}">${escapeHtml(title)}</span></div>`,
+                                            `<div class="hc-row"><i class="fas fa-calendar"></i><span>Year</span><span class="mono value ${year === '—' ? 'dim' : ''}">${escapeHtml(year)}</span></div>`,
+                                            `<div class="hc-row"><i class="fas fa-star"></i><span>Rating</span><span class="mono value ${rating === '—' ? 'dim' : ''}">${escapeHtml(rating)}</span></div>`,
+                                            `<div class="hc-row"><i class="fas fa-clock"></i><span>Runtime</span><span class="mono value ${runtime === '—' ? 'dim' : ''}">${escapeHtml(runtime)}</span></div>`,
+                                            `<div class="hc-row"><i class="fas fa-shapes"></i><span>Genres</span><span class="mono value ${genres === '—' ? 'dim' : ''}">${escapeHtml(genres)}</span></div>`,
+                                            `<div class="hc-row"><i class="fas fa-align-left"></i><span>Overview</span><span class="mono value ${ov === '—' ? 'dim' : ''}" style="max-width:520px;white-space:normal;line-height:1.35;">${escapeHtml(ov)}</span></div>`,
+                                            '</div>',
+                                        ].join('');
+                                        card.innerHTML = html;
+                                    }
                                 }
                             }
                         } catch (_) {}
@@ -10897,6 +10948,7 @@
             }
             bindHover('.js-status-hover', statusCard);
             bindHover('.js-dupes-hover', dupesCard);
+            bindHover('.js-media-hover', mediaCard);
 
             // (removed) toolbar presets handlers
 
@@ -11504,13 +11556,71 @@
                             } catch (_) {}
                             // No separate powered-off pill anymore
                         } catch (_) {}
+
+                        // Live-update now-playing thumbnail and title (if present)
+                        try {
+                            const cs = d && d.currentState ? d.currentState : {};
+                            const src = cs.thumbnailUrl || cs.posterUrl || cs.backgroundUrl || '';
+                            const np =
+                                card.querySelector('.nowplay-thumb-right') ||
+                                card.querySelector('.nowplay-thumb');
+                            if (np) {
+                                const img = np.querySelector('img');
+                                if (img && src) {
+                                    if (img.getAttribute('src') !== src)
+                                        img.setAttribute('src', src);
+                                    const alt = (cs.title || d.name || '').toString();
+                                    img.setAttribute('alt', alt);
+                                }
+                                const titleRow =
+                                    card.querySelector('.nowplay-title-bottom') ||
+                                    card.querySelector('.nowplay-title-row');
+                                if (titleRow) {
+                                    const t = (cs.title || '').toString();
+                                    titleRow.textContent = t;
+                                    if (t) titleRow.setAttribute('title', t);
+                                    titleRow.style.display = t ? '' : 'none';
+                                }
+                                // Toggle spacing class based on presence of src
+                                if (src) card.classList.add('has-nowplay');
+                                else card.classList.remove('has-nowplay');
+                                // If src is now empty, remove the thumbnail node entirely
+                                if (!src) {
+                                    try {
+                                        np.remove();
+                                    } catch (_) {}
+                                }
+                            } else if (src) {
+                                // Thumbnail became available; inject node and toggle class
+                                const actions = card.querySelector('.device-actions');
+                                if (actions) {
+                                    const wrap = document.createElement('div');
+                                    wrap.className =
+                                        'nowplay-thumb nowplay-thumb-right js-media-hover';
+                                    const img = document.createElement('img');
+                                    img.setAttribute('src', src);
+                                    img.setAttribute('alt', (cs.title || d.name || '').toString());
+                                    img.setAttribute('loading', 'lazy');
+                                    img.setAttribute('decoding', 'async');
+                                    img.setAttribute('referrerpolicy', 'no-referrer');
+                                    img.setAttribute('width', '48');
+                                    img.setAttribute('height', '72');
+                                    wrap.appendChild(img);
+                                    actions.insertBefore(wrap, actions.firstChild);
+                                    card.classList.add('has-nowplay');
+                                    try {
+                                        bindHover && bindHover('.js-media-hover', mediaCard);
+                                    } catch (_) {}
+                                }
+                            }
+                        } catch (_) {}
                     });
 
-                    // If the status hovercard is currently open, refresh its content live
+                    // If a hovercard is currently open, refresh its content live
                     try {
-                        const hc = document.getElementById('hc-status');
-                        if (hc && hc.classList.contains('open') && hc._trigger) {
-                            const tr = hc._trigger;
+                        const hcStatus = document.getElementById('hc-status');
+                        if (hcStatus && hcStatus.classList.contains('open') && hcStatus._trigger) {
+                            const tr = hcStatus._trigger;
                             const cardEl = tr.closest('.device-card');
                             const did = cardEl?.getAttribute('data-id');
                             const d = byId.get(did);
@@ -11552,9 +11662,48 @@
                                     `<div class="hc-row hc-ua"><i class="fas fa-globe"></i><span>User agent</span><span class="mono value ${ua ? '' : 'dim'}" title="${escapeHtml(ua)}">${escapeHtml(ua || '—')}</span></div>`,
                                     '</div>',
                                 ].join('');
-                                hc.innerHTML = html;
-                                // Keep position anchored to trigger
-                                positionHover(hc, tr);
+                                hcStatus.innerHTML = html;
+                                positionHover(hcStatus, tr);
+                            }
+                        }
+                        const hcMedia = document.getElementById('hc-media');
+                        if (hcMedia && hcMedia.classList.contains('open') && hcMedia._trigger) {
+                            const tr = hcMedia._trigger;
+                            const cardEl = tr.closest('.device-card');
+                            const did = cardEl?.getAttribute('data-id');
+                            const d = byId.get(did);
+                            if (d) {
+                                const cs = d?.currentState || {};
+                                const title = cs.title || '—';
+                                const year = Number.isFinite(Number(cs.year))
+                                    ? String(cs.year)
+                                    : '—';
+                                const rating = Number.isFinite(Number(cs.rating))
+                                    ? Number(cs.rating).toFixed(1)
+                                    : '—';
+                                const runtime = Number.isFinite(Number(cs.runtime || cs.duration))
+                                    ? `${Math.round(Number(cs.runtime || cs.duration) / 60)} min`
+                                    : '—';
+                                const genres = Array.isArray(cs.genres)
+                                    ? cs.genres.join(', ')
+                                    : '—';
+                                const overview = (cs.overview || cs.plot || '').trim();
+                                const ov = overview
+                                    ? overview.slice(0, 320) + (overview.length > 320 ? '…' : '')
+                                    : '—';
+                                const html = [
+                                    '<div class="hc-title"><i class="fas fa-film"></i><span>Media</span></div>',
+                                    '<div class="hc-list">',
+                                    `<div class="hc-row"><i class="fas fa-heading"></i><span>Title</span><span class="mono value ${title === '—' ? 'dim' : ''}">${escapeHtml(title)}</span></div>`,
+                                    `<div class="hc-row"><i class="fas fa-calendar"></i><span>Year</span><span class="mono value ${year === '—' ? 'dim' : ''}">${escapeHtml(year)}</span></div>`,
+                                    `<div class="hc-row"><i class="fas fa-star"></i><span>Rating</span><span class="mono value ${rating === '—' ? 'dim' : ''}">${escapeHtml(rating)}</span></div>`,
+                                    `<div class="hc-row"><i class="fas fa-clock"></i><span>Runtime</span><span class="mono value ${runtime === '—' ? 'dim' : ''}">${escapeHtml(runtime)}</span></div>`,
+                                    `<div class="hc-row"><i class="fas fa-shapes"></i><span>Genres</span><span class="mono value ${genres === '—' ? 'dim' : ''}">${escapeHtml(genres)}</span></div>`,
+                                    `<div class="hc-row"><i class="fas fa-align-left"></i><span>Overview</span><span class="mono value ${ov === '—' ? 'dim' : ''}" style="max-width:520px;white-space:normal;line-height:1.35;">${escapeHtml(ov)}</span></div>`,
+                                    '</div>',
+                                ].join('');
+                                hcMedia.innerHTML = html;
+                                positionHover(hcMedia, tr);
                             }
                         }
                     } catch (_) {}
@@ -14330,40 +14479,9 @@
                             window.__plexAutoRefreshed = window.__plexAutoRefreshed || false;
                             if (!window.__plexAutoRefreshed && !forceFresh) {
                                 window.__plexAutoRefreshed = true;
-                                // console log removed: Auto refreshing Plex libraries
-                                // First perform a silent connection test to ensure token/host are valid
-                                (async () => {
-                                    try {
-                                        const testRes = await fetch('/api/admin/test-plex', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            credentials: 'include',
-                                            body: JSON.stringify({ hostname: host, port: portVal }),
-                                        });
-                                        if (testRes.ok) {
-                                            // console log removed: Auto test-plex succeeded
-                                        } else {
-                                            console.warn(
-                                                '[Admin][MediaSources] Auto test-plex failed status',
-                                                testRes.status
-                                            );
-                                        }
-                                    } catch (e) {
-                                        console.warn(
-                                            '[Admin][MediaSources] Auto test-plex error',
-                                            e?.message || e
-                                        );
-                                    } finally {
-                                        try {
-                                            fetchPlexLibraries(true, true);
-                                        } catch (_) {}
-                                    }
-                                })();
+                                fetchPlexLibraries(true, true);
                             }
                         } catch (_) {}
-                    } else {
-                        pill.textContent = 'Not configured';
-                        pill.classList.add('is-not-configured');
                     }
                 }
                 // Removed globe link rendering in header actions
