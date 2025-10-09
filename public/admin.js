@@ -19817,11 +19817,16 @@ if (!document.__niwDelegatedFallback) {
                             <i class="fas fa-${item.type === 'directory' ? 'folder' : 'file'}"></i>
                         </div>`;
                 }
+                // Display name: hide .zip extension for cleaner look
+                const displayName =
+                    item.type === 'file' && /\.zip$/i.test(item.name)
+                        ? item.name.replace(/\.zip$/i, '')
+                        : item.name;
                 return `
             <div class="browser-item" data-path="${item.path}" data-type="${item.type}">
                 ${iconHtml}
                 <div class="browser-item-name">
-                    <span class="name-text">${item.name}</span>
+                    <span class="name-text">${displayName}</span>
                     ${
                         item.sizeBytes != null
                             ? `<span class="status-pill sp-size">${humanSize(item.sizeBytes)}</span>`
