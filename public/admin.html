@@ -6,6 +6,24 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
+  <script>
+    // Force cache refresh if old version URL parameter is detected
+    (function() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const vParam = urlParams.get('v');
+        // If v param exists and is not a pure number (old base36 format like t3vtju)
+        if (vParam && !/^\d+$/.test(vParam)) {
+          console.warn('[Cache Check] Old version URL detected (v=' + vParam + '), forcing refresh...');
+          // Remove all query params and add fresh timestamp
+          const cleanUrl = window.location.pathname + '?_refresh=' + Date.now() + window.location.hash;
+          window.location.replace(cleanUrl);
+        }
+      } catch(e) {
+        console.error('[Cache Check] Failed:', e);
+      }
+    })();
+  </script>
   <title>Posterrama Admin — Dashboard</title>
   <meta name="description" content="Posterrama Admin Dashboard for configuring media sources, display modes, devices, operations and monitoring your self-hosted poster server." />
   <!-- PWA: basic meta + manifest so admin2 independently registers the Service Worker -->
