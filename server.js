@@ -7775,6 +7775,19 @@ app.get('/admin', (req, res) => {
     if (!isAdminSetup()) {
         return res.redirect('/admin/setup');
     }
+
+    // Force redirect to remove old version parameters from cached URLs
+    // This ensures users always get the latest admin interface
+    const queryParams = req.query;
+    const hasOldVersionParam = queryParams.v && !/^\d+$/.test(queryParams.v);
+
+    if (hasOldVersionParam) {
+        // Redirect to clean URL with cache-busting timestamp
+        const cleanUrl = `/admin?_refresh=${Date.now()}`;
+        logger.info(`Redirecting old cached version (v=${queryParams.v}) to latest`);
+        return res.redirect(302, cleanUrl);
+    }
+
     // If setup is done, the isAuthenticated middleware will handle the rest
     isAuthenticated(req, res, () => {
         // Generate cache buster based on file modification times for better caching

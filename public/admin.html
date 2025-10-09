@@ -3342,6 +3342,26 @@
         </div>
       </div>
     </div>
+  <script>
+    // Auto-redirect to latest version if cached old version is loaded
+    (function() {
+      try {
+        const currentScript = document.currentScript?.src || '';
+        const match = /admin\.js\?v=([^&\s]+)/.exec(document.querySelector('script[src*="admin.js"]')?.src || '');
+        const expectedVersion = '{{ASSET_VERSION}}';
+        const loadedVersion = match ? match[1] : null;
+        
+        if (loadedVersion && expectedVersion && loadedVersion !== expectedVersion) {
+          console.warn('[Version Check] Old version detected:', loadedVersion, '→ Redirecting to latest:', expectedVersion);
+          // Clear cache and reload with new version
+          const newUrl = window.location.pathname + '?_bust=' + Date.now();
+          window.location.replace(newUrl);
+        }
+      } catch(e) {
+        console.error('[Version Check] Failed:', e);
+      }
+    })();
+  </script>
   <script src="/admin.js?v={{ASSET_VERSION}}"></script>
   <script>
     // Fallback spinner wrapper bootstrap (runs after main admin.js). Safe + idempotent.
