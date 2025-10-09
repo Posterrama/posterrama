@@ -2,7 +2,7 @@
  * Test-only endpoints for log generation and clearing
  * These routes are only available when EXPOSE_INTERNAL_ENDPOINTS=true
  * Used for testing and debugging purposes
- * 
+ *
  * Location: __tests__/routes/test-endpoints.js
  * Mounted in server.js when EXPOSE_INTERNAL_ENDPOINTS=true
  */
