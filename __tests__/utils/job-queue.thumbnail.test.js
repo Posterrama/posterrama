@@ -26,7 +26,9 @@ describe('JobQueue posterpack thumbnail generation', () => {
         fs.writeFileSync(configPath, originalConfig);
         try {
             fs.rmSync(tmpRoot, { recursive: true, force: true });
-        } catch (_) {}
+        } catch (_) {
+            // noop: temp cleanup failure is non-fatal in tests
+        }
         jest.resetModules();
     });
 

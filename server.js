@@ -1481,7 +1481,9 @@ app.head(
                         zipFull = full;
                         break;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // noop: missing or inaccessible file is non-fatal for presence check
+                }
             }
             if (!zipFull) return res.sendStatus(404);
             let zip;

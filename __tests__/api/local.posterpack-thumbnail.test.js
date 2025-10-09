@@ -59,7 +59,9 @@ describe('Local posterpack: thumbnail streaming and HEAD', () => {
         // Cleanup temp directory best-effort
         try {
             fs.rmSync(tmpRoot, { recursive: true, force: true });
-        } catch (_) {}
+        } catch (_) {
+            // noop: best-effort cleanup
+        }
         jest.resetModules();
     });
 

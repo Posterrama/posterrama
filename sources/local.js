@@ -345,10 +345,10 @@ class LocalDirectorySource {
                             clearlogo: false,
                         };
                         for (const ext of exts) {
-                            const rePoster = new RegExp(`(^|/)poster\.${ext}$`, 'i');
-                            const reBg = new RegExp(`(^|/)background\.${ext}$`, 'i');
-                            const reThumb = new RegExp(`(^|/)(thumb|thumbnail)\.${ext}$`, 'i');
-                            const reClearLogo = new RegExp(`(^|/)clearlogo\.${ext}$`, 'i');
+                            const rePoster = new RegExp(`(^|/)poster\\.${ext}$`, 'i');
+                            const reBg = new RegExp(`(^|/)background\\.${ext}$`, 'i');
+                            const reThumb = new RegExp(`(^|/)(thumb|thumbnail)\\.${ext}$`, 'i');
+                            const reClearLogo = new RegExp(`(^|/)clearlogo\\.${ext}$`, 'i');
                             if (zipEntries.some(e => rePoster.test(e.entryName))) has.poster = true;
                             if (zipEntries.some(e => reBg.test(e.entryName))) has.background = true;
                             if (zipEntries.some(e => reThumb.test(e.entryName)))
