@@ -14920,10 +14920,10 @@
             } catch (e) {
                 console.warn('Jellyfin health indicator init failed', e);
             }
-            if (getInput('plex.token')) {
+            if (getInput('plex.token') || getInput('plex_token')) {
                 // Show masked placeholder when a token exists, or keep empty for user to fill
                 const hasToken = !!env[plexTokenVar];
-                const el = getInput('plex.token');
+                const el = getInput('plex.token') || getInput('plex_token');
 
                 // ALWAYS try to restore token from localStorage first (more persistent than sessionStorage)
                 const savedToken = localStorage.getItem('plex_token_temp');
