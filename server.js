@@ -6946,6 +6946,7 @@ async function getPlaylistMedia() {
                 let contentRating = item?.contentRating || item?.metadata?.contentRating || null;
                 let rottenTomatoes = item?.rottenTomatoes || item?.metadata?.rottenTomatoes || null;
                 let imdbUrl = item?.imdbUrl || item?.metadata?.imdbUrl || null;
+                let runtimeMs = item?.metadata?.runtimeMs || null;
                 const lp = item?.localPath || '';
                 const isZip = typeof lp === 'string' && lp.toLowerCase().endsWith('.zip');
                 if (isZip) {
@@ -7013,6 +7014,7 @@ async function getPlaylistMedia() {
                                         contentRating: j.contentRating ?? null,
                                         rottenTomatoes: j.rottenTomatoes ?? null,
                                         imdbUrl: j.imdbUrl ?? null,
+                                        runtimeMs: j.runtimeMs ?? null,
                                         hasPoster,
                                         hasBackground,
                                         hasClearLogo,
@@ -7026,6 +7028,7 @@ async function getPlaylistMedia() {
                                         contentRating: null,
                                         rottenTomatoes: null,
                                         imdbUrl: null,
+                                        runtimeMs: null,
                                         hasPoster,
                                         hasBackground,
                                         hasClearLogo,
@@ -7040,6 +7043,7 @@ async function getPlaylistMedia() {
                                     contentRating: null,
                                     rottenTomatoes: null,
                                     imdbUrl: null,
+                                    runtimeMs: null,
                                     hasPoster,
                                     hasBackground,
                                     hasClearLogo,
@@ -7061,6 +7065,7 @@ async function getPlaylistMedia() {
                             if (!rottenTomatoes && zm.rottenTomatoes)
                                 rottenTomatoes = zm.rottenTomatoes;
                             if (!imdbUrl && zm.imdbUrl) imdbUrl = zm.imdbUrl;
+                            if (zm.runtimeMs != null) runtimeMs = zm.runtimeMs;
                             // Fallbacks: if background missing in ZIP, use poster (and vice versa)
                             try {
                                 const hasPoster = !!zm.hasPoster;
@@ -7118,6 +7123,7 @@ async function getPlaylistMedia() {
                     contentRating: contentRating || null,
                     rottenTomatoes: rottenTomatoes || null,
                     imdbUrl: imdbUrl || null,
+                    runtime: runtimeMs != null ? Math.round(runtimeMs / 60000) : null,
                     source: 'local',
                 };
             };
@@ -7164,6 +7170,7 @@ async function getPlaylistMedia() {
                     if (!existing.imdbUrl && it.imdbUrl) existing.imdbUrl = it.imdbUrl;
                     if (!existing.tagline && it.tagline) existing.tagline = it.tagline;
                     if (!existing.overview && it.overview) existing.overview = it.overview;
+                    if (!existing.runtime && it.runtime) existing.runtime = it.runtime;
                     // Keep the earliest year/title if missing
                     if (!existing.title && it.title) existing.title = it.title;
                     if (!existing.year && it.year) existing.year = it.year;
