@@ -611,15 +611,6 @@
 
     // Small helpers for Local media total caching
     const LS_LOCAL_TOTAL_KEY = 'admin2:localTotal';
-    function getCachedLocalTotal() {
-        try {
-            const v = sessionStorage.getItem(LS_LOCAL_TOTAL_KEY);
-            const n = Number(v);
-            return Number.isFinite(n) ? n : 0;
-        } catch (_) {
-            return 0;
-        }
-    }
     function setCachedLocalTotal(n) {
         try {
             sessionStorage.setItem(LS_LOCAL_TOTAL_KEY, String(Number(n) || 0));
@@ -650,15 +641,86 @@
         }
     }
 
+    /**
+     * Update dashboard media items count by summing enabled sources with filters applied:
+     * - Plex/Jellyfin: Count items matching configured filters (from playlist)
+     * - TMDB: Count items in queue
+     * - Local: Total items count
+     */
+    async function updateMediaItemsCount() {
+        try {
+            const configData = await fetchJSON('/api/admin/config').catch(() => null);
+            if (!configData) return 0;
+
+            const config = configData.config || {};
+            let total = 0;
+            const breakdown = [];
+
+            // Check each source type
+            const mediaServers = config.mediaServers || [];
+            const plex = mediaServers.find(s => s.type === 'plex');
+            const jf = mediaServers.find(s => s.type === 'jellyfin');
+
+            // Plex: filtered count from playlist
+            if (plex?.enabled) {
+                const plexCount = window.__lastPlexFilteredCount || 0;
+                if (plexCount > 0) {
+                    total += plexCount;
+                    breakdown.push(`Plex: ${formatNumber(plexCount)}`);
+                }
+            }
+
+            // Jellyfin: filtered count from playlist
+            if (jf?.enabled) {
+                const jfCount = window.__lastJellyfinFilteredCount || 0;
+                if (jfCount > 0) {
+                    total += jfCount;
+                    breakdown.push(`Jellyfin: ${formatNumber(jfCount)}`);
+                }
+            }
+
+            // TMDB: queue count
+            if (config.tmdbSource?.enabled) {
+                const tmdbCount = window.__lastTmdbCount || 0;
+                if (tmdbCount > 0) {
+                    total += tmdbCount;
+                    breakdown.push(`TMDB: ${formatNumber(tmdbCount)}`);
+                }
+            }
+
+            // Local: total items count
+            if (config.localDirectory?.enabled) {
+                const localCount = await computeLocalTotalSafe();
+                if (localCount > 0) {
+                    total += localCount;
+                    breakdown.push(`Local: ${formatNumber(localCount)}`);
+                }
+            }
+
+            // Update dashboard display
+            setText('metric-media-items', formatNumber(total));
+
+            // Store breakdown for tooltip/debugging
+            const mediaItemsEl = document.getElementById('metric-media-items');
+            if (mediaItemsEl) {
+                mediaItemsEl.setAttribute('title', breakdown.join(' | ') || 'No items');
+            }
+
+            return total;
+        } catch (err) {
+            logger.error('Failed to update media items count:', err);
+            return 0;
+        }
+    }
+
     async function refreshDashboardMetrics() {
         // Populate media totals and Active Mode for the top dashboard cards
         // Apply client-side dedupe and 429 backoff to avoid hammering the server
         if (!window.__metricsCooldownUntil) window.__metricsCooldownUntil = 0;
         if (!window.__metricsInFlight) window.__metricsInFlight = null;
         try {
-            // Show cached Local total immediately as a placeholder
-            const cachedLocal = getCachedLocalTotal();
-            if (cachedLocal > 0) setText('metric-media-items', formatNumber(cachedLocal));
+            // Calculate total media items from enabled sources with filters applied
+            await updateMediaItemsCount();
 
             const now = Date.now();
             if (now < window.__metricsCooldownUntil) {
@@ -682,20 +744,6 @@
                 } else {
                     // Fallback
                     data = await fetchJSON('/api/v1/metrics/dashboard').catch(() => null);
-                }
-                if (data) {
-                    const playlistCount = Number(data?.media?.playlistItems) || 0;
-                    const libTotals = Number(data?.media?.libraryTotals?.total) || 0;
-                    // Compute Local total in parallel
-                    const localTotal = await computeLocalTotalSafe();
-                    // If external library totals are zero (no Plex/Jellyfin contributing), prefer Local
-                    // to avoid counting both poster and background assets as separate "items" for Local.
-                    // Otherwise, use the larger of playlist vs Local as before.
-                    const display =
-                        libTotals === 0 ? localTotal : Math.max(playlistCount, localTotal);
-                    setText('metric-media-items', formatNumber(display));
-                    // Stash for later reconciliation after config fetch (to enforce only-Local case)
-                    window.__lastLocalTotal = localTotal;
                 }
                 return data;
             })();
@@ -727,19 +775,8 @@
                 if (config.tmdbSource?.enabled) enabledSources++;
                 if (config.localDirectory?.enabled) enabledSources++;
 
-                // If only Local is enabled, force dashboard Items to Local directory total
-                try {
-                    const onlyLocal =
-                        !!config.localDirectory?.enabled &&
-                        !plex?.enabled &&
-                        !jf?.enabled &&
-                        !config.tmdbSource?.enabled;
-                    if (onlyLocal) {
-                        const localTotal = Number(window.__lastLocalTotal) || 0;
-                        if (localTotal >= 0)
-                            setText('metric-media-items', formatNumber(localTotal));
-                    }
-                } catch (_) {}
+                // Dashboard media items count is now handled by updateMediaItemsCount()
+                // which sums all enabled sources with proper filtering
 
                 const mediaSub = document.getElementById('metric-media-sub');
                 if (mediaSub) {
@@ -14385,6 +14422,10 @@
                       ? totalJf
                       : filteredJf;
 
+                // Store filtered counts globally for dashboard calculation
+                window.__lastPlexFilteredCount = displayPlex;
+                window.__lastJellyfinFilteredCount = displayJf;
+
                 const _fmt = v => (Number.isFinite(v) ? Number(v).toLocaleString() : '—');
                 const plexTooltip = `Items — filtered: ${_fmt(filteredPlex)} | total: ${_fmt(totalPlex)}`;
                 const jfTooltip = `Items — filtered: ${_fmt(filteredJf)} | total: ${_fmt(totalJf)}`;
@@ -14408,6 +14449,9 @@
                 // Display counts: for TMDB we don't have UI filters, so show a single total number.
                 const displayTmdb = Number.isFinite(tmdbTotal) ? tmdbTotal : filteredTmdb;
 
+                // Store TMDB count globally for dashboard calculation
+                window.__lastTmdbCount = displayTmdb;
+
                 // Build helpful tooltips for TMDB
                 const fmt = v => (Number.isFinite(v) ? Number(v).toLocaleString() : '—');
                 const tmdbTooltip = `TMDB items — cached: ${fmt(filteredTmdb)} | total: ${fmt(tmdbTotal)}`;
@@ -14419,6 +14463,12 @@
                 setCount('jf-count-pill', displayJf, totalJf);
                 // TMDB header pill
                 setCount('tmdb-count-pill', displayTmdb, null, tmdbTooltip);
+
+                // Update dashboard media items count with filtered totals from all enabled sources
+                updateMediaItemsCount().catch(err => {
+                    logger.error('Failed to update dashboard media items count:', err);
+                });
+
                 // Local header pill — prefer directory totals if available, fallback to cached playlist
                 try {
                     const [dirTotal, filteredLocal] = await Promise.all([
