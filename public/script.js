@@ -370,6 +370,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     runtime: it.runtimeMs || it.duration || null,
                     genres: it.genres || null,
                     overview: it.overview || it.summary || it.plot || null,
+                    tagline: it.tagline || null,
+                    contentRating: it.contentRating || null,
                 };
             } catch (_) {
                 return null;

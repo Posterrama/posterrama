@@ -391,6 +391,8 @@
             runtime: curr && curr.runtime,
             genres: curr && curr.genres,
             overview: curr && curr.overview,
+            tagline: curr && curr.tagline,
+            contentRating: curr && curr.contentRating,
         };
         try {
             // Lightweight debug to help diagnose admin-device sync issues

@@ -3453,6 +3453,8 @@ if (isDeviceMgmtEnabled()) {
             const runtime = b.runtime;
             const genres = b.genres;
             const overview = b.overview;
+            const tagline = b.tagline;
+            const contentRating = b.contentRating;
             const poweredOff = b.poweredOff; // optional powered off state (blackout)
             // Support pinned state from clients (accept several aliases for compatibility)
             const pinned =
@@ -3510,6 +3512,9 @@ if (isDeviceMgmtEnabled()) {
             if (Number.isFinite(Number(runtime))) currentState.runtime = Number(runtime);
             if (Array.isArray(genres)) currentState.genres = genres.slice(0, 20); // limit array size
             if (overview != null) currentState.overview = String(overview).slice(0, 1000);
+            if (tagline != null) currentState.tagline = String(tagline).slice(0, 500);
+            if (contentRating != null)
+                currentState.contentRating = String(contentRating).slice(0, 50);
             // If the client reports explicitly unpinned, proactively clear any lingering pinMediaId
             if (pinned === false) {
                 currentState.pinMediaId = '';

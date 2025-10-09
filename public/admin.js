@@ -10942,11 +10942,9 @@
                                         const genres = Array.isArray(cs.genres)
                                             ? cs.genres.join(', ')
                                             : '—';
-                                        const overview = (cs.overview || cs.plot || '').trim();
-                                        const ov = overview
-                                            ? overview.slice(0, 320) +
-                                              (overview.length > 320 ? '…' : '')
-                                            : '—';
+                                        const tagline = (cs.tagline || '').trim() || '—';
+                                        const contentRating =
+                                            (cs.contentRating || '').trim() || '—';
                                         const html = [
                                             '<div class="hc-title"><i class="fas fa-film"></i><span>Media</span></div>',
                                             '<div class="hc-list">',
@@ -10955,7 +10953,8 @@
                                             `<div class="hc-row"><i class="fas fa-star"></i><span>Rating</span><span class="mono value ${rating === '—' ? 'dim' : ''}">${escapeHtml(rating)}</span></div>`,
                                             `<div class="hc-row"><i class="fas fa-clock"></i><span>Runtime</span><span class="mono value ${runtime === '—' ? 'dim' : ''}">${escapeHtml(runtime)}</span></div>`,
                                             `<div class="hc-row"><i class="fas fa-shapes"></i><span>Genres</span><span class="mono value ${genres === '—' ? 'dim' : ''}">${escapeHtml(genres)}</span></div>`,
-                                            `<div class="hc-row"><i class="fas fa-align-left"></i><span>Overview</span><span class="mono value ${ov === '—' ? 'dim' : ''}" style="max-width:520px;white-space:normal;line-height:1.35;">${escapeHtml(ov)}</span></div>`,
+                                            `<div class="hc-row"><i class="fas fa-shield-alt"></i><span>Content Rating</span><span class="mono value ${contentRating === '—' ? 'dim' : ''}">${escapeHtml(contentRating)}</span></div>`,
+                                            `<div class="hc-row"><i class="fas fa-quote-left"></i><span>Tagline</span><span class="mono value ${tagline === '—' ? 'dim' : ''}" style="max-width:520px;white-space:normal;line-height:1.35;font-style:italic;">${escapeHtml(tagline)}</span></div>`,
                                             '</div>',
                                         ].join('');
                                         card.innerHTML = html;
