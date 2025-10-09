@@ -2933,6 +2933,20 @@ app.get('/logs.html', isAuthenticated, (req, res, _next) => {
     res.redirect('/admin/logs');
 });
 
+// Disable ALL caching for admin files - they must ALWAYS be fresh
+app.use((req, res, next) => {
+    // Admin files: admin.html, admin.js, admin.css, logs.html, logs.js, device-mgmt.js
+    const isAdminFile = /\/(admin|logs|device-mgmt)\.(html|js|css)/.test(req.url);
+
+    if (isAdminFile) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+    }
+    next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Ensure cache-busted assets are not cached by proxies and mark as must-revalidate
@@ -17352,6 +17366,22 @@ if (require.main === module) {
          */
         siteApp.get('/', (req, res) => {
             res.sendFile(path.join(__dirname, 'public', 'promo.html'));
+        });
+
+        // Disable caching for admin files on site server too
+        siteApp.use((req, res, next) => {
+            const isAdminFile = /\/(admin|logs|device-mgmt)\.(html|js|css)/.test(req.url);
+
+            if (isAdminFile) {
+                res.setHeader(
+                    'Cache-Control',
+                    'no-store, no-cache, must-revalidate, proxy-revalidate'
+                );
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+                res.setHeader('Surrogate-Control', 'no-store');
+            }
+            next();
         });
 
         // Serve static files (CSS, JS, etc.) from the 'public' directory
