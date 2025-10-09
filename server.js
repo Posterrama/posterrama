@@ -7815,9 +7815,17 @@ app.get('/admin', (req, res) => {
                     .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${jsCacheBuster}`);
 
                 res.setHeader('Content-Type', 'text/html');
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                // AGGRESSIVE cache headers to force reload
+                res.setHeader(
+                    'Cache-Control',
+                    'no-cache, no-store, must-revalidate, max-age=0, proxy-revalidate'
+                );
                 res.setHeader('Pragma', 'no-cache');
                 res.setHeader('Expires', '0');
+                // Use JS mtime as ETag to detect when files change
+                res.setHeader('ETag', `"admin-js-${jsCacheBuster}"`);
+                // Force browsers to check with server even if cached
+                res.setHeader('Vary', 'Accept-Encoding');
                 res.send(updatedHtml);
             });
         } catch (error) {
@@ -7839,9 +7847,14 @@ app.get('/admin', (req, res) => {
                     .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${fallbackCacheBuster}`);
 
                 res.setHeader('Content-Type', 'text/html');
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader(
+                    'Cache-Control',
+                    'no-cache, no-store, must-revalidate, max-age=0, proxy-revalidate'
+                );
                 res.setHeader('Pragma', 'no-cache');
                 res.setHeader('Expires', '0');
+                res.setHeader('ETag', `"admin-fallback-${fallbackCacheBuster}"`);
+                res.setHeader('Vary', 'Accept-Encoding');
                 res.send(updatedHtml);
             });
         }

@@ -3425,40 +3425,33 @@
     })();
   </script>
   <script>
-    // CRITICAL: Dynamic script injection to bypass browser cache
-    // Inject admin.js with current timestamp to force fresh load
+    // Force fresh admin.js load by manipulating script src before it loads
     (function() {
       try {
-        const expectedVersion = '{{ASSET_VERSION}}';
-        const scriptUrl = '/admin.js?v=' + expectedVersion + '&_nocache=' + Date.now();
-        
-        console.log('[Dynamic Load] Injecting admin.js with version:', expectedVersion);
-        
-        // Create script element dynamically
-        const script = document.createElement('script');
-        script.src = scriptUrl;
-        script.async = false; // Ensure synchronous execution order
-        
-        // Add to document NOW before parser continues
-        document.currentScript.parentNode.insertBefore(script, document.currentScript.nextSibling);
-        
-        // Prevent the static script tag from loading by removing it
-        setTimeout(function() {
-          const staticScripts = document.querySelectorAll('script[src*="admin.js"][src*="{{ASSET_VERSION}}"]');
-          staticScripts.forEach(function(s) {
-            if (!s.src.includes('_nocache=')) {
-              console.log('[Dynamic Load] Removing static script tag');
-              s.remove();
+        // Wait for the script tag to be parsed
+        document.addEventListener('DOMContentLoaded', function() {
+          const loader = document.getElementById('admin-js-loader');
+          if (loader && loader.src) {
+            const originalSrc = loader.src;
+            const match = /admin\.js\?v=([^&\s]+)/.exec(originalSrc);
+            if (match) {
+              const version = match[1];
+              // If old base36 format, force reload with fresh version
+              if (!/^\d{13}/.test(version)) {
+                console.warn('[Script Loader] Old version detected, forcing page reload...');
+                window.location.href = window.location.pathname + '?_force=' + Date.now() + window.location.hash;
+              } else {
+                console.log('[Script Loader] Fresh version detected:', version);
+              }
             }
-          });
-        }, 0);
+          }
+        }, { once: true });
       } catch(e) {
-        console.error('[Dynamic Load] Failed:', e);
-        // Fallback: let static script load
+        console.error('[Script Loader] Check failed:', e);
       }
     })();
   </script>
-  <script src="/admin.js?v={{ASSET_VERSION}}"></script>
+  <script id="admin-js-loader" src="/admin.js?v={{ASSET_VERSION}}"></script>
   <script>
     // Fallback spinner wrapper bootstrap (runs after main admin.js). Safe + idempotent.
     (function(){
