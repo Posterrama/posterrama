@@ -7555,7 +7555,30 @@ async function writeEnvFile(newValues) {
     try {
         const content = await readEnvFile();
         const lines = content.split('\n');
-        const updatedKeys = new Set(Object.keys(newValues));
+
+        // Filter out invalid env values (objects, arrays, null, undefined)
+        const validEnvValues = {};
+        for (const [key, value] of Object.entries(newValues)) {
+            // Only allow strings, numbers, booleans
+            if (
+                typeof value === 'string' ||
+                typeof value === 'number' ||
+                typeof value === 'boolean'
+            ) {
+                validEnvValues[key] = value;
+            } else if (value !== null && value !== undefined) {
+                logger.warn(
+                    `[writeEnvFile] Skipping invalid env value for ${key}: ${typeof value}`,
+                    {
+                        action: 'env_validation_skip',
+                        key,
+                        valueType: typeof value,
+                    }
+                );
+            }
+        }
+
+        const updatedKeys = new Set(Object.keys(validEnvValues));
         const previousEnv = { ...process.env };
 
         const newLines = lines.map(line => {
@@ -7566,7 +7589,7 @@ async function writeEnvFile(newValues) {
             if (updatedKeys.has(key)) {
                 updatedKeys.delete(key);
                 // Don't add quotes - they cause "Invalid character in header" errors
-                return `${key}=${newValues[key]}`;
+                return `${key}=${validEnvValues[key]}`;
             }
             return line;
         });
@@ -7574,7 +7597,7 @@ async function writeEnvFile(newValues) {
         // Add any new keys that weren't in the file
         updatedKeys.forEach(key => {
             // Don't add quotes - they cause "Invalid character in header" errors
-            newLines.push(`${key}=${newValues[key]}`);
+            newLines.push(`${key}=${validEnvValues[key]}`);
         });
 
         const newContent = newLines.join('\n');
@@ -7590,17 +7613,17 @@ async function writeEnvFile(newValues) {
         // Write the new content
         await fsp.writeFile('.env', newContent, 'utf-8');
 
-        // Update process.env for the current running instance
-        Object.assign(process.env, newValues);
+        // Update process.env for the current running instance (only valid values)
+        Object.assign(process.env, validEnvValues);
 
         // Check if DEBUG mode was changed and update logger accordingly
-        if ('DEBUG' in newValues) {
+        if ('DEBUG' in validEnvValues) {
             try {
                 logger.updateLogLevelFromDebug();
             } catch (error) {
                 logger.warn('Failed to update logger level from DEBUG setting', {
                     error: error.message,
-                    debugValue: newValues.DEBUG,
+                    debugValue: validEnvValues.DEBUG,
                 });
             }
         }
