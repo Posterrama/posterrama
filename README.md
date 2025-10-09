@@ -201,6 +201,23 @@ A quick peek at what's next. We're actively building these high‑impact upgrade
 
 And that's just the beginning — much more is on the way.
 
+## System requirements
+
+**Minimum recommended:**
+
+- **RAM**: 2GB minimum, 4GB+ recommended for larger libraries (5000+ items)
+- **Storage**: 2GB for application + cache space for images
+- **OS**: Linux (Ubuntu, Debian, CentOS, RHEL), macOS, or Windows with Node.js support
+- **Node.js**: v18 LTS or higher
+- **Network**: Stable connection to media servers (Plex/Jellyfin)
+
+**Performance notes:**
+
+- Posterrama automatically uses up to 8GB heap memory for large libraries
+- Image caching reduces bandwidth after initial load
+- Core dumps are disabled to prevent unnecessary disk usage
+- PM2 auto-restarts on crashes for high availability
+
 ## Get started
 
 ### One-line install

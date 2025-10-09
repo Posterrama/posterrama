@@ -785,6 +785,37 @@ show_completion_info() {
     echo "=================================================================="
 }
 
+# Function to configure system limits and disable core dumps
+configure_system_limits() {
+    print_status "Configuring system limits and security settings..."
+    
+    # Disable core dumps to prevent large dump files (5GB+)
+    print_status "Disabling core dumps..."
+    
+    # Add to limits.conf if not already present
+    if ! grep -q "* soft core 0" /etc/security/limits.conf 2>/dev/null; then
+        echo "* soft core 0" | $SUDO tee -a /etc/security/limits.conf > /dev/null
+        echo "* hard core 0" | $SUDO tee -a /etc/security/limits.conf > /dev/null
+        print_success "Core dumps disabled in /etc/security/limits.conf"
+    else
+        print_success "Core dumps already disabled"
+    fi
+    
+    # Also disable for current session
+    ulimit -c 0 2>/dev/null || true
+    
+    # Add to sysctl for permanent effect
+    if [[ -w /etc/sysctl.conf ]] || [[ -n "$SUDO" ]]; then
+        if ! grep -q "kernel.core_pattern" /etc/sysctl.conf 2>/dev/null; then
+            echo "kernel.core_pattern=|/bin/false" | $SUDO tee -a /etc/sysctl.conf > /dev/null
+            $SUDO sysctl -p > /dev/null 2>&1 || true
+            print_success "Core dumps disabled via sysctl"
+        fi
+    fi
+    
+    print_success "✅ System limits configured successfully"
+}
+
 # Main installation function
 main() {
     echo "=================================================================="
@@ -811,6 +842,7 @@ main() {
     # Perform installation steps
     check_root
     detect_os
+    configure_system_limits
     install_git
     install_jq
     install_nodejs
