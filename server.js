@@ -12137,6 +12137,13 @@ app.post(
         let { hostname, token } = req.body; // token is now optional
         const { port: portValue } = req.body;
 
+        // DEBUG: Log what we received
+        logger.info('[Plex Test] Request body:', {
+            hostname,
+            token: token ? `${token.substring(0, 5)}...(${token.length})` : 'not provided',
+            port: portValue,
+        });
+
         if (!hostname || !portValue) {
             throw new ApiError(400, 'Hostname and port are required for the test.');
         }
@@ -12157,6 +12164,12 @@ app.post(
 
             if (plexServerConfig && plexServerConfig.tokenEnvVar) {
                 token = process.env[plexServerConfig.tokenEnvVar];
+                logger.info('[Plex Test] Using token from env:', {
+                    envVar: plexServerConfig.tokenEnvVar,
+                    tokenExists: !!token,
+                    tokenLength: token ? token.length : 0,
+                    tokenPreview: token ? `${token.substring(0, 5)}...` : 'empty',
+                });
                 if (!token) {
                     throw new ApiError(
                         400,
