@@ -8066,6 +8066,14 @@ app.get(
                 clock: 100,
                 global: 100,
             },
+            // Include source configuration so client knows which sources are enabled
+            mediaServers: config.mediaServers || null,
+            localDirectory: config.localDirectory
+                ? {
+                      enabled: config.localDirectory.enabled || false,
+                      // Don't expose the rootPath for security
+                  }
+                : null,
         };
 
         // Try to identify device and merge settings from groups and device (Global < Group < Device)
