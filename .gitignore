@@ -107,3 +107,6 @@ private/
 
 # Generated test artifacts (group config test outputs)
 *.groups.test.json
+
+# Test broadcast device files (generated during test runs)
+devices.broadcast.*.json
