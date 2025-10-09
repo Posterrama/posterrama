@@ -388,6 +388,9 @@
             posterUrl: curr && curr.posterUrl,
             backgroundUrl: curr && curr.backgroundUrl,
             thumbnailUrl: curr && curr.thumbnailUrl,
+            runtime: curr && curr.runtime,
+            genres: curr && curr.genres,
+            overview: curr && curr.overview,
         };
         try {
             // Lightweight debug to help diagnose admin-device sync issues

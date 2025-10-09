@@ -367,6 +367,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     posterUrl: it.posterUrl || null,
                     backgroundUrl: it.backgroundUrl || null,
                     thumbnailUrl: it.thumbnailUrl || null,
+                    runtime: it.runtimeMs || it.duration || null,
+                    genres: it.genres || null,
+                    overview: it.overview || it.summary || it.plot || null,
                 };
             } catch (_) {
                 return null;
