@@ -10260,10 +10260,14 @@
                                     hydrateDisplayForm(cfg.config || cfg);
                                 }
                             } else {
-                                console.warn('[Admin] Failed to refresh config after overrides');
+                                if (__debugOn)
+                                    console.debug(
+                                        '[Admin] Failed to refresh config after overrides'
+                                    );
                             }
                         } catch (e) {
-                            console.warn('[Admin] Refresh error after overrides', e);
+                            if (__debugOn)
+                                console.debug('[Admin] Refresh error after overrides', e);
                         }
                         if (ok)
                             window.notify?.toast({
@@ -14341,9 +14345,9 @@
                     } catch (_) {}
                     // debug removed: Jellyfin counts compute
                 } catch (e) {
-                    try {
-                        console.warn('[Admin][Jellyfin][Counts][Compute] failed', e);
-                    } catch (_) {}
+                    if (__debugOn) {
+                        console.debug('[Admin][Jellyfin][Counts][Compute] failed', e);
+                    }
                 }
 
                 // If no filters are active, prefer true totals; if unavailable, fall back to filtered (playlist-derived)
@@ -16104,7 +16108,7 @@
                         return isJellyfinEnabledCached();
                     })();
                     if (!effHostname) {
-                        console.warn('[Admin][Jellyfin][Fetch] abort: no hostname');
+                        if (__debugOn) console.debug('[Admin][Jellyfin][Fetch] abort: no hostname');
                         if (!silent) {
                             window.notify?.toast({
                                 type: 'warning',
@@ -16116,7 +16120,7 @@
                         return { skipped: true, libraries: [] };
                     }
                     if (!effEnabled) {
-                        console.warn('[Admin][Jellyfin][Fetch] abort: disabled');
+                        if (__debugOn) console.debug('[Admin][Jellyfin][Fetch] abort: disabled');
                         if (!silent) {
                             window.notify?.toast?.({
                                 type: 'info',
@@ -16669,14 +16673,16 @@
                     getInput('plex.token')?.value ||
                     document.getElementById('plex_token')?.value ||
                     '';
-                console.log('[Admin][Plex][Test] Resolved inputs', {
-                    fromNewHostname: getInput('plex.hostname')?.value,
-                    fromLegacyHostname: document.getElementById('plex_hostname')?.value,
-                    fromNewPort: getInput('plex.port')?.value,
-                    fromLegacyPort: document.getElementById('plex_port')?.value,
-                    finalHostname: hostname,
-                    finalPort: port,
-                });
+                if (__debugOn) {
+                    console.debug('[Admin][Plex][Test] Resolved inputs', {
+                        fromNewHostname: getInput('plex.hostname')?.value,
+                        fromLegacyHostname: document.getElementById('plex_hostname')?.value,
+                        fromNewPort: getInput('plex.port')?.value,
+                        fromLegacyPort: document.getElementById('plex_port')?.value,
+                        finalHostname: hostname,
+                        finalPort: port,
+                    });
+                }
                 if (!hostname || !port) throw new Error('Hostname and port are required');
                 const res = await fetch('/api/admin/test-plex', {
                     method: 'POST',
@@ -19026,6 +19032,9 @@ if (!document.__niwDelegatedFallback) {
 
 (function initLocalDirectory() {
     let currentPath = '/';
+    let currentRelativePath = ''; // Relative path from rootPath for API calls
+    let isSearchMode = false;
+    let currentSearchQuery = '';
     const selectedFiles = new Set();
 
     // Directory picker modal removed (fixed root)
@@ -19219,6 +19228,82 @@ if (!document.__niwDelegatedFallback) {
         const refreshBtn = document.getElementById('btn-refresh-browser');
         if (refreshBtn)
             refreshBtn.addEventListener('click', () => loadDirectoryContents(currentPath));
+
+        // Search functionality - recursive search via API
+        const searchInput = document.getElementById('local-browser-search');
+        const clearBtn = document.getElementById('local-search-clear');
+
+        if (searchInput) {
+            let searchTimeout;
+
+            // Show/hide clear button based on input content
+            const updateClearButton = () => {
+                if (clearBtn) {
+                    clearBtn.style.display = searchInput.value ? 'flex' : 'none';
+                }
+            };
+
+            searchInput.addEventListener('input', e => {
+                const query = e.target.value.toLowerCase().trim();
+                updateClearButton();
+
+                // Clear previous timeout
+                clearTimeout(searchTimeout);
+
+                // If empty query, exit search mode and reload current directory
+                if (!query) {
+                    isSearchMode = false;
+                    currentSearchQuery = '';
+                    loadDirectoryContents(currentPath);
+                    return;
+                }
+
+                // Debounce search for 300ms
+                searchTimeout = setTimeout(async () => {
+                    try {
+                        isSearchMode = true;
+                        currentSearchQuery = query;
+                        stopRealtimeDirectoryRefresh(); // Stop auto-refresh during search
+
+                        const searchPath = currentRelativePath || '';
+                        const response = await fetch(
+                            `/api/local/search?query=${encodeURIComponent(query)}&path=${encodeURIComponent(searchPath)}`
+                        );
+                        if (!response.ok) throw new Error('Search failed');
+
+                        const results = await response.json();
+                        renderSearchResults(results, query);
+                    } catch (error) {
+                        console.error('Search error:', error);
+                        isSearchMode = false;
+                        currentSearchQuery = '';
+                        // Fallback to local filtering if API fails
+                        const browserContent = document.getElementById('local-browser-content');
+                        if (!browserContent) return;
+
+                        const items = browserContent.querySelectorAll('.browser-item');
+                        items.forEach(item => {
+                            const nameEl = item.querySelector('.name-text');
+                            const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+                            item.style.display = !query || name.includes(query) ? '' : 'none';
+                        });
+                    }
+                }, 300);
+            });
+
+            // Clear button functionality
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    searchInput.value = '';
+                    updateClearButton();
+                    isSearchMode = false;
+                    currentSearchQuery = '';
+                    loadDirectoryContents(currentPath);
+                    searchInput.focus();
+                });
+            }
+        }
+
         // Create-folder and Delete-selected are not present in maintenance mode
         const dlBtn = document.getElementById('btn-download-dir');
         if (dlBtn) {
@@ -19360,6 +19445,10 @@ if (!document.__niwDelegatedFallback) {
     }
 
     function loadDirectoryContents(path = '/') {
+        // Exit search mode when navigating
+        isSearchMode = false;
+        currentSearchQuery = '';
+
         // Keep the requested path, but we will normalize after fetching server data
         currentPath = path;
 
@@ -19379,15 +19468,17 @@ if (!document.__niwDelegatedFallback) {
                 if (hasPayload) {
                     // Update currentPath to absolute path from server
                     if (result.currentPath) currentPath = result.currentPath;
-                    // Compute a relative path for breadcrumb display
+                    // Compute a relative path for breadcrumb display and API calls
                     const rel =
                         result.basePath &&
                         result.currentPath &&
                         result.currentPath.startsWith(result.basePath)
                             ? result.currentPath.slice(result.basePath.length) || '/'
                             : result.currentPath || '/';
-                    // Ensure realtime size updates are active when viewing local browser
-                    startRealtimeDirectoryRefresh();
+                    // Store the relative path (remove leading slash for API)
+                    currentRelativePath = rel === '/' ? '' : rel.replace(/^\/+/, '');
+                    // Don't auto-refresh directory contents - only refresh on user action
+                    // startRealtimeDirectoryRefresh();
                     updateBreadcrumb(rel);
                     renderDirectoryContents(result);
                 } else {
@@ -19419,6 +19510,11 @@ if (!document.__niwDelegatedFallback) {
     const BROWSER_MIN_INTERVAL = 3000; // 3s between refreshes (adaptive)
     async function refreshDirectorySafe(forceFresh = false) {
         try {
+            // Don't refresh if in search mode
+            if (isSearchMode) {
+                return;
+            }
+
             const now = Date.now();
             if (now < __browserRefreshCooldownUntil) return;
             if (__browserRefreshInFlight) {
@@ -19499,6 +19595,105 @@ if (!document.__niwDelegatedFallback) {
             clearTimeout(__browserRefreshTimer);
             __browserRefreshTimer = null;
         }
+    }
+
+    function renderSearchResults(results, query) {
+        const browserContent = document.getElementById('local-browser-content');
+        if (!browserContent) return;
+
+        if (!results || !Array.isArray(results) || results.length === 0) {
+            browserContent.innerHTML = `
+                <div class="browser-empty">
+                    <i class="fas fa-search"></i>
+                    <div>No results found for "${query}"</div>
+                    <small>Try a different search term</small>
+                </div>
+            `;
+            return;
+        }
+
+        const humanSize = bytes => {
+            const n = Number(bytes);
+            if (!Number.isFinite(n)) return '';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let i = 0;
+            let v = n;
+            while (v >= 1024 && i < units.length - 1) {
+                v /= 1024;
+                i++;
+            }
+            const prec = v >= 100 || i === 0 ? 0 : 1;
+            return `${v.toFixed(prec)} ${units[i]}`;
+        };
+
+        const listHTML = results
+            .map(item => {
+                const isDir = item.type === 'directory';
+                let iconHtml = '';
+
+                // If this is a ZIP file, attempt to show posterpack thumbnail
+                if (!isDir && /\.zip$/i.test(item.name)) {
+                    const zipRel = item.path;
+                    const tUrl = `/local-posterpack?zip=${encodeURIComponent(zipRel)}&entry=thumbnail`;
+                    iconHtml = `
+                        <div class="browser-item-icon file has-thumb" data-ziprel="${zipRel}">
+                            <img class="pp-zip-thumb" src="${tUrl}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+                            <i class="fas fa-file-zipper"></i>
+                        </div>`;
+                } else {
+                    const iconClass = isDir ? 'fa-folder' : 'fa-file';
+                    iconHtml = `
+                        <div class="browser-item-icon ${item.type}">
+                            <i class="fas ${iconClass}"></i>
+                        </div>`;
+                }
+
+                return `
+            <div class="browser-item" data-path="${item.path}" data-type="${item.type}">
+                ${iconHtml}
+                <div class="browser-item-name">
+                    <span class="name-text">${item.name}</span>
+                    <span class="status-pill sp-size" style="opacity: 0.6">${item.path}</span>
+                    ${item.sizeBytes != null ? `<span class="status-pill sp-size">${humanSize(item.sizeBytes)}</span>` : ''}
+                </div>
+                <div class="browser-item-actions">
+                    ${isDir ? `<button class="btn btn-secondary btn-sm btn-open-folder" data-path="${item.path}" title="Open"><span class="spinner"></span><i class="fas fa-folder-open"></i><span class="hide-on-xs">Open</span></button>` : ''}
+                    ${!isDir ? `<button class="btn btn-secondary btn-sm btn-download-file" data-path="${item.path}" title="Download"><span class="spinner"></span><i class="fas fa-download"></i><span class="hide-on-xs">Download</span></button>` : ''}
+                    <button class="btn btn-error btn-sm btn-delete" data-path="${item.path}" title="Delete"><span class="spinner"></span><i class="fas fa-trash"></i><span class="hide-on-xs">Delete</span></button>
+                </div>
+            </div>
+        `;
+            })
+            .join('');
+
+        browserContent.innerHTML = `<div class="browser-list">${listHTML}</div>`;
+
+        // Handle thumbnail loading for ZIP files
+        try {
+            const icons = browserContent.querySelectorAll('.browser-item-icon.has-thumb');
+            icons.forEach(icon => {
+                const img = icon.querySelector('img.pp-zip-thumb');
+                const ico = icon.querySelector('i');
+                if (!img) return;
+                const onLoad = () => {
+                    icon.classList.add('thumb-loaded');
+                    if (ico) ico.style.display = 'none';
+                };
+                const onError = () => {
+                    // Remove image and keep the default icon
+                    if (img && img.parentNode) img.parentNode.removeChild(img);
+                    icon.classList.remove('thumb-loaded');
+                    icon.classList.remove('has-thumb');
+                    if (ico) ico.style.display = '';
+                };
+                // If already complete (cache), apply immediately; else wait
+                if (img.complete && img.naturalWidth > 0) onLoad();
+                else {
+                    img.addEventListener('load', onLoad, { once: true });
+                    img.addEventListener('error', onError, { once: true });
+                }
+            });
+        } catch (_) {}
     }
 
     function renderDirectoryContents(contents) {
@@ -19726,11 +19921,20 @@ if (!document.__niwDelegatedFallback) {
 
                 // Action buttons
                 const uploadHereBtn = e.target.closest('.btn-upload-here');
+                const openFolderBtn = e.target.closest('.btn-open-folder');
                 const deleteBtn = e.target.closest('.btn-delete');
                 const downloadDirBtn = e.target.closest('.btn-download-all');
                 const downloadFileBtn = e.target.closest('.btn-download-file');
 
-                if (uploadHereBtn) {
+                if (openFolderBtn) {
+                    const p = openFolderBtn.dataset.path;
+                    if (p) {
+                        // Clear search input when navigating to a folder
+                        const searchInput = document.getElementById('local-browser-search');
+                        if (searchInput) searchInput.value = '';
+                        loadDirectoryContents(p);
+                    }
+                } else if (uploadHereBtn) {
                     const name = (uploadHereBtn.dataset.name || '').toLowerCase();
                     // Map directory name to targetDirectory and input element
                     let target = 'posters';

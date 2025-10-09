@@ -12912,12 +12912,15 @@ select:focus-visible {
     padding: 0.75rem 1rem;
     background: var(--surface-layer-2);
     border-bottom: 1px solid var(--color-border);
+    gap: 1rem;
 }
 
 .breadcrumb {
     display: flex;
     align-items: center;
     gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
 }
 
 .breadcrumb-item {
@@ -12939,9 +12942,74 @@ select:focus-visible {
     font-size: 0.875rem;
 }
 
+.browser-search {
+    flex-shrink: 0;
+    width: 240px;
+    order: 2;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.browser-search input {
+    width: 100%;
+    padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--surface-layer-1);
+    color: var(--color-text);
+    font-size: 0.875rem;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.browser-search input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+.browser-search input::placeholder {
+    color: var(--color-text-secondary);
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 4px;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+.search-clear-btn:hover {
+    background: color-mix(in srgb, var(--color-text-secondary) 10%, transparent);
+    color: var(--color-text);
+}
+
+.search-clear-btn i {
+    font-size: 0.875rem;
+}
+
 .browser-actions {
     display: flex;
     gap: 0.5rem;
+    flex-shrink: 0;
+    order: 3;
 }
 
 .browser-content {
@@ -13063,6 +13131,39 @@ select:focus-visible {
 
 .browser-item:hover .browser-item-actions {
     opacity: 1;
+}
+
+/* Responsive browser toolbar */
+@media (max-width: 768px) {
+    .browser-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .breadcrumb {
+        flex: 1 1 100%;
+        order: 1;
+    }
+
+    .browser-search {
+        width: 200px;
+        order: 2;
+    }
+
+    .browser-actions {
+        order: 3;
+    }
+}
+
+@media (max-width: 480px) {
+    .browser-search {
+        width: 100%;
+        order: 3;
+        flex: 1 1 100%;
+    }
+
+    .browser-actions {
+        order: 2;
+    }
 }
 
 /* Job List */

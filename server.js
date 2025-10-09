@@ -1394,6 +1394,7 @@ app.get(
 
             const entryKey = String(req.query.entry || '').toLowerCase();
             const zipRel = String(req.query.zip || '').trim();
+
             if (!zipRel || !entryKey) return res.status(400).send('Missing parameters');
             if (zipRel.includes('..') || zipRel.startsWith('/') || zipRel.startsWith('\\'))
                 return res.status(400).send('Invalid zip path');
@@ -8288,6 +8289,118 @@ app.get(
             } else {
                 res.status(500).json({ error: error.message });
             }
+        }
+    })
+);
+
+/**
+ * @swagger
+ * /api/local/search:
+ *   get:
+ *     summary: Recursively search for files and folders in local directory
+ *     description: Searches recursively through all subdirectories for matching files and folders
+ *     tags: ['Local Directory']
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Search query string
+ *       - in: query
+ *         name: path
+ *         schema:
+ *           type: string
+ *         description: Starting path for search (defaults to root)
+ *     responses:
+ *       200:
+ *         description: Array of matching items
+ *       500:
+ *         description: Server error
+ */
+app.get(
+    '/api/local/search',
+    asyncHandler(async (req, res) => {
+        if (!localDirectorySource) {
+            try {
+                localDirectorySource = new LocalDirectorySource(config.localDirectory, logger);
+            } catch (e) {
+                return res.status(500).json({ error: 'Local directory unavailable' });
+            }
+        }
+
+        const { query = '', path: startPath = '' } = req.query;
+        const searchQuery = String(query).toLowerCase().trim();
+
+        if (!searchQuery) {
+            return res.json([]);
+        }
+
+        try {
+            res.setHeader('Cache-Control', 'no-store');
+
+            const base = path.resolve(config.localDirectory.rootPath);
+            const searchRoot = startPath ? path.resolve(base, startPath) : base;
+
+            // Verify search root is within base
+            const within =
+                searchRoot === base || (searchRoot + path.sep).startsWith(base + path.sep);
+            if (!within) {
+                return res.status(400).json({ error: 'Invalid path' });
+            }
+
+            const results = [];
+            const maxResults = 100; // Limit results to prevent overwhelming the UI
+
+            async function searchRecursive(dir, relativePath = '') {
+                if (results.length >= maxResults) return;
+
+                try {
+                    const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+
+                    for (const entry of entries) {
+                        if (results.length >= maxResults) break;
+
+                        const entryPath = path.join(dir, entry.name);
+                        const entryRelativePath = relativePath
+                            ? `${relativePath}/${entry.name}`
+                            : entry.name;
+
+                        // Skip .poster.json files
+                        if (entry.name.endsWith('.poster.json')) {
+                            continue;
+                        }
+
+                        // Check if name matches query
+                        if (entry.name.toLowerCase().includes(searchQuery)) {
+                            const stats = await fs.promises.stat(entryPath).catch(() => null);
+                            const resultPath = startPath
+                                ? `${startPath}/${entryRelativePath}`
+                                : entryRelativePath;
+                            results.push({
+                                name: entry.name,
+                                path: resultPath,
+                                type: entry.isDirectory() ? 'directory' : 'file',
+                                sizeBytes: stats && stats.isFile() ? stats.size : null,
+                            });
+                        }
+
+                        // Recurse into directories
+                        if (entry.isDirectory()) {
+                            await searchRecursive(entryPath, entryRelativePath);
+                        }
+                    }
+                } catch (error) {
+                    // Skip directories we can't read
+                    logger.debug(`Search skipped directory: ${dir}`, error.message);
+                }
+            }
+
+            await searchRecursive(searchRoot);
+            res.json(results);
+        } catch (error) {
+            logger.error('Local directory search error:', error);
+            res.status(500).json({ error: error.message });
         }
     })
 );
