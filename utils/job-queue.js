@@ -704,6 +704,22 @@ class JobQueue extends EventEmitter {
             await Promise.all(basicDownloads);
         }
 
+        // Download banner if available (primarily for TV shows)
+        if (item.bannerUrl) {
+            const bannerData = await this._withInflightLimit(() =>
+                this.downloadAsset(item.bannerUrl, sourceType, exportLogger)
+            );
+            if (bannerData) {
+                zip.file('banner.jpg', bannerData);
+                assets.banner = true;
+            } else if (exportLogger) {
+                await exportLogger.warn('Banner download failed', {
+                    title: item.title,
+                    url: item.bannerUrl,
+                });
+            }
+        }
+
         if (includeAssets?.fanart && item.fanart) {
             const fan = item.fanart.slice(0, 5);
             let idxFan = 0;
@@ -855,6 +871,15 @@ class JobQueue extends EventEmitter {
             runtimeMs: item.runtimeMs || null,
             qualityLabel: item.qualityLabel || null,
             mediaStreams: item.mediaStreams || null,
+            // Enriched metadata fields
+            collections: item.collections || null,
+            countries: item.countries || null,
+            audienceRating: item.audienceRating || null,
+            viewCount: item.viewCount || null,
+            lastViewedAt: item.lastViewedAt || null,
+            userRating: item.userRating || null,
+            originalTitle: item.originalTitle || null,
+            titleSort: item.titleSort || null,
             images: {
                 poster: !!assets.poster,
                 background: !!assets.background,
@@ -862,6 +887,7 @@ class JobQueue extends EventEmitter {
                 thumbnail: !!assets.thumbnail,
                 fanartCount: assets.fanart || 0,
                 discart: !!assets.discart,
+                banner: !!assets.banner,
             },
             source: sourceType,
             sourceId: item.id,

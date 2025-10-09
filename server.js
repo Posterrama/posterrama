@@ -5461,6 +5461,70 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             }));
         }
 
+        // Extract collections (e.g., "Marvel Cinematic Universe")
+        const collections = Array.isArray(sourceItem.Collection)
+            ? sourceItem.Collection.map(c => ({
+                  name: c.tag || c.title,
+                  id: c.id || undefined,
+              })).filter(c => c.name)
+            : null;
+
+        // Extract countries
+        const countries = Array.isArray(sourceItem.Country)
+            ? sourceItem.Country.map(c => c.tag || c.code).filter(Boolean)
+            : null;
+
+        // Audience rating (user/community rating vs critic rating)
+        const audienceRating = Number.isFinite(Number(sourceItem.audienceRating))
+            ? Number(sourceItem.audienceRating)
+            : null;
+
+        // View statistics
+        const viewCount = Number.isFinite(Number(sourceItem.viewCount))
+            ? Number(sourceItem.viewCount)
+            : null;
+        const lastViewedAt =
+            sourceItem.lastViewedAt && !isNaN(Number(sourceItem.lastViewedAt))
+                ? Number(sourceItem.lastViewedAt) * 1000
+                : null;
+
+        // User rating (personal rating if set)
+        const userRating = Number.isFinite(Number(sourceItem.userRating))
+            ? Number(sourceItem.userRating)
+            : null;
+
+        // Original title (for foreign films)
+        const originalTitle = sourceItem.originalTitle || null;
+
+        // Sort title (for proper alphabetical sorting)
+        const titleSort = sourceItem.titleSort || null;
+
+        // Banner image URL (primarily for TV shows)
+        const bannerUrl = sourceItem.banner
+            ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(sourceItem.banner)}`
+            : null;
+
+        // Extract multiple fanart/background images if available
+        const fanart = [];
+        if (backgroundArt) {
+            fanart.push(
+                `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(backgroundArt)}`
+            );
+        }
+        // Plex API may expose additional art via sourceItem.Image array
+        if (Array.isArray(sourceItem.Image)) {
+            const artImages = sourceItem.Image.filter(
+                img => img.type === 'background' || img.type === 'art'
+            );
+            artImages.forEach(img => {
+                if (img.url && img.url !== backgroundArt) {
+                    fanart.push(
+                        `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(img.url)}`
+                    );
+                }
+            });
+        }
+
         return {
             key: uniqueKey,
             title: sourceItem.title,
@@ -5495,6 +5559,17 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             releaseDate,
             runtimeMs,
             mediaStreams,
+            // New enriched metadata fields
+            collections,
+            countries,
+            audienceRating,
+            viewCount,
+            lastViewedAt,
+            userRating,
+            originalTitle,
+            titleSort,
+            bannerUrl,
+            fanart: fanart.length > 0 ? fanart : null,
             // Expose a unified timestamp for "recently added" client-side filtering
             // Plex provides addedAt as seconds since epoch; convert to ms. If missing, use null.
             addedAtMs:

@@ -307,6 +307,24 @@ class LocalDirectorySource {
      * @param {('poster'|'background')} type
      * @returns {Promise<Array<{name:string,path:string,size:number,modified:Date,extension:string,directory:string,type:string}>>}
      */
+    /**
+     * Helper: Read metadata.json from a ZIP posterpack
+     * @param {AdmZip} zip - AdmZip instance
+     * @returns {Object|null} Parsed metadata or null if not found/invalid
+     */
+    readZipMetadata(zip) {
+        try {
+            const zipEntries = zip.getEntries();
+            const metaEntry = zipEntries.find(e => /^metadata\.json$/i.test(e.entryName));
+            if (!metaEntry) return null;
+            const content = zip.readAsText(metaEntry);
+            return JSON.parse(content);
+        } catch (e) {
+            logger.debug(`LocalDirectorySource: Failed to read ZIP metadata: ${e?.message}`);
+            return null;
+        }
+    }
+
     async scanZipPosterpacks(type) {
         const results = [];
         const want = type === 'background' ? 'background' : 'poster';
@@ -359,6 +377,8 @@ class LocalDirectorySource {
                         found = has[want];
                         if (!found) continue;
                         const st = await fs.stat(zipFull);
+                        // Read metadata from ZIP if available
+                        const zipMeta = this.readZipMetadata(zip);
                         results.push({
                             name: ent.name,
                             path: zipFull,
@@ -368,6 +388,7 @@ class LocalDirectorySource {
                             directory: want === 'background' ? 'backgrounds' : 'posters',
                             type: want,
                             zipHas: has,
+                            zipMetadata: zipMeta, // Store metadata for use in createMediaItem
                         });
                         seen.add(baseName);
                     } catch (e) {
@@ -826,18 +847,23 @@ class LocalDirectorySource {
         }
         const relUrlPath = relativePath.replace(/\\/g, '/');
         const isZip = (file.extension || '').toLowerCase() === 'zip';
+
+        // If file has ZIP metadata (from posterpack), use enriched metadata
+        const enrichedMeta = isZip && file.zipMetadata ? file.zipMetadata : {};
+
         // If this media is backed by a ZIP posterpack, stream the inner entry on demand
         let mediaUrl = `/local-media/${relUrlPath}`;
         let clearlogoPath = null;
         let backgroundUrl = metadata.backgroundPath || null;
         let thumbnailUrl = metadata.thumbnailPath || null;
+        let bannerUrl = null;
         if (isZip) {
             const entry = file.type === 'background' ? 'background' : 'poster';
             const encoded = encodeURIComponent(relUrlPath);
             mediaUrl = `/local-posterpack?zip=${encoded}&entry=${entry}`;
             // Provide clearlogo path if available; client normalizer may pick this up
             clearlogoPath = `/local-posterpack?zip=${encoded}&entry=clearlogo`;
-            // If ZIP contains background/thumbnail, expose streaming URLs
+            // If ZIP contains background/thumbnail/banner, expose streaming URLs
             try {
                 if (file.zipHas && file.zipHas.background) {
                     backgroundUrl = `/local-posterpack?zip=${encoded}&entry=background`;
@@ -845,14 +871,18 @@ class LocalDirectorySource {
                 if (file.zipHas && file.zipHas.thumbnail) {
                     thumbnailUrl = `/local-posterpack?zip=${encoded}&entry=thumbnail`;
                 }
+                // Check if banner exists in ZIP
+                if (enrichedMeta.images && enrichedMeta.images.banner) {
+                    bannerUrl = `/local-posterpack?zip=${encoded}&entry=banner`;
+                }
             } catch (_) {
                 /* ignore */
             }
         }
 
         return {
-            title: metadata.title,
-            year: metadata.year,
+            title: enrichedMeta.title || metadata.title,
+            year: enrichedMeta.year || metadata.year,
             poster: mediaUrl,
             background: backgroundUrl,
             clearart: metadata.clearartPath || null,
@@ -861,14 +891,40 @@ class LocalDirectorySource {
             backgroundUrl: backgroundUrl,
             clearLogoUrl: clearlogoPath || metadata.clearlogoPath || null,
             thumbnailUrl: thumbnailUrl,
+            bannerUrl: bannerUrl,
             metadata: {
-                genre: metadata.genre || [],
-                rating: metadata.rating || null,
-                overview: metadata.overview || null,
-                cast: metadata.cast || [],
+                genre: enrichedMeta.genres || metadata.genre || [],
+                rating: enrichedMeta.rating || metadata.rating || null,
+                overview: enrichedMeta.overview || metadata.overview || null,
+                cast: enrichedMeta.cast || metadata.cast || [],
+                // Enriched metadata from posterpack
+                tagline: enrichedMeta.tagline || null,
+                contentRating: enrichedMeta.contentRating || null,
+                directors: enrichedMeta.directors || [],
+                writers: enrichedMeta.writers || [],
+                producers: enrichedMeta.producers || [],
+                directorsDetailed: enrichedMeta.directorsDetailed || [],
+                writersDetailed: enrichedMeta.writersDetailed || [],
+                producersDetailed: enrichedMeta.producersDetailed || [],
+                studios: enrichedMeta.studios || [],
+                guids: enrichedMeta.guids || [],
+                imdbUrl: enrichedMeta.imdbUrl || null,
+                rottenTomatoes: enrichedMeta.rottenTomatoes || null,
+                releaseDate: enrichedMeta.releaseDate || null,
+                runtimeMs: enrichedMeta.runtimeMs || null,
+                qualityLabel: enrichedMeta.qualityLabel || null,
+                mediaStreams: enrichedMeta.mediaStreams || null,
+                collections: enrichedMeta.collections || null,
+                countries: enrichedMeta.countries || null,
+                audienceRating: enrichedMeta.audienceRating || null,
+                viewCount: enrichedMeta.viewCount || null,
+                lastViewedAt: enrichedMeta.lastViewedAt || null,
+                userRating: enrichedMeta.userRating || null,
+                originalTitle: enrichedMeta.originalTitle || null,
+                titleSort: enrichedMeta.titleSort || null,
             },
             source: 'local',
-            sourceId: metadata.cleanTitle,
+            sourceId: enrichedMeta.sourceId || metadata.cleanTitle,
             originalFilename: metadata.originalFilename,
             fileSize: metadata.fileSize,
             lastModified: metadata.lastModified,
