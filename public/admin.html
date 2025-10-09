@@ -12,12 +12,21 @@
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const vParam = urlParams.get('v');
-        // If v param exists and is not a pure number (old base36 format like t3vtju)
-        if (vParam && !/^\d+$/.test(vParam)) {
+        const refreshParam = urlParams.get('_refresh');
+        
+        // Only redirect if:
+        // 1. v param exists and is not numeric (old base36 format)
+        // 2. AND we haven't already tried refreshing (no _refresh param)
+        if (vParam && !/^\d+$/.test(vParam) && !refreshParam) {
           console.warn('[Cache Check] Old version URL detected (v=' + vParam + '), forcing refresh...');
           // Remove all query params and add fresh timestamp
           const cleanUrl = window.location.pathname + '?_refresh=' + Date.now() + window.location.hash;
           window.location.replace(cleanUrl);
+        } else if (vParam && refreshParam) {
+          // We've already refreshed but still have v param - just remove it
+          console.warn('[Cache Check] Removing stale v param after refresh...');
+          const cleanUrl = window.location.pathname + '?_refresh=' + refreshParam + window.location.hash;
+          window.history.replaceState({}, '', cleanUrl);
         }
       } catch(e) {
         console.error('[Cache Check] Failed:', e);
