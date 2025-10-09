@@ -16267,16 +16267,35 @@
                     const effHostname = hostname || window.__JELLYFIN_ENTRY?.hostname;
                     const effPort = port || window.__JELLYFIN_ENTRY?.port;
                     const effApiKey = apiKey || window.__JELLYFIN_ENTRY?.apiKey;
-                    const effEnabled = (() => {
-                        try {
-                            const cb = document.getElementById('jf.enabled');
-                            if (cb) return !!cb.checked;
-                        } catch (_) {}
-                        if (typeof window.__JELLYFIN_ENTRY?.enabled !== 'undefined') {
-                            return !!window.__JELLYFIN_ENTRY.enabled;
+
+                    // Skip enabled check when explicitly requested via button click (refreshFilters=true)
+                    // This allows users to fetch libraries before enabling Jellyfin
+                    if (!refreshFilters) {
+                        const effEnabled = (() => {
+                            try {
+                                const cb = document.getElementById('jf.enabled');
+                                if (cb) return !!cb.checked;
+                            } catch (_) {}
+                            if (typeof window.__JELLYFIN_ENTRY?.enabled !== 'undefined') {
+                                return !!window.__JELLYFIN_ENTRY.enabled;
+                            }
+                            return isJellyfinEnabledCached();
+                        })();
+                        if (!effEnabled) {
+                            if (__debugOn)
+                                console.debug('[Admin][Jellyfin][Fetch] abort: disabled');
+                            if (!silent) {
+                                window.notify?.toast?.({
+                                    type: 'info',
+                                    title: 'Jellyfin',
+                                    message: 'Jellyfin disabled in configuration',
+                                    duration: 2200,
+                                });
+                            }
+                            return { skipped: true, libraries: [] };
                         }
-                        return isJellyfinEnabledCached();
-                    })();
+                    }
+
                     if (!effHostname) {
                         if (__debugOn) console.debug('[Admin][Jellyfin][Fetch] abort: no hostname');
                         if (!silent) {
@@ -16285,18 +16304,6 @@
                                 title: 'Jellyfin',
                                 message: 'Hostname is required to fetch libraries',
                                 duration: 3200,
-                            });
-                        }
-                        return { skipped: true, libraries: [] };
-                    }
-                    if (!effEnabled) {
-                        if (__debugOn) console.debug('[Admin][Jellyfin][Fetch] abort: disabled');
-                        if (!silent) {
-                            window.notify?.toast?.({
-                                type: 'info',
-                                title: 'Jellyfin',
-                                message: 'Jellyfin disabled in configuration',
-                                duration: 2200,
                             });
                         }
                         return { skipped: true, libraries: [] };
