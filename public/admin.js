@@ -14924,6 +14924,12 @@
                 // Show masked placeholder when a token exists, or keep empty for user to fill
                 const hasToken = !!env[plexTokenVar];
                 const el = getInput('plex.token');
+
+                // Store the actual token value in a data attribute so it persists even if field is cleared
+                if (!el.dataset.actualToken) {
+                    el.dataset.actualToken = hasToken ? 'EXISTING_TOKEN' : '';
+                }
+
                 if (hasToken) {
                     // Set a special masked value that indicates token is set
                     el.value = '••••••••••••••••••••';
@@ -14935,17 +14941,36 @@
                     el.setAttribute('placeholder', 'X-Plex-Token');
                     el.classList.remove('token-masked');
                 }
+
+                // Capture the actual token when user types it
+                el.addEventListener(
+                    'input',
+                    e => {
+                        const val = e.target.value.trim();
+                        if (val && !/^[•]+$/.test(val)) {
+                            // User entered a real token, store it
+                            el.dataset.actualToken = val;
+                        }
+                    },
+                    { once: false }
+                );
             }
             // Support legacy ID used in some templates
             (function () {
                 const el = document.getElementById('plex_token');
                 if (!el) return;
                 const hasToken = !!env[plexTokenVar];
-                el.value = '';
-                el.setAttribute(
-                    'placeholder',
-                    hasToken ? 'Plex token already set' : 'X-Plex-Token'
-                );
+                if (hasToken) {
+                    // Set a special masked value that indicates token is set
+                    el.value = '••••••••••••••••••••';
+                    el.setAttribute('placeholder', 'Plex token already set');
+                    el.classList.add('token-masked');
+                } else {
+                    // No token set, let user fill it in
+                    el.value = '';
+                    el.setAttribute('placeholder', 'X-Plex-Token');
+                    el.classList.remove('token-masked');
+                }
             })();
             const plexRecentlyHeader = getInput('plex.recentOnlyHeader');
             if (plexRecentlyHeader) plexRecentlyHeader.checked = !!plex.recentlyAddedOnly;
@@ -17021,20 +17046,35 @@
                     if (val != null && String(val).trim() !== '')
                         envPatch[key] = String(val).trim();
                 };
-                const plexToken = getInput('plex.token')?.value?.trim();
+                const plexTokenEl = getInput('plex.token');
+                const plexToken = plexTokenEl?.value?.trim();
+                // Try to get token from data attribute if field value is empty
+                const actualToken = plexTokenEl?.dataset?.actualToken || plexToken;
+
                 // DEBUG: Log token state for troubleshooting
                 console.log(
-                    '[PLEX SAVE DEBUG] Token input value:',
+                    '[PLEX SAVE DEBUG] Token field value:',
                     plexToken ? `"${plexToken.substring(0, 10)}..."` : '(empty)'
                 );
-                console.log('[PLEX SAVE DEBUG] Token length:', plexToken ? plexToken.length : 0);
-                // Check if it's a masked value (all bullet points)
-                const isMaskedToken = plexToken && /^[•]+$/.test(plexToken);
+                console.log(
+                    '[PLEX SAVE DEBUG] Token from dataset:',
+                    actualToken ? `"${actualToken.substring(0, 10)}..."` : '(empty)'
+                );
+                console.log(
+                    '[PLEX SAVE DEBUG] Token length:',
+                    actualToken ? actualToken.length : 0
+                );
+                // Check if it's a masked value (all bullet points) or the EXISTING_TOKEN marker
+                const isMaskedToken =
+                    actualToken && (/^[•]+$/.test(actualToken) || actualToken === 'EXISTING_TOKEN');
                 console.log('[PLEX SAVE DEBUG] Is masked token:', isMaskedToken);
-                console.log('[PLEX SAVE DEBUG] Will send token:', !!(plexToken && !isMaskedToken));
+                console.log(
+                    '[PLEX SAVE DEBUG] Will send token:',
+                    !!(actualToken && !isMaskedToken)
+                );
                 // Only update token if user entered a new value (not empty, not masked)
-                if (plexToken && !isMaskedToken) {
-                    setIfProvided(plex.tokenEnvVar, plexToken);
+                if (actualToken && !isMaskedToken) {
+                    setIfProvided(plex.tokenEnvVar, actualToken);
                     console.log(
                         '[PLEX SAVE DEBUG] Token added to envPatch with key:',
                         plex.tokenEnvVar

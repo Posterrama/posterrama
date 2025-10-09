@@ -2901,9 +2901,12 @@ app.get('/admin.css', (req, res) => {
  *               type: string
  */
 app.get('/admin.js', (req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    // Aggressive cache-busting for admin.js to ensure users always get latest version
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
+    res.setHeader('Last-Modified', new Date().toUTCString());
+    res.setHeader('ETag', `"${Date.now()}"`);
     res.sendFile(path.join(__dirname, 'public', 'admin.js'));
 });
 
