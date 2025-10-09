@@ -19664,11 +19664,17 @@ if (!document.__niwDelegatedFallback) {
                         </div>`;
                 }
 
+                // Display name: hide .zip extension for cleaner look
+                const displayName =
+                    !isDir && /\.zip$/i.test(item.name)
+                        ? item.name.replace(/\.zip$/i, '')
+                        : item.name;
+
                 return `
             <div class="browser-item" data-path="${item.path}" data-type="${item.type}">
                 ${iconHtml}
                 <div class="browser-item-name">
-                    <span class="name-text">${item.name}</span>
+                    <span class="name-text">${displayName}</span>
                     <span class="status-pill sp-size" style="opacity: 0.6">${item.path}</span>
                     ${item.sizeBytes != null ? `<span class="status-pill sp-size">${humanSize(item.sizeBytes)}</span>` : ''}
                 </div>
