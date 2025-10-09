@@ -13017,6 +13017,27 @@ select:focus-visible {
     min-width: 0; /* allow text to truncate if needed */
 }
 
+/* Posterpack ZIP tiny thumbnail next to filename */
+.browser-item-icon.has-thumb {
+    position: relative;
+    width: 30px; /* fixed box so rows don't shift when poster aspect varies */
+}
+.browser-item-icon.has-thumb i {
+    transition: opacity 0.15s ease;
+}
+.browser-item-icon.has-thumb.thumb-loaded i {
+    opacity: 0; /* also hidden inline on load */
+}
+.browser-item-icon .pp-zip-thumb {
+    display: inline-block;
+    height: 32px; /* a bit taller, still fits row height */
+    width: auto; /* preserve aspect ratio */
+    max-width: 28px; /* keep within the icon column */
+    object-fit: contain; /* preserve aspect ratio inside the box */
+    border-radius: 3px;
+    vertical-align: middle;
+}
+
 /* Deprecated: we no longer use a separate size column; keep minimal width to avoid layout shift if present */
 .browser-item-size {
     display: none;

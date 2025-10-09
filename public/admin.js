@@ -19358,12 +19358,35 @@ if (!document.__niwDelegatedFallback) {
             })[k] || k;
 
         const listHTML = items
-            .map(
-                item => `
+            .map(item => {
+                // If this is a ZIP file inside complete/*, attempt to show posterpack thumbnail
+                let iconHtml = '';
+                if (item.type === 'file' && /\.zip$/i.test(item.name)) {
+                    // Compute path relative to basePath for /local-posterpack (server requires relative)
+                    let zipRel = '';
+                    try {
+                        const abs = String(item.path || '');
+                        const base = String(basePath || '');
+                        zipRel = abs.startsWith(base)
+                            ? abs.slice(base.length).replace(/^\/+/, '')
+                            : abs; // fallback: best-effort
+                    } catch (_) {}
+                    const tUrl = `/local-posterpack?zip=${encodeURIComponent(zipRel)}&entry=thumbnail`;
+                    // Render both a tiny img and a fallback icon; we hide the icon once the image loads
+                    iconHtml = `
+                        <div class="browser-item-icon file has-thumb" data-ziprel="${zipRel}">
+                            <img class="pp-zip-thumb" src="${tUrl}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+                            <i class="fas fa-file-zipper"></i>
+                        </div>`;
+                } else {
+                    iconHtml = `
+                        <div class="browser-item-icon ${item.type}">
+                            <i class="fas fa-${item.type === 'directory' ? 'folder' : 'file'}"></i>
+                        </div>`;
+                }
+                return `
             <div class="browser-item" data-path="${item.path}" data-type="${item.type}">
-                <div class="browser-item-icon ${item.type}">
-                    <i class="fas fa-${item.type === 'directory' ? 'folder' : 'file'}"></i>
-                </div>
+                ${iconHtml}
                 <div class="browser-item-name">
                     <span class="name-text">${item.name}</span>
                     ${
@@ -19406,11 +19429,38 @@ if (!document.__niwDelegatedFallback) {
                     }</span></button>
                 </div>
             </div>
-        `
-            )
+        `;
+            })
             .join('');
 
         browserContent.innerHTML = `<div class="browser-list">${listHTML}</div>`;
+
+        // When the tiny ZIP thumbnail loads, hide the fallback icon and keep row height unchanged
+        try {
+            const icons = browserContent.querySelectorAll('.browser-item-icon.has-thumb');
+            icons.forEach(icon => {
+                const img = icon.querySelector('img.pp-zip-thumb');
+                const ico = icon.querySelector('i');
+                if (!img) return;
+                const onLoad = () => {
+                    icon.classList.add('thumb-loaded');
+                    if (ico) ico.style.display = 'none';
+                };
+                const onError = () => {
+                    // Remove image and keep the default icon
+                    if (img && img.parentNode) img.parentNode.removeChild(img);
+                    icon.classList.remove('thumb-loaded');
+                    icon.classList.remove('has-thumb');
+                    if (ico) ico.style.display = '';
+                };
+                // If already complete (cache), apply immediately; else wait
+                if (img.complete && img.naturalWidth > 0) onLoad();
+                else {
+                    img.addEventListener('load', onLoad, { once: true });
+                    img.addEventListener('error', onError, { once: true });
+                }
+            });
+        } catch (_) {}
 
         // Also update the Local header count by summing top-level directory itemCounts
         try {
