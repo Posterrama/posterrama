@@ -3432,6 +3432,13 @@ if (isDeviceMgmtEnabled()) {
             const mode = b.mode;
             const mediaId = b.mediaId;
             const paused = b.paused;
+            // Optional media context for admin UI previews
+            const title = b.title;
+            const year = b.year;
+            const rating = b.rating;
+            const posterUrl = b.posterUrl;
+            const backgroundUrl = b.backgroundUrl;
+            const thumbnailUrl = b.thumbnailUrl;
             const poweredOff = b.poweredOff; // optional powered off state (blackout)
             // Support pinned state from clients (accept several aliases for compatibility)
             const pinned =
@@ -3463,6 +3470,28 @@ if (isDeviceMgmtEnabled()) {
             if (pinned != null) currentState.pinned = !!pinned;
             if (pinMediaId != null) currentState.pinMediaId = pinMediaId;
             if (poweredOff != null) currentState.poweredOff = !!poweredOff;
+            // Optional whitelisted fields for admin visual preview
+            if (title != null) currentState.title = String(title).slice(0, 300);
+            if (Number.isFinite(Number(year))) currentState.year = Number(year);
+            if (Number.isFinite(Number(rating))) currentState.rating = Number(rating);
+            const safeUrl = u => {
+                try {
+                    const s = String(u || '').trim();
+                    // Allow absolute URLs or app-relative paths
+                    if (!s) return '';
+                    if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('/'))
+                        return s.slice(0, 1024);
+                    return '';
+                } catch (_) {
+                    return '';
+                }
+            };
+            const pUrl = safeUrl(posterUrl);
+            const bUrl = safeUrl(backgroundUrl);
+            const tUrl = safeUrl(thumbnailUrl);
+            if (pUrl) currentState.posterUrl = pUrl;
+            if (bUrl) currentState.backgroundUrl = bUrl;
+            if (tUrl) currentState.thumbnailUrl = tUrl;
             // If the client reports explicitly unpinned, proactively clear any lingering pinMediaId
             if (pinned === false) {
                 currentState.pinMediaId = '';

@@ -8273,6 +8273,13 @@
                 const pinIcon = initiallyPinned ? 'fa-map-pin' : 'fa-thumbtack';
                 const pinTitle = initiallyPinned ? 'Unpin poster' : 'Pin current poster';
                 const pinPressed = initiallyPinned ? 'true' : 'false';
+                // Small now-playing thumbnail (uses device-reported currentState URLs)
+                const cs = d && d.currentState ? d.currentState : {};
+                const thumbSrc = cs.thumbnailUrl || cs.posterUrl || cs.backgroundUrl || '';
+                const thumbAlt = escapeHtml(cs.title || d.name || '');
+                const thumbHtml = thumbSrc
+                    ? `<div class="nowplay-thumb"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="64" height="96"></div>`
+                    : '';
                 return `
                                 <div class="device-card${dupeList && dupeList.length ? ' has-dupes' : ''}" data-id="${d.id}" data-status="${status}" data-room="${(room || '').toLowerCase().replace(/\s+/g, '-')}" data-dupes-count="${dupeList ? dupeList.length : 0}">
                                     ${d.wsConnected && state.syncEnabled !== false ? '<div class="device-corner"><span class="synced-dot" role="status" aria-label="Device will align to sync ticks" title="Device will align to sync ticks"></span></div>' : ''}
@@ -8325,8 +8332,8 @@
                                                         <div class="dropdown-menu"></div>
                                                 </div>
                                     </div>
-
-                                    <div class="device-card-body">
+                        <div class="device-card-body">
+                            ${thumbHtml}
                               <div class="device-badges">
                                             <span class="status-pill status-${status} js-status-hover" tabindex="0">
                                                 <i class="${iconForStatus(isPoweredOff && status === 'live' ? 'offline' : status)}"></i> ${statusLabel}
