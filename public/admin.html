@@ -6,68 +6,6 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <script>
-    // Force cache refresh if old version URL parameter is detected
-    (function() {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const vParam = urlParams.get('v');
-        const refreshParam = urlParams.get('_refresh');
-        const hardParam = urlParams.get('_hard');
-        
-        // If we already did a hard reload, stop checking - avoid infinite loop
-        if (hardParam) {
-          console.warn('[Cache Check] Hard reload already attempted, skipping further checks');
-          // Just clean up the URL
-          const cleanUrl = window.location.pathname + window.location.hash;
-          window.history.replaceState({}, '', cleanUrl);
-          return;
-        }
-        
-        // Only redirect if:
-        // 1. v param exists and is not numeric (old base36 format)
-        // 2. AND we haven't already tried refreshing (no _refresh param)
-        if (vParam && !/^\d+$/.test(vParam) && !refreshParam) {
-          console.warn('[Cache Check] Old version URL detected (v=' + vParam + '), forcing refresh...');
-          // Remove all query params and add fresh timestamp
-          const cleanUrl = window.location.pathname + '?_refresh=' + Date.now() + window.location.hash;
-          window.location.replace(cleanUrl);
-          return; // Stop execution
-        } else if (vParam && refreshParam) {
-          // We've already refreshed but still have v param - just remove it
-          console.warn('[Cache Check] Removing stale v param after refresh...');
-          const cleanUrl = window.location.pathname + '?_refresh=' + refreshParam + window.location.hash;
-          window.history.replaceState({}, '', cleanUrl);
-        }
-        
-        // AGGRESSIVE: Check if the actual admin.js script has the old version
-        // This catches cases where HTML is fresh but browser still serves cached JS
-        // Only do this once (no _hard param yet)
-        if (!hardParam) {
-          setTimeout(function() {
-            const scriptTags = document.querySelectorAll('script[src*="admin.js"]');
-            scriptTags.forEach(function(script) {
-              const src = script.src || '';
-              const match = /admin\.js\?v=([^&\s]+)/.exec(src);
-              if (match) {
-                const loadedVersion = match[1];
-                // If it's not a pure number (timestamp), it's old base36 format
-                if (!/^\d{13}/.test(loadedVersion)) {
-                  console.error('[Cache Check] CRITICAL: Old admin.js version still loaded:', loadedVersion);
-                  console.error('[Cache Check] Force-reloading with cache bypass (ONCE)...');
-                  // Nuclear option: force reload with cache bypass (mark with _hard to prevent loop)
-                  window.location.href = window.location.pathname + '?_bust=' + Date.now() + '&_hard=1' + window.location.hash;
-                }
-              }
-            });
-          }, 100);
-        }
-        
-      } catch(e) {
-        console.error('[Cache Check] Failed:', e);
-      }
-    })();
-  </script>
   <title>Posterrama Admin — Dashboard</title>
   <meta name="description" content="Posterrama Admin Dashboard for configuring media sources, display modes, devices, operations and monitoring your self-hosted poster server." />
   <!-- PWA: basic meta + manifest so admin2 independently registers the Service Worker -->
@@ -3424,34 +3362,7 @@
       }
     })();
   </script>
-  <script>
-    // Force fresh admin.js load by manipulating script src before it loads
-    (function() {
-      try {
-        // Wait for the script tag to be parsed
-        document.addEventListener('DOMContentLoaded', function() {
-          const loader = document.getElementById('admin-js-loader');
-          if (loader && loader.src) {
-            const originalSrc = loader.src;
-            const match = /admin\.js\?v=([^&\s]+)/.exec(originalSrc);
-            if (match) {
-              const version = match[1];
-              // If old base36 format, force reload with fresh version
-              if (!/^\d{13}/.test(version)) {
-                console.warn('[Script Loader] Old version detected, forcing page reload...');
-                window.location.href = window.location.pathname + '?_force=' + Date.now() + window.location.hash;
-              } else {
-                console.log('[Script Loader] Fresh version detected:', version);
-              }
-            }
-          }
-        }, { once: true });
-      } catch(e) {
-        console.error('[Script Loader] Check failed:', e);
-      }
-    })();
-  </script>
-  <script id="admin-js-loader" src="/admin.js?v={{ASSET_VERSION}}"></script>
+  <script src="/admin.js?v={{ASSET_VERSION}}"></script>
   <script>
     // Fallback spinner wrapper bootstrap (runs after main admin.js). Safe + idempotent.
     (function(){
