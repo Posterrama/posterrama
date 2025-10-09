@@ -19790,11 +19790,14 @@ if (!document.__niwDelegatedFallback) {
             ({
                 poster: 'Poster',
                 background: 'Background',
+                thumbnail: 'Thumbnail',
                 clearlogo: 'ClearLogo',
-                metadata: 'Metadata',
-                cast: 'Cast',
-                cd: 'CD',
+                banner: 'Banner',
+                fanart: 'Fanart',
                 disc: 'Disc',
+                cast: 'Cast',
+                metadata: 'Metadata',
+                cd: 'CD',
             })[k] || k;
 
         const listHTML = items

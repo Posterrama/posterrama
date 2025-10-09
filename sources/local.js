@@ -614,16 +614,22 @@ class LocalDirectorySource {
                                                 )
                                             )
                                                 zipPills.push('background');
+                                            if (has(/(^|\/)thumbnail\.(jpg|jpeg|png|webp)$/i))
+                                                zipPills.push('thumbnail');
                                             if (has(/(^|\/)clearlogo\.(png|webp)$/i))
                                                 zipPills.push('clearlogo');
-                                            if (has(/(^|\/)metadata\.json$/i))
-                                                zipPills.push('metadata');
+                                            if (has(/(^|\/)banner\.(jpg|jpeg|png|webp)$/i))
+                                                zipPills.push('banner');
+                                            if (has(/(^|\/)fanart-\d+\.(jpg|jpeg|png|webp)$/i))
+                                                zipPills.push('fanart');
+                                            if (has(/(^|\/)disc\.(png|jpg|jpeg|webp|svg)$/i))
+                                                zipPills.push('disc');
                                             if (has(/(^|\/)people\/.*\.(jpg|jpeg|png|webp)$/i))
                                                 zipPills.push('cast');
+                                            if (has(/(^|\/)metadata\.json$/i))
+                                                zipPills.push('metadata');
                                             if (has(/(^|\/)cd\.(jpg|jpeg|png|webp|svg)$/i))
                                                 zipPills.push('cd');
-                                            if (has(/(^|\/)disc\.(jpg|jpeg|png|webp|svg)$/i))
-                                                zipPills.push('disc');
                                         } catch (e) {
                                             logger.debug(
                                                 `LocalDirectorySource: ZIP summary failed for ${fullZip}: ${e?.message}`
