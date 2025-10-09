@@ -7565,14 +7565,16 @@ async function writeEnvFile(newValues) {
             const [key] = line.split('=');
             if (updatedKeys.has(key)) {
                 updatedKeys.delete(key);
-                return `${key}="${newValues[key]}"`;
+                // Don't add quotes - they cause "Invalid character in header" errors
+                return `${key}=${newValues[key]}`;
             }
             return line;
         });
 
         // Add any new keys that weren't in the file
         updatedKeys.forEach(key => {
-            newLines.push(`${key}="${newValues[key]}"`);
+            // Don't add quotes - they cause "Invalid character in header" errors
+            newLines.push(`${key}=${newValues[key]}`);
         });
 
         const newContent = newLines.join('\n');
