@@ -5259,6 +5259,19 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         return null;
     };
 
+    const getBannerPath = (images, bannerField) => {
+        // First check if sourceItem.banner exists (direct field)
+        if (bannerField) {
+            return bannerField;
+        }
+        // Otherwise look in Image array for type='banner'
+        if (images && Array.isArray(images)) {
+            const bannerObject = images.find(img => img.type === 'banner');
+            return bannerObject ? bannerObject.url : null;
+        }
+        return null;
+    };
+
     const getRottenTomatoesData = (ratings, _titleForDebug = 'Unknown') => {
         if (!ratings || !Array.isArray(ratings)) {
             return null;
@@ -5604,9 +5617,11 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
               })).filter(m => m.type !== null)
             : null;
 
-        // Banner image URL (primarily for TV shows)
-        const bannerUrl = sourceItem.banner
-            ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(sourceItem.banner)}`
+        // Banner image URL (primarily for TV shows, collections)
+        // Check both sourceItem.banner field and Image array
+        const bannerPath = getBannerPath(sourceItem.Image, sourceItem.banner);
+        const bannerUrl = bannerPath
+            ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(bannerPath)}`
             : null;
 
         // Extract multiple fanart/background images if available
