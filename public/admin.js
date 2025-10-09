@@ -11644,10 +11644,58 @@
                             if (np) {
                                 const img = np.querySelector('img');
                                 if (img && src) {
-                                    if (img.getAttribute('src') !== src)
-                                        img.setAttribute('src', src);
-                                    const alt = (cs.title || d.name || '').toString();
-                                    img.setAttribute('alt', alt);
+                                    const nextAlt = (cs.title || d.name || '').toString();
+                                    const curSrc = img.getAttribute('src') || '';
+                                    if (curSrc !== src && !img.__fading) {
+                                        img.__fading = true;
+                                        // Preload target to avoid blank pop-in
+                                        const pre = new Image();
+                                        pre.onload = () => {
+                                            try {
+                                                const prevTransition = img.style.transition;
+                                                // Ensure we have a transition for opacity
+                                                img.style.transition = 'opacity 160ms ease-in-out';
+                                                // Start fade-out on next frame
+                                                requestAnimationFrame(() => {
+                                                    img.style.opacity = '0';
+                                                    // After fade-out, swap src and fade-in
+                                                    setTimeout(() => {
+                                                        img.setAttribute('src', src);
+                                                        img.setAttribute('alt', nextAlt);
+                                                        // Fade back in on next frame
+                                                        requestAnimationFrame(() => {
+                                                            img.style.opacity = '1';
+                                                            // Cleanup a bit after the fade completes
+                                                            setTimeout(() => {
+                                                                img.style.transition =
+                                                                    prevTransition;
+                                                                img.__fading = false;
+                                                            }, 220);
+                                                        });
+                                                    }, 170);
+                                                });
+                                            } catch (_) {
+                                                // Fallback: direct swap without animation
+                                                try {
+                                                    img.setAttribute('src', src);
+                                                    img.setAttribute('alt', nextAlt);
+                                                } catch (_) {}
+                                                img.__fading = false;
+                                            }
+                                        };
+                                        pre.onerror = () => {
+                                            // If preload fails, just swap immediately
+                                            try {
+                                                img.setAttribute('src', src);
+                                                img.setAttribute('alt', nextAlt);
+                                            } catch (_) {}
+                                            img.__fading = false;
+                                        };
+                                        pre.src = src;
+                                    } else {
+                                        // No change (or currently animating): keep alt fresh
+                                        img.setAttribute('alt', nextAlt);
+                                    }
                                 }
                                 const titleRow =
                                     card.querySelector('.nowplay-title-bottom') ||
@@ -11682,12 +11730,18 @@
                                     img.setAttribute('referrerpolicy', 'no-referrer');
                                     img.setAttribute('width', '48');
                                     img.setAttribute('height', '72');
+                                    // Quick entrance fade-in
+                                    img.style.opacity = '0';
+                                    img.style.transition = 'opacity 160ms ease-in-out';
                                     wrap.appendChild(img);
                                     actions.insertBefore(wrap, actions.firstChild);
                                     card.classList.add('has-nowplay');
                                     try {
                                         bindHover && bindHover('.js-media-hover', mediaCard);
                                     } catch (_) {}
+                                    requestAnimationFrame(() => {
+                                        img.style.opacity = '1';
+                                    });
                                 }
                             }
                         } catch (_) {}
