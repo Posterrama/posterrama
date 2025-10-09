@@ -198,6 +198,56 @@ const avatarDir = path.join(__dirname, 'sessions', 'avatars');
             process.env.SESSION_SECRET = newSecret;
         }
     }
+
+    // Validate and clean .env file (remove corrupt/malformed lines)
+    try {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        const lines = envContent.split('\n');
+        let hasInvalidLines = false;
+        const cleanedLines = lines.filter(line => {
+            const trimmed = line.trim();
+            // Keep empty lines and comments
+            if (trimmed === '' || trimmed.startsWith('#')) {
+                return true;
+            }
+            // Check if line has '=' sign (valid env var format)
+            if (!line.includes('=')) {
+                hasInvalidLines = true;
+                logger.warn(
+                    `[Startup] Removing invalid .env line (no '=' found): ${line.substring(0, 50)}...`,
+                    {
+                        action: 'startup_env_cleanup',
+                        invalidLine: line.substring(0, 100),
+                    }
+                );
+                return false;
+            }
+            // Keep valid lines
+            return true;
+        });
+
+        // If we found invalid lines, rewrite the .env file
+        if (hasInvalidLines) {
+            const cleanedContent = cleanedLines.join('\n');
+            fs.writeFileSync(envPath, cleanedContent, 'utf8');
+            logger.info('[Startup] .env file cleaned - removed invalid lines', {
+                action: 'startup_env_cleaned',
+                originalLines: lines.length,
+                cleanedLines: cleanedLines.length,
+                removedLines: lines.length - cleanedLines.length,
+            });
+            // Reload dotenv to pick up the cleaned file
+            require('dotenv').config({ override: true });
+        } else {
+            logger.debug('[Startup] .env file validation passed - no invalid lines found');
+        }
+    } catch (error) {
+        logger.error('[Startup] Failed to validate/clean .env file', {
+            error: error.message,
+            stack: error.stack,
+        });
+        // Non-fatal - continue startup
+    }
 })();
 const express = require('express');
 const session = require('express-session');
@@ -7595,18 +7645,31 @@ async function writeEnvFile(newValues) {
         const updatedKeys = new Set(Object.keys(validEnvValues));
         const previousEnv = { ...process.env };
 
-        const newLines = lines.map(line => {
-            if (line.trim() === '' || line.trim().startsWith('#')) {
+        const newLines = lines
+            .map(line => {
+                if (line.trim() === '' || line.trim().startsWith('#')) {
+                    return line;
+                }
+                // CRITICAL: Filter out invalid lines without '=' (corrupt/malformed entries)
+                if (!line.includes('=')) {
+                    logger.warn(
+                        `[writeEnvFile] Removing invalid .env line (no '=' found): ${line.substring(0, 50)}...`,
+                        {
+                            action: 'env_invalid_line_removed',
+                            line: line.substring(0, 100),
+                        }
+                    );
+                    return null; // Mark for removal
+                }
+                const [key] = line.split('=');
+                if (updatedKeys.has(key)) {
+                    updatedKeys.delete(key);
+                    // Don't add quotes - they cause "Invalid character in header" errors
+                    return `${key}=${validEnvValues[key]}`;
+                }
                 return line;
-            }
-            const [key] = line.split('=');
-            if (updatedKeys.has(key)) {
-                updatedKeys.delete(key);
-                // Don't add quotes - they cause "Invalid character in header" errors
-                return `${key}=${validEnvValues[key]}`;
-            }
-            return line;
-        });
+            })
+            .filter(line => line !== null); // Remove null entries (invalid lines)
 
         // Add any new keys that weren't in the file
         updatedKeys.forEach(key => {
@@ -12256,10 +12319,22 @@ app.post(
 app.post(
     '/api/admin/plex-libraries',
     isAuthenticated,
-    express.json(),
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Received request to fetch Plex libraries.');
+
+        // DEBUG: Log the entire request body
+        logger.info('[Plex Libraries] Raw req.body:', JSON.stringify(req.body));
+        logger.info('[Plex Libraries] Body keys:', Object.keys(req.body || {}));
+
         let { hostname, port, token } = req.body;
+
+        // DEBUG: Log extracted values
+        logger.info('[Plex Libraries] Extracted values:', {
+            hostname,
+            port: port,
+            portType: typeof port,
+            token: token ? `${token.substring(0, 5)}...(${token.length})` : 'MISSING',
+        });
 
         // Sanitize hostname
         if (hostname) {
@@ -12383,7 +12458,6 @@ app.post(
 app.post(
     '/api/admin/test-jellyfin',
     isAuthenticated,
-    express.json(),
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Received request to test Jellyfin connection.');
         let { hostname, apiKey } = req.body; // apiKey is now optional
@@ -12615,7 +12689,6 @@ app.post(
 app.post(
     '/api/admin/jellyfin-libraries',
     isAuthenticated,
-    express.json(),
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Received request to fetch Jellyfin libraries.');
         let { hostname, port, apiKey } = req.body;
@@ -12809,7 +12882,6 @@ app.post(
 app.post(
     '/api/admin/config',
     isAuthenticated,
-    express.json(),
     asyncHandler(async (req, res) => {
         logger.info('[Admin API] Received POST request to /api/admin/config');
         logger.info('[Admin API] Request body exists:', !!req.body);
@@ -13058,6 +13130,13 @@ app.post(
 
         // Log what we received for debugging
         logger.info('[Admin API] Received env update keys:', Object.keys(sanitizedEnv));
+        logger.info(
+            '[Admin API] PLEX_TOKEN in received env:',
+            'PLEX_TOKEN' in sanitizedEnv,
+            sanitizedEnv.PLEX_TOKEN
+                ? `(length: ${String(sanitizedEnv.PLEX_TOKEN).length})`
+                : '(not present or empty)'
+        );
 
         for (const key of sensitiveEnvKeys) {
             // If key is not being sent at all, skip (writeEnvFile will preserve existing)
@@ -13092,11 +13171,45 @@ app.post(
             }
         }
 
+        // Log final state after masking checks
+        logger.info(
+            '[Admin API] After masking checks - sanitizedEnv keys:',
+            Object.keys(sanitizedEnv)
+        );
+        logger.info(
+            '[Admin API] After masking checks - PLEX_TOKEN present:',
+            'PLEX_TOKEN' in sanitizedEnv
+        );
+
         // Write to config.json and .env
         await writeConfig(mergedConfig);
         if (isDebug) logger.debug('[Admin API] Successfully wrote to config.json.');
+
+        // Enhanced logging for .env write debugging
+        logger.info(
+            '[Admin API] About to write to .env file with keys:',
+            Object.keys(sanitizedEnv)
+        );
+        logger.info(
+            '[Admin API] .env update details:',
+            Object.fromEntries(
+                Object.entries(sanitizedEnv).map(([k, v]) => {
+                    if (k.includes('TOKEN') || k.includes('KEY') || k.includes('SECRET')) {
+                        return [k, `${typeof v} (length: ${String(v || '').length})`];
+                    }
+                    return [k, v];
+                })
+            )
+        );
+
         await writeEnvFile(sanitizedEnv);
         if (isDebug) logger.debug('[Admin API] Successfully wrote to .env file.');
+
+        // Verify the token was written by checking process.env
+        logger.info(
+            '[Admin API] Post-write verification - PLEX_TOKEN in process.env:',
+            !!process.env.PLEX_TOKEN
+        );
 
         // Clear caches to reflect changes without a full restart
         playlistCache = null;
@@ -16595,7 +16708,7 @@ app.get('/api/admin/logs/level', isAuthenticated, (req, res) => {
     });
 });
 
-app.post('/api/admin/logs/level', isAuthenticated, express.json(), (req, res) => {
+app.post('/api/admin/logs/level', isAuthenticated, (req, res) => {
     const { level } = req.body;
     const availableLevels = ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'];
 
@@ -16674,7 +16787,7 @@ app.post('/api/admin/logs/level', isAuthenticated, express.json(), (req, res) =>
  *       500:
  *         description: Failed to emit notification
  */
-app.post('/api/admin/notify/test', isAuthenticated, express.json(), (req, res) => {
+app.post('/api/admin/notify/test', isAuthenticated, (req, res) => {
     try {
         const lvl = String(req.body?.level || 'warn').toLowerCase();
         const msg = String(req.body?.message || 'Test notification from Admin');

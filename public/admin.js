@@ -14009,11 +14009,15 @@
                     const port =
                         document.getElementById('plex.port')?.value?.trim() ||
                         document.getElementById('plex_port')?.value?.trim();
-                    // Get token from dataset first (actual token), fallback to input value
+                    // Get token from dataset first (actual token), fallback to input value, then global store
                     const tokenInput =
                         document.getElementById('plex.token') ||
                         document.getElementById('plex_token');
-                    const token = tokenInput?.dataset?.actualToken || tokenInput?.value?.trim();
+                    const token =
+                        tokenInput?.dataset?.actualToken ||
+                        tokenInput?.value?.trim() ||
+                        window.__tokenStore?.plexToken ||
+                        undefined;
                     res = await fetch('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -14974,6 +14978,54 @@
             } catch (e) {
                 console.warn('Jellyfin health indicator init failed', e);
             }
+
+            // === GLOBAL TOKEN STORE ===
+            // Always load tokens from localStorage at page init, regardless of which tab is open
+            // This ensures tokens are available even when input fields don't exist (e.g., Dashboard tab)
+            window.__tokenStore = window.__tokenStore || {};
+
+            try {
+                const plexToken = localStorage.getItem('plex_token_temp');
+                if (plexToken && plexToken !== 'EXISTING_TOKEN') {
+                    window.__tokenStore.plexToken = plexToken;
+                    console.log(
+                        '[Token Store] ✓ Loaded Plex token from localStorage:',
+                        plexToken.length,
+                        'chars'
+                    );
+                }
+            } catch (e) {
+                console.warn('[Token Store] Failed to load Plex token:', e);
+            }
+
+            try {
+                const jfApiKey = localStorage.getItem('jf_apikey_temp');
+                if (jfApiKey && jfApiKey !== 'EXISTING_TOKEN') {
+                    window.__tokenStore.jfApiKey = jfApiKey;
+                    console.log(
+                        '[Token Store] ✓ Loaded Jellyfin API key from localStorage:',
+                        jfApiKey.length,
+                        'chars'
+                    );
+                }
+            } catch (e) {
+                console.warn('[Token Store] Failed to load Jellyfin API key:', e);
+            }
+
+            try {
+                const tmdbApiKey = localStorage.getItem('tmdb_apikey_temp');
+                if (tmdbApiKey && tmdbApiKey !== 'EXISTING_TOKEN') {
+                    window.__tokenStore.tmdbApiKey = tmdbApiKey;
+                    console.log(
+                        '[Token Store] ✓ Loaded TMDB API key from localStorage:',
+                        tmdbApiKey.length,
+                        'chars'
+                    );
+                }
+            } catch (e) {
+                console.warn('[Token Store] Failed to load TMDB API key:', e);
+            }
+
             if (getInput('plex.token') || getInput('plex_token')) {
                 // Show masked placeholder when a token exists, or keep empty for user to fill
                 const hasToken = !!env[plexTokenVar];
@@ -15023,8 +15075,11 @@
                             el.dataset.actualToken = val;
                             // Save to localStorage for persistence across reloads
                             localStorage.setItem('plex_token_temp', val);
+                            // Also update the global token store immediately
+                            if (!window.__tokenStore) window.__tokenStore = {};
+                            window.__tokenStore.plexToken = val;
                             console.log(
-                                '[Token Input] Saved to dataset and localStorage:',
+                                '[Token Input] Saved to dataset, localStorage, and token store:',
                                 val.length,
                                 'chars'
                             );
@@ -15239,8 +15294,11 @@
                         if (val && !/^[•]+$/.test(val)) {
                             el.dataset.actualToken = val;
                             localStorage.setItem('jf_apikey_temp', val);
+                            // Also update the global token store immediately
+                            if (!window.__tokenStore) window.__tokenStore = {};
+                            window.__tokenStore.jfApiKey = val;
                             console.log(
-                                '[Jellyfin Input] Saved to dataset and localStorage:',
+                                '[Jellyfin Input] Saved to dataset, localStorage, and token store:',
                                 val.length,
                                 'chars'
                             );
@@ -15382,8 +15440,11 @@
                         if (val && !/^[•]+$/.test(val)) {
                             el.dataset.actualToken = val;
                             localStorage.setItem('tmdb_apikey_temp', val);
+                            // Also update the global token store immediately
+                            if (!window.__tokenStore) window.__tokenStore = {};
+                            window.__tokenStore.tmdbApiKey = val;
                             console.log(
-                                '[TMDB Input] Saved to dataset and localStorage:',
+                                '[TMDB Input] Saved to dataset, localStorage, and token store:',
                                 val.length,
                                 'chars'
                             );
@@ -15804,11 +15865,14 @@
                         getInput('plex.port')?.value ||
                         document.getElementById('plex_port')?.value ||
                         undefined;
-                    // Get token from dataset first (actual token), fallback to input value
+                    // Get token from: 1) dataset, 2) input value, 3) global token store, 4) undefined
                     const tokenInput =
                         getInput('plex.token') || document.getElementById('plex_token');
                     const token =
-                        tokenInput?.dataset?.actualToken || tokenInput?.value || undefined;
+                        tokenInput?.dataset?.actualToken ||
+                        tokenInput?.value ||
+                        window.__tokenStore?.plexToken ||
+                        undefined;
                     const res = await fetch('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -17266,8 +17330,12 @@
                 };
                 const plexTokenEl = getInput('plex.token');
                 const plexToken = plexTokenEl?.value?.trim();
-                // Try to get token from data attribute if field value is empty
-                const actualToken = plexTokenEl?.dataset?.actualToken || plexToken;
+                // Try to get token from data attribute, then localStorage, then field value
+                const actualToken =
+                    plexTokenEl?.dataset?.actualToken ||
+                    plexToken ||
+                    window.__tokenStore?.plexToken ||
+                    localStorage.getItem('plex_token_temp');
 
                 // DEBUG: Log token state for troubleshooting
                 console.log(
@@ -17435,7 +17503,11 @@
                 };
                 // Get API key from dataset first (actual key), fallback to input value
                 const jfKeyInput = getInput('jf.apikey');
-                const jfKey = jfKeyInput?.dataset?.actualToken || jfKeyInput?.value?.trim();
+                const jfKey =
+                    jfKeyInput?.dataset?.actualToken ||
+                    jfKeyInput?.value?.trim() ||
+                    window.__tokenStore?.jfApiKey ||
+                    localStorage.getItem('jf_apikey_temp');
                 // Check if it's a masked value (all bullet points) or EXISTING_TOKEN marker
                 const isMaskedKey = jfKey && (/^[•]+$/.test(jfKey) || jfKey === 'EXISTING_TOKEN');
                 // Only update API key if user entered a new value (not empty, not masked)
@@ -17529,7 +17601,11 @@
                 // Get API key from dataset first (actual key), fallback to input value
                 const tmdbApiKeyInput = getInput('tmdb.apikey');
                 const tmdbApiKeyVal =
-                    tmdbApiKeyInput?.dataset?.actualToken || tmdbApiKeyInput?.value?.trim() || '';
+                    tmdbApiKeyInput?.dataset?.actualToken ||
+                    tmdbApiKeyInput?.value?.trim() ||
+                    window.__tokenStore?.tmdbApiKey ||
+                    localStorage.getItem('tmdb_apikey_temp') ||
+                    '';
                 // Check if it's a masked value (all bullet points) or EXISTING_TOKEN marker
                 const isMaskedApiKey =
                     tmdbApiKeyVal &&
@@ -21274,11 +21350,30 @@ if (!document.__niwDelegatedFallback) {
                         window.__plexLibraryNameToId.size
                     )
                         return { map: window.__plexLibraryNameToId, libs: null };
+
+                    // Get connection details (same logic as fetchPlexLibraries)
+                    const hostname =
+                        getInput('plex.hostname')?.value ||
+                        document.getElementById('plex_hostname')?.value ||
+                        undefined;
+                    const port =
+                        getInput('plex.port')?.value ||
+                        document.getElementById('plex_port')?.value ||
+                        undefined;
+                    // Get token from: 1) dataset, 2) input value, 3) global token store, 4) undefined
+                    const tokenInput =
+                        getInput('plex.token') || document.getElementById('plex_token');
+                    const token =
+                        tokenInput?.dataset?.actualToken ||
+                        tokenInput?.value ||
+                        window.__tokenStore?.plexToken ||
+                        undefined;
+
                     const r = await fetch('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
-                        body: JSON.stringify({}),
+                        body: JSON.stringify({ hostname, port, token }),
                     });
                     const j = r.ok ? await r.json().catch(() => ({})) : {};
                     const libs = Array.isArray(j.libraries) ? j.libraries : [];
