@@ -1,402 +1,149 @@
-# Development Guide
+# Development Roadmap
 
-Technical documentation for Posterrama development, dependencies, and advanced configuration.
+Current development status and upcoming features for Posterrama.
 
-## 📋 Table of Contents
+### Installation & Setup
 
-- [Architecture Overview](#architecture-overview)
-- [Dependency Management](#dependency-management)
-- [API Documentation](#api-documentation)
-- [Database Schema](#database-schema)
-- [Performance Optimization](#performance-optimization)
-- [Troubleshooting](#troubleshooting)
+- [ ] LXC container template script
+- [ ] Provide `device-presets.json` as a template on first boot, then allow adding custom presets
+- [ ] Test `install.sh`: verify permissions and that all dependencies are installed
 
-## 🏗️ Architecture Overview
+### Media Sources
 
-### Core Components
+- [ ] Emby integration
+- [ ] Additional poster services
+- [ ] Music library support (reuse existing sources; define display options)
+- [ ] Radarr/Sonarr/Lidarr integration
+- [ ] Steam and ROMM gaming libraries and collections
 
-```
-posterrama/
-├── server.js           # Main application server
-├── sources/           # Media source integrations
-│   ├── plex.js       # Plex Media Server
-│   ├── jellyfin.js   # Jellyfin integration
-│   ├── tmdb.js       # The Movie Database
-│   └──               #
-├── public/           # Frontend assets
-├── middleware/       # Express middleware
-└── utils/           # Shared utilities
-```
+### Modes
 
-### Data Flow
+- [ ] Split each mode into its own HTML + minimal CSS (simpler maintenance)
+    - [ ] `screensaver.html`
+    - [ ] `cinema.html`
+    - [ ] `wallart.html`
 
-1. **Media Sources** → Fetch content from Plex/Jellyfin/TMDB
-2. **Processing** → Normalize metadata, cache images
-3. **API** → Serve aggregated data via REST endpoints
-4. **Frontend** → Display content with smooth transitions
+### Responsive Design
 
-## 🧭 Admin UI
+- [ ] Desktop
+- [ ] Tablet
+- [ ] Mobile
 
-- Entry points:
-    - Admin panel: `/admin`
-    - Admin login: `/admin/login`
-- Assets and cache-busting:
-    - Admin assets are `admin.js` and `admin.css`
-    - `server.js` stamps `?v=<per-file-version>` onto these assets when serving `public/admin.html`
-    - The Service Worker fetch strategy is network-first for `/admin.js` and `/admin.css` to ensure you always get the latest UI; it falls back to cache if offline
-- Legacy routes/assets:
-    - The legacy `/admin2` route has been removed; use `/admin`
-    - Older admin files are archived under `private/` for rollback only and are not served
-    - `admin-help.js` has been removed (no active references)
+### UI/UX Improvements
 
-## 📦 Dependency Management
+- [ ] Poster hints from Posterr
+- [ ] MoviePosterApp.com features:
+    - [ ] Advanced transition effects
+    - [ ] Font/size/color customization
+    - [ ] Trailer support
+- [ ] Motion posters with AI
+- [ ] Now playing mode (cinema)
+- [ ] UI elements scaling presets; adjust preview aspect ratio
+- [ ] Improve Posterrama web app icon (multi-size crisp assets)
+- [ ] Curated playlists (franchises, directors, genres, “On this day”, “New to Plex”), actors
+- [ ] No Media Available restyling
 
-### Production Dependencies
+### Device Management
 
-| Package         | Purpose            | Notes        |
-| --------------- | ------------------ | ------------ |
-| `express`       | Web framework      | Core server  |
-| `@jellyfin/sdk` | Jellyfin API       | Media source |
-| `plex-api`      | Plex integration   | Media source |
-| `node-cache`    | In-memory caching  | Performance  |
-| `sharp`         | Image processing   | Optimization |
-| `speakeasy`     | 2FA authentication | Security     |
+- [ ] Multiple screens with smart sync and coordinated displays
+- [ ] Online poster services; orientation-aware selection
+- [ ] Show setup gear icon when device is not registered (with "don’t show again")
 
-### Development Dependencies
+### Display Behavior
 
-| Package     | Purpose            | Notes                  |
-| ----------- | ------------------ | ---------------------- |
-| `jest`      | Testing framework  | Unit/integration tests |
-| `eslint`    | Code linting       | Code quality           |
-| `nodemon`   | Development server | Auto-restart           |
-| `supertest` | HTTP testing       | API tests              |
+- [ ] Slide animation: faster transition, longer still time
+- [ ] Wallart: option to show metadata (Title, Year, Stars) — hero-only or all posters
+- [ ] Wallart: add film card layout
+- [ ] Cinema: film card / presets
 
-### Dependency Updates
+### Rules & Schedules
 
-#### Safe Update Strategy
+- [ ] Time schedules (day/night, weekends); scenes as presets; seasonal themes (Halloween, Holidays)
+- [ ] Sound and ambient modes
+- [ ] Music visuals for audio libraries; ambient background for idle
 
-1. **Check compatibility** before updating
-2. **Test thoroughly** with updated versions
-3. **Update gradually** (not all at once)
-4. **Monitor for issues** after deployment
+## 🏗️ Technical Debt
 
-#### Update Commands
+### JavaScript Modularization
 
-```bash
-# Check outdated packages
-npm outdated
+Current monolithic files need refactoring:
 
-# Update within semver range
-npm update
+- `admin.js` (7,754 lines) → Split into modules
+- `script.js` (2,760 lines) → Component-based architecture
 
-# Update specific package
-npm install package@latest
-
-# Update dev dependencies
-npm update --dev
-```
-
-#### Security Updates
-
-```bash
-# Check for vulnerabilities
-npm audit
-
-# Fix automatically
-npm audit fix
-
-# Manual review for breaking changes
-npm audit fix --force
-```
-
-## 🔧 API Documentation
-
-### Core Endpoints
-
-#### Media Endpoints
+**Target structure:**
 
 ```
-GET /api/media           # Get all media items
-GET /api/media/random    # Get random media item
-GET /api/media/movies    # Get movies only
-GET /api/media/shows     # Get TV shows only
+js/
+├── modules/
+│   ├── state/           # State management
+│   ├── ui/              # UI components
+│   ├── media/           # Media handling
+│   └── wallart/         # Wallart mode logic
+├── admin/               # Admin interface
+└── screensaver/         # Main display logic
 ```
 
-#### Configuration
-
-```
-GET /api/config          # Get current configuration
-POST /api/config         # Update configuration
-GET /api/config/test     # Test media server connections
-```
-
-#### System
-
-```
-GET /api/health          # Health check
-GET /api/metrics         # Performance metrics
-GET /api/cache/clear     # Clear cache
-```
-
-### Response Formats
-
-#### Media Item
-
-```json
-{
-    "id": "unique-identifier",
-    "title": "Movie Title",
-    "type": "movie|show",
-    "year": 2024,
-    "poster": "https://image-url",
-    "backdrop": "https://backdrop-url",
-    "rating": 8.5,
-    "source": "plex|jellyfin|tmdb"
-}
-```
-
-#### Error Response
-
-```json
-{
-    "error": "Error message",
-    "code": "ERROR_CODE",
-    "details": {}
-}
-```
-
-### Live command ACKs (optional)
-
-Device command endpoints support optional wait-for-ack semantics over WebSocket:
-
-- Single device: `POST /api/devices/:id/command?wait=true`
-    - Body: `{ "type": "core.mgmt.reload", "payload": { /* optional */ } }`
-    - Responses:
-        - `{ queued: false, live: true, ack: { status: "ok" } }` when device ACKs within ~3s
-        - `202 Accepted` with `{ queued: false, live: true, ack: { status: "timeout" } }` if ACK not received in time
-        - `{ queued: true, live: false, command: { ... } }` if device offline (fallback queue)
-
-- Group: `POST /api/groups/:id/command?wait=true`
-    - Returns per-device `results` with statuses: `ok`, `timeout`, `queued`, or `error`.
-
-Notes:
-
-- Without `wait=true`, behavior remains unchanged (fire-and-forget live send with offline queue fallback).
-- Devices ACK immediately for critical operations (reload/reset/clear-cache) before the action, to avoid losing the ACK on reload.
-
-### Device Management API quick reference
-
-Admin endpoints require an authenticated session or a Bearer token; device endpoints are unauthenticated but require deviceId/deviceSecret when applicable. Replace placeholders as needed.
-
-- Device register: `POST /api/devices/register`
-- Device heartbeat/poll: `POST /api/devices/heartbeat`
-- List devices: `GET /api/devices`
-- Get/patch/delete device: `GET|PATCH|DELETE /api/devices/{id}`
-- Generate pairing code: `POST /api/devices/{id}/pairing-code`
-- Device claim (pair): `POST /api/devices/pair`
-- Send device command: `POST /api/devices/{id}/command[?wait=true]`
-- Groups CRUD: `GET|POST /api/groups`, `PATCH|DELETE /api/groups/{id}`
-- Send group command: `POST /api/groups/{id}/command[?wait=true]`
-
-Examples
-
-```bash
-# Device: register
-curl -sS -X POST http://localhost:4000/api/devices/register \
-    -H 'Content-Type: application/json' \
-    -d '{"installId":"iid-123","hardwareId":"hw-123","name":"Kiosk"}'
-
-# Device: heartbeat + poll
-curl -sS -X POST http://localhost:4000/api/devices/heartbeat \
-    -H 'Content-Type: application/json' \
-    -d '{"deviceId":"<id>","deviceSecret":"<secret>","userAgent":"curl","screen":{"w":1920,"h":1080,"dpr":1}}'
-
-# Admin: list devices
-curl -sS http://localhost:4000/api/devices \
-    -H 'Authorization: Bearer <TOKEN>'
-
-# Admin: send command and wait for ACK (returns per-device for groups)
-curl -sS -X POST 'http://localhost:4000/api/devices/<ID>/command?wait=true' \
-    -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' \
-    -d '{"type":"core.mgmt.reload"}'
-
-# Admin: group broadcast with wait=true
-curl -sS -X POST 'http://localhost:4000/api/groups/<GROUP>/command?wait=true' \
-    -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' \
-    -d '{"type":"core.mgmt.clear-cache"}'
-
-# Pairing: admin creates code, device claims
-curl -sS -X POST http://localhost:4000/api/devices/<ID>/pairing-code \
-    -H 'Authorization: Bearer <TOKEN>' -H 'Content-Type: application/json' \
-    -d '{"ttlMs":600000}'
-curl -sS -X POST http://localhost:4000/api/devices/pair \
-    -H 'Content-Type: application/json' \
-    -d '{"code":"123456","token":"<from previous>","name":"Lobby"}'
-```
-
-Notes
-
-- With `wait=true`, single-device responses include `ack.status` or `queued`; group responses include `results` with `ok|timeout|queued|error` per device.
-- Devices ACK immediately for reload/clear-cache to avoid losing ACK on reload.
-
-## 🗄️ Configuration Schema
-
-### Media Servers
-
-```json
-{
-    "mediaServers": [
-        {
-            "name": "My Plex Server",
-            "type": "plex|jellyfin",
-            "enabled": true,
-            "hostnameEnvVar": "PLEX_HOSTNAME",
-            "portEnvVar": "PLEX_PORT",
-            "tokenEnvVar": "PLEX_TOKEN",
-            "movieLibraryNames": ["Movies"],
-            "showLibraryNames": ["TV Shows"]
-        }
-    ]
-}
-```
-
-### Display Settings
-
-```json
-{
-    "wallartMode": {
-        "enabled": false,
-        "density": "medium|low|high|ludicrous",
-        "refreshRate": 5,
-        "animationType": "fade|slideLeft|zoom|..."
-    },
-    "cinemaMode": false,
-    "uiScaling": {
-        "content": 100,
-        "clearlogo": 100,
-        "clock": 100,
-        "global": 100
-    }
-}
-```
-
-## ⚡ Performance Optimization
+**Goals:**
 
-### Caching Strategy
-
-- **Image Cache**: 24h TTL for poster/backdrop images
-- **Metadata Cache**: 1h TTL for API responses
-- **Config Cache**: 5min TTL for configuration
+- No file >500 lines
+- Single responsibility per module
+- Maintain performance
 
-### Image Optimization
+### Performance Optimizations
 
-```javascript
-// Sharp configuration for image processing
-const optimizedImage = await sharp(inputBuffer)
-    .resize(400, 600, { fit: 'cover' })
-    .jpeg({ quality: 85 })
-    .toBuffer();
-```
+- [ ] Lazy loading for non-critical modules
+- [ ] Image optimization pipeline
 
-### Memory Management
+## 🎨 Wallart Mode Enhancements
 
-- Use streams for large image processing
-- Clear unused cache entries regularly
-- Monitor memory usage in production
+### Animation System
 
-### Database Queries
+- [ ] Theme-based layouts (genre-specific grids)
+- [ ] Decade themes (80s neon, 90s grunge, etc.)
+- [ ] Weather-based themes
+- [ ] Time-of-day adaptive layouts
 
-- Limit result sets appropriately
-- Use efficient query patterns
-- Cache expensive operations
+### Advanced Features
 
-## 🐛 Troubleshooting
+- [ ] 3D perspective effects
+- [ ] Particle systems
+- [ ] Interactive hover states
+- [ ] AI-powered layout optimization
 
-### Common Issues
+## 📱 Platform Integration
 
-#### "Cannot connect to Plex server"
+### Smart TV Enhancements
 
-1. Check hostname/port configuration
-2. Verify Plex token is valid
-3. Check network connectivity
-4. Review firewall settings
+- [ ] Android TV native app
+- [ ] Apple TV screensaver integration
+- [ ] Samsung Tizen app
+- [ ] LG webOS integration
 
-#### "High memory usage"
+### Home Automation
 
-1. Check image cache size
-2. Monitor for memory leaks
-3. Restart application if needed
-4. Review cache TTL settings
+- [ ] Home Assistant integration
+- [ ] MQTT support for IoT
+    - [ ] Entities (state, source, playing)
+    - [ ] Automations (dim/pause on presence)
+    - [ ] Topics for remote control
 
-#### "Slow loading times"
+## 🔐 Security & Reliability
 
-1. Check image optimization settings
-2. Verify cache configuration
-3. Monitor network latency
-4. Review media source response times
+### Authentication
 
-### Debugging
+- [ ] LDAP/Active Directory integration
+- [ ] OAuth providers (Google, GitHub)
+- [ ] Role-based access control
 
-```bash
-# Enable debug logging (server-side structured logs)
-DEBUG=true npm start
+### Device Identity
 
-# Extra auth debugging in tests only (prints request/auth headers in test mode)
-PRINT_AUTH_DEBUG=1 npm test -i
+- [ ] Make each device unique (e.g., bind a client certificate)
 
-# Check logs
-tail -f logs/app.log
+## 🎬 Cinema Mode Enhancements
 
-# Monitor memory usage
-node --inspect server.js
-```
+- [ ] Film card / presets for cinema mode
 
-### Environment handling notes
+## ✨ Customization & Design
 
-- NODE_ENV is never overridden from .env during startup. The runtime-provided value (e.g. from Jest, PM2, or your shell) is preserved to avoid accidental test/prod mixups.
-- On startup, `.env` is force-reloaded for all variables except `NODE_ENV` to avoid PM2 environment caching issues.
-- Test mode tweaks:
-    - Admin/device auth accepts any Authorization/X-API-Key header to simplify integration tests; real token checks still apply when headers are absent to allow 401 coverage.
-    - You can set `PRINT_AUTH_DEBUG=1` while running tests to log minimal request/auth context for failing tests.
-    - Certain GET/HEAD requests in tests may auto-seed a dummy session for idempotent routes to reduce boilerplate.
-
-### Performance Monitoring
-
-```bash
-# Get performance metrics
-curl http://localhost:4000/api/metrics
-
-# Check health status
-curl http://localhost:4000/api/health
-```
-
-## 🔒 Security Considerations
-
-### Environment Variables
-
-- Never commit sensitive values
-- Use strong authentication tokens
-- Rotate credentials regularly
-
-### Input Validation
-
-- Validate all user inputs
-- Sanitize file paths
-- Check media server responses
-
-### Rate Limiting
-
-- Implement API rate limits
-- Protect against abuse
-- Monitor for suspicious activity
-
-## 📚 Additional Resources
-
-- [Express.js Documentation](https://expressjs.com/)
-- [Jest Testing Framework](https://jestjs.io/)
-- [Node.js Best Practices](https://github.com/goldbergyoni/nodebestpractices)
-- [ESLint Configuration](https://eslint.org/docs/latest/)
-
----
-
-For more information, see the [Contributing Guide](CONTRIBUTING.md) or open a GitHub Discussion.
+- [ ] Inverted high‑contrast font option (like Q dep / untamed style)

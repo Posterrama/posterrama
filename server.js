@@ -6846,6 +6846,41 @@ async function refreshPlaylistCache() {
     }
 }
 
+// Helper: schedule or reschedule background playlist refresh based on current config
+function schedulePlaylistBackgroundRefresh() {
+    try {
+        const minutes = Number(config.backgroundRefreshMinutes ?? 60);
+        const intervalMs = Math.max(0, Math.round(minutes)) * 60 * 1000;
+
+        // Clear any existing interval first
+        if (global.playlistRefreshInterval) {
+            try {
+                clearInterval(global.playlistRefreshInterval);
+            } catch (_) {
+                /* ignore */
+            }
+            global.playlistRefreshInterval = null;
+        }
+
+        if (intervalMs > 0) {
+            global.playlistRefreshInterval = setInterval(() => {
+                try {
+                    refreshPlaylistCache();
+                } catch (_) {
+                    /* fire-and-forget */
+                }
+            }, intervalMs);
+            logger.debug(
+                `Playlist background refresh scheduled every ${Math.round(minutes)} minutes.`
+            );
+        } else {
+            logger.info('Playlist background refresh disabled (interval set to 0).');
+        }
+    } catch (e) {
+        logger.warn('Failed to (re)schedule playlist background refresh', { error: e?.message });
+    }
+}
+
 // --- Admin Panel Logic ---
 
 /**
@@ -12351,8 +12386,14 @@ app.post(
 
         // Trigger a background refresh of the playlist with the new settings.
         // We don't await this, so the admin UI gets a fast response.
+        // Also reschedule the background refresh interval in case backgroundRefreshMinutes changed.
         // Add a small delay to prevent overwhelming the server during rapid config changes
         setTimeout(() => {
+            try {
+                schedulePlaylistBackgroundRefresh();
+            } catch (_) {
+                /* ignore */
+            }
             refreshPlaylistCache();
         }, 1000);
 
@@ -16310,17 +16351,8 @@ if (require.main === module) {
                 );
             }
 
-            // Background refresh interval (minutes)
-            const refreshMinutes = Number(config.backgroundRefreshMinutes ?? 60);
-            const refreshInterval = Math.max(0, Math.round(refreshMinutes)) * 60 * 1000;
-            if (refreshInterval > 0) {
-                global.playlistRefreshInterval = setInterval(refreshPlaylistCache, refreshInterval);
-                logger.debug(
-                    `Playlist will be refreshed in the background every ${Math.round(
-                        refreshMinutes
-                    )} minutes.`
-                );
-            }
+            // Schedule background refresh based on config
+            schedulePlaylistBackgroundRefresh();
 
             // Set up automatic cache cleanup - use configurable interval
             if (config.cache?.autoCleanup !== false) {

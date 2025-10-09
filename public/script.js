@@ -4105,6 +4105,46 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     }
                 } catch (_) {}
+
+                // Public fallback: if still empty, try switching to Local or first enabled source using /get-config (no admin session required)
+                try {
+                    if (!window.__mediaTriedPublicFallback) {
+                        window.__mediaTriedPublicFallback = true;
+                        const savedSrc = localStorage.getItem('posterrama.selectedSource');
+                        const cacheBuster = `?_t=${Date.now()}&_r=${Math.random()
+                            .toString(36)
+                            .substring(7)}`;
+                        const cfgRes2 = await fetch('/get-config' + cacheBuster, {
+                            cache: 'no-cache',
+                            headers: { 'Cache-Control': 'no-cache' },
+                        }).catch(() => null);
+                        if (cfgRes2 && cfgRes2.ok) {
+                            const cfg = await cfgRes2.json().catch(() => null);
+                            const servers = Array.isArray(cfg?.mediaServers)
+                                ? cfg.mediaServers
+                                : [];
+                            const enabled = servers.filter(s => s && s.enabled !== false);
+                            const localEnabled = !!cfg?.localDirectory?.enabled;
+
+                            // Prefer Local if enabled, otherwise first enabled server type
+                            let fallback = null;
+                            if (localEnabled) fallback = 'local';
+                            else if (enabled.length > 0)
+                                fallback = (enabled[0].type || '').toLowerCase();
+
+                            if (fallback && fallback !== savedSrc) {
+                                console.info(
+                                    '[Media] Public fallback: switching source →',
+                                    fallback
+                                );
+                                localStorage.setItem('posterrama.selectedSource', fallback);
+                                setTimeout(() => fetchMedia(true), 50);
+                                return;
+                            }
+                        }
+                    }
+                } catch (_) {}
+
                 // After grace period, fall back to original warning + user hint.
                 console.warn('[Media] Received invalid or empty media queue:', newMediaQueue, {
                     attempts: attempt,
