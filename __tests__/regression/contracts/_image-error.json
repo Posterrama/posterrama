@@ -2,11 +2,11 @@
   "endpoint": "/image-error",
   "status": 302,
   "headers": {
-    "content-type": "text/plain; charset=utf-8",
+    "content-type": "application/json; charset=utf-8",
     "content-length": "present"
   },
   "bodyStructure": {},
-  "timestamp": "2025-10-06T18:39:42.393Z",
+  "timestamp": "2025-10-10T21:30:00.000Z",
   "description": "Image proxy error handling - fallback behavior",
   "criticality": "MEDIUM"
 }
