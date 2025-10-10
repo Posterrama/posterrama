@@ -187,7 +187,7 @@ jobs:
 
         steps:
             - name: Download all regression reports
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   pattern: regression-reports-*
                   merge-multiple: true
