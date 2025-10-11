@@ -29,6 +29,10 @@ describe('Local posterpack: robustness and error handling', () => {
 
     beforeAll(() => {
         process.env.NODE_ENV = 'test';
+
+        // Clear module cache FIRST before reading anything
+        jest.resetModules();
+
         originalConfig = fs.readFileSync(configPath, 'utf-8');
 
         // Create unique temp root
@@ -48,6 +52,10 @@ describe('Local posterpack: robustness and error handling', () => {
             })
         );
 
+        // ZIP with special characters
+        const specialZip = path.join(manualDir, 'Movie [Special] (2024).zip');
+        fs.writeFileSync(specialZip, makeZipWith({ 'poster.jpg': 'special-poster' }));
+
         // Corrupted ZIP (truncated)
         const corruptedZip = path.join(manualDir, 'Corrupted (2024).zip');
         const validBuffer = makeZipWith({ 'poster.jpg': 'data' });
@@ -57,7 +65,7 @@ describe('Local posterpack: robustness and error handling', () => {
         const emptyZip = path.join(manualDir, 'Empty (2024).zip');
         fs.writeFileSync(emptyZip, makeZipWith({}));
 
-        // Enable localDirectory
+        // Enable localDirectory and write config
         const cfg = JSON.parse(originalConfig);
         cfg.localDirectory = cfg.localDirectory || {};
         cfg.localDirectory.enabled = true;
@@ -65,8 +73,12 @@ describe('Local posterpack: robustness and error handling', () => {
         cfg.localDirectory.watchDirectories = [];
         fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
 
-        // Load server ONCE after config is set
-        jest.resetModules();
+        // Verify files exist
+        console.log('[Test Setup] tmpRoot:', tmpRoot);
+        console.log('[Test Setup] Files created:', fs.readdirSync(manualDir));
+        console.log('[Test Setup] Config rootPath:', cfg.localDirectory.rootPath);
+
+        // NOW load server with updated config
         app = require('../../server');
     });
 
