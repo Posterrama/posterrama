@@ -2078,8 +2078,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         let currentPosters = []; // Track current posters for uniqueness
         const usedPosters = new Set(); // Track used poster IDs
 
-        // Expose currentPosters globally for device management
-        window.__wallartCurrentPosters = currentPosters;
+        // Expose currentPosters globally for device management via getter
+        // This ensures we always get the current state, not a stale reference
+        Object.defineProperty(window, '__wallartCurrentPosters', {
+            get() {
+                return currentPosters;
+            },
+            set(val) {
+                currentPosters = val;
+            },
+        });
         console.debug('[Wallart] Initialized currentPosters, length:', currentPosters.length);
 
         // Get dynamically calculated poster count - robust check for mediaQueue
@@ -2582,10 +2590,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             const next = getUniqueRandomPoster(excludeId);
                             if (!next) return;
                             currentPosters[0] = next;
-                            // Update global reference for device management
-                            if (window.__wallartCurrentPosters) {
-                                window.__wallartCurrentPosters[0] = next;
-                            }
+                            console.debug('[Wallart] Hero rotated to:', next.title);
                             animatePosterChange(heroEl, next, 'fade');
                         }, ms);
                     }
