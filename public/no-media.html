@@ -8,14 +8,25 @@
             :root {
                 /* Admin theme colors */
                 --color-primary: #00d4aa;
+                --color-primary-dark: #00b894;
                 --color-accent: #764ba2;
+                --color-secondary: #667eea;
+                --color-secondary-dark: #5a6acf;
                 --color-bg-primary: #1a1d29;
                 --color-bg-secondary: #252a3a;
+                --color-bg-tertiary: #2a3142;
                 --color-bg-card: #232937;
                 --color-text-primary: #ffffff;
                 --color-text-secondary: #b8bcc8;
                 --color-text-muted: #8b92a5;
+                --color-text-inverse: #1a1d29;
                 --color-border: #3a4553;
+                --color-border-light: #4a5568;
+                --space-sm: 0.5rem;
+                --space-md: 1rem;
+                --space-lg: 1.5rem;
+                --border-radius-md: 0.5rem;
+                --border-radius-lg: 0.75rem;
             }
 
             * {
@@ -37,36 +48,7 @@
                 position: relative;
             }
 
-            /* Animated gradient background */
-            body::before {
-                content: '';
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(
-                    135deg,
-                    var(--color-accent) 0%,
-                    var(--color-bg-primary) 50%,
-                    var(--color-primary) 100%
-                );
-                opacity: 0.15;
-                z-index: 0;
-                animation: gradientShift 20s ease infinite;
-            }
-
-            @keyframes gradientShift {
-                0%,
-                100% {
-                    transform: translateX(0%) rotate(0deg);
-                }
-                50% {
-                    transform: translateX(10%) rotate(5deg);
-                }
-            }
-
-            /* Subtle grid pattern */
+            /* Subtle grid pattern overlay */
             body::after {
                 content: '';
                 position: fixed;
@@ -76,12 +58,13 @@
                 height: 100%;
                 background-image: radial-gradient(
                     circle at 1px 1px,
-                    rgba(255, 255, 255, 0.05) 1px,
+                    rgba(255, 255, 255, 0.03) 1px,
                     transparent 0
                 );
                 background-size: 40px 40px;
                 z-index: 0;
-                opacity: 0.3;
+                opacity: 0.5;
+                pointer-events: none;
             }
 
             .container {
@@ -118,41 +101,27 @@
                 align-items: center;
                 justify-content: center;
                 gap: 1rem;
+                flex-wrap: wrap;
             }
 
             .logo {
-                width: 80px;
-                height: 80px;
-                background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
-                border-radius: 16px;
+                width: 64px;
+                height: 64px;
+                background: var(--color-bg-secondary);
+                border: 2px solid var(--color-border);
+                border-radius: 12px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 2.5rem;
-                box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5);
-                animation: pulse 3s ease-in-out infinite;
-            }
-
-            @keyframes pulse {
-                0%,
-                100% {
-                    transform: scale(1);
-                    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5);
-                }
-                50% {
-                    transform: scale(1.05);
-                    box-shadow: 0 15px 25px -3px rgb(0 0 0 / 0.6);
-                }
+                font-size: 2rem;
+                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4);
             }
 
             .brand {
                 font-size: 1.5rem;
                 font-weight: 600;
                 letter-spacing: 0.05em;
-                background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
+                color: var(--color-text-primary);
             }
 
             h1 {
@@ -186,7 +155,7 @@
                 width: 8px;
                 height: 8px;
                 border-radius: 50%;
-                background: var(--color-accent);
+                background: var(--color-primary);
                 animation: blink 2s ease-in-out infinite;
             }
 
@@ -216,6 +185,7 @@
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
+                font-weight: 600;
             }
 
             .suggestions h4::before {
@@ -252,40 +222,49 @@
                 flex-wrap: wrap;
             }
 
+            /* Admin button styling */
             .btn {
-                padding: 0.75rem 1.5rem;
-                border-radius: 6px;
-                font-size: 0.95rem;
-                font-weight: 500;
-                text-decoration: none;
                 display: inline-flex;
                 align-items: center;
-                gap: 0.5rem;
-                transition: all 0.2s ease;
-                border: none;
+                justify-content: center;
+                gap: var(--space-sm);
+                padding: var(--space-md) var(--space-lg);
+                border: 1px solid transparent;
+                border-radius: var(--border-radius-md);
+                font-size: 1rem;
+                font-weight: 500;
+                text-decoration: none;
                 cursor: pointer;
+                transition: all 0.2s ease;
+                position: relative;
+                background: transparent;
+            }
+
+            .btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
             }
 
             .btn-primary {
-                background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
-                color: white;
-                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+                background: var(--color-primary);
+                color: var(--color-text-inverse);
+                border: 1px solid var(--color-primary);
             }
 
-            .btn-primary:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+            .btn-primary:hover:not(:disabled) {
+                background: var(--color-primary-dark);
+                border-color: var(--color-primary-dark);
             }
 
             .btn-secondary {
-                background: var(--color-bg-secondary);
-                color: var(--color-text-primary);
-                border: 1px solid var(--color-border);
+                background: var(--color-secondary);
+                color: var(--color-text-inverse);
+                border: 1px solid var(--color-secondary);
             }
 
-            .btn-secondary:hover {
-                background: var(--color-bg-primary);
-                border-color: var(--color-primary);
+            .btn-secondary:hover:not(:disabled) {
+                background: var(--color-secondary-dark);
+                border-color: var(--color-secondary-dark);
             }
 
             /* Clock for screensaver mode */
@@ -296,7 +275,7 @@
                 font-size: 3rem;
                 font-weight: 300;
                 letter-spacing: 0.05em;
-                opacity: 0.3;
+                opacity: 0.2;
                 font-variant-numeric: tabular-nums;
                 color: var(--color-text-secondary);
                 z-index: 2;
@@ -313,9 +292,9 @@
                 }
 
                 .logo {
-                    width: 64px;
-                    height: 64px;
-                    font-size: 2rem;
+                    width: 56px;
+                    height: 56px;
+                    font-size: 1.75rem;
                 }
 
                 .brand {
@@ -380,14 +359,8 @@
                 </div>
 
                 <div class="actions">
-                    <a href="/admin.html" class="btn btn-primary">
-                        <span>⚙️</span>
-                        <span>Open Admin Panel</span>
-                    </a>
-                    <button id="retry-btn" class="btn btn-secondary">
-                        <span>🔄</span>
-                        <span>Check Now</span>
-                    </button>
+                    <a href="/admin.html" class="btn btn-primary">Open Admin Panel</a>
+                    <button id="retry-btn" class="btn btn-secondary">Check Now</button>
                 </div>
             </div>
         </div>
@@ -477,13 +450,13 @@
             document.getElementById('retry-btn').addEventListener('click', async () => {
                 const btn = document.getElementById('retry-btn');
                 btn.disabled = true;
-                btn.innerHTML = '<span>⏳</span><span>Checking...</span>';
+                btn.textContent = 'Checking...';
                 
                 const hasMedia = await checkMediaAvailability();
                 
                 if (!hasMedia) {
                     btn.disabled = false;
-                    btn.innerHTML = '<span>🔄</span><span>Check Again</span>';
+                    btn.textContent = 'Check Again';
                     // Reset countdown
                     nextCheckTime = Date.now() + 15000;
                 }
