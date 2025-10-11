@@ -6,7 +6,6 @@ Current development status and upcoming features for Posterrama.
 
 - [ ] LXC container template script
 - [ ] Provide `device-presets.json` as a template on first boot, then allow adding custom presets
-- [x] Test `install.sh`: verify permissions and that all dependencies are installed
 
 ### Media Sources
 
@@ -38,16 +37,12 @@ Current development status and upcoming features for Posterrama.
     - [ ] Trailer support
 - [ ] Motion posters with AI
 - [ ] Now playing mode (cinema)
-- [x] UI elements scaling presets; adjust preview aspect ratio
-- [x] Improve Posterrama web app icon (multi-size crisp assets)
 - [ ] Curated playlists (franchises, directors, genres, "On this day", "New to Plex"), actors
-- [x] No Media Available restyling
 
 ### Device Management
 
 - [ ] Multiple screens with smart sync and coordinated displays
 - [ ] Online poster services; orientation-aware selection
-- [x] Show setup gear icon when device is not registered (with "don't show again")
 
 ### Display Behavior
 
