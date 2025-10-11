@@ -17485,7 +17485,7 @@ if (require.main === module) {
 
                 // Intercept /get-config to add flags for the promo site.
                 // Force screensaver mode + promo box for the public site (port 4001)
-                if (req.originalUrl === '/get-config' && response.ok) {
+                if (req.originalUrl.startsWith('/get-config') && response.ok) {
                     if (isDebug)
                         logger.info(`[Site Server Proxy] Modifying response for /get-config`);
                     const originalConfig = await response.json();
@@ -17516,7 +17516,8 @@ if (require.main === module) {
                         // Preserve original cinema mode setting
                         cinemaMode: originalConfig.cinemaMode,
                     };
-                    // We send the modified JSON and stop further processing for this request.
+                    // Send modified JSON - remove Content-Encoding header since we're sending uncompressed JSON
+                    res.removeHeader('Content-Encoding');
                     return res.json(modifiedConfig);
                 }
 
