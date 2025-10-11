@@ -38,6 +38,7 @@ print_error() {
 # Function to detect OS
 detect_os() {
     if [[ -f /etc/os-release ]]; then
+        # shellcheck source=/dev/null
         . /etc/os-release
         OS=$NAME
         VER=$VERSION_ID
@@ -46,7 +47,7 @@ detect_os() {
         VER=$(lsb_release -sr)
     elif [[ -f /etc/redhat-release ]]; then
         OS="CentOS"
-        VER=$(rpm -q --qf "%{VERSION}" $(rpm -q --whatprovides redhat-release))
+        VER=$(rpm -q --qf "%{VERSION}" "$(rpm -q --whatprovides redhat-release)")
     else
         print_error "Cannot detect operating system"
         exit 1
@@ -65,12 +66,15 @@ check_root() {
         # Check if this is a root-only system (no regular users)
         if ! command -v sudo >/dev/null 2>&1; then
             print_status "Detected root-only system (no sudo available)"
+            # shellcheck disable=SC2034
             ROOT_ONLY_SYSTEM=true
         else
+            # shellcheck disable=SC2034
             ROOT_ONLY_SYSTEM=false
         fi
     else
         ROOT_INSTALL=false
+        # shellcheck disable=SC2034
         ROOT_ONLY_SYSTEM=false
         print_status "Not running as root, checking for sudo..."
         if command -v sudo >/dev/null 2>&1; then
@@ -99,7 +103,7 @@ install_nodejs() {
     # Check if Node.js is already installed
     if command -v node >/dev/null 2>&1; then
         NODE_VERSION=$(node --version | sed 's/v//')
-        MAJOR_VERSION=$(echo $NODE_VERSION | cut -d. -f1)
+        MAJOR_VERSION=$(echo "$NODE_VERSION" | cut -d. -f1)
         
         if [[ $MAJOR_VERSION -ge 18 ]]; then
             print_success "Node.js $NODE_VERSION is already installed and compatible"
@@ -390,6 +394,8 @@ install_posterrama() {
     POSTERRAMA_BASHRC="$POSTERRAMA_DIR/.bashrc"
     if [[ ! -f "$POSTERRAMA_BASHRC" ]] || ! grep -q "/usr/local/bin" "$POSTERRAMA_BASHRC" 2>/dev/null; then
         print_status "Setting up PATH in posterrama user's .bashrc..."
+        # Using single quotes intentionally to prevent expansion during echo
+        # shellcheck disable=SC2016
         echo 'export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"' | $SUDO tee -a "$POSTERRAMA_BASHRC" > /dev/null
         $SUDO chown $POSTERRAMA_USER:$POSTERRAMA_USER "$POSTERRAMA_BASHRC"
     fi
@@ -703,6 +709,7 @@ setup_service() {
     if [[ "$USE_ROOT_FOR_PM2" == true ]]; then
         # For root PM2, we need to generate service as root
         pm2 startup systemd -u root --hp /root
+        # shellcheck disable=SC2034
         SERVICE_USER="root"
     else
         if su - $POSTERRAMA_USER -c "which pm2 >/dev/null 2>&1"; then
@@ -711,6 +718,7 @@ setup_service() {
             # Fallback to direct path
             su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && /usr/local/bin/pm2 startup systemd -u $POSTERRAMA_USER --hp $POSTERRAMA_DIR"
         fi
+        # shellcheck disable=SC2034
         SERVICE_USER="$POSTERRAMA_USER"
     fi
     
@@ -728,7 +736,8 @@ setup_service() {
 
 # Function to display final information
 show_completion_info() {
-    local SERVER_IP=$(hostname -I | awk '{print $1}')
+    local SERVER_IP
+    SERVER_IP=$(hostname -I | awk '{print $1}')
     
     echo ""
     echo "=================================================================="
@@ -793,7 +802,7 @@ configure_system_limits() {
     print_status "Disabling core dumps..."
     
     # Add to limits.conf if not already present
-    if ! grep -q "* soft core 0" /etc/security/limits.conf 2>/dev/null; then
+    if ! grep -q "\\* soft core 0" /etc/security/limits.conf 2>/dev/null; then
         echo "* soft core 0" | $SUDO tee -a /etc/security/limits.conf > /dev/null
         echo "* hard core 0" | $SUDO tee -a /etc/security/limits.conf > /dev/null
         print_success "Core dumps disabled in /etc/security/limits.conf"
