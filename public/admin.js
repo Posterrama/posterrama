@@ -302,6 +302,33 @@
             root.classList.toggle('ms-open', !!open);
             control.setAttribute('aria-expanded', open ? 'true' : 'false');
             if (open) {
+                // Auto-fetch libraries when opening Plex/Jellyfin library multiselects
+                if (selectId === 'plex.movies' || selectId === 'plex.shows') {
+                    // Fetch Plex libraries if not already loaded
+                    if (window.__plexLibsFetchNeeded !== false) {
+                        window.__plexLibsFetchNeeded = false;
+                        (async () => {
+                            try {
+                                if (typeof window.__fetchPlexLibraries === 'function') {
+                                    await window.__fetchPlexLibraries(true, true);
+                                }
+                            } catch (_) {}
+                        })();
+                    }
+                } else if (selectId === 'jf.movies' || selectId === 'jf.shows') {
+                    // Fetch Jellyfin libraries if not already loaded
+                    if (window.__jfLibsFetchNeeded !== false) {
+                        window.__jfLibsFetchNeeded = false;
+                        (async () => {
+                            try {
+                                if (typeof window.__fetchJellyfinLibraries === 'function') {
+                                    await window.__fetchJellyfinLibraries(true, true);
+                                }
+                            } catch (_) {}
+                        })();
+                    }
+                }
+
                 // Ensure only one dropdown is open at a time
                 __closeAllMsExcept(root);
                 try {
@@ -4018,8 +4045,20 @@
 
         function shouldHardReset(prev, next) {
             if (!prev) return false;
-            // Only hard-reset when cinema mode on/off changes; orientation can be applied live
-            return !!prev.cinemaMode !== !!next.cinemaMode;
+            // Hard-reset when any major mode changes (cinema/wallart/screensaver transitions)
+            const prevCinema = !!prev.cinemaMode;
+            const nextCinema = !!next.cinemaMode;
+            const prevWallart = !!(prev.wallartMode && prev.wallartMode.enabled);
+            const nextWallart = !!(next.wallartMode && next.wallartMode.enabled);
+
+            // If cinema state changes, always reset
+            if (prevCinema !== nextCinema) return true;
+
+            // If wallart state changes, always reset
+            if (prevWallart !== nextWallart) return true;
+
+            // No mode change detected
+            return false;
         }
 
         function hardReset() {
@@ -4035,8 +4074,10 @@
 
         function applyContainerMode(payload) {
             const isCinema = !!payload.cinemaMode;
+            const isWallart = !!(payload.wallartMode && payload.wallartMode.enabled);
             container.classList.toggle('cinema-mode', isCinema);
-            container.classList.toggle('screensaver-mode', !isCinema);
+            container.classList.toggle('wallart-mode', isWallart);
+            container.classList.toggle('screensaver-mode', !isCinema && !isWallart);
             // In Cinema preview, orientation follows the form selection; the toggle button is hidden
             if (orientBtn) orientBtn.style.display = isCinema ? 'none' : '';
             // Cinema preview MUST always be portrait (window and content), regardless of form selection
@@ -8387,10 +8428,10 @@
                 // thumbnailUrl is already mode-aware (wallart uses backgroundUrl)
                 const thumbSrc = cs.thumbnailUrl || cs.posterUrl || cs.backgroundUrl || '';
                 const thumbAlt = escapeHtml(cs.title || d.name || '');
-                // Show thumbnail if URL exists - broken images will be detected by reconcile
-                const hasNowplay = !!thumbSrc;
+                // Show thumbnail only if URL exists AND device is not offline
+                const hasNowplay = !!thumbSrc && status !== 'offline';
                 const thumbRightHtml = hasNowplay
-                    ? `<div class="nowplay-thumb nowplay-thumb-right js-media-hover"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="48" height="72"></div>`
+                    ? `<div class="nowplay-thumb nowplay-thumb-right js-media-hover"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="48" height="72" onerror="this.parentElement.remove();this.closest('.device-card').classList.remove('has-nowplay');"></div>`
                     : '';
                 // Title rendering handled via live reconcile; no separate inline row here
                 return `
@@ -11687,10 +11728,18 @@
                         try {
                             const cs = d && d.currentState ? d.currentState : {};
                             const src = cs.thumbnailUrl || cs.posterUrl || cs.backgroundUrl || '';
+                            const status = getStatusClass(d);
                             const np =
                                 card.querySelector('.nowplay-thumb-right') ||
                                 card.querySelector('.nowplay-thumb');
-                            if (np) {
+
+                            // If device is offline, remove thumbnail immediately to prevent broken images
+                            if (status === 'offline' && np) {
+                                card.classList.remove('has-nowplay');
+                                try {
+                                    np.remove();
+                                } catch (_) {}
+                            } else if (np) {
                                 const img = np.querySelector('img');
                                 if (img && src) {
                                     const nextAlt = (cs.title || d.name || '').toString();
@@ -11740,6 +11789,7 @@
                                                 np.remove();
                                             } catch (_) {}
                                         };
+                                        // Start preloading to test if image is valid
                                         pre.src = src;
                                     } else {
                                         // No change (or currently animating): keep alt fresh
@@ -11764,8 +11814,9 @@
                                         np.remove();
                                     } catch (_) {}
                                 }
-                            } else if (src) {
+                            } else if (src && status !== 'offline') {
                                 // Thumbnail became available; test if it loads before injecting
+                                // (but only if device is not offline)
                                 const actions = card.querySelector('.device-actions');
                                 if (actions) {
                                     // Preload to verify image exists
@@ -11786,6 +11837,10 @@
                                         img.setAttribute('referrerpolicy', 'no-referrer');
                                         img.setAttribute('width', '48');
                                         img.setAttribute('height', '72');
+                                        img.setAttribute(
+                                            'onerror',
+                                            "this.parentElement.remove();this.closest('.device-card').classList.remove('has-nowplay');"
+                                        );
                                         // Quick entrance fade-in
                                         img.style.opacity = '0';
                                         img.style.transition = 'opacity 160ms ease-in-out';
@@ -11803,6 +11858,7 @@
                                         // Image fails to load, don't inject thumbnail
                                         card.classList.remove('has-nowplay');
                                     };
+                                    // Start loading to test if image is valid
                                     testImg.src = src;
                                 }
                             }
@@ -15684,12 +15740,42 @@
                         jf: false,
                     };
 
-                    // Always fetch libraries when opening the panel to ensure we have the full list
-                    // This fixes the issue where only pre-selected libraries show as options
-                    if (!window.__autoFetchedLibs.plex) {
+                    // Mark that libraries need to be fetched on first multiselect open
+                    window.__plexLibsFetchNeeded = true;
+
+                    // Check if Plex is enabled
+                    const plexEnabled = !!getInput('plex.enabled')?.checked;
+
+                    if (plexEnabled && !window.__autoFetchedLibs.plex) {
                         window.__autoFetchedLibs.plex = true;
-                        // Always silent on auto-fetch (parity with Jellyfin Option 1)
-                        await fetchPlexLibraries(true, true);
+
+                        // Auto-test connection silently to populate filters (ratings/genres)
+                        try {
+                            const hostname = getInput('plex.hostname')?.value || '';
+                            const port = getInput('plex.port')?.value || '';
+                            const tokenInput = getInput('plex.token');
+                            const token =
+                                tokenInput?.dataset?.actualToken || tokenInput?.value || '';
+
+                            if (hostname && port) {
+                                // Test connection silently
+                                await fetch('/api/admin/test-plex', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
+                                    body: JSON.stringify({
+                                        hostname,
+                                        port,
+                                        token: token || undefined,
+                                    }),
+                                });
+                                // Don't fetch libraries here - let the user click on the multiselect to trigger that
+                            }
+                        } catch (e) {
+                            // Silently fail - user can manually test if needed
+                            if (window.__debugOn)
+                                console.debug('[Plex] Auto-test failed:', e.message);
+                        }
                     }
                 })();
             } catch (_) {
@@ -15705,12 +15791,47 @@
                         jf: false,
                     };
 
-                    // Always fetch libraries when opening the panel to ensure we have the full list
-                    // This fixes the issue where only pre-selected libraries show as options
-                    if (!window.__autoFetchedLibs.jf) {
+                    // Mark that libraries need to be fetched on first multiselect open
+                    window.__jfLibsFetchNeeded = true;
+
+                    // Check if Jellyfin is enabled
+                    const jfEnabled = !!getInput('jf.enabled')?.checked;
+
+                    if (jfEnabled && !window.__autoFetchedLibs.jf) {
                         window.__autoFetchedLibs.jf = true;
-                        // Silent auto-load (no toasts) per Option 1
-                        await fetchJellyfinLibraries(true, true);
+
+                        // Auto-test connection silently to populate filters (ratings/genres)
+                        try {
+                            const hostname = getInput('jf.hostname')?.value || '';
+                            const port = getInput('jf.port')?.value || '';
+                            const apiKeyInput = getInput('jf.apikey');
+                            const apiKey =
+                                apiKeyInput?.dataset?.actualToken || apiKeyInput?.value || '';
+                            const insecureHttps = !!(
+                                document.getElementById('jf.insecureHttps')?.checked ||
+                                document.getElementById('jf.insecureHttpsHeader')?.checked
+                            );
+
+                            if (hostname && port) {
+                                // Test connection silently
+                                await fetch('/api/admin/test-jellyfin', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
+                                    body: JSON.stringify({
+                                        hostname,
+                                        port,
+                                        apiKey: apiKey || undefined,
+                                        insecureHttps,
+                                    }),
+                                });
+                                // Don't fetch libraries here - let the user click on the multiselect to trigger that
+                            }
+                        } catch (e) {
+                            // Silently fail - user can manually test if needed
+                            if (window.__debugOn)
+                                console.debug('[Jellyfin] Auto-test failed:', e.message);
+                        }
                     }
                 })();
             } catch (_) {
@@ -16029,6 +16150,9 @@
             })();
             return window.__plexLibsInFlight;
         }
+        // Make function globally accessible for multiselect click handler
+        window.__fetchPlexLibraries = fetchPlexLibraries;
+
         // Auto-fetch Plex libraries silently if host/port present but no options yet
         try {
             setTimeout(() => {
@@ -16588,6 +16712,8 @@
             })();
             return window.__jfLibsInFlight;
         }
+        // Make function globally accessible for multiselect click handler
+        window.__fetchJellyfinLibraries = fetchJellyfinLibraries;
 
         // ------- Jellyfin Multiselect Helpers (ratings/genres/qualities) -------
         function setJfHidden(id, val) {

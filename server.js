@@ -7808,6 +7808,10 @@ async function writeEnvFile(newValues) {
  * means cached values take precedence over .env file. This function ensures a fresh
  * environment load by deleting and restarting the PM2 process.
  *
+ * Note: Uses 'pm2 restart' instead of 'pm2 delete && pm2 start' for safety.
+ * The downside is that PM2's dump.pm2 cache may still persist. For full environment
+ * refresh, manual 'pm2 delete posterrama && pm2 start ecosystem.config.js' is needed.
+ *
  * @param {string} reason - Description of why the restart is needed (for logging)
  * @param {boolean} async - If true, returns immediately without waiting for restart
  */
@@ -7817,30 +7821,32 @@ function restartPM2ForEnvUpdate(reason = 'environment update', async = true) {
         return;
     }
 
-    logger.info(`[PM2] Triggering delete+restart to clear environment cache (${reason})`);
+    logger.info(`[PM2] Triggering restart to apply environment changes (${reason})`);
 
     const { exec } = require('child_process');
     const ecosystemConfig = require('./ecosystem.config.js');
     const appName = ecosystemConfig.apps[0].name || 'posterrama';
 
-    const command = `pm2 delete ${appName} && pm2 start ecosystem.config.js`;
+    // Use 'pm2 restart' instead of 'delete && start' for safety
+    // This prevents the app from disappearing if start fails
+    const command = `pm2 restart ${appName} --update-env`;
 
     if (async) {
         // Fire and forget - don't wait for completion
         exec(command, error => {
             if (error) {
-                logger.error(`[PM2] Delete/restart failed: ${error.message}`);
+                logger.error(`[PM2] Restart failed: ${error.message}`);
             } else {
-                logger.info('[PM2] Process deleted and restarted to clear environment cache');
+                logger.info('[PM2] Process restarted with --update-env flag');
             }
         });
     } else {
         // Synchronous execution (blocks until complete)
         try {
             require('child_process').execSync(command);
-            logger.info('[PM2] Process deleted and restarted to clear environment cache');
+            logger.info('[PM2] Process restarted with --update-env flag');
         } catch (error) {
-            logger.error(`[PM2] Delete/restart failed: ${error.message}`);
+            logger.error(`[PM2] Restart failed: ${error.message}`);
         }
     }
 }
@@ -13360,8 +13366,11 @@ app.post(
         // Clear the /get-config cache so changes are immediately visible
         cacheManager.delete('GET:/get-config');
 
-        // Restart PM2 to clear environment cache (critical for tokens, API keys, etc.)
-        restartPM2ForEnvUpdate('configuration saved');
+        // Restart PM2 to clear environment cache ONLY if environment variables changed
+        // Display settings don't require restart, only tokens/keys/secrets do
+        if (Object.keys(sanitizedEnv).length > 0) {
+            restartPM2ForEnvUpdate('configuration saved');
+        }
 
         // --- Live-apply Local Directory changes without restart ---
         try {
