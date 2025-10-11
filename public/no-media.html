@@ -20,6 +20,7 @@
                 --color-text-muted: #8b92a5;
                 --color-text-inverse: #1a1d29;
                 --color-border: #3a4553;
+                --color-border-light: #4a5568;
                 --space-sm: 0.5rem;
                 --space-md: 1rem;
                 --space-lg: 1.5rem;
@@ -73,7 +74,7 @@
 
             h1 {
                 font-size: 2rem;
-                font-weight: var(--font-weight-bold);
+                font-weight: var(--font-weight-medium);
                 margin-bottom: 2rem;
                 color: var(--color-text-primary);
             }
@@ -147,56 +148,6 @@
                 font-weight: var(--font-weight-bold);
             }
 
-            .actions {
-                display: flex;
-                gap: var(--space-md);
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-
-            /* Admin button styling - exact copy */
-            .btn {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: var(--space-sm);
-                padding: var(--space-md) var(--space-lg);
-                border: 1px solid transparent;
-                border-radius: var(--border-radius-md);
-                font-size: var(--font-size-base);
-                font-weight: var(--font-weight-medium);
-                text-decoration: none;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                position: relative;
-                background: transparent;
-            }
-
-            .btn:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
-            }
-
-            .btn-primary {
-                background: var(--color-primary);
-                color: var(--color-text-inverse);
-                border: 1px solid var(--color-primary);
-            }
-
-            .btn-primary:hover:not(:disabled) {
-                background: var(--color-primary-dark);
-                border-color: var(--color-primary-dark);
-            }
-
-            .btn-secondary {
-                background: var(--color-secondary);
-                color: var(--color-text-inverse);
-            }
-
-            .btn-secondary:hover:not(:disabled) {
-                background: var(--color-secondary-dark);
-            }
-
             /* Clock for screensaver mode */
             .clock {
                 position: fixed;
@@ -205,7 +156,7 @@
                 font-size: 3rem;
                 font-weight: 300;
                 letter-spacing: 0.05em;
-                opacity: 0.15;
+                opacity: 0.6;
                 font-variant-numeric: tabular-nums;
                 color: var(--color-text-secondary);
             }
@@ -229,14 +180,6 @@
                     top: 1rem;
                     right: 1rem;
                 }
-
-                .actions {
-                    flex-direction: column;
-                }
-
-                .btn {
-                    width: 100%;
-                }
             }
         </style>
     </head>
@@ -248,7 +191,10 @@
             <div class="content">
                 <div class="brand">Posterrama</div>
 
-                <h1 id="message">No media found. Check the library configuration.</h1>
+                <h1 id="message">
+                    No media found.<br />
+                    Check the library configuration.
+                </h1>
 
                 <div class="status-indicator">
                     <span class="status-dot"></span>
@@ -263,11 +209,6 @@
                         <li>Ensure there is media in your library</li>
                         <li>Review the configuration settings in the admin panel</li>
                     </ul>
-                </div>
-
-                <div class="actions">
-                    <a href="/admin.html" class="btn btn-primary">Open Admin Panel</a>
-                    <button id="retry-btn" class="btn btn-secondary">Check Now</button>
                 </div>
             </div>
         </div>
@@ -352,22 +293,6 @@
                 setInterval(updateStatusText, 1000);
                 nextCheckTime = Date.now() + 15000;
             }
-
-            // Manual retry button
-            document.getElementById('retry-btn').addEventListener('click', async () => {
-                const btn = document.getElementById('retry-btn');
-                btn.disabled = true;
-                btn.textContent = 'Checking...';
-                
-                const hasMedia = await checkMediaAvailability();
-                
-                if (!hasMedia) {
-                    btn.disabled = false;
-                    btn.textContent = 'Check Again';
-                    // Reset countdown
-                    nextCheckTime = Date.now() + 15000;
-                }
-            });
 
             // Initialize
             updateClock();
