@@ -340,6 +340,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     let pinnedMediaId = null;
     Object.defineProperty(window, '__posterramaCurrentMediaId', {
         get() {
+            // In wallart mode, use the hero poster's ID
+            const isWallart = appConfig?.wallartMode?.enabled === true;
+            if (
+                isWallart &&
+                Array.isArray(window.__wallartCurrentPosters) &&
+                window.__wallartCurrentPosters[0]
+            ) {
+                const hero = window.__wallartCurrentPosters[0];
+                // Construct mediaId similar to how it's done in the main flow
+                return hero.id || hero.title || null;
+            }
             return currentMediaId;
         },
     });
