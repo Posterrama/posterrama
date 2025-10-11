@@ -17553,6 +17553,7 @@ if (require.main === module) {
         siteApp.get('/get-media', proxyApiRequest);
         siteApp.get('/get-media-by-key/:key', proxyApiRequest);
         siteApp.get('/image', proxyApiRequest);
+        siteApp.get('/local-posterpack', proxyApiRequest);
 
         // A catch-all route to serve the index.html with promo box enabled for the public site.
         // This shows the marketing/promo content instead of the app interface.
