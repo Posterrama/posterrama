@@ -1,6 +1,6 @@
 {
     "name": "posterrama-app",
-    "version": "2.7.5",
+    "version": "2.7.6",
     "private": true,
     "description": "An elegant, full-screen screensaver that acts as a digital art frame for your media.",
     "license": "GPL-3.0-or-later",
