@@ -492,12 +492,19 @@ function cacheMiddleware(options = {}) {
 
         if (cached) {
             // Serve from cache
-            res.set({
+            const headers = {
                 'Cache-Control': cacheControl,
                 ETag: cached.etag,
                 'X-Cache': 'HIT',
                 Vary: varyHeaders.join(', '),
-            });
+            };
+
+            // Restore Content-Encoding header if it was cached
+            if (cached.contentEncoding) {
+                headers['Content-Encoding'] = cached.contentEncoding;
+            }
+
+            res.set(headers);
 
             // Set content type based on cached response
             if (cached.value && typeof cached.value === 'object') {
@@ -514,7 +521,12 @@ function cacheMiddleware(options = {}) {
 
         res.send = function (data) {
             if (res.statusCode === 200) {
+                // Store the Content-Encoding header if present (for compressed responses)
+                const contentEncoding = res.getHeader('Content-Encoding');
                 const entry = cacheManager.set(cacheKey, data, ttl);
+                if (entry && contentEncoding) {
+                    entry.contentEncoding = contentEncoding;
+                }
                 if (entry) {
                     res.set({
                         'Cache-Control': cacheControl,
@@ -529,7 +541,12 @@ function cacheMiddleware(options = {}) {
 
         res.json = function (data) {
             if (res.statusCode === 200) {
+                // Store the Content-Encoding header if present (for compressed responses)
+                const contentEncoding = res.getHeader('Content-Encoding');
                 const entry = cacheManager.set(cacheKey, data, ttl);
+                if (entry && contentEncoding) {
+                    entry.contentEncoding = contentEncoding;
+                }
                 if (entry) {
                     res.set({
                         'Cache-Control': cacheControl,
