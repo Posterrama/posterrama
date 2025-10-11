@@ -64,11 +64,15 @@ describe('Local posterpack: robustness and error handling', () => {
         cfg.localDirectory.rootPath = tmpRoot;
         cfg.localDirectory.watchDirectories = [];
         fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
+
+        // Load server ONCE after config is set
+        jest.resetModules();
+        app = require('../../server');
     });
 
     beforeEach(() => {
-        jest.resetModules();
-        app = require('../../server');
+        // Don't reload server between tests to avoid config timing issues
+        // app is already loaded in beforeAll
     });
 
     afterAll(() => {
