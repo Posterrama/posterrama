@@ -4057,6 +4057,24 @@
             // If wallart state changes, always reset
             if (prevWallart !== nextWallart) return true;
 
+            // If wallart is active and settings changed, reset to apply new layout/density
+            if (nextWallart && prev.wallartMode && next.wallartMode) {
+                const prevSettings = prev.wallartMode;
+                const nextSettings = next.wallartMode;
+                // Check key wallart settings that affect layout rendering
+                if (prevSettings.density !== nextSettings.density) return true;
+                if (prevSettings.layoutVariant !== nextSettings.layoutVariant) return true;
+                if (prevSettings.animationType !== nextSettings.animationType) return true;
+                if (prevSettings.ambientGradient !== nextSettings.ambientGradient) return true;
+                // Check heroGrid settings if using heroGrid layout
+                if (nextSettings.layoutVariant === 'heroGrid') {
+                    const prevHero = prevSettings.layoutSettings?.heroGrid || {};
+                    const nextHero = nextSettings.layoutSettings?.heroGrid || {};
+                    if (prevHero.heroSide !== nextHero.heroSide) return true;
+                    if (prevHero.biasAmbientToHero !== nextHero.biasAmbientToHero) return true;
+                }
+            }
+
             // No mode change detected
             return false;
         }
