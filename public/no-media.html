@@ -5,6 +5,19 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>No Media Available - Posterrama</title>
         <style>
+            :root {
+                /* Admin theme colors */
+                --color-primary: #00d4aa;
+                --color-accent: #764ba2;
+                --color-bg-primary: #1a1d29;
+                --color-bg-secondary: #252a3a;
+                --color-bg-card: #232937;
+                --color-text-primary: #ffffff;
+                --color-text-secondary: #b8bcc8;
+                --color-text-muted: #8b92a5;
+                --color-border: #3a4553;
+            }
+
             * {
                 margin: 0;
                 padding: 0;
@@ -12,12 +25,10 @@
             }
 
             body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-                    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-                background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
-                background-size: 400% 400%;
-                animation: gradientShift 15s ease infinite;
-                color: white;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+                    Arial, sans-serif;
+                background: var(--color-bg-primary);
+                color: var(--color-text-primary);
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -26,62 +37,74 @@
                 position: relative;
             }
 
+            /* Animated gradient background */
+            body::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(
+                    135deg,
+                    var(--color-accent) 0%,
+                    var(--color-bg-primary) 50%,
+                    var(--color-primary) 100%
+                );
+                opacity: 0.15;
+                z-index: 0;
+                animation: gradientShift 20s ease infinite;
+            }
+
             @keyframes gradientShift {
                 0%,
                 100% {
-                    background-position: 0% 50%;
+                    transform: translateX(0%) rotate(0deg);
                 }
                 50% {
-                    background-position: 100% 50%;
+                    transform: translateX(10%) rotate(5deg);
                 }
             }
 
-            /* Animated background particles */
-            .particles {
-                position: absolute;
+            /* Subtle grid pattern */
+            body::after {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
                 width: 100%;
                 height: 100%;
-                overflow: hidden;
-                pointer-events: none;
-            }
-
-            .particle {
-                position: absolute;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                animation: float 20s infinite ease-in-out;
-            }
-
-            @keyframes float {
-                0%,
-                100% {
-                    transform: translateY(0) translateX(0);
-                    opacity: 0;
-                }
-                10% {
-                    opacity: 0.3;
-                }
-                90% {
-                    opacity: 0.3;
-                }
-                100% {
-                    transform: translateY(-100vh) translateX(50px);
-                    opacity: 0;
-                }
+                background-image: radial-gradient(
+                    circle at 1px 1px,
+                    rgba(255, 255, 255, 0.05) 1px,
+                    transparent 0
+                );
+                background-size: 40px 40px;
+                z-index: 0;
+                opacity: 0.3;
             }
 
             .container {
                 text-align: center;
-                padding: 2rem;
-                max-width: 600px;
+                padding: 3rem 2rem;
+                max-width: 700px;
                 z-index: 1;
-                animation: fadeIn 1s ease;
+                position: relative;
+            }
+
+            .card {
+                background: var(--color-bg-card);
+                border: 1px solid var(--color-border);
+                border-radius: 12px;
+                padding: 3rem 2rem;
+                box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+                animation: fadeIn 0.8s ease;
             }
 
             @keyframes fadeIn {
                 from {
                     opacity: 0;
-                    transform: translateY(20px);
+                    transform: translateY(30px);
                 }
                 to {
                     opacity: 1;
@@ -89,8 +112,24 @@
                 }
             }
 
-            .icon-wrapper {
+            .logo-wrapper {
                 margin-bottom: 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 1rem;
+            }
+
+            .logo {
+                width: 80px;
+                height: 80px;
+                background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+                border-radius: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 2.5rem;
+                box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5);
                 animation: pulse 3s ease-in-out infinite;
             }
 
@@ -98,56 +137,90 @@
                 0%,
                 100% {
                     transform: scale(1);
-                    opacity: 1;
+                    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5);
                 }
                 50% {
                     transform: scale(1.05);
-                    opacity: 0.9;
+                    box-shadow: 0 15px 25px -3px rgb(0 0 0 / 0.6);
                 }
             }
 
-            .icon {
-                font-size: 6rem;
-                line-height: 1;
-                filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-            }
-
             .brand {
-                font-size: 1.2rem;
+                font-size: 1.5rem;
                 font-weight: 600;
-                letter-spacing: 0.15em;
-                text-transform: uppercase;
-                color: rgba(255, 255, 255, 0.8);
-                margin-bottom: 1rem;
+                letter-spacing: 0.05em;
+                background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
             }
 
             h1 {
-                font-size: 2.5rem;
+                font-size: 2rem;
                 font-weight: 700;
                 margin-bottom: 1rem;
-                text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                color: var(--color-text-primary);
             }
 
             .message {
                 font-size: 1.1rem;
                 line-height: 1.6;
-                color: rgba(255, 255, 255, 0.9);
+                color: var(--color-text-secondary);
                 margin-bottom: 2rem;
             }
 
+            .status-indicator {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                background: var(--color-bg-secondary);
+                border: 1px solid var(--color-border);
+                border-radius: 8px;
+                padding: 0.75rem 1.25rem;
+                margin-bottom: 2rem;
+                font-size: 0.95rem;
+                color: var(--color-text-muted);
+            }
+
+            .status-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--color-accent);
+                animation: blink 2s ease-in-out infinite;
+            }
+
+            @keyframes blink {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.3;
+                }
+            }
+
             .suggestions {
-                background: rgba(0, 0, 0, 0.2);
-                backdrop-filter: blur(10px);
-                border-radius: 12px;
+                background: var(--color-bg-secondary);
+                border: 1px solid var(--color-border);
+                border-radius: 8px;
                 padding: 1.5rem;
                 text-align: left;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                margin-bottom: 1.5rem;
             }
 
             .suggestions h4 {
                 font-size: 1rem;
                 margin-bottom: 1rem;
-                color: rgba(255, 255, 255, 0.9);
+                color: var(--color-text-primary);
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .suggestions h4::before {
+                content: '💡';
+                font-size: 1.2rem;
             }
 
             .suggestions ul {
@@ -159,7 +232,7 @@
                 font-size: 0.95rem;
                 line-height: 1.6;
                 padding: 0.5rem 0;
-                color: rgba(255, 255, 255, 0.8);
+                color: var(--color-text-secondary);
                 position: relative;
                 padding-left: 1.5rem;
             }
@@ -168,97 +241,161 @@
                 content: '→';
                 position: absolute;
                 left: 0;
-                color: rgba(255, 255, 255, 0.6);
+                color: var(--color-primary);
+                font-weight: 600;
+            }
+
+            .actions {
+                display: flex;
+                gap: 1rem;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .btn {
+                padding: 0.75rem 1.5rem;
+                border-radius: 6px;
+                font-size: 0.95rem;
+                font-weight: 500;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                transition: all 0.2s ease;
+                border: none;
+                cursor: pointer;
+            }
+
+            .btn-primary {
+                background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+                color: white;
+                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+            }
+
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+            }
+
+            .btn-secondary {
+                background: var(--color-bg-secondary);
+                color: var(--color-text-primary);
+                border: 1px solid var(--color-border);
+            }
+
+            .btn-secondary:hover {
+                background: var(--color-bg-primary);
+                border-color: var(--color-primary);
             }
 
             /* Clock for screensaver mode */
             .clock {
                 position: fixed;
                 top: 2rem;
-                left: 2rem;
-                font-size: 2rem;
+                right: 2rem;
+                font-size: 3rem;
                 font-weight: 300;
                 letter-spacing: 0.05em;
-                opacity: 0.7;
+                opacity: 0.3;
                 font-variant-numeric: tabular-nums;
+                color: var(--color-text-secondary);
+                z-index: 2;
             }
 
             /* Responsive design */
             @media (max-width: 768px) {
-                .icon {
-                    font-size: 4rem;
+                .container {
+                    padding: 2rem 1rem;
+                }
+
+                .card {
+                    padding: 2rem 1.5rem;
+                }
+
+                .logo {
+                    width: 64px;
+                    height: 64px;
+                    font-size: 2rem;
+                }
+
+                .brand {
+                    font-size: 1.2rem;
                 }
 
                 h1 {
-                    font-size: 1.8rem;
+                    font-size: 1.5rem;
                 }
 
                 .message {
                     font-size: 1rem;
                 }
 
-                .suggestions {
-                    padding: 1rem;
-                }
-
                 .clock {
-                    font-size: 1.5rem;
+                    font-size: 2rem;
                     top: 1rem;
-                    left: 1rem;
-                }
-            }
-
-            @media (max-width: 480px) {
-                .container {
-                    padding: 1rem;
+                    right: 1rem;
                 }
 
-                .icon {
-                    font-size: 3rem;
+                .actions {
+                    flex-direction: column;
                 }
 
-                h1 {
-                    font-size: 1.5rem;
-                }
-
-                .suggestions li {
-                    font-size: 0.9rem;
+                .btn {
+                    width: 100%;
+                    justify-content: center;
                 }
             }
         </style>
     </head>
     <body>
-        <!-- Animated background particles -->
-        <div class="particles" id="particles"></div>
-
         <!-- Clock (visible in screensaver mode) -->
         <div class="clock" id="clock"></div>
 
         <div class="container">
-            <div class="icon-wrapper">
-                <div class="icon">📺</div>
-            </div>
+            <div class="card">
+                <div class="logo-wrapper">
+                    <div class="logo">🎬</div>
+                    <div class="brand">POSTERRAMA</div>
+                </div>
 
-            <div class="brand">Posterrama</div>
+                <h1>No Media Available</h1>
 
-            <h1>No Media Available</h1>
+                <div class="message" id="message">
+                    No media found. Check the library configuration.
+                </div>
 
-            <div class="message" id="message">
-                No media found. Check the library configuration.
-            </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span id="status-text">Checking for media...</span>
+                </div>
 
-            <div class="suggestions">
-                <h4>Possible solutions:</h4>
-                <ul>
-                    <li>Check if your content source is enabled and configured</li>
-                    <li>Verify the connection to your media server</li>
-                    <li>Ensure there is media in your library</li>
-                    <li>Review the configuration settings in the admin panel</li>
-                </ul>
+                <div class="suggestions">
+                    <h4>Possible solutions</h4>
+                    <ul>
+                        <li>Check if your content source is enabled and configured</li>
+                        <li>Verify the connection to your media server</li>
+                        <li>Ensure there is media in your library</li>
+                        <li>Review the configuration settings in the admin panel</li>
+                    </ul>
+                </div>
+
+                <div class="actions">
+                    <a href="/admin.html" class="btn btn-primary">
+                        <span>⚙️</span>
+                        <span>Open Admin Panel</span>
+                    </a>
+                    <button id="retry-btn" class="btn btn-secondary">
+                        <span>🔄</span>
+                        <span>Check Now</span>
+                    </button>
+                </div>
             </div>
         </div>
 
         <script>
+            let checkInterval = null;
+            let nextCheckTime = null;
+
             // Update clock every second
             function updateClock() {
                 const now = new Date();
@@ -266,37 +403,96 @@
                 const minutes = String(now.getMinutes()).padStart(2, '0');
                 document.getElementById('clock').textContent = `${hours}:${minutes}`;
             }
-            updateClock();
-            setInterval(updateClock, 1000);
 
-            // Create animated particles
-            function createParticles() {
-                const particlesContainer = document.getElementById('particles');
-                const particleCount = 20;
+            // Check if media is available
+            async function checkMediaAvailability() {
+                try {
+                    const response = await fetch('/get-media?count=1', {
+                        cache: 'no-cache',
+                        headers: {
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        },
+                    });
 
-                for (let i = 0; i < particleCount; i++) {
-                    const particle = document.createElement('div');
-                    particle.className = 'particle';
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch media');
+                    }
 
-                    // Random size between 2px and 8px
-                    const size = Math.random() * 6 + 2;
-                    particle.style.width = `${size}px`;
-                    particle.style.height = `${size}px`;
+                    const data = await response.json();
 
-                    // Random horizontal position
-                    particle.style.left = `${Math.random() * 100}%`;
+                    // If we have media, redirect back to main page
+                    if (data && data.length > 0) {
+                        console.log('[No-Media] Media detected, redirecting to main page...');
+                        document.getElementById('status-text').textContent = 'Media found! Redirecting...';
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 500);
+                        return true;
+                    }
 
-                    // Random animation delay
-                    particle.style.animationDelay = `${Math.random() * 20}s`;
-
-                    // Random animation duration
-                    particle.style.animationDuration = `${Math.random() * 10 + 15}s`;
-
-                    particlesContainer.appendChild(particle);
+                    return false;
+                } catch (error) {
+                    console.error('[No-Media] Error checking media:', error);
+                    return false;
                 }
             }
 
-            createParticles();
+            // Update status text with countdown
+            function updateStatusText() {
+                if (!nextCheckTime) return;
+                
+                const now = Date.now();
+                const remaining = Math.ceil((nextCheckTime - now) / 1000);
+                
+                if (remaining > 0) {
+                    document.getElementById('status-text').textContent = 
+                        `Next check in ${remaining} second${remaining !== 1 ? 's' : ''}...`;
+                } else {
+                    document.getElementById('status-text').textContent = 'Checking for media...';
+                }
+            }
+
+            // Start automatic checking
+            function startAutoCheck() {
+                // Initial check
+                checkMediaAvailability();
+
+                // Check every 15 seconds
+                if (checkInterval) clearInterval(checkInterval);
+                checkInterval = setInterval(async () => {
+                    nextCheckTime = null;
+                    document.getElementById('status-text').textContent = 'Checking for media...';
+                    const hasMedia = await checkMediaAvailability();
+                    if (!hasMedia) {
+                        nextCheckTime = Date.now() + 15000;
+                    }
+                }, 15000);
+
+                // Update countdown every second
+                setInterval(updateStatusText, 1000);
+                nextCheckTime = Date.now() + 15000;
+            }
+
+            // Manual retry button
+            document.getElementById('retry-btn').addEventListener('click', async () => {
+                const btn = document.getElementById('retry-btn');
+                btn.disabled = true;
+                btn.innerHTML = '<span>⏳</span><span>Checking...</span>';
+                
+                const hasMedia = await checkMediaAvailability();
+                
+                if (!hasMedia) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>🔄</span><span>Check Again</span>';
+                    // Reset countdown
+                    nextCheckTime = Date.now() + 15000;
+                }
+            });
+
+            // Initialize
+            updateClock();
+            setInterval(updateClock, 1000);
+            startAutoCheck();
 
             // Read custom message from URL parameter
             const params = new URLSearchParams(window.location.search);
