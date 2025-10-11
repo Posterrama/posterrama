@@ -9086,7 +9086,8 @@ app.post(
  *         description: Upload failed
  */
 app.post('/api/local/upload', (req, res) => {
-    if (!config.localDirectory?.enabled || !uploadMiddleware) {
+    // Permit uploading even if Local source is disabled for playlist purposes.
+    if (!uploadMiddleware) {
         return res.status(404).json({ error: 'Local directory support not enabled' });
     }
 
@@ -9187,7 +9188,8 @@ app.post(
     '/api/local/cleanup',
     express.json(),
     asyncHandler(async (req, res) => {
-        if (!config.localDirectory?.enabled || !localDirectorySource) {
+        // Permit cleanup/delete even if Local source is disabled for playlist purposes.
+        if (!localDirectorySource) {
             return res.status(404).json({ error: 'Local directory support not enabled' });
         }
 
