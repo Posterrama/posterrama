@@ -8387,8 +8387,8 @@
                 // thumbnailUrl is already mode-aware (wallart uses backgroundUrl)
                 const thumbSrc = cs.thumbnailUrl || cs.posterUrl || cs.backgroundUrl || '';
                 const thumbAlt = escapeHtml(cs.title || d.name || '');
-                // Only show thumbnail for live devices (not offline/stale)
-                const hasNowplay = !!thumbSrc && status === 'live' && !isPoweredOff;
+                // Show thumbnail if URL exists - broken images will be detected by reconcile
+                const hasNowplay = !!thumbSrc;
                 const thumbRightHtml = hasNowplay
                     ? `<div class="nowplay-thumb nowplay-thumb-right js-media-hover"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="48" height="72"></div>`
                     : '';
@@ -11697,7 +11697,7 @@
                                     const curSrc = img.getAttribute('src') || '';
                                     if (curSrc !== src && !img.__fading) {
                                         img.__fading = true;
-                                        // Preload target to avoid blank pop-in
+                                        // Preload target to avoid blank pop-in and verify it loads
                                         const pre = new Image();
                                         pre.onload = () => {
                                             try {
@@ -11733,12 +11733,12 @@
                                             }
                                         };
                                         pre.onerror = () => {
-                                            // If preload fails, just swap immediately
-                                            try {
-                                                img.setAttribute('src', src);
-                                                img.setAttribute('alt', nextAlt);
-                                            } catch (_) {}
+                                            // If preload fails, remove the thumbnail entirely (broken image)
                                             img.__fading = false;
+                                            card.classList.remove('has-nowplay');
+                                            try {
+                                                np.remove();
+                                            } catch (_) {}
                                         };
                                         pre.src = src;
                                     } else {
@@ -11765,32 +11765,45 @@
                                     } catch (_) {}
                                 }
                             } else if (src) {
-                                // Thumbnail became available; inject node and toggle class
+                                // Thumbnail became available; test if it loads before injecting
                                 const actions = card.querySelector('.device-actions');
                                 if (actions) {
-                                    const wrap = document.createElement('div');
-                                    wrap.className =
-                                        'nowplay-thumb nowplay-thumb-right js-media-hover';
-                                    const img = document.createElement('img');
-                                    img.setAttribute('src', src);
-                                    img.setAttribute('alt', (cs.title || d.name || '').toString());
-                                    img.setAttribute('loading', 'lazy');
-                                    img.setAttribute('decoding', 'async');
-                                    img.setAttribute('referrerpolicy', 'no-referrer');
-                                    img.setAttribute('width', '48');
-                                    img.setAttribute('height', '72');
-                                    // Quick entrance fade-in
-                                    img.style.opacity = '0';
-                                    img.style.transition = 'opacity 160ms ease-in-out';
-                                    wrap.appendChild(img);
-                                    actions.insertBefore(wrap, actions.firstChild);
-                                    card.classList.add('has-nowplay');
-                                    try {
-                                        bindHover && bindHover('.js-media-hover', mediaCard);
-                                    } catch (_) {}
-                                    requestAnimationFrame(() => {
-                                        img.style.opacity = '1';
-                                    });
+                                    // Preload to verify image exists
+                                    const testImg = new Image();
+                                    testImg.onload = () => {
+                                        // Image loads successfully, inject the thumbnail
+                                        const wrap = document.createElement('div');
+                                        wrap.className =
+                                            'nowplay-thumb nowplay-thumb-right js-media-hover';
+                                        const img = document.createElement('img');
+                                        img.setAttribute('src', src);
+                                        img.setAttribute(
+                                            'alt',
+                                            (cs.title || d.name || '').toString()
+                                        );
+                                        img.setAttribute('loading', 'lazy');
+                                        img.setAttribute('decoding', 'async');
+                                        img.setAttribute('referrerpolicy', 'no-referrer');
+                                        img.setAttribute('width', '48');
+                                        img.setAttribute('height', '72');
+                                        // Quick entrance fade-in
+                                        img.style.opacity = '0';
+                                        img.style.transition = 'opacity 160ms ease-in-out';
+                                        wrap.appendChild(img);
+                                        actions.insertBefore(wrap, actions.firstChild);
+                                        card.classList.add('has-nowplay');
+                                        try {
+                                            bindHover && bindHover('.js-media-hover', mediaCard);
+                                        } catch (_) {}
+                                        requestAnimationFrame(() => {
+                                            img.style.opacity = '1';
+                                        });
+                                    };
+                                    testImg.onerror = () => {
+                                        // Image fails to load, don't inject thumbnail
+                                        card.classList.remove('has-nowplay');
+                                    };
+                                    testImg.src = src;
                                 }
                             }
                         } catch (_) {}
