@@ -39,8 +39,8 @@ Current development status and upcoming features for Posterrama.
 - [ ] Motion posters with AI
 - [ ] Now playing mode (cinema)
 - [x] UI elements scaling presets; adjust preview aspect ratio
-- [ ] Improve Posterrama web app icon (multi-size crisp assets)
-- [ ] Curated playlists (franchises, directors, genres, “On this day”, “New to Plex”), actors
+- [x] Improve Posterrama web app icon (multi-size crisp assets)
+- [ ] Curated playlists (franchises, directors, genres, "On this day", "New to Plex"), actors
 - [x] No Media Available restyling
 
 ### Device Management
