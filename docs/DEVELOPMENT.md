@@ -24,8 +24,6 @@ Current development status and upcoming features for Posterrama.
 
 ### Responsive Design
 
-- [ ] Desktop
-- [ ] Tablet
 - [ ] Mobile
 
 ### UI/UX Improvements
