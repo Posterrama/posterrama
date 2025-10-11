@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>No Media Available - Posterrama</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+                background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+                background-size: 400% 400%;
+                animation: gradientShift 15s ease infinite;
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                overflow: hidden;
+                position: relative;
+            }
+
+            @keyframes gradientShift {
+                0%,
+                100% {
+                    background-position: 0% 50%;
+                }
+                50% {
+                    background-position: 100% 50%;
+                }
+            }
+
+            /* Animated background particles */
+            .particles {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                pointer-events: none;
+            }
+
+            .particle {
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                animation: float 20s infinite ease-in-out;
+            }
+
+            @keyframes float {
+                0%,
+                100% {
+                    transform: translateY(0) translateX(0);
+                    opacity: 0;
+                }
+                10% {
+                    opacity: 0.3;
+                }
+                90% {
+                    opacity: 0.3;
+                }
+                100% {
+                    transform: translateY(-100vh) translateX(50px);
+                    opacity: 0;
+                }
+            }
+
+            .container {
+                text-align: center;
+                padding: 2rem;
+                max-width: 600px;
+                z-index: 1;
+                animation: fadeIn 1s ease;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .icon-wrapper {
+                margin-bottom: 2rem;
+                animation: pulse 3s ease-in-out infinite;
+            }
+
+            @keyframes pulse {
+                0%,
+                100% {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+                50% {
+                    transform: scale(1.05);
+                    opacity: 0.9;
+                }
+            }
+
+            .icon {
+                font-size: 6rem;
+                line-height: 1;
+                filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+            }
+
+            .brand {
+                font-size: 1.2rem;
+                font-weight: 600;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+                color: rgba(255, 255, 255, 0.8);
+                margin-bottom: 1rem;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+                font-weight: 700;
+                margin-bottom: 1rem;
+                text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            }
+
+            .message {
+                font-size: 1.1rem;
+                line-height: 1.6;
+                color: rgba(255, 255, 255, 0.9);
+                margin-bottom: 2rem;
+            }
+
+            .suggestions {
+                background: rgba(0, 0, 0, 0.2);
+                backdrop-filter: blur(10px);
+                border-radius: 12px;
+                padding: 1.5rem;
+                text-align: left;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .suggestions h4 {
+                font-size: 1rem;
+                margin-bottom: 1rem;
+                color: rgba(255, 255, 255, 0.9);
+            }
+
+            .suggestions ul {
+                list-style: none;
+                padding: 0;
+            }
+
+            .suggestions li {
+                font-size: 0.95rem;
+                line-height: 1.6;
+                padding: 0.5rem 0;
+                color: rgba(255, 255, 255, 0.8);
+                position: relative;
+                padding-left: 1.5rem;
+            }
+
+            .suggestions li:before {
+                content: '→';
+                position: absolute;
+                left: 0;
+                color: rgba(255, 255, 255, 0.6);
+            }
+
+            /* Clock for screensaver mode */
+            .clock {
+                position: fixed;
+                top: 2rem;
+                left: 2rem;
+                font-size: 2rem;
+                font-weight: 300;
+                letter-spacing: 0.05em;
+                opacity: 0.7;
+                font-variant-numeric: tabular-nums;
+            }
+
+            /* Responsive design */
+            @media (max-width: 768px) {
+                .icon {
+                    font-size: 4rem;
+                }
+
+                h1 {
+                    font-size: 1.8rem;
+                }
+
+                .message {
+                    font-size: 1rem;
+                }
+
+                .suggestions {
+                    padding: 1rem;
+                }
+
+                .clock {
+                    font-size: 1.5rem;
+                    top: 1rem;
+                    left: 1rem;
+                }
+            }
+
+            @media (max-width: 480px) {
+                .container {
+                    padding: 1rem;
+                }
+
+                .icon {
+                    font-size: 3rem;
+                }
+
+                h1 {
+                    font-size: 1.5rem;
+                }
+
+                .suggestions li {
+                    font-size: 0.9rem;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Animated background particles -->
+        <div class="particles" id="particles"></div>
+
+        <!-- Clock (visible in screensaver mode) -->
+        <div class="clock" id="clock"></div>
+
+        <div class="container">
+            <div class="icon-wrapper">
+                <div class="icon">📺</div>
+            </div>
+
+            <div class="brand">Posterrama</div>
+
+            <h1>No Media Available</h1>
+
+            <div class="message" id="message">
+                No media found. Check the library configuration.
+            </div>
+
+            <div class="suggestions">
+                <h4>Possible solutions:</h4>
+                <ul>
+                    <li>Check if your content source is enabled and configured</li>
+                    <li>Verify the connection to your media server</li>
+                    <li>Ensure there is media in your library</li>
+                    <li>Review the configuration settings in the admin panel</li>
+                </ul>
+            </div>
+        </div>
+
+        <script>
+            // Update clock every second
+            function updateClock() {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                document.getElementById('clock').textContent = `${hours}:${minutes}`;
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            // Create animated particles
+            function createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                const particleCount = 20;
+
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+
+                    // Random size between 2px and 8px
+                    const size = Math.random() * 6 + 2;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+
+                    // Random horizontal position
+                    particle.style.left = `${Math.random() * 100}%`;
+
+                    // Random animation delay
+                    particle.style.animationDelay = `${Math.random() * 20}s`;
+
+                    // Random animation duration
+                    particle.style.animationDuration = `${Math.random() * 10 + 15}s`;
+
+                    particlesContainer.appendChild(particle);
+                }
+            }
+
+            createParticles();
+
+            // Read custom message from URL parameter
+            const params = new URLSearchParams(window.location.search);
+            const customMessage = params.get('message');
+            if (customMessage) {
+                document.getElementById('message').textContent = decodeURIComponent(customMessage);
+            }
+
+            // Listen for messages from parent window (for iframe usage)
+            window.addEventListener('message', event => {
+                if (event.data && event.data.type === 'no-media-message') {
+                    document.getElementById('message').textContent = event.data.message;
+                }
+            });
+        </script>
+    </body>
+</html>

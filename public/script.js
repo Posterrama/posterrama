@@ -824,42 +824,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function showError(message) {
-        // Add fallback background to body
-        document.body.classList.add('no-media-background');
-
-        let errorMessageEl = document.getElementById('error-message');
-        if (!errorMessageEl) {
-            errorMessageEl = document.createElement('div');
-            errorMessageEl.id = 'error-message';
-            // Minimal safe defaults so it doesn't break layouts without CSS
-            errorMessageEl.style.position = 'absolute';
-            errorMessageEl.style.top = '50%';
-            errorMessageEl.style.left = '50%';
-            errorMessageEl.style.transform = 'translate(-50%, -50%)';
-            errorMessageEl.style.color = '#fff';
-            errorMessageEl.style.textAlign = 'center';
-            errorMessageEl.style.maxWidth = '90vw';
-            errorMessageEl.classList?.add?.('is-hidden');
-            document.body.appendChild(errorMessageEl);
-        }
-
-        errorMessageEl.innerHTML = `
-            <div class="error-icon">📺</div>
-            <div class="error-brand">Posterrama</div>
-            <div class="error-title">No Media Available</div>
-            <div class="error-text">${message}</div>
-            <div class="error-suggestions">
-                <h4>Possible solutions:</h4>
-                <ul>
-                    <li>Check if your content source is enabled and configured</li>
-                    <li>Verify the connection to your media server</li>
-                    <li>Ensure there is media in your library</li>
-                    <li>Review the configuration settings in the admin panel</li>
-                </ul>
-            </div>
-        `;
-        errorMessageEl.classList.remove('is-hidden');
         console.error('Posterrama Error:', message);
+
+        // Navigate to dedicated no-media page
+        const encodedMessage = encodeURIComponent(message);
+        window.location.href = `/no-media.html?message=${encodedMessage}`;
     }
 
     async function initialize() {
@@ -2107,6 +2076,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Early exit if no media available
         if (posterCount === 0) {
             console.warn('[Wallart] No media available for wallart mode');
+            showError('No media available. Check the library configuration.');
             return;
         }
 
