@@ -8387,7 +8387,8 @@
                 // thumbnailUrl is already mode-aware (wallart uses backgroundUrl)
                 const thumbSrc = cs.thumbnailUrl || cs.posterUrl || cs.backgroundUrl || '';
                 const thumbAlt = escapeHtml(cs.title || d.name || '');
-                const hasNowplay = !!thumbSrc;
+                // Only show thumbnail for live devices (not offline/stale)
+                const hasNowplay = !!thumbSrc && status === 'live' && !isPoweredOff;
                 const thumbRightHtml = hasNowplay
                     ? `<div class="nowplay-thumb nowplay-thumb-right js-media-hover"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="48" height="72"></div>`
                     : '';
