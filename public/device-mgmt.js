@@ -929,39 +929,35 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 
         const btn = document.createElement('button');
         btn.id = 'pr-setup-btn';
-        btn.innerHTML = '⚙️';
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m0-12 5.2 3M12 7l-5.2 3M12 7l-5.2-3M12 7l5.2-3m0 12-5.2 3m0-6 5.2 3m-10.4 0L12 19m0-6-5.2 3M6.8 7 12 10m5.2 7L12 14M6.8 17 12 14"/></svg>`;
         btn.title = 'Set up device management';
         btn.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            width: 44px;
-            height: 44px;
+            background: none;
             border: none;
-            border-radius: 50%;
-            background: rgba(45, 108, 223, 0.8);
-            color: white;
-            font-size: 18px;
+            color: rgba(255, 255, 255, 0.7);
             cursor: pointer;
-            z-index: 9999;
-            backdrop-filter: blur(5px);
-            transition: all 0.2s ease;
+            padding: 6px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: background-color 0.2s, color 0.2s;
+            z-index: 9999;
+            width: 36px;
+            height: 36px;
         `;
 
         btn.addEventListener('mouseenter', () => {
-            btn.style.background = 'rgba(45, 108, 223, 1)';
-            btn.style.transform = 'scale(1.1)';
-            btn.style.boxShadow = '0 6px 20px rgba(45, 108, 223, 0.4)';
+            btn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            btn.style.color = '#fff';
         });
 
         btn.addEventListener('mouseleave', () => {
-            btn.style.background = 'rgba(45, 108, 223, 0.8)';
-            btn.style.transform = 'scale(1)';
-            btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            btn.style.backgroundColor = 'transparent';
+            btn.style.color = 'rgba(255, 255, 255, 0.7)';
         });
 
         btn.addEventListener('click', async () => {
