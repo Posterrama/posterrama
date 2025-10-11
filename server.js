@@ -11235,6 +11235,29 @@ app.post(
             req.session.twoFactorVerified = false;
         }
 
+        // If running under PM2, trigger restart with --update-env to clear cached environment
+        // PM2 caches environment variables in dump.pm2, so we need to delete and restart
+        // to ensure the empty ADMIN_2FA_SECRET is picked up from .env
+        if (process.env.PM2_HOME) {
+            logger.info(
+                '[Admin 2FA] Running under PM2. Deleting and restarting to clear cached 2FA secret...'
+            );
+            const { exec } = require('child_process');
+            const ecosystemConfig = require('./ecosystem.config.js');
+            const appName = ecosystemConfig.apps[0].name || 'posterrama';
+
+            // Delete and restart to clear PM2's environment cache
+            exec(`pm2 delete ${appName} && pm2 start ecosystem.config.js`, error => {
+                if (error) {
+                    logger.error(`[Admin 2FA] PM2 delete/restart failed: ${error.message}`);
+                } else {
+                    logger.info(
+                        '[Admin 2FA] PM2 process deleted and restarted to clear cached environment.'
+                    );
+                }
+            });
+        }
+
         if (isDebug)
             logger.debug(
                 `[Admin 2FA] 2FA disabled successfully for user "${req.session.user.username}".`
