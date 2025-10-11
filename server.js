@@ -11221,7 +11221,18 @@ app.post(
         if (!password) throw new ApiError(400, 'Password is required to disable 2FA.');
         const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
         if (!isValidPassword) throw new ApiError(401, 'Incorrect password.');
+
+        // Set to empty string AND update process.env immediately
         await writeEnvFile({ ADMIN_2FA_SECRET: '' });
+
+        // Also clear from current process.env to ensure immediate effect
+        delete process.env.ADMIN_2FA_SECRET;
+
+        // Clear 2FA from session to prevent re-verification on next page load
+        if (req.session) {
+            req.session.twoFactorVerified = false;
+        }
+
         if (isDebug)
             logger.debug(
                 `[Admin 2FA] 2FA disabled successfully for user "${req.session.user.username}".`
