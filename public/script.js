@@ -1817,8 +1817,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Preview mode adjustment: make posters smaller (higher density) so more fit in the scaled preview
         // The preview iframe is 1920x1080 but scaled down to ~420px, so we need more posters to look good
-        if (window.IS_PREVIEW) {
-            densityFactor = densityFactor * 0.5; // Double the effective density for preview
+        // HOWEVER: Do NOT apply this adjustment for heroGrid layout as it disrupts the hero:grid ratio
+        const isHeroGrid = window.wallartConfig?.layoutVariant === 'heroGrid';
+        if (window.IS_PREVIEW && !isHeroGrid) {
+            densityFactor = densityFactor * 0.5; // Double the effective density for preview (classic layouts only)
         }
 
         // Calculate optimal poster width based on screen width and density
