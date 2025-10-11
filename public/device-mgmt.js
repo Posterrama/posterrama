@@ -933,23 +933,23 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         btn.title = 'Set up device management';
         btn.style.cssText = `
             position: fixed;
-            bottom: 35px;
-            left: 50px;
+            top: 10px;
+            left: 10px;
             background-color: rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(5px);
             border: none;
             color: rgba(255, 255, 255, 0.7);
             cursor: pointer;
-            padding: 8px 15px;
+            padding: 6px 10px;
             border-radius: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background-color 0.2s, color 0.2s;
             z-index: 9999;
-            min-width: 44px;
-            min-height: 44px;
-            font-size: 18px;
+            min-width: 36px;
+            min-height: 36px;
+            font-size: 14px;
         `;
 
         btn.addEventListener('mouseenter', () => {
