@@ -62,24 +62,20 @@
             }
 
             .brand {
-                font-size: 1.5rem;
-                font-weight: var(--font-weight-semibold);
+                font-size: 2rem;
+                font-weight: 700;
                 margin-bottom: 2rem;
-                color: var(--color-text-primary);
+                background: linear-gradient(90deg, #e0e0e0, #bb86fc, #53a8b6);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
             }
 
             h1 {
                 font-size: 2rem;
                 font-weight: var(--font-weight-bold);
-                margin-bottom: 1rem;
-                color: var(--color-text-primary);
-            }
-
-            .message {
-                font-size: 1.1rem;
-                line-height: 1.6;
-                color: var(--color-text-secondary);
                 margin-bottom: 2rem;
+                color: var(--color-text-primary);
             }
 
             .status-indicator {
@@ -221,15 +217,11 @@
                 }
 
                 .brand {
-                    font-size: 1.25rem;
+                    font-size: 1.5rem;
                 }
 
                 h1 {
                     font-size: 1.5rem;
-                }
-
-                .message {
-                    font-size: 1rem;
                 }
 
                 .clock {
@@ -256,11 +248,7 @@
             <div class="content">
                 <div class="brand">Posterrama</div>
 
-                <h1>No Media Available</h1>
-
-                <div class="message" id="message">
-                    No media found. Check the library configuration.
-                </div>
+                <h1 id="message">No media found. Check the library configuration.</h1>
 
                 <div class="status-indicator">
                     <span class="status-dot"></span>
