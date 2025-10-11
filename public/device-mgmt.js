@@ -929,34 +929,40 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 
         const btn = document.createElement('button');
         btn.id = 'pr-setup-btn';
-        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m0-12 5.2 3M12 7l-5.2 3M12 7l-5.2-3M12 7l5.2-3m0 12-5.2 3m0-6 5.2 3m-10.4 0L12 19m0-6-5.2 3M6.8 7 12 10m5.2 7L12 14M6.8 17 12 14"/></svg>`;
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 1v6m0 6v6"></path>
+            <path d="m15.4 17.4 3.2-1.8a2 2 0 0 0 1-1.8V10a2 2 0 0 0-1-1.8l-3.2-1.8a2 2 0 0 0-2 0L10 8.2"></path>
+            <path d="m8.6 6.6-3.2 1.8a2 2 0 0 0-1 1.8v4.4a2 2 0 0 0 1 1.8l3.2 1.8a2 2 0 0 0 2 0L14 15.8"></path>
+        </svg>`;
         btn.title = 'Set up device management';
         btn.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            background: none;
+            background-color: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
             border: none;
             color: rgba(255, 255, 255, 0.7);
             cursor: pointer;
-            padding: 6px;
-            border-radius: 50%;
+            padding: 8px 15px;
+            border-radius: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background-color 0.2s, color 0.2s;
             z-index: 9999;
-            width: 36px;
-            height: 36px;
+            min-width: 44px;
+            min-height: 44px;
         `;
 
         btn.addEventListener('mouseenter', () => {
-            btn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            btn.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
             btn.style.color = '#fff';
         });
 
         btn.addEventListener('mouseleave', () => {
-            btn.style.backgroundColor = 'transparent';
+            btn.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
             btn.style.color = 'rgba(255, 255, 255, 0.7)';
         });
 
