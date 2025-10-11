@@ -66,13 +66,62 @@ else
 fi
 echo ""
 
-# 6. Run All Tests
-echo "6. 🧪 Running all tests..."
-if npm test; then
+# 6. Run All Tests (with CI environment)
+echo "6. 🧪 Running all tests with CI=true (like GitHub Actions)..."
+if CI=true npm test; then
     echo "✅ Tests: PASSED"
 else
     echo "❌ Tests: FAILED"
     OVERALL_SUCCESS=false
+fi
+echo ""
+
+# 6b. Run specific regression tests
+echo "6b. 🔍 Running regression contract tests..."
+if npm run test:regression:contracts > /dev/null 2>&1; then
+    echo "✅ Regression Contracts: PASSED"
+else
+    echo "❌ Regression Contracts: FAILED"
+    echo "   Run 'npm run test:regression:contracts' for details"
+    OVERALL_SUCCESS=false
+fi
+echo ""
+
+# 6c. Check visual regression tests (if Puppeteer available)
+echo "6c. 👁️ Running visual regression tests..."
+TEST_OUTPUT=$(npm test -- __tests__/regression/visual-regression.test.js 2>&1)
+if echo "$TEST_OUTPUT" | grep -q "Skipping.*browser not available"; then
+    echo "⚠️ Visual Regression: SKIPPED (browser not available locally, will run in CI)"
+elif echo "$TEST_OUTPUT" | tail -1 | grep -q "Test Suites:.*passed"; then
+    echo "✅ Visual Regression: PASSED"
+else
+    echo "❌ Visual Regression: FAILED"
+    echo "   Run 'npm test -- __tests__/regression/visual-regression.test.js' for details"
+    OVERALL_SUCCESS=false
+fi
+echo ""
+
+# 6d. Run config schema validation tests
+echo "6d. ⚙️ Running config schema tests..."
+TEST_OUTPUT=$(npm test -- __tests__/config/ 2>&1)
+if echo "$TEST_OUTPUT" | grep -q "Test Suites:.*failed"; then
+    echo "❌ Config Schema Tests: FAILED"
+    echo "   Run 'npm test -- __tests__/config/' for details"
+    OVERALL_SUCCESS=false
+else
+    echo "✅ Config Schema Tests: PASSED"
+fi
+echo ""
+
+# 6e. Run ZIP posterpack robustness tests
+echo "6e. 📦 Running ZIP posterpack tests..."
+TEST_OUTPUT=$(npm test -- __tests__/api/local.posterpack-robustness.test.js 2>&1)
+if echo "$TEST_OUTPUT" | grep -q "Test Suites:.*failed"; then
+    echo "❌ ZIP Posterpack Tests: FAILED"
+    echo "   Run 'npm test -- __tests__/api/local.posterpack-robustness.test.js' for details"
+    OVERALL_SUCCESS=false
+else
+    echo "✅ ZIP Posterpack Tests: PASSED"
 fi
 echo ""
 
