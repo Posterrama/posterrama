@@ -360,9 +360,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (currentIndex < 0 || currentIndex >= mediaQueue.length) return null;
                 const it = mediaQueue[currentIndex];
                 if (!it) return null;
-                // For wallart mode, use backgroundUrl as thumbnail for better visual representation
+                // For wallart mode, use posterUrl (hero poster) as thumbnail for device cards
+                // This gives the best visual representation of what's currently displayed
                 const isWallart = appConfig?.wallartMode?.enabled === true;
-                const thumbUrl = isWallart ? it.backgroundUrl || it.thumbnailUrl : it.thumbnailUrl;
+                const thumbUrl = isWallart ? it.posterUrl || it.thumbnailUrl : it.thumbnailUrl;
                 return {
                     title: it.title || null,
                     year: it.year || null,
