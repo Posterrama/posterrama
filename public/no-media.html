@@ -72,6 +72,18 @@
                 background-clip: text;
             }
 
+            #message {
+                font-size: 2rem;
+                font-weight: 500;
+                margin-bottom: 2rem;
+                color: var(--color-text-primary);
+            }
+
+            #message::after {
+                content: '\A Check the library configuration.';
+                white-space: pre;
+            }
+
             .status-indicator {
                 display: inline-flex;
                 align-items: center;
@@ -184,13 +196,7 @@
             <div class="content">
                 <div class="brand">Posterrama</div>
 
-                <div
-                    id="message"
-                    style="font-size: 2rem; font-weight: 500; margin-bottom: 2rem; color: var(--color-text-primary); line-height: 1.4;"
-                >
-                    <div style="display: block; margin-bottom: 0.5rem">No media found.</div>
-                    <div style="display: block">Check the library configuration.</div>
-                </div>
+                <div id="message">No media found.</div>
 
                 <div class="status-indicator">
                     <span class="status-dot"></span>
