@@ -1,13 +1,14 @@
 version: 2
-updates:
-    - package-ecosystem: 'github-actions'
-      directory: '/'
-      schedule:
-          interval: 'weekly'
-          day: 'monday'
-          time: '06:00'
-          timezone: 'UTC'
-      open-pull-requests-limit: 5
+updates: []
+    # Disabled github-actions update PRs
+    # - package-ecosystem: 'github-actions'
+    #   directory: '/'
+    #   schedule:
+    #       interval: 'weekly'
+    #       day: 'monday'
+    #       time: '06:00'
+    #       timezone: 'UTC'
+    #   open-pull-requests-limit: 5
 
     # Disabled npm update PRs: we prefer local advice only
     # If re-enabled later, consider grouping and auto-merge for patch/minor.
