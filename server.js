@@ -7803,6 +7803,49 @@ async function writeEnvFile(newValues) {
 }
 
 /**
+ * Triggers a PM2 process restart to clear environment variable cache.
+ * PM2 caches environment variables in dump.pm2, and override:false in forceReloadEnv()
+ * means cached values take precedence over .env file. This function ensures a fresh
+ * environment load by deleting and restarting the PM2 process.
+ *
+ * @param {string} reason - Description of why the restart is needed (for logging)
+ * @param {boolean} async - If true, returns immediately without waiting for restart
+ */
+function restartPM2ForEnvUpdate(reason = 'environment update', async = true) {
+    if (!process.env.PM2_HOME) {
+        logger.debug('[PM2] Not running under PM2, skipping restart');
+        return;
+    }
+
+    logger.info(`[PM2] Triggering delete+restart to clear environment cache (${reason})`);
+
+    const { exec } = require('child_process');
+    const ecosystemConfig = require('./ecosystem.config.js');
+    const appName = ecosystemConfig.apps[0].name || 'posterrama';
+
+    const command = `pm2 delete ${appName} && pm2 start ecosystem.config.js`;
+
+    if (async) {
+        // Fire and forget - don't wait for completion
+        exec(command, error => {
+            if (error) {
+                logger.error(`[PM2] Delete/restart failed: ${error.message}`);
+            } else {
+                logger.info('[PM2] Process deleted and restarted to clear environment cache');
+            }
+        });
+    } else {
+        // Synchronous execution (blocks until complete)
+        try {
+            require('child_process').execSync(command);
+            logger.info('[PM2] Process deleted and restarted to clear environment cache');
+        } catch (error) {
+            logger.error(`[PM2] Delete/restart failed: ${error.message}`);
+        }
+    }
+}
+
+/**
  * Reads the config.json file.
  */
 async function readConfig() {
@@ -11170,6 +11213,9 @@ app.post(
             // Clear the pending secret from the session
             delete req.session.tfa_pending_secret;
 
+            // Restart PM2 to clear environment cache
+            restartPM2ForEnvUpdate('2FA enabled');
+
             if (isDebug)
                 logger.debug(
                     `[Admin 2FA] 2FA enabled successfully for user "${req.session.user.username}".`
@@ -11235,28 +11281,8 @@ app.post(
             req.session.twoFactorVerified = false;
         }
 
-        // If running under PM2, trigger restart with --update-env to clear cached environment
-        // PM2 caches environment variables in dump.pm2, so we need to delete and restart
-        // to ensure the empty ADMIN_2FA_SECRET is picked up from .env
-        if (process.env.PM2_HOME) {
-            logger.info(
-                '[Admin 2FA] Running under PM2. Deleting and restarting to clear cached 2FA secret...'
-            );
-            const { exec } = require('child_process');
-            const ecosystemConfig = require('./ecosystem.config.js');
-            const appName = ecosystemConfig.apps[0].name || 'posterrama';
-
-            // Delete and restart to clear PM2's environment cache
-            exec(`pm2 delete ${appName} && pm2 start ecosystem.config.js`, error => {
-                if (error) {
-                    logger.error(`[Admin 2FA] PM2 delete/restart failed: ${error.message}`);
-                } else {
-                    logger.info(
-                        '[Admin 2FA] PM2 process deleted and restarted to clear cached environment.'
-                    );
-                }
-            });
-        }
+        // Restart PM2 to clear environment cache
+        restartPM2ForEnvUpdate('2FA disabled');
 
         if (isDebug)
             logger.debug(
@@ -13334,6 +13360,9 @@ app.post(
         // Clear the /get-config cache so changes are immediately visible
         cacheManager.delete('GET:/get-config');
 
+        // Restart PM2 to clear environment cache (critical for tokens, API keys, etc.)
+        restartPM2ForEnvUpdate('configuration saved');
+
         // --- Live-apply Local Directory changes without restart ---
         try {
             // Shallow-assign to the in-memory config so subsequent routes read the latest values
@@ -14811,6 +14840,9 @@ app.post(
 
         const newPasswordHash = await bcrypt.hash(newPassword, 10);
         await writeEnvFile({ ADMIN_PASSWORD_HASH: newPasswordHash });
+
+        // Restart PM2 to clear environment cache
+        restartPM2ForEnvUpdate('password changed');
 
         if (isDebug)
             logger.debug(
@@ -16686,6 +16718,10 @@ app.post(
     asyncHandler(async (req, res) => {
         const newApiKey = crypto.randomBytes(32).toString('hex');
         await writeEnvFile({ API_ACCESS_TOKEN: newApiKey });
+
+        // Restart PM2 to clear environment cache
+        restartPM2ForEnvUpdate('API key generated');
+
         if (isDebug) logger.debug('[Admin API] New API Access Token generated and saved.');
         res.json({
             apiKey: newApiKey,
@@ -16717,6 +16753,10 @@ app.post(
     isAuthenticated,
     asyncHandler(async (req, res) => {
         await writeEnvFile({ API_ACCESS_TOKEN: '' });
+
+        // Restart PM2 to clear environment cache
+        restartPM2ForEnvUpdate('API key revoked');
+
         if (isDebug) logger.debug('[Admin API] API Access Token has been revoked.');
         res.json({ success: true, message: 'API key has been revoked.' });
     })
