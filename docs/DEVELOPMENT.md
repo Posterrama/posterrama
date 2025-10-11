@@ -47,7 +47,7 @@ Current development status and upcoming features for Posterrama.
 
 - [ ] Multiple screens with smart sync and coordinated displays
 - [ ] Online poster services; orientation-aware selection
-- [ ] Show setup gear icon when device is not registered (with "don’t show again")
+- [x] Show setup gear icon when device is not registered (with "don't show again")
 
 ### Display Behavior
 
