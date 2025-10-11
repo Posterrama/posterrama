@@ -72,13 +72,6 @@
                 background-clip: text;
             }
 
-            h1 {
-                font-size: 2rem;
-                font-weight: var(--font-weight-medium);
-                margin-bottom: 2rem;
-                color: var(--color-text-primary);
-            }
-
             .status-indicator {
                 display: inline-flex;
                 align-items: center;
@@ -171,8 +164,8 @@
                     font-size: 1.5rem;
                 }
 
-                h1 {
-                    font-size: 1.5rem;
+                #message {
+                    font-size: 1.5rem !important;
                 }
 
                 .clock {
@@ -191,10 +184,10 @@
             <div class="content">
                 <div class="brand">Posterrama</div>
 
-                <h1 id="message">
-                    No media found.<br />
-                    Check the library configuration.
-                </h1>
+                <div id="message" style="font-size: 2rem; font-weight: 500; margin-bottom: 2rem; color: var(--color-text-primary);">
+                    <div>No media found.</div>
+                    <div>Check the library configuration.</div>
+                </div>
 
                 <div class="status-indicator">
                     <span class="status-dot"></span>
