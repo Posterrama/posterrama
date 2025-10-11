@@ -359,12 +359,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 // In wallart mode, use the hero poster (first in currentPosters array)
                 const isWallart = appConfig?.wallartMode?.enabled === true;
+
+                // Debug logging
+                if (typeof console !== 'undefined' && console.debug) {
+                    console.debug('[CurrentMedia] Wallart check:', {
+                        isWallart,
+                        hasWallartPosters: !!window.__wallartCurrentPosters,
+                        wallartPostersLength: window.__wallartCurrentPosters?.length,
+                        hasHero: !!window.__wallartCurrentPosters?.[0],
+                        heroTitle: window.__wallartCurrentPosters?.[0]?.title,
+                        heroPosterUrl: window.__wallartCurrentPosters?.[0]?.posterUrl,
+                    });
+                }
+
                 if (
                     isWallart &&
                     Array.isArray(window.__wallartCurrentPosters) &&
                     window.__wallartCurrentPosters[0]
                 ) {
                     const hero = window.__wallartCurrentPosters[0];
+                    console.debug('[CurrentMedia] Using wallart hero:', hero.title, hero.posterUrl);
                     return {
                         title: hero.title || null,
                         year: hero.year || null,
@@ -384,6 +398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (currentIndex < 0 || currentIndex >= mediaQueue.length) return null;
                 const it = mediaQueue[currentIndex];
                 if (!it) return null;
+                console.debug('[CurrentMedia] Using queue item:', it.title, it.thumbnailUrl);
                 return {
                     title: it.title || null,
                     year: it.year || null,
@@ -397,7 +412,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     tagline: it.tagline || null,
                     contentRating: it.contentRating || null,
                 };
-            } catch (_) {
+            } catch (err) {
+                console.error('[CurrentMedia] Error:', err);
                 return null;
             }
         },
@@ -2064,6 +2080,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Expose currentPosters globally for device management
         window.__wallartCurrentPosters = currentPosters;
+        console.debug('[Wallart] Initialized currentPosters, length:', currentPosters.length);
 
         // Get dynamically calculated poster count - robust check for mediaQueue
         const posterCount = Math.min(layoutInfo.posterCount, mediaQueue?.length || 0);
@@ -2431,6 +2448,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const firstHero = getUniqueRandomPoster();
                 if (firstHero) {
                     currentPosters.push(firstHero);
+                    console.debug(
+                        '[Wallart] Hero poster set:',
+                        firstHero.title,
+                        'posterUrl:',
+                        firstHero.posterUrl
+                    );
+                    console.debug(
+                        '[Wallart] currentPosters length after hero:',
+                        currentPosters.length
+                    );
+                    console.debug(
+                        '[Wallart] window.__wallartCurrentPosters:',
+                        window.__wallartCurrentPosters
+                    );
                     const heroEl = createPosterElement(firstHero, 0);
                     // Position hero based on mode and orientation
                     const portraitMode = window.innerHeight > window.innerWidth;
