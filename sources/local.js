@@ -447,9 +447,30 @@ class LocalDirectorySource {
                 throw new Error('Path outside configured root');
             }
 
-            // Check if directory exists
+            // Check if directory exists, create it if it doesn't (for standard directories)
             if (!fs.existsSync(targetPath)) {
-                throw new Error('Directory not found');
+                // Only auto-create known media directories
+                const knownDirs = [
+                    this.directories.posters,
+                    this.directories.backgrounds,
+                    this.directories.motion,
+                    this.directories.complete,
+                    path.join(this.directories.complete, 'plex-export'),
+                    path.join(this.directories.complete, 'jellyfin-export'),
+                    path.join(this.directories.complete, 'manual'),
+                ];
+
+                const relPath = path.relative(base, targetPath);
+                const isKnownDir = knownDirs.some(
+                    dir => relPath === dir || relPath.startsWith(dir + path.sep)
+                );
+
+                if (isKnownDir) {
+                    logger.info(`LocalDirectorySource: Auto-creating directory ${targetPath}`);
+                    await fs.ensureDir(targetPath);
+                } else {
+                    throw new Error('Directory not found');
+                }
             }
 
             const stat = await fs.stat(targetPath);
