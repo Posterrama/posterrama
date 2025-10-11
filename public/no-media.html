@@ -3,6 +3,9 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta http-equiv="Pragma" content="no-cache" />
+        <meta http-equiv="Expires" content="0" />
         <title>No Media Available - Posterrama</title>
         <style>
             :root {
@@ -296,19 +299,8 @@
             setInterval(updateClock, 1000);
             startAutoCheck();
 
-            // Read custom message from URL parameter
-            const params = new URLSearchParams(window.location.search);
-            const customMessage = params.get('message');
-            if (customMessage) {
-                document.getElementById('message').textContent = decodeURIComponent(customMessage);
-            }
-
-            // Listen for messages from parent window (for iframe usage)
-            window.addEventListener('message', event => {
-                if (event.data && event.data.type === 'no-media-message') {
-                    document.getElementById('message').textContent = event.data.message;
-                }
-            });
+            // Message is hardcoded in HTML, no URL params needed
+            // (Removed URL parameter reading logic)
         </script>
     </body>
 </html>

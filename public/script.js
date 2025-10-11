@@ -826,9 +826,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function showError(message) {
         console.error('Posterrama Error:', message);
 
-        // Navigate to dedicated no-media page
-        const encodedMessage = encodeURIComponent(message);
-        window.location.href = `/no-media.html?message=${encodedMessage}`;
+        // Navigate to dedicated no-media page (no URL params needed, message is hardcoded)
+        window.location.href = '/no-media.html';
     }
 
     async function initialize() {
