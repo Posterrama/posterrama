@@ -1,30 +1,74 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#4ecdc4;stop-opacity:1" />
+    <!-- Modern gradient matching Posterrama brand colors -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Subtle inner shadow for depth -->
+    <radialGradient id="innerShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:0.3" />
+    </radialGradient>
+    
+    <!-- Glossy highlight -->
+    <linearGradient id="gloss" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.4" />
+      <stop offset="50%" style="stop-color:#ffffff;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
     </linearGradient>
   </defs>
-  <!-- Background circle -->
-  <circle cx="256" cy="256" r="240" fill="url(#grad)" />
-  <!-- Film strip border -->
-  <rect x="80" y="120" width="352" height="272" rx="20" fill="#1a1a1a" />
-  <rect x="100" y="140" width="312" height="232" rx="10" fill="#2a2a2a" />
-  <!-- Poster frame -->
-  <rect x="120" y="160" width="120" height="180" rx="8" fill="#444" />
-  <rect x="130" y="170" width="100" height="160" rx="4" fill="#666" />
-  <!-- Play icon -->
-  <polygon points="280,220 280,290 340,255" fill="#ff6b6b" />
-  <!-- Film holes -->
-  <circle cx="60" cy="150" r="8" fill="#333" />
-  <circle cx="60" cy="200" r="8" fill="#333" />
-  <circle cx="60" cy="250" r="8" fill="#333" />
-  <circle cx="60" cy="300" r="8" fill="#333" />
-  <circle cx="60" cy="350" r="8" fill="#333" />
-  <circle cx="452" cy="150" r="8" fill="#333" />
-  <circle cx="452" cy="200" r="8" fill="#333" />
-  <circle cx="452" cy="250" r="8" fill="#333" />
-  <circle cx="452" cy="300" r="8" fill="#333" />
-  <circle cx="452" cy="350" r="8" fill="#333" />
+  
+  <!-- Background with rounded corners for iOS/modern look -->
+  <rect width="512" height="512" rx="115" fill="url(#bgGrad)" />
+  
+  <!-- Subtle vignette overlay -->
+  <rect width="512" height="512" rx="115" fill="url(#innerShadow)" opacity="0.3" />
+  
+  <!-- Main film reel container -->
+  <g transform="translate(256, 256)">
+    <!-- Outer film strip frame -->
+    <rect x="-176" y="-136" width="352" height="272" rx="24" fill="#1a1d29" />
+    
+    <!-- Inner frame with subtle gradient -->
+    <rect x="-164" y="-124" width="328" height="248" rx="16" fill="#252a3a" />
+    
+    <!-- Film perforation holes (left side) -->
+    <circle cx="-196" cy="-110" r="10" fill="#667eea" opacity="0.6" />
+    <circle cx="-196" cy="-60" r="10" fill="#667eea" opacity="0.6" />
+    <circle cx="-196" cy="-10" r="10" fill="#667eea" opacity="0.6" />
+    <circle cx="-196" cy="40" r="10" fill="#667eea" opacity="0.6" />
+    <circle cx="-196" cy="90" r="10" fill="#667eea" opacity="0.6" />
+    
+    <!-- Film perforation holes (right side) -->
+    <circle cx="196" cy="-110" r="10" fill="#667eea" opacity="0.6" />
+    <circle cx="196" cy="-60" r="10" fill="#667eea" opacity="0.6" />
+    <circle cx="196" cy="-10" r="10" fill="#667eea" opacity="0.6" />
+    <circle cx="196" cy="40" r="10" fill="#667eea" opacity="0.6" />
+    <circle cx="196" cy="90" r="10" fill="#667eea" opacity="0.6" />
+    
+    <!-- Three poster frames (classic cinema style) -->
+    <!-- Left poster -->
+    <rect x="-144" y="-100" width="80" height="120" rx="8" fill="#3a4553" />
+    <rect x="-138" y="-94" width="68" height="108" rx="4" fill="#667eea" opacity="0.2" />
+    
+    <!-- Center poster (highlighted) -->
+    <rect x="-40" y="-100" width="80" height="120" rx="8" fill="#3a4553" />
+    <rect x="-34" y="-94" width="68" height="108" rx="4" fill="#00d4aa" opacity="0.3" />
+    
+    <!-- Right poster -->
+    <rect x="64" y="-100" width="80" height="120" rx="8" fill="#3a4553" />
+    <rect x="70" y="-94" width="68" height="108" rx="4" fill="#667eea" opacity="0.2" />
+    
+    <!-- Play button overlay (cinema theme) -->
+    <circle cx="0" cy="40" r="42" fill="#00d4aa" opacity="0.95" />
+    <circle cx="0" cy="40" r="42" fill="url(#gloss)" />
+    <polygon points="-12,25 -12,55 18,40" fill="#ffffff" />
+  </g>
+  
+  <!-- Top glossy highlight for depth -->
+  <rect width="512" height="256" rx="115" fill="url(#gloss)" />
 </svg>
