@@ -929,17 +929,12 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 
         const btn = document.createElement('button');
         btn.id = 'pr-setup-btn';
-        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M12 1v6m0 6v6"></path>
-            <path d="m15.4 17.4 3.2-1.8a2 2 0 0 0 1-1.8V10a2 2 0 0 0-1-1.8l-3.2-1.8a2 2 0 0 0-2 0L10 8.2"></path>
-            <path d="m8.6 6.6-3.2 1.8a2 2 0 0 0-1 1.8v4.4a2 2 0 0 0 1 1.8l3.2 1.8a2 2 0 0 0 2 0L14 15.8"></path>
-        </svg>`;
+        btn.innerHTML = '<i class="fas fa-cog"></i>';
         btn.title = 'Set up device management';
         btn.style.cssText = `
             position: fixed;
-            top: 20px;
-            right: 20px;
+            bottom: 35px;
+            left: 50px;
             background-color: rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(5px);
             border: none;
@@ -954,6 +949,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             z-index: 9999;
             min-width: 44px;
             min-height: 44px;
+            font-size: 18px;
         `;
 
         btn.addEventListener('mouseenter', () => {
