@@ -41,7 +41,7 @@ Current development status and upcoming features for Posterrama.
 - [ ] UI elements scaling presets; adjust preview aspect ratio
 - [ ] Improve Posterrama web app icon (multi-size crisp assets)
 - [ ] Curated playlists (franchises, directors, genres, “On this day”, “New to Plex”), actors
-- [ ] No Media Available restyling
+- [x] No Media Available restyling
 
 ### Device Management
 
