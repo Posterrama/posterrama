@@ -1813,7 +1813,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
         }
 
-        const densityFactor = densityFactors[density] || densityFactors['medium'];
+        let densityFactor = densityFactors[density] || densityFactors['medium'];
+
+        // Preview mode adjustment: make posters smaller (higher density) so more fit in the scaled preview
+        // The preview iframe is 1920x1080 but scaled down to ~420px, so we need more posters to look good
+        if (window.IS_PREVIEW) {
+            densityFactor = densityFactor * 0.5; // Double the effective density for preview
+        }
 
         // Calculate optimal poster width based on screen width and density
         const optimalPosterWidth = Math.round(screenWidth * densityFactor);
