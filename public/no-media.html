@@ -79,11 +79,6 @@
                 color: var(--color-text-primary);
             }
 
-            #message::after {
-                content: '\A Check the library configuration.';
-                white-space: pre;
-            }
-
             .status-indicator {
                 display: inline-flex;
                 align-items: center;
@@ -196,7 +191,10 @@
             <div class="content">
                 <div class="brand">Posterrama</div>
 
-                <div id="message">No media found.</div>
+                <div id="message">
+                    No media found.<br />
+                    Check the library configuration.
+                </div>
 
                 <div class="status-indicator">
                     <span class="status-dot"></span>
