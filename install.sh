@@ -96,6 +96,47 @@ check_root() {
     fi
 }
 
+# Function to install build tools
+install_build_tools() {
+    print_status "Installing build tools (required for native Node.js modules)..."
+    
+    # Check if compiler is already installed
+    if command -v gcc >/dev/null 2>&1 && command -v g++ >/dev/null 2>&1 && command -v make >/dev/null 2>&1; then
+        print_success "Build tools are already installed"
+        return 0
+    fi
+    
+    case $OS in
+        "Ubuntu"|"Debian"*)
+            $SUDO apt-get update
+            $SUDO apt-get install -y build-essential python3 python3-dev
+            ;;
+        "CentOS"*|"Red Hat"*|"Rocky"*|"AlmaLinux"*)
+            $SUDO yum groupinstall -y "Development Tools"
+            $SUDO yum install -y python3 python3-devel
+            ;;
+        "Fedora"*)
+            $SUDO dnf groupinstall -y "Development Tools"
+            $SUDO dnf install -y python3 python3-devel
+            ;;
+        *)
+            print_warning "Unsupported OS for automatic build tools installation: $OS"
+            print_warning "Please install gcc, g++, make, and python3 manually"
+            print_warning "npm install may fail without these tools"
+            return 0
+            ;;
+    esac
+    
+    # Verify installation
+    if command -v gcc >/dev/null 2>&1 && command -v make >/dev/null 2>&1; then
+        GCC_VERSION=$(gcc --version | head -n1)
+        print_success "Build tools installed successfully: $GCC_VERSION"
+    else
+        print_warning "Build tools installation completed, but gcc/make not found in PATH"
+        print_warning "Native module compilation may fail"
+    fi
+}
+
 # Function to install Node.js
 install_nodejs() {
     print_status "Installing Node.js..."
@@ -852,6 +893,7 @@ main() {
     check_root
     detect_os
     configure_system_limits
+    install_build_tools
     install_git
     install_jq
     install_nodejs
