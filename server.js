@@ -17524,12 +17524,17 @@ if (require.main === module) {
                 // Forward the status code from the main app
                 res.status(response.status);
 
-                // Forward all headers from the main app's response
+                // Forward all headers from the main app's response, except compression headers
+                // (fetch API already decompresses, so we'd send uncompressed data with wrong headers)
                 response.headers.forEach((value, name) => {
-                    res.setHeader(name, value);
+                    const lowerName = name.toLowerCase();
+                    // Skip Content-Encoding and Transfer-Encoding headers
+                    if (lowerName !== 'content-encoding' && lowerName !== 'transfer-encoding') {
+                        res.setHeader(name, value);
+                    }
                 });
 
-                // Pipe the response body
+                // Pipe the response body (already decompressed by fetch)
                 response.body.pipe(res);
             } catch (error) {
                 console.error(
