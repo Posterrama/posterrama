@@ -6,7 +6,7 @@ Current development status and upcoming features for Posterrama.
 
 - [ ] LXC container template script
 - [ ] Provide `device-presets.json` as a template on first boot, then allow adding custom presets
-- [ ] Test `install.sh`: verify permissions and that all dependencies are installed
+- [x] Test `install.sh`: verify permissions and that all dependencies are installed
 
 ### Media Sources
 
