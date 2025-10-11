@@ -8388,12 +8388,8 @@
                 const thumbSrc = cs.thumbnailUrl || cs.posterUrl || cs.backgroundUrl || '';
                 const thumbAlt = escapeHtml(cs.title || d.name || '');
                 const hasNowplay = !!thumbSrc;
-
-                // Elegant SVG placeholder for broken/missing images
-                const placeholderSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='72' viewBox='0 0 48 72'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea;stop-opacity:0.15'/%3E%3Cstop offset='100%25' style='stop-color:%23764ba2;stop-opacity:0.15'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='48' height='72' rx='4' fill='url(%23bg)'/%3E%3Crect width='48' height='72' rx='4' fill='none' stroke='%23667eea' stroke-width='1' opacity='0.2'/%3E%3Cg transform='translate(24,36)'%3E%3Cpath d='M-8,-12 L-8,12 L8,12 L8,-12 Z M-6,-10 L-6,10 L6,10 L6,-10 Z' fill='%23667eea' opacity='0.3'/%3E%3Ccircle cx='0' cy='-3' r='2' fill='%23667eea' opacity='0.4'/%3E%3Cpath d='M-4,4 L-4,8 L4,8 L4,4 Z' fill='%23667eea' opacity='0.25'/%3E%3C/g%3E%3C/svg%3E`;
-
                 const thumbRightHtml = hasNowplay
-                    ? `<div class="nowplay-thumb nowplay-thumb-right js-media-hover"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="48" height="72" onerror="this.onerror=null;this.src='${placeholderSvg}';this.style.opacity='0.7';"></div>`
+                    ? `<div class="nowplay-thumb nowplay-thumb-right js-media-hover"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="48" height="72"></div>`
                     : '';
                 // Title rendering handled via live reconcile; no separate inline row here
                 return `
