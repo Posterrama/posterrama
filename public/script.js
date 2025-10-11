@@ -357,20 +357,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     Object.defineProperty(window, '__posterramaCurrentMedia', {
         get() {
             try {
+                // In wallart mode, use the hero poster (first in currentPosters array)
+                const isWallart = appConfig?.wallartMode?.enabled === true;
+                if (
+                    isWallart &&
+                    Array.isArray(window.__wallartCurrentPosters) &&
+                    window.__wallartCurrentPosters[0]
+                ) {
+                    const hero = window.__wallartCurrentPosters[0];
+                    return {
+                        title: hero.title || null,
+                        year: hero.year || null,
+                        rating: hero.rating != null ? Number(hero.rating) : null,
+                        posterUrl: hero.posterUrl || null,
+                        backgroundUrl: hero.backgroundUrl || null,
+                        thumbnailUrl: hero.posterUrl || hero.thumbnailUrl || null, // Use posterUrl as thumbnail for hero
+                        runtime: hero.runtime || hero.runtimeMs || hero.duration || null,
+                        genres: hero.genres || null,
+                        overview: hero.overview || hero.summary || hero.plot || null,
+                        tagline: hero.tagline || null,
+                        contentRating: hero.contentRating || null,
+                    };
+                }
+
+                // Normal screensaver/cinema mode: use current media from queue
                 if (currentIndex < 0 || currentIndex >= mediaQueue.length) return null;
                 const it = mediaQueue[currentIndex];
                 if (!it) return null;
-                // For wallart mode, use posterUrl (hero poster) as thumbnail for device cards
-                // This gives the best visual representation of what's currently displayed
-                const isWallart = appConfig?.wallartMode?.enabled === true;
-                const thumbUrl = isWallart ? it.posterUrl || it.thumbnailUrl : it.thumbnailUrl;
                 return {
                     title: it.title || null,
                     year: it.year || null,
                     rating: it.rating != null ? Number(it.rating) : null,
                     posterUrl: it.posterUrl || null,
                     backgroundUrl: it.backgroundUrl || null,
-                    thumbnailUrl: thumbUrl || null,
+                    thumbnailUrl: it.thumbnailUrl || null,
                     runtime: it.runtime || it.runtimeMs || it.duration || null,
                     genres: it.genres || null,
                     overview: it.overview || it.summary || it.plot || null,
@@ -2042,6 +2062,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         let currentPosters = []; // Track current posters for uniqueness
         const usedPosters = new Set(); // Track used poster IDs
 
+        // Expose currentPosters globally for device management
+        window.__wallartCurrentPosters = currentPosters;
+
         // Get dynamically calculated poster count - robust check for mediaQueue
         const posterCount = Math.min(layoutInfo.posterCount, mediaQueue?.length || 0);
 
@@ -2528,6 +2551,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             const next = getUniqueRandomPoster(excludeId);
                             if (!next) return;
                             currentPosters[0] = next;
+                            // Update global reference for device management
+                            if (window.__wallartCurrentPosters) {
+                                window.__wallartCurrentPosters[0] = next;
+                            }
                             animatePosterChange(heroEl, next, 'fade');
                         }, ms);
                     }
