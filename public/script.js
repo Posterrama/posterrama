@@ -12,7 +12,8 @@
  */
 
 // Simple frontend logger to match backend logger interface
-const logger = {
+// Use window.logger if client-logger.js is loaded, otherwise create fallback
+const logger = window.logger || {
     debug: () => {}, // silenced for cleaner browser console
     info: () => {}, // silenced for cleaner browser console
     warn: (message, data) => console.warn(`[WARN] ${message}`, data || ''),
