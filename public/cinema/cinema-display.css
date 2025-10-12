@@ -152,14 +152,14 @@ body[data-orientation='portrait-flipped'] #info-container {
 }
 
 #poster {
-    width: 100%; /* Always full width */
-    height: auto; /* Maintain aspect ratio */
-    max-height: 100vh; /* Don't exceed screen height */
-    background-size: cover;
-    background-position: center;
+    /* Fill the viewport and let the image scale inside */
+    width: 100%;
+    height: 100%;
+    background-size: contain; /* preserve aspect ratio, no crop */
+    background-position: center center;
     background-repeat: no-repeat;
-    border-radius: 0; /* No rounded corners for full-width display */
-    box-shadow: none; /* No shadow for full-width display */
+    border-radius: 0; /* No rounded corners for full-bleed container */
+    box-shadow: none; /* No shadow in cinema mode */
     transition: opacity 0.5s ease;
 }
 
