@@ -29,6 +29,17 @@ body.debug-layout #poster {
     outline: 3px solid magenta !important;
 }
 
+/* Ensure preview container matches cinema full-viewport layout */
+#info-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
 #poster-wrapper {
     position: fixed;
     top: var(--poster-top, 0);
