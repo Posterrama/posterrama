@@ -1575,6 +1575,42 @@ app.get('/promo.html', (req, res, next) => {
     });
 });
 
+/**
+ * @swagger
+ * /wallart:
+ *   get:
+ *     summary: Serve wallart display page (placeholder)
+ *     description: Temporary redirect to index.html until wallart.html is implemented. Will serve dedicated wallart page in future.
+ *     tags: ['Frontend']
+ *     responses:
+ *       302:
+ *         description: Redirect to index.html
+ */
+// Temporary wallart route - redirects to index.html until wallart.html is created
+app.get(['/wallart', '/wallart.html'], (req, res) => {
+    // Temporary: redirect to index.html which handles wallart mode
+    // TODO: Create wallart.html similar to cinema.html
+    res.redirect('/');
+});
+
+/**
+ * @swagger
+ * /screensaver:
+ *   get:
+ *     summary: Serve screensaver display page (placeholder)
+ *     description: Temporary redirect to index.html until screensaver.html is implemented. Will serve dedicated screensaver page in future.
+ *     tags: ['Frontend']
+ *     responses:
+ *       302:
+ *         description: Redirect to index.html
+ */
+// Temporary screensaver route - redirects to index.html
+app.get(['/screensaver', '/screensaver.html'], (req, res) => {
+    // Temporary: redirect to index.html (which is the screensaver when no mode is set)
+    // TODO: Create screensaver.html similar to cinema.html
+    res.redirect('/');
+});
+
 // Add metrics collection middleware
 app.use(metricsMiddleware);
 

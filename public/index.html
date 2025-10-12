@@ -292,6 +292,46 @@
             </a>
         </div>
 
+    <!-- Mode-based redirect: automatically redirect to mode-specific page -->
+    <script>
+        (async function() {
+            // Skip redirect if already on a mode-specific page or in preview mode
+            if (window.IS_PREVIEW || window.location.pathname.includes('/cinema') || 
+                window.location.pathname.includes('/wallart') || 
+                window.location.pathname.includes('/screensaver')) {
+                return;
+            }
+
+            try {
+                // Fetch config to determine which mode is active
+                const response = await fetch('/get-config', { cache: 'no-cache' });
+                if (!response.ok) return; // Failed to fetch config, continue loading index.html
+                
+                const config = await response.json();
+                
+                // Redirect to cinema if cinema mode is enabled
+                if (config.cinemaMode === true) {
+                    console.log('[Posterrama] Cinema mode detected, redirecting to /cinema');
+                    window.location.href = '/cinema';
+                    return;
+                }
+                
+                // Redirect to wallart if wallart mode is enabled
+                if (config.wallartMode && config.wallartMode.enabled === true) {
+                    console.log('[Posterrama] Wallart mode detected, redirecting to /wallart');
+                    window.location.href = '/wallart';
+                    return;
+                }
+                
+                // No special mode enabled, continue loading index.html as screensaver
+                console.log('[Posterrama] Screensaver mode detected, loading index.html');
+            } catch (err) {
+                // Failed to check config, continue loading index.html
+                console.warn('[Posterrama] Failed to check mode config, loading index.html', err);
+            }
+        })();
+    </script>
+
     <script src="lazy-loading.js?v=20250825a"></script>
     <script src="device-mgmt.js?v=20250901a"></script>
         <script src="script.js?v=20251011c"></script>
