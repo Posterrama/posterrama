@@ -113,8 +113,12 @@
                 footerEl.remove();
                 footerEl = null;
             }
+            document.body.classList.remove('cinema-footer-active');
             return;
         }
+
+        // Add body class to adjust spacing
+        document.body.classList.add('cinema-footer-active');
 
         // Create or update footer element
         if (!footerEl) {
