@@ -46,6 +46,22 @@
     let footerEl = null;
     let ambilightEl = null;
 
+    // Dynamically size poster area between header and footer
+    function updatePosterLayout() {
+        try {
+            const header = document.querySelector('.cinema-header, #cinema-header');
+            const footer = document.querySelector(
+                '.cinema-footer, .cinema-footer-specs, #cinema-footer-specs, #cinema-footer-marquee'
+            );
+            const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+            const footerH = footer ? Math.ceil(footer.getBoundingClientRect().height) : 0;
+            document.documentElement.style.setProperty('--poster-top', headerH + 'px');
+            document.documentElement.style.setProperty('--poster-bottom', footerH + 'px');
+        } catch (e) {
+            console.warn('updatePosterLayout error', e);
+        }
+    }
+
     // ===== Utility Functions =====
     function log(message, data) {
         if (window.logger && window.logger.info) {
@@ -219,6 +235,9 @@
         // Add body class to adjust info-container padding
         document.body.classList.add('cinema-header-active');
 
+        // Update poster layout after header changes
+        updatePosterLayout();
+
         log('Cinema header created/updated', {
             text: cinemaConfig.header.text,
             style: cinemaConfig.header.style,
@@ -233,11 +252,14 @@
                 footerEl = null;
             }
             document.body.classList.remove('cinema-footer-active');
+            updatePosterLayout();
             return;
         }
 
         // Add body class to adjust spacing
         document.body.classList.add('cinema-footer-active');
+        // Update poster layout after footer changes
+        updatePosterLayout();
 
         // Create or update footer element
         if (!footerEl) {
@@ -579,6 +601,9 @@
             updateCinemaDisplay(event.detail.media);
         }
     });
+
+    // Recompute on resize to keep layout correct
+    window.addEventListener('resize', () => updatePosterLayout());
 
     log('Cinema display module loaded');
 })();

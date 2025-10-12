@@ -130,6 +130,28 @@
         }
     }
 
+    // Size the poster area between header and footer using CSS variables
+    function updatePosterLayoutPreview() {
+        try {
+            const header = $('#cinema-header');
+            const footerSpecs = $('#cinema-footer-specs');
+            const footerMarquee = $('#cinema-footer-marquee');
+            const headerVisible = header && header.style.display !== 'none';
+            const footerEl =
+                footerSpecs && footerSpecs.style.display !== 'none'
+                    ? footerSpecs
+                    : footerMarquee && footerMarquee.style.display !== 'none'
+                      ? footerMarquee
+                      : null;
+            const headerH = headerVisible ? Math.ceil(header.getBoundingClientRect().height) : 0;
+            const footerH = footerEl ? Math.ceil(footerEl.getBoundingClientRect().height) : 0;
+            document.documentElement.style.setProperty('--poster-top', headerH + 'px');
+            document.documentElement.style.setProperty('--poster-bottom', footerH + 'px');
+        } catch (e) {
+            console.warn('preview: updatePosterLayoutPreview error', e);
+        }
+    }
+
     function setHeader(text, style, enabled) {
         const el = $('#cinema-header');
         const body = document.body;
@@ -140,6 +162,7 @@
             el.textContent = '';
             el.style.display = 'none';
             body.classList.remove('cinema-header-active');
+            updatePosterLayoutPreview();
             return;
         }
         // Wrap in span so CSS can balance multi-line and stretch width
@@ -148,6 +171,7 @@
         el.classList.add(`style-${style || 'classic'}`);
         el.style.display = 'flex';
         body.classList.add('cinema-header-active');
+        updatePosterLayoutPreview();
     }
     function setFooterMarquee(text, style) {
         const m = $('#cinema-footer-marquee');
@@ -157,6 +181,7 @@
         m.className = 'cinema-footer-marquee';
         m.classList.add(`style-${style || 'classic'}`);
         m.style.display = text ? 'block' : 'none';
+        updatePosterLayoutPreview();
     }
     function setFooterSpecs(specs) {
         const root = $('#cinema-footer-specs');
@@ -222,6 +247,7 @@
         }
 
         root.style.display = root.children.length > 0 ? 'flex' : 'none';
+        updatePosterLayoutPreview();
     }
     function setFooter(type, marqueeText, marqueeStyle, specs, enabled) {
         const marq = $('#cinema-footer-marquee');
@@ -232,6 +258,7 @@
             if (marq) marq.style.display = 'none';
             if (spec) spec.style.display = 'none';
             body.classList.remove('cinema-footer-active');
+            updatePosterLayoutPreview();
             return;
         }
 
@@ -247,6 +274,7 @@
             if (marq) marq.style.display = 'none';
             if (spec) spec.style.display = 'flex';
         }
+        updatePosterLayoutPreview();
     }
     function setAmbilight(enabled, strength) {
         const a = $('#cinema-ambilight');
@@ -273,6 +301,9 @@
 
             // Auto-enable debug mode for layout debugging
             enableDebugMode();
+
+            // Ensure poster area is sized after overlays are applied
+            updatePosterLayoutPreview();
         } catch (e) {
             // ignore overlay application errors (preview resilience)
         }
@@ -288,6 +319,9 @@
             // ignore malformed post message
         }
     });
+
+    // Keep layout correct on window resize
+    window.addEventListener('resize', updatePosterLayoutPreview);
 
     // Expose debug controls
     window.previewCinema = {
