@@ -5525,6 +5525,8 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
 
     try {
         if (!itemSummary.key) return null;
+
+        // Query Plex metadata endpoint for this item
         const detailResponse = await plex.query(itemSummary.key);
         const item = detailResponse?.MediaContainer?.Metadata?.[0];
         if (!item) return null;
@@ -5698,6 +5700,11 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         let optimizedForStreaming = false;
 
         if (Array.isArray(sourceItem.Media)) {
+            // Plex Note: Media.Part.Stream arrays are not always fully populated in the standard metadata response.
+            // If Stream data is missing, we may need to make an additional API call to /library/metadata/{key}
+            // with includeElements=1 or query each Part's stream endpoint directly.
+            // For now, we attempt to extract whatever stream data Plex provides.
+
             // Legacy simple mediaStreams for backward compatibility
             mediaStreams = sourceItem.Media.map(m => ({
                 videoResolution: m.videoResolution || null,
