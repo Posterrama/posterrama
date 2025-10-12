@@ -47,6 +47,22 @@ body.debug-layout #poster {
     outline: 3px solid magenta !important;
 }
 
+/* DEBUG: Show measurements on screen */
+body.debug-layout::before {
+    content: 'DEBUG MODE ACTIVE - Check console for measurements';
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 0, 0, 0.9);
+    color: white;
+    padding: 10px 15px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 9999;
+    border-radius: 5px;
+    pointer-events: none;
+}
+
 /* =================================================================
    LOADER & ERROR
    ================================================================= */

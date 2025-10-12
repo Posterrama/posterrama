@@ -65,6 +65,47 @@
         console.log('  - GREEN outline + bg: .cinema-footer');
         console.log('  - BLUE outline: #poster-wrapper');
         console.log('  - MAGENTA outline: #poster');
+
+        // Add real-time measurements
+        setInterval(() => {
+            const infoContainer = document.querySelector('#info-container');
+            const header = document.querySelector('.cinema-header');
+            const footer = document.querySelector('.cinema-footer, .cinema-footer-specs');
+            const posterWrapper = document.querySelector('#poster-wrapper');
+            const poster = document.querySelector('#poster');
+
+            console.log('📏 MEASUREMENTS:');
+            if (infoContainer) {
+                const rect = infoContainer.getBoundingClientRect();
+                const styles = window.getComputedStyle(infoContainer);
+                console.log(
+                    `  #info-container: top=${rect.top}px, height=${rect.height}px, paddingTop=${styles.paddingTop}, paddingBottom=${styles.paddingBottom}`
+                );
+            }
+            if (header) {
+                const rect = header.getBoundingClientRect();
+                console.log(
+                    `  .cinema-header: top=${rect.top}px, height=${rect.height}px, bottom=${rect.bottom}px`
+                );
+            }
+            if (footer) {
+                const rect = footer.getBoundingClientRect();
+                console.log(
+                    `  .cinema-footer: top=${rect.top}px, height=${rect.height}px, bottom=${rect.bottom}px`
+                );
+            }
+            if (posterWrapper) {
+                const rect = posterWrapper.getBoundingClientRect();
+                console.log(`  #poster-wrapper: top=${rect.top}px, height=${rect.height}px`);
+            }
+            if (poster) {
+                const rect = poster.getBoundingClientRect();
+                console.log(
+                    `  #poster: top=${rect.top}px, height=${rect.height}px, bottom=${rect.bottom}px`
+                );
+            }
+            console.log('  ---');
+        }, 3000);
     }
 
     function disableDebugMode() {
