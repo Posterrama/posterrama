@@ -5531,33 +5531,19 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         const item = detailResponse?.MediaContainer?.Metadata?.[0];
         if (!item) return null;
 
-        // Fetch comprehensive metadata with full Media.Part.Stream arrays using /tree endpoint
-        // The /tree endpoint provides complete hierarchical data including all technical stream details
-        // This is the ONLY reliable way to get complete stream metadata from Plex API
-        let treeData = null;
-        if (item.ratingKey) {
-            try {
-                const treeResponse = await plex.query(`/library/metadata/${item.ratingKey}/tree`);
-                treeData = treeResponse?.MediaContainer?.Metadata?.[0];
-            } catch (err) {
-                logger.debug(
-                    `[Plex] Failed to fetch /tree data for ratingKey ${item.ratingKey}: ${err.message}`
-                );
-            }
-        }
-
-        // Use tree data for Media arrays if available (has complete Stream details)
-        // Fall back to standard metadata if /tree fails
-        const enrichedItem = treeData && treeData.Media ? { ...item, Media: treeData.Media } : item;
-        let sourceItem = enrichedItem; // This will be the movie or the episode/season with enriched Media
+        // Note: Some Plex servers return complete Media.Part.Stream arrays in standard metadata query.
+        // The /tree endpoint uses different structure (MetadataItem/MediaItem vs Metadata/Media).
+        // Current implementation relies on standard endpoint - if Stream arrays are empty,
+        // consider implementing /tree with proper structure mapping.
+        let sourceItem = item; // This will be the movie or the episode/season
         let backgroundArt = item.art; // Default to item's art
 
         if ((item.type === 'season' || item.type === 'episode') && item.parentKey) {
             const showDetails = await plex.query(item.parentKey).catch(() => null);
             if (showDetails?.MediaContainer?.Metadata?.[0]) {
                 const showData = showDetails.MediaContainer.Metadata[0];
-                // Use show's art/thumb but keep the enriched Media from the episode/season
-                sourceItem = { ...showData, Media: enrichedItem.Media };
+                // Use show's art/thumb but keep the episode/season's Media (stream data)
+                sourceItem = { ...showData, Media: item.Media };
                 backgroundArt = showData.art; // Use the show's art for the background
             }
         }
