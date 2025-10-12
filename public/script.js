@@ -154,6 +154,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Helper: ensure the RT badge stays attached to the poster element, even if posterEl.innerHTML was reset
     function ensureRtBadgeAttached() {
         try {
+            // Skip RT badge in cinema mode
+            const isCinemaPage = document.body.dataset.mode === 'cinema';
+            if (isCinemaPage) return;
+
             if (!rtBadge.isConnected || rtBadge.parentNode !== posterEl) {
                 posterEl.appendChild(rtBadge);
             }
