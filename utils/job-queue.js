@@ -891,6 +891,16 @@ class JobQueue extends EventEmitter {
             parentalGuidance: item.parentalGuidance || null,
             chapters: item.chapters || null,
             markers: item.markers || null,
+            // Enriched metadata fields (phase 3 - Advanced Images)
+            bannerUrl: item.bannerUrl || null,
+            discArtUrl: item.discArtUrl || null,
+            thumbUrl: item.thumbUrl || null,
+            fanart: item.fanart || null,
+            // Enriched metadata fields (phase 4 - Technical Details)
+            audioTracks: item.audioTracks || null,
+            subtitles: item.subtitles || null,
+            hasHDR: item.hasHDR || null,
+            is3D: item.is3D || null,
             images: {
                 poster: !!assets.poster,
                 background: !!assets.background,

@@ -508,6 +508,29 @@ if (config.localDirectory && config.localDirectory.enabled) {
                             parentId: libraryId,
                             includeItemTypes: ['Movie', 'Series'],
                             recursive: true,
+                            fields: [
+                                'Genres',
+                                'Overview',
+                                'CommunityRating',
+                                'OfficialRating',
+                                'UserData',
+                                'ProductionYear',
+                                'RunTimeTicks',
+                                'Taglines',
+                                'OriginalTitle',
+                                'ImageTags',
+                                'BackdropImageTags',
+                                'MediaStreams',
+                                'MediaSources',
+                                'ProviderIds',
+                                'People',
+                                'Studios',
+                                'CriticRating',
+                                'ProductionLocations',
+                                'DateCreated',
+                                'DateLastSaved',
+                                'SortName',
+                            ],
                             limit: pageSize,
                             startIndex,
                             sortBy: ['SortName'],
@@ -547,6 +570,37 @@ if (config.localDirectory && config.localDirectory.enabled) {
                                     releaseDate: processed.releaseDate || undefined,
                                     runtimeMs: processed.runtimeMs || undefined,
                                     mediaStreams: processed.mediaStreams || undefined,
+                                    // Phase 1 enriched fields
+                                    imdbUrl: processed.imdbUrl || undefined,
+                                    rottenTomatoes: processed.rottenTomatoes || undefined,
+                                    countries: processed.countries || undefined,
+                                    contentRating: processed.contentRating || undefined,
+                                    originalTitle: processed.originalTitle || undefined,
+                                    titleSort: processed.titleSort || undefined,
+                                    // Phase 2 enriched fields
+                                    viewCount: processed.viewCount || undefined,
+                                    lastViewedAt: processed.lastViewedAt || undefined,
+                                    updatedAt: processed.updatedAt || undefined,
+                                    slug: processed.slug || undefined,
+                                    // Phase 3 enriched fields (Advanced Images)
+                                    bannerUrl: processed.bannerUrl || undefined,
+                                    discArtUrl: processed.discArtUrl || undefined,
+                                    thumbUrl: processed.thumbUrl || undefined,
+                                    fanart: processed.fanart || undefined,
+                                    // Phase 4 enriched fields (Technical Details)
+                                    audioTracks:
+                                        processed.audioTracks !== undefined
+                                            ? processed.audioTracks
+                                            : undefined,
+                                    subtitles:
+                                        processed.subtitles !== undefined
+                                            ? processed.subtitles
+                                            : undefined,
+                                    hasHDR:
+                                        processed.hasHDR !== undefined
+                                            ? processed.hasHDR
+                                            : undefined,
+                                    is3D: processed.is3D !== undefined ? processed.is3D : undefined,
                                 });
                             } catch (e) {
                                 if (isDebug)
@@ -6697,6 +6751,36 @@ function processJellyfinItem(item, serverConfig, client) {
             clearLogoUrl = `/image?url=${encodeURIComponent(logoImageUrl)}`;
         }
 
+        // Add banner image support
+        let bannerUrl = null;
+        if (item.ImageTags && item.ImageTags.Banner) {
+            const bannerImageUrl = client.getImageUrl(item.Id, 'Banner');
+            bannerUrl = `/image?url=${encodeURIComponent(bannerImageUrl)}`;
+        }
+
+        // Add disc art support
+        let discArtUrl = null;
+        if (item.ImageTags && item.ImageTags.Disc) {
+            const discImageUrl = client.getImageUrl(item.Id, 'Disc');
+            discArtUrl = `/image?url=${encodeURIComponent(discImageUrl)}`;
+        }
+
+        // Build fanart array from all backdrop images
+        const fanart = [];
+        if (item.BackdropImageTags && Array.isArray(item.BackdropImageTags)) {
+            item.BackdropImageTags.forEach((tag, index) => {
+                const backdropUrl = client.getImageUrl(item.Id, 'Backdrop', index);
+                fanart.push(`/image?url=${encodeURIComponent(backdropUrl)}`);
+            });
+        }
+
+        // Add thumb URL (for episodes/chapters)
+        let thumbUrl = null;
+        if (item.ImageTags && item.ImageTags.Thumb) {
+            const thumbImageUrl = client.getImageUrl(item.Id, 'Thumb');
+            thumbUrl = `/image?url=${encodeURIComponent(thumbImageUrl)}`;
+        }
+
         // Infer a simple quality label from MediaStreams height, when available
         let qualityLabel = null;
         const sources = Array.isArray(item.MediaSources) ? item.MediaSources : [];
@@ -6718,18 +6802,24 @@ function processJellyfinItem(item, serverConfig, client) {
         const processedItem = {
             id: `jellyfin_${item.Id}`,
             key: `jellyfin_${item.Id}`, // Add key property for consistency with Plex
-            title: item.OriginalTitle || item.Name, // Prefer original title if available
+            title: item.Name, // Use Name as primary title
+            originalTitle: item.OriginalTitle || null, // Separate original title field
+            titleSort: item.SortName || null, // For proper alphabetical sorting
             type: mediaType,
             year: item.ProductionYear || null,
             posterUrl: posterUrl,
             thumbnailUrl: posterUrl,
             backgroundUrl: backdropUrl, // Use backgroundUrl for consistency with Plex
             clearLogoUrl: clearLogoUrl, // Add clear logo support
+            bannerUrl: bannerUrl, // Add banner support
+            discArtUrl: discArtUrl, // Add disc art support
+            thumbUrl: thumbUrl, // Add thumb support for episodes
             poster: posterUrl, // Keep legacy property for backward compatibility
             overview: item.Overview || '',
             tagline: item.Taglines?.[0] || null, // Use first tagline from array
             genres: item.Genres || [],
             rating: item.CommunityRating || null,
+            contentRating: item.OfficialRating || null, // Alias for consistency with Plex
             // Extended ratings information from Jellyfin
             ratings: {
                 community: item.CommunityRating || null, // 0-10 scale
@@ -6753,6 +6843,60 @@ function processJellyfinItem(item, serverConfig, client) {
         } catch (_) {
             // ignore enrichment failures for studios
         }
+
+        // Add GUID mappings for external IDs (imdb, tmdb, tvdb, etc.)
+        try {
+            if (item.ProviderIds) {
+                processedItem.guids = [];
+                if (item.ProviderIds.Imdb) {
+                    const imdbId = item.ProviderIds.Imdb.replace(/^tt/, '');
+                    processedItem.guids.push(`imdb://tt${imdbId}`);
+                    processedItem.imdbUrl = `https://www.imdb.com/title/tt${imdbId}`;
+                }
+                if (item.ProviderIds.Tmdb) {
+                    processedItem.guids.push(`tmdb://${item.ProviderIds.Tmdb}`);
+                }
+                if (item.ProviderIds.Tvdb) {
+                    processedItem.guids.push(`tvdb://${item.ProviderIds.Tvdb}`);
+                }
+                if (item.ProviderIds.TvRage) {
+                    processedItem.guids.push(`tvrage://${item.ProviderIds.TvRage}`);
+                }
+            }
+        } catch (_) {
+            // ignore enrichment failures for GUIDs
+        }
+
+        // Add Rotten Tomatoes rating if available
+        try {
+            if (item.CriticRating != null) {
+                processedItem.rottenTomatoes = {
+                    rating: item.CriticRating, // 0-100 scale
+                    url: null, // Jellyfin doesn't provide direct RT URLs
+                };
+            }
+        } catch (_) {
+            // ignore enrichment failures for RT rating
+        }
+
+        // Add countries (production locations)
+        try {
+            if (item.ProductionLocations && item.ProductionLocations.length > 0) {
+                processedItem.countries = item.ProductionLocations;
+            }
+        } catch (_) {
+            // ignore enrichment failures for countries
+        }
+
+        // Add fanart array (multiple backdrop images)
+        try {
+            if (fanart.length > 0) {
+                processedItem.fanart = fanart;
+            }
+        } catch (_) {
+            // ignore enrichment failures for fanart
+        }
+
         try {
             const people = Array.isArray(item.People) ? item.People : [];
             const mapThumb = pid =>
@@ -6802,6 +6946,42 @@ function processJellyfinItem(item, serverConfig, client) {
         } catch (_) {
             // ignore enrichment failures for release/runtime fields
         }
+
+        // Add user viewing statistics (Phase 2)
+        try {
+            if (item.UserData) {
+                processedItem.viewCount = item.UserData.PlayCount || 0;
+                if (item.UserData.LastPlayedDate) {
+                    processedItem.lastViewedAt = new Date(item.UserData.LastPlayedDate).getTime();
+                }
+            }
+        } catch (_) {
+            // ignore enrichment failures for user stats
+        }
+
+        // Add last updated timestamp
+        try {
+            if (item.DateLastSaved) {
+                processedItem.updatedAt = new Date(item.DateLastSaved).getTime();
+            } else if (item.DateCreated) {
+                processedItem.updatedAt = new Date(item.DateCreated).getTime();
+            }
+        } catch (_) {
+            // ignore enrichment failures for timestamps
+        }
+
+        // Generate URL-friendly slug for deep linking
+        try {
+            if (processedItem.title && processedItem.year) {
+                processedItem.slug = `${processedItem.title
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '')}-${processedItem.year}`;
+            }
+        } catch (_) {
+            // ignore enrichment failures for slug generation
+        }
+
         try {
             // Flatten minimal media stream info
             const mediaStreams = [];
@@ -6821,6 +7001,94 @@ function processJellyfinItem(item, serverConfig, client) {
             if (mediaStreams.length) processedItem.mediaStreams = mediaStreams;
         } catch (_) {
             // ignore mediaStreams extraction issues
+        }
+
+        // Extract detailed audio and subtitle tracks (Phase 4)
+        try {
+            const audioTracks = [];
+            const subtitles = [];
+            const sources3 = Array.isArray(item.MediaSources) ? item.MediaSources : [];
+
+            for (const source of sources3) {
+                const streams = Array.isArray(source.MediaStreams) ? source.MediaStreams : [];
+
+                // Extract audio tracks
+                streams
+                    .filter(s => s.Type === 'Audio')
+                    .forEach(a => {
+                        audioTracks.push({
+                            codec: a.Codec || null,
+                            language: a.Language || a.DisplayLanguage || 'und',
+                            channels: a.Channels || null,
+                            channelLayout: a.ChannelLayout || null,
+                            bitrate: a.BitRate || null,
+                            title: a.Title || a.DisplayTitle || null,
+                            isDefault: a.IsDefault || false,
+                        });
+                    });
+
+                // Extract subtitle tracks
+                streams
+                    .filter(s => s.Type === 'Subtitle')
+                    .forEach(s => {
+                        subtitles.push({
+                            codec: s.Codec || null,
+                            language: s.Language || s.DisplayLanguage || 'und',
+                            title: s.Title || s.DisplayTitle || null,
+                            isForced: s.IsForced || false,
+                            isDefault: s.IsDefault || false,
+                            isExternal: s.IsExternal || false,
+                        });
+                    });
+            }
+
+            if (audioTracks.length > 0) processedItem.audioTracks = audioTracks;
+            if (subtitles.length > 0) processedItem.subtitles = subtitles;
+        } catch (_) {
+            // ignore audio/subtitle extraction issues
+        }
+
+        // Detect HDR and 3D capabilities
+        try {
+            const sources4 = Array.isArray(item.MediaSources) ? item.MediaSources : [];
+            let hasHDR = false;
+            let is3D = false;
+
+            for (const source of sources4) {
+                const streams = Array.isArray(source.MediaStreams) ? source.MediaStreams : [];
+                const videoStream = streams.find(s => s.Type === 'Video');
+
+                if (videoStream) {
+                    // Check for HDR
+                    if (videoStream.VideoRangeType && videoStream.VideoRangeType !== 'SDR') {
+                        hasHDR = true;
+                    }
+                    // Alternative HDR detection via codec profile
+                    if (
+                        videoStream.Profile &&
+                        (videoStream.Profile.includes('HDR') ||
+                            videoStream.Profile.includes('PQ') ||
+                            videoStream.Profile.includes('HLG'))
+                    ) {
+                        hasHDR = true;
+                    }
+
+                    // Check for 3D
+                    if (videoStream.Video3DFormat && videoStream.Video3DFormat !== 'None') {
+                        is3D = true;
+                    }
+                }
+
+                // Also check container-level 3D flag
+                if (source.Video3DFormat && source.Video3DFormat !== 'None') {
+                    is3D = true;
+                }
+            }
+
+            if (hasHDR) processedItem.hasHDR = true;
+            if (is3D) processedItem.is3D = true;
+        } catch (_) {
+            // ignore HDR/3D detection issues
         }
 
         // Add type-specific metadata
