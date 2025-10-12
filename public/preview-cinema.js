@@ -296,7 +296,9 @@
             try {
                 document.body.classList.toggle('cinema-mode', !!isCinemaMode);
                 if (isCinemaMode) document.body.classList.remove('wallart-mode');
-            } catch (_) {}
+            } catch (_) {
+                // no-op: preview may run before body is ready; safe to ignore
+            }
 
             setHeader(c.header?.text, c.header?.style, !!c.header?.enabled);
             setFooter(
