@@ -264,6 +264,18 @@
     function updateCinemaDisplay(currentMedia) {
         log('Updating cinema display', currentMedia);
 
+        // Hide loader when content is ready
+        const loader = document.getElementById('loader');
+        if (loader) {
+            loader.style.display = 'none';
+        }
+
+        // Update poster
+        const posterEl = document.getElementById('poster');
+        if (posterEl && currentMedia && currentMedia.posterUrl) {
+            posterEl.style.backgroundImage = `url('${currentMedia.posterUrl}')`;
+        }
+
         // Update footer with current media info
         createFooter(currentMedia);
 
