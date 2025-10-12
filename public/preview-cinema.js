@@ -2,6 +2,19 @@
 (function () {
     const $ = s => document.querySelector(s);
 
+    // Determine if preview debug overlay should be enabled
+    function isDebugEnabled() {
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            if (params.get('debug') === 'true') return true;
+        } catch (_) {}
+        return (
+            (typeof window !== 'undefined' && window.POSTERRAMA_DEBUG_PREVIEW === true) ||
+            (typeof window !== 'undefined' && window.POSTERRAMA_DEBUG === true) ||
+            (typeof window !== 'undefined' && window.__POSTERRAMA_LIVE_DEBUG === true)
+        );
+    }
+
     // Enable visual debugging
     function enableDebugMode() {
         document.body.classList.add('debug-layout');
@@ -145,6 +158,20 @@
             document.documentElement.style.setProperty('--poster-bottom', bar + 'px');
         } catch (e) {
             console.warn('preview: updatePosterLayoutPreview error', e);
+        }
+    }
+
+    // Set #poster background to current media's poster (preview-only helper to avoid races)
+    function syncPosterFromCurrentMedia() {
+        try {
+            const posterEl = document.getElementById('poster');
+            const m = window.__posterramaCurrentMedia;
+            if (!posterEl || !m) return;
+            if (m.posterUrl) {
+                posterEl.style.backgroundImage = `url('${m.posterUrl}')`;
+            }
+        } catch (_) {
+            // no-op
         }
     }
 
@@ -310,11 +337,13 @@
             );
             setAmbilight(c.ambilight?.enabled !== false, c.ambilight?.strength ?? 60);
 
-            // Auto-enable debug mode for layout debugging
-            enableDebugMode();
+            // Enable debug overlay only when explicitly requested
+            if (isDebugEnabled()) enableDebugMode();
 
             // Ensure poster area is sized after overlays are applied
             updatePosterLayoutPreview();
+            // Also sync poster immediately to avoid any race conditions in preview
+            if (isCinemaMode) syncPosterFromCurrentMedia();
         } catch (e) {
             // ignore overlay application errors (preview resilience)
         }
@@ -333,6 +362,8 @@
 
     // Keep layout correct on window resize
     window.addEventListener('resize', updatePosterLayoutPreview);
+    // Keep poster in sync with current media updates
+    window.addEventListener('mediaUpdated', syncPosterFromCurrentMedia);
 
     // Expose debug controls
     window.previewCinema = {
@@ -348,6 +379,10 @@
         } catch (_) {
             // ignore applySettings overlay error
         }
+        // After settings apply, ensure poster reflects current media in preview
+        try {
+            if (cfg && cfg.cinemaMode === true) syncPosterFromCurrentMedia();
+        } catch (_) {}
         if (typeof prevApply === 'function') return prevApply.apply(this, arguments);
     };
 })();
