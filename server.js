@@ -5531,14 +5531,34 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         const item = detailResponse?.MediaContainer?.Metadata?.[0];
         if (!item) return null;
 
-        let sourceItem = item; // This will be the movie or the show
+        // Fetch comprehensive metadata with full Media.Part.Stream arrays using /tree endpoint
+        // The /tree endpoint provides complete hierarchical data including all technical stream details
+        // This is the ONLY reliable way to get complete stream metadata from Plex API
+        let treeData = null;
+        if (item.ratingKey) {
+            try {
+                const treeResponse = await plex.query(`/library/metadata/${item.ratingKey}/tree`);
+                treeData = treeResponse?.MediaContainer?.Metadata?.[0];
+            } catch (err) {
+                logger.debug(
+                    `[Plex] Failed to fetch /tree data for ratingKey ${item.ratingKey}: ${err.message}`
+                );
+            }
+        }
+
+        // Use tree data for Media arrays if available (has complete Stream details)
+        // Fall back to standard metadata if /tree fails
+        const enrichedItem = treeData && treeData.Media ? { ...item, Media: treeData.Media } : item;
+        let sourceItem = enrichedItem; // This will be the movie or the episode/season with enriched Media
         let backgroundArt = item.art; // Default to item's art
 
         if ((item.type === 'season' || item.type === 'episode') && item.parentKey) {
             const showDetails = await plex.query(item.parentKey).catch(() => null);
             if (showDetails?.MediaContainer?.Metadata?.[0]) {
-                sourceItem = showDetails.MediaContainer.Metadata[0];
-                backgroundArt = sourceItem.art; // Use the show's art for the background
+                const showData = showDetails.MediaContainer.Metadata[0];
+                // Use show's art/thumb but keep the enriched Media from the episode/season
+                sourceItem = { ...showData, Media: enrichedItem.Media };
+                backgroundArt = showData.art; // Use the show's art for the background
             }
         }
 
