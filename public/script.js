@@ -4574,9 +4574,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         }
-        titleEl.textContent = mediaItem.title || 'Unknown Title';
-        taglineEl.textContent = mediaItem.tagline || '';
-        yearEl.textContent = mediaItem.year || '';
+
+        // Update text elements (null-safe for cinema mode)
+        if (titleEl) titleEl.textContent = mediaItem.title || 'Unknown Title';
+        if (taglineEl) taglineEl.textContent = mediaItem.tagline || '';
+        if (yearEl) yearEl.textContent = mediaItem.year || '';
 
         // Process rating and streaming provider info
         const ratingText = mediaItem.rating ? mediaItem.rating.toFixed(1) : '';
@@ -4649,15 +4651,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // Combine rating and streaming provider
-        if (ratingText && streamingProvider) {
-            ratingEl.textContent = `${ratingText} • ${streamingProvider}`;
-        } else if (ratingText) {
-            ratingEl.textContent = ratingText;
-        } else if (streamingProvider) {
-            ratingEl.textContent = streamingProvider;
-        } else {
-            ratingEl.textContent = '';
+        // Combine rating and streaming provider (null-safe)
+        if (ratingEl) {
+            if (ratingText && streamingProvider) {
+                ratingEl.textContent = `${ratingText} • ${streamingProvider}`;
+            } else if (ratingText) {
+                ratingEl.textContent = ratingText;
+            } else if (streamingProvider) {
+                ratingEl.textContent = streamingProvider;
+            } else {
+                ratingEl.textContent = '';
+            }
         }
 
         // Update document title using the dedicated function
@@ -4665,26 +4669,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Check if metadata should be shown (only in screensaver mode)
         if (!appConfig.cinemaMode && !appConfig.wallartMode?.enabled) {
-            if (appConfig.showMetadata === false) {
+            if (appConfig.showMetadata === false && textWrapper) {
                 textWrapper.classList.add('is-hidden');
-            } else {
+            } else if (textWrapper) {
                 textWrapper.classList.remove('is-hidden');
-                taglineEl.style.display = mediaItem.tagline ? 'block' : 'none';
-                yearEl.style.display = mediaItem.year ? 'inline' : 'none';
-                ratingEl.style.display = ratingText || streamingProvider ? 'inline' : 'none';
+                if (taglineEl) taglineEl.style.display = mediaItem.tagline ? 'block' : 'none';
+                if (yearEl) yearEl.style.display = mediaItem.year ? 'inline' : 'none';
+                if (ratingEl)
+                    ratingEl.style.display = ratingText || streamingProvider ? 'inline' : 'none';
             }
-        } else {
+        } else if (textWrapper) {
             // In cinema/wallart mode, always show metadata elements
             textWrapper.classList.remove('is-hidden');
-            taglineEl.style.display = mediaItem.tagline ? 'block' : 'none';
-            yearEl.style.display = mediaItem.year ? 'inline' : 'none';
-            ratingEl.style.display = ratingText || streamingProvider ? 'inline' : 'none';
+            if (taglineEl) taglineEl.style.display = mediaItem.tagline ? 'block' : 'none';
+            if (yearEl) yearEl.style.display = mediaItem.year ? 'inline' : 'none';
+            if (ratingEl)
+                ratingEl.style.display = ratingText || streamingProvider ? 'inline' : 'none';
         }
 
-        if (appConfig.showClearLogo && mediaItem.clearLogoUrl) {
+        if (appConfig.showClearLogo && mediaItem.clearLogoUrl && clearlogoEl) {
             clearlogoEl.src = mediaItem.clearLogoUrl;
             clearlogoEl.classList.add('visible');
-        } else {
+        } else if (clearlogoEl) {
             clearlogoEl.src = transparentPixel;
             clearlogoEl.classList.remove('visible');
         }
@@ -4693,7 +4699,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (
             appConfig.showRottenTomatoes &&
             mediaItem.rottenTomatoes &&
-            mediaItem.rottenTomatoes.score
+            mediaItem.rottenTomatoes.score &&
+            rtBadge
         ) {
             const { icon } = mediaItem.rottenTomatoes;
             let iconUrl = '';
@@ -4712,7 +4719,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             rtIcon.src = iconUrl;
             rtBadge.classList.add('visible');
             ensureRtBadgeAttached();
-        } else {
+        } else if (rtBadge) {
             rtBadge.classList.remove('visible');
             ensureRtBadgeAttached(); // keep it mounted even when hidden
         }
