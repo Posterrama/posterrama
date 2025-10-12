@@ -9,25 +9,7 @@ body:not(.cinema-mode) #cinema-footer {
 /* REMOVED: No padding on info-container - poster should fill width naturally */
 /* The header and footer sit in the natural black bars above/below the poster */
 
-/* DEBUG: Visual borders for layout debugging */
-body.debug-layout #info-container {
-    outline: 3px solid red !important;
-}
-body.debug-layout #cinema-header {
-    outline: 3px solid yellow !important;
-    background: rgba(255, 255, 0, 0.1) !important;
-}
-body.debug-layout #cinema-footer-specs,
-body.debug-layout #cinema-footer-marquee {
-    outline: 3px solid green !important;
-    background: rgba(0, 255, 0, 0.1) !important;
-}
-body.debug-layout #poster-wrapper {
-    outline: 3px solid blue !important;
-}
-body.debug-layout #poster {
-    outline: 3px solid magenta !important;
-}
+/* Debug visuals removed for production cleanliness */
 
 /* Ensure preview container matches cinema full-viewport layout */
 #info-container {

@@ -2,131 +2,6 @@
 (function () {
     const $ = s => document.querySelector(s);
 
-    // Determine if preview debug overlay should be enabled
-    function isDebugEnabled() {
-        try {
-            const params = new URLSearchParams(window.location.search || '');
-            if (params.get('debug') === 'true') return true;
-        } catch (_) {
-            // no-op: URL parsing may fail in unusual environments
-        }
-        return (
-            (typeof window !== 'undefined' && window.POSTERRAMA_DEBUG_PREVIEW === true) ||
-            (typeof window !== 'undefined' && window.POSTERRAMA_DEBUG === true) ||
-            (typeof window !== 'undefined' && window.__POSTERRAMA_LIVE_DEBUG === true)
-        );
-    }
-
-    // Enable visual debugging
-    function enableDebugMode() {
-        document.body.classList.add('debug-layout');
-        console.log('🐛 PREVIEW DEBUG MODE ENABLED');
-
-        // Create visual debug overlay on screen
-        const debugOverlay = document.createElement('div');
-        debugOverlay.id = 'preview-debug-overlay';
-        debugOverlay.style.cssText = `
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.95);
-            color: #0f0;
-            padding: 15px;
-            font-family: monospace;
-            font-size: 11px;
-            line-height: 1.4;
-            z-index: 99999;
-            border: 2px solid #0f0;
-            border-radius: 5px;
-            max-width: 400px;
-            pointer-events: none;
-            white-space: pre-wrap;
-        `;
-        document.body.appendChild(debugOverlay);
-
-        // Update measurements every 2 seconds
-        const updateMeasurements = () => {
-            const infoContainer = $('#info-container');
-            const header = $('#cinema-header');
-            const footerSpecs = $('#cinema-footer-specs');
-            const footerMarquee = $('#cinema-footer-marquee');
-            const posterWrapper = $('#poster-wrapper');
-            const poster = $('#poster');
-
-            let output = '🐛 PREVIEW DEBUG MODE\n';
-            output += '═══════════════════════════════\n\n';
-
-            if (infoContainer) {
-                const rect = infoContainer.getBoundingClientRect();
-                const styles = window.getComputedStyle(infoContainer);
-                output += `📦 #info-container (RED)\n`;
-                output += `   top: ${rect.top.toFixed(0)}px\n`;
-                output += `   height: ${rect.height.toFixed(0)}px\n`;
-                output += `   paddingTop: ${styles.paddingTop}\n`;
-                output += `   paddingBottom: ${styles.paddingBottom}\n\n`;
-            }
-
-            if (header) {
-                const rect = header.getBoundingClientRect();
-                output += `📝 #cinema-header (YELLOW)\n`;
-                output += `   top: ${rect.top.toFixed(0)}px\n`;
-                output += `   height: ${rect.height.toFixed(0)}px\n`;
-                output += `   bottom: ${rect.bottom.toFixed(0)}px\n\n`;
-            }
-
-            if (posterWrapper) {
-                const rect = posterWrapper.getBoundingClientRect();
-                output += `🖼️  #poster-wrapper (BLUE)\n`;
-                output += `   top: ${rect.top.toFixed(0)}px\n`;
-                output += `   height: ${rect.height.toFixed(0)}px\n\n`;
-            }
-
-            if (poster) {
-                const rect = poster.getBoundingClientRect();
-                output += `🎬 #poster (MAGENTA)\n`;
-                output += `   top: ${rect.top.toFixed(0)}px\n`;
-                output += `   height: ${rect.height.toFixed(0)}px\n`;
-                output += `   bottom: ${rect.bottom.toFixed(0)}px\n\n`;
-            }
-
-            const footer = footerSpecs || footerMarquee;
-            if (footer) {
-                const rect = footer.getBoundingClientRect();
-                output += `📊 footer (GREEN)\n`;
-                output += `   top: ${rect.top.toFixed(0)}px\n`;
-                output += `   height: ${rect.height.toFixed(0)}px\n`;
-                output += `   bottom: ${rect.bottom.toFixed(0)}px\n\n`;
-            }
-
-            // Calculate spacing
-            if (header && poster) {
-                const headerRect = header.getBoundingClientRect();
-                const posterRect = poster.getBoundingClientRect();
-                const topSpacing = posterRect.top - headerRect.bottom;
-                output += `📏 Space header→poster: ${topSpacing.toFixed(0)}px\n`;
-            }
-
-            if (poster && footer) {
-                const posterRect = poster.getBoundingClientRect();
-                const footerRect = footer.getBoundingClientRect();
-                const bottomSpacing = footerRect.top - posterRect.bottom;
-                output += `📏 Space poster→footer: ${bottomSpacing.toFixed(0)}px\n`;
-            }
-
-            debugOverlay.textContent = output;
-        };
-
-        // Initial update
-        setTimeout(updateMeasurements, 500);
-
-        // Update every 2 seconds
-        setInterval(updateMeasurements, 2000);
-    }
-
-    function disableDebugMode() {
-        document.body.classList.remove('debug-layout');
-    }
-
     function hideCinemaUnwantedElements(isCinemaMode) {
         // In cinema mode: hide metadata, clearlogo, RT badge (match real cinema.html behavior)
         const textWrapper = $('#text-wrapper');
@@ -339,9 +214,6 @@
             );
             setAmbilight(c.ambilight?.enabled !== false, c.ambilight?.strength ?? 60);
 
-            // Enable debug overlay only when explicitly requested
-            if (isDebugEnabled()) enableDebugMode();
-
             // Ensure poster area is sized after overlays are applied
             updatePosterLayoutPreview();
             // Also sync poster immediately to avoid any race conditions in preview
@@ -367,11 +239,7 @@
     // Keep poster in sync with current media updates
     window.addEventListener('mediaUpdated', syncPosterFromCurrentMedia);
 
-    // Expose debug controls
-    window.previewCinema = {
-        enableDebug: enableDebugMode,
-        disableDebug: disableDebugMode,
-    };
+    // No debug controls exported
 
     // Also patch into window.applySettings if it exists (for initial boot via preview)
     const prevApply = window.applySettings;
