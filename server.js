@@ -1118,6 +1118,10 @@ app.get('/preview', (req, res) => {
                     `style.css?v=${versions['style.css'] || ASSET_VERSION}`
                 )
                 .replace(
+                    /cinema\/cinema-display\.css\?v=[^"&\s]+/g,
+                    `cinema/cinema-display.css?v=${versions['cinema/cinema-display.css'] || ASSET_VERSION}`
+                )
+                .replace(
                     /preview-cinema\.js\?v=[^"&\s]+/g,
                     `preview-cinema.js?v=${versions['preview-cinema.js'] || ASSET_VERSION}`
                 )
