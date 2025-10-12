@@ -128,17 +128,11 @@ body.debug-layout::before {
     justify-content: center;
     background: #000;
     z-index: 10;
+    padding: 0; /* No padding - poster fills width, natural black bars appear top/bottom */
 }
 
-/* When cinema header is active, adjust container to account for header space */
-body.cinema-header-active #info-container {
-    padding-top: 10rem; /* Space for header (2rem padding + 3rem font + 5rem buffer) */
-}
-
-/* When footer is active, adjust for footer space */
-body.cinema-footer-active #info-container {
-    padding-bottom: 13rem; /* Increased: footer needs more space than header */
-}
+/* REMOVED: No special padding for cinema-header-active or cinema-footer-active */
+/* The header and footer naturally sit in the black bars created by poster aspect ratio */
 
 /* Portrait orientation adjustments */
 body[data-orientation='portrait'] #info-container,
@@ -153,19 +147,19 @@ body[data-orientation='portrait-flipped'] #info-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Removed margin-bottom: poster should be perfectly centered without extra spacing */
+    width: 100%;
+    height: 100%;
 }
 
 #poster {
-    width: 500px;
-    height: 750px;
-    max-width: 90vw;
-    max-height: 70vh;
+    width: 100%; /* Always full width */
+    height: auto; /* Maintain aspect ratio */
+    max-height: 100vh; /* Don't exceed screen height */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    border-radius: 12px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+    border-radius: 0; /* No rounded corners for full-width display */
+    box-shadow: none; /* No shadow for full-width display */
     transition: opacity 0.5s ease;
 }
 

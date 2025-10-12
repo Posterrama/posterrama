@@ -6,15 +6,8 @@ body:not(.cinema-mode) #cinema-footer {
     display: none !important;
 }
 
-/* When cinema header is active, adjust container to account for header space */
-body.cinema-header-active #info-container {
-    padding-top: 10rem !important; /* Space for header - match cinema-display.css */
-}
-
-/* When footer is active, adjust for footer space */
-body.cinema-footer-active #info-container {
-    padding-bottom: 13rem !important; /* Increased: footer needs more space than header */
-}
+/* REMOVED: No padding on info-container - poster should fill width naturally */
+/* The header and footer sit in the natural black bars above/below the poster */
 
 /* DEBUG: Visual borders for layout debugging */
 body.debug-layout #info-container {
