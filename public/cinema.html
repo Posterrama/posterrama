@@ -4,16 +4,18 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <title>Posterrama Cinema</title>
-        
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap"
+            rel="stylesheet"
+        />
 
         <!-- Cinema styles (ONLY) -->
-                <!-- Cinema styles (ONLY) -->
-        <link rel="stylesheet" href="cinema/cinema-display.css?v=20251012b" />
-        
+        <link rel="stylesheet" href="cinema/cinema-display.css?v=20251012c" />
+
         <!-- Client-side Logger (required by script.js) -->
         <script src="/client-logger.js"></script>
     </head>
@@ -65,88 +67,7 @@
 
         <!-- Scripts -->
         <script src="device-mgmt.js?v=20250901a"></script>
-        <script src="cinema/cinema-display.js?v=20251012b"></script>
-        <script src="script.js?v=20251011c"></script>
-    </body>
-</html>
-
-    </head>
-    <body data-mode="cinema">
-        <!-- Loader -->
-        <div id="loader">
-            <div class="poster-loader"></div>
-        </div>
-
-        <!-- Error message -->
-        <div id="error-message" class="is-hidden"></div>
-
-        <!-- Clearlogo (top right) -->
-        <div id="clearlogo-container">
-            <img id="clearlogo" src="" alt="ClearLogo" />
-        </div>
-
-        <!-- Cinema poster and metadata container -->
-        <div id="info-container">
-            <div id="poster-wrapper">
-                <div id="poster"></div>
-            </div>
-            <div id="text-wrapper">
-                <h1 id="title"></h1>
-                <p id="tagline"></p>
-                <div id="meta-info">
-                    <span id="year"></span>
-                    <span id="rating"></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Cinema controls -->
-        <div id="controls-container">
-            <button id="prev-button" aria-label="Previous">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-                </svg>
-            </button>
-            <button id="pause-button" aria-label="Pause/Resume">
-                <svg class="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                </svg>
-                <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
-                </svg>
-            </button>
-            <button id="next-button" aria-label="Next">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
-                </svg>
-            </button>
-        </div>
-
-        <!-- Scripts -->
-        <script src="lazy-loading.js?v=20250825a"></script>
-        <script src="device-mgmt.js?v=20250901a"></script>
-        <script src="cinema/cinema-display.js?v=20251012a"></script>
-        <script src="script.js?v=20251011c"></script>
-        <script>
-            // Optional: show unobtrusive hint in console for enabling debug logs
-            try {
-                if (!(window.logger && window.logger.isDebug && window.logger.isDebug())) {
-                    console.warn('[Posterrama Cinema] To enable debug logs, add ?debug=true to the URL or run window.enableDebug()');
-                }
-            } catch(e) {}
-        </script>
-        
-        <!-- PWA Service Worker Registration -->
-        <script>
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker
-                        .register('/sw.js')
-                        .catch(() => {
-                            /* silent */
-                        });
-                });
-            }
-        </script>
+        <script src="cinema/cinema-display.js?v=20251012c"></script>
+        <script src="script.js?v=20251012a"></script>
     </body>
 </html>
