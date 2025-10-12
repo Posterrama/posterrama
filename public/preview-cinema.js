@@ -56,34 +56,62 @@
             root.style.display = 'none';
             return;
         }
+
         const { showResolution, showAudio, showAspectRatio, showFlags, style, iconSet } = specs;
-        const wrap = document.createElement('div');
-        wrap.className = 'specs';
-        const chips = [];
 
-        // Use realistic sample data (not always 4K/Atmos/HDR)
-        if (showResolution) chips.push({ ico: 'res', label: '1080p' });
-        if (showAudio) chips.push({ ico: 'aud', label: 'Dolby Digital+ 5.1' });
-        if (showAspectRatio) chips.push({ ico: 'asp', label: '16:9' });
-        // Only show flags occasionally (not every preview)
-        if (showFlags && Math.random() > 0.5) chips.push({ ico: 'flag', label: 'HDR10' });
+        // Use EXACT same structure as cinema-display.js createFooter()
+        const styleClasses = ['cinema-footer-specs', style, `icon-${iconSet}`].join(' ');
+        root.className = styleClasses;
 
-        chips.forEach(c => {
-            const chip = document.createElement('span');
-            chip.className = 'chip';
-            const i = document.createElement('i');
-            i.className = `ico ico-${c.ico}`;
-            chip.appendChild(i);
-            chip.appendChild(document.createTextNode(c.label));
-            wrap.appendChild(chip);
-        });
-        root.appendChild(wrap);
-        // style + iconSet
-        root.className = '';
-        root.id = 'cinema-footer-specs';
-        root.classList.add(`style-${style || 'subtle'}`);
-        root.classList.add(iconSet === 'line' ? 'icon-line' : 'icon-filled');
-        root.style.display = chips.length ? 'block' : 'none';
+        // Sample data (realistic, not always 4K/Atmos)
+        const sampleMedia = {
+            resolution: '1080p',
+            audioCodec: 'Dolby Digital+',
+            audioChannels: '5.1',
+            aspectRatio: '16:9',
+            hasHDR: false,
+            hasDolbyVision: false,
+        };
+
+        // Resolution - match cinema-display.js structure EXACTLY
+        if (showResolution && sampleMedia.resolution) {
+            const item = document.createElement('div');
+            item.className = 'cinema-spec-item';
+            item.innerHTML = `<i class="fas fa-tv"></i><span>${sampleMedia.resolution}</span>`;
+            root.appendChild(item);
+        }
+
+        // Audio - match cinema-display.js structure EXACTLY
+        if (showAudio && sampleMedia.audioCodec) {
+            const item = document.createElement('div');
+            item.className = 'cinema-spec-item';
+            const audioText = sampleMedia.audioChannels
+                ? `${sampleMedia.audioCodec} ${sampleMedia.audioChannels}`
+                : sampleMedia.audioCodec;
+            item.innerHTML = `<i class="fas fa-volume-up"></i><span>${audioText}</span>`;
+            root.appendChild(item);
+        }
+
+        // Aspect Ratio - match cinema-display.js structure EXACTLY
+        if (showAspectRatio && sampleMedia.aspectRatio) {
+            const item = document.createElement('div');
+            item.className = 'cinema-spec-item';
+            item.innerHTML = `<i class="fas fa-expand"></i><span>${sampleMedia.aspectRatio}</span>`;
+            root.appendChild(item);
+        }
+
+        // Flags (HDR, Dolby Vision) - match cinema-display.js structure EXACTLY
+        if (showFlags) {
+            if (sampleMedia.hasHDR || sampleMedia.hasDolbyVision) {
+                const item = document.createElement('div');
+                item.className = 'cinema-spec-item';
+                const flagText = sampleMedia.hasDolbyVision ? 'Dolby Vision' : 'HDR';
+                item.innerHTML = `<i class="fas fa-sun"></i><span>${flagText}</span>`;
+                root.appendChild(item);
+            }
+        }
+
+        root.style.display = root.children.length > 0 ? 'flex' : 'none';
     }
     function setFooter(type, marqueeText, marqueeStyle, specs, enabled) {
         const root = $('#cinema-footer');
