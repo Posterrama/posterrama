@@ -137,7 +137,7 @@ body[data-orientation='portrait-flipped'] #info-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 2rem;
+    /* Removed margin-bottom: poster should be perfectly centered without extra spacing */
 }
 
 #poster {
