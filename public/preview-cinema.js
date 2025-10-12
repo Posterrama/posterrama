@@ -2,6 +2,16 @@
 (function () {
     const $ = s => document.querySelector(s);
 
+    // Enable visual debugging
+    function enableDebugMode() {
+        document.body.classList.add('debug-layout');
+        console.log('🐛 PREVIEW DEBUG MODE ENABLED');
+    }
+
+    function disableDebugMode() {
+        document.body.classList.remove('debug-layout');
+    }
+
     function hideCinemaUnwantedElements(isCinemaMode) {
         // In cinema mode: hide metadata, clearlogo, RT badge (match real cinema.html behavior)
         const textWrapper = $('#text-wrapper');
@@ -155,6 +165,9 @@
                 !!c.footer?.enabled
             );
             setAmbilight(c.ambilight?.enabled !== false, c.ambilight?.strength ?? 60);
+
+            // Auto-enable debug mode for layout debugging
+            enableDebugMode();
         } catch (e) {
             // ignore overlay application errors (preview resilience)
         }
@@ -170,6 +183,13 @@
             // ignore malformed post message
         }
     });
+
+    // Expose debug controls
+    window.previewCinema = {
+        enableDebug: enableDebugMode,
+        disableDebug: disableDebugMode,
+    };
+
     // Also patch into window.applySettings if it exists (for initial boot via preview)
     const prevApply = window.applySettings;
     window.applySettings = function (cfg) {

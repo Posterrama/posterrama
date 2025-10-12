@@ -49,10 +49,27 @@
     // ===== Utility Functions =====
     function log(message, data) {
         if (window.logger && window.logger.info) {
-            window.logger.info(`[Cinema] ${message}`, data);
+            window.logger.info(`[Cinema Display] ${message}`, data);
         } else {
-            console.log(`[Cinema] ${message}`, data || '');
+            console.log(`[Cinema Display] ${message}`, data || '');
         }
+    }
+
+    // Enable visual debugging (colored borders on layout elements)
+    function enableDebugMode() {
+        document.body.classList.add('debug-layout');
+        log('🐛 Debug mode ENABLED - colored borders visible');
+        console.log('🐛 DEBUG LAYOUT:');
+        console.log('  - RED outline: #info-container (main container)');
+        console.log('  - YELLOW outline + bg: .cinema-header');
+        console.log('  - GREEN outline + bg: .cinema-footer');
+        console.log('  - BLUE outline: #poster-wrapper');
+        console.log('  - MAGENTA outline: #poster');
+    }
+
+    function disableDebugMode() {
+        document.body.classList.remove('debug-layout');
+        log('Debug mode disabled');
     }
 
     function error(message, data) {
@@ -425,6 +442,8 @@
         update: updateCinemaDisplay,
         updateConfig: handleConfigUpdate,
         getConfig: () => ({ ...cinemaConfig }),
+        enableDebug: enableDebugMode,
+        disableDebug: disableDebugMode,
     };
 
     // ===== Auto-Initialize on DOM Ready =====
@@ -432,14 +451,22 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const config = await loadCinemaConfig();
             initCinemaMode(config);
-            log('Cinema display auto-initialized');
+
+            // Auto-enable debug mode (temporary for debugging spacing issues)
+            enableDebugMode();
+
+            log('Cinema display auto-initialized with DEBUG MODE');
         });
     } else {
         // DOM already loaded
         (async () => {
             const config = await loadCinemaConfig();
             initCinemaMode(config);
-            log('Cinema display auto-initialized');
+
+            // Auto-enable debug mode (temporary for debugging spacing issues)
+            enableDebugMode();
+
+            log('Cinema display auto-initialized with DEBUG MODE');
         })();
     }
 

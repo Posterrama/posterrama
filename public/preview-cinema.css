@@ -6,6 +6,26 @@ body:not(.cinema-mode) #cinema-footer {
     display: none !important;
 }
 
+/* DEBUG: Visual borders for layout debugging */
+body.debug-layout #info-container {
+    outline: 3px solid red !important;
+}
+body.debug-layout #cinema-header {
+    outline: 3px solid yellow !important;
+    background: rgba(255, 255, 0, 0.1) !important;
+}
+body.debug-layout #cinema-footer-specs,
+body.debug-layout #cinema-footer-marquee {
+    outline: 3px solid green !important;
+    background: rgba(0, 255, 0, 0.1) !important;
+}
+body.debug-layout #poster-wrapper {
+    outline: 3px solid blue !important;
+}
+body.debug-layout #poster {
+    outline: 3px solid magenta !important;
+}
+
 #cinema-ambilight {
     position: fixed;
     inset: 0;
