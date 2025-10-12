@@ -130,27 +130,6 @@
         }
     }
 
-    // Size the poster area between header and footer using CSS variables
-    function updatePosterLayoutPreview() {
-        try {
-            const header = $('#cinema-header');
-            const footerSpecs = $('#cinema-footer-specs');
-            const footerMarquee = $('#cinema-footer-marquee');
-            const headerVisible = header && header.style.display !== 'none';
-            const footerEl =
-                footerSpecs && footerSpecs.style.display !== 'none'
-                    ? footerSpecs
-                    : footerMarquee && footerMarquee.style.display !== 'none'
-                      ? footerMarquee
-                      : null;
-            const headerH = headerVisible ? Math.ceil(header.getBoundingClientRect().height) : 0;
-            const footerH = footerEl ? Math.ceil(footerEl.getBoundingClientRect().height) : 0;
-            document.documentElement.style.setProperty('--poster-top', headerH + 'px');
-            document.documentElement.style.setProperty('--poster-bottom', footerH + 'px');
-        } catch (e) {
-            console.warn('preview: updatePosterLayoutPreview error', e);
-        }
-    }
     // Size the poster area with perfectly symmetric bars based on viewport and 2:3 poster ratio
     function updatePosterLayoutPreview() {
         try {
@@ -161,7 +140,7 @@
             );
             const posterHeightByWidth = Math.round(vw * 1.5);
             const posterHeight = Math.min(vh, posterHeightByWidth);
-            const bar = Math.max(0, Math.floor((vh - posterHeight) / 2));
+            const bar = Math.max(0, Math.round((vh - posterHeight) / 2));
             document.documentElement.style.setProperty('--poster-top', bar + 'px');
             document.documentElement.style.setProperty('--poster-bottom', bar + 'px');
         } catch (e) {

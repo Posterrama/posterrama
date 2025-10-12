@@ -57,7 +57,7 @@
             // Poster native aspect ratio is 2:3 (width:height)
             const posterHeightByWidth = Math.round(vw * 1.5);
             const posterHeight = Math.min(vh, posterHeightByWidth);
-            const bar = Math.max(0, Math.floor((vh - posterHeight) / 2));
+            const bar = Math.max(0, Math.round((vh - posterHeight) / 2));
             document.documentElement.style.setProperty('--poster-top', bar + 'px');
             document.documentElement.style.setProperty('--poster-bottom', bar + 'px');
         } catch (e) {
