@@ -59,6 +59,49 @@ body.debug-layout #poster {
     background-repeat: no-repeat;
 }
 
+/* Override global cinema-mode rules from style.css so preview matches cinema bands */
+body.cinema-mode #info-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+}
+body.cinema-mode.cinema-header-active #info-container {
+    top: 0 !important;
+    height: 100vh !important;
+}
+body.cinema-mode #poster-wrapper {
+    position: fixed !important;
+    top: var(--poster-top, 0) !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: var(--poster-bottom, 0) !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+body.cinema-mode #info-container #poster-wrapper #poster {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    background-size: contain !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
 #cinema-ambilight {
     position: fixed;
     inset: 0;
