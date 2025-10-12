@@ -97,12 +97,12 @@ body {
 
 /* When cinema header is active, adjust container to account for header space */
 body.cinema-header-active #info-container {
-    padding-top: 6rem; /* Space for header */
+    padding-top: 8rem; /* Space for header (2rem padding + 3rem font + 3rem extra) */
 }
 
 /* When footer is active, adjust for footer space */
 body.cinema-footer-active #info-container {
-    padding-bottom: 6rem; /* Space for footer */
+    padding-bottom: 8rem; /* Space for footer (match header) */
 }
 
 /* Portrait orientation adjustments */
@@ -380,7 +380,7 @@ body:hover #controls-container {
     gap: 1.5rem;
     justify-content: center;
     align-items: center;
-    padding: 1.5rem;
+    padding: 2rem 1.5rem; /* Increased from 1.5rem to match header */
     background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
     z-index: 50;
 }
@@ -389,10 +389,10 @@ body:hover #controls-container {
 .cinema-spec-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
+    gap: 0.6rem;
+    padding: 0.85rem 1.5rem; /* Slightly larger padding */
     border-radius: 8px;
-    font-size: 1.1rem;
+    font-size: 1.15rem; /* Increased from 1.1rem */
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -400,14 +400,15 @@ body:hover #controls-container {
 }
 
 .cinema-spec-item i {
-    font-size: 1.3rem;
+    font-size: 1.4rem; /* Increased from 1.3rem */
 }
 
 /* Style variations for spec items */
 .cinema-footer-specs.subtle .cinema-spec-item {
-    background: rgba(0, 0, 0, 0.6);
-    color: rgba(255, 255, 255, 0.9);
+    background: rgba(0, 0, 0, 0.7); /* Darker background for better visibility */
+    color: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .cinema-footer-specs.filled .cinema-spec-item {
