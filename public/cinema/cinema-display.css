@@ -97,12 +97,12 @@ body {
 
 /* When cinema header is active, adjust container to account for header space */
 body.cinema-header-active #info-container {
-    padding-top: 8rem; /* Space for header (2rem padding + 3rem font + 3rem extra) */
+    padding-top: 6rem; /* Space for header (2rem padding + 3rem font + 1rem buffer) */
 }
 
 /* When footer is active, adjust for footer space */
 body.cinema-footer-active #info-container {
-    padding-bottom: 8rem; /* Space for footer (match header) */
+    padding-bottom: 6rem; /* Space for footer (match header) */
 }
 
 /* Portrait orientation adjustments */
@@ -253,6 +253,7 @@ body:hover #controls-container {
     text-align: center;
     z-index: 50;
     pointer-events: none;
+    background: transparent; /* Ensure no background color/layers */
 }
 
 /* Classic Style */
