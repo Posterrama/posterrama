@@ -5660,6 +5660,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // In cinema mode, skip all DOM manipulation - cinema-display.js handles rendering
+        const isCinemaPage = document.body.dataset.mode === 'cinema';
+        if (isCinemaPage) {
+            logger.info('[Script] Cinema mode - skipping changeMedia DOM manipulation');
+            return;
+        }
+
         // In offline mode, don't cycle through media unless it's the first load
         // Skip offline check in preview mode and localhost (always online for testing)
         const isLocalhost =
