@@ -65,35 +65,23 @@
         <link rel="stylesheet" href="cinema/cinema-display.css?v=20251012a" />
     </head>
     <body data-mode="cinema">
+        <!-- Loader -->
         <div id="loader">
             <div class="poster-loader"></div>
         </div>
+
+        <!-- Error message -->
         <div id="error-message" class="is-hidden"></div>
 
-        <!-- Cinema mode: no promo box -->
-
-        <!-- Cinema mode: no screensaver layers -->
-
-        <div id="clock-widget-container">
-            <div id="time-widget">
-                <span id="time-hours">00</span>
-                <span id="time-separator">:</span>
-                <span id="time-minutes">00</span>
-            </div>
-        </div>
-
+        <!-- Clearlogo (top right) -->
         <div id="clearlogo-container">
             <img id="clearlogo" src="" alt="ClearLogo" />
         </div>
 
+        <!-- Cinema poster and metadata container -->
         <div id="info-container">
             <div id="poster-wrapper">
-                <a id="poster-link" href="#" target="_blank" rel="noopener noreferrer">
-                    <div id="poster-a" class="poster-layer"></div>
-                    <div id="poster-b" class="poster-layer"></div>
-                    <!-- Keep original poster for backward compatibility -->
-                    <div id="poster"></div>
-                </a>
+                <div id="poster"></div>
             </div>
             <div id="text-wrapper">
                 <h1 id="title"></h1>
@@ -105,6 +93,7 @@
             </div>
         </div>
 
+        <!-- Cinema controls -->
         <div id="controls-container">
             <button id="prev-button" aria-label="Previous">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -112,20 +101,10 @@
                 </svg>
             </button>
             <button id="pause-button" aria-label="Pause/Resume">
-                <svg
-                    class="icon-pause"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                >
+                <svg class="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                 </svg>
-                <svg
-                    class="icon-play"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                >
+                <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8 5v14l11-7z" />
                 </svg>
             </button>
@@ -136,26 +115,7 @@
             </button>
         </div>
 
-        <div id="branding-container">
-            <a
-                href="https://posterrama.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="posterrama.app"
-            >
-                <svg
-                    role="img"
-                    aria-label="posterrama.app Logo"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                >
-                    <path d="M6 2H16L14 22H4L6 2Z" />
-                    <path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6" />
-                </svg>
-            </a>
-        </div>
-
+        <!-- Scripts -->
         <script src="lazy-loading.js?v=20250825a"></script>
         <script src="device-mgmt.js?v=20250901a"></script>
         <script src="cinema/cinema-display.js?v=20251012a"></script>
