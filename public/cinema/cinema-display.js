@@ -198,6 +198,7 @@
                 headerEl.remove();
                 headerEl = null;
             }
+            document.body.classList.remove('cinema-header-active');
             return;
         }
 
@@ -214,6 +215,9 @@
 
         // Set header text
         headerEl.textContent = cinemaConfig.header.text || 'Now Playing';
+
+        // Add body class to adjust info-container padding
+        document.body.classList.add('cinema-header-active');
 
         log('Cinema header created/updated', {
             text: cinemaConfig.header.text,
