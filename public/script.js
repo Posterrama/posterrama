@@ -5660,10 +5660,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // In cinema mode, skip all DOM manipulation - cinema-display.js handles rendering
+        // In cinema mode, skip DOM manipulation and directly update cinema-display.js
         const isCinemaPage = document.body.dataset.mode === 'cinema';
         if (isCinemaPage) {
-            logger.info('[Script] Cinema mode - skipping changeMedia DOM manipulation');
+            logger.info('[Script] Cinema mode - updating media index and calling renderMediaItem');
+
+            // Navigate media queue
+            if (direction === 'next') {
+                currentIndex = (currentIndex + 1) % mediaQueue.length;
+            } else {
+                currentIndex = (currentIndex - 1 + mediaQueue.length) % mediaQueue.length;
+            }
+
+            const currentMedia = mediaQueue[currentIndex];
+            if (currentMedia) {
+                renderMediaItem(currentMedia);
+            } else {
+                console.error(`❌ Invalid media item at index ${currentIndex}`);
+            }
             return;
         }
 
