@@ -1,68 +1,72 @@
 <!doctype html>
-<!-- posterrama.app | Author: Posterrama Team | License: GPL-3.0-or-later -->
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <title>Posterrama Cinema - Digital Movie Poster Display</title>
-        <meta
-            name="description"
-            content="Cinema mode - Transform your portrait screens into stunning digital movie poster displays. Self-hosted, open-source, perfect for home theaters."
-        />
-        <meta
-            name="keywords"
-            content="cinema mode, movie poster display, digital signage, portrait display, home theater, cinema display, movie posters"
-        />
-        <meta name="author" content="Posterrama Team" />
-        <meta name="robots" content="noindex, nofollow" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-
-        <!-- PWA Meta Tags -->
-        <meta name="theme-color" content="#1a1a1a" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Posterrama Cinema" />
-        <meta name="mobile-web-app-capable" content="yes" />
+        <title>Posterrama Cinema</title>
         
-        <!-- App Manifest -->
-        <link rel="manifest" href="/manifest.json" />
-        
-        <!-- Favicons and Icons -->
-        <link rel="icon" type="image/svg+xml" href="/icons/posterrama-icon.svg?v=2" />
-        <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png?v=2" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png?v=2" />
-        <link rel="apple-touch-icon" sizes="72x72" href="/icons/icon-72x72.png" />
-        <link rel="apple-touch-icon" sizes="96x96" href="/icons/icon-96x96.png" />
-        <link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128x128.png" />
-        <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
-        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
-
-        <!-- Preconnects for performance -->
+        <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Kalam:wght@400;700&display=swap"
-            rel="stylesheet"
-        />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
 
-        <!-- Font Awesome for icons -->
-        <link
-            rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
-            integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ=="
-            crossorigin="anonymous"
-            referrerpolicy="no-referrer"
-        />
+        <!-- Cinema styles (ONLY) -->
+                <!-- Cinema styles (ONLY) -->
+        <link rel="stylesheet" href="cinema/cinema-display.css?v=20251012b" />
+    </head>
+    <body data-mode="cinema">
+        <!-- Loader -->
+        <div id="loader">
+            <div class="poster-loader"></div>
+        </div>
 
-        <!-- Client-side Logger for controlled debugging -->
-        <script src="/client-logger.js"></script>
+        <!-- Error message -->
+        <div id="error-message" class="is-hidden"></div>
 
-        <!-- Styles -->
-        <link rel="stylesheet" href="style.css?v=20250828a" />
-        
-        <!-- Cinema mode specific styles -->
-        <link rel="stylesheet" href="cinema/cinema-display.css?v=20251012a" />
+        <!-- Cinema poster and metadata container -->
+        <div id="info-container">
+            <div id="poster-wrapper">
+                <div id="poster"></div>
+            </div>
+            <div id="text-wrapper">
+                <h1 id="title"></h1>
+                <p id="tagline"></p>
+                <div id="meta-info">
+                    <span id="year"></span>
+                    <span id="rating"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cinema controls -->
+        <div id="controls-container">
+            <button id="prev-button" aria-label="Previous">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                </svg>
+            </button>
+            <button id="pause-button" aria-label="Pause/Resume">
+                <svg class="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                </svg>
+                <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                </svg>
+            </button>
+            <button id="next-button" aria-label="Next">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Scripts -->
+        <script src="device-mgmt.js?v=20250901a"></script>
+        <script src="cinema/cinema-display.js?v=20251012b"></script>
+        <script src="script.js?v=20251011c"></script>
+    </body>
+</html>
+
     </head>
     <body data-mode="cinema">
         <!-- Loader -->

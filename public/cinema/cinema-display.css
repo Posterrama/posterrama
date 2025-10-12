@@ -1,332 +1,333 @@
-/* Cinema Display Mode Styles */
-/* Author: Posterrama Team */
-/* Last Modified: 2025-10-12 */
+/**
+ * Posterrama Cinema Mode - Standalone Styles
+ * No inheritance from style.css - self-contained cinema display
+ */
 
-/* ===== Cinema Mode Base ===== */
-body[data-mode='cinema'] {
-    /* Cinema-specific base styles */
-    background-color: #000;
+/* =================================================================
+   BASE & RESET
+   ================================================================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
     overflow: hidden;
+    font-family:
+        'Inter',
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        Roboto,
+        sans-serif;
+    background: #000;
+    color: #fff;
 }
 
-/* Force cinema layout - override any screensaver styles */
-body[data-mode='cinema'] #info-container {
-    display: flex !important;
-    opacity: 1 !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    height: 100vh !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    align-items: center !important;
-    z-index: 10 !important;
-    transform: none !important;
-    padding: 0 !important;
-}
-
-/* Hide screensaver layers in cinema mode */
-body[data-mode='cinema'] #layer-a,
-body[data-mode='cinema'] #layer-b {
-    display: none !important;
-}
-
-/* Hide promo box in cinema mode */
-body[data-mode='cinema'] #promo-box {
-    display: none !important;
-}
-
-/* ===== Cinema Orientation Classes ===== */
-body[data-mode='cinema'].cinema-auto {
-    /* Auto orientation (default landscape behavior) */
-}
-
-body[data-mode='cinema'].cinema-portrait {
-    /* Portrait mode - content rotates 90 degrees clockwise */
-}
-
-body[data-mode='cinema'].cinema-portrait-flipped {
-    /* Portrait flipped mode - content rotates 90 degrees counter-clockwise */
-}
-
-/* ===== Cinema Info Container ===== */
-body[data-mode='cinema'] #info-container {
-    /* Force visibility in cinema mode */
-    display: flex !important;
-    opacity: 1 !important;
+/* =================================================================
+   LOADER & ERROR
+   ================================================================= */
+#loader {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
     width: 100%;
-    height: 100vh;
-    flex-direction: column;
-    justify-content: center;
+    height: 100%;
+    background: #000;
+    display: flex;
     align-items: center;
-    z-index: 10;
+    justify-content: center;
+    z-index: 9999;
 }
 
-/* ===== Cinema Poster Display ===== */
-body[data-mode='cinema'] #poster-wrapper {
-    /* Cinema poster specific styling */
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    width: 100% !important;
-    max-width: none !important;
-    height: auto !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    z-index: 20 !important;
-    position: static !important;
-    transform: none !important;
-    left: auto !important;
-    right: auto !important;
-    top: auto !important;
-    bottom: auto !important;
+.poster-loader {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
-body[data-mode='cinema'] #poster {
-    /* Cinema poster sizing - large and centered */
-    width: 500px !important;
-    height: 750px !important;
-    max-width: 90vw !important;
-    max-height: 85vh !important;
-    background-size: cover !important;
-    background-position: center !important;
-    background-repeat: no-repeat !important;
-    border-radius: 12px !important;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9) !important;
-    margin: 0 auto !important;
-    position: static !important;
-    transform: none !important;
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
-body[data-mode='cinema'] .poster-layer {
-    /* Hide poster layers in cinema mode */
-    display: none !important;
-}
-
-/* ===== Cinema Text Wrapper ===== */
-body[data-mode='cinema'] #text-wrapper {
+#error-message {
     position: fixed;
-    bottom: 100px;
-    left: 0;
-    right: 0;
-    text-align: center;
-    padding: 20px 40px;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
-    z-index: 50;
-}
-
-body[data-mode='cinema'] #title {
-    font-size: 2.5rem;
-    font-weight: 700;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(220, 38, 38, 0.95);
     color: #fff;
-    margin: 0 0 10px 0;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    padding: 2rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    text-align: center;
+    max-width: 500px;
+    z-index: 10000;
 }
 
-body[data-mode='cinema'] #tagline {
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.8);
-    margin: 0 0 10px 0;
+#error-message.is-hidden {
+    display: none;
+}
+
+/* =================================================================
+   MAIN LAYOUT - POSTER + METADATA CONTAINER
+   ================================================================= */
+#info-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: #000;
+}
+
+/* Portrait orientation adjustments */
+body[data-orientation='portrait'] #info-container,
+body[data-orientation='portrait-flipped'] #info-container {
+    padding: 1rem;
+}
+
+/* =================================================================
+   POSTER
+   ================================================================= */
+#poster-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+#poster {
+    width: 500px;
+    height: 750px;
+    max-width: 90vw;
+    max-height: 70vh;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+    transition: opacity 0.5s ease;
+}
+
+/* Portrait specific sizing */
+body[data-orientation='portrait'] #poster,
+body[data-orientation='portrait-flipped'] #poster {
+    max-height: 75vh;
+}
+
+/* =================================================================
+   TEXT METADATA
+   ================================================================= */
+#text-wrapper {
+    text-align: center;
+    max-width: 800px;
+    padding: 0 1rem;
+}
+
+#title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
+}
+
+#tagline {
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 1rem;
+    line-height: 1.5;
     font-style: italic;
 }
 
-body[data-mode='cinema'] #meta-info {
+#meta-info {
     display: flex;
-    gap: 20px;
+    gap: 1.5rem;
     justify-content: center;
     align-items: center;
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 500;
 }
 
-body[data-mode='cinema'] #year,
-body[data-mode='cinema'] #rating {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+#meta-info span {
+    display: inline-block;
 }
 
-/* ===== Cinema Controls ===== */
-body[data-mode='cinema'] #controls-container {
-    /* Controls visibility in cinema mode */
+/* =================================================================
+   CONTROLS
+   ================================================================= */
+#controls-container {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1rem;
+    z-index: 100;
     opacity: 0;
     transition: opacity 0.3s ease;
 }
 
-body[data-mode='cinema'] #controls-container:hover {
+body:hover #controls-container {
     opacity: 1;
 }
 
-/* ===== Cinema Header ===== */
-body[data-mode='cinema'] .cinema-header {
+#controls-container button {
+    width: 56px;
+    height: 56px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+#controls-container button:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.1);
+}
+
+#controls-container button:active {
+    transform: scale(0.95);
+}
+
+#controls-container button svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Play/Pause icon toggle */
+#pause-button .icon-play {
+    display: none;
+}
+
+#pause-button.paused .icon-pause {
+    display: none;
+}
+
+#pause-button.paused .icon-play {
+    display: block;
+}
+
+/* =================================================================
+   CINEMA HEADER (dynamically inserted by cinema-display.js)
+   ================================================================= */
+.cinema-header {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
+    width: 100%;
+    padding: 2rem;
+    text-align: center;
+    z-index: 50;
     pointer-events: none;
 }
 
-body[data-mode='cinema'] .cinema-header.hidden {
-    display: none;
-}
-
-/* Header Styles */
-.cinema-header-classic {
-    font-family: 'Inter', sans-serif;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-}
-
-.cinema-header-neon {
-    font-family: 'Inter', sans-serif;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #ff00ff;
+/* Classic Style */
+.cinema-header.style-classic {
+    font-size: 3rem;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.15em;
-    text-shadow:
-        0 0 10px #ff00ff,
-        0 0 20px #ff00ff,
-        0 0 30px #ff00ff,
-        0 0 40px #ff00ff;
-    animation: neon-flicker 3s infinite alternate;
+    color: #fff;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
 }
 
-@keyframes neon-flicker {
-    0%,
-    19%,
-    21%,
-    23%,
-    25%,
-    54%,
-    56%,
-    100% {
-        text-shadow:
-            0 0 10px #ff00ff,
-            0 0 20px #ff00ff,
-            0 0 30px #ff00ff,
-            0 0 40px #ff00ff;
-    }
-    20%,
-    24%,
-    55% {
-        text-shadow: none;
-    }
-}
-
-.cinema-header-minimal {
-    font-family: 'Inter', sans-serif;
-    font-size: 1.8rem;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.9);
-    letter-spacing: 0.2em;
-}
-
-.cinema-header-theatre {
-    font-family: 'Kalam', cursive;
+/* Neon Style */
+.cinema-header.style-neon {
     font-size: 3rem;
-    font-weight: 700;
-    color: #f59e0b;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.15em;
+    color: #ff00ff;
     text-shadow:
-        0 0 20px rgba(245, 158, 11, 0.8),
-        0 2px 8px rgba(0, 0, 0, 0.8);
+        0 0 20px #ff00ff,
+        0 0 40px #ff00ff,
+        0 0 60px #ff00ff;
+    animation: flicker 3s infinite;
 }
 
-/* ===== Cinema Footer ===== */
-body[data-mode='cinema'] .cinema-footer {
+@keyframes flicker {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.95;
+    }
+}
+
+/* Minimal Style */
+.cinema-header.style-minimal {
+    font-size: 1.75rem;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Theatre Style */
+.cinema-header.style-theatre {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #ffd700;
+    text-shadow: 0 4px 12px rgba(255, 215, 0, 0.6);
+}
+
+/* =================================================================
+   CINEMA FOOTER (dynamically inserted by cinema-display.js)
+   ================================================================= */
+.cinema-footer {
     position: fixed;
     bottom: 0;
     left: 0;
-    right: 0;
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
+    width: 100%;
+    z-index: 50;
     pointer-events: none;
 }
 
-body[data-mode='cinema'] .cinema-footer.hidden {
-    display: none;
-}
-
-/* Footer Marquee Styles */
+/* Marquee Footer */
 .cinema-footer-marquee {
-    width: 100%;
     overflow: hidden;
+    padding: 1rem 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
 }
 
-.cinema-footer-marquee-classic {
-    font-family: 'Inter', sans-serif;
+.cinema-footer-marquee-content {
+    display: inline-block;
+    white-space: nowrap;
+    animation: marquee 20s linear infinite;
     font-size: 2rem;
     font-weight: 700;
-    color: #fff;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-    white-space: nowrap;
-    animation: marquee-scroll 20s linear infinite;
-}
-
-.cinema-footer-marquee-neon {
-    font-family: 'Inter', sans-serif;
-    font-size: 2rem;
-    font-weight: 700;
-    color: #00ffff;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    text-shadow:
-        0 0 10px #00ffff,
-        0 0 20px #00ffff,
-        0 0 30px #00ffff;
-    white-space: nowrap;
-    animation: marquee-scroll 20s linear infinite;
-}
-
-.cinema-footer-marquee-minimal {
-    font-family: 'Inter', sans-serif;
-    font-size: 1.5rem;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.9);
     letter-spacing: 0.2em;
-    white-space: nowrap;
-    animation: marquee-scroll 25s linear infinite;
 }
 
-.cinema-footer-marquee-theatre {
-    font-family: 'Kalam', cursive;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #f59e0b;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    text-shadow:
-        0 0 20px rgba(245, 158, 11, 0.8),
-        0 2px 8px rgba(0, 0, 0, 0.8);
-    white-space: nowrap;
-    animation: marquee-scroll 18s linear infinite;
-}
-
-@keyframes marquee-scroll {
+@keyframes marquee {
     0% {
         transform: translateX(100%);
     }
@@ -335,174 +336,138 @@ body[data-mode='cinema'] .cinema-footer.hidden {
     }
 }
 
-/* Footer Specs Styles */
+/* Marquee Styles */
+.cinema-footer-marquee.style-classic .cinema-footer-marquee-content {
+    color: #fff;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.9);
+}
+
+.cinema-footer-marquee.style-neon .cinema-footer-marquee-content {
+    color: #00ffff;
+    text-shadow:
+        0 0 20px #00ffff,
+        0 0 40px #00ffff;
+}
+
+.cinema-footer-marquee.style-minimal .cinema-footer-marquee-content {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.cinema-footer-marquee.style-theatre .cinema-footer-marquee-content {
+    color: #ffd700;
+    text-shadow: 0 4px 8px rgba(255, 215, 0, 0.6);
+}
+
+/* Specs Footer */
 .cinema-footer-specs {
     display: flex;
-    gap: 20px;
+    gap: 1.5rem;
+    justify-content: center;
     align-items: center;
-    padding: 0 40px;
+    padding: 1.5rem;
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
 }
 
-.cinema-spec-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: 'Inter', sans-serif;
-    font-size: 1rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
+.cinema-spec-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-.cinema-spec-item i {
-    font-size: 1.2rem;
+/* Badge Styles */
+.cinema-footer-specs.badge-style-filled .cinema-spec-badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
 }
 
-/* Specs Style Variants */
-.cinema-footer-specs.subtle .cinema-spec-item {
-    background: rgba(0, 0, 0, 0.4);
-    padding: 8px 16px;
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-}
-
-.cinema-footer-specs.filled .cinema-spec-item {
-    background: rgba(255, 255, 255, 0.15);
-    padding: 10px 18px;
-    border-radius: 8px;
-    backdrop-filter: blur(10px);
-}
-
-.cinema-footer-specs.outline .cinema-spec-item {
+.cinema-footer-specs.badge-style-outlined .cinema-spec-badge {
     background: transparent;
-    padding: 8px 16px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: #fff;
 }
 
-/* Icon Sets */
-.cinema-footer-specs.icon-filled i {
-    color: #f59e0b;
-}
-
-.cinema-footer-specs.icon-line i {
+.cinema-footer-specs.badge-style-minimal .cinema-spec-badge {
+    background: transparent;
     color: rgba(255, 255, 255, 0.7);
-    font-weight: 300;
 }
 
-/* ===== Cinema Ambilight Effect ===== */
-body[data-mode='cinema'] .cinema-ambilight {
+/* =================================================================
+   AMBILIGHT EFFECT (dynamically inserted by cinema-display.js)
+   ================================================================= */
+.cinema-ambilight {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
     pointer-events: none;
-    z-index: 1;
-    opacity: 0;
-    transition: opacity 0.5s ease;
 }
 
-body[data-mode='cinema'] .cinema-ambilight.active {
-    opacity: 1;
-}
-
-/* Ambilight gradient overlay */
 .cinema-ambilight::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.8) 100%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 900px;
+    background: radial-gradient(
+        circle,
+        var(--ambilight-color, rgba(255, 255, 255, 0.3)) 0%,
+        transparent 70%
+    );
+    filter: blur(80px);
+    opacity: var(--ambilight-strength, 0.5);
+    transition:
+        background 0.5s ease,
+        opacity 0.5s ease;
 }
 
-/* ===== Cinema Clock Widget ===== */
-body[data-mode='cinema'] #clock-widget-container {
-    /* Clock positioning for cinema mode */
-    z-index: 150;
+/* =================================================================
+   ORIENTATION-SPECIFIC ADJUSTMENTS
+   ================================================================= */
+body[data-orientation='portrait-flipped'] {
+    transform: rotate(180deg);
 }
 
-/* ===== Cinema Clearlogo ===== */
-body[data-mode='cinema'] #clearlogo-container {
-    /* Clearlogo positioning for cinema mode */
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 150;
-    max-width: 200px;
-}
-
-body[data-mode='cinema'] #clearlogo {
-    max-width: 100%;
-    height: auto;
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.8));
-}
-
-/* ===== Cinema Branding ===== */
-body[data-mode='cinema'] #branding-container {
-    /* Branding visibility in cinema mode */
-    opacity: 0.5;
-    transition: opacity 0.3s ease;
-}
-
-body[data-mode='cinema'] #branding-container:hover {
-    opacity: 1;
-}
-
-/* ===== Responsive Adjustments ===== */
+/* =================================================================
+   RESPONSIVE - MOBILE/TABLET
+   ================================================================= */
 @media (max-width: 768px) {
-    .cinema-header-classic,
-    .cinema-header-neon,
-    .cinema-header-theatre {
+    #title {
         font-size: 2rem;
     }
 
-    .cinema-header-minimal {
+    #tagline {
+        font-size: 1rem;
+    }
+
+    #meta-info {
+        font-size: 0.95rem;
+        gap: 1rem;
+    }
+
+    .cinema-header.style-classic,
+    .cinema-header.style-neon {
+        font-size: 2rem;
+    }
+
+    .cinema-header.style-theatre {
+        font-size: 1.75rem;
+    }
+
+    .cinema-footer-marquee-content {
         font-size: 1.5rem;
     }
 
-    .cinema-footer-marquee-classic,
-    .cinema-footer-marquee-neon,
-    .cinema-footer-marquee-theatre {
-        font-size: 1.5rem;
+    #controls-container button {
+        width: 48px;
+        height: 48px;
     }
-
-    .cinema-footer-marquee-minimal {
-        font-size: 1.2rem;
-    }
-
-    .cinema-footer-specs {
-        gap: 12px;
-        padding: 0 20px;
-    }
-
-    .cinema-spec-item {
-        font-size: 0.9rem;
-        gap: 6px;
-    }
-}
-
-/* ===== Portrait Mode Specific Adjustments ===== */
-body[data-mode='cinema'].cinema-portrait #info-container,
-body[data-mode='cinema'].cinema-portrait-flipped #info-container {
-    /* Portrait mode specific container adjustments */
-}
-
-/* ===== Loading State ===== */
-body[data-mode='cinema'] #loader {
-    /* Cinema mode loader styling */
-    background-color: #000;
-}
-
-/* ===== Error State ===== */
-body[data-mode='cinema'] #error-message {
-    /* Cinema mode error styling */
-    background-color: rgba(220, 38, 38, 0.9);
-    color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    max-width: 600px;
-    margin: 20px auto;
-    text-align: center;
 }
