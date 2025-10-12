@@ -196,6 +196,12 @@
             log('Cinema footer specs created', {
                 style: cinemaConfig.footer.specs.style,
                 iconSet: cinemaConfig.footer.specs.iconSet,
+                resolution: currentMedia.resolution || 'N/A',
+                audioCodec: currentMedia.audioCodec || 'N/A',
+                audioChannels: currentMedia.audioChannels || 'N/A',
+                aspectRatio: currentMedia.aspectRatio || 'N/A',
+                hasHDR: currentMedia.hasHDR || false,
+                hasDolbyVision: currentMedia.hasDolbyVision || false,
             });
         }
     }
