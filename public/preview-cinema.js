@@ -7,7 +7,9 @@
         try {
             const params = new URLSearchParams(window.location.search || '');
             if (params.get('debug') === 'true') return true;
-        } catch (_) {}
+        } catch (_) {
+            // no-op: URL parsing may fail in unusual environments
+        }
         return (
             (typeof window !== 'undefined' && window.POSTERRAMA_DEBUG_PREVIEW === true) ||
             (typeof window !== 'undefined' && window.POSTERRAMA_DEBUG === true) ||
@@ -382,7 +384,9 @@
         // After settings apply, ensure poster reflects current media in preview
         try {
             if (cfg && cfg.cinemaMode === true) syncPosterFromCurrentMedia();
-        } catch (_) {}
+        } catch (_) {
+            // no-op: preview sync is best-effort
+        }
         if (typeof prevApply === 'function') return prevApply.apply(this, arguments);
     };
 })();
