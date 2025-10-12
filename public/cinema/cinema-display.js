@@ -276,13 +276,95 @@
             posterEl.style.backgroundImage = `url('${currentMedia.posterUrl}')`;
         }
 
+        // Map Plex/Jellyfin/TMDB properties to cinema format
+        const cinemaMedia = mapMediaToCinemaFormat(currentMedia);
+
         // Update footer with current media info
-        createFooter(currentMedia);
+        createFooter(cinemaMedia);
 
         // Update ambilight based on poster colors
         if (cinemaConfig.ambilight.enabled && currentMedia && currentMedia.dominantColor) {
             updateAmbilightColor(currentMedia.dominantColor);
         }
+    }
+
+    // ===== Map Media Properties to Cinema Format =====
+    function mapMediaToCinemaFormat(media) {
+        if (!media) return null;
+
+        // Map resolution from Plex qualityLabel or videoStreams
+        let resolution = media.qualityLabel || null;
+        if (!resolution && media.videoStreams && media.videoStreams.length > 0) {
+            const video = media.videoStreams[0];
+            if (video.height) {
+                if (video.height >= 2160) resolution = '4K';
+                else if (video.height >= 1080) resolution = '1080p';
+                else if (video.height >= 720) resolution = '720p';
+                else resolution = 'SD';
+            }
+        }
+
+        // Map audio codec from audioTracks
+        let audioCodec = null;
+        let audioChannels = null;
+        if (media.audioTracks && media.audioTracks.length > 0) {
+            const audio = media.audioTracks[0];
+            audioCodec = audio.codec || audio.displayTitle || null;
+            if (audioCodec) {
+                // Clean up codec name (e.g. "dca" -> "DTS")
+                if (
+                    audioCodec.toLowerCase().includes('dca') ||
+                    audioCodec.toLowerCase().includes('dts')
+                ) {
+                    audioCodec =
+                        audio.profile && audio.profile.includes('MA') ? 'DTS-HD MA' : 'DTS';
+                } else if (
+                    audioCodec.toLowerCase().includes('truehd') ||
+                    audioCodec.toLowerCase().includes('atmos')
+                ) {
+                    audioCodec = 'Dolby Atmos';
+                } else if (
+                    audioCodec.toLowerCase().includes('eac3') ||
+                    audioCodec.toLowerCase().includes('dd+')
+                ) {
+                    audioCodec = 'Dolby Digital+';
+                } else if (audioCodec.toLowerCase().includes('ac3')) {
+                    audioCodec = 'Dolby Digital';
+                } else if (audioCodec.toLowerCase().includes('aac')) {
+                    audioCodec = 'AAC';
+                } else if (audioCodec.toLowerCase().includes('mp3')) {
+                    audioCodec = 'MP3';
+                }
+            }
+
+            if (audio.channels) {
+                const ch = audio.channels;
+                if (ch >= 8) audioChannels = '7.1';
+                else if (ch >= 6) audioChannels = '5.1';
+                else if (ch === 2) audioChannels = '2.0';
+                else audioChannels = `${ch}.0`;
+            }
+        }
+
+        // Map aspect ratio from videoStreams
+        let aspectRatio = null;
+        if (media.videoStreams && media.videoStreams.length > 0) {
+            const video = media.videoStreams[0];
+            aspectRatio = video.aspectRatio || null;
+
+            // Convert decimal to ratio (e.g. 2.39 -> 2.39:1)
+            if (aspectRatio && !aspectRatio.includes(':')) {
+                aspectRatio = `${aspectRatio}:1`;
+            }
+        }
+
+        return {
+            ...media,
+            resolution,
+            audioCodec,
+            audioChannels,
+            aspectRatio,
+        };
     }
 
     // ===== Update Ambilight Color =====
