@@ -226,12 +226,17 @@
     function setFooter(type, marqueeText, marqueeStyle, specs, enabled) {
         const marq = $('#cinema-footer-marquee');
         const spec = $('#cinema-footer-specs');
+        const body = document.body;
 
         if (!enabled) {
             if (marq) marq.style.display = 'none';
             if (spec) spec.style.display = 'none';
+            body.classList.remove('cinema-footer-active');
             return;
         }
+
+        // Add body class for footer spacing
+        body.classList.add('cinema-footer-active');
 
         if (type === 'marquee') {
             setFooterMarquee(marqueeText, marqueeStyle);
