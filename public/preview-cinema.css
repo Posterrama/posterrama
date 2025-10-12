@@ -102,6 +102,14 @@ body.cinema-mode #info-container #poster-wrapper #poster {
     box-shadow: none !important;
 }
 
+/* In preview, disable legacy poster layers in cinema mode to avoid covering #poster */
+body.cinema-mode .poster-layer {
+    display: none !important;
+}
+body.cinema-mode #poster {
+    display: block !important;
+}
+
 #cinema-ambilight {
     position: fixed;
     inset: 0;
