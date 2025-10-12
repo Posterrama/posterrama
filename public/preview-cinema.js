@@ -288,7 +288,15 @@
             // Force preview runtime to behave like cinema for poster rendering
             if (typeof window.appConfig !== 'object') window.appConfig = {};
             window.appConfig.cinemaMode = isCinemaMode;
+            // In preview, avoid orientation rotation logic in script.js by forcing 'auto'
+            window.appConfig.cinemaOrientation = 'auto';
             if (!window.appConfig.wallartMode) window.appConfig.wallartMode = { enabled: false };
+
+            // Ensure body class reflects cinema mode immediately so preview CSS shows overlays
+            try {
+                document.body.classList.toggle('cinema-mode', !!isCinemaMode);
+                if (isCinemaMode) document.body.classList.remove('wallart-mode');
+            } catch (_) {}
 
             setHeader(c.header?.text, c.header?.style, !!c.header?.enabled);
             setFooter(
