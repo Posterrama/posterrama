@@ -46,17 +46,20 @@
     let footerEl = null;
     let ambilightEl = null;
 
-    // Dynamically size poster area between header and footer
+    // Dynamically size poster area with perfectly symmetric top/bottom bars
     function updatePosterLayout() {
         try {
-            const header = document.querySelector('.cinema-header, #cinema-header');
-            const footer = document.querySelector(
-                '.cinema-footer, .cinema-footer-specs, #cinema-footer-specs, #cinema-footer-marquee'
+            const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+            const vh = Math.max(
+                document.documentElement.clientHeight || 0,
+                window.innerHeight || 0
             );
-            const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
-            const footerH = footer ? Math.ceil(footer.getBoundingClientRect().height) : 0;
-            document.documentElement.style.setProperty('--poster-top', headerH + 'px');
-            document.documentElement.style.setProperty('--poster-bottom', footerH + 'px');
+            // Poster native aspect ratio is 2:3 (width:height)
+            const posterHeightByWidth = Math.round(vw * 1.5);
+            const posterHeight = Math.min(vh, posterHeightByWidth);
+            const bar = Math.max(0, Math.floor((vh - posterHeight) / 2));
+            document.documentElement.style.setProperty('--poster-top', bar + 'px');
+            document.documentElement.style.setProperty('--poster-bottom', bar + 'px');
         } catch (e) {
             console.warn('updatePosterLayout error', e);
         }

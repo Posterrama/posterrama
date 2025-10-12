@@ -151,6 +151,23 @@
             console.warn('preview: updatePosterLayoutPreview error', e);
         }
     }
+    // Size the poster area with perfectly symmetric bars based on viewport and 2:3 poster ratio
+    function updatePosterLayoutPreview() {
+        try {
+            const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+            const vh = Math.max(
+                document.documentElement.clientHeight || 0,
+                window.innerHeight || 0
+            );
+            const posterHeightByWidth = Math.round(vw * 1.5);
+            const posterHeight = Math.min(vh, posterHeightByWidth);
+            const bar = Math.max(0, Math.floor((vh - posterHeight) / 2));
+            document.documentElement.style.setProperty('--poster-top', bar + 'px');
+            document.documentElement.style.setProperty('--poster-bottom', bar + 'px');
+        } catch (e) {
+            console.warn('preview: updatePosterLayoutPreview error', e);
+        }
+    }
 
     function setHeader(text, style, enabled) {
         const el = $('#cinema-header');

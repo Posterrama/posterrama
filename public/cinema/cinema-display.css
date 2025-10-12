@@ -286,6 +286,7 @@ body:hover #controls-container {
     z-index: 50;
     pointer-events: none;
     background: transparent; /* Ensure no background color/layers */
+    margin: 0; /* avoid adding visual space */
 }
 
 /* Classic Style */
