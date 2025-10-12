@@ -73,29 +73,42 @@ body[data-mode='cinema'] #info-container {
 /* ===== Cinema Poster Display ===== */
 body[data-mode='cinema'] #poster-wrapper {
     /* Cinema poster specific styling */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    max-width: 600px;
-    height: auto;
-    margin: 0 auto;
-    padding: 20px;
-    z-index: 20;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    z-index: 20 !important;
+    position: static !important;
+    transform: none !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
 }
 
-body[data-mode='cinema'] #poster,
+body[data-mode='cinema'] #poster {
+    /* Cinema poster sizing - large and centered */
+    width: 500px !important;
+    height: 750px !important;
+    max-width: 90vw !important;
+    max-height: 85vh !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    border-radius: 12px !important;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9) !important;
+    margin: 0 auto !important;
+    position: static !important;
+    transform: none !important;
+}
+
 body[data-mode='cinema'] .poster-layer {
-    /* Cinema poster sizing and positioning */
-    width: 100%;
-    max-width: 600px;
-    height: 900px;
-    max-height: 90vh;
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
-    border-radius: 8px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    /* Hide poster layers in cinema mode */
+    display: none !important;
 }
 
 /* ===== Cinema Text Wrapper ===== */

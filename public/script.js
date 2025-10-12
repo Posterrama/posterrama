@@ -4542,23 +4542,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // In cinema mode, disable all poster links
-        if (appConfig.cinemaMode) {
-            posterLink.removeAttribute('href');
-            posterLink.style.cursor = 'default';
-        } else {
-            // Normal mode - handle links as usual
-            if (mediaItem.imdbUrl) {
-                if (mediaItem.imdbUrl && mediaItem.imdbUrl !== 'null') {
-                    posterLink.href = mediaItem.imdbUrl;
+        // In cinema mode or when poster link doesn't exist, skip link handling
+        if (posterLink) {
+            if (appConfig.cinemaMode) {
+                posterLink.removeAttribute('href');
+                posterLink.style.cursor = 'default';
+            } else {
+                // Normal mode - handle links as usual
+                if (mediaItem.imdbUrl) {
+                    if (mediaItem.imdbUrl && mediaItem.imdbUrl !== 'null') {
+                        posterLink.href = mediaItem.imdbUrl;
+                    } else {
+                        posterLink.removeAttribute('href');
+                        posterLink.style.cursor = 'default';
+                    }
+                    posterLink.style.cursor = 'pointer';
                 } else {
                     posterLink.removeAttribute('href');
                     posterLink.style.cursor = 'default';
                 }
-                posterLink.style.cursor = 'pointer';
-            } else {
-                posterLink.removeAttribute('href');
-                posterLink.style.cursor = 'default';
             }
         }
         titleEl.textContent = mediaItem.title || 'Unknown Title';
