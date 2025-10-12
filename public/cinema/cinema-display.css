@@ -281,11 +281,15 @@ body:hover #controls-container {
     top: 0;
     left: 0;
     width: 100%;
-    padding: 2rem;
+    height: var(--poster-top, 0);
+    padding: 0;
     text-align: center;
     z-index: 50;
     pointer-events: none;
     background: transparent; /* Ensure no background color/layers */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin: 0; /* avoid adding visual space */
 }
 
@@ -350,15 +354,20 @@ body:hover #controls-container {
     bottom: 0;
     left: 0;
     width: 100%;
+    height: var(--poster-bottom, 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 50;
     pointer-events: none;
 }
 
 /* Marquee Footer */
 .cinema-footer-marquee {
+    position: static; /* inside .cinema-footer band */
     overflow: hidden;
-    padding: 1rem 0;
-    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
+    padding: 0;
+    background: none;
 }
 
 .cinema-footer-marquee-content {
@@ -406,17 +415,13 @@ body:hover #controls-container {
 
 /* Specs Footer */
 .cinema-footer-specs {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
+    position: static; /* inside .cinema-footer band */
     display: flex;
     gap: 1.5rem;
     justify-content: center;
     align-items: center;
-    padding: 2rem 1.5rem; /* Increased from 1.5rem to match header */
-    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
-    z-index: 50;
+    padding: 0;
+    background: none;
 }
 
 /* Spec item styling (cinema-display.js generates .cinema-spec-item) */

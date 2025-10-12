@@ -59,19 +59,20 @@ body.debug-layout #poster {
 }
 
 /* Header occupies only the top letterbox region */
-#cinema-header {
+#cinema-footer-specs,
+#cinema-footer-marquee {
     position: fixed;
-    top: 0;
     left: 0;
-    width: 100%;
-    padding: 2rem; /* Match cinema-display.css */
-    text-align: center;
-    z-index: 50;
+    right: 0;
+    bottom: 0;
+    height: var(--poster-bottom, 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
     pointer-events: none;
-    font-weight: 700;
-    font-size: 3rem; /* Match cinema-display.css */
-    letter-spacing: 0.15em;
-    color: #fff;
+    padding: 0;
+}
     text-align: center;
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
     display: flex;
