@@ -114,23 +114,23 @@
         root.style.display = root.children.length > 0 ? 'flex' : 'none';
     }
     function setFooter(type, marqueeText, marqueeStyle, specs, enabled) {
-        const root = $('#cinema-footer');
-        if (!root) return;
         const marq = $('#cinema-footer-marquee');
         const spec = $('#cinema-footer-specs');
+
         if (!enabled) {
-            root.style.display = 'none';
+            if (marq) marq.style.display = 'none';
+            if (spec) spec.style.display = 'none';
             return;
         }
-        root.style.display = 'block';
+
         if (type === 'marquee') {
             setFooterMarquee(marqueeText, marqueeStyle);
-            marq.style.display = marqueeText ? 'block' : 'none';
-            spec.style.display = 'none';
+            if (marq) marq.style.display = marqueeText ? 'block' : 'none';
+            if (spec) spec.style.display = 'none';
         } else {
             setFooterSpecs(specs);
-            marq.style.display = 'none';
-            spec.style.display = 'block';
+            if (marq) marq.style.display = 'none';
+            if (spec) spec.style.display = 'flex';
         }
     }
     function setAmbilight(enabled, strength) {
