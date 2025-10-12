@@ -285,6 +285,11 @@
             // Hide unwanted elements in cinema mode (metadata, clearlogo, RT badge)
             hideCinemaUnwantedElements(isCinemaMode);
 
+            // Force preview runtime to behave like cinema for poster rendering
+            if (typeof window.appConfig !== 'object') window.appConfig = {};
+            window.appConfig.cinemaMode = isCinemaMode;
+            if (!window.appConfig.wallartMode) window.appConfig.wallartMode = { enabled: false };
+
             setHeader(c.header?.text, c.header?.style, !!c.header?.enabled);
             setFooter(
                 c.footer?.type || 'specs',

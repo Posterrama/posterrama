@@ -49,6 +49,8 @@ body.debug-layout #poster {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: none !important;
+    animation: none !important;
 }
 
 #poster {
@@ -57,6 +59,8 @@ body.debug-layout #poster {
     background-size: contain;
     background-position: center center;
     background-repeat: no-repeat;
+    transition: none !important;
+    animation: none !important;
 }
 
 /* Override global cinema-mode rules from style.css so preview matches cinema bands */
