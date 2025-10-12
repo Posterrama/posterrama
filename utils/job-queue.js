@@ -871,7 +871,7 @@ class JobQueue extends EventEmitter {
             runtimeMs: item.runtimeMs || null,
             qualityLabel: item.qualityLabel || null,
             mediaStreams: item.mediaStreams || null,
-            // Enriched metadata fields (phase 1)
+            // Enriched metadata fields (phase 1: Collections, Statistics, Timestamps)
             collections: item.collections || null,
             countries: item.countries || null,
             audienceRating: item.audienceRating || null,
@@ -881,7 +881,7 @@ class JobQueue extends EventEmitter {
             userRating: item.userRating || null,
             originalTitle: item.originalTitle || null,
             titleSort: item.titleSort || null,
-            // Enriched metadata fields (phase 2)
+            // Enriched metadata fields (phase 2: Advanced Metadata)
             slug: item.slug || null,
             contentRatingAge: item.contentRatingAge || null,
             addedAt: item.addedAt || null,
@@ -891,16 +891,33 @@ class JobQueue extends EventEmitter {
             parentalGuidance: item.parentalGuidance || null,
             chapters: item.chapters || null,
             markers: item.markers || null,
-            // Enriched metadata fields (phase 3 - Advanced Images)
+            // Enriched metadata fields (phase 3: All Image Types)
             bannerUrl: item.bannerUrl || null,
             discArtUrl: item.discArtUrl || null,
             thumbUrl: item.thumbUrl || null,
+            clearArtUrl: item.clearArtUrl || null,
+            landscapeUrl: item.landscapeUrl || null,
+            allArtUrls: item.allArtUrls || null,
             fanart: item.fanart || null,
-            // Enriched metadata fields (phase 4 - Technical Details)
+            // Enriched metadata fields (phase 4: Comprehensive Technical Details)
             audioTracks: item.audioTracks || null,
             subtitles: item.subtitles || null,
+            videoStreams: item.videoStreams || null,
             hasHDR: item.hasHDR || null,
+            hasDolbyVision: item.hasDolbyVision || null,
             is3D: item.is3D || null,
+            containerFormat: item.containerFormat || null,
+            totalFileSize: item.totalFileSize || null,
+            totalBitrate: item.totalBitrate || null,
+            optimizedForStreaming: item.optimizedForStreaming || null,
+            // Enriched metadata fields (phase 5: Advanced Metadata)
+            extras: item.extras || null,
+            related: item.related || null,
+            themeUrl: item.themeUrl || null,
+            lockedFields: item.lockedFields || null,
+            // Enriched metadata fields (phase 6: File & Location Info)
+            filePaths: item.filePaths || null,
+            fileDetails: item.fileDetails || null,
             images: {
                 poster: !!assets.poster,
                 background: !!assets.background,

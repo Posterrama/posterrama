@@ -5679,16 +5679,204 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
         const runtimeMs = Number.isFinite(Number(sourceItem.duration))
             ? Number(sourceItem.duration)
             : null;
-        // Flatten minimal media streams info (video/audio codecs and resolution)
+
+        // ========================================================================
+        // COMPREHENSIVE MEDIA STREAM EXTRACTION (Phase 1: Technical Metadata)
+        // ========================================================================
+        // Extract ALL technical details from Media.Part.Stream arrays
+
         let mediaStreams = null;
+        let audioTracks = [];
+        let subtitles = [];
+        let videoStreams = [];
+        let hasHDR = false;
+        let hasDolbyVision = false;
+        const is3D = false;
+        let containerFormat = null;
+        let totalFileSize = 0;
+        let totalBitrate = null;
+        let optimizedForStreaming = false;
+
         if (Array.isArray(sourceItem.Media)) {
+            // Legacy simple mediaStreams for backward compatibility
             mediaStreams = sourceItem.Media.map(m => ({
                 videoResolution: m.videoResolution || null,
                 videoCodec: m.videoCodec || null,
                 audioCodec: m.audioCodec || null,
                 audioChannels: m.audioChannels || null,
             }));
+
+            // Process each Media object (typically one per file version)
+            sourceItem.Media.forEach((media, mediaIndex) => {
+                // Extract container-level info
+                if (mediaIndex === 0) {
+                    containerFormat = media.container || null;
+                    totalBitrate = Number.isFinite(Number(media.bitrate))
+                        ? Number(media.bitrate)
+                        : null;
+                    optimizedForStreaming =
+                        media.optimizedForStreaming === '1' || media.optimizedForStreaming === true;
+                }
+
+                // Process Parts (file segments)
+                if (Array.isArray(media.Part)) {
+                    media.Part.forEach(part => {
+                        // Accumulate file sizes
+                        if (Number.isFinite(Number(part.size))) {
+                            totalFileSize += Number(part.size);
+                        }
+
+                        // Process Streams (video/audio/subtitle tracks)
+                        if (Array.isArray(part.Stream)) {
+                            part.Stream.forEach(stream => {
+                                const streamType = stream.streamType;
+
+                                // VIDEO STREAMS
+                                if (streamType === 1) {
+                                    const videoStream = {
+                                        index: stream.index || null,
+                                        codec: stream.codec || stream.codecID || null,
+                                        codecProfile: stream.profile || null,
+                                        codecLevel: stream.level || null,
+                                        bitrate: Number.isFinite(Number(stream.bitrate))
+                                            ? Number(stream.bitrate)
+                                            : null,
+                                        bitDepth: Number.isFinite(Number(stream.bitDepth))
+                                            ? Number(stream.bitDepth)
+                                            : null,
+                                        width: Number.isFinite(Number(stream.width))
+                                            ? Number(stream.width)
+                                            : null,
+                                        height: Number.isFinite(Number(stream.height))
+                                            ? Number(stream.height)
+                                            : null,
+                                        aspectRatio: stream.aspectRatio || null,
+                                        frameRate: stream.frameRate || null,
+                                        scanType: stream.scanType || null,
+                                        refFrames: Number.isFinite(Number(stream.refFrames))
+                                            ? Number(stream.refFrames)
+                                            : null,
+                                        colorSpace: stream.colorSpace || null,
+                                        colorPrimaries: stream.colorPrimaries || null,
+                                        colorTrc: stream.colorTrc || null,
+                                        colorRange: stream.colorRange || null,
+                                        chromaSubsampling: stream.chromaSubsampling || null,
+                                        anamorphic: stream.anamorphic || null,
+                                        default: stream.default === '1' || stream.default === true,
+                                        forced: stream.forced === '1' || stream.forced === true,
+                                        selected:
+                                            stream.selected === '1' || stream.selected === true,
+                                        // HDR/Dolby Vision detection
+                                        DOVIPresent:
+                                            stream.DOVIPresent === '1' ||
+                                            stream.DOVIPresent === true,
+                                        hasScalingMatrix:
+                                            stream.hasScalingMatrix === '1' ||
+                                            stream.hasScalingMatrix === true,
+                                        pixelFormat: stream.pixelFormat || null,
+                                        streamIdentifier: stream.streamIdentifier || null,
+                                        cabac: stream.cabac || null,
+                                        duration: Number.isFinite(Number(stream.duration))
+                                            ? Number(stream.duration)
+                                            : null,
+                                        title: stream.title || stream.displayTitle || null,
+                                        language: stream.language || stream.languageCode || null,
+                                        languageTag: stream.languageTag || null,
+                                    };
+
+                                    // Detect HDR
+                                    if (stream.DOVIPresent === '1' || stream.DOVIPresent === true) {
+                                        hasDolbyVision = true;
+                                        hasHDR = true;
+                                    }
+                                    if (
+                                        stream.colorTrc &&
+                                        (stream.colorTrc.toLowerCase().includes('pq') ||
+                                            stream.colorTrc.toLowerCase().includes('hlg') ||
+                                            stream.colorTrc.toLowerCase().includes('smpte2084'))
+                                    ) {
+                                        hasHDR = true;
+                                    }
+                                    if (
+                                        stream.colorSpace &&
+                                        stream.colorSpace.toLowerCase().includes('bt2020')
+                                    ) {
+                                        hasHDR = true;
+                                    }
+
+                                    videoStreams.push(videoStream);
+                                }
+
+                                // AUDIO STREAMS
+                                else if (streamType === 2) {
+                                    const audioTrack = {
+                                        index: stream.index || null,
+                                        codec: stream.codec || stream.codecID || null,
+                                        codecProfile: stream.profile || null,
+                                        channels: Number.isFinite(Number(stream.channels))
+                                            ? Number(stream.channels)
+                                            : null,
+                                        channelLayout:
+                                            stream.audioChannelLayout ||
+                                            stream.channelLayout ||
+                                            null,
+                                        bitrate: Number.isFinite(Number(stream.bitrate))
+                                            ? Number(stream.bitrate)
+                                            : null,
+                                        bitDepth: Number.isFinite(Number(stream.bitDepth))
+                                            ? Number(stream.bitDepth)
+                                            : null,
+                                        samplingRate: Number.isFinite(Number(stream.samplingRate))
+                                            ? Number(stream.samplingRate)
+                                            : null,
+                                        language: stream.language || stream.languageCode || null,
+                                        languageTag: stream.languageTag || null,
+                                        title: stream.title || stream.displayTitle || null,
+                                        default: stream.default === '1' || stream.default === true,
+                                        forced: stream.forced === '1' || stream.forced === true,
+                                        selected:
+                                            stream.selected === '1' || stream.selected === true,
+                                        streamIdentifier: stream.streamIdentifier || null,
+                                        duration: Number.isFinite(Number(stream.duration))
+                                            ? Number(stream.duration)
+                                            : null,
+                                        bitrateMode: stream.bitrateMode || null,
+                                    };
+                                    audioTracks.push(audioTrack);
+                                }
+
+                                // SUBTITLE STREAMS
+                                else if (streamType === 3) {
+                                    const subtitle = {
+                                        index: stream.index || null,
+                                        codec: stream.codec || stream.codecID || null,
+                                        format: stream.format || null,
+                                        language: stream.language || stream.languageCode || null,
+                                        languageTag: stream.languageTag || null,
+                                        title: stream.title || stream.displayTitle || null,
+                                        default: stream.default === '1' || stream.default === true,
+                                        forced: stream.forced === '1' || stream.forced === true,
+                                        selected:
+                                            stream.selected === '1' || stream.selected === true,
+                                        hearingImpaired:
+                                            stream.hearingImpaired === '1' ||
+                                            stream.hearingImpaired === true,
+                                        key: stream.key || null, // For external subtitles
+                                        streamIdentifier: stream.streamIdentifier || null,
+                                    };
+                                    subtitles.push(subtitle);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
         }
+
+        // Finalize arrays (null if empty)
+        audioTracks = audioTracks.length > 0 ? audioTracks : null;
+        subtitles = subtitles.length > 0 ? subtitles : null;
+        videoStreams = videoStreams.length > 0 ? videoStreams : null;
 
         // Extract collections (e.g., "Marvel Cinematic Universe")
         const collections = Array.isArray(sourceItem.Collection)
@@ -5828,6 +6016,49 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(bannerPath)}`
             : null;
 
+        // ========================================================================
+        // COMPREHENSIVE IMAGE EXTRACTION (Phase 2: All Image Types)
+        // ========================================================================
+        // Extract ALL available image types from Image array
+        let discArtUrl = null;
+        let thumbUrl = null;
+        let clearArtUrl = null;
+        let landscapeUrl = null;
+        const allArtUrls = [];
+
+        if (Array.isArray(sourceItem.Image)) {
+            sourceItem.Image.forEach(img => {
+                const imgUrl = img.url || img.path;
+                if (!imgUrl) return;
+
+                const encodedUrl = `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(imgUrl)}`;
+
+                switch (img.type) {
+                    case 'discArt':
+                    case 'disc':
+                        if (!discArtUrl) discArtUrl = encodedUrl;
+                        break;
+                    case 'thumb':
+                        if (!thumbUrl) thumbUrl = encodedUrl;
+                        break;
+                    case 'clearArt':
+                        if (!clearArtUrl) clearArtUrl = encodedUrl;
+                        break;
+                    case 'landscape':
+                        if (!landscapeUrl) landscapeUrl = encodedUrl;
+                        break;
+                }
+
+                // Collect all art URLs
+                allArtUrls.push({
+                    type: img.type,
+                    url: encodedUrl,
+                    width: img.width || null,
+                    height: img.height || null,
+                });
+            });
+        }
+
         // Extract multiple fanart/background images if available
         const fanart = [];
         if (backgroundArt) {
@@ -5848,6 +6079,93 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
                 }
             });
         }
+
+        // ========================================================================
+        // ADVANCED METADATA (Phase 3: Extras, Related, Theme, Locked Fields)
+        // ========================================================================
+
+        // Extract extras (trailers, behind the scenes, deleted scenes, etc.)
+        const extras = Array.isArray(sourceItem.Extras?.Metadata)
+            ? sourceItem.Extras.Metadata.map(extra => ({
+                  type: extra.type || extra.extraType || null,
+                  title: extra.title || null,
+                  thumb: extra.thumb
+                      ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(extra.thumb)}`
+                      : null,
+                  key: extra.key || null,
+                  duration: Number.isFinite(Number(extra.duration)) ? Number(extra.duration) : null,
+                  year: extra.year || null,
+                  addedAt:
+                      extra.addedAt && !isNaN(Number(extra.addedAt))
+                          ? Number(extra.addedAt) * 1000
+                          : null,
+              })).filter(e => e.type)
+            : null;
+
+        // Extract related items (similar movies/shows)
+        const related = Array.isArray(sourceItem.Related?.Metadata)
+            ? sourceItem.Related.Metadata.map(rel => ({
+                  title: rel.title || null,
+                  key: rel.key || null,
+                  type: rel.type || null,
+                  thumb: rel.thumb
+                      ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(rel.thumb)}`
+                      : null,
+                  year: rel.year || null,
+                  rating: rel.rating || null,
+              })).filter(r => r.title)
+            : null;
+
+        // Theme music URL (for TV shows)
+        const themeUrl = sourceItem.theme
+            ? `/proxy/plex?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(sourceItem.theme)}`
+            : null;
+
+        // Locked fields (fields that are manually locked and won't be updated by agents)
+        const lockedFields = Array.isArray(sourceItem.Field)
+            ? sourceItem.Field.filter(f => f.locked === '1' || f.locked === true)
+                  .map(f => f.name)
+                  .filter(Boolean)
+            : null;
+
+        // ========================================================================
+        // FILE & LOCATION INFO (Phase 4: File paths, sizes, optimization)
+        // ========================================================================
+
+        let filePaths = [];
+        let fileDetails = [];
+
+        if (Array.isArray(sourceItem.Media)) {
+            sourceItem.Media.forEach(media => {
+                if (Array.isArray(media.Part)) {
+                    media.Part.forEach(part => {
+                        if (part.file) {
+                            filePaths.push(part.file);
+                            fileDetails.push({
+                                file: part.file,
+                                size: Number.isFinite(Number(part.size)) ? Number(part.size) : null,
+                                container: part.container || null,
+                                duration: Number.isFinite(Number(part.duration))
+                                    ? Number(part.duration)
+                                    : null,
+                                videoProfile: part.videoProfile || null,
+                                audioProfile: part.audioProfile || null,
+                                has64bitOffsets:
+                                    part.has64bitOffsets === '1' || part.has64bitOffsets === true,
+                                optimizedForStreaming:
+                                    part.optimizedForStreaming === '1' ||
+                                    part.optimizedForStreaming === true,
+                                hasThumbnail:
+                                    part.hasThumbnail === '1' || part.hasThumbnail === true,
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        filePaths = filePaths.length > 0 ? filePaths : null;
+        fileDetails = fileDetails.length > 0 ? fileDetails : null;
 
         return {
             key: uniqueKey,
@@ -5883,7 +6201,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             releaseDate,
             runtimeMs,
             mediaStreams,
-            // Enriched metadata fields (phase 1)
+            // Enriched metadata fields (phase 1: Collections, Statistics, Timestamps)
             collections,
             countries,
             audienceRating,
@@ -5895,7 +6213,7 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             titleSort,
             bannerUrl,
             fanart: fanart.length > 0 ? fanart : null,
-            // Enriched metadata fields (phase 2)
+            // Enriched metadata fields (phase 2: Advanced Metadata)
             slug,
             contentRatingAge,
             addedAt,
@@ -5905,6 +6223,31 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
             parentalGuidance,
             chapters,
             markers,
+            // NEW: Comprehensive Technical Metadata (Phase 1)
+            audioTracks,
+            subtitles,
+            videoStreams,
+            hasHDR,
+            hasDolbyVision,
+            is3D,
+            containerFormat,
+            totalFileSize: totalFileSize > 0 ? totalFileSize : null,
+            totalBitrate,
+            optimizedForStreaming,
+            // NEW: All Image Types (Phase 2)
+            discArtUrl,
+            thumbUrl,
+            clearArtUrl,
+            landscapeUrl,
+            allArtUrls: allArtUrls.length > 0 ? allArtUrls : null,
+            // NEW: Advanced Metadata (Phase 3)
+            extras,
+            related,
+            themeUrl,
+            lockedFields,
+            // NEW: File & Location Info (Phase 4)
+            filePaths,
+            fileDetails,
             // Expose a unified timestamp for "recently added" client-side filtering
             // Plex provides addedAt as seconds since epoch; convert to ms. If missing, use null.
             addedAtMs:
