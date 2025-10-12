@@ -833,6 +833,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     function showError(message) {
         console.error('Posterrama Error:', message);
 
+        // Skip redirect in cinema mode - cinema-display.js handles its own errors
+        const isCinemaPage = document.body.dataset.mode === 'cinema';
+        if (isCinemaPage) {
+            console.warn(
+                '[Script] Cinema mode - skipping no-media redirect, cinema-display.js handles errors'
+            );
+            return;
+        }
+
         // Navigate to dedicated no-media page (no URL params needed, message is hardcoded)
         window.location.href = '/no-media.html';
     }
@@ -2099,8 +2108,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Get dynamically calculated poster count - robust check for mediaQueue
         const posterCount = Math.min(layoutInfo.posterCount, mediaQueue?.length || 0);
 
-        // Early exit if no media available
-        if (posterCount === 0) {
+        // Early exit if no media available (skip in cinema mode)
+        const isCinemaPage = document.body.dataset.mode === 'cinema';
+        if (posterCount === 0 && !isCinemaPage) {
             console.warn('[Wallart] No media available for wallart mode');
             showError('No media available. Check the library configuration.');
             return;
