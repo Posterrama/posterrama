@@ -66,46 +66,103 @@
         console.log('  - BLUE outline: #poster-wrapper');
         console.log('  - MAGENTA outline: #poster');
 
-        // Add real-time measurements
-        setInterval(() => {
+        // Create visual debug overlay on screen
+        const debugOverlay = document.createElement('div');
+        debugOverlay.id = 'debug-overlay';
+        debugOverlay.style.cssText = `
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.95);
+            color: #0f0;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            z-index: 99999;
+            border: 2px solid #0f0;
+            border-radius: 5px;
+            max-width: 400px;
+            pointer-events: none;
+            white-space: pre-wrap;
+        `;
+        document.body.appendChild(debugOverlay);
+
+        // Update measurements every 2 seconds
+        const updateMeasurements = () => {
             const infoContainer = document.querySelector('#info-container');
             const header = document.querySelector('.cinema-header');
             const footer = document.querySelector('.cinema-footer, .cinema-footer-specs');
             const posterWrapper = document.querySelector('#poster-wrapper');
             const poster = document.querySelector('#poster');
 
-            console.log('📏 MEASUREMENTS:');
+            let output = '� CINEMA DEBUG MODE\n';
+            output += '═══════════════════════════════\n\n';
+
             if (infoContainer) {
                 const rect = infoContainer.getBoundingClientRect();
                 const styles = window.getComputedStyle(infoContainer);
-                console.log(
-                    `  #info-container: top=${rect.top}px, height=${rect.height}px, paddingTop=${styles.paddingTop}, paddingBottom=${styles.paddingBottom}`
-                );
+                output += `📦 #info-container (RED)\n`;
+                output += `   top: ${rect.top.toFixed(0)}px\n`;
+                output += `   height: ${rect.height.toFixed(0)}px\n`;
+                output += `   paddingTop: ${styles.paddingTop}\n`;
+                output += `   paddingBottom: ${styles.paddingBottom}\n\n`;
             }
+
             if (header) {
                 const rect = header.getBoundingClientRect();
-                console.log(
-                    `  .cinema-header: top=${rect.top}px, height=${rect.height}px, bottom=${rect.bottom}px`
-                );
+                output += `📝 .cinema-header (YELLOW)\n`;
+                output += `   top: ${rect.top.toFixed(0)}px\n`;
+                output += `   height: ${rect.height.toFixed(0)}px\n`;
+                output += `   bottom: ${rect.bottom.toFixed(0)}px\n\n`;
             }
-            if (footer) {
-                const rect = footer.getBoundingClientRect();
-                console.log(
-                    `  .cinema-footer: top=${rect.top}px, height=${rect.height}px, bottom=${rect.bottom}px`
-                );
-            }
+
             if (posterWrapper) {
                 const rect = posterWrapper.getBoundingClientRect();
-                console.log(`  #poster-wrapper: top=${rect.top}px, height=${rect.height}px`);
+                output += `🖼️  #poster-wrapper (BLUE)\n`;
+                output += `   top: ${rect.top.toFixed(0)}px\n`;
+                output += `   height: ${rect.height.toFixed(0)}px\n\n`;
             }
+
             if (poster) {
                 const rect = poster.getBoundingClientRect();
-                console.log(
-                    `  #poster: top=${rect.top}px, height=${rect.height}px, bottom=${rect.bottom}px`
-                );
+                output += `🎬 #poster (MAGENTA)\n`;
+                output += `   top: ${rect.top.toFixed(0)}px\n`;
+                output += `   height: ${rect.height.toFixed(0)}px\n`;
+                output += `   bottom: ${rect.bottom.toFixed(0)}px\n\n`;
             }
-            console.log('  ---');
-        }, 3000);
+
+            if (footer) {
+                const rect = footer.getBoundingClientRect();
+                output += `📊 .cinema-footer (GREEN)\n`;
+                output += `   top: ${rect.top.toFixed(0)}px\n`;
+                output += `   height: ${rect.height.toFixed(0)}px\n`;
+                output += `   bottom: ${rect.bottom.toFixed(0)}px\n\n`;
+            }
+
+            // Calculate spacing
+            if (header && poster) {
+                const headerRect = header.getBoundingClientRect();
+                const posterRect = poster.getBoundingClientRect();
+                const topSpacing = posterRect.top - headerRect.bottom;
+                output += `📏 Space header→poster: ${topSpacing.toFixed(0)}px\n`;
+            }
+
+            if (poster && footer) {
+                const posterRect = poster.getBoundingClientRect();
+                const footerRect = footer.getBoundingClientRect();
+                const bottomSpacing = footerRect.top - posterRect.bottom;
+                output += `📏 Space poster→footer: ${bottomSpacing.toFixed(0)}px\n`;
+            }
+
+            debugOverlay.textContent = output;
+        };
+
+        // Initial update
+        setTimeout(updateMeasurements, 500);
+
+        // Update every 2 seconds
+        setInterval(updateMeasurements, 2000);
     }
 
     function disableDebugMode() {
