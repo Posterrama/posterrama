@@ -1,6 +1,25 @@
 // Preview-only Cinema overlays wiring: renders header/footer/marquee/specs/ambilight based on config
 (function () {
     const $ = s => document.querySelector(s);
+
+    function hideCinemaUnwantedElements(isCinemaMode) {
+        // In cinema mode: hide metadata, clearlogo, RT badge (match real cinema.html behavior)
+        const textWrapper = $('#text-wrapper');
+        const clearlogoContainer = $('#clearlogo-container');
+        const rtBadge = $('#rt-badge');
+
+        if (isCinemaMode) {
+            if (textWrapper) textWrapper.style.display = 'none';
+            if (clearlogoContainer) clearlogoContainer.style.display = 'none';
+            if (rtBadge) rtBadge.style.display = 'none';
+        } else {
+            // Restore for other modes
+            if (textWrapper) textWrapper.style.display = '';
+            if (clearlogoContainer) clearlogoContainer.style.display = '';
+            if (rtBadge) rtBadge.style.display = '';
+        }
+    }
+
     function setHeader(text, style, enabled) {
         const el = $('#cinema-header');
         const body = document.body;
@@ -41,10 +60,14 @@
         const wrap = document.createElement('div');
         wrap.className = 'specs';
         const chips = [];
-        if (showResolution) chips.push({ ico: 'res', label: '4K' });
-        if (showAudio) chips.push({ ico: 'aud', label: 'Dolby Atmos' });
-        if (showAspectRatio) chips.push({ ico: 'asp', label: '2.39:1' });
-        if (showFlags) chips.push({ ico: 'flag', label: 'HDR10+' });
+
+        // Use realistic sample data (not always 4K/Atmos/HDR)
+        if (showResolution) chips.push({ ico: 'res', label: '1080p' });
+        if (showAudio) chips.push({ ico: 'aud', label: 'Dolby Digital+ 5.1' });
+        if (showAspectRatio) chips.push({ ico: 'asp', label: '16:9' });
+        // Only show flags occasionally (not every preview)
+        if (showFlags && Math.random() > 0.5) chips.push({ ico: 'flag', label: 'HDR10' });
+
         chips.forEach(c => {
             const chip = document.createElement('span');
             chip.className = 'chip';
@@ -90,6 +113,11 @@
     function applyCinemaOverlays(config) {
         try {
             const c = config && config.cinema ? config.cinema : {};
+            const isCinemaMode = config && config.cinemaMode === true;
+
+            // Hide unwanted elements in cinema mode (metadata, clearlogo, RT badge)
+            hideCinemaUnwantedElements(isCinemaMode);
+
             setHeader(c.header?.text, c.header?.style, !!c.header?.enabled);
             setFooter(
                 c.footer?.type || 'specs',
