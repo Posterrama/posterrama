@@ -1423,6 +1423,111 @@ app.get(['/', '/index.html'], (req, res, next) => {
 
 /**
  * @swagger
+ * /cinema:
+ *   get:
+ *     summary: Serve cinema display page
+ *     description: Serves the dedicated cinema mode page with automatic asset versioning. Cinema mode provides portrait-oriented poster displays with header/footer overlays and ambilight effects.
+ *     tags: ['Frontend']
+ *     responses:
+ *       200:
+ *         description: Cinema display HTML content
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ */
+// Serve cinema.html with automatic asset versioning
+app.get(['/cinema', '/cinema.html'], (req, res, next) => {
+    // Log cinema display access (with same de-duplication as index)
+    const isAdminAccess =
+        req.headers.referer?.includes('/admin') ||
+        req.headers.referer?.includes('/logs.html') ||
+        req.deviceBypass;
+
+    if (!isAdminAccess) {
+        const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+        const userAgent = req.headers['user-agent'] || 'Unknown';
+        const deviceKey = `cinema|${ip}|${userAgent.substring(0, 50)}`;
+
+        if (!global.deviceAccessLog)
+            global.deviceAccessLog = { data: new Map(), lastReset: Date.now() };
+        const now = Date.now();
+        if (now - global.deviceAccessLog.lastReset > 3600000) {
+            global.deviceAccessLog.data.clear();
+            global.deviceAccessLog.lastReset = now;
+        }
+
+        const lastSeen = global.deviceAccessLog.data.get(deviceKey);
+        if (!lastSeen) {
+            logger.info(
+                `[Device] Cinema display access: ${ip} (${userAgent.substring(0, 50)}) - ${req.url}`,
+                {
+                    ip,
+                    userAgent: userAgent.substring(0, 100),
+                    deviceKey: deviceKey.substring(0, 50),
+                    mode: 'cinema',
+                    url: req.url,
+                    timestamp: new Date().toISOString(),
+                }
+            );
+            global.deviceAccessLog.data.set(deviceKey, now);
+        }
+    }
+
+    const filePath = path.join(__dirname, 'public', 'cinema.html');
+    fs.readFile(filePath, 'utf8', (err, contents) => {
+        if (err) return next(err);
+
+        // Get current asset versions
+        const versions = getAssetVersions();
+
+        // Replace asset version placeholders with individual file versions
+        const stamped = contents
+            .replace(
+                /script\.js\?v=[^"&\s]+/g,
+                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /style\.css\?v=[^"&\s]+/g,
+                `style.css?v=${versions['style.css'] || ASSET_VERSION}`
+            )
+            .replace(
+                /device-mgmt\.js\?v=[^"&\s]+/g,
+                `device-mgmt.js?v=${versions['device-mgmt.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /lazy-loading\.js\?v=[^"&\s]+/g,
+                `lazy-loading.js?v=${versions['lazy-loading.js'] || ASSET_VERSION}`
+            )
+            // Cinema-specific assets
+            .replace(
+                /cinema\/cinema-display\.js\?v=[^"&\s]+/g,
+                `cinema/cinema-display.js?v=${versions['cinema/cinema-display.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /cinema\/cinema-display\.css\?v=[^"&\s]+/g,
+                `cinema/cinema-display.css?v=${versions['cinema/cinema-display.css'] || ASSET_VERSION}`
+            )
+            // Stamp client-side logger
+            .replace(
+                /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
+                `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
+            )
+            // Stamp manifest
+            .replace(
+                /\/manifest\.json(\?v=[^"'\s>]+)?/g,
+                `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
+            )
+            // Ensure service worker registration always fetches latest sw.js
+            .replace(/\/sw\.js(\?v=[^"'\s>]+)?/g, `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`);
+
+        res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
+        res.send(stamped);
+    });
+});
+
+/**
+ * @swagger
  * /promo.html:
  *   get:
  *     summary: Serve promotional page

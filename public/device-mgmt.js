@@ -324,6 +324,13 @@
 
     function currentMode() {
         try {
+            // Check if running on standalone cinema/wallart/screensaver page
+            const bodyMode = document.body.dataset.mode;
+            if (bodyMode === 'cinema') return 'cinema';
+            if (bodyMode === 'wallart') return 'wallart';
+            if (bodyMode === 'screensaver') return 'screensaver';
+
+            // Fallback to config-based detection
             const cfg = state.appConfig || {};
             if (cfg.cinemaMode) return 'cinema';
             if (cfg.wallartMode && cfg.wallartMode.enabled) return 'wallart';

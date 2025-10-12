@@ -87,6 +87,12 @@ function isServerReachable() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // --- Detect standalone cinema mode page ---
+    const isCinemaPage = document.body.dataset.mode === 'cinema';
+    if (isCinemaPage) {
+        logger.info('[Script] Running in cinema mode - delegating to cinema-display.js');
+    }
+
     // (Ken Burns debug helpers removed)
     // --- iOS background behavior: lock to 'clip' mode ---
     (function () {
@@ -867,6 +873,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 appConfig = { ...appConfig, ...window.CONFIG_OVERRIDE };
             }
 
+            // If running on standalone cinema page, pass config to cinema-display.js
+            if (document.body.dataset.mode === 'cinema' && window.cinemaDisplay) {
+                logger.info('[Script] Passing config to cinema-display module');
+                window.cinemaDisplay.updateConfig({ cinema: appConfig.cinema });
+            }
+
             // Initialize device management (register + heartbeat) after config is loaded
             try {
                 if (window.PosterramaDevice && typeof window.PosterramaDevice.init === 'function') {
@@ -1276,6 +1288,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function applyCinemaMode(config) {
+        // Skip if running on standalone cinema page (cinema-display.js handles it)
+        if (document.body.dataset.mode === 'cinema') {
+            logger.info('[Script] Skipping applyCinemaMode - delegated to cinema-display.js');
+            return;
+        }
+
         const body = document.body;
 
         // Remove any existing cinema mode classes
@@ -4440,6 +4458,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Wallart mode handles its own poster display
         if (document.body.classList.contains('wallart-mode')) {
             return;
+        }
+
+        // If running on standalone cinema page, dispatch event for cinema-display.js
+        if (document.body.dataset.mode === 'cinema' && window.cinemaDisplay) {
+            window.cinemaDisplay.update(mediaItem);
         }
 
         // Apply transition effects only in screensaver mode (not cinema or wallart mode)
