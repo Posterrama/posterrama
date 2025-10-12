@@ -12729,19 +12729,18 @@ app.post(
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Received request to fetch Plex libraries.');
 
-        // DEBUG: Log the entire request body
-        logger.info('[Plex Libraries] Raw req.body:', JSON.stringify(req.body));
-        logger.info('[Plex Libraries] Body keys:', Object.keys(req.body || {}));
-
+        // Extract request parameters (avoid logging large objects)
         let { hostname, port, token } = req.body;
 
-        // DEBUG: Log extracted values
-        logger.info('[Plex Libraries] Extracted values:', {
-            hostname,
-            port: port,
-            portType: typeof port,
-            token: token ? `${token.substring(0, 5)}...(${token.length})` : 'MISSING',
-        });
+        // DEBUG: Log extracted values only (not entire body to avoid OOM)
+        if (isDebug) {
+            logger.debug('[Plex Libraries] Extracted values:', {
+                hostname,
+                port: port,
+                portType: typeof port,
+                token: token ? `${token.substring(0, 5)}...(${token.length})` : 'MISSING',
+            });
+        }
 
         // Sanitize hostname
         if (hostname) {
@@ -13292,10 +13291,29 @@ app.post(
     asyncHandler(async (req, res) => {
         logger.info('[Admin API] Received POST request to /api/admin/config');
         logger.info('[Admin API] Request body exists:', !!req.body);
-        logger.info('[Admin API] Request body size:', JSON.stringify(req.body).length);
+
+        // Safely calculate body size without stringifying entire object (OOM risk)
+        let bodySize = 0;
+        try {
+            bodySize = req.headers['content-length'] || 0;
+        } catch (_) {
+            bodySize = 'unknown';
+        }
+        logger.info('[Admin API] Request body size:', bodySize);
 
         if (isDebug) {
-            logger.debug('[Admin API] Full request body:', JSON.stringify(req.body, null, 2));
+            // Only log in debug mode and avoid huge objects
+            try {
+                const bodyStr = JSON.stringify(req.body, null, 2);
+                if (bodyStr.length < 10000) {
+                    // Only log if < 10KB
+                    logger.debug('[Admin API] Full request body:', bodyStr);
+                } else {
+                    logger.debug('[Admin API] Request body too large to log:', bodyStr.length);
+                }
+            } catch (e) {
+                logger.warn('[Admin API] Could not stringify request body:', e.message);
+            }
         }
 
         const { config: newConfig, env: newEnv } = req.body;
