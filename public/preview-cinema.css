@@ -53,6 +53,12 @@ body.debug-layout #poster {
     animation: none !important;
 }
 
+#poster-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
 #poster {
     width: 100%;
     height: 100%;
