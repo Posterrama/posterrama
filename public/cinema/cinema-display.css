@@ -132,12 +132,12 @@ body.debug-layout::before {
 
 /* When cinema header is active, adjust container to account for header space */
 body.cinema-header-active #info-container {
-    padding-top: 10rem; /* Increased: Space for header (2rem padding + 3rem font + 5rem buffer) */
+    padding-top: 10rem; /* Space for header (2rem padding + 3rem font + 5rem buffer) */
 }
 
 /* When footer is active, adjust for footer space */
 body.cinema-footer-active #info-container {
-    padding-bottom: 10rem; /* Increased: Space for footer (match header) */
+    padding-bottom: 13rem; /* Increased: footer needs more space than header */
 }
 
 /* Portrait orientation adjustments */

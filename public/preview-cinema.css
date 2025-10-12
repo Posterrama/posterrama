@@ -13,7 +13,7 @@ body.cinema-header-active #info-container {
 
 /* When footer is active, adjust for footer space */
 body.cinema-footer-active #info-container {
-    padding-bottom: 10rem !important; /* Space for footer - match cinema-display.css */
+    padding-bottom: 13rem !important; /* Increased: footer needs more space than header */
 }
 
 /* DEBUG: Visual borders for layout debugging */
