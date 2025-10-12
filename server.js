@@ -7522,6 +7522,150 @@ function processJellyfinItem(item, serverConfig, client) {
             // ignore HDR/3D detection issues
         }
 
+        // Extract comprehensive video stream details (Phase 4 comprehensive extraction)
+        try {
+            const videoStreams = [];
+            const sources5 = Array.isArray(item.MediaSources) ? item.MediaSources : [];
+
+            for (const source of sources5) {
+                const streams = Array.isArray(source.MediaStreams) ? source.MediaStreams : [];
+                const videoStream = streams.find(s => s.Type === 'Video');
+
+                if (videoStream) {
+                    videoStreams.push({
+                        index: videoStream.Index || null,
+                        codec: videoStream.Codec || null,
+                        codecProfile: videoStream.Profile || null,
+                        codecLevel: videoStream.Level || null,
+                        bitrate: videoStream.BitRate || null,
+                        bitDepth: videoStream.BitDepth || null,
+                        width: videoStream.Width || null,
+                        height: videoStream.Height || null,
+                        aspectRatio: videoStream.AspectRatio || null,
+                        frameRate:
+                            videoStream.RealFrameRate || videoStream.AverageFrameRate || null,
+                        scanType: videoStream.IsInterlaced ? 'interlaced' : 'progressive',
+                        refFrames: videoStream.RefFrames || null,
+                        colorSpace: videoStream.ColorSpace || null,
+                        colorPrimaries: videoStream.ColorPrimaries || null,
+                        colorTransfer: videoStream.ColorTransfer || null,
+                        colorRange: videoStream.ColorRange || null,
+                        pixelFormat: videoStream.PixelFormat || null,
+                        videoRange: videoStream.VideoRangeType || null,
+                        videoDoViTitle: videoStream.DvTitle || null,
+                        title: videoStream.Title || videoStream.DisplayTitle || null,
+                        language: videoStream.Language || null,
+                        isDefault: videoStream.IsDefault || false,
+                    });
+                }
+            }
+
+            if (videoStreams.length > 0) processedItem.videoStreams = videoStreams;
+        } catch (_) {
+            // ignore video stream extraction issues
+        }
+
+        // Extract file details and container information (Phase 6)
+        try {
+            const filePaths = [];
+            const fileDetails = [];
+            let totalFileSize = 0;
+            let totalBitrate = 0;
+            let containerFormat = null;
+
+            const sources6 = Array.isArray(item.MediaSources) ? item.MediaSources : [];
+
+            for (const source of sources6) {
+                if (source.Path) {
+                    filePaths.push(source.Path);
+                }
+
+                if (source.Size) {
+                    totalFileSize += source.Size;
+                }
+
+                if (source.Bitrate) {
+                    totalBitrate = Math.max(totalBitrate, source.Bitrate);
+                }
+
+                if (source.Container && !containerFormat) {
+                    containerFormat = source.Container;
+                }
+
+                // Build fileDetails entry
+                if (source.Path || source.Size) {
+                    fileDetails.push({
+                        file: source.Path || null,
+                        size: source.Size || null,
+                        container: source.Container || null,
+                        duration: source.RunTimeTicks
+                            ? Math.round(source.RunTimeTicks / 10000)
+                            : null,
+                        bitrate: source.Bitrate || null,
+                        videoCodec: source.VideoCodec || null,
+                        audioCodec: source.AudioCodec || null,
+                        isRemote: source.IsRemote || false,
+                        supportsDirectPlay: source.SupportsDirectPlay || false,
+                        supportsDirectStream: source.SupportsDirectStream || false,
+                        supportsTranscoding: source.SupportsTranscoding || false,
+                    });
+                }
+            }
+
+            if (filePaths.length > 0) processedItem.filePaths = filePaths;
+            if (fileDetails.length > 0) processedItem.fileDetails = fileDetails;
+            if (totalFileSize > 0) processedItem.totalFileSize = totalFileSize;
+            if (totalBitrate > 0) processedItem.totalBitrate = totalBitrate;
+            if (containerFormat) processedItem.containerFormat = containerFormat;
+        } catch (_) {
+            // ignore file details extraction issues
+        }
+
+        // Detect Dolby Vision and HDR formats (comprehensive HDR detection)
+        try {
+            const sources7 = Array.isArray(item.MediaSources) ? item.MediaSources : [];
+            let hasDolbyVision = false;
+            const hdrFormats = [];
+
+            for (const source of sources7) {
+                const streams = Array.isArray(source.MediaStreams) ? source.MediaStreams : [];
+                const videoStream = streams.find(s => s.Type === 'Video');
+
+                if (videoStream) {
+                    // Check VideoRangeType field
+                    const rangeType = videoStream.VideoRangeType || '';
+                    if (rangeType.toLowerCase().includes('dovi') || rangeType.includes('DV')) {
+                        hasDolbyVision = true;
+                        if (!hdrFormats.includes('Dolby Vision')) hdrFormats.push('Dolby Vision');
+                    }
+                    if (rangeType.toLowerCase().includes('hdr10+')) {
+                        if (!hdrFormats.includes('HDR10+')) hdrFormats.push('HDR10+');
+                    }
+                    if (
+                        rangeType.toLowerCase().includes('hdr10') ||
+                        rangeType.toLowerCase().includes('hdr')
+                    ) {
+                        if (!hdrFormats.includes('HDR10')) hdrFormats.push('HDR10');
+                    }
+                    if (rangeType.toLowerCase().includes('hlg')) {
+                        if (!hdrFormats.includes('HLG')) hdrFormats.push('HLG');
+                    }
+
+                    // Check codec profile for additional HDR hints
+                    const profile = videoStream.Profile || '';
+                    if (profile.toLowerCase().includes('dv') || profile.includes('dolby')) {
+                        hasDolbyVision = true;
+                        if (!hdrFormats.includes('Dolby Vision')) hdrFormats.push('Dolby Vision');
+                    }
+                }
+            }
+
+            if (hasDolbyVision) processedItem.hasDolbyVision = true;
+            if (hdrFormats.length > 0) processedItem.hdrFormats = hdrFormats;
+        } catch (_) {
+            // ignore Dolby Vision/HDR detection issues
+        }
+
         // Add type-specific metadata
         if (mediaType === 'movie') {
             processedItem.runtime = item.RunTimeTicks
