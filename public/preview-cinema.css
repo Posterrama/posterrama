@@ -73,12 +73,20 @@ body.debug-layout #poster {
     pointer-events: none;
     padding: 0;
 }
-    text-align: center;
-    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+
+#cinema-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--poster-top, 0);
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0; /* avoid adding visual space */
+    pointer-events: none;
+    z-index: 50;
+    text-align: center;
 }
 
 /* Remove the complex gradient ::after that creates banding */
@@ -140,19 +148,7 @@ body.debug-layout #poster {
     display: inline;
 }
 
-#cinema-footer {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 2000;
-    pointer-events: none;
-    padding: 8px 12px;
-}
-.cinema-footer-inner {
-    max-width: 96vw;
-    margin: 0 auto;
-}
+/* Footer containers are already fixed above via #cinema-footer-specs/#cinema-footer-marquee */
 .cinema-footer-marquee {
     display: none;
     overflow: hidden;

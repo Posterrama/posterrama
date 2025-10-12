@@ -281,7 +281,7 @@ body:hover #controls-container {
     top: 0;
     left: 0;
     width: 100%;
-    height: var(--poster-top, 0);
+    height: var(--poster-top, 0) !important;
     padding: 0;
     text-align: center;
     z-index: 50;
@@ -354,7 +354,7 @@ body:hover #controls-container {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: var(--poster-bottom, 0);
+    height: var(--poster-bottom, 0) !important;
     display: flex;
     align-items: center;
     justify-content: center;
