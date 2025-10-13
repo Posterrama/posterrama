@@ -110,12 +110,18 @@
                         if (cinemaOn) {
                             posterLink.removeAttribute('href');
                             posterLink.style.cursor = 'default';
-                        } else if (item?.imdbUrl && item.imdbUrl !== 'null') {
-                            posterLink.href = item.imdbUrl;
-                            posterLink.style.cursor = 'pointer';
                         } else {
-                            posterLink.removeAttribute('href');
-                            posterLink.style.cursor = 'default';
+                            // Prefer explicit imdbUrl; fallback to imdbId when available
+                            const imdbUrl =
+                                (item?.imdbUrl && item.imdbUrl !== 'null' && item.imdbUrl) ||
+                                (item?.imdbId ? `https://www.imdb.com/title/${item.imdbId}` : null);
+                            if (imdbUrl) {
+                                posterLink.href = imdbUrl;
+                            } else {
+                                posterLink.removeAttribute('href');
+                                posterLink.style.cursor = 'default';
+                            }
+                            posterLink.style.cursor = 'pointer';
                         }
                     }
                 } catch (_) {
