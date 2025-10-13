@@ -86,25 +86,6 @@
         <!-- Styles -->
     <link rel="stylesheet" href="style.css?v=20250828a" />
 
-        <!-- Clean wallart mode styles -->
-        <style>
-            /* Hide everything in wallart mode */
-            body.wallart-mode #poster-wrapper,
-            body.wallart-mode #background-image,
-            body.wallart-mode .background-layer,
-            body.wallart-mode #clearlogo,
-            body.wallart-mode #clear-logo,
-            body.wallart-mode #info-container,
-            body.wallart-mode #controls-container,
-            body.wallart-mode #clock-widget-container {
-                display: none !important;
-            }
-
-            /* Hide promo box in wallart mode ONLY when NOT on promo site */
-            body.wallart-mode:not(.promo-site) #promo-box {
-                display: none !important;
-            }
-        </style>
         <!-- Structured Data / JSON-LD -->
         <script type="application/ld+json">
             {
@@ -292,58 +273,7 @@
             </a>
         </div>
 
-    <!-- Mode-based redirect: automatically redirect to mode-specific page -->
-    <script>
-        (async function() {
-            // Skip redirect if already on a mode-specific page or in preview mode
-            // Also skip if server hints a specific mode (MODE_HINT)
-            var path = window.location.pathname || '';
-            if (window.IS_PREVIEW || window.MODE_HINT || /\/(cinema|wallart|screensaver)(\/|$)/.test(path)) {
-                return;
-            }
-
-            // Helper to build subpath-aware URLs
-            function basePath() {
-                var p = (path || '/').replace(/\/+/, '/');
-                p = p.replace(/\/+/g, '/');
-                if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
-                p = p.replace(/[^/]+$/, '');
-                if (!p.endsWith('/')) p += '/';
-                return p;
-            }
-            function go(to) {
-                var url = window.location.origin + basePath() + to;
-                window.location.replace(url);
-            }
-
-            try {
-                // Fetch config to determine which mode is active
-                const response = await fetch('/get-config', { cache: 'no-cache', headers: { 'Cache-Control': 'no-cache' } });
-                if (!response.ok) return; // Failed to fetch config, continue loading index.html
-
-                const config = await response.json();
-
-                // Redirect to cinema if cinema mode is enabled
-                if (config.cinemaMode === true) {
-                    console.log('[Posterrama] Cinema mode detected, redirecting to /cinema');
-                    return go('cinema');
-                }
-
-                // If wallart is enabled, go to /wallart
-                if (config.wallartMode && config.wallartMode.enabled === true) {
-                    console.log('[Posterrama] Wallart mode detected, redirecting to /wallart');
-                    return go('wallart');
-                }
-
-                // Otherwise go to /screensaver
-                console.log('[Posterrama] Screensaver mode detected, redirecting to /screensaver');
-                return go('screensaver');
-            } catch (err) {
-                // Failed to check config, continue loading index.html as a fallback
-                console.warn('[Posterrama] Failed to check mode config, staying on /', err);
-            }
-        })();
-    </script>
+    <!-- Landing page only: no auto-redirect. Navigate via UI or admin controls. -->
 
     <script src="lazy-loading.js?v=20250825a"></script>
     <script src="device-mgmt.js?v=20250901a"></script>

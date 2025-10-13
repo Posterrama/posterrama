@@ -30,4 +30,27 @@ describe('PosterramaCore helpers (simulated)', () => {
         expect(w).toBe('http://localhost:4000/some/wallart');
         expect(s).toBe('http://localhost:4000/some/screensaver');
     });
+
+    it('getActiveMode chooses correct mode from config', () => {
+        const Core = global.window.PosterramaCore;
+        expect(Core.getActiveMode({ cinemaMode: true })).toBe('cinema');
+        expect(Core.getActiveMode({ wallartMode: { enabled: true } })).toBe('wallart');
+        expect(Core.getActiveMode({})).toBe('screensaver');
+        expect(Core.getActiveMode(null)).toBe('screensaver');
+    });
+
+    it('navigateToMode replaces location with debounced calls', () => {
+        const Core = global.window.PosterramaCore;
+        const calls = [];
+        const orig = global.window.location.replace;
+        global.window.location.replace = url => calls.push(url);
+        try {
+            Core.navigateToMode('cinema');
+            Core.navigateToMode('wallart'); // debounced; should be ignored
+            expect(calls.length).toBe(1);
+            expect(calls[0]).toBe('http://localhost:4000/some/cinema');
+        } finally {
+            global.window.location.replace = orig;
+        }
+    });
 });

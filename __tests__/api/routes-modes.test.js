@@ -25,11 +25,19 @@ describe('Mode routes', () => {
         const res = await request(app).get('/wallart');
         expect(res.status).toBe(200);
         expect(res.headers['content-type']).toMatch(/html/);
+        // stamped core + wallart assets should be referenced
+        expect(res.text).toMatch(/\/core\.js\?v=/);
+        expect(res.text).toMatch(/wallart\/wallart-display\.js\?v=/);
+        expect(res.text).toMatch(/wallart\/wallart\.css\?v=/);
     });
 
     it('GET /screensaver returns HTML', async () => {
         const res = await request(app).get('/screensaver');
         expect(res.status).toBe(200);
         expect(res.headers['content-type']).toMatch(/html/);
+        // stamped core + screensaver assets should be referenced
+        expect(res.text).toMatch(/\/core\.js\?v=/);
+        expect(res.text).toMatch(/screensaver\/screensaver\.js\?v=/);
+        expect(res.text).toMatch(/screensaver\/screensaver\.css\?v=/);
     });
 });
