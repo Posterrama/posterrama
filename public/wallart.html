@@ -333,6 +333,7 @@
             } else if (window.MODE_HINT === 'screensaver') {
                 document.body.classList.remove('wallart-mode');
             }
+            try { window.PosterramaCore && window.PosterramaCore.startAutoExitPoll({ currentMode: 'wallart', intervalMs: 15000 }); } catch (e) {}
         });
     </script>
     <script>

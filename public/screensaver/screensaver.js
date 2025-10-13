@@ -2,7 +2,50 @@
 (function initScreensaverModule() {
     try {
         // Define a single namespace on window to avoid globals
+        const _state = {
+            ensureTimer: null,
+            started: false,
+        };
         const api = {
+            // Lifecycle: start screensaver helpers (idempotent)
+            start() {
+                try {
+                    if (_state.started) return;
+                    _state.started = true;
+                    // Ensure visibility now and on interval in case config changes async
+                    api.ensureVisibility();
+                    if (_state.ensureTimer) clearInterval(_state.ensureTimer);
+                    _state.ensureTimer = setInterval(() => {
+                        try {
+                            api.ensureVisibility();
+                        } catch (_) {
+                            /* noop */
+                        }
+                    }, 4000);
+                    // Reinitialize background layers once on start
+                    setTimeout(() => {
+                        try {
+                            api.reinitBackground();
+                        } catch (_) {
+                            /* noop */
+                        }
+                    }, 50);
+                } catch (_) {
+                    /* noop */
+                }
+            },
+            // Lifecycle: stop screensaver helpers
+            stop() {
+                try {
+                    if (_state.ensureTimer) {
+                        clearInterval(_state.ensureTimer);
+                        _state.ensureTimer = null;
+                    }
+                    _state.started = false;
+                } catch (_) {
+                    /* noop */
+                }
+            },
             // Helper: in screensaver mode, re-assert visibility of poster/metadata/info container
             ensureVisibility() {
                 try {

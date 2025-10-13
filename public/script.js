@@ -260,6 +260,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- State ---
     let mediaQueue = [];
+    // Reflect mediaQueue onto window so modules (wallart/screensaver) can access it reliably
+    try {
+        Object.defineProperty(window, 'mediaQueue', {
+            configurable: true,
+            enumerable: false,
+            get() {
+                return mediaQueue;
+            },
+            set(val) {
+                mediaQueue = Array.isArray(val) ? val : [];
+            },
+        });
+    } catch (_) {
+        window.mediaQueue = mediaQueue;
+    }
     let currentIndex = -1;
     let activeLayer = layerA;
     let inactiveLayer = layerB;
@@ -706,6 +721,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Spotlight feature removed
     let wallartAmbientTweenTimer = null;
     let appConfig = {};
+    // Reflect appConfig onto window for modules to read
+    try {
+        Object.defineProperty(window, 'appConfig', {
+            configurable: true,
+            enumerable: false,
+            get() {
+                return appConfig;
+            },
+            set(val) {
+                appConfig = val || {};
+            },
+        });
+    } catch (_) {
+        window.appConfig = appConfig;
+    }
 
     const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
 
@@ -1656,6 +1686,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (body.classList.contains('wallart-mode')) {
                 body.classList.remove('wallart-mode');
             }
+            // Stop screensaver helpers when cinema is active
+            try {
+                if (
+                    window.PosterramaScreensaver &&
+                    typeof window.PosterramaScreensaver.stop === 'function'
+                ) {
+                    window.PosterramaScreensaver.stop();
+                }
+            } catch (_) {}
             window._lastWallartEnabled = false;
             if (window.POSTERRAMA_DEBUG) {
                 const msg = '[WALLART] Skip apply: cinemaMode active';
@@ -1678,6 +1717,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         window._lastWallartEnabled = nextWallartEnabled;
         if (nextWallartEnabled) {
+            // Stop screensaver helpers when wallart becomes active
+            try {
+                if (
+                    window.PosterramaScreensaver &&
+                    typeof window.PosterramaScreensaver.stop === 'function'
+                ) {
+                    window.PosterramaScreensaver.stop();
+                }
+            } catch (_) {}
             // Check if wallart mode is already active BEFORE removing the class
             const isAlreadyActive = body.classList.contains('wallart-mode');
             // Detect changes that require a restart of the wallart grid
@@ -1731,13 +1779,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const ambient = document.getElementById('wallart-ambient-overlay');
                 if (ambient) ambient.remove();
                 // Restart cycle with new settings without toggling body classes
-                if (typeof startWallartCycle === 'function') {
-                    startWallartCycle(curr);
-                } else if (
-                    window.PosterramaWallart &&
-                    typeof window.PosterramaWallart.start === 'function'
-                ) {
-                    window.PosterramaWallart.start(curr);
+                const safeStart = () => {
+                    if (
+                        window.PosterramaWallart &&
+                        typeof window.PosterramaWallart.start === 'function'
+                    ) {
+                        window.PosterramaWallart.start(curr);
+                    } else if (typeof startWallartCycle === 'function') {
+                        startWallartCycle(curr);
+                    }
+                };
+                try {
+                    if (Array.isArray(mediaQueue) && mediaQueue.length === 0) {
+                        fetchMedia(true)
+                            .catch(() => {})
+                            .finally(() => {
+                                try {
+                                    safeStart();
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            });
+                    } else {
+                        safeStart();
+                    }
+                } catch (_) {
+                    safeStart();
                 }
                 window._lastWallartConfig = { ...curr };
                 return;
@@ -1828,13 +1895,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                             })
                             .finally(() => {
                                 try {
-                                    if (typeof startWallartCycle === 'function') {
-                                        startWallartCycle(config.wallartMode);
-                                    } else if (
+                                    if (
                                         window.PosterramaWallart &&
                                         typeof window.PosterramaWallart.start === 'function'
                                     ) {
                                         window.PosterramaWallart.start(config.wallartMode);
+                                    } else if (typeof startWallartCycle === 'function') {
+                                        startWallartCycle(config.wallartMode);
                                     }
                                     window._lastWallartConfig = { ...config.wallartMode };
                                 } catch (_) {
@@ -1843,26 +1910,45 @@ document.addEventListener('DOMContentLoaded', async () => {
                             });
                     } catch (_) {
                         // Fallback to immediate start if fetch throws synchronously
-                        if (typeof startWallartCycle === 'function') {
-                            startWallartCycle(config.wallartMode);
-                        } else if (
+                        if (
                             window.PosterramaWallart &&
                             typeof window.PosterramaWallart.start === 'function'
                         ) {
                             window.PosterramaWallart.start(config.wallartMode);
+                        } else if (typeof startWallartCycle === 'function') {
+                            startWallartCycle(config.wallartMode);
                         }
                         window._lastWallartConfig = { ...config.wallartMode };
                     }
                 } else {
-                    if (typeof startWallartCycle === 'function') {
-                        startWallartCycle(config.wallartMode);
-                    } else if (
-                        window.PosterramaWallart &&
-                        typeof window.PosterramaWallart.start === 'function'
-                    ) {
-                        window.PosterramaWallart.start(config.wallartMode);
+                    const safeStart = () => {
+                        if (
+                            window.PosterramaWallart &&
+                            typeof window.PosterramaWallart.start === 'function'
+                        ) {
+                            window.PosterramaWallart.start(config.wallartMode);
+                        } else if (typeof startWallartCycle === 'function') {
+                            startWallartCycle(config.wallartMode);
+                        }
+                        window._lastWallartConfig = { ...config.wallartMode };
+                    };
+                    try {
+                        if (Array.isArray(mediaQueue) && mediaQueue.length === 0) {
+                            fetchMedia(true)
+                                .catch(() => {})
+                                .finally(() => {
+                                    try {
+                                        safeStart();
+                                    } catch (_) {
+                                        /* noop */
+                                    }
+                                });
+                        } else {
+                            safeStart();
+                        }
+                    } catch (_) {
+                        safeStart();
                     }
-                    window._lastWallartConfig = { ...config.wallartMode };
                 }
             }
 
@@ -1875,13 +1961,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // Debounce resize events
                         clearTimeout(window.wallartResizeTimer);
                         window.wallartResizeTimer = setTimeout(() => {
-                            if (typeof startWallartCycle === 'function') {
-                                startWallartCycle(config.wallartMode);
-                            } else if (
+                            if (
                                 window.PosterramaWallart &&
                                 typeof window.PosterramaWallart.start === 'function'
                             ) {
                                 window.PosterramaWallart.start(config.wallartMode);
+                            } else if (typeof startWallartCycle === 'function') {
+                                startWallartCycle(config.wallartMode);
                             }
                         }, 300);
                     }
@@ -1932,14 +2018,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 wallartTitleTimer = null;
             }
 
-            const wallartGrid = document.getElementById('wallart-grid');
-            if (wallartGrid) {
-                wallartGrid.remove();
-            }
-
-            // Remove ambient overlay if present
-            const ambient = document.getElementById('wallart-ambient-overlay');
-            if (ambient) ambient.remove();
+            // Prefer module stop to cleanup timers and DOM
+            try {
+                if (
+                    window.PosterramaWallart &&
+                    typeof window.PosterramaWallart.stop === 'function'
+                ) {
+                    window.PosterramaWallart.stop();
+                } else {
+                    const wallartGrid = document.getElementById('wallart-grid');
+                    if (wallartGrid) wallartGrid.remove();
+                    const ambient = document.getElementById('wallart-ambient-overlay');
+                    if (ambient) ambient.remove();
+                }
+            } catch (_) {}
 
             // Remove resize listener
             if (window.wallartResizeListener) {
@@ -2022,6 +2114,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(() => {
                 reinitBackgroundForScreensaver();
             }, 50);
+
+            // When leaving wallart (back to screensaver/cinema), allow screensaver module to start
+            try {
+                if (
+                    !config.cinemaMode &&
+                    window.PosterramaScreensaver &&
+                    typeof window.PosterramaScreensaver.start === 'function'
+                ) {
+                    window.PosterramaScreensaver.start();
+                }
+            } catch (_) {}
         }
     }
 
@@ -2221,6 +2324,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function startWallartCycle(wallartConfig) {
+        // If module is present, delegate and bail to avoid legacy duplication
+        try {
+            if (window.PosterramaWallart && typeof window.PosterramaWallart.start === 'function') {
+                return window.PosterramaWallart.start(wallartConfig);
+            }
+        } catch (_) {}
         // Persist current config globally for helpers that read it
         try {
             window.wallartConfig = { ...(wallartConfig || {}) };
@@ -2280,7 +2389,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Create ambient overlay (optional)
         if (wallartConfig.ambientGradient) {
-            ensureAmbientOverlay();
+            try {
+                const ambientMod = window.PosterramaWallart && window.PosterramaWallart.ambient;
+                if (ambientMod && typeof ambientMod.ensure === 'function') ambientMod.ensure();
+            } catch (_) {
+                /* no-op */
+            }
         }
 
         // Create wallart grid container (prefer module helper if present)
@@ -2339,17 +2453,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         let currentPosters = []; // Track current posters for uniqueness
         const usedPosters = new Set(); // Track used poster IDs
 
-        // Expose currentPosters globally for device management via getter
-        // This ensures we always get the current state, not a stale reference
-        Object.defineProperty(window, '__wallartCurrentPosters', {
-            get() {
-                return currentPosters;
-            },
-            set(val) {
-                currentPosters = val;
-            },
-        });
-        console.debug('[Wallart] Initialized currentPosters, length:', currentPosters.length);
+        // Expose currentPosters only if module is not present (module provides its own getter)
+        try {
+            if (!('PosterramaWallart' in window)) {
+                Object.defineProperty(window, '__wallartCurrentPosters', {
+                    get() {
+                        return currentPosters;
+                    },
+                    set(val) {
+                        currentPosters = val;
+                    },
+                });
+            }
+        } catch (_) {}
 
         // Get dynamically calculated poster count - robust check for mediaQueue
         const posterCount = Math.min(layoutInfo.posterCount, mediaQueue?.length || 0);
@@ -2364,8 +2480,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const animationType = wallartConfig.animationType || wallartConfig.animationPack || 'fade';
 
-        // Initialize the grid with posters
-        initializeWallartGrid(posterCount);
+        // Initialize the grid with posters (prefer module helper if available)
+        let initResult = null;
+        try {
+            if (
+                window.PosterramaWallart &&
+                window.PosterramaWallart.runtime &&
+                typeof window.PosterramaWallart.runtime.initializeGrid === 'function'
+            ) {
+                initResult = window.PosterramaWallart.runtime.initializeGrid({
+                    wallartGrid,
+                    layoutInfo,
+                    layoutVariant,
+                    wallartConfig,
+                    appConfig,
+                    mediaQueue,
+                    posterCount,
+                });
+            }
+        } catch (_) {}
+
+        if (!initResult) {
+            // Fallback to legacy initializer
+            initializeWallartGrid(posterCount);
+        } else {
+            // Adopt module-provided tracking arrays
+            if (initResult.currentPosters)
+                window.__wallartCurrentPosters = initResult.currentPosters;
+            if (initResult.usedPosters) {
+                try {
+                    // Recreate Set reference for downstream code
+                    usedPosters.clear();
+                    initResult.usedPosters.forEach &&
+                        initResult.usedPosters.forEach(v => usedPosters.add(v));
+                } catch (_) {}
+            }
+        }
 
         // Get refresh rate and randomness settings separately
         const refreshRate = wallartConfig.refreshRate || wallartConfig.randomness || 5; // Use refreshRate, fallback to old randomness for compatibility
@@ -2477,21 +2627,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         function getUniqueRandomPoster(excludePosterId = null) {
-            // Robust check: ensure mediaQueue exists and is an array
+            try {
+                if (
+                    window.PosterramaWallart &&
+                    window.PosterramaWallart.runtime &&
+                    typeof window.PosterramaWallart.runtime.getUniqueRandomPoster === 'function'
+                ) {
+                    return window.PosterramaWallart.runtime.getUniqueRandomPoster(
+                        currentPosters,
+                        usedPosters,
+                        mediaQueue,
+                        excludePosterId
+                    );
+                }
+            } catch (_) {}
+            // Fallback to legacy selection
             if (!mediaQueue || !Array.isArray(mediaQueue) || mediaQueue.length === 0) {
                 console.warn('[Wallart] mediaQueue is empty or invalid, returning null');
                 return null;
             }
-
-            // Collect currently visible ids to avoid immediate repeats in grid
             const visibleIds = new Set();
             currentPosters.forEach(p => {
                 if (!p) return;
                 const id = p.id || p.title || p.posterUrl;
                 if (id) visibleIds.add(id);
             });
-
-            // Primary pool: exclude current, visible, and recently used
             let pool = mediaQueue.filter(item => {
                 const id = item.id || item.title || item.posterUrl;
                 if (!id) return false;
@@ -2500,8 +2660,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (usedPosters.has(id)) return false;
                 return true;
             });
-
-            // Secondary: allow used but still avoid current and visible
             if (pool.length === 0) {
                 pool = mediaQueue.filter(item => {
                     const id = item.id || item.title || item.posterUrl;
@@ -2511,8 +2669,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return true;
                 });
             }
-
-            // Tertiary: only exclude current
             if (pool.length === 0) {
                 pool = mediaQueue.filter(item => {
                     const id = item.id || item.title || item.posterUrl;
@@ -2521,10 +2677,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return true;
                 });
             }
-
-            // Last resort: everything
             if (pool.length === 0) pool = mediaQueue.slice();
-
             const idx = Math.floor(Math.random() * pool.length);
             const selected = pool[idx];
             const selId = selected?.id || selected?.title || selected?.posterUrl;
@@ -3037,27 +3190,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // After initial render, apply ambient colors and optionally spotlight
-            if (wallartConfig.ambientGradient) {
-                try {
-                    // If heroGrid is active, prefer sampling from the hero area subtly
-                    const isHero = wallartGrid?.dataset?.heroGrid === 'true';
-                    if (isHero) {
-                        const heroEl = wallartGrid.querySelector('[data-hero="true"] img');
-                        if (heroEl) {
-                            updateAmbientFromImage(heroEl);
-                        } else {
-                            updateAmbientFromGrid(wallartGrid);
-                        }
-                    } else {
-                        updateAmbientFromGrid(wallartGrid);
-                    }
-                } catch (e) {
-                    // noop: ambient overlay update can fail if images not ready
-                }
-            }
+            // Ambient overlay handled by module.initializeGrid when used; legacy initializer above already handled it too
             // Spotlight removed
         }
 
+        if (window.PosterramaWallart && typeof window.PosterramaWallart.start === 'function') {
+            // Wallart module owns refresh logic; do not define legacy refresher
+            return;
+        }
         window.refreshSinglePoster = function refreshSinglePoster() {
             if (currentPosters.length === 0 || mediaQueue.length === 0) {
                 return;
@@ -4068,110 +4208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         wallartRefreshTimeout = setTimeout(window.refreshSinglePoster, refreshInterval);
     }
 
-    // --- Wallart ambient overlay helpers ---
-    function ensureAmbientOverlay() {
-        let ambient = document.getElementById('wallart-ambient-overlay');
-        if (!ambient) {
-            ambient = document.createElement('div');
-            ambient.id = 'wallart-ambient-overlay';
-            document.body.appendChild(ambient);
-        }
-        return ambient;
-    }
-
-    // Compute a rough dominant color from visible posters (fast and simple)
-    function updateAmbientFromGrid(gridEl) {
-        const ambient = ensureAmbientOverlay();
-        const imgs = Array.from(gridEl.querySelectorAll('img')).slice(0, 24); // sample first 24
-        if (imgs.length === 0) return;
-
-        // Simple average of mid-sample pixels to avoid heavy processing
-        let r = 18,
-            g = 23,
-            b = 34; // dark baseline
-        let count = 1;
-
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        canvas.width = 8;
-        canvas.height = 8; // tiny sample
-
-        for (const img of imgs) {
-            try {
-                ctx.clearRect(0, 0, 8, 8);
-                ctx.drawImage(img, 0, 0, 8, 8);
-                const data = ctx.getImageData(2, 2, 4, 4).data; // sample center 4x4
-                for (let i = 0; i < data.length; i += 4) {
-                    r += data[i];
-                    g += data[i + 1];
-                    b += data[i + 2];
-                    count++;
-                }
-            } catch (_) {
-                /* cross-origin or not ready */
-            }
-        }
-        r = Math.round(r / count);
-        g = Math.round(g / count);
-        b = Math.round(b / count);
-
-        // Compute a complementary color for gradient end
-        const comp = [255 - r, 255 - g, 255 - b].map(v => Math.max(24, Math.min(220, v)));
-
-        const start = `rgba(${r}, ${g}, ${b}, 0.9)`;
-        const end = `rgba(${comp[0]}, ${comp[1]}, ${comp[2]}, 0.9)`;
-        const nextBg = `linear-gradient(135deg, ${start} 0%, ${end} 100%)`;
-
-        // Smooth tween by cross-fading via opacity if background changes
-        ambient.style.background = nextBg;
-        ambient.style.opacity = '0.5';
-    }
-
-    // Compute ambient color from a single hero image
-    function updateAmbientFromImage(img) {
-        const ambient = ensureAmbientOverlay();
-        if (!img) return;
-
-        // Simple average of mid-sample pixels to avoid heavy processing
-        let r = 18,
-            g = 23,
-            b = 34; // dark baseline
-        let count = 1;
-
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        canvas.width = 8;
-        canvas.height = 8; // tiny sample
-
-        try {
-            ctx.clearRect(0, 0, 8, 8);
-            ctx.drawImage(img, 0, 0, 8, 8);
-            const data = ctx.getImageData(2, 2, 4, 4).data; // sample center 4x4
-            for (let i = 0; i < data.length; i += 4) {
-                r += data[i];
-                g += data[i + 1];
-                b += data[i + 2];
-                count++;
-            }
-        } catch (_) {
-            /* cross-origin or not ready */
-        }
-
-        r = Math.round(r / count);
-        g = Math.round(g / count);
-        b = Math.round(b / count);
-
-        // Compute a complementary color for gradient end
-        const comp = [255 - r, 255 - g, 255 - b].map(v => Math.max(24, Math.min(220, v)));
-
-        const start = `rgba(${r}, ${g}, ${b}, 0.9)`;
-        const end = `rgba(${comp[0]}, ${comp[1]}, ${comp[2]}, 0.9)`;
-        const nextBg = `linear-gradient(135deg, ${start} 0%, ${end} 100%)`;
-
-        // Smooth tween by cross-fading via opacity if background changes
-        ambient.style.background = nextBg;
-        ambient.style.opacity = '0.5';
-    }
+    // Wallart ambient helpers now live in PosterramaWallart.ambient
 
     // Spotlight helpers removed
 
@@ -4546,6 +4583,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showError(userMsg);
                 if (loader && loader.style.opacity !== '0') loader.style.opacity = '0';
                 mediaQueue = [];
+                try {
+                    window.mediaQueue = mediaQueue;
+                } catch (_) {}
                 return;
             }
             // In preview mode, keep full list for Wallart (needs many posters for the grid).
@@ -4557,6 +4597,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             mediaQueue = newMediaQueue;
+            try {
+                window.mediaQueue = mediaQueue;
+            } catch (_) {}
 
             // Clean up any existing preloaded images when playlist changes
             if (!isInitialLoad) {
@@ -4606,6 +4649,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (loader && loader.style.opacity !== '0') loader.style.opacity = '0';
             // Ensure mediaQueue remains a valid empty array on error
             mediaQueue = [];
+            try {
+                window.mediaQueue = mediaQueue;
+            } catch (_) {}
         }
     }
 

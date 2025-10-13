@@ -55,6 +55,12 @@
     <script src="/core.js?v={{ASSET_VERSION}}"></script>
     <script src="/screensaver/screensaver.js?v={{ASSET_VERSION}}"></script>
     <script src="script.js?v={{ASSET_VERSION}}"></script>
-        <script>window.MODE_HINT='screensaver';</script>
+    <script>
+        try { if (window.PosterramaScreensaver && typeof window.PosterramaScreensaver.start === 'function') { window.PosterramaScreensaver.start(); } } catch (e) {}
+    </script>
+        <script>
+            window.MODE_HINT='screensaver';
+            try { window.PosterramaCore && window.PosterramaCore.startAutoExitPoll({ currentMode: 'screensaver', intervalMs: 15000 }); } catch (e) {}
+        </script>
     </body>
 </html>

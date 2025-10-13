@@ -1457,16 +1457,54 @@ app.get(['/cinema', '/cinema.html'], (req, res, next) => {
             currentConfig = null;
         }
         if (!currentConfig || currentConfig.cinemaMode !== true) {
-            // Proxy-aware root redirect: honor common headers for subpath deployments
-            const prefixHeader = (
-                req.headers['x-forwarded-prefix'] ||
-                req.headers['x-forwarded-pathbase'] ||
-                ''
-            ).toString();
-            const prefix = prefixHeader.replace(/\s/g, '');
-            const target = prefix ? (prefix.endsWith('/') ? prefix : prefix + '/') : '/';
-            res.setHeader('Cache-Control', 'no-cache');
-            return res.redirect(302, target);
+            // Serve the stamped index.html content (same stamping logic as '/') to ensure HTML content-type
+            const idxPath = path.join(__dirname, 'public', 'index.html');
+            try {
+                const contents = fs.readFileSync(idxPath, 'utf8');
+                const versions = getAssetVersions();
+                const stamped = contents
+                    .replace(
+                        /script\.js\?v=[^"&\s]+/g,
+                        `script.js?v=${versions['script.js'] || ASSET_VERSION}`
+                    )
+                    .replace(
+                        /style\.css\?v=[^"&\s]+/g,
+                        `style.css?v=${versions['style.css'] || ASSET_VERSION}`
+                    )
+                    .replace(
+                        /\/wallart\/wallart\.css(\?v=[^"'\s>]+)?/g,
+                        `/wallart/wallart.css?v=${versions['wallart/wallart.css'] || ASSET_VERSION}`
+                    )
+                    .replace(
+                        /device-mgmt\.js\?v=[^"&\s]+/g,
+                        `device-mgmt.js?v=${versions['device-mgmt.js'] || ASSET_VERSION}`
+                    )
+                    .replace(
+                        /lazy-loading\.js\?v=[^"&\s]+/g,
+                        `lazy-loading.js?v=${versions['lazy-loading.js'] || ASSET_VERSION}`
+                    )
+                    // Stamp client-side logger
+                    .replace(
+                        /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
+                        `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
+                    )
+                    // Stamp manifest
+                    .replace(
+                        /\/manifest\.json(\?v=[^"'\s>]+)?/g,
+                        `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
+                    )
+                    // Ensure service worker registration always fetches latest sw.js
+                    .replace(
+                        /\/sw\.js(\?v=[^"'\s>]+)?/g,
+                        `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`
+                    );
+
+                res.setHeader('Cache-Control', 'no-cache');
+                return res.send(stamped);
+            } catch (e) {
+                // If reading or stamping fails, fall back to sending the file
+                return res.status(200).sendFile(idxPath);
+            }
         }
     } catch (e) {
         // On config read error, serve index.html as a safe fallback
