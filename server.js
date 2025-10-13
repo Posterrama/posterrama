@@ -58,6 +58,7 @@ function getAssetVersions() {
     if (now - lastVersionCheck > VERSION_CACHE_TTL) {
         const criticalAssets = [
             'script.js',
+            'core.js',
             'admin.js',
             'style.css',
             'admin.css',

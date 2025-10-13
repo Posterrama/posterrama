@@ -35,15 +35,15 @@
 
     Core.buildUrlForMode = function buildUrlForMode(mode) {
         const base = Core.buildBasePath();
-        const basePart = base === '/' ? '' : base;
+        const origin = window.location.origin;
         switch (mode) {
             case 'cinema':
-                return window.location.origin + basePart + 'cinema';
+                return new URL(base + 'cinema', origin).toString();
             case 'wallart':
-                return window.location.origin + basePart + 'wallart';
+                return new URL(base + 'wallart', origin).toString();
             case 'screensaver':
             default:
-                return window.location.origin + basePart + 'screensaver';
+                return new URL(base + 'screensaver', origin).toString();
         }
     };
 
