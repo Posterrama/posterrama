@@ -383,9 +383,18 @@
             async function startWallartOnceReady() {
                 try {
                     await ensureConfig();
+                    try { window.logger && window.logger.debug && window.logger.debug('[WALLART] bootstrap: config loaded', { hasWallartConfig: !!window.wallartConfig }); } catch(_) {}
+                    // Initialize device management to enable heartbeats and live WS logs
+                    try {
+                        if (window.PosterramaDevice && typeof window.PosterramaDevice.init === 'function') {
+                            window.PosterramaDevice.init(window.appConfig || {});
+                        }
+                    } catch (_) { /* noop: device-mgmt optional */ }
                     await ensureMediaQueue();
+                    try { window.logger && window.logger.debug && window.logger.debug('[WALLART] bootstrap: media ready', { count: (Array.isArray(window.mediaQueue) && window.mediaQueue.length) || 0 }); } catch(_) {}
                     if (window.PosterramaWallart && typeof window.PosterramaWallart.start === 'function') {
                         window.PosterramaWallart.start(window.wallartConfig || {});
+                        try { window.logger && window.logger.debug && window.logger.debug('[WALLART] module start invoked'); } catch(_) {}
                         try { const loader = document.getElementById('loader'); if (loader) { loader.style.opacity='0'; loader.style.display='none'; } } catch(_) {}
                     }
                 } catch (_) {}

@@ -130,6 +130,8 @@
             currentPosters: [],
             usedPosters: new Set(),
             refreshTimeout: null,
+            paused: false,
+            refreshNow: null,
         };
 
         const api = {
@@ -370,6 +372,11 @@
                     // Tick function (adapted from legacy refreshSinglePoster)
                     const refreshTick = () => {
                         try {
+                            // Respect paused state (used by remote controls)
+                            if (_state.paused) {
+                                _state.refreshTimeout = setTimeout(refreshTick, 2000);
+                                return;
+                            }
                             const { wallartGrid, currentPosters, usedPosters } = _state;
                             const mediaQueue = _state.mediaQueue;
                             if (
@@ -613,6 +620,15 @@
                                         const fn = window.animatePosterChange || null;
                                         if (fn && typeof fn === 'function')
                                             fn(targetElement, next, 'fade');
+                                        // Update current media exposure for device-mgmt heartbeat/debug
+                                        try {
+                                            window.__posterramaCurrentMedia = next;
+                                            window.__posterramaCurrentMediaId =
+                                                next.id || next.title || next.posterUrl || null;
+                                            window.__posterramaPaused = false;
+                                        } catch (_) {
+                                            /* expose best-effort */
+                                        }
                                     }, delay);
                                 }
                                 try {
@@ -689,6 +705,15 @@
                                 const animType = animationType;
                                 if (fn && typeof fn === 'function')
                                     fn(targetElement, next, animType);
+                                // Update current media exposure for device-mgmt heartbeat/debug
+                                try {
+                                    window.__posterramaCurrentMedia = next;
+                                    window.__posterramaCurrentMediaId =
+                                        next.id || next.title || next.posterUrl || null;
+                                    window.__posterramaPaused = false;
+                                } catch (_) {
+                                    /* expose best-effort */
+                                }
                             }
                             const randomFactor = Math.random() * Math.random();
                             const isNegative = Math.random() < 0.5;
@@ -703,8 +728,78 @@
                     };
 
                     // Start periodic refresh
+                    // Expose a way for remote to force a tick
+                    _state.refreshNow = () => {
+                        try {
+                            if (_state.refreshTimeout) clearTimeout(_state.refreshTimeout);
+                        } catch (_) {
+                            /* ignore clear */
+                        }
+                        refreshTick();
+                    };
                     if (_state.refreshTimeout) clearTimeout(_state.refreshTimeout);
                     _state.refreshTimeout = setTimeout(refreshTick, 1200);
+
+                    // Seed current media for device-mgmt visibility (prefer hero if present)
+                    try {
+                        const first =
+                            layoutVariant === 'heroGrid'
+                                ? currentPosters && currentPosters[0]
+                                : currentPosters && currentPosters[0];
+                        if (first) {
+                            window.__posterramaCurrentMedia = first;
+                            window.__posterramaCurrentMediaId =
+                                first.id || first.title || first.posterUrl || null;
+                            window.__posterramaPaused = false;
+                        }
+                    } catch (_) {
+                        /* expose initial media best-effort */
+                    }
+
+                    // Minimal playback hooks so device-mgmt commands log and act
+                    try {
+                        window.__posterramaPlayback = {
+                            next: () => {
+                                try {
+                                    _state.paused = false;
+                                    _state.refreshNow && _state.refreshNow();
+                                } catch (_) {
+                                    /* ignore playback next */
+                                }
+                            },
+                            prev: () => {
+                                try {
+                                    _state.paused = false;
+                                    _state.refreshNow && _state.refreshNow();
+                                } catch (_) {
+                                    /* ignore playback prev */
+                                }
+                            },
+                            pause: () => {
+                                _state.paused = true;
+                                try {
+                                    window.__posterramaPaused = true;
+                                } catch (_) {
+                                    /* ignore flag */
+                                }
+                            },
+                            resume: () => {
+                                _state.paused = false;
+                                try {
+                                    window.__posterramaPaused = false;
+                                } catch (_) {
+                                    /* ignore flag */
+                                }
+                                try {
+                                    _state.refreshNow && _state.refreshNow();
+                                } catch (_) {
+                                    /* ignore refresh */
+                                }
+                            },
+                        };
+                    } catch (_) {
+                        /* expose playback best-effort */
+                    }
                 } catch (_) {
                     /* noop */
                 }
