@@ -31,29 +31,42 @@
             }
         };
         const setPoster = url => {
+            // In the refactored screensaver, we render the poster on the single #poster element
             try {
-                const a = $('poster-a');
-                const b = $('poster-b');
-                if (!a || !b) return;
-                // Choose which is inactive by opacity
-                const aVisible = (a.style.opacity || '') === '1';
-                const inactive = aVisible ? b : a;
-                const active = aVisible ? a : b;
-                if (!url) {
-                    a.style.backgroundImage = '';
-                    b.style.backgroundImage = '';
-                    return;
+                const poster = $('poster');
+                if (!poster) return;
+                if (url) {
+                    poster.style.backgroundImage = `url('${url}')`;
+                } else {
+                    poster.style.backgroundImage = '';
                 }
-                inactive.style.transition = 'opacity 0.8s ease-in-out';
-                active.style.transition = 'opacity 0.8s ease-in-out';
-                inactive.style.backgroundImage = `url('${url}')`;
-                // Start crossfade on next frame
-                requestAnimationFrame(() => {
-                    inactive.style.opacity = '1';
-                    active.style.opacity = '0';
-                });
             } catch (_) {
                 /* noop */
+            }
+        };
+        // Rotten Tomatoes badge helpers (mirrors legacy behavior)
+        let _rtBadge = null;
+        let _rtIcon = null;
+        const ensureRtBadgeAttached = () => {
+            try {
+                const poster = $('poster');
+                if (!poster) return null;
+                if (!_rtBadge) {
+                    _rtBadge = document.createElement('div');
+                    _rtBadge.id = 'rt-badge';
+                }
+                if (!_rtIcon) {
+                    _rtIcon = document.createElement('img');
+                    _rtIcon.id = 'rt-icon';
+                    _rtIcon.alt = 'Rotten Tomatoes';
+                }
+                if (!_rtIcon.isConnected) _rtBadge.appendChild(_rtIcon);
+                if (!_rtBadge.isConnected || _rtBadge.parentNode !== poster) {
+                    poster.appendChild(_rtBadge);
+                }
+                return _rtBadge;
+            } catch (_) {
+                return null;
             }
         };
         const setClearlogo = url => {
@@ -89,6 +102,66 @@
                 }
                 // Clearlogo
                 setClearlogo(item?.clearLogoUrl || item?.clearlogo || '');
+                // IMDb link handling (disabled in cinema mode)
+                try {
+                    const posterLink = $('poster-link');
+                    const cinemaOn = !!window.appConfig?.cinemaMode;
+                    if (posterLink) {
+                        if (cinemaOn) {
+                            posterLink.removeAttribute('href');
+                            posterLink.style.cursor = 'default';
+                        } else if (item?.imdbUrl && item.imdbUrl !== 'null') {
+                            posterLink.href = item.imdbUrl;
+                            posterLink.style.cursor = 'pointer';
+                        } else {
+                            posterLink.removeAttribute('href');
+                            posterLink.style.cursor = 'default';
+                        }
+                    }
+                } catch (_) {
+                    /* noop */
+                }
+                // Rotten Tomatoes badge/icon
+                try {
+                    const allowRt = !window.IS_PREVIEW && window.appConfig?.showRottenTomatoes;
+                    const badge = ensureRtBadgeAttached();
+                    if (
+                        allowRt &&
+                        item?.rottenTomatoes &&
+                        (item.rottenTomatoes.score || item.rottenTomatoes.icon) &&
+                        badge &&
+                        _rtIcon
+                    ) {
+                        // Optional minimum score filter
+                        const min = Number(window.appConfig?.rottenTomatoesMinimumScore || 0);
+                        const score = Number(item.rottenTomatoes.score || 0);
+                        if (!Number.isFinite(min) || score >= min) {
+                            const icon = String(item.rottenTomatoes.icon || '').toLowerCase();
+                            let iconUrl = '';
+                            switch (icon) {
+                                case 'fresh':
+                                    iconUrl = '/icons/rt-fresh.svg';
+                                    break;
+                                case 'certified-fresh':
+                                case 'certified':
+                                    iconUrl = '/icons/rt-certified-fresh.svg';
+                                    break;
+                                case 'rotten':
+                                default:
+                                    iconUrl = '/icons/rt-rotten.svg';
+                                    break;
+                            }
+                            _rtIcon.src = iconUrl;
+                            badge.classList.add('visible');
+                        } else {
+                            badge.classList.remove('visible');
+                        }
+                    } else if (badge) {
+                        badge.classList.remove('visible');
+                    }
+                } catch (_) {
+                    /* noop */
+                }
                 // Container visibility
                 const infoContainer = $('info-container');
                 if (infoContainer) {
