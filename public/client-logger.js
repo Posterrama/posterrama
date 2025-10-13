@@ -9,6 +9,15 @@ class ClientLogger {
         // Check if debugging is enabled via config or localStorage
         this.debugEnabled = this.isDebugEnabled();
 
+        // Keep legacy/global debug flag in sync so older checks still work
+        try {
+            if (typeof window !== 'undefined') {
+                window.POSTERRAMA_DEBUG = !!this.debugEnabled;
+            }
+        } catch (_) {
+            /* noop */
+        }
+
         // Store original console methods
         this.originalConsole = {
             log: console.log,
@@ -67,6 +76,14 @@ class ClientLogger {
         this.debugEnabled = enabled;
         localStorage.setItem('posterrama_debug', enabled.toString());
         this.originalConsole.log('Debug logging', enabled ? 'enabled' : 'disabled');
+        // Sync legacy/global flag for compatibility
+        try {
+            if (typeof window !== 'undefined') {
+                window.POSTERRAMA_DEBUG = !!enabled;
+            }
+        } catch (_) {
+            /* noop */
+        }
     }
 
     // Method to sync with defaults.DEBUG (called when config changes)
@@ -80,6 +97,14 @@ class ClientLogger {
                     'Debug logging synced with admin setting:',
                     this.debugEnabled ? 'enabled' : 'disabled'
                 );
+            }
+            // Ensure legacy/global flag mirrors current state
+            try {
+                if (typeof window !== 'undefined') {
+                    window.POSTERRAMA_DEBUG = !!this.debugEnabled;
+                }
+            } catch (_) {
+                /* noop */
             }
         }
     }

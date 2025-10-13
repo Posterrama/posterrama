@@ -76,7 +76,9 @@
                     setTimeout(() => {
                         try {
                             api.showNextBackground();
-                        } catch (_) {}
+                        } catch (_) {
+                            /* noop: startCycler best-effort */
+                        }
                     }, 10);
                 } catch (_) {
                     /* noop */
@@ -186,7 +188,9 @@
                                 try {
                                     window.activeLayer = inactive;
                                     window.inactiveLayer = active;
-                                } catch (_) {}
+                                } catch (_) {
+                                    /* noop: layer swap best-effort */
+                                }
                             }, 1600);
                         } catch (_) {
                             /* noop */
@@ -339,7 +343,9 @@
                                     : 0;
                             _state.idx = initialIdx;
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* noop: set initial index */
+                    }
                 } catch (_) {
                     /* noop: reinit is best-effort */ void 0;
                 }
