@@ -1666,6 +1666,7 @@ body.cinema-mode #layer-b,
 body.cinema-mode #clock-widget-container,
 body.cinema-mode #clearlogo-container,
 body.cinema-mode #branding-container,
+body.wallart-mode #branding-container,
 body.cinema-mode #rt-badge,
 body.cinema-mode #controls-container,
 body.cinema-mode #background-image,
@@ -2002,6 +2003,7 @@ body.wallart-mode::after {
 
 body.wallart-mode #background-image,
 body.wallart-mode .background-layer,
+body.wallart-mode .screensaver-layer,
 body.wallart-mode .fanart-background,
 body.wallart-mode #fanart-container,
 body.wallart-mode .poster-layer {

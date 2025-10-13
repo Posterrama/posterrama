@@ -1,2 +1,36 @@
-/* Wallart CSS (scaffold) */
-/* Real wallart styles will move here to avoid duplication */
+/* Wallart CSS */
+/* Hide everything in wallart mode (legacy root shell compatibility) */
+body.wallart-mode #poster-wrapper,
+body.wallart-mode #background-image,
+body.wallart-mode .background-layer,
+body.wallart-mode #clearlogo,
+body.wallart-mode #clear-logo,
+body.wallart-mode #info-container,
+body.wallart-mode #controls-container,
+body.wallart-mode #clock-widget-container {
+    display: none !important;
+}
+
+/* In wallart mode, force a pure black background and hide any screensaver layers */
+body.wallart-mode,
+body[data-mode='wallart'] {
+    background: #000 !important;
+}
+
+body.wallart-mode .screensaver-layer,
+body[data-mode='wallart'] .screensaver-layer {
+    display: none !important;
+    background: transparent !important;
+    background-image: none !important;
+    opacity: 0 !important;
+}
+
+/* Hide promo box in wallart mode ONLY when NOT on promo site */
+body.wallart-mode:not(.promo-site) #promo-box {
+    display: none !important;
+}
+
+/* Hide branding/logo in wallart mode */
+body.wallart-mode #branding-container {
+    display: none !important;
+}

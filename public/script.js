@@ -169,29 +169,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Helper: in screensaver mode, re-assert visibility of poster/metadata/info container
     function ensureScreensaverVisibility() {
         try {
+            if (
+                window.PosterramaScreensaver &&
+                typeof window.PosterramaScreensaver.ensureVisibility === 'function'
+            ) {
+                return window.PosterramaScreensaver.ensureVisibility();
+            }
+            // Fallback inline behavior (kept for safety if module not loaded)
             const isScreensaver = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
             if (!isScreensaver) return;
             const posterVisible = appConfig.showPoster !== false;
             const metaVisible = appConfig.showMetadata !== false;
-
-            // Toggle poster and metadata wrappers
             if (posterWrapper) posterWrapper.classList.toggle('is-hidden', !posterVisible);
             if (textWrapper) textWrapper.classList.toggle('is-hidden', !metaVisible);
-
-            // If any is visible, ensure the container is shown
             if (posterVisible || metaVisible) {
                 infoContainer.classList.add('visible');
-                // Also guard against inline display:none from previous modes
-                if (infoContainer.style.display === 'none') {
-                    infoContainer.style.display = 'flex';
-                }
+                if (infoContainer.style.display === 'none') infoContainer.style.display = 'flex';
             } else {
-                // Hide the container when nothing should be shown
                 infoContainer.classList.remove('visible');
             }
-        } catch (_) {
-            // ignore
-        }
+        } catch (_) {}
     }
 
     // Helper: ensure at least one background layer is visible to avoid black screen
@@ -241,7 +238,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Helper: detect if a Ken Burns animation is currently active on either layer
     function isKenBurnsActive() {
         try {
-            // In admin live preview, pretend no Ken Burns is active
+            if (
+                window.PosterramaScreensaver &&
+                typeof window.PosterramaScreensaver.isKenBurnsActive === 'function'
+            ) {
+                return window.PosterramaScreensaver.isKenBurnsActive();
+            }
             if (window.IS_PREVIEW) return false;
             const la = document.getElementById('layer-a');
             const lb = document.getElementById('layer-b');
@@ -252,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 (lb.hasAttribute('data-ken-burns') && lb.getAttribute('data-ken-burns') !== 'false')
             );
         } catch (_) {
-            return false; // Return false if an error occurs
+            return false;
         }
     }
 
@@ -471,78 +473,69 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (_) {}
     }
 
-    function playbackPrev() {
+    function reinitBackgroundForScreensaver() {
         try {
-            (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
-                console,
-                '[Live] playback.prev'
-            );
-        } catch (_) {}
-        // For wallart, trigger a single poster refresh; for others, move to previous item
-        if (appConfig.wallartMode?.enabled && typeof window.refreshSinglePoster === 'function') {
-            try {
-                window.refreshSinglePoster();
-            } catch (_) {}
-            return;
-        }
-        try {
-            changeMedia('prev');
-        } catch (_) {}
-    }
-    function playbackNext() {
-        try {
-            (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
-                console,
-                '[Live] playback.next'
-            );
-        } catch (_) {}
-        if (appConfig.wallartMode?.enabled && typeof window.refreshSinglePoster === 'function') {
-            try {
-                window.refreshSinglePoster();
-            } catch (_) {}
-            return;
-        }
-        try {
-            changeMedia('next');
-        } catch (_) {}
-    }
-    function playbackPause() {
-        try {
-            (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
-                console,
-                '[Live] playback.pause'
-            );
-        } catch (_) {}
-        setPaused(true);
-    }
-    function playbackResume() {
-        try {
-            (window.logger && window.logger.debug ? window.logger.debug : console.info).call(
-                console,
-                '[Live] playback.resume'
-            );
-        } catch (_) {}
-        setPaused(false);
-        // Unpin on explicit resume
-        try {
-            isPinned = false;
-            // Use empty string instead of null so heartbeat can proactively clear server pinMediaId
-            pinnedMediaId = '';
-        } catch (_) {}
-        // Clear any timed pin
-        try {
-            if (window.__posterramaPinTimer) {
-                clearTimeout(window.__posterramaPinTimer);
-                window.__posterramaPinTimer = null;
+            if (
+                window.PosterramaScreensaver &&
+                typeof window.PosterramaScreensaver.reinitBackground === 'function'
+            ) {
+                return window.PosterramaScreensaver.reinitBackground();
             }
-        } catch (_) {}
-        try {
-            window.PosterramaDevice &&
-                window.PosterramaDevice.beat &&
-                window.PosterramaDevice.beat();
+            // Fallback inline behavior
+            const isScreensaver = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
+            if (!isScreensaver) return;
+            if (isKenBurnsActive && typeof isKenBurnsActive === 'function' && isKenBurnsActive()) {
+                if (window._reinitRetryTimer) {
+                    clearTimeout(window._reinitRetryTimer);
+                    window._reinitRetryTimer = null;
+                }
+                window._reinitRetryTimer = setTimeout(() => {
+                    window._reinitRetryTimer = null;
+                    try {
+                        if (
+                            !isKenBurnsActive() &&
+                            !appConfig.cinemaMode &&
+                            !appConfig.wallartMode?.enabled
+                        ) {
+                            reinitBackgroundForScreensaver();
+                        }
+                    } catch (_) {}
+                }, 650);
+                return;
+            }
+            const la = document.getElementById('layer-a');
+            const lb = document.getElementById('layer-b');
+            if (!la || !lb) return;
+            [la, lb].forEach(el => {
+                el.style.animation = 'none';
+                el.style.transition = 'none';
+                el.style.transform = 'none';
+            });
+            let mediaItem = null;
+            try {
+                if (Array.isArray(mediaQueue) && mediaQueue.length > 0) {
+                    const idx = currentIndex >= 0 ? currentIndex : 0;
+                    mediaItem = mediaQueue[idx] || mediaQueue[0];
+                }
+            } catch (_) {}
+            if (mediaItem && mediaItem.backgroundUrl) {
+                const bg = mediaItem.backgroundUrl;
+                if (bg && bg !== 'null' && bg !== 'undefined') {
+                    la.style.backgroundImage = `url('${bg}')`;
+                    lb.style.backgroundImage = `url('${bg}')`;
+                } else {
+                    la.style.backgroundImage = '';
+                    lb.style.backgroundImage = '';
+                }
+            }
+            la.style.transition = 'none';
+            lb.style.transition = 'none';
+            la.style.opacity = '1';
+            lb.style.opacity = '0';
+            activeLayer = la;
+            inactiveLayer = lb;
         } catch (_) {}
     }
-    // --- Power (blackout) overlay ---
     let blackoutEl = null;
     function ensureBlackoutEl() {
         if (blackoutEl && document.body.contains(blackoutEl)) return blackoutEl;
@@ -735,11 +728,43 @@ document.addEventListener('DOMContentLoaded', async () => {
             showError(e.message || 'Failed switching source');
         }
     }
+    // Provide safe playback controls to avoid ReferenceError during initialization.
+    function __playbackPrev() {
+        try {
+            changeMedia('prev');
+        } catch (e) {
+            /* no-op */
+        }
+    }
+    function __playbackNext() {
+        try {
+            changeMedia('next');
+        } catch (e) {
+            /* no-op */
+        }
+    }
+    function __playbackPause() {
+        try {
+            if (typeof restartTimer === 'function' && timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+        } catch (e) {
+            /* no-op */
+        }
+    }
+    function __playbackResume() {
+        try {
+            if (typeof startTimer === 'function') startTimer();
+        } catch (e) {
+            /* no-op */
+        }
+    }
     window.__posterramaPlayback = {
-        prev: playbackPrev,
-        next: playbackNext,
-        pause: playbackPause,
-        resume: playbackResume,
+        prev: __playbackPrev,
+        next: __playbackNext,
+        pause: __playbackPause,
+        resume: __playbackResume,
         pinPoster: pinCurrentPoster,
         switchSource,
         powerOff,
@@ -1101,6 +1126,52 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setInterval(syncWallartConfig, 8000);
             }
         } catch (_) {}
+
+        // Keep standalone screensaver display in sync: if cinema or wallart enabled, navigate accordingly
+        try {
+            if (document.body.dataset.mode === 'screensaver' && !window.__screensaverSyncPoller) {
+                const syncScreensaverConfig = async () => {
+                    try {
+                        const resp = await fetch('/get-config?_t=' + Date.now(), {
+                            cache: 'no-cache',
+                            headers: { 'Cache-Control': 'no-cache' },
+                        });
+                        if (!resp.ok) return;
+                        const cfg = await resp.json();
+                        if (cfg?.cinemaMode === true) {
+                            if (window.PosterramaCore?.navigateToMode)
+                                return void window.PosterramaCore.navigateToMode('cinema');
+                            if (window.PosterramaCore && window.PosterramaCore.buildUrlForMode) {
+                                return void window.location.replace(
+                                    window.PosterramaCore.buildUrlForMode('cinema')
+                                );
+                            }
+                            const base = window.location.pathname.replace(/[^/]+$/, '/');
+                            return void window.location.replace(
+                                window.location.origin + base + 'cinema'
+                            );
+                        }
+                        if (cfg?.wallartMode?.enabled === true) {
+                            if (window.PosterramaCore?.navigateToMode)
+                                return void window.PosterramaCore.navigateToMode('wallart');
+                            if (window.PosterramaCore && window.PosterramaCore.buildUrlForMode) {
+                                return void window.location.replace(
+                                    window.PosterramaCore.buildUrlForMode('wallart')
+                                );
+                            }
+                            const base = window.location.pathname.replace(/[^/]+$/, '/');
+                            return void window.location.replace(
+                                window.location.origin + base + 'wallart'
+                            );
+                        }
+                        // else remain on screensaver
+                    } catch (_) {}
+                };
+                // initial and interval
+                await syncScreensaverConfig();
+                window.__screensaverSyncPoller = setInterval(syncScreensaverConfig, 8000);
+            }
+        } catch (_) {}
     }
 
     // --- Live Preview support ---
@@ -1108,6 +1179,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     function applySettings(partial) {
         try {
             if (!partial || typeof partial !== 'object') return;
+            // Global: if any mode switch is implied by partial, navigate immediately.
+            try {
+                const bodyMode = document.body && document.body.dataset.mode;
+                const turningCinemaOn = partial.cinemaMode === true;
+                const turningCinemaOff = partial.cinemaMode === false;
+                const wallartEnabled = !!(
+                    partial.wallartMode && partial.wallartMode.enabled === true
+                );
+                const wallartDisabled = !!(
+                    partial.wallartMode && partial.wallartMode.enabled === false
+                );
+
+                // Resolve next mode from partial alone when it clearly indicates a new active mode
+                let nextMode = null;
+                if (turningCinemaOn) nextMode = 'cinema';
+                else if (wallartEnabled) nextMode = 'wallart';
+                else if (turningCinemaOff || wallartDisabled) nextMode = 'screensaver';
+
+                if (nextMode && bodyMode && bodyMode !== nextMode) {
+                    if (window.PosterramaCore?.navigateToMode) {
+                        return void window.PosterramaCore.navigateToMode(nextMode);
+                    }
+                    if (window.PosterramaCore && window.PosterramaCore.buildUrlForMode) {
+                        return void window.location.replace(
+                            window.PosterramaCore.buildUrlForMode(nextMode)
+                        );
+                    }
+                    const base = window.location.pathname.replace(/[^/]+$/, '/');
+                    return void window.location.replace(window.location.origin + base + nextMode);
+                }
+            } catch (_) {}
             // If on standalone cinema page and admin disables cinema or enables wallart, exit to root
             if (document.body && document.body.dataset.mode === 'cinema') {
                 const turningCinemaOff =
@@ -1706,7 +1808,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const ambient = document.getElementById('wallart-ambient-overlay');
                 if (ambient) ambient.remove();
                 // Restart cycle with new settings without toggling body classes
-                startWallartCycle(curr);
+                if (typeof startWallartCycle === 'function') {
+                    startWallartCycle(curr);
+                } else if (
+                    window.PosterramaWallart &&
+                    typeof window.PosterramaWallart.start === 'function'
+                ) {
+                    window.PosterramaWallart.start(curr);
+                }
                 window._lastWallartConfig = { ...curr };
                 return;
             }
@@ -1722,7 +1831,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 'branding-container',
                 'poster-wrapper',
                 'background-image',
-                'loader',
                 'layer-a',
                 'layer-b',
             ];
@@ -1797,7 +1905,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                             })
                             .finally(() => {
                                 try {
-                                    startWallartCycle(config.wallartMode);
+                                    if (typeof startWallartCycle === 'function') {
+                                        startWallartCycle(config.wallartMode);
+                                    } else if (
+                                        window.PosterramaWallart &&
+                                        typeof window.PosterramaWallart.start === 'function'
+                                    ) {
+                                        window.PosterramaWallart.start(config.wallartMode);
+                                    }
                                     window._lastWallartConfig = { ...config.wallartMode };
                                 } catch (_) {
                                     // Failed to start wallart cycle after prefetch; ignore
@@ -1805,11 +1920,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                             });
                     } catch (_) {
                         // Fallback to immediate start if fetch throws synchronously
-                        startWallartCycle(config.wallartMode);
+                        if (typeof startWallartCycle === 'function') {
+                            startWallartCycle(config.wallartMode);
+                        } else if (
+                            window.PosterramaWallart &&
+                            typeof window.PosterramaWallart.start === 'function'
+                        ) {
+                            window.PosterramaWallart.start(config.wallartMode);
+                        }
                         window._lastWallartConfig = { ...config.wallartMode };
                     }
                 } else {
-                    startWallartCycle(config.wallartMode);
+                    if (typeof startWallartCycle === 'function') {
+                        startWallartCycle(config.wallartMode);
+                    } else if (
+                        window.PosterramaWallart &&
+                        typeof window.PosterramaWallart.start === 'function'
+                    ) {
+                        window.PosterramaWallart.start(config.wallartMode);
+                    }
                     window._lastWallartConfig = { ...config.wallartMode };
                 }
             }
@@ -1823,7 +1952,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // Debounce resize events
                         clearTimeout(window.wallartResizeTimer);
                         window.wallartResizeTimer = setTimeout(() => {
-                            startWallartCycle(config.wallartMode);
+                            if (typeof startWallartCycle === 'function') {
+                                startWallartCycle(config.wallartMode);
+                            } else if (
+                                window.PosterramaWallart &&
+                                typeof window.PosterramaWallart.start === 'function'
+                            ) {
+                                window.PosterramaWallart.start(config.wallartMode);
+                            }
                         }, 300);
                     }
                 };
@@ -1967,6 +2103,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function calculateWallartLayout(density = 'medium') {
+        // Prefer module implementation if present
+        try {
+            if (
+                window.PosterramaWallart &&
+                typeof window.PosterramaWallart.calculateLayout === 'function'
+            ) {
+                return window.PosterramaWallart.calculateLayout(density);
+            }
+        } catch (_) {}
+        // Fallback to legacy inline implementation
         const screenWidth = window.innerWidth;
         const screenHeight = window.innerHeight;
         const isPortrait = screenHeight > screenWidth;

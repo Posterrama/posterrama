@@ -21,20 +21,29 @@
     };
 
     Core.buildBasePath = function buildBasePath() {
-        // Remove the last path segment, keep trailing slash
-        return window.location.pathname.replace(/[^/]+$/, '/');
+        // Normalize: collapse multiple slashes
+        let p = (window.location.pathname || '/').replace(/\/+/, '/');
+        p = p.replace(/\/+/g, '/');
+        // Strip trailing slash (except root)
+        if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
+        // Remove last segment
+        p = p.replace(/[^/]+$/, '');
+        // Ensure single trailing slash
+        if (!p.endsWith('/')) p += '/';
+        return p;
     };
 
     Core.buildUrlForMode = function buildUrlForMode(mode) {
         const base = Core.buildBasePath();
+        const basePart = base === '/' ? '' : base;
         switch (mode) {
             case 'cinema':
-                return window.location.origin + base + 'cinema';
+                return window.location.origin + basePart + 'cinema';
             case 'wallart':
-                return window.location.origin + base + 'wallart';
+                return window.location.origin + basePart + 'wallart';
             case 'screensaver':
             default:
-                return window.location.origin + base + 'screensaver';
+                return window.location.origin + basePart + 'screensaver';
         }
     };
 

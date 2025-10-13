@@ -87,25 +87,7 @@
     <link rel="stylesheet" href="style.css?v=20250828a" />
         <link rel="stylesheet" href="/wallart/wallart.css?v={{ASSET_VERSION}}" />
 
-        <!-- Clean wallart mode styles -->
-        <style>
-            /* Hide everything in wallart mode */
-            body.wallart-mode #poster-wrapper,
-            body.wallart-mode #background-image,
-            body.wallart-mode .background-layer,
-            body.wallart-mode #clearlogo,
-            body.wallart-mode #clear-logo,
-            body.wallart-mode #info-container,
-            body.wallart-mode #controls-container,
-            body.wallart-mode #clock-widget-container {
-                display: none !important;
-            }
-
-            /* Hide promo box in wallart mode ONLY when NOT on promo site */
-            body.wallart-mode:not(.promo-site) #promo-box {
-                display: none !important;
-            }
-        </style>
+        
         <!-- Structured Data / JSON-LD -->
         <script type="application/ld+json">
             {
@@ -142,7 +124,7 @@
             }
         </script>
     </head>
-    <body data-mode="wallart">
+    <body data-mode="wallart" class="wallart-mode">
         <div id="loader">
             <div class="poster-loader"></div>
         </div>
@@ -314,19 +296,23 @@
                 // Redirect to cinema if cinema mode is enabled
                 if (config.cinemaMode === true) {
                     console.log('[Posterrama] Cinema mode detected, redirecting to /cinema');
-                    window.location.href = '/cinema';
+                    if (window.PosterramaCore && window.PosterramaCore.buildUrlForMode) {
+                        window.location.replace(window.PosterramaCore.buildUrlForMode('cinema'));
+                    } else {
+                        var base = (function(p){ p=(p||'/').replace(/\/+/, '/'); p=p.replace(/\/+/g,'/'); if(p.length>1&&p.endsWith('/')) p=p.slice(0,-1); p=p.replace(/[^/]+$/,'/'); return p; })(window.location.pathname);
+                        window.location.replace(window.location.origin + base + 'cinema');
+                    }
                     return;
                 }
 
-                // Wallart uses the root shell (no /wallart route). Apply class and continue.
+                // If wallart is enabled, we are already on /wallart; keep initializing.
                 if (config.wallartMode && config.wallartMode.enabled === true) {
-                    console.log('[Posterrama] Wallart mode detected, staying on / and applying wallart-mode');
+                    console.log('[Posterrama] Wallart mode detected, continue on /wallart');
                     document.body.classList.add('wallart-mode');
-                    return; // Allow the page to continue initializing in wallart mode
+                    return;
                 }
 
-                // No special mode enabled, continue loading index.html as screensaver
-                console.log('[Posterrama] Screensaver mode detected, loading index.html');
+                // No wallart: let the rest of page init, auto-exit polling will navigate to cinema/screensaver if needed
             } catch (err) {
                 // Failed to check config, continue loading index.html
                 console.warn('[Posterrama] Failed to check mode config, loading index.html', err);
