@@ -110,7 +110,9 @@
                                     : 0;
                             mediaItem = window.mediaQueue[idx] || window.mediaQueue[0];
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* noop: media queue best-effort */ void 0;
+                    }
 
                     if (mediaItem && mediaItem.backgroundUrl) {
                         const bg = mediaItem.backgroundUrl;
