@@ -1529,6 +1529,11 @@ app.get(['/cinema', '/cinema.html'], (req, res, next) => {
                 /lazy-loading\.js\?v=[^"&\s]+/g,
                 `lazy-loading.js?v=${versions['lazy-loading.js'] || ASSET_VERSION}`
             )
+            // Shared core utilities
+            .replace(
+                /\/core\.js(\?v=[^"'\s>]+)?/g,
+                `/core.js?v=${versions['core.js'] || ASSET_VERSION}`
+            )
             // Cinema-specific assets
             .replace(
                 /cinema\/cinema-display\.js\?v=[^"&\s]+/g,
@@ -1680,6 +1685,16 @@ app.get(['/wallart', '/wallart.html'], (req, res, next) => {
                 /lazy-loading\.js\?v=[^"&\s]+/g,
                 `lazy-loading.js?v=${versions['lazy-loading.js'] || ASSET_VERSION}`
             )
+            // Shared core utilities
+            .replace(
+                /\/core\.js(\?v=[^"'\s>]+)?/g,
+                `/core.js?v=${versions['core.js'] || ASSET_VERSION}`
+            )
+            // Wallart-specific assets
+            .replace(
+                /\/wallart\/wallart-display\.js(\?v=[^"'\s>]+)?/g,
+                `/wallart/wallart-display.js?v=${versions['wallart/wallart-display.js'] || ASSET_VERSION}`
+            )
             // Stamp client-side logger
             .replace(
                 /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
@@ -1778,6 +1793,16 @@ app.get(['/screensaver', '/screensaver.html'], (req, res, next) => {
             .replace(
                 /lazy-loading\.js\?v=[^"&\s]+/g,
                 `lazy-loading.js?v=${versions['lazy-loading.js'] || ASSET_VERSION}`
+            )
+            // Shared core utilities
+            .replace(
+                /\/core\.js(\?v=[^"'\s>]+)?/g,
+                `/core.js?v=${versions['core.js'] || ASSET_VERSION}`
+            )
+            // Screensaver-specific assets
+            .replace(
+                /\/screensaver\/screensaver\.js(\?v=[^"'\s>]+)?/g,
+                `/screensaver/screensaver.js?v=${versions['screensaver/screensaver.js'] || ASSET_VERSION}`
             )
             // Stamp client-side logger
             .replace(

@@ -1,0 +1,77 @@
+// Posterrama Core Utilities
+(function () {
+    const Core = {};
+
+    function safeJson(v) {
+        try {
+            return JSON.parse(JSON.stringify(v));
+        } catch (_) {
+            return undefined;
+        }
+    }
+
+    Core.fetchConfig = async function fetchConfig(extra = {}) {
+        const qs = `_t=${Date.now()}`;
+        const url = `/get-config?${qs}`;
+        const resp = await fetch(url, {
+            cache: 'no-cache',
+            headers: { 'Cache-Control': 'no-cache' },
+            ...extra,
+        });
+        if (!resp.ok) throw new Error('config fetch failed');
+        return resp.json();
+    };
+
+    Core.getActiveMode = function getActiveMode(cfg) {
+        if (cfg?.cinemaMode === true) return 'cinema';
+        if (cfg?.wallartMode?.enabled === true) return 'wallart';
+        return 'screensaver';
+    };
+
+    Core.buildBasePath = function buildBasePath() {
+        // Remove the last path segment, keep trailing slash
+        return window.location.pathname.replace(/[^/]+$/, '/');
+    };
+
+    Core.buildUrlForMode = function buildUrlForMode(mode) {
+        const base = Core.buildBasePath();
+        switch (mode) {
+            case 'cinema':
+                return window.location.origin + base + 'cinema';
+            case 'wallart':
+                return window.location.origin + base + 'wallart';
+            case 'screensaver':
+            default:
+                return window.location.origin + base + 'screensaver';
+        }
+    };
+
+    let lastNavTs = 0;
+    Core.navigateToMode = function navigateToMode(mode, opts = {}) {
+        const now = Date.now();
+        if (now - lastNavTs < 1200) return; // debounce multi-triggers
+        lastNavTs = now;
+        const url = Core.buildUrlForMode(mode);
+        if (opts.replace !== false) return void window.location.replace(url);
+        window.location.href = url;
+    };
+
+    let lastReloadTs = 0;
+    Core.throttleReload = function throttleReload(nextUrl) {
+        const now = Date.now();
+        if (now - lastReloadTs < 8000) return; // prevent rapid reload loops
+        lastReloadTs = now;
+        if (nextUrl) return void window.location.replace(nextUrl);
+        window.location.reload();
+    };
+
+    Core.bootstrapLogger = function bootstrapLogger() {
+        try {
+            if (window.logger && typeof window.logger.isDebug === 'function') return;
+            // no-op placeholder: logger is provided by /client-logger.js
+        } catch (_) {}
+    };
+
+    // Expose
+    window.PosterramaCore = Core;
+})();
