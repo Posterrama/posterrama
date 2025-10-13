@@ -8,6 +8,7 @@
             cycleTimer: null,
             idx: -1,
             paused: false,
+            order: null,
         };
         // Small helpers for DOM access
         const $ = sel => document.getElementById(sel);
@@ -191,6 +192,19 @@
                         if (items.length > 0 && (_state.idx === -1 || _state.idx == null)) {
                             _state.idx = Math.floor(Math.random() * items.length) - 1;
                         }
+                        // Build a shuffled traversal order without mutating mediaQueue
+                        const n = items.length;
+                        if (n > 0) {
+                            _state.order = Array.from({ length: n }, (_, i) => i);
+                            for (let i = n - 1; i > 0; i--) {
+                                const j = Math.floor(Math.random() * (i + 1));
+                                const t = _state.order[i];
+                                _state.order[i] = _state.order[j];
+                                _state.order[j] = t;
+                            }
+                        } else {
+                            _state.order = null;
+                        }
                     } catch (_) {
                         /* noop */
                     }
@@ -223,19 +237,35 @@
                         const showControls = () => {
                             if (!container) return;
                             container.classList.add('visible');
+                            try {
+                                document.body.style.cursor = 'default';
+                            } catch (_) {
+                                /* noop */
+                            }
                             if (hideTimer) clearTimeout(hideTimer);
                             hideTimer = setTimeout(() => {
                                 try {
                                     container.classList.remove('visible');
+                                    document.body.style.cursor = 'none';
                                 } catch (_) {
                                     /* noop */
                                 }
                             }, 2500);
                         };
                         const onInteract = () => showControls();
-                        ['mousemove', 'touchstart', 'keydown'].forEach(evt => {
-                            window.addEventListener(evt, onInteract, { passive: true });
-                        });
+                        // Bind to body for faster response similar to legacy behavior
+                        if (document && document.body) {
+                            document.body.addEventListener('mousemove', onInteract, {
+                                passive: true,
+                            });
+                            document.body.addEventListener('touchstart', onInteract, {
+                                passive: true,
+                            });
+                        } else {
+                            ['mousemove', 'touchstart'].forEach(evt => {
+                                window.addEventListener(evt, onInteract, { passive: true });
+                            });
+                        }
                         if (prevBtn)
                             prevBtn.onclick = () => {
                                 try {
@@ -277,6 +307,48 @@
                                 }
                                 showControls();
                             };
+                        // Keyboard controls to match legacy
+                        document.addEventListener('keydown', e => {
+                            try {
+                                showControls();
+                            } catch (_) {
+                                /* noop */
+                            }
+                            if (e.key === 'ArrowRight') {
+                                try {
+                                    window.__posterramaPlayback &&
+                                        window.__posterramaPlayback.next &&
+                                        window.__posterramaPlayback.next();
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            } else if (e.key === 'ArrowLeft') {
+                                try {
+                                    window.__posterramaPlayback &&
+                                        window.__posterramaPlayback.prev &&
+                                        window.__posterramaPlayback.prev();
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            } else if (e.key === ' ') {
+                                e.preventDefault();
+                                try {
+                                    if (_state.paused) {
+                                        window.__posterramaPlayback &&
+                                            window.__posterramaPlayback.resume &&
+                                            window.__posterramaPlayback.resume();
+                                        if (pauseBtn) pauseBtn.classList.remove('is-paused');
+                                    } else {
+                                        window.__posterramaPlayback &&
+                                            window.__posterramaPlayback.pause &&
+                                            window.__posterramaPlayback.pause();
+                                        if (pauseBtn) pauseBtn.classList.add('is-paused');
+                                    }
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            }
+                        });
                     } catch (_) {
                         /* noop */
                     }
@@ -386,6 +458,21 @@
                     if (!la || !lb) return;
 
                     const items = Array.isArray(window.mediaQueue) ? window.mediaQueue : [];
+                    // Ensure shuffled order is aligned with current list size
+                    if (!_state.order || _state.order.length !== items.length) {
+                        const n = items.length;
+                        if (n > 0) {
+                            _state.order = Array.from({ length: n }, (_, i) => i);
+                            for (let i = n - 1; i > 0; i--) {
+                                const j = Math.floor(Math.random() * (i + 1));
+                                const t = _state.order[i];
+                                _state.order[i] = _state.order[j];
+                                _state.order[j] = t;
+                            }
+                        } else {
+                            _state.order = null;
+                        }
+                    }
                     const total = items.length;
                     if (total === 0) return; // nothing to do
 
@@ -397,7 +484,11 @@
                     } else {
                         _state.idx = (_state.idx + 1) % Math.max(total, 1);
                     }
-                    const nextItem = items[_state.idx] || items[0];
+                    const mappedIdx =
+                        _state.order && _state.order.length === total
+                            ? _state.order[Math.max(0, _state.idx % total)]
+                            : Math.max(0, _state.idx % total);
+                    const nextItem = items[mappedIdx] || items[0];
                     const nextUrl = nextItem?.backgroundUrl || null;
                     if (!nextUrl || nextUrl === 'null' || nextUrl === 'undefined') return;
 
