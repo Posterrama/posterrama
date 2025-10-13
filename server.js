@@ -1719,7 +1719,7 @@ app.get(['/wallart', '/wallart.html'], (req, res, next) => {
         // Inject a MODE_HINT so the shell knows to enable wallart mode and skip self-redirects
         const injected = stamped.replace(
             /<script src="lazy-loading\.js[^"]*"><\/script>/,
-            match => `${match}\n<script>window.MODE_HINT = 'wallart';<\/script>`
+            match => `${match}\n<script>window.MODE_HINT = 'wallart';</script>`
         );
         res.setHeader('Cache-Control', 'no-cache');
         return res.send(injected);

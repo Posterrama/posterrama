@@ -134,7 +134,7 @@
                     window.activeLayer = la;
                     window.inactiveLayer = lb;
                 } catch (_) {
-                    /* noop: reinit is best-effort */
+                    /* noop: reinit is best-effort */ void 0;
                 }
             },
         };
