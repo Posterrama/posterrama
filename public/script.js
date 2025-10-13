@@ -258,83 +258,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Helper: force-initialize background layers when returning to screensaver mode
-    // NOTE: If Ken Burns is active, defer reinit to avoid visible transform snaps.
-    function reinitBackgroundForScreensaver() {
-        try {
-            const isScreensaver = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
-            if (!isScreensaver) return;
-
-            // If Ken Burns is currently active on any layer, postpone reinit slightly.
-            if (isKenBurnsActive && typeof isKenBurnsActive === 'function' && isKenBurnsActive()) {
-                // Debounced retry to avoid stacking timers
-                if (window._reinitRetryTimer) {
-                    clearTimeout(window._reinitRetryTimer);
-                    window._reinitRetryTimer = null;
-                }
-                window._reinitRetryTimer = setTimeout(() => {
-                    window._reinitRetryTimer = null;
-                    try {
-                        if (
-                            !isKenBurnsActive() &&
-                            !appConfig.cinemaMode &&
-                            !appConfig.wallartMode?.enabled
-                        ) {
-                            reinitBackgroundForScreensaver();
-                        }
-                    } catch (_) {
-                        // best-effort
-                    }
-                }, 650);
-                return; // Don't reset transforms mid-KB
-            }
-
-            const la = document.getElementById('layer-a');
-            const lb = document.getElementById('layer-b');
-            if (!la || !lb) return;
-
-            // Reset styles (safe now because no active Ken Burns)
-            [la, lb].forEach(el => {
-                el.style.animation = 'none';
-                el.style.transition = 'none';
-                el.style.transform = 'none';
-            });
-
-            // Choose a media item
-            let mediaItem = null;
-            if (mediaQueue && mediaQueue.length > 0) {
-                const idx = currentIndex >= 0 ? currentIndex : 0;
-                mediaItem = mediaQueue[idx] || mediaQueue[0];
-            }
-
-            if (mediaItem && mediaItem.backgroundUrl) {
-                const bg = mediaItem.backgroundUrl;
-                if (bg && bg !== 'null' && bg !== 'undefined') {
-                    la.style.backgroundImage = `url('${bg}')`;
-                    // Preload lb with the same image as a safe fallback; it will be replaced on next cycle
-                    lb.style.backgroundImage = `url('${bg}')`;
-                } else {
-                    la.style.backgroundImage = '';
-                    lb.style.backgroundImage = '';
-                }
-            }
-
-            // Make sure the visible layer shows immediately
-            la.style.transition = 'none';
-            lb.style.transition = 'none';
-            la.style.opacity = '1';
-            lb.style.opacity = '0';
-
-            // Reset references to a known state
-            activeLayer = la;
-            inactiveLayer = lb;
-
-            ensureBackgroundVisible();
-        } catch (_) {
-            // ignore
-        }
-    }
-
     // --- State ---
     let mediaQueue = [];
     let currentIndex = -1;
@@ -651,7 +574,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     () => {
                         // Auto-resume when timer elapses
                         try {
-                            playbackResume();
+                            setPaused(false);
                         } catch (_) {}
                     },
                     Math.min(dur, 24 * 60 * 60 * 1000)
