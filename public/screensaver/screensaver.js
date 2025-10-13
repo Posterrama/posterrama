@@ -185,6 +185,15 @@
                 try {
                     if (_state.started) return;
                     _state.started = true;
+                    // Seed a random starting index so refresh doesn't always begin at same item
+                    try {
+                        const items = Array.isArray(window.mediaQueue) ? window.mediaQueue : [];
+                        if (items.length > 0 && (_state.idx === -1 || _state.idx == null)) {
+                            _state.idx = Math.floor(Math.random() * items.length) - 1;
+                        }
+                    } catch (_) {
+                        /* noop */
+                    }
                     // Ensure visibility now and on interval in case config changes async
                     api.ensureVisibility();
                     if (_state.ensureTimer) clearInterval(_state.ensureTimer);
@@ -204,6 +213,73 @@
                             /* noop */
                         }
                     }, 50);
+                    // Controls: wire buttons and transient visibility on user interaction
+                    try {
+                        const container = document.getElementById('controls-container');
+                        const prevBtn = document.getElementById('prev-button');
+                        const nextBtn = document.getElementById('next-button');
+                        const pauseBtn = document.getElementById('pause-button');
+                        let hideTimer = null;
+                        const showControls = () => {
+                            if (!container) return;
+                            container.classList.add('visible');
+                            if (hideTimer) clearTimeout(hideTimer);
+                            hideTimer = setTimeout(() => {
+                                try {
+                                    container.classList.remove('visible');
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            }, 2500);
+                        };
+                        const onInteract = () => showControls();
+                        ['mousemove', 'touchstart', 'keydown'].forEach(evt => {
+                            window.addEventListener(evt, onInteract, { passive: true });
+                        });
+                        if (prevBtn)
+                            prevBtn.onclick = () => {
+                                try {
+                                    window.__posterramaPlayback &&
+                                        window.__posterramaPlayback.prev &&
+                                        window.__posterramaPlayback.prev();
+                                } catch (_) {
+                                    /* noop */
+                                }
+                                showControls();
+                            };
+                        if (nextBtn)
+                            nextBtn.onclick = () => {
+                                try {
+                                    window.__posterramaPlayback &&
+                                        window.__posterramaPlayback.next &&
+                                        window.__posterramaPlayback.next();
+                                } catch (_) {
+                                    /* noop */
+                                }
+                                showControls();
+                            };
+                        if (pauseBtn)
+                            pauseBtn.onclick = () => {
+                                try {
+                                    if (_state.paused) {
+                                        window.__posterramaPlayback &&
+                                            window.__posterramaPlayback.resume &&
+                                            window.__posterramaPlayback.resume();
+                                        pauseBtn.classList.remove('is-paused');
+                                    } else {
+                                        window.__posterramaPlayback &&
+                                            window.__posterramaPlayback.pause &&
+                                            window.__posterramaPlayback.pause();
+                                        pauseBtn.classList.add('is-paused');
+                                    }
+                                } catch (_) {
+                                    /* noop */
+                                }
+                                showControls();
+                            };
+                    } catch (_) {
+                        /* noop */
+                    }
                     // Playback exposure for device mgmt
                     try {
                         window.__posterramaPlayback = {
