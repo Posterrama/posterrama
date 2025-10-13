@@ -1046,7 +1046,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (!cfg || cfg.cinemaMode !== true) {
                             // Prefer replace() to avoid adding history entries; compute base to support subpath deployments
                             const base = window.location.pathname.replace(/[^/]+$/, '/');
-                            const dest = cfg?.wallartMode?.enabled ? base + 'wallart' : base;
+                            const dest = cfg?.wallartMode?.enabled
+                                ? base + 'wallart'
+                                : base + 'screensaver';
                             window.location.replace(window.location.origin + dest);
                             return;
                         }
@@ -1076,7 +1078,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const wallartOn = !!(cfg && cfg.wallartMode && cfg.wallartMode.enabled);
                         if (!wallartOn) {
                             const base = window.location.pathname.replace(/[^/]+$/, '/');
-                            const dest = cfg?.cinemaMode === true ? base + 'cinema' : base;
+                            const dest =
+                                cfg?.cinemaMode === true ? base + 'cinema' : base + 'screensaver';
                             window.location.replace(window.location.origin + dest);
                             return;
                         }
@@ -1102,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (turningCinemaOff || enablingWallart) {
                     try {
                         const base = window.location.pathname.replace(/[^/]+$/, '/');
-                        const dest = enablingWallart ? base + 'wallart' : base;
+                        const dest = enablingWallart ? base + 'wallart' : base + 'screensaver';
                         window.location.replace(window.location.origin + dest);
                         return;
                     } catch (_) {}
@@ -1120,12 +1123,39 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (turningWallartOff || enablingCinema) {
                     try {
                         const base = window.location.pathname.replace(/[^/]+$/, '/');
-                        const dest = enablingCinema ? base + 'cinema' : base;
+                        const dest = enablingCinema ? base + 'cinema' : base + 'screensaver';
                         window.location.replace(window.location.origin + dest);
                         return;
                     } catch (_) {}
                 }
             }
+
+            // Keep standalone screensaver display in sync: if cinema or wallart enabled, navigate accordingly
+            try {
+                if (document.body.dataset.mode === 'screensaver') {
+                    const syncSs = async () => {
+                        try {
+                            const resp = await fetch('/get-config?_t=' + Date.now(), {
+                                cache: 'no-cache',
+                                headers: { 'Cache-Control': 'no-cache' },
+                            });
+                            if (!resp.ok) return;
+                            const cfg = await resp.json();
+                            const base = window.location.pathname.replace(/[^/]+$/, '/');
+                            if (cfg?.cinemaMode === true)
+                                return void window.location.replace(
+                                    window.location.origin + base + 'cinema'
+                                );
+                            if (cfg?.wallartMode?.enabled === true)
+                                return void window.location.replace(
+                                    window.location.origin + base + 'wallart'
+                                );
+                        } catch (_) {}
+                    };
+                    syncSs();
+                    setInterval(syncSs, 8000);
+                }
+            } catch (_) {}
 
             if (window.POSTERRAMA_DEBUG) {
                 try {

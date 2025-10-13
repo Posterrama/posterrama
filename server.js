@@ -1707,18 +1707,94 @@ app.get(['/wallart', '/wallart.html'], (req, res, next) => {
  * @swagger
  * /screensaver:
  *   get:
- *     summary: Serve screensaver display page (placeholder)
- *     description: Temporary redirect to index.html until screensaver.html is implemented. Will serve dedicated screensaver page in future.
+ *     summary: Serve screensaver display page
+ *     description: Serves a dedicated screensaver page with automatic asset versioning.
  *     tags: ['Frontend']
  *     responses:
- *       302:
- *         description: Redirect to index.html
+ *       200:
+ *         description: Screensaver display HTML content
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
  */
-// Temporary screensaver route - redirects to index.html
-app.get(['/screensaver', '/screensaver.html'], (req, res) => {
-    // Temporary: redirect to index.html (which is the screensaver when no mode is set)
-    // TODO: Create screensaver.html similar to cinema.html
-    res.redirect('/');
+// Serve screensaver.html with automatic asset versioning
+app.get(['/screensaver', '/screensaver.html'], (req, res, next) => {
+    // Log screensaver display access similarly to other modes
+    const isAdminAccess =
+        req.headers.referer?.includes('/admin') ||
+        req.headers.referer?.includes('/logs.html') ||
+        req.deviceBypass;
+
+    if (!isAdminAccess) {
+        const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+        const userAgent = req.headers['user-agent'] || 'Unknown';
+        const deviceKey = `screensaver|${ip}|${userAgent.substring(0, 50)}`;
+
+        if (!global.deviceAccessLog)
+            global.deviceAccessLog = { data: new Map(), lastReset: Date.now() };
+        const now = Date.now();
+        if (now - global.deviceAccessLog.lastReset > 3600000) {
+            global.deviceAccessLog.data.clear();
+            global.deviceAccessLog.lastReset = now;
+        }
+
+        const lastSeen = global.deviceAccessLog.data.get(deviceKey);
+        if (!lastSeen) {
+            logger.info(
+                `[Device] Screensaver display access: ${ip} (${userAgent.substring(0, 50)}) - ${req.url}`,
+                {
+                    ip,
+                    userAgent: userAgent.substring(0, 100),
+                    deviceKey: deviceKey.substring(0, 50),
+                    mode: 'screensaver',
+                    url: req.url,
+                    timestamp: new Date().toISOString(),
+                }
+            );
+            global.deviceAccessLog.data.set(deviceKey, now);
+        }
+    }
+
+    const filePath = path.join(__dirname, 'public', 'screensaver.html');
+    fs.readFile(filePath, 'utf8', (err, contents) => {
+        if (err) return next(err);
+
+        const versions = getAssetVersions();
+        const stamped = contents
+            .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
+            .replace(
+                /script\.js\?v=[^"&\s]+/g,
+                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /style\.css\?v=[^"&\s]+/g,
+                `style.css?v=${versions['style.css'] || ASSET_VERSION}`
+            )
+            .replace(
+                /device-mgmt\.js\?v=[^"&\s]+/g,
+                `device-mgmt.js?v=${versions['device-mgmt.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /lazy-loading\.js\?v=[^"&\s]+/g,
+                `lazy-loading.js?v=${versions['lazy-loading.js'] || ASSET_VERSION}`
+            )
+            // Stamp client-side logger
+            .replace(
+                /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
+                `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
+            )
+            // Stamp manifest
+            .replace(
+                /\/manifest\.json(\?v=[^"'\s>]+)?/g,
+                `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
+            )
+            // Ensure service worker registration always fetches latest sw.js
+            .replace(/\/sw\.js(\?v=[^"'\s>]+)?/g, `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`);
+
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.send(stamped);
+    });
 });
 
 // Add metrics collection middleware
