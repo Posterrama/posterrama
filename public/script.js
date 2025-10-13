@@ -1042,10 +1042,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
                         if (!resp.ok) return;
                         const cfg = await resp.json();
-                        // If cinema mode was turned off while we're on /cinema, navigate back to root
+                        // If cinema mode was turned off while we're on /cinema, navigate appropriately
                         if (!cfg || cfg.cinemaMode !== true) {
-                            // Prefer replace() to avoid adding history entries; absolute origin to be robust behind proxies
-                            window.location.replace(window.location.origin + '/');
+                            // Prefer replace() to avoid adding history entries; compute base to support subpath deployments
+                            const base = window.location.pathname.replace(/[^/]+$/, '/');
+                            const dest = cfg?.wallartMode?.enabled ? base + 'wallart' : base;
+                            window.location.replace(window.location.origin + dest);
                             return;
                         }
                         if (cfg && cfg.cinema) {
@@ -1070,10 +1072,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
                         if (!resp.ok) return;
                         const cfg = await resp.json();
-                        // If wallart mode was turned off (i.e., screensaver or cinema enabled), go back to root
+                        // If wallart mode was turned off (i.e., screensaver or cinema enabled), navigate appropriately
                         const wallartOn = !!(cfg && cfg.wallartMode && cfg.wallartMode.enabled);
                         if (!wallartOn) {
-                            window.location.replace(window.location.origin + '/');
+                            const base = window.location.pathname.replace(/[^/]+$/, '/');
+                            const dest = cfg?.cinemaMode === true ? base + 'cinema' : base;
+                            window.location.replace(window.location.origin + dest);
                             return;
                         }
                     } catch (_) {}
@@ -1097,7 +1101,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const enablingWallart = partial.wallartMode && partial.wallartMode.enabled === true;
                 if (turningCinemaOff || enablingWallart) {
                     try {
-                        window.location.replace('/');
+                        const base = window.location.pathname.replace(/[^/]+$/, '/');
+                        const dest = enablingWallart ? base + 'wallart' : base;
+                        window.location.replace(window.location.origin + dest);
                         return;
                     } catch (_) {}
                 }
@@ -1113,7 +1119,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     partial.cinemaMode === true;
                 if (turningWallartOff || enablingCinema) {
                     try {
-                        window.location.replace('/');
+                        const base = window.location.pathname.replace(/[^/]+$/, '/');
+                        const dest = enablingCinema ? base + 'cinema' : base;
+                        window.location.replace(window.location.origin + dest);
                         return;
                     } catch (_) {}
                 }
