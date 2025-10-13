@@ -24,6 +24,20 @@ Last updated: 2025-10-13
 - Basic tests:
     - Route tests for `/cinema`, `/wallart`, `/screensaver` (200 + HTML content-type)
     - URL building test for `buildUrlForMode()`
+    - Route tests assert stamped, per-mode assets are referenced for all three pages
+
+- Wallart page bootstrap (no legacy orchestrator):
+    - Ensures `window.appConfig`, `window.wallartConfig`, and `window.mediaQueue` are set before start
+    - Device management initialized on wallart (`PosterramaDevice.init`) for heartbeats + WS live logs
+    - Module exposes `__posterramaCurrentMedia`, `__posterramaCurrentMediaId`, `__posterramaPaused`, and minimal `__posterramaPlayback` (next/prev/pause/resume)
+    - Debug parity: `client-logger` bridged to legacy `POSTERRAMA_DEBUG`; wallart now emits rich debug logs with `?debug=true`
+
+- Screensaver stability:
+    - Modular fallback implements rotation (fade/slide/Ken Burns) and uses multiple queue items
+    - Page prefers legacy `script.js` orchestrator for now to preserve full behavior and logs; module is retained as fallback
+
+- Index/landing cleanup (first pass):
+    - Removed index auto-redirect and legacy inline wallart CSS (kept landing minimal)
 
 ## Open TODOs (actionable)
 
@@ -33,13 +47,14 @@ Last updated: 2025-10-13
 
 2. Finish mode isolation (no legacy bleed)
 
-- [ ] Remove remaining mode logic dependencies from `public/script.js` on mode pages; ensure each page includes only its own mode JS/CSS + `core.js`
+- [ ] Screensaver: achieve feature parity in `public/screensaver/screensaver.js` and remove `public/script.js` include from `/screensaver`
 - [ ] Move any remaining mode-specific styles out of shared/inline locations
+- [x] Wallart is isolated (no `script.js` on `/wallart`)
 
 3. Trim `public/index.html` to be a landing-only page
 
-- [ ] Remove the mode-detect redirect script
-- [ ] Remove inline wallart CSS block
+- [x] Remove the mode-detect redirect script
+- [x] Remove inline wallart CSS block
 - [ ] Decide behavior for `/`: (A) keep as landing, or (B) 302 to `/screensaver` and implement on server
 
 4. Admin preview isolation
@@ -60,11 +75,17 @@ Last updated: 2025-10-13
 
 7. Tests (expand)
 
-- [ ] Route tests: assert stamped assets are referenced in `/cinema`, `/wallart`, `/screensaver`
+- [x] Route tests: assert stamped assets are referenced in `/cinema`, `/wallart`, `/screensaver`
 - [ ] Unit tests for `getActiveMode()` and `navigateToMode()`
 - [ ] 1–2 preview isolation tests to prevent CSS bleed
 
-8. Lint and cleanup pass
+8. Debug and diagnostics
+
+- [ ] Replace remaining `POSTERRAMA_DEBUG` checks in modules with `window.logger.isDebug()`; then remove the bridge in `client-logger.js`
+- [ ] Add minimal wallart unit tests: pause/resume halts refresh; `__posterramaPlayback` hooks trigger an immediate refresh
+- [ ] Verify device-mgmt heartbeat payload on wallart includes title/thumb when available
+
+9. Lint and cleanup pass
 
 - [ ] Fix ESLint rule violations instead of suppressing:
     - `no-empty` in `public/device-mgmt.js`, `public/preview-cinema.js`
@@ -72,7 +93,7 @@ Last updated: 2025-10-13
     - `no-useless-escape` in `server.js`
 - [ ] Run `npm run lint:fix`; manually resolve leftovers
 
-9. Migration docs
+10. Migration docs
 
 - [ ] Draft `docs/modes-refactor.md` with final structure, file map, and troubleshooting
 - [ ] Include notes on proxies/subpaths, previews, and SW expectations
