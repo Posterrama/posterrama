@@ -845,7 +845,9 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                 // Slow the poll cadence while rate-limited
                                 try {
                                     clearInterval(registrationPollTimer);
-                                } catch (_) {}
+                                } catch (_) {
+                                    /* noop: UI propagation best-effort */
+                                }
                                 state.registrationPollTimer = setTimeout(
                                     () => {
                                         // resume interval polling after cooldown
@@ -966,7 +968,9 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                     try {
                         clearInterval(state.registrationPollTimer);
                         clearTimeout(state.registrationPollTimer);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* noop: stale heartbeat update */
+                    }
                     state.registrationPollTimer = null;
                 }
                 return originalDoClose();
@@ -1552,7 +1556,9 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             // Best-effort reload fallback
             try {
                 window.location.href = nextUrl || window.location.href;
-            } catch (_) {}
+            } catch (_) {
+                /* noop: rate-limit/backoff guard */
+            }
         }
     }
 

@@ -6,7 +6,9 @@
                 window.logger && typeof window.logger.debug === 'function'
                     ? window.logger.debug(msg)
                     : console.debug(msg);
-            } catch (_) {}
+            } catch (_) {
+                /* noop: debug log optional */
+            }
         };
 
         const api = {
@@ -143,7 +145,9 @@
                     if (typeof window.startWallartCycle === 'function') {
                         return window.startWallartCycle(cfg);
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* noop: layout preview adjustment best-effort */
+                }
                 // If legacy function isn't available yet, no-op safely
                 return undefined;
             },
@@ -154,7 +158,9 @@
                     if (grid) grid.remove();
                     const ambient = document.getElementById('wallart-ambient-overlay');
                     if (ambient) ambient.remove();
-                } catch (_) {}
+                } catch (_) {
+                    /* noop: ambient update is best-effort */
+                }
             },
         };
 

@@ -819,7 +819,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             })();
             // Fetch config with simple 429 backoff to prevent redirect loops under rate limiting
-            async function fetchConfigWithBackoff(attempt = 1) {
+            const fetchConfigWithBackoff = async (attempt = 1) => {
                 const resp = await fetch('/get-config' + cacheBuster, {
                     cache: 'no-cache',
                     headers: {
@@ -835,7 +835,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return fetchConfigWithBackoff(attempt + 1);
                 }
                 return resp;
-            }
+            };
             const configResponse = await fetchConfigWithBackoff();
             if (!configResponse.ok)
                 throw new Error(`Config fetch failed: ${configResponse.status}`);

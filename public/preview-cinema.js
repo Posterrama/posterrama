@@ -195,7 +195,9 @@
             try {
                 document.body.classList.toggle('cinema-mode', !!isCinemaMode);
                 if (isCinemaMode) document.body.classList.remove('wallart-mode');
-            } catch (_) {}
+            } catch (_) {
+                /* noop: preview-only path */
+            }
 
             if (!isCinemaMode) {
                 // Not in cinema preview: fully hide/clear all cinema overlays

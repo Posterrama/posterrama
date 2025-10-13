@@ -34,7 +34,7 @@
                         infoContainer.classList.remove('visible');
                     }
                 } catch (_) {
-                    // ignore
+                    /* noop: visibility update is best-effort */
                 }
             },
 
@@ -83,7 +83,7 @@
                                     api.reinitBackground();
                                 }
                             } catch (_) {
-                                // best-effort
+                                /* noop: best-effort retry */
                             }
                         }, 650);
                         return; // Don't reset transforms mid-KB
@@ -134,7 +134,7 @@
                     window.activeLayer = la;
                     window.inactiveLayer = lb;
                 } catch (_) {
-                    // ignore
+                    /* noop: reinit is best-effort */
                 }
             },
         };
