@@ -324,7 +324,80 @@
     <script src="device-mgmt.js?v=20250901a"></script>
     <script src="/core.js?v={{ASSET_VERSION}}"></script>
     <script src="/wallart/wallart-display.js?v={{ASSET_VERSION}}"></script>
-    <script src="script.js?v=20251011c"></script>
+    <script>
+        (function () {
+            // Minimal, page-local bootstrap to populate media and start wallart without legacy script.js
+            async function ensureConfig() {
+                try {
+                    if (window.appConfig && window.wallartConfig) return true;
+                    const useCore = !!(window.PosterramaCore && window.PosterramaCore.fetchConfig);
+                    const cfg = useCore
+                        ? await window.PosterramaCore.fetchConfig()
+                        : await (await fetch('/get-config', { cache: 'no-cache', headers: { 'Cache-Control': 'no-cache' } })).json();
+                    try {
+                        if (!Object.getOwnPropertyDescriptor(window, 'appConfig')) {
+                            Object.defineProperty(window, 'appConfig', { value: cfg, writable: true });
+                        } else {
+                            window.appConfig = cfg;
+                        }
+                        const wcfg = (cfg && cfg.wallartMode) || {};
+                        if (!Object.getOwnPropertyDescriptor(window, 'wallartConfig')) {
+                            Object.defineProperty(window, 'wallartConfig', { value: wcfg, writable: true });
+                        } else {
+                            window.wallartConfig = wcfg;
+                        }
+                    } catch (_) {
+                        window.appConfig = cfg;
+                        window.wallartConfig = (cfg && cfg.wallartMode) || {};
+                    }
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            }
+            async function ensureMediaQueue() {
+                try {
+                    if (Array.isArray(window.mediaQueue) && window.mediaQueue.length > 0) return true;
+                    const count = Math.max(60, Math.min(400, Math.floor((window.innerWidth * window.innerHeight) / 8000)));
+                    const type = (window.appConfig && window.appConfig.type) || 'movies';
+                    const url = `/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+                    const res = await fetch(url, { cache: 'no-cache', headers: { 'Cache-Control': 'no-cache' } });
+                    if (!res.ok) return false;
+                    const data = await res.json();
+                    const items = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+                    if (!items.length) return false;
+                    try {
+                        if (!Object.getOwnPropertyDescriptor(window, 'mediaQueue')) {
+                            Object.defineProperty(window, 'mediaQueue', { value: items, writable: true });
+                        } else {
+                            window.mediaQueue = items;
+                        }
+                    } catch (_) {
+                        window.mediaQueue = items;
+                    }
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            }
+            async function startWallartOnceReady() {
+                try {
+                    await ensureConfig();
+                    await ensureMediaQueue();
+                    if (window.PosterramaWallart && typeof window.PosterramaWallart.start === 'function') {
+                        window.PosterramaWallart.start(window.wallartConfig || {});
+                        try { const loader = document.getElementById('loader'); if (loader) { loader.style.opacity='0'; loader.style.display='none'; } } catch(_) {}
+                    }
+                } catch (_) {}
+            }
+            // Kick on DOM ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', startWallartOnceReady);
+            } else {
+                startWallartOnceReady();
+            }
+        })();
+    </script>
     <script>
         // If server indicated a mode, apply it immediately to avoid race conditions
         document.addEventListener('DOMContentLoaded', () => {

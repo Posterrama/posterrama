@@ -54,9 +54,65 @@
     <script src="device-mgmt.js?v={{ASSET_VERSION}}"></script>
     <script src="/core.js?v={{ASSET_VERSION}}"></script>
     <script src="/screensaver/screensaver.js?v={{ASSET_VERSION}}"></script>
-    <script src="script.js?v={{ASSET_VERSION}}"></script>
     <script>
-        try { if (window.PosterramaScreensaver && typeof window.PosterramaScreensaver.start === 'function') { window.PosterramaScreensaver.start(); } } catch (e) {}
+        (function () {
+            async function ensureConfig() {
+                try {
+                    if (window.appConfig) return true;
+                    const useCore = !!(window.PosterramaCore && window.PosterramaCore.fetchConfig);
+                    const cfg = useCore
+                        ? await window.PosterramaCore.fetchConfig()
+                        : await (await fetch('/get-config', { cache: 'no-cache', headers: { 'Cache-Control': 'no-cache' } })).json();
+                    try {
+                        if (!Object.getOwnPropertyDescriptor(window, 'appConfig')) {
+                            Object.defineProperty(window, 'appConfig', { value: cfg, writable: true });
+                        } else {
+                            window.appConfig = cfg;
+                        }
+                    } catch (_) { window.appConfig = cfg; }
+                    return true;
+                } catch (_) { return false; }
+            }
+            async function ensureMediaQueue() {
+                try {
+                    if (Array.isArray(window.mediaQueue) && window.mediaQueue.length > 0) return true;
+                    const count = 12; // fetch multiple items so screensaver can rotate
+                    const type = (window.appConfig && window.appConfig.type) || 'movies';
+                    const url = `/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+                    const res = await fetch(url, { cache: 'no-cache', headers: { 'Cache-Control': 'no-cache' } });
+                    if (!res.ok) return false;
+                    const data = await res.json();
+                    const items = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+                    if (!items.length) return false;
+                    try {
+                        if (!Object.getOwnPropertyDescriptor(window, 'mediaQueue')) {
+                            Object.defineProperty(window, 'mediaQueue', { value: items, writable: true });
+                        } else {
+                            window.mediaQueue = items;
+                        }
+                    } catch (_) { window.mediaQueue = items; }
+                    return true;
+                } catch (_) { return false; }
+            }
+            async function startScreensaver() {
+                try {
+                    await ensureConfig();
+                    await ensureMediaQueue();
+                    if (window.PosterramaScreensaver && typeof window.PosterramaScreensaver.start === 'function') {
+                        window.PosterramaScreensaver.start();
+                        try { const loader = document.getElementById('loader'); if (loader) { loader.style.opacity='0'; loader.style.display='none'; } } catch(_) {}
+                    }
+                } catch (_) {}
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', startScreensaver);
+            } else {
+                startScreensaver();
+            }
+        })();
+    </script>
+    <script>
+        // start is now invoked by the bootstrap above
     </script>
         <script>
             window.MODE_HINT='screensaver';
