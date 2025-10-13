@@ -2283,47 +2283,57 @@ document.addEventListener('DOMContentLoaded', async () => {
             ensureAmbientOverlay();
         }
 
-        // Create wallart grid container
-        const wallartGrid = document.createElement('div');
-        wallartGrid.id = 'wallart-grid';
-        wallartGrid.className = 'wallart-grid';
-
-        // Calculate dynamic grid based on screen size and density
-        const layoutInfo = calculateWallartLayout(wallartConfig.density);
+        // Create wallart grid container (prefer module helper if present)
+        let wallartGrid;
+        let layoutInfo;
+        try {
+            if (
+                window.PosterramaWallart &&
+                window.PosterramaWallart.runtime &&
+                typeof window.PosterramaWallart.runtime.createGridElement === 'function'
+            ) {
+                const created = window.PosterramaWallart.runtime.createGridElement(wallartConfig);
+                wallartGrid = created.gridEl;
+                layoutInfo = created.layoutInfo;
+            }
+        } catch (_) {}
+        if (!wallartGrid || !layoutInfo) {
+            // Fallback to legacy creation if module helper not available
+            wallartGrid = document.createElement('div');
+            wallartGrid.id = 'wallart-grid';
+            wallartGrid.className = 'wallart-grid';
+            layoutInfo = calculateWallartLayout(wallartConfig.density);
+        }
         const layoutVariant = wallartConfig.layoutVariant || 'classic';
         const layoutSettings = wallartConfig.layoutSettings || {};
 
-        // Apply dynamic grid styles with proper centering
-        wallartGrid.style.cssText = `
-            position: fixed !important;
-            width: ${layoutInfo.columns * layoutInfo.actualPosterWidth}px !important;
-            height: ${layoutInfo.totalGridHeight}px !important;
-            z-index: 999999 !important;
-            background: transparent !important;
-            display: grid !important;
-            grid-template-columns: repeat(${layoutInfo.columns}, ${layoutInfo.actualPosterWidth}px) !important;
-            grid-template-rows: repeat(${layoutInfo.rows}, ${layoutInfo.actualPosterHeight}px) !important;
-            gap: 0 !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            box-sizing: border-box !important;
-            overflow: visible !important;
-            opacity: 1 !important;
-            align-content: start !important;
-        `;
-
-        // Set initial position with transform (this allows for smooth shifting)
-        wallartGrid.style.transform = `translate(${layoutInfo.gridLeft}px, ${layoutInfo.gridTop}px)`;
-
-        // Store calculated values for use in update cycle
-        wallartGrid.dataset.minPosterWidth = layoutInfo.minPosterWidth;
-        wallartGrid.dataset.posterCount = layoutInfo.posterCount;
-        wallartGrid.dataset.totalNeeded = layoutInfo.totalNeeded;
-        wallartGrid.dataset.columns = layoutInfo.columns;
-        wallartGrid.dataset.rows = layoutInfo.rows;
-
-        // Append directly to body
-        document.body.appendChild(wallartGrid);
+        if (!wallartGrid.parentNode) {
+            // If we fell back and created locally, append and set styles now
+            wallartGrid.style.cssText = `
+                position: fixed !important;
+                width: ${layoutInfo.columns * layoutInfo.actualPosterWidth}px !important;
+                height: ${layoutInfo.totalGridHeight}px !important;
+                z-index: 999999 !important;
+                background: transparent !important;
+                display: grid !important;
+                grid-template-columns: repeat(${layoutInfo.columns}, ${layoutInfo.actualPosterWidth}px) !important;
+                grid-template-rows: repeat(${layoutInfo.rows}, ${layoutInfo.actualPosterHeight}px) !important;
+                gap: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-sizing: border-box !important;
+                overflow: visible !important;
+                opacity: 1 !important;
+                align-content: start !important;
+            `;
+            wallartGrid.style.transform = `translate(${layoutInfo.gridLeft}px, ${layoutInfo.gridTop}px)`;
+            wallartGrid.dataset.minPosterWidth = layoutInfo.minPosterWidth;
+            wallartGrid.dataset.posterCount = layoutInfo.posterCount;
+            wallartGrid.dataset.totalNeeded = layoutInfo.totalNeeded;
+            wallartGrid.dataset.columns = layoutInfo.columns;
+            wallartGrid.dataset.rows = layoutInfo.rows;
+            document.body.appendChild(wallartGrid);
+        }
 
         // Initialize variables that will be used by initializeWallartGrid
         let currentPosters = []; // Track current posters for uniqueness
@@ -2379,16 +2389,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         function createPosterElement(item, index) {
+            try {
+                if (
+                    window.PosterramaWallart &&
+                    window.PosterramaWallart.runtime &&
+                    typeof window.PosterramaWallart.runtime.createPosterElement === 'function'
+                ) {
+                    const el = window.PosterramaWallart.runtime.createPosterElement(item, index);
+                    if (el) return el;
+                }
+            } catch (_) {}
             const posterItem = document.createElement('div');
             posterItem.className = 'wallart-poster-item';
             posterItem.dataset.originalIndex = index;
             posterItem.dataset.posterId = item.id || item.title || index;
 
-            // Mobile detection for optimized styling
             const isMobile =
                 window.innerWidth <= 768 || /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
 
-            // Use grid cell dimensions but preserve poster proportions with object-fit
             posterItem.style.cssText = `
                 background: #000;
                 overflow: hidden;
@@ -2401,15 +2419,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
 
             const img = document.createElement('img');
-            // Use custom lazy loading for better control
             if (item.posterUrl && window.makeLazy) {
                 window.makeLazy(img, item.posterUrl);
             } else {
                 img.src = item.posterUrl || transparentPixel;
             }
             img.alt = item.title || 'Movie Poster';
-
-            // Always show full poster at 2:3 with letterboxing (no crop)
             img.style.cssText = `
                 width: 100%;
                 height: 100%;
@@ -2420,7 +2435,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 background: #000;
                 ${isMobile ? 'will-change: opacity;' : ''}
             `;
-
             posterItem.appendChild(img);
             return posterItem;
         }
