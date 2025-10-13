@@ -1058,6 +1058,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setInterval(syncCinemaConfig, 8000);
             }
         } catch (_) {}
+
+        // Keep standalone wallart display in sync: if wallart disabled, navigate back to root
+        try {
+            if (document.body.dataset.mode === 'wallart') {
+                const syncWallartConfig = async () => {
+                    try {
+                        const resp = await fetch('/get-config?_t=' + Date.now(), {
+                            cache: 'no-cache',
+                            headers: { 'Cache-Control': 'no-cache' },
+                        });
+                        if (!resp.ok) return;
+                        const cfg = await resp.json();
+                        // If wallart mode was turned off (i.e., screensaver or cinema enabled), go back to root
+                        const wallartOn = !!(cfg && cfg.wallartMode && cfg.wallartMode.enabled);
+                        if (!wallartOn) {
+                            window.location.replace(window.location.origin + '/');
+                            return;
+                        }
+                    } catch (_) {}
+                };
+                syncWallartConfig();
+                setInterval(syncWallartConfig, 8000);
+            }
+        } catch (_) {}
     }
 
     // --- Live Preview support ---
@@ -1078,6 +1102,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } catch (_) {}
                 }
             }
+            // If on standalone wallart page and admin disables wallart or enables cinema, exit to root
+            if (document.body && document.body.dataset.mode === 'wallart') {
+                const turningWallartOff =
+                    partial.wallartMode &&
+                    Object.prototype.hasOwnProperty.call(partial.wallartMode, 'enabled') &&
+                    partial.wallartMode.enabled === false;
+                const enablingCinema =
+                    Object.prototype.hasOwnProperty.call(partial, 'cinemaMode') &&
+                    partial.cinemaMode === true;
+                if (turningWallartOff || enablingCinema) {
+                    try {
+                        window.location.replace('/');
+                        return;
+                    } catch (_) {}
+                }
+            }
+
             if (window.POSTERRAMA_DEBUG) {
                 try {
                     console.log(
