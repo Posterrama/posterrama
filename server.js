@@ -1400,6 +1400,10 @@ app.get(['/', '/index.html'], (req, res, next) => {
                 `style.css?v=${versions['style.css'] || ASSET_VERSION}`
             )
             .replace(
+                /\/wallart\/wallart\.css(\?v=[^"'\s>]+)?/g,
+                `/wallart/wallart.css?v=${versions['wallart/wallart.css'] || ASSET_VERSION}`
+            )
+            .replace(
                 /device-mgmt\.js\?v=[^"&\s]+/g,
                 `device-mgmt.js?v=${versions['device-mgmt.js'] || ASSET_VERSION}`
             )
@@ -1520,6 +1524,10 @@ app.get(['/cinema', '/cinema.html'], (req, res, next) => {
             .replace(
                 /style\.css\?v=[^"&\s]+/g,
                 `style.css?v=${versions['style.css'] || ASSET_VERSION}`
+            )
+            .replace(
+                /\/screensaver\/screensaver\.css(\?v=[^"'\s>]+)?/g,
+                `/screensaver/screensaver.css?v=${versions['screensaver/screensaver.css'] || ASSET_VERSION}`
             )
             .replace(
                 /device-mgmt\.js\?v=[^"&\s]+/g,
