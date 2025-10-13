@@ -1044,12 +1044,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const cfg = await resp.json();
                         // If cinema mode was turned off while we're on /cinema, navigate appropriately
                         if (!cfg || cfg.cinemaMode !== true) {
-                            // Prefer replace() to avoid adding history entries; compute base to support subpath deployments
-                            const base = window.location.pathname.replace(/[^/]+$/, '/');
-                            const dest = cfg?.wallartMode?.enabled
-                                ? base + 'wallart'
-                                : base + 'screensaver';
-                            window.location.replace(window.location.origin + dest);
+                            const nextMode = cfg?.wallartMode?.enabled ? 'wallart' : 'screensaver';
+                            if (window.PosterramaCore?.navigateToMode) {
+                                window.PosterramaCore.navigateToMode(nextMode);
+                            } else {
+                                const base = window.location.pathname.replace(/[^/]+$/, '/');
+                                const dest =
+                                    nextMode === 'screensaver'
+                                        ? base + 'screensaver'
+                                        : base + nextMode;
+                                window.location.replace(window.location.origin + dest);
+                            }
                             return;
                         }
                         if (cfg && cfg.cinema) {
@@ -1077,10 +1082,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // If wallart mode was turned off (i.e., screensaver or cinema enabled), navigate appropriately
                         const wallartOn = !!(cfg && cfg.wallartMode && cfg.wallartMode.enabled);
                         if (!wallartOn) {
-                            const base = window.location.pathname.replace(/[^/]+$/, '/');
-                            const dest =
-                                cfg?.cinemaMode === true ? base + 'cinema' : base + 'screensaver';
-                            window.location.replace(window.location.origin + dest);
+                            const nextMode = cfg?.cinemaMode === true ? 'cinema' : 'screensaver';
+                            if (window.PosterramaCore?.navigateToMode) {
+                                window.PosterramaCore.navigateToMode(nextMode);
+                            } else {
+                                const base = window.location.pathname.replace(/[^/]+$/, '/');
+                                const dest =
+                                    nextMode === 'screensaver'
+                                        ? base + 'screensaver'
+                                        : base + nextMode;
+                                window.location.replace(window.location.origin + dest);
+                            }
                             return;
                         }
                     } catch (_) {}
@@ -1104,9 +1116,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const enablingWallart = partial.wallartMode && partial.wallartMode.enabled === true;
                 if (turningCinemaOff || enablingWallart) {
                     try {
-                        const base = window.location.pathname.replace(/[^/]+$/, '/');
-                        const dest = enablingWallart ? base + 'wallart' : base + 'screensaver';
-                        window.location.replace(window.location.origin + dest);
+                        const nextMode = enablingWallart ? 'wallart' : 'screensaver';
+                        if (window.PosterramaCore?.navigateToMode) {
+                            window.PosterramaCore.navigateToMode(nextMode);
+                        } else {
+                            const base = window.location.pathname.replace(/[^/]+$/, '/');
+                            const dest =
+                                nextMode === 'screensaver' ? base + 'screensaver' : base + nextMode;
+                            window.location.replace(window.location.origin + dest);
+                        }
                         return;
                     } catch (_) {}
                 }
@@ -1122,9 +1140,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     partial.cinemaMode === true;
                 if (turningWallartOff || enablingCinema) {
                     try {
-                        const base = window.location.pathname.replace(/[^/]+$/, '/');
-                        const dest = enablingCinema ? base + 'cinema' : base + 'screensaver';
-                        window.location.replace(window.location.origin + dest);
+                        const nextMode = enablingCinema ? 'cinema' : 'screensaver';
+                        if (window.PosterramaCore?.navigateToMode) {
+                            window.PosterramaCore.navigateToMode(nextMode);
+                        } else {
+                            const base = window.location.pathname.replace(/[^/]+$/, '/');
+                            const dest =
+                                nextMode === 'screensaver' ? base + 'screensaver' : base + nextMode;
+                            window.location.replace(window.location.origin + dest);
+                        }
                         return;
                     } catch (_) {}
                 }
@@ -1141,15 +1165,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                             });
                             if (!resp.ok) return;
                             const cfg = await resp.json();
-                            const base = window.location.pathname.replace(/[^/]+$/, '/');
-                            if (cfg?.cinemaMode === true)
+                            if (cfg?.cinemaMode === true) {
+                                if (window.PosterramaCore?.navigateToMode)
+                                    return void window.PosterramaCore.navigateToMode('cinema');
+                                const base = window.location.pathname.replace(/[^/]+$/, '/');
                                 return void window.location.replace(
                                     window.location.origin + base + 'cinema'
                                 );
-                            if (cfg?.wallartMode?.enabled === true)
+                            }
+                            if (cfg?.wallartMode?.enabled === true) {
+                                if (window.PosterramaCore?.navigateToMode)
+                                    return void window.PosterramaCore.navigateToMode('wallart');
+                                const base = window.location.pathname.replace(/[^/]+$/, '/');
                                 return void window.location.replace(
                                     window.location.origin + base + 'wallart'
                                 );
+                            }
                         } catch (_) {}
                     };
                     syncSs();

@@ -2,14 +2,6 @@
 (function () {
     const Core = {};
 
-    function safeJson(v) {
-        try {
-            return JSON.parse(JSON.stringify(v));
-        } catch (_) {
-            return undefined;
-        }
-    }
-
     Core.fetchConfig = async function fetchConfig(extra = {}) {
         const qs = `_t=${Date.now()}`;
         const url = `/get-config?${qs}`;
@@ -67,9 +59,13 @@
 
     Core.bootstrapLogger = function bootstrapLogger() {
         try {
-            if (window.logger && typeof window.logger.isDebug === 'function') return;
-            // no-op placeholder: logger is provided by /client-logger.js
-        } catch (_) {}
+            if (window.logger && typeof window.logger.isDebug === 'function') {
+                return true;
+            }
+        } catch (_) {
+            // ignore
+        }
+        return false;
     };
 
     // Expose
