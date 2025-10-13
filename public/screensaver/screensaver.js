@@ -7,6 +7,98 @@
             started: false,
             cycleTimer: null,
             idx: -1,
+            paused: false,
+        };
+        // Small helpers for DOM access
+        const $ = sel => document.getElementById(sel);
+        const setText = (id, val) => {
+            try {
+                const el = $(id);
+                if (!el) return;
+                el.textContent = val || '';
+            } catch (_) {
+                /* noop */
+            }
+        };
+        const showEl = (id, show, display = 'block') => {
+            try {
+                const el = $(id);
+                if (!el) return;
+                el.style.display = show ? display : 'none';
+                el.classList.toggle('is-hidden', !show);
+            } catch (_) {
+                /* noop */
+            }
+        };
+        const setPoster = url => {
+            try {
+                const a = $('poster-a');
+                const b = $('poster-b');
+                if (!a || !b) return;
+                // Choose which is inactive by opacity
+                const aVisible = (a.style.opacity || '') === '1';
+                const inactive = aVisible ? b : a;
+                const active = aVisible ? a : b;
+                if (!url) {
+                    a.style.backgroundImage = '';
+                    b.style.backgroundImage = '';
+                    return;
+                }
+                inactive.style.transition = 'opacity 0.8s ease-in-out';
+                active.style.transition = 'opacity 0.8s ease-in-out';
+                inactive.style.backgroundImage = `url('${url}')`;
+                // Start crossfade on next frame
+                requestAnimationFrame(() => {
+                    inactive.style.opacity = '1';
+                    active.style.opacity = '0';
+                });
+            } catch (_) {
+                /* noop */
+            }
+        };
+        const setClearlogo = url => {
+            try {
+                const el = $('clearlogo');
+                if (!el) return;
+                if (url) {
+                    el.src = url;
+                    el.style.opacity = '1';
+                } else {
+                    el.removeAttribute('src');
+                    el.style.opacity = '0';
+                }
+            } catch (_) {
+                /* noop */
+            }
+        };
+        const updateInfo = item => {
+            try {
+                const metaVisible = window.appConfig?.showMetadata !== false;
+                const posterVisible = window.appConfig?.showPoster !== false;
+                // Title and tagline
+                setText('title', item?.title || '');
+                setText('tagline', item?.tagline || '');
+                setText('year', item?.year ? String(item.year) : '');
+                setText('rating', item?.contentRating || item?.officialRating || '');
+                // Poster
+                if (posterVisible && item?.posterUrl) {
+                    setPoster(item.posterUrl);
+                    showEl('poster-wrapper', true, 'block');
+                } else {
+                    showEl('poster-wrapper', false);
+                }
+                // Clearlogo
+                setClearlogo(item?.clearLogoUrl || item?.clearlogo || '');
+                // Container visibility
+                const infoContainer = $('info-container');
+                if (infoContainer) {
+                    const show = metaVisible || (posterVisible && !!item?.posterUrl);
+                    infoContainer.classList.toggle('visible', show);
+                    infoContainer.style.display = show ? 'flex' : 'none';
+                }
+            } catch (_) {
+                /* noop */
+            }
         };
         const api = {
             // Lifecycle: start screensaver helpers (idempotent)
@@ -33,6 +125,52 @@
                             /* noop */
                         }
                     }, 50);
+                    // Playback exposure for device mgmt
+                    try {
+                        window.__posterramaPlayback = {
+                            next: () => {
+                                try {
+                                    _state.paused = false;
+                                    api.showNextBackground({ forceNext: true });
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            },
+                            prev: () => {
+                                try {
+                                    _state.paused = false;
+                                    const items = Array.isArray(window.mediaQueue)
+                                        ? window.mediaQueue
+                                        : [];
+                                    if (items.length) {
+                                        _state.idx = (_state.idx - 1 + items.length) % items.length;
+                                    }
+                                    api.showNextBackground({ keepIndex: true });
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            },
+                            pause: () => {
+                                _state.paused = true;
+                                try {
+                                    window.__posterramaPaused = true;
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            },
+                            resume: () => {
+                                _state.paused = false;
+                                try {
+                                    window.__posterramaPaused = false;
+                                } catch (_) {
+                                    /* noop */
+                                }
+                                api.showNextBackground({ forceNext: true });
+                            },
+                        };
+                    } catch (_) {
+                        /* noop */
+                    }
                 } catch (_) {
                     /* noop */
                 }
@@ -67,6 +205,7 @@
                     );
                     _state.cycleTimer = setInterval(() => {
                         try {
+                            if (_state.paused) return;
                             api.showNextBackground();
                         } catch (_) {
                             /* noop */
@@ -85,7 +224,7 @@
                 }
             },
             // Advance to next media item and transition layers
-            showNextBackground() {
+            showNextBackground(opts = {}) {
                 try {
                     const la = document.getElementById('layer-a');
                     const lb = document.getElementById('layer-b');
@@ -96,7 +235,13 @@
                     if (total === 0) return; // nothing to do
 
                     // Next index
-                    _state.idx = (_state.idx + 1) % Math.max(total, 1);
+                    if (opts.keepIndex) {
+                        _state.idx = Math.max(0, Math.min(_state.idx, total - 1));
+                    } else if (opts.forceNext) {
+                        _state.idx = (_state.idx + 1) % Math.max(total, 1);
+                    } else {
+                        _state.idx = (_state.idx + 1) % Math.max(total, 1);
+                    }
                     const nextItem = items[_state.idx] || items[0];
                     const nextUrl = nextItem?.backgroundUrl || null;
                     if (!nextUrl || nextUrl === 'null' || nextUrl === 'undefined') return;
@@ -192,6 +337,17 @@
                                     /* noop: layer swap best-effort */
                                 }
                             }, 1600);
+                            // Update metadata/poster/clearlogo
+                            updateInfo(nextItem);
+                            // Expose current media for device-mgmt
+                            try {
+                                window.__posterramaCurrentMedia = nextItem;
+                                window.__posterramaCurrentMediaId =
+                                    nextItem?.id || nextItem?.title || nextItem?.posterUrl || null;
+                                window.__posterramaPaused = !!_state.paused;
+                            } catch (_) {
+                                /* noop */
+                            }
                         } catch (_) {
                             /* noop */
                         }
@@ -342,18 +498,71 @@
                                     ? window.currentIndex
                                     : 0;
                             _state.idx = initialIdx;
+                            // Initialize info from initial item
+                            updateInfo(items[_state.idx] || items[0]);
+                            try {
+                                const curr = items[_state.idx] || items[0];
+                                window.__posterramaCurrentMedia = curr;
+                                window.__posterramaCurrentMediaId =
+                                    curr?.id || curr?.title || curr?.posterUrl || null;
+                                window.__posterramaPaused = !!_state.paused;
+                            } catch (_) {
+                                /* noop */
+                            }
                         }
                     } catch (_) {
                         /* noop: set initial index */
                     }
                 } catch (_) {
-                    /* noop: reinit is best-effort */ void 0;
+                    /* noop: reinit is best-effort */
+                }
+            },
+            // Live settings apply (from device-mgmt WS)
+            applySettings(patch = {}) {
+                try {
+                    const cfg = Object.assign({}, window.appConfig || {});
+                    // Only pick screensaver-related knobs
+                    const allowed = [
+                        'showPoster',
+                        'showMetadata',
+                        'transitionEffect',
+                        'transitionIntervalSeconds',
+                    ];
+                    let changed = false;
+                    for (const k of allowed) {
+                        if (Object.prototype.hasOwnProperty.call(patch, k)) {
+                            cfg[k] = patch[k];
+                            changed = true;
+                        }
+                    }
+                    if (!changed) return;
+                    window.appConfig = cfg;
+                    // Apply visibility and restart cycler with new interval/effect
+                    api.ensureVisibility();
+                    api.startCycler();
+                } catch (_) {
+                    /* noop */
                 }
             },
         };
 
         // Attach to window; only on the screensaver page we actually use it, on others wrappers will no-op
         window.PosterramaScreensaver = api;
+
+        // Provide global applySettings hook consumed by device-mgmt
+        try {
+            if (document.body && document.body.dataset.mode === 'screensaver') {
+                window.applySettings = patch => {
+                    try {
+                        api.applySettings(patch || {});
+                    } catch (_) {
+                        /* noop */
+                    }
+                };
+            }
+        } catch (_) {
+            /* noop */
+        }
 
         if (
             document.body &&

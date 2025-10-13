@@ -52,7 +52,6 @@
         <div id="branding-container" style="display:none"></div>
     <script src="lazy-loading.js?v={{ASSET_VERSION}}"></script>
     <script src="device-mgmt.js?v={{ASSET_VERSION}}"></script>
-    <script src="/script.js?v={{ASSET_VERSION}}"></script>
     <script src="/core.js?v={{ASSET_VERSION}}"></script>
     <script src="/screensaver/screensaver.js?v={{ASSET_VERSION}}"></script>
     <script>
@@ -98,15 +97,9 @@
             async function startScreensaver() {
                 try {
                     await ensureConfig();
+                    try { window.PosterramaDevice && window.PosterramaDevice.init && window.PosterramaDevice.init(window.appConfig || {}); } catch(_) { /* optional */ }
                     await ensureMediaQueue();
-                    // If legacy script.js is present (global function defined), prefer it for now
-                    const legacyActive = typeof window.isServerReachable === 'function';
-                    if (legacyActive) {
-                        try { window.logger && window.logger.debug && window.logger.debug('[Screensaver] Using legacy script.js orchestrator'); } catch(_) {}
-                        // Legacy flow handles everything; just hide loader
-                        try { const loader = document.getElementById('loader'); if (loader) { loader.style.opacity='0'; loader.style.display='none'; } } catch(_) {}
-                        return;
-                    }
+                    try { window.logger && window.logger.debug && window.logger.debug('[Screensaver] bootstrap: config+media ready', { count: (Array.isArray(window.mediaQueue) && window.mediaQueue.length) || 0 }); } catch(_) {}
                     if (window.PosterramaScreensaver && typeof window.PosterramaScreensaver.start === 'function') {
                         window.PosterramaScreensaver.start();
                         try { const loader = document.getElementById('loader'); if (loader) { loader.style.opacity='0'; loader.style.display='none'; } } catch(_) {}
