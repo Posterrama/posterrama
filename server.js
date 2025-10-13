@@ -1442,6 +1442,32 @@ app.get(['/', '/index.html'], (req, res, next) => {
  */
 // Serve cinema.html with automatic asset versioning
 app.get(['/cinema', '/cinema.html'], (req, res, next) => {
+    try {
+        // If cinema mode is disabled, serve the main index.html directly to avoid external redirect loops
+        let currentConfig = null;
+        try {
+            const raw = fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8');
+            currentConfig = JSON.parse(raw);
+        } catch (_) {
+            currentConfig = null;
+        }
+        if (!currentConfig || currentConfig.cinemaMode !== true) {
+            // Proxy-aware root redirect: honor common headers for subpath deployments
+            const prefixHeader = (
+                req.headers['x-forwarded-prefix'] ||
+                req.headers['x-forwarded-pathbase'] ||
+                ''
+            ).toString();
+            const prefix = prefixHeader.replace(/\s/g, '');
+            const target = prefix ? (prefix.endsWith('/') ? prefix : prefix + '/') : '/';
+            res.setHeader('Cache-Control', 'no-cache');
+            return res.redirect(302, target);
+        }
+    } catch (e) {
+        // On config read error, serve index.html as a safe fallback
+        const idxPath = path.join(__dirname, 'public', 'index.html');
+        return res.status(200).sendFile(idxPath);
+    }
     // Log cinema display access (with same de-duplication as index)
     const isAdminAccess =
         req.headers.referer?.includes('/admin') ||
@@ -1583,18 +1609,98 @@ app.get('/promo.html', (req, res, next) => {
  * @swagger
  * /wallart:
  *   get:
- *     summary: Serve wallart display page (placeholder)
- *     description: Temporary redirect to index.html until wallart.html is implemented. Will serve dedicated wallart page in future.
+ *     summary: Serve wallart display page
+ *     description: Serves the main index shell under /wallart so the client can activate wallart mode without redirects.
  *     tags: ['Frontend']
  *     responses:
- *       302:
- *         description: Redirect to index.html
+ *       200:
+ *         description: Wallart display HTML content
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
  */
-// Temporary wallart route - redirects to index.html until wallart.html is created
-app.get(['/wallart', '/wallart.html'], (req, res) => {
-    // Temporary: redirect to index.html which handles wallart mode
-    // TODO: Create wallart.html similar to cinema.html
-    res.redirect('/');
+// Serve wallart.html with automatic asset versioning and MODE_HINT injection
+app.get(['/wallart', '/wallart.html'], (req, res, next) => {
+    // Log wallart display access similarly to cinema
+    const isAdminAccess =
+        req.headers.referer?.includes('/admin') ||
+        req.headers.referer?.includes('/logs.html') ||
+        req.deviceBypass;
+
+    if (!isAdminAccess) {
+        const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+        const userAgent = req.headers['user-agent'] || 'Unknown';
+        const deviceKey = `wallart|${ip}|${userAgent.substring(0, 50)}`;
+
+        if (!global.deviceAccessLog)
+            global.deviceAccessLog = { data: new Map(), lastReset: Date.now() };
+        const now = Date.now();
+        if (now - global.deviceAccessLog.lastReset > 3600000) {
+            global.deviceAccessLog.data.clear();
+            global.deviceAccessLog.lastReset = now;
+        }
+
+        const lastSeen = global.deviceAccessLog.data.get(deviceKey);
+        if (!lastSeen) {
+            logger.info(
+                `[Device] Wallart display access: ${ip} (${userAgent.substring(0, 50)}) - ${req.url}`,
+                {
+                    ip,
+                    userAgent: userAgent.substring(0, 100),
+                    deviceKey: deviceKey.substring(0, 50),
+                    mode: 'wallart',
+                    url: req.url,
+                    timestamp: new Date().toISOString(),
+                }
+            );
+            global.deviceAccessLog.data.set(deviceKey, now);
+        }
+    }
+
+    const filePath = path.join(__dirname, 'public', 'wallart.html');
+    fs.readFile(filePath, 'utf8', (err, contents) => {
+        if (err) return next(err);
+
+        const versions = getAssetVersions();
+        const stamped = contents
+            .replace(
+                /script\.js\?v=[^"&\s]+/g,
+                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /style\.css\?v=[^"&\s]+/g,
+                `style.css?v=${versions['style.css'] || ASSET_VERSION}`
+            )
+            .replace(
+                /device-mgmt\.js\?v=[^"&\s]+/g,
+                `device-mgmt.js?v=${versions['device-mgmt.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /lazy-loading\.js\?v=[^"&\s]+/g,
+                `lazy-loading.js?v=${versions['lazy-loading.js'] || ASSET_VERSION}`
+            )
+            // Stamp client-side logger
+            .replace(
+                /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
+                `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
+            )
+            // Stamp manifest
+            .replace(
+                /\/manifest\.json(\?v=[^"'\s>]+)?/g,
+                `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
+            )
+            // Ensure service worker registration always fetches latest sw.js
+            .replace(/\/sw\.js(\?v=[^"'\s>]+)?/g, `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`);
+
+        // Inject a MODE_HINT so the shell knows to enable wallart mode and skip self-redirects
+        const injected = stamped.replace(
+            /<script src="lazy-loading\.js[^"]*"><\/script>/,
+            match => `${match}\n<script>window.MODE_HINT = 'wallart';<\/script>`
+        );
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.send(injected);
+    });
 });
 
 /**
@@ -1664,45 +1770,12 @@ app.get('/api/_internal/health-debug', (req, res) => {
 app.get(
     '/local-media/*',
     asyncHandler(async (req, res) => {
-        try {
-            if (!config.localDirectory?.enabled || !localDirectorySource) {
-                return res.status(404).send('Local directory support not enabled');
-            }
-
-            // Decode and sanitize the requested relative path
-            const encodedRel = req.path.replace(/^\/local-media\//, '');
-            const rel = decodeURIComponent(encodedRel);
-
-            // Basic traversal protection
-            if (!rel || rel.includes('..') || path.isAbsolute(rel)) {
-                return res.status(400).send('Invalid path');
-            }
-
-            // Try to resolve against each configured root path
-            const bases = Array.isArray(localDirectorySource.rootPaths)
-                ? localDirectorySource.rootPaths
-                : [localDirectorySource.rootPath].filter(Boolean);
-
-            for (const base of bases) {
-                const full = path.resolve(base, rel);
-                const withinBase = full === base || (full + path.sep).startsWith(base + path.sep);
-                if (!withinBase) continue;
-                try {
-                    const stat = await fsp.stat(full);
-                    if (!stat.isFile()) continue;
-                    // Set sensible cache headers; images are immutable once placed
-                    res.setHeader('Cache-Control', 'public, max-age=86400');
-                    return res.sendFile(full);
-                } catch (_) {
-                    // try next base
-                }
-            }
-
-            return res.status(404).send('File not found');
-        } catch (err) {
-            logger.error('[Local Media] Failed to serve file', { error: err.message });
-            return res.status(500).send('Internal server error');
+        // Minimal placeholder: disable direct file serving by default.
+        // Local media can be accessed via /local-posterpack for ZIP contents.
+        if (!config.localDirectory?.enabled || !localDirectorySource) {
+            return res.status(404).send('Local directory support not enabled');
         }
+        return res.status(404).send('Direct local-media serving is disabled');
     })
 );
 

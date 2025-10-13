@@ -66,6 +66,10 @@
         hardwareId: null,
         ws: null,
         wsTimer: null,
+        // registration check dedupe/backoff
+        checkCooldownUntil: 0,
+        checkInFlight: false,
+        registrationPollTimer: null,
     };
 
     function getStorage() {
@@ -304,6 +308,46 @@
         } catch (e) {
             state.enabled = false;
             return false;
+        }
+    }
+
+    // Centralized helper to call /api/devices/check politely with 429 backoff
+    async function checkRegistrationStatus(deviceId) {
+        const now = Date.now();
+        if (state.checkCooldownUntil && now < state.checkCooldownUntil) {
+            return { skipped: true, cooldownMs: state.checkCooldownUntil - now };
+        }
+        if (state.checkInFlight) {
+            return { skipped: true, inFlight: true };
+        }
+        state.checkInFlight = true;
+        try {
+            const res = await fetch('/api/devices/check', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Install-Id': state.installId || getInstallId() || '',
+                    'X-Hardware-Id': state.hardwareId || getHardwareId() || '',
+                },
+                body: JSON.stringify({ deviceId }),
+            });
+            if (res.status === 429) {
+                // Back off progressively between 10s-30s
+                const base = 10000;
+                const jitter = Math.floor(Math.random() * 20000);
+                state.checkCooldownUntil = Date.now() + base + jitter;
+                return { ok: false, rateLimited: true, retryAt: state.checkCooldownUntil };
+            }
+            if (!res.ok) {
+                return { ok: false, status: res.status };
+            }
+            const data = await res.json();
+            return { ok: true, data };
+        } catch (e) {
+            // Treat network errors as soft-fail; do not spam
+            return { ok: false, error: e && e.message ? e.message : String(e) };
+        } finally {
+            state.checkInFlight = false;
         }
     }
 
@@ -783,27 +827,40 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         qrImg.src = `/api/qr?format=svg&text=${encodeURIComponent(autoRegisterUrl)}`;
                     }
 
-                    // Start polling for successful registration
+                    // Start polling for successful registration (single interval, 429-aware)
+                    if (state.registrationPollTimer) clearInterval(state.registrationPollTimer);
                     registrationPollTimer = setInterval(async () => {
                         try {
-                            // Check if this device was registered
-                            const response = await fetch('/api/devices/check', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ deviceId }),
-                            });
-
-                            if (response.ok) {
-                                const result = await response.json();
-                                if (result.isRegistered) {
-                                    clearInterval(registrationPollTimer);
-                                    showRegistrationSuccess(deviceName);
-                                }
+                            const res = await checkRegistrationStatus(deviceId);
+                            if (res.skipped) {
+                                // skipped due to cooldown or inflight; do nothing
+                                return;
                             }
-                        } catch (error) {
+                            if (res.ok && res.data && res.data.isRegistered) {
+                                clearInterval(registrationPollTimer);
+                                state.registrationPollTimer = null;
+                                showRegistrationSuccess(deviceName);
+                            }
+                            if (res.rateLimited) {
+                                // Slow the poll cadence while rate-limited
+                                try {
+                                    clearInterval(registrationPollTimer);
+                                } catch (_) {}
+                                state.registrationPollTimer = setTimeout(
+                                    () => {
+                                        // resume interval polling after cooldown
+                                        state.registrationPollTimer = setInterval(() => {
+                                            checkRegistrationStatus(deviceId);
+                                        }, 7000);
+                                    },
+                                    Math.max(3000, (res.retryAt || Date.now()) - Date.now())
+                                );
+                            }
+                        } catch (_) {
                             // Silent retry on error
                         }
-                    }, 5000); // Check every 5 seconds instead of 2
+                    }, 5000); // Check every 5 seconds
+                    state.registrationPollTimer = registrationPollTimer;
                 } catch (_) {
                     /* noop: building auto-register link failed */
                 }
@@ -904,6 +961,13 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             function wrappedDoClose() {
                 if (registrationPollTimer) {
                     clearInterval(registrationPollTimer);
+                }
+                if (state.registrationPollTimer) {
+                    try {
+                        clearInterval(state.registrationPollTimer);
+                        clearTimeout(state.registrationPollTimer);
+                    } catch (_) {}
+                    state.registrationPollTimer = null;
                 }
                 return originalDoClose();
             }
@@ -1463,12 +1527,52 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         }
     }
 
+    // Prevent rapid reload loops: allow at most one reload every 8 seconds
+    function safeReload(nextUrl) {
+        try {
+            const now = Date.now();
+            const key = 'pr_last_reload_ts';
+            const last = Number(localStorage.getItem(key) || '0');
+            if (now - last < 8000) {
+                // Too soon since last reload; skip
+                return;
+            }
+            localStorage.setItem(key, String(now));
+        } catch (_) {
+            // If localStorage unavailable, still proceed but we tried
+        }
+
+        try {
+            if (nextUrl && typeof nextUrl === 'string') {
+                window.location.replace(nextUrl);
+            } else {
+                window.location.reload();
+            }
+        } catch (_) {
+            // Best-effort reload fallback
+            try {
+                window.location.href = nextUrl || window.location.href;
+            } catch (_) {}
+        }
+    }
+
     function forceReload() {
         try {
             const busted = cacheBustUrl(window.location.href);
-            window.location.replace(busted);
+            // Also remove known query params that can cause repeated actions
+            try {
+                const url = new URL(busted);
+                ['pair', 'pairCode', 'pairToken', 'deviceReset', 'device', 'devreset'].forEach(k =>
+                    url.searchParams.delete(k)
+                );
+                safeReload(url.toString());
+                return;
+            } catch (_) {
+                // If URL API fails, just use busted
+            }
+            safeReload(busted);
         } catch (_) {
-            window.location.reload();
+            safeReload();
         }
     }
 
@@ -1635,20 +1739,17 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             console.log('🔍 [DEBUG] Checking if device is still registered on server');
             console.log('  - deviceId from localStorage:', state.deviceId);
             try {
-                const response = await fetch('/api/devices/check', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ deviceId: state.deviceId }),
-                });
-
-                console.log('  - Server response status:', response.status);
-
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('  - Server response:', result);
-                    if (!result.isRegistered) {
+                const res = await checkRegistrationStatus(state.deviceId);
+                if (res.skipped) {
+                    console.log('  → Skipping device check due to cooldown/in-flight');
+                } else if (res.rateLimited) {
+                    console.log(
+                        '  → Rate limited on device check; will assume registered during cooldown'
+                    );
+                } else if (res.ok && res.data) {
+                    console.log('  - Server response:', res.data);
+                    if (!res.data.isRegistered) {
                         console.log('  → Device not registered on server, clearing local identity');
-                        // Device was removed from server, clear local identity
                         clearIdentity();
                         state.deviceId = null;
                         state.deviceSecret = null;
@@ -1657,12 +1758,10 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         console.log('  → Device is registered on server, skipping setup');
                     }
                 } else {
-                    console.log('  → Server check failed, assuming device is registered');
+                    console.log('  → Device check failed, assuming device is registered');
                 }
-                // If server is unreachable, assume device is still valid
             } catch (error) {
-                console.log('  → Network error, assuming device is registered:', error.message);
-                // If we can't reach the server, assume device is registered to avoid showing setup
+                console.log('  → Device check error, assuming registered:', error && error.message);
                 needsSetup = false;
             }
         } else {
@@ -1675,14 +1774,10 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 const hardwareId = getHardwareId();
                 console.log('  - Generated hardware ID:', hardwareId);
 
-                const response = await fetch('/api/devices/check', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ deviceId: hardwareId }),
-                });
+                const res = await checkRegistrationStatus(hardwareId);
 
-                if (response.ok) {
-                    const result = await response.json();
+                if (res.ok && res.data) {
+                    const result = res.data;
                     console.log('  - Server response for hardware ID:', result);
 
                     if (result.isRegistered) {
@@ -1745,6 +1840,11 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         console.log('  → Hardware ID not found on server, setup required');
                         needsSetup = true;
                     }
+                } else if (res.rateLimited || res.skipped) {
+                    console.log(
+                        '  → Rate-limited or skipped hardware ID check; deferring setup prompt'
+                    );
+                    needsSetup = true;
                 } else {
                     console.log('  → Server check failed, will show setup');
                     needsSetup = true;
@@ -1809,7 +1909,8 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 // force a quick re-register + reload for clarity
                 registerIfNeeded().then(() => {
                     try {
-                        window.location.reload();
+                        // Debounced reload to avoid loops
+                        safeReload();
                     } catch (_) {
                         // ignore reload errors
                     }

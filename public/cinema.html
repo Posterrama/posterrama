@@ -20,6 +20,22 @@
         <script src="/client-logger.js"></script>
     </head>
     <body data-mode="cinema">
+        <script>
+            // Early guard: if cinema mode is not enabled anymore, immediately go back to root
+            (async function () {
+                try {
+                    const resp = await fetch('/get-config?_t=' + Date.now(), { cache: 'no-cache' });
+                    if (!resp.ok) return; // fail open
+                    const cfg = await resp.json();
+                    if (!cfg || cfg.cinemaMode !== true) {
+                        // Use absolute origin to avoid proxy/base tag quirks
+                        window.location.replace(window.location.origin + '/');
+                    }
+                } catch (e) {
+                    // silent; normal runtime will handle later
+                }
+            })();
+        </script>
         <!-- Loader -->
         <div id="loader">
             <div class="poster-loader"></div>
@@ -35,27 +51,7 @@
             </div>
         </div>
 
-        <!-- Cinema controls -->
-        <div id="controls-container">
-            <button id="prev-button" aria-label="Previous">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-                </svg>
-            </button>
-            <button id="pause-button" aria-label="Pause/Resume">
-                <svg class="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                </svg>
-                <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
-                </svg>
-            </button>
-            <button id="next-button" aria-label="Next">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
-                </svg>
-            </button>
-        </div>
+        <!-- No on-screen controls in cinema mode -->
 
         <!-- Scripts -->
         <script src="device-mgmt.js?v=20250901a"></script>

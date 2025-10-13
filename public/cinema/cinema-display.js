@@ -116,7 +116,7 @@
         }
 
         // Apply header style class
-        const styleClass = `cinema-header-${cinemaConfig.header.style}`;
+        const styleClass = `style-${cinemaConfig.header.style}`;
         headerEl.className = `cinema-header ${styleClass}`;
 
         // Set header text
@@ -165,10 +165,12 @@
             // Marquee footer
             const marqueeDiv = document.createElement('div');
             marqueeDiv.className = 'cinema-footer-marquee';
+            // Apply style variant on the container (style-*)
+            const styleVariant = `style-${cinemaConfig.footer.marqueeStyle || 'classic'}`;
+            marqueeDiv.classList.add(styleVariant);
 
             const marqueeText = document.createElement('div');
-            const styleClass = `cinema-footer-marquee-${cinemaConfig.footer.marqueeStyle}`;
-            marqueeText.className = styleClass;
+            marqueeText.className = 'cinema-footer-marquee-content';
             marqueeText.textContent = cinemaConfig.footer.marqueeText || 'Feature Presentation';
 
             marqueeDiv.appendChild(marqueeText);
@@ -291,8 +293,10 @@
             }
         }
 
-        // Apply cinema orientation
+        // Apply cinema orientation and initial layout sizing
         applyCinemaOrientation(cinemaConfig.orientation);
+        // Compute initial poster layout bands
+        updatePosterLayout();
 
         // Create cinema UI elements
         createHeader();

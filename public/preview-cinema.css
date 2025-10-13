@@ -1,8 +1,8 @@
 /* Preview-only Cinema overlays: header/footer/marquee/specs/ambilight */
 /* Hide all cinema overlays unless the preview is explicitly in cinema mode */
-body:not(.cinema-mode) #cinema-ambilight,
-body:not(.cinema-mode) #cinema-header,
-body:not(.cinema-mode) #cinema-footer {
+body:not(.cinema-mode) .cinema-ambilight,
+body:not(.cinema-mode) .cinema-header,
+body:not(.cinema-mode) .cinema-footer {
     display: none !important;
 }
 
@@ -11,8 +11,8 @@ body:not(.cinema-mode) #cinema-footer {
 
 /* Debug visuals removed for production cleanliness */
 
-/* Ensure preview container matches cinema full-viewport layout */
-#info-container {
+/* Ensure preview container matches cinema full-viewport layout (cinema preview only) */
+body.cinema-mode #info-container {
     position: fixed !important;
     top: 0 !important;
     left: 0;
@@ -22,7 +22,7 @@ body:not(.cinema-mode) #cinema-footer {
     margin: 0 !important;
 }
 
-#poster-wrapper {
+body.cinema-mode #poster-wrapper {
     position: fixed;
     top: var(--poster-top, 0);
     left: 0;
@@ -35,13 +35,13 @@ body:not(.cinema-mode) #cinema-footer {
     animation: none !important;
 }
 
-#poster-link {
+body.cinema-mode #poster-link {
     display: block;
     width: 100%;
     height: 100%;
 }
 
-#poster {
+body.cinema-mode #poster {
     width: 100%;
     height: 100%;
     background-size: contain;
@@ -102,7 +102,7 @@ body.cinema-mode #poster {
     display: block !important;
 }
 
-#cinema-ambilight {
+.cinema-ambilight {
     position: fixed;
     inset: 0;
     pointer-events: none;
@@ -113,8 +113,8 @@ body.cinema-mode #poster {
 }
 
 /* Header occupies only the top letterbox region */
-#cinema-footer-specs,
-#cinema-footer-marquee {
+.cinema-footer-specs,
+.cinema-footer-marquee {
     position: fixed;
     left: 0;
     right: 0;
@@ -128,7 +128,7 @@ body.cinema-mode #poster {
     padding: 0;
 }
 
-#cinema-header {
+.cinema-header {
     position: fixed;
     top: 0;
     left: 0;
@@ -144,18 +144,18 @@ body.cinema-mode #poster {
 }
 
 /* Remove the complex gradient ::after that creates banding */
-#cinema-header::after {
+.cinema-header::after {
     display: none;
 }
 
-#cinema-header span {
+.cinema-header span {
     display: block;
     width: auto;
     max-width: 100%;
 }
 
 /* Header styles - match cinema-display.css exactly */
-#cinema-header.style-classic {
+.cinema-header.style-classic {
     /* No background gradient - pure text over black background */
     background: transparent;
     font-size: 3rem;
@@ -165,7 +165,7 @@ body.cinema-mode #poster {
     color: #fff;
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
 }
-#cinema-header.style-neon {
+.cinema-header.style-neon {
     background: transparent;
     font-size: 3rem;
     font-weight: 800;
@@ -177,7 +177,7 @@ body.cinema-mode #poster {
         0 0 40px #ff00ff,
         0 0 60px #ff00ff;
 }
-#cinema-header.style-minimal {
+.cinema-header.style-minimal {
     background: transparent;
     font-size: 1.75rem;
     font-weight: 500;
@@ -185,7 +185,7 @@ body.cinema-mode #poster {
     letter-spacing: 0.05em;
     color: rgba(255, 255, 255, 0.8);
 }
-#cinema-header.style-theatre {
+.cinema-header.style-theatre {
     background: transparent;
     font-size: 2.5rem;
     font-weight: 700;
@@ -196,9 +196,9 @@ body.cinema-mode #poster {
 }
 
 /* Remove large title scaling - keep consistent */
-#cinema-header span,
-#cinema-header strong,
-#cinema-header em {
+.cinema-header span,
+.cinema-header strong,
+.cinema-header em {
     display: inline;
 }
 
@@ -250,16 +250,16 @@ body.cinema-mode #poster {
 }
 
 /* Specs block */
-#cinema-footer-specs {
+.cinema-footer-specs {
     display: none;
 }
-#cinema-footer-specs .specs {
+.cinema-footer-specs .specs {
     display: flex;
     gap: 12px;
     align-items: center;
     color: #fff;
 }
-#cinema-footer-specs .specs .chip {
+.cinema-footer-specs .specs .chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -267,7 +267,7 @@ body.cinema-mode #poster {
     border-radius: 10px;
     font-size: 13px;
 }
-#cinema-footer-specs .specs .chip .ico {
+.cinema-footer-specs .specs .chip .ico {
     width: 16px;
     height: 16px;
     display: inline-block;
@@ -278,35 +278,35 @@ body.cinema-mode #poster {
     opacity: 0.9;
 }
 /* Icon sets simulated by weight */
-#cinema-footer-specs.style-subtle .chip {
+.cinema-footer-specs.style-subtle .chip {
     background: rgba(0, 0, 0, 0.35);
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
-#cinema-footer-specs.style-filled .chip {
+.cinema-footer-specs.style-filled .chip {
     background: rgba(255, 255, 255, 0.12);
 }
-#cinema-footer-specs.style-outline .chip {
+.cinema-footer-specs.style-outline .chip {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-#cinema-footer-specs.icon-filled .ico {
+.cinema-footer-specs.icon-filled .ico {
     opacity: 0.95;
 }
-#cinema-footer-specs.icon-line .ico {
+.cinema-footer-specs.icon-line .ico {
     opacity: 0.75;
 }
 
 /* Simple placeholder masks for icons using basic shapes */
-#cinema-footer-specs .ico.ico-res {
+.cinema-footer-specs .ico.ico-res {
     mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/></svg>');
 }
-#cinema-footer-specs .ico.ico-aud {
+.cinema-footer-specs .ico.ico-aud {
     mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z"/></svg>');
 }
-#cinema-footer-specs .ico.ico-asp {
+.cinema-footer-specs .ico.ico-asp {
     mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 7h16v2H4zm0 8h16v2H4z"/></svg>');
 }
-#cinema-footer-specs .ico.ico-flag {
+.cinema-footer-specs .ico.ico-flag {
     mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5 3v18M7 3h10l-2 4 2 4H7"/></svg>');
 }

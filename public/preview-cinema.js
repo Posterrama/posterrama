@@ -56,7 +56,7 @@
         const el = $('#cinema-header');
         const body = document.body;
         if (!el) return;
-        el.className = '';
+        el.className = 'cinema-header';
         el.id = 'cinema-header';
         if (!enabled) {
             el.textContent = '';
@@ -179,6 +179,8 @@
     function setAmbilight(enabled, strength) {
         const a = $('#cinema-ambilight');
         if (!a) return;
+        // Ensure class for CSS targeting
+        if (!a.classList.contains('cinema-ambilight')) a.classList.add('cinema-ambilight');
         a.style.opacity = enabled ? String(Math.max(0, Math.min(100, strength || 60)) / 100) : '0';
     }
     function applyCinemaOverlays(config) {
@@ -189,20 +191,47 @@
             // Hide unwanted elements in cinema mode (metadata, clearlogo, RT badge)
             hideCinemaUnwantedElements(isCinemaMode);
 
-            // Force preview runtime to behave like cinema for poster rendering
-            if (typeof window.appConfig !== 'object') window.appConfig = {};
-            window.appConfig.cinemaMode = isCinemaMode;
-            // In preview, avoid orientation rotation logic in script.js by forcing 'auto'
-            window.appConfig.cinemaOrientation = 'auto';
-            if (!window.appConfig.wallartMode) window.appConfig.wallartMode = { enabled: false };
-
-            // Ensure body class reflects cinema mode immediately so preview CSS shows overlays
+            // Reflect body class for preview-only CSS
             try {
                 document.body.classList.toggle('cinema-mode', !!isCinemaMode);
                 if (isCinemaMode) document.body.classList.remove('wallart-mode');
-            } catch (_) {
-                // no-op: preview may run before body is ready; safe to ignore
+            } catch (_) {}
+
+            if (!isCinemaMode) {
+                // Not in cinema preview: fully hide/clear all cinema overlays
+                const h = $('#cinema-header');
+                const fm = $('#cinema-footer-marquee');
+                const fs = $('#cinema-footer-specs');
+                const amb = $('#cinema-ambilight');
+                document.body.classList.remove('cinema-header-active', 'cinema-footer-active');
+                if (h) {
+                    h.style.display = 'none';
+                    h.textContent = '';
+                    h.className = 'cinema-header';
+                }
+                if (fm) {
+                    fm.style.display = 'none';
+                    fm.className = 'cinema-footer-marquee';
+                }
+                if (fs) {
+                    fs.style.display = 'none';
+                    fs.className = 'cinema-footer-specs';
+                    fs.innerHTML = '';
+                }
+                if (amb) {
+                    if (!amb.classList.contains('cinema-ambilight'))
+                        amb.classList.add('cinema-ambilight');
+                    amb.style.opacity = '0';
+                }
+                updatePosterLayoutPreview();
+                return; // Do not apply cinema config when not in cinema preview
             }
+
+            // In cinema preview: apply overlays
+            if (typeof window.appConfig !== 'object') window.appConfig = {};
+            window.appConfig.cinemaMode = true;
+            window.appConfig.cinemaOrientation = 'auto';
+            if (!window.appConfig.wallartMode) window.appConfig.wallartMode = { enabled: false };
 
             setHeader(c.header?.text, c.header?.style, !!c.header?.enabled);
             setFooter(
@@ -214,10 +243,8 @@
             );
             setAmbilight(c.ambilight?.enabled !== false, c.ambilight?.strength ?? 60);
 
-            // Ensure poster area is sized after overlays are applied
             updatePosterLayoutPreview();
-            // Also sync poster immediately to avoid any race conditions in preview
-            if (isCinemaMode) syncPosterFromCurrentMedia();
+            syncPosterFromCurrentMedia();
         } catch (e) {
             // ignore overlay application errors (preview resilience)
         }
@@ -241,20 +268,5 @@
 
     // No debug controls exported
 
-    // Also patch into window.applySettings if it exists (for initial boot via preview)
-    const prevApply = window.applySettings;
-    window.applySettings = function (cfg) {
-        try {
-            applyCinemaOverlays(cfg);
-        } catch (_) {
-            // ignore applySettings overlay error
-        }
-        // After settings apply, ensure poster reflects current media in preview
-        try {
-            if (cfg && cfg.cinemaMode === true) syncPosterFromCurrentMedia();
-        } catch (_) {
-            // no-op: preview sync is best-effort
-        }
-        if (typeof prevApply === 'function') return prevApply.apply(this, arguments);
-    };
+    // Do not override global applySettings in preview; rely on postMessage updates from admin
 })();

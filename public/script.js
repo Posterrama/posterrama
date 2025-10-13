@@ -870,15 +870,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return {};
                 }
             })();
-            const configResponse = await fetch('/get-config' + cacheBuster, {
-                cache: 'no-cache',
-                headers: {
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    Pragma: 'no-cache',
-                    Expires: '0',
-                    ...deviceHeaders,
-                },
-            });
+            // Fetch config with simple 429 backoff to prevent redirect loops under rate limiting
+            async function fetchConfigWithBackoff(attempt = 1) {
+                const resp = await fetch('/get-config' + cacheBuster, {
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        Pragma: 'no-cache',
+                        Expires: '0',
+                        ...deviceHeaders,
+                    },
+                });
+                if (resp.status === 429 && attempt <= 5) {
+                    const delay = Math.min(5000, 500 * attempt);
+                    await new Promise(r => setTimeout(r, delay));
+                    return fetchConfigWithBackoff(attempt + 1);
+                }
+                return resp;
+            }
+            const configResponse = await fetchConfigWithBackoff();
+            if (!configResponse.ok)
+                throw new Error(`Config fetch failed: ${configResponse.status}`);
             appConfig = await configResponse.json();
 
             // Check for promo site config override (forced screensaver mode)
@@ -1018,6 +1030,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Apply wallart mode
             applyWallartMode(appConfig);
         }
+
+        // Keep standalone cinema display in sync with admin changes without affecting previews
+        try {
+            if (document.body.dataset.mode === 'cinema' && window.cinemaDisplay) {
+                const syncCinemaConfig = async () => {
+                    try {
+                        const resp = await fetch('/get-config?_t=' + Date.now(), {
+                            cache: 'no-cache',
+                            headers: { 'Cache-Control': 'no-cache' },
+                        });
+                        if (!resp.ok) return;
+                        const cfg = await resp.json();
+                        // If cinema mode was turned off while we're on /cinema, navigate back to root
+                        if (!cfg || cfg.cinemaMode !== true) {
+                            // Prefer replace() to avoid adding history entries; absolute origin to be robust behind proxies
+                            window.location.replace(window.location.origin + '/');
+                            return;
+                        }
+                        if (cfg && cfg.cinema) {
+                            window.cinemaDisplay.updateConfig(cfg);
+                        }
+                    } catch (_) {}
+                };
+                // Initial sync plus interval
+                syncCinemaConfig();
+                setInterval(syncCinemaConfig, 8000);
+            }
+        } catch (_) {}
     }
 
     // --- Live Preview support ---
@@ -1025,6 +1065,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     function applySettings(partial) {
         try {
             if (!partial || typeof partial !== 'object') return;
+            // If on standalone cinema page and admin disables cinema or enables wallart, exit to root
+            if (document.body && document.body.dataset.mode === 'cinema') {
+                const turningCinemaOff =
+                    Object.prototype.hasOwnProperty.call(partial, 'cinemaMode') &&
+                    partial.cinemaMode === false;
+                const enablingWallart = partial.wallartMode && partial.wallartMode.enabled === true;
+                if (turningCinemaOff || enablingWallart) {
+                    try {
+                        window.location.replace('/');
+                        return;
+                    } catch (_) {}
+                }
+            }
             if (window.POSTERRAMA_DEBUG) {
                 try {
                     console.log(
@@ -4156,6 +4209,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (!mediaResponse.ok) {
+                if (mediaResponse.status === 429) {
+                    // Rate limited: back off and retry without treating as fatal
+                    setTimeout(() => fetchMedia(isInitialLoad), 1500);
+                    return;
+                }
                 const errorData = await mediaResponse
                     .json()
                     .catch(() => ({ error: mediaResponse.statusText }));
@@ -4699,13 +4757,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearlogoEl.classList.remove('visible');
         }
 
-        // Update Rotten Tomatoes badge
-        if (
-            appConfig.showRottenTomatoes &&
-            mediaItem.rottenTomatoes &&
-            mediaItem.rottenTomatoes.score &&
-            rtBadge
-        ) {
+        // Update Rotten Tomatoes badge (suppress in admin preview to avoid visual dominance)
+        const allowRt = !window.IS_PREVIEW && appConfig.showRottenTomatoes;
+        if (allowRt && mediaItem.rottenTomatoes && mediaItem.rottenTomatoes.score && rtBadge) {
             const { icon } = mediaItem.rottenTomatoes;
             let iconUrl = '';
             // Use local SVG assets for reliability
@@ -5965,6 +6019,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Show controls on mouse movement or touch, and hide them after a few seconds.
     function showControls() {
+        // Never show screensaver controls in cinema mode (standalone or inline cinema)
+        try {
+            if (document.body.dataset.mode === 'cinema' || appConfig.cinemaMode) return;
+        } catch (_) {}
         if (controlsContainer) {
             controlsContainer.classList.add('visible');
         }
