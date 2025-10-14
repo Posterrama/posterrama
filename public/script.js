@@ -1099,7 +1099,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 syncCinemaConfig();
                 setInterval(syncCinemaConfig, 8000);
             }
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: wallart currentPosters window binding optional */
+        }
 
         // Keep standalone wallart display in sync: if wallart disabled, navigate back to root
         try {
@@ -1134,7 +1136,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 syncWallartConfig();
                 setInterval(syncWallartConfig, 8000);
             }
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: module initializeGrid failure; legacy initializer will run */
+        }
 
         // Keep standalone screensaver display in sync: if cinema or wallart enabled, navigate accordingly
         try {
@@ -2620,7 +2624,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     usedPosters.clear();
                     initResult.usedPosters.forEach &&
                         initResult.usedPosters.forEach(v => usedPosters.add(v));
-                } catch (_) {}
+                } catch (_) {
+                    /* ignore: adopting module usedPosters Set fallback */
+                }
             }
         }
 
@@ -2655,7 +2661,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const el = window.PosterramaWallart.runtime.createPosterElement(item, index);
                     if (el) return el;
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: module-specific poster element creation fallback */
+            }
             const posterItem = document.createElement('div');
             posterItem.className = 'wallart-poster-item';
             posterItem.dataset.originalIndex = index;
