@@ -2870,7 +2870,9 @@
             dedupeNumberWrappers();
             try {
                 window.admin2.dedupeNumberWrappers = dedupeNumberWrappers;
-            } catch (_) {}
+            } catch (_) {
+                /* posterpack plex library fill fallback rebuild failed (will retry on next user action) */
+            }
             window.addEventListener('load', () => setTimeout(() => dedupeNumberWrappers(), 30));
             window.addEventListener('hashchange', () =>
                 setTimeout(() => dedupeNumberWrappers(), 60)
@@ -3108,7 +3110,9 @@
                                 finishIfComplete();
                             }, 25);
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* posterpack plex primary fallback fetch failed (continue best-effort) */
+                    }
                 });
 
                 try {
@@ -3204,7 +3208,9 @@
                 ) {
                     window.admin2.mediaSourceWrapDebug = () => window.__lastMediaSourceWrapState;
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* posterpack plex library fetch failed (lists may remain empty) */
+            }
             // Plex port now enhanced like others; retain sanitization post-enhancement
             try {
                 const plexPort = document.getElementById('plex_port');
@@ -3414,7 +3420,9 @@
                     // Trigger preview update when transition effect changes
                     try {
                         window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* posterpack jellyfin primary fallback fetch failed (will attempt other sources) */
+                    }
                 });
                 elPause?.addEventListener(ev, () => {
                     applySummary();
@@ -3958,7 +3966,9 @@
                 container.style.left = l + 'px';
                 container.style.right = 'auto';
                 container.style.bottom = 'auto';
-            } catch (_) {}
+            } catch (_) {
+                /* posterpack jellyfin library fetch failed (lists may remain empty) */
+            }
         }
 
         // Position the preview near the top-right of the Active Mode card
@@ -3999,7 +4009,9 @@
                     const payload = collectPreviewPayload();
                     applyContainerMode(payload);
                     updateFrameScale();
-                } catch (_) {}
+                } catch (_) {
+                    /* ensure jf libs discovery attempt failed (genre counts may be incomplete) */
+                }
 
                 // Disable transitions briefly to avoid visual drift when snapping
                 container.classList.add('no-transition');
@@ -4011,7 +4023,9 @@
                     try {
                         setPositionFromTopRightAnchor(lastAutoAnchor);
                         clampWithinViewport(0);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* jellyfin genre counts fetch (selected libs) failed - falling back */
+                    }
                 }
 
                 let tries = 0;
@@ -4723,7 +4737,9 @@
                                 label,
                                 hiddenAncestor
                             );
-                        } catch (_) {}
+                        } catch (_) {
+                            /* jellyfin all-libs genre fallback failed (genres may be minimal) */
+                        }
                     }
                     // Retry measurement after potential portal
                     requestAnimationFrame(() => {
@@ -4749,7 +4765,9 @@
                             }
                         } catch (_) {}
                     });
-                } catch (_) {}
+                } catch (_) {
+                    /* posterpack ratings/genres/qualities aggregate failed (filters limited) */
+                }
             }
         } catch (e) {
             console.warn('[ModalDebug] showOverlay failed', label, e);
@@ -4807,7 +4825,9 @@
             if (active && m.contains(active)) {
                 active.blur();
             }
-        } catch (_) {}
+        } catch (_) {
+            /* posterpack server filter options load failed (user can retry) */
+        }
         m.classList.remove('open');
         m.setAttribute('aria-hidden', 'true');
         // Restore original inline styles if we overrode them
@@ -4825,7 +4845,9 @@
             if (!m.__origStyle) {
                 m.style.display = 'none';
             }
-        } catch (_) {}
+        } catch (_) {
+            /* awaiting posterpack filter preload failed (safe to reset in future attempt) */
+        }
         // Keep DOM footprint small; rely on CSS .open to show. If it had explicit hidden originally, restore.
         if (m.hasAttribute('data-auto-hidden')) {
             m.setAttribute('hidden', '');
