@@ -451,7 +451,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ) {
                             reinitBackgroundForScreensaver();
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* ignore: deferred reinit guard; background state will self-correct next cycle */
+                    }
                 }, 650);
                 return;
             }
@@ -2118,7 +2120,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const ambient = document.getElementById('wallart-ambient-overlay');
                     if (ambient) ambient.remove();
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: DOM paints may race with mediaQueue changes; fallback visuals persist */
+            }
 
             // Remove resize listener
             if (window.wallartResizeListener) {
@@ -2418,7 +2422,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (window.PosterramaWallart && typeof window.PosterramaWallart.start === 'function') {
                 return window.PosterramaWallart.start(wallartConfig);
             }
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: heartbeat nudge failure during source switch */
+        }
         // Persist current config globally for helpers that read it
         try {
             window.wallartConfig = { ...(wallartConfig || {}) };
