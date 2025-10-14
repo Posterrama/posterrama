@@ -2147,7 +2147,9 @@
                         // Do it twice across frames to allow layout to settle
                         window.__previewReanchor?.();
                         requestAnimationFrame(() => window.__previewReanchor?.());
-                    } catch (_) {}
+                    } catch (_) {
+                        /* slider bar re-render (input event) failed (cosmetic) */
+                    }
                 }
             }
         } catch (_) {
@@ -2725,7 +2727,9 @@
                 if (input.dataset.enhanced === '1' && !wrapped) {
                     try {
                         delete input.dataset.enhanced;
-                    } catch (_) {}
+                    } catch (_) {
+                        /* slider bar re-render (change event) failed (cosmetic) */
+                    }
                 }
                 // If now wrapped, just normalize flag and exit
                 if (wrapped) {
@@ -2770,7 +2774,9 @@
                     ) {
                         wrapper.classList.add('niw-sized-sm');
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* slider label update failed (non-critical) */
+                }
                 // End width bucket sizing
                 const snap = (val, s) => Math.round(val / s) * s;
                 // Local helpers for increment/decrement controls (mirrors late fallback delegate logic)
@@ -2796,7 +2802,9 @@
                 btnUp.addEventListener('click', e => {
                     try {
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preset 4k apply failed (user can set manually) */
+                    }
                     const cur = Number(input.value || '0') || 0;
                     const s = step();
                     const out = clamp(snap(cur + s, s));
@@ -2808,7 +2816,9 @@
                 btnDown.addEventListener('click', e => {
                     try {
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preset full-hd apply failed (manual adjustment still possible) */
+                    }
                     const cur = Number(input.value || '0') || 0;
                     const s = step();
                     const out = clamp(snap(cur - s, s));
@@ -3435,14 +3445,18 @@
                     // Trigger preview update when pause time changes
                     try {
                         window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preset ultrawide apply failed (manual adjustment still possible) */
+                    }
                 });
                 elClock?.addEventListener(ev, () => {
                     applySummary();
                     // Trigger preview update when clock setting changes
                     try {
                         window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* UI scaling reset preset failed (values unchanged) */
+                    }
                 });
             });
             applyPauseVisibility();
@@ -3475,7 +3489,9 @@
                 // Nudge preview update if initialized
                 try {
                     window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                } catch (_) {}
+                } catch (_) {
+                    /* poster->metadata dependency apply failed (user can toggle manually) */
+                }
             };
             btnChill?.addEventListener('click', () =>
                 onPreset({ interval: 30, effect: 'kenburns', pause: 0 })
@@ -3595,7 +3611,9 @@
                 applySummary();
                 try {
                     window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                } catch (_) {}
+                } catch (_) {
+                    /* clock row visibility enforcement failed (layout ok) */
+                }
             };
             btnGallery?.addEventListener('click', () =>
                 onPreset({
@@ -3720,7 +3738,9 @@
                         const cc = window.__collectCinemaConfig();
                         if (cc && typeof cc === 'object') return cc;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* number wrapper width bucket classification failed (defaults) */
+                }
                 return undefined; // let server merge preserve existing if UI not loaded
             })(),
             // Screensaver specific: none (backgroundRefreshMinutes managed in Operations)
@@ -4771,7 +4791,9 @@
                                     r2.toJSON()
                                 );
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* increment stopPropagation failed (harmless) */
+                        }
                     });
                 } catch (_) {
                     /* posterpack ratings/genres/qualities aggregate failed (filters limited) */
@@ -5081,7 +5103,9 @@
                         s.__onDeviceNudge = onNudge;
                         try {
                             s.addEventListener('device-updated', () => onNudge('device-updated'));
-                        } catch (_) {}
+                        } catch (_) {
+                            /* decrement stopPropagation failed (harmless) */
+                        }
                         try {
                             s.addEventListener('device-ws', () => onNudge('device-ws'));
                         } catch (_) {}
@@ -5716,7 +5740,9 @@
                             // Secondary guard: still run generic ensureVisible in case of race conditions
                             try {
                                 window.__ensureVisible?.(panel, 'notify');
-                            } catch (_) {}
+                            } catch (_) {
+                                /* manual width bucket sizing failed (non-blocking) */
+                            }
                         }
                     } catch (_) {}
                 }
@@ -5817,7 +5843,9 @@
                             // Ensure other header menus are closed when opening notifications
                             try {
                                 typeof closeMenu === 'function' && closeMenu();
-                            } catch (_) {}
+                            } catch (_) {
+                                /* width bucket size sm failed (fallback default width) */
+                            }
                             try {
                                 typeof closeUserMenu === 'function' && closeUserMenu();
                             } catch (_) {}
@@ -5917,7 +5945,9 @@
                     if (document.visibilityState === 'visible') {
                         try {
                             refreshBadge();
-                        } catch (_) {}
+                        } catch (_) {
+                            /* up button stopPropagation failed (no side effects) */
+                        }
                     }
                 });
                 // Refresh on pageshow (including back/forward cache restores)
@@ -6000,7 +6030,9 @@
                     setTimeout(() => {
                         try {
                             refreshBadge();
-                        } catch (_) {}
+                        } catch (_) {
+                            /* down button stopPropagation failed (no side effects) */
+                        }
                     }, 250);
                 }
             });
@@ -7599,7 +7631,9 @@
                             } else if (s.panel === 'panel-local') {
                                 window.admin2?.maybeInitLocalDirectoryOnOpen?.();
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* wrapper dataset wiring failed (diagnostic only) */
+                        }
                     });
                 });
 
@@ -8210,7 +8244,9 @@
             const savePinnedMap = () => {
                 try {
                     localStorage.setItem(PIN_STORE_KEY, JSON.stringify(pinnedUI));
-                } catch (_) {}
+                } catch (_) {
+                    /* section mutation observer setup failed (retries via global observer) */
+                }
             };
             // Expose minimal debug hooks
             try {
@@ -8402,7 +8438,9 @@
                         const key = uaScKey(d);
                         if (key) (uaScMap[key] = uaScMap[key] || []).push(d);
                     });
-                } catch (_) {}
+                } catch (_) {
+                    /* global mutation observer setup failed (hashchange + retries still run) */
+                }
                 state.dupMaps = { hwMap, iidMap, uaScMap };
             }
             function getDupesForDevice(d) {
@@ -8426,7 +8464,9 @@
                     if (key && uaScMap[key] && uaScMap[key].length > 1) {
                         for (const x of uaScMap[key]) add(x, 'UA+screen');
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* hashchange wrap attempt failed (later attempts continue) */
+                }
                 return Object.values(reasonsById).map(v => ({
                     dev: v.dev,
                     reasons: Array.from(v.reasons),
@@ -8475,7 +8515,9 @@
                         const validSet = new Set(state.groups.map(g => g.id));
                         validGroups = d.groups.filter(g => validSet.has(g));
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* intersection observer wrap trigger failed (other triggers remain) */
+                }
                 // Build group pills HTML only when needed
                 let groupsHtml = '';
                 if (validGroups.length > 0) {
@@ -9585,7 +9627,9 @@
                             '[ModalDebug] openRemoteFor rect',
                             overlay.getBoundingClientRect().toJSON()
                         );
-                } catch (_) {}
+                } catch (_) {
+                    /* DOMContentLoaded wrap attempt failed (later timers/raf still execute) */
+                }
                 // Attach a single delegated click handler once
                 if (!overlay._remoteBound) {
                     overlay.addEventListener('click', async ev => {
@@ -9625,7 +9669,9 @@
                             '[ModalDebug] openOverrideFor rect',
                             overlay.getBoundingClientRect().toJSON()
                         );
-                } catch (_) {}
+                } catch (_) {
+                    /* admin2 mediaSourceWrapDebug export failed (debug only) */
+                }
                 const applyBtn = document.getElementById('btn-override-apply');
                 const statusEl = document.getElementById('override-json-status');
                 const formatBtn = document.getElementById('override-format');
@@ -11689,7 +11735,9 @@
             try {
                 section.dataset.inited = '1';
                 dbg('initDevices(): initialized');
-            } catch (_) {}
+            } catch (_) {
+                /* plex port numeric clamp listener wiring failed (digits still filtered) */
+            }
             // Load syncEnabled from /get-config so we can show 'Synced' badge on devices
             (async () => {
                 try {
@@ -11856,7 +11904,9 @@
                                 });
                             } catch (_) {}
                             // No separate powered-off pill anymore
-                        } catch (_) {}
+                        } catch (_) {
+                            /* direct wrapper nested removal failed (harmless) */
+                        }
 
                         // Live-update now-playing thumbnail and title (if present)
                         try {
@@ -11996,7 +12046,9 @@
                                     testImg.src = src;
                                 }
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* inner wrapper flatten (A) failed (layout unaffected) */
+                        }
                     });
 
                     // If a hovercard is currently open, refresh its content live
@@ -15387,7 +15439,9 @@
                         try {
                             rebuildMsForSelect('plex-ms-movies', 'plex.movies');
                             rebuildMsForSelect('plex-ms-shows', 'plex.shows');
-                        } catch (_) {}
+                        } catch (_) {
+                            /* inner wrapper flatten (B) failed (layout unaffected) */
+                        }
                     }
                 }
             } catch (_) {
@@ -16239,7 +16293,9 @@
                             try {
                                 rebuildMsForSelect('plex-ms-movies', 'plex.movies');
                                 rebuildMsForSelect('plex-ms-shows', 'plex.shows');
-                            } catch (_) {}
+                            } catch (_) {
+                                /* delegated increment stopPropagation failed */
+                            }
                         }, 0);
                     }
                     // Rebuild multiselect options
@@ -16688,7 +16744,9 @@
                             try {
                                 const cb = document.getElementById('jf.enabled');
                                 if (cb) return !!cb.checked;
-                            } catch (_) {}
+                            } catch (_) {
+                                /* delegated decrement stopPropagation failed */
+                            }
                             if (typeof window.__JELLYFIN_ENTRY?.enabled !== 'undefined') {
                                 return !!window.__JELLYFIN_ENTRY.enabled;
                             }
@@ -16760,7 +16818,9 @@
                                 });
                             }
                         });
-                    } catch (_) {}
+                    } catch (_) {
+                        /* delegated spinner guard reset failed (non-critical) */
+                    }
                     const movies = libs
                         .filter(l => l.type === 'movie')
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
