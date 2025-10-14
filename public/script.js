@@ -1131,7 +1131,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             }
                             return;
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* wallart sync poll fetch failed; will retry on next interval */
+                    }
                 };
                 syncWallartConfig();
                 setInterval(syncWallartConfig, 8000);
@@ -1179,13 +1181,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                             return void window.location.replace(abs);
                         }
                         // else remain on screensaver
-                    } catch (_) {}
+                    } catch (_) {
+                        /* navigation fallback failed; URL building will retry naturally */
+                    }
                 };
                 // initial and interval
                 await syncScreensaverConfig();
                 window.__screensaverSyncPoller = setInterval(syncScreensaverConfig, 8000);
             }
-        } catch (_) {}
+        } catch (_) {
+            /* wallart config sync loop setup failed; permissible in non-wallart contexts */
+        }
     }
 
     // --- Live Preview support ---
@@ -1246,7 +1252,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             window.location.replace(abs);
                         }
                         return;
-                    } catch (_) {}
+                    } catch (_) {
+                        /* cinema/wallart mode switch navigation fallback failed */
+                    }
                 }
             }
             // If on standalone wallart page and admin disables wallart or enables cinema, exit to root
@@ -1271,7 +1279,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             window.location.replace(abs);
                         }
                         return;
-                    } catch (_) {}
+                    } catch (_) {
+                        /* wallart->screensaver/cinema navigation fallback failed */
+                    }
                 }
             }
 
@@ -1306,7 +1316,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 ).toString();
                                 return void window.location.replace(abs);
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* preview transition effect immediate animation failed: non-critical */
+                        }
                     };
                     syncSs();
                     setInterval(syncSs, 8000);
@@ -1487,7 +1499,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                                 pw.style.opacity = '1';
                                             }, 10);
                                         }
-                                    } catch (_) {}
+                                    } catch (_) {
+                                        /* slide effect preview animation failed */
+                                    }
                                 } else if (eff === 'kenburns') {
                                     try {
                                         const pw = document.getElementById('poster-wrapper');
@@ -1500,7 +1514,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                                 pw.style.transform = 'scale(1)';
                                             }, 2400);
                                         }
-                                    } catch (_) {}
+                                    } catch (_) {
+                                        /* kenburns preview animation failed */
+                                    }
                                 } else {
                                     // default to fade
                                     applyPosterTransitionEffect(currentMedia.posterUrl);
@@ -2615,7 +2631,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     posterCount,
                 });
             }
-        } catch (_) {}
+        } catch (_) {
+            /* currentMedia display refresh in preview failed */
+        }
 
         if (!initResult) {
             // Fallback to legacy initializer
@@ -4718,7 +4736,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 mediaQueue = [];
                 try {
                     window.mediaQueue = mediaQueue;
-                } catch (_) {}
+                } catch (_) {
+                    /* exposing __wallartCurrentPosters property failed (descriptor unsupported) */
+                }
                 return;
             }
             // In preview mode, keep full list for Wallart (needs many posters for the grid).
@@ -4732,7 +4752,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             mediaQueue = newMediaQueue;
             try {
                 window.mediaQueue = mediaQueue;
-            } catch (_) {}
+            } catch (_) {
+                /* device heartbeat best-effort; ignore failures */
+            }
 
             // Clean up any existing preloaded images when playlist changes
             if (!isInitialLoad) {
@@ -6214,7 +6236,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const qs = new URLSearchParams(window.location.search);
                 if (qs.get('syncDebug') === '1') localStorage.setItem('syncDebug', '1');
                 if (qs.get('syncDebug') === '0') localStorage.removeItem('syncDebug');
-            } catch (_) {}
+            } catch (_) {
+                /* setInterval syncScreensaverConfig install failed; safe to ignore */
+            }
             return (
                 localStorage.getItem('syncDebug') === '1' ||
                 !!(window.appConfig && window.appConfig.DEBUG)
@@ -6281,7 +6305,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // Trigger next change exactly at boundary and restart cadence
                         changeMedia('next');
                         restartTimer();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* background boundary changeMedia/restartTimer failed – slideshow continues */
+                    }
                 }, delay);
             }
         } catch (_) {
