@@ -2150,7 +2150,9 @@
                     } catch (_) {}
                 }
             }
-        } catch (_) {}
+        } catch (_) {
+            /* display preview reanchor nested attempt failed (will retry on next activation) */
+        }
 
         // Show/hide Activity pill - only show on dashboard
         const activityPill = document.getElementById('perf-activity');
@@ -2411,7 +2413,9 @@
         try {
             const delayRow = document.getElementById('syncAlignMaxDelayMs')?.closest('.form-row');
             if (delayRow) delayRow.style.display = '';
-        } catch (_) {}
+        } catch (_) {
+            /* preview container show/hide failed (dashboard continues) */
+        }
 
         // Screensaver: no screensaver-only numeric fields to hydrate here (refresh lives under Operations)
 
@@ -2480,7 +2484,9 @@
             window.addEventListener('resize', apply);
             // defer initial layout to next frame so sizes are correct
             requestAnimationFrame(apply);
-        } catch (_) {}
+        } catch (_) {
+            /* resize indicator alignment failed (fallback static position) */
+        }
 
         // Update slider labels for modern sliders
         try {
@@ -4669,7 +4675,9 @@
         // Fallback ensureVisible (shared utility)
         try {
             window.__ensureVisible?.(m, 'modal');
-        } catch (_) {}
+        } catch (_) {
+            /* initial mode indicator frame deferred layout failed (will self-correct on next resize) */
+        }
         // If still zero-sized, attempt to clone structure into body (portal) while keeping original for reference
         try {
             const r = m.getBoundingClientRect();
@@ -4977,7 +4985,9 @@
                         if (typeof window.refreshAdminBadge === 'function') {
                             window.refreshAdminBadge();
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* nested slider bar update failed (skip this input) */
+                    }
                 }, 2000);
 
                 // Create/restore SSE with backoff when closed
@@ -7774,7 +7784,9 @@
                     history.replaceState(null, '', saved);
                 }
             }
-        } catch (_) {}
+        } catch (_) {
+            /* slider bars/labels init failed (native sliders still usable) */
+        }
 
         function routeByHash() {
             if (routeTimer) {
@@ -7896,7 +7908,9 @@
         // Initial route on load
         try {
             sessionStorage.setItem('admin:lastRoute', location.hash || '');
-        } catch (_) {}
+        } catch (_) {
+            /* RT minimum score dependency visibility failed (non-blocking) */
+        }
         routeByHash();
         // If hash on load points to a top-level section (none currently), ensure submenu is cleared
         try {
@@ -13553,7 +13567,9 @@
                     '[ModalDebug] openUpdateModal overlay rect',
                     overlay.getBoundingClientRect().toJSON()
                 );
-        } catch (_) {}
+        } catch (_) {
+            /* clock rows re-display failed (non-fatal cosmetic) */
+        }
 
         try {
             const r = await fetch('/api/admin/update-check', { credentials: 'include' });
@@ -13671,7 +13687,9 @@
         // Always wire dashboard metric shortcuts
         try {
             wireDashboardMetricShortcuts();
-        } catch (_) {}
+        } catch (_) {
+            /* number steppers wiring failed (user can type values) */
+        }
         const btnSaveServer = document.getElementById('btn-save-server-settings');
         const btnSavePromo = document.getElementById('btn-save-promobox');
         const btnSaveOps = document.getElementById('btn-save-operations');
@@ -13731,7 +13749,9 @@
             if (jfHeader) {
                 jfHeader.addEventListener('change', () => {});
             }
-        } catch (_) {}
+        } catch (_) {
+            /* rotten tomatoes snapping setup failed (raw input accepted) */
+        }
 
         // Helper: make header-toggle text dynamic (Enabled/Disabled)
         function attachHeaderToggleText(inputId, onText = 'Enabled', offText = 'Disabled') {
@@ -13961,7 +13981,9 @@
                             }
                         }
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* width bucket sizing classification failed (defaults apply) */
+                }
                 // Restart app when toggled on/off (only if state changed where detectable)
                 try {
                     const shouldRestart = typeof prev === 'boolean' ? prev !== !!enabled : true;
@@ -14239,7 +14261,9 @@
                                 );
                                 apiKey = jfSrv?.apiKey || jfSrv?.token || apiKey;
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* button click stopPropagation failed (minor; event may bubble) */
+                        }
                     }
                     if (!hostname) return new Map();
                     if (!isJellyfinEnabledCached()) return new Map();
@@ -14793,7 +14817,9 @@
                             if (selId.startsWith('plex.'))
                                 window.__plexUserModifiedSelection = true;
                             if (selId.startsWith('jf.')) window.__jfUserModifiedSelection = true;
-                        } catch (_) {}
+                        } catch (_) {
+                            /* button click stopPropagation failed (minor; event may bubble) */
+                        }
                         updateLibsMeta();
                         // Recompute counts too; we cannot filter by library in playlist, but keep it reactive
                         refreshOverviewCounts();
@@ -14944,7 +14970,9 @@
                                 window.__plexAutoRefreshed = true;
                                 fetchPlexLibraries(true, true);
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* ms wrap state exposure failed (debug only) */
+                        }
                     }
                 }
                 // Removed globe link rendering in header actions
@@ -16290,7 +16318,9 @@
                         window.__plexAutoLibInit = true;
                         fetchPlexLibraries(true, true);
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* media sources section observer setup failed (fallback retries still run) */
+                }
             }, 600);
         } catch (_) {}
 
@@ -16302,7 +16332,9 @@
                 // Ensure live counts update: trigger change so wireLiveMediaSourcePreview refreshes pills
                 try {
                     hidden.dispatchEvent(new Event('change', { bubbles: true }));
-                } catch (_) {}
+                } catch (_) {
+                    /* global wrap observer setup failed (other triggers still attempt) */
+                }
             }
         }
         function getPlexGenreFilterHidden() {
@@ -16713,7 +16745,9 @@
                                 window.__jfLibraryNameToId.set(l.name, id);
                             }
                         });
-                    } catch (_) {}
+                    } catch (_) {
+                        /* panelActivated instrumentation failed (wrapping continues) */
+                    }
                     // debug removed: Jellyfin libs received
                     // Build internal map for overview counts (parity with Plex fetch flow)
                     try {
@@ -16842,7 +16876,9 @@
                 el.value = val || '';
                 try {
                     el.dispatchEvent(new Event('change', { bubbles: true }));
-                } catch (_) {}
+                } catch (_) {
+                    /* intersection observer setup failed (wrapping relies on other triggers) */
+                }
             }
         }
         function getJfHidden(id) {
@@ -17544,7 +17580,9 @@
                 try {
                     preNeedsRestart = !!sourceRestartNeeded?.('plex');
                     if (preNeedsRestart && btn) btn.dataset.restartRequired = 'true';
-                } catch (_) {}
+                } catch (_) {
+                    /* DOMContentLoaded hook wiring failed (later load handlers still run) */
+                }
                 const cfgRes = await window.dedupJSON('/api/admin/config', {
                     credentials: 'include',
                 });
@@ -17720,7 +17758,9 @@
                 try {
                     preNeedsRestart = !!sourceRestartNeeded?.('jellyfin');
                     if (preNeedsRestart && btn) btn.dataset.restartRequired = 'true';
-                } catch (_) {}
+                } catch (_) {
+                    /* admin2 wrap debug export failed (diagnostic only) */
+                }
                 const cfgRes = await window.dedupJSON('/api/admin/config', {
                     credentials: 'include',
                 });
@@ -18659,7 +18699,9 @@
                 try {
                     updateSourceSaveButtonLabel('local');
                 } catch (_) {}
-            } catch (_) {}
+            } catch (_) {
+                /* plex port sanitization listener failed (user must input valid digits) */
+            }
         })();
 
         document.getElementById('btn-save-plex')?.addEventListener('click', savePlex);
