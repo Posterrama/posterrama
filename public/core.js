@@ -47,15 +47,29 @@
     Core.buildUrlForMode = function buildUrlForMode(mode) {
         const base = Core.buildBasePath();
         const origin = window.location.origin;
-        switch (mode) {
-            case 'cinema':
-                return new URL(base + 'cinema', origin).toString();
-            case 'wallart':
-                return new URL(base + 'wallart', origin).toString();
-            case 'screensaver':
-            default:
-                return new URL(base + 'screensaver', origin).toString();
+        // Helper to safely join base + segment ensuring exactly one slash after origin
+        function join(seg) {
+            let b = base || '/';
+            if (!b.startsWith('/')) b = '/' + b; // enforce leading slash
+            if (!b.endsWith('/')) b += '/';
+            seg = (seg || '').replace(/^\/+/, '');
+            return b + seg;
         }
+        let pathSegment = 'screensaver';
+        if (mode === 'cinema') pathSegment = 'cinema';
+        else if (mode === 'wallart') pathSegment = 'wallart';
+        const url = new URL(join(pathSegment), origin).toString();
+        // Final hardening: if an implementation bug elsewhere stripped the slash after origin, fix it here
+        try {
+            const o = origin.replace(/\/?$/, '');
+            if (url.startsWith(o) && !url.startsWith(o + '/')) {
+                const rest = url.slice(o.length).replace(/^\/+/, '');
+                return o + '/' + rest;
+            }
+        } catch (_) {
+            /* ignore */
+        }
+        return url;
     };
 
     let lastNavTs = 0;
@@ -63,7 +77,17 @@
         const now = Date.now();
         if (now - lastNavTs < 1200) return; // debounce multi-triggers
         lastNavTs = now;
-        const url = Core.buildUrlForMode(mode);
+        let url = Core.buildUrlForMode(mode);
+        // Safety: enforce slash after origin (guards against any malformed concatenations)
+        try {
+            const o = window.location.origin.replace(/\/?$/, '');
+            if (url.startsWith(o) && !url.startsWith(o + '/')) {
+                const rest = url.slice(o.length).replace(/^\/+/, '');
+                url = o + '/' + rest;
+            }
+        } catch (_) {
+            /* ignore */
+        }
         if (opts.replace !== false) return void window.location.replace(url);
         window.location.href = url;
     };
