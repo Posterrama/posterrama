@@ -2,7 +2,7 @@
 
 Purpose: split each display mode into its own self-contained page (no duplication), keep index.html minimal, and unify navigation/preview flows.
 
-Last updated: 2025-10-13
+Last updated: 2025-10-14
 
 ## Completed
 
@@ -23,8 +23,9 @@ Last updated: 2025-10-13
 - Unified auto-exit/navigation via `Core.startAutoExitPoll` with subpath-safe behavior
 - Basic tests:
     - Route tests for `/cinema`, `/wallart`, `/screensaver` (200 + HTML content-type)
-    - URL building test for `buildUrlForMode()`
+    - URL building tests for `buildUrlForMode()` and navigation regression (`navigateToMode` leading slash)
     - Route tests assert stamped, per-mode assets are referenced for all three pages
+    - Navigation regression test added after wallart→cinema missing-slash bug (commit: fix(navigation) + test)
 
 - Wallart page bootstrap (no legacy orchestrator):
     - Ensures `window.appConfig`, `window.wallartConfig`, and `window.mediaQueue` are set before start
@@ -47,15 +48,15 @@ Last updated: 2025-10-13
 
 2. Finish mode isolation (no legacy bleed)
 
-- [ ] Screensaver: achieve feature parity in `public/screensaver/screensaver.js` and remove `public/script.js` include from `/screensaver`
-- [ ] Move any remaining mode-specific styles out of shared/inline locations
+- [ ] Screensaver: consolidate remaining logic from `public/script.js` (slideshow timers, Ken Burns orchestration, source switching) into `public/screensaver/screensaver.js` and then remove `script.js` include from `/screensaver`
+- [ ] Move any remaining mode-specific styles out of shared/inline locations (audit global `style.css` for wallart / cinema selectors)
 - [x] Wallart is isolated (no `script.js` on `/wallart`)
 
 3. Trim `public/index.html` to be a landing-only page
 
 - [x] Remove the mode-detect redirect script
 - [x] Remove inline wallart CSS block
-- [ ] Decide behavior for `/`: (A) keep as landing, or (B) 302 to `/screensaver` and implement on server
+- [ ] Decide behavior for `/`: (A) keep as landing, or (B) 302 to `/screensaver` on server (pending product decision)
 
 4. Admin preview isolation
 
@@ -64,7 +65,7 @@ Last updated: 2025-10-13
 
 5. Service worker consistency
 
-- [ ] Register SW once per page (or centralize in `core.js`) with a stamped URL
+- [ ] Register SW once per page (or centralize in `core.js`) with a stamped URL (current state: SW logic still only in legacy context)
 - [ ] Test update flow and cache-busting when switching modes
 
 6. Logging and metrics
@@ -76,27 +77,33 @@ Last updated: 2025-10-13
 7. Tests (expand)
 
 - [x] Route tests: assert stamped assets are referenced in `/cinema`, `/wallart`, `/screensaver`
-- [ ] Unit tests for `getActiveMode()` and `navigateToMode()`
+- [x] Regression tests: `buildUrlForMode()` + `navigateToMode()` (leading slash normalization) in `__tests__/public/core.navigation.test.js`
+- [ ] Unit test for `getActiveMode()` (straightforward conditional mapping)
 - [ ] 1–2 preview isolation tests to prevent CSS bleed
 
 8. Debug and diagnostics
 
-- [ ] Replace remaining `POSTERRAMA_DEBUG` checks in modules with `window.logger.isDebug()`; then remove the bridge in `client-logger.js`
+- [ ] Replace remaining `POSTERRAMA_DEBUG` checks in modules with `window.logger.isDebug()`; then remove the bridge in `client-logger.js` (grep shows usages in `wallart-display.js`, `script.js`, `screensaver.js`)
 - [ ] Add minimal wallart unit tests: pause/resume halts refresh; `__posterramaPlayback` hooks trigger an immediate refresh
 - [ ] Verify device-mgmt heartbeat payload on wallart includes title/thumb when available
 
 9. Lint and cleanup pass
 
-- [ ] Fix ESLint rule violations instead of suppressing:
-    - `no-empty` in `public/device-mgmt.js`, `public/preview-cinema.js`
-    - `no-inner-declarations` in `public/script.js`
-    - `no-useless-escape` in `server.js`
+- [ ] Remove blanket `/* eslint-disable no-empty */` in `public/script.js` & `public/admin.js` by converting empty catches to explicit comments (`/* ignore */`) and folding trivial try/catch where safe
+- [ ] Audit remaining `POSTERRAMA_DEBUG` gating for potential dead code
+- [ ] After screensaver extraction, trim unused functions in `script.js` and eventually delete file
 - [ ] Run `npm run lint:fix`; manually resolve leftovers
 
 10. Migration docs
 
 - [ ] Draft `docs/modes-refactor.md` with final structure, file map, and troubleshooting
 - [ ] Include notes on proxies/subpaths, previews, and SW expectations
+
+11. Navigation hardening follow-ups
+
+- [x] Fix wallart→cinema missing slash (core.js normalization)
+- [x] Add regression test suite for navigation
+- [ ] Add edge-case test for nested deep subpath (`/a/b/c/wallart`) and origin-only paths (`/`)
 
 ## Acceptance criteria
 
