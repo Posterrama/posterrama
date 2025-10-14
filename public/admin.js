@@ -318,7 +318,9 @@
                                 if (typeof window.__fetchPlexLibraries === 'function') {
                                     await window.__fetchPlexLibraries(true, true);
                                 }
-                            } catch (_) {}
+                            } catch (_) {
+                                /* plex libraries fetch failed (auto-load on open) */
+                            }
                         })();
                     }
                 } else if (selectId === 'jf.movies' || selectId === 'jf.shows') {
@@ -330,7 +332,9 @@
                                 if (typeof window.__fetchJellyfinLibraries === 'function') {
                                     await window.__fetchJellyfinLibraries(true, true);
                                 }
-                            } catch (_) {}
+                            } catch (_) {
+                                /* jellyfin libraries fetch failed (auto-load on open) */
+                            }
                         })();
                     }
                 }
@@ -521,7 +525,9 @@
             if (!root || !sel) return;
             if (root.dataset.msWired === 'true') return;
             initMsForSelect(idBase, selectId);
-        } catch (_) {}
+        } catch (_) {
+            /* ensureMsWired: multiselect late init failed (missing elements) */
+        }
     }
     // Forward declaration for linter (defined later)
     function loadPosterpackServerFilterOptions() {}
@@ -543,7 +549,9 @@
         __ensureMsWired('pp-srv-ms-qualities', 'pp-server.qualities');
         try {
             loadPosterpackServerFilterOptions().catch(() => {});
-        } catch (_) {}
+        } catch (_) {
+            /* posterpack filter multiselect wiring on DOM ready failed (non-fatal) */
+        }
     }
     try {
         if (document.readyState === 'loading') {
@@ -606,7 +614,9 @@
                     rebuildMsForSelect('jf-ms-shows', 'jf.shows');
                 }
             }
-        } catch (_) {}
+        } catch (_) {
+            /* ensureLibrarySelectionIntegrity: auto-selection logic failed; user can still select manually */
+        }
     }
 
     // Minimal fallbacks so the page can load even if these panels are not needed
@@ -647,7 +657,9 @@
     function setCachedLocalTotal(n) {
         try {
             sessionStorage.setItem(LS_LOCAL_TOTAL_KEY, String(Number(n) || 0));
-        } catch (_) {}
+        } catch (_) {
+            /* setCachedLocalTotal: sessionStorage unavailable */
+        }
     }
 
     async function computeLocalTotalSafe() {
@@ -1855,7 +1867,9 @@
                 pill.classList.toggle('status-success', enabled);
                 pill.classList.toggle('status-warning', !enabled);
             }
-        } catch (_) {}
+        } catch (_) {
+            /* computeLocalTotalSafe: local total calculation failed (returns 0) */
+        }
     }
     async function saveCfgBackupSchedule(opts) {
         const en = document.getElementById('input-cfg-backup-enabled');
