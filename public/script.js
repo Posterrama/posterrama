@@ -628,7 +628,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // Auto-resume when timer elapses
                         try {
                             setPaused(false);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* resume after pin timer best-effort */
+                        }
                     },
                     Math.min(dur, 24 * 60 * 60 * 1000)
                 ); // cap at 24h safety
