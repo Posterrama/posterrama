@@ -47,7 +47,7 @@ const logger = window.logger || {
         console.info = noop;
         console.debug = noop;
     } catch (_) {
-        // intentionally empty: silencing console in non-debug mode may fail in some environments
+        /* ignore: disabling console may fail in some embedded browsers */
     }
 })();
 
@@ -188,7 +188,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 infoContainer.classList.remove('visible');
             }
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: best-effort navigation sync */
+        }
     }
 
     // Helper: ensure at least one background layer is visible to avoid black screen
@@ -387,7 +389,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         isPaused = next;
         try {
             if (pauseButton) pauseButton.classList.toggle('is-paused', next);
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: config sync transient failure */
+        }
         if (next) {
             // Pause: stop slideshow timer and freeze animations
             if (timerId) {
@@ -408,7 +412,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.PosterramaDevice &&
                 window.PosterramaDevice.beat &&
                 window.PosterramaDevice.beat();
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: auto-exit poll fetch failed */
+        }
     }
 
     function reinitBackgroundForScreensaver() {
@@ -472,7 +478,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             lb.style.opacity = '0';
             activeLayer = la;
             inactiveLayer = lb;
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: source switch fetch failed */
+        }
     }
     let blackoutEl = null;
     function ensureBlackoutEl() {
@@ -536,7 +544,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     window.PosterramaDevice.beat &&
                     window.PosterramaDevice.beat();
             } catch (_) {}
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: background visibility assurance */
+        }
     }
     function powerOn() {
         try {
@@ -552,7 +562,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     window.PosterramaDevice.beat &&
                     window.PosterramaDevice.beat();
             } catch (_) {}
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: Ken Burns detection fallback */
+        }
     }
     function powerToggle() {
         const off = !!window.__posterramaPoweredOff;
@@ -565,7 +577,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console,
                 '[Live] playback.pinPoster'
             );
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: poster/metadata visibility fallback */
+        }
         // Freeze the current visual and remember which media is pinned
         setPaused(true);
         try {
@@ -576,7 +590,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const id = m && (m.id || m.guid || m.ratingKey || m.tmdbId || m.imdbId || m.title);
             isPinned = true;
             pinnedMediaId = id || null;
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: restart timer cancellation */
+        }
         // Optional timed unpin
         try {
             if (window.__posterramaPinTimer) {
@@ -671,7 +687,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             changeMedia('prev');
         } catch (e) {
-            /* no-op */
+            /* ignore: playback prev failure */
         }
     }
     function __playbackNext() {
