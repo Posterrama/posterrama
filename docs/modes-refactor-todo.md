@@ -83,13 +83,14 @@ Last updated: 2025-10-14
 
 8. Debug and diagnostics
 
-- [ ] Replace remaining `POSTERRAMA_DEBUG` checks in modules with `window.logger.isDebug()`; then remove the bridge in `client-logger.js` (PHASE 1 done for wallart & screensaver; remaining legacy usages in `script.js` only)
+- [x] Replace remaining `POSTERRAMA_DEBUG` checks in modules with `window.logger.isDebug()`; then remove the bridge in `client-logger.js` (PHASE 2 complete: wallart, screensaver, script.js migrated; bridge removal deferred until admin preview audited)
 - [ ] Add minimal wallart unit tests: pause/resume halts refresh; `__posterramaPlayback` hooks trigger an immediate refresh
 - [ ] Verify device-mgmt heartbeat payload on wallart includes title/thumb when available
 
 9. Lint and cleanup pass
 
-- [ ] Remove blanket `/* eslint-disable no-empty */` in `public/script.js` & `public/admin.js` by converting empty catches to explicit comments (`/* ignore */`) and folding trivial try/catch where safe
+- [x] Remove blanket `/* eslint-disable no-empty */` in `public/script.js` & `public/admin.js` (surfaced individual empty blocks)
+- [ ] Stage batch annotations/removals of remaining empty catch blocks (target ~25 per PR) – Phase 1 (10) done in script.js
 - [ ] Audit remaining `POSTERRAMA_DEBUG` gating for potential dead code
 - [ ] After screensaver extraction, trim unused functions in `script.js` and eventually delete file
 - [ ] Run `npm run lint:fix`; manually resolve leftovers
