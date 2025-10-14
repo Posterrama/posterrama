@@ -1416,8 +1416,19 @@
         };
 
         window.PosterramaWallart = api;
-        if (document.body && document.body.dataset.mode === 'wallart' && window.POSTERRAMA_DEBUG) {
-            console.log('[Wallart] module loaded');
+        try {
+            const debugOn =
+                (window.logger &&
+                    typeof window.logger.isDebug === 'function' &&
+                    window.logger.isDebug()) ||
+                window.POSTERRAMA_DEBUG;
+            if (document.body && document.body.dataset.mode === 'wallart' && debugOn) {
+                (window.logger && window.logger.debug ? window.logger.debug : console.log)(
+                    '[Wallart] module loaded'
+                );
+            }
+        } catch (_) {
+            /* ignore debug log */
         }
     } catch (e) {
         if (window && window.console) console.debug('[Wallart] module init error');

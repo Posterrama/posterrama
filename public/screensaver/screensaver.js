@@ -868,12 +868,19 @@
             /* noop */
         }
 
-        if (
-            document.body &&
-            document.body.dataset.mode === 'screensaver' &&
-            window.POSTERRAMA_DEBUG
-        ) {
-            console.log('[Screensaver] module loaded');
+        try {
+            const debugOn =
+                (window.logger &&
+                    typeof window.logger.isDebug === 'function' &&
+                    window.logger.isDebug()) ||
+                window.POSTERRAMA_DEBUG;
+            if (document.body && document.body.dataset.mode === 'screensaver' && debugOn) {
+                (window.logger && window.logger.debug ? window.logger.debug : console.log)(
+                    '[Screensaver] module loaded'
+                );
+            }
+        } catch (_) {
+            /* ignore debug log */
         }
     } catch (e) {
         if (window && window.console) console.debug('[Screensaver] module init error');
