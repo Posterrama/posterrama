@@ -2216,7 +2216,9 @@
             caret.setAttribute('aria-hidden', 'true');
             caret.textContent = '▾';
             wrap.appendChild(caret);
-        } catch (_) {}
+        } catch (_) {
+            /* caret wrapper enhancement failed (purely cosmetic) */
+        }
     }
 
     function enhanceCinemaSelects(root) {
@@ -2225,7 +2227,9 @@
             if (!scope) return;
             const sels = scope.querySelectorAll('select');
             sels.forEach(sel => ensureCaretWrapped(sel));
-        } catch (_) {}
+        } catch (_) {
+            /* cinema select enhancement failed (non-critical UI) */
+        }
     }
 
     function setupCinemaCaretEnhancer() {
@@ -2249,14 +2253,18 @@
                 obs.observe(root, { childList: true, subtree: true });
                 window.__cinemaCaretObs = obs;
             }
-        } catch (_) {}
+        } catch (_) {
+            /* cinema caret observer setup failed (visual enhancement only) */
+        }
     }
 
     // Run on load; Display section is present on admin page load
     window.addEventListener('DOMContentLoaded', () => {
         try {
             setupCinemaCaretEnhancer();
-        } catch (_) {}
+        } catch (_) {
+            /* cinema caret enhancer onload failed (safe to ignore) */
+        }
     });
 
     // ---------- Display Section Wiring ----------
@@ -2295,7 +2303,9 @@
             const width = sRect.width;
             ind.style.left = `${left}px`;
             ind.style.width = `${width}px`;
-        } catch (_) {}
+        } catch (_) {
+            /* segmented control indicator update failed (layout unchanged) */
+        }
     }
 
     function updateModeBadges(active) {
@@ -2440,7 +2450,9 @@
             };
             layoutSel?.addEventListener('change', applyHeroVis);
             applyHeroVis();
-        } catch (_) {}
+        } catch (_) {
+            /* hero layout visibility toggle failed (defaults still sensible) */
+        }
 
         // Wallart: Ambience — keep Bias visible regardless of Ambient Gradient state (as requested)
 
@@ -2494,7 +2506,9 @@
                         const val = Number(inputEl.value || 0);
                         const pct = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
                         fill.style.width = pct + '%';
-                    } catch (_) {}
+                    } catch (_) {
+                        /* slider bar percent calc failed (purely cosmetic) */
+                    }
                 };
                 ids.forEach(id => {
                     const el = getVal(id);
@@ -2593,7 +2607,9 @@
             pReset?.addEventListener('click', () =>
                 applyUIScaling({ global: 100, content: 100, clearlogo: 100, clock: 100 })
             );
-        } catch (_) {}
+        } catch (_) {
+            /* slider label / bar hydration failed (visual only) */
+        }
 
         // Poster → Metadata dependency: disable metadata when poster is off
         try {
@@ -2610,7 +2626,9 @@
             };
             posterEl?.addEventListener('change', applyDep);
             applyDep();
-        } catch (_) {}
+        } catch (_) {
+            /* poster->metadata dependency wiring failed (can still toggle manually) */
+        }
 
         // Clock card: keep timezone/format rows visible regardless of switch state (per request)
         try {
@@ -2618,7 +2636,9 @@
             const fmtRow = document.getElementById('clockFormat')?.closest('.form-row');
             if (tzRow) tzRow.style.display = '';
             if (fmtRow) fmtRow.style.display = '';
-        } catch (_) {}
+        } catch (_) {
+            /* clock row visibility enforcement failed (non-fatal) */
+        }
 
         // Screensaver no longer supports custom layout; initializer removed.
 
@@ -2657,7 +2677,9 @@
                     });
                 });
             }
-        } catch (_) {}
+        } catch (_) {
+            /* display section number stepper wiring failed (users can type values) */
+        }
 
         // Rotten Tomatoes: live snap to 0.5 and clamp 0..10 while typing
         try {
@@ -2679,7 +2701,9 @@
                 };
                 ['input', 'change', 'blur'].forEach(ev => el.addEventListener(ev, snap));
             }
-        } catch (_) {}
+        } catch (_) {
+            /* rotten tomatoes snap logic failed (raw value still usable) */
+        }
 
         // -------------------------------------------------------------
         // Global number input enhancement (outside Display section)
@@ -3451,7 +3475,9 @@
             btnReset?.addEventListener('click', () =>
                 onPreset({ interval: 12, effect: 'kenburns', pause: 1 })
             );
-        } catch (_) {}
+        } catch (_) {
+            /* screensaver summary/preset wiring failed (form still editable) */
+        }
 
         // Wallart: live summary + presets
         try {
@@ -3605,7 +3631,9 @@
                     heroRotationMinutes: 10,
                 })
             );
-        } catch (_) {}
+        } catch (_) {
+            /* wallart summary/preset wiring failed (form still editable) */
+        }
     }
 
     function collectDisplayFormPatch() {
