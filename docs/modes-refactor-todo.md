@@ -78,7 +78,7 @@ Last updated: 2025-10-14
 
 - [x] Route tests: assert stamped assets are referenced in `/cinema`, `/wallart`, `/screensaver`
 - [x] Regression tests: `buildUrlForMode()` + `navigateToMode()` (leading slash normalization) in `__tests__/public/core.navigation.test.js`
-- [ ] Unit test for `getActiveMode()` (straightforward conditional mapping)
+- [x] Unit test for `getActiveMode()` (straightforward conditional mapping)
 - [ ] 1–2 preview isolation tests to prevent CSS bleed
 
 8. Debug and diagnostics
@@ -103,7 +103,7 @@ Last updated: 2025-10-14
 
 - [x] Fix wallart→cinema missing slash (core.js normalization)
 - [x] Add regression test suite for navigation
-- [ ] Add edge-case test for nested deep subpath (`/a/b/c/wallart`) and origin-only paths (`/`)
+- [x] Add edge-case test for nested deep subpath (`/a/b/c/wallart`) and origin-only paths (`/`)
 
 ## Acceptance criteria
 
