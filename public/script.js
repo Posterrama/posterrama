@@ -2231,7 +2231,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ) {
                     window.PosterramaScreensaver.start();
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* optional: starting screensaver module when leaving wallart; safe to ignore failures */
+            }
         }
     }
 
@@ -2521,7 +2523,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 wallartGrid = created.gridEl;
                 layoutInfo = created.layoutInfo;
             }
-        } catch (_) {}
+        } catch (_) {
+            /* fallback: wallart runtime.createGridElement not available or failed */
+        }
         if (!wallartGrid || !layoutInfo) {
             // Fallback to legacy creation if module helper not available
             wallartGrid = document.createElement('div');
@@ -2576,7 +2580,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     },
                 });
             }
-        } catch (_) {}
+        } catch (_) {
+            /* wallart runtime.initializeGrid helper failed; will use legacy initializeWallartGrid */
+        }
 
         // Get dynamically calculated poster count - robust check for mediaQueue
         const posterCount = Math.min(layoutInfo.posterCount, mediaQueue?.length || 0);
@@ -2625,7 +2631,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     initResult.usedPosters.forEach &&
                         initResult.usedPosters.forEach(v => usedPosters.add(v));
                 } catch (_) {
-                    /* ignore: adopting module usedPosters Set fallback */
+                    /* adopting module usedPosters Set failed (older bundle) – continue with local Set */
                 }
             }
         }
@@ -2755,7 +2761,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         excludePosterId
                     );
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* wallart runtime getUniqueRandomPoster failed; falling back to local selection */
+            }
             // Fallback to legacy selection
             if (!mediaQueue || !Array.isArray(mediaQueue) || mediaQueue.length === 0) {
                 console.warn('[Wallart] mediaQueue is empty or invalid, returning null');
@@ -4524,7 +4532,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             window.PosterramaDevice.beat &&
                             window.PosterramaDevice.beat();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* heartbeat optional – ignore failures to avoid impacting UI */
+                }
             }
         }
     }
@@ -4539,7 +4549,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (savedSrc && typeof savedSrc === 'string' && savedSrc.trim()) {
                     url += `source=${encodeURIComponent(savedSrc.trim())}`;
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* localStorage unavailable (privacy mode) – continue without persisted source */
+            }
             const mediaResponse = await fetch(url + cacheBuster);
 
             if (mediaResponse.status === 202) {
@@ -4616,7 +4628,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                             enabledServers: enabled,
                                         });
                                     }
-                                } catch (_) {}
+                                } catch (_) {
+                                    /* decideFallbackSource helper missing – inline fallback logic will run */
+                                }
                                 // Fallback to inline logic if helper not present in client bundle
                                 if (!fallback) {
                                     const norm = s => (typeof s === 'string' ? s.toLowerCase() : s);
@@ -4646,7 +4660,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             }
                         }
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* decideFallbackSource logic failed; will proceed to user warning */
+                }
 
                 // Public fallback: if still empty, try switching to Local or first enabled source using /get-config (no admin session required)
                 try {
@@ -4685,7 +4701,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             }
                         }
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* exposing mediaQueue on window best-effort */
+                }
 
                 // After grace period, fall back to original warning + user hint.
                 console.warn('[Media] Received invalid or empty media queue:', newMediaQueue, {
@@ -4751,7 +4769,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     }
                 } catch (_) {
-                    // intentionally empty: best-effort visibility adjustment
+                    /* best-effort pre-prime of background layers (missing elements / race) */
                 }
                 changeMedia('next', true); // This will start the slideshow at `randomIndex`
             }
@@ -4766,7 +4784,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             mediaQueue = [];
             try {
                 window.mediaQueue = mediaQueue;
-            } catch (_) {}
+            } catch (_) {
+                /* exposing mediaQueue after fetch error is non-critical */
+            }
         }
     }
 
@@ -6249,7 +6269,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (typeof window.__updateSyncIndicator === 'function') {
                 try {
                     window.__updateSyncIndicator(delay, maxDelay, periodMs);
-                } catch (_) {}
+                } catch (_) {
+                    /* optional sync indicator update failure – do not interrupt sync flow */
+                }
             }
             if (delay <= maxDelay) {
                 // Debounce frequent ticks
@@ -6376,7 +6398,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Never show screensaver controls in cinema mode (standalone or inline cinema)
         try {
             if (document.body.dataset.mode === 'cinema' || appConfig.cinemaMode) return;
-        } catch (_) {}
+        } catch (_) {
+            /* showControls guard (dataset access) failed – controls visibility unaffected */
+        }
         if (controlsContainer) {
             controlsContainer.classList.add('visible');
         }
