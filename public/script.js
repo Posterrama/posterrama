@@ -1031,7 +1031,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     nextMode === 'screensaver'
                                         ? base + 'screensaver'
                                         : base + nextMode;
-                                window.location.replace(window.location.origin + dest);
+                                const abs = new URL(dest, window.location.origin).toString();
+                                window.location.replace(abs);
                             }
                             return;
                         }
@@ -1069,7 +1070,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     nextMode === 'screensaver'
                                         ? base + 'screensaver'
                                         : base + nextMode;
-                                window.location.replace(window.location.origin + dest);
+                                const abs = new URL(dest, window.location.origin).toString();
+                                window.location.replace(abs);
                             }
                             return;
                         }
@@ -1100,9 +1102,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 );
                             }
                             const base = window.location.pathname.replace(/[^/]+$/, '/');
-                            return void window.location.replace(
-                                window.location.origin + base + 'cinema'
-                            );
+                            const abs = new URL(base + 'cinema', window.location.origin).toString();
+                            return void window.location.replace(abs);
                         }
                         if (cfg?.wallartMode?.enabled === true) {
                             if (window.PosterramaCore?.navigateToMode)
@@ -1113,9 +1114,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 );
                             }
                             const base = window.location.pathname.replace(/[^/]+$/, '/');
-                            return void window.location.replace(
-                                window.location.origin + base + 'wallart'
-                            );
+                            const abs = new URL(
+                                base + 'wallart',
+                                window.location.origin
+                            ).toString();
+                            return void window.location.replace(abs);
                         }
                         // else remain on screensaver
                     } catch (_) {}
@@ -1160,7 +1163,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         );
                     }
                     const base = window.location.pathname.replace(/[^/]+$/, '/');
-                    return void window.location.replace(window.location.origin + base + nextMode);
+                    const abs = new URL(base + nextMode, window.location.origin).toString();
+                    return void window.location.replace(abs);
                 }
             } catch (_) {}
             // If on standalone cinema page and admin disables cinema or enables wallart, exit to root
@@ -1178,7 +1182,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                             const base = window.location.pathname.replace(/[^/]+$/, '/');
                             const dest =
                                 nextMode === 'screensaver' ? base + 'screensaver' : base + nextMode;
-                            window.location.replace(window.location.origin + dest);
+                            const abs = new URL(dest, window.location.origin).toString();
+                            window.location.replace(abs);
                         }
                         return;
                     } catch (_) {}
@@ -1202,7 +1207,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                             const base = window.location.pathname.replace(/[^/]+$/, '/');
                             const dest =
                                 nextMode === 'screensaver' ? base + 'screensaver' : base + nextMode;
-                            window.location.replace(window.location.origin + dest);
+                            const abs = new URL(dest, window.location.origin).toString();
+                            window.location.replace(abs);
                         }
                         return;
                     } catch (_) {}
@@ -1224,17 +1230,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 if (window.PosterramaCore?.navigateToMode)
                                     return void window.PosterramaCore.navigateToMode('cinema');
                                 const base = window.location.pathname.replace(/[^/]+$/, '/');
-                                return void window.location.replace(
-                                    window.location.origin + base + 'cinema'
-                                );
+                                const abs = new URL(
+                                    base + 'cinema',
+                                    window.location.origin
+                                ).toString();
+                                return void window.location.replace(abs);
                             }
                             if (cfg?.wallartMode?.enabled === true) {
                                 if (window.PosterramaCore?.navigateToMode)
                                     return void window.PosterramaCore.navigateToMode('wallart');
                                 const base = window.location.pathname.replace(/[^/]+$/, '/');
-                                return void window.location.replace(
-                                    window.location.origin + base + 'wallart'
-                                );
+                                const abs = new URL(
+                                    base + 'wallart',
+                                    window.location.origin
+                                ).toString();
+                                return void window.location.replace(abs);
                             }
                         } catch (_) {}
                     };

@@ -1623,6 +1623,39 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             sendHeartbeat();
             state.heartbeatTimer = setInterval(sendHeartbeat, 20000);
         }, firstIn);
+        // Also send one early beat once the runtime exposes current media to reduce initial mismatch
+        try {
+            let tries = 0;
+            const early = setInterval(() => {
+                tries++;
+                try {
+                    const hasCurr =
+                        typeof window !== 'undefined' &&
+                        (window.__posterramaCurrentMediaId != null ||
+                            (window.__posterramaCurrentMedia &&
+                                (window.__posterramaCurrentMedia.title ||
+                                    window.__posterramaCurrentMedia.posterUrl)));
+                    if (hasCurr || tries > 6) {
+                        clearInterval(early);
+                        // small debounce to let UI settle
+                        setTimeout(
+                            () => {
+                                try {
+                                    sendHeartbeat();
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            },
+                            hasCurr ? 150 : 500
+                        );
+                    }
+                } catch (_) {
+                    clearInterval(early);
+                }
+            }, 300);
+        } catch (_) {
+            /* ignore early-beat probe errors */
+        }
 
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {

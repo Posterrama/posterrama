@@ -39,7 +39,7 @@ forceReloadEnv();
 // --- Auto Cache Busting ---
 const cachedVersions = {};
 let lastVersionCheck = 0;
-const VERSION_CACHE_TTL = 10000; // Cache versions for 10 seconds
+const VERSION_CACHE_TTL = 1000; // Cache versions for 1 second to minimize stale assets during active development
 
 function generateAssetVersion(filePath) {
     try {
@@ -65,6 +65,9 @@ function getAssetVersions() {
             // Cinema/Admin & Preview assets
             'cinema/cinema-ui.js',
             'cinema/cinema.css',
+            // Cinema display assets (used on /cinema)
+            'cinema/cinema-display.js',
+            'cinema/cinema-display.css',
             'preview-cinema.js',
             'preview-cinema.css',
             'logs.js',
@@ -75,6 +78,12 @@ function getAssetVersions() {
             'device-mgmt.js',
             'lazy-loading.js',
             'notify.js',
+            // Screensaver assets
+            'screensaver/screensaver.js',
+            'screensaver/screensaver.css',
+            // Wallart assets
+            'wallart/wallart-display.js',
+            'wallart/wallart.css',
             // 'theme-demo.css' has been renamed to admin.css for Admin v2 rollout
         ];
 
@@ -1725,6 +1734,10 @@ app.get(['/wallart', '/wallart.html'], (req, res, next) => {
                 `style.css?v=${versions['style.css'] || ASSET_VERSION}`
             )
             .replace(
+                /\/wallart\/wallart\.css(\?v=[^"'\s>]+)?/g,
+                `/wallart/wallart.css?v=${versions['wallart/wallart.css'] || ASSET_VERSION}`
+            )
+            .replace(
                 /device-mgmt\.js\?v=[^"&\s]+/g,
                 `device-mgmt.js?v=${versions['device-mgmt.js'] || ASSET_VERSION}`
             )
@@ -1832,6 +1845,10 @@ app.get(['/screensaver', '/screensaver.html'], (req, res, next) => {
             .replace(
                 /style\.css\?v=[^"&\s]+/g,
                 `style.css?v=${versions['style.css'] || ASSET_VERSION}`
+            )
+            .replace(
+                /\/screensaver\/screensaver\.css(\?v=[^"'\s>]+)?/g,
+                `/screensaver/screensaver.css?v=${versions['screensaver/screensaver.css'] || ASSET_VERSION}`
             )
             .replace(
                 /device-mgmt\.js\?v=[^"&\s]+/g,

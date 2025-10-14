@@ -85,6 +85,20 @@
                 /* noop */
             }
         };
+        // Heartbeat: throttle immediate beats to avoid spamming during rapid updates
+        const triggerLiveBeat = () => {
+            try {
+                const dev = window.PosterramaDevice;
+                if (!dev || typeof dev.beat !== 'function') return;
+                const now = Date.now();
+                const until = window.__posterramaBeatCooldownUntil || 0;
+                if (now < until) return; // still in cooldown window
+                window.__posterramaBeatCooldownUntil = now + 1500; // 1.5s throttle
+                dev.beat();
+            } catch (_) {
+                /* noop */
+            }
+        };
         const updateInfo = item => {
             try {
                 const metaVisible = window.appConfig?.showMetadata !== false;
@@ -286,6 +300,12 @@
                                 } catch (_) {
                                     /* noop */
                                 }
+                                // Prompt a fast live update after pause toggle
+                                try {
+                                    triggerLiveBeat();
+                                } catch (_) {
+                                    /* noop */
+                                }
                                 showControls();
                             };
                         if (pauseBtn)
@@ -302,6 +322,12 @@
                                             window.__posterramaPlayback.pause();
                                         pauseBtn.classList.add('is-paused');
                                     }
+                                } catch (_) {
+                                    /* noop */
+                                }
+                                // Prompt a fast live update after pause toggle
+                                try {
+                                    triggerLiveBeat();
                                 } catch (_) {
                                     /* noop */
                                 }
@@ -347,6 +373,12 @@
                                 } catch (_) {
                                     /* noop */
                                 }
+                                // Prompt a fast live update after pause toggle
+                                try {
+                                    triggerLiveBeat();
+                                } catch (_) {
+                                    /* noop */
+                                }
                             }
                         });
                     } catch (_) {
@@ -384,11 +416,21 @@
                                 } catch (_) {
                                     /* noop */
                                 }
+                                try {
+                                    triggerLiveBeat();
+                                } catch (_) {
+                                    /* noop */
+                                }
                             },
                             resume: () => {
                                 _state.paused = false;
                                 try {
                                     window.__posterramaPaused = false;
+                                } catch (_) {
+                                    /* noop */
+                                }
+                                try {
+                                    triggerLiveBeat();
                                 } catch (_) {
                                     /* noop */
                                 }
@@ -594,6 +636,12 @@
                             } catch (_) {
                                 /* noop */
                             }
+                            // Prompt a fast live update after media change
+                            try {
+                                triggerLiveBeat();
+                            } catch (_) {
+                                /* noop */
+                            }
                         } catch (_) {
                             /* noop */
                         }
@@ -739,11 +787,15 @@
                     try {
                         const items = Array.isArray(window.mediaQueue) ? window.mediaQueue : [];
                         if (items.length > 0) {
-                            const initialIdx =
-                                typeof window.currentIndex === 'number' && window.currentIndex >= 0
-                                    ? window.currentIndex
-                                    : 0;
-                            _state.idx = initialIdx;
+                            // Only set an initial index if we haven't seeded one yet
+                            if (!Number.isFinite(_state.idx) || _state.idx < 0) {
+                                const initialIdx =
+                                    typeof window.currentIndex === 'number' &&
+                                    window.currentIndex >= 0
+                                        ? window.currentIndex
+                                        : 0;
+                                _state.idx = initialIdx;
+                            }
                             // Initialize info from initial item
                             updateInfo(items[_state.idx] || items[0]);
                             try {
@@ -752,6 +804,12 @@
                                 window.__posterramaCurrentMediaId =
                                     curr?.id || curr?.title || curr?.posterUrl || null;
                                 window.__posterramaPaused = !!_state.paused;
+                            } catch (_) {
+                                /* noop */
+                            }
+                            // Prompt a fast live update after initializing current media
+                            try {
+                                triggerLiveBeat();
                             } catch (_) {
                                 /* noop */
                             }

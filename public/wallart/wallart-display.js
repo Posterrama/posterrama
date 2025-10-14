@@ -273,6 +273,20 @@
             // Start wallart cycle with module-owned lifecycle (idempotent)
             start(cfg) {
                 try {
+                    // Throttled live heartbeat trigger to reflect updates immediately
+                    const triggerLiveBeat = () => {
+                        try {
+                            const dev = window.PosterramaDevice;
+                            if (!dev || typeof dev.beat !== 'function') return;
+                            const now = Date.now();
+                            const until = window.__posterramaBeatCooldownUntil || 0;
+                            if (now < until) return;
+                            window.__posterramaBeatCooldownUntil = now + 1500;
+                            dev.beat();
+                        } catch (_) {
+                            /* noop */
+                        }
+                    };
                     const wallartConfig = { ...(cfg || {}), ...(window.wallartConfig || {}) };
 
                     // Reuse global appConfig/mediaQueue when available to avoid duplicate fetches
@@ -620,15 +634,7 @@
                                         const fn = window.animatePosterChange || null;
                                         if (fn && typeof fn === 'function')
                                             fn(targetElement, next, 'fade');
-                                        // Update current media exposure for device-mgmt heartbeat/debug
-                                        try {
-                                            window.__posterramaCurrentMedia = next;
-                                            window.__posterramaCurrentMediaId =
-                                                next.id || next.title || next.posterUrl || null;
-                                            window.__posterramaPaused = false;
-                                        } catch (_) {
-                                            /* expose best-effort */
-                                        }
+                                        // Keep heartbeat focused on hero; do not override current media here
                                     }, delay);
                                 }
                                 try {
@@ -705,15 +711,7 @@
                                 const animType = animationType;
                                 if (fn && typeof fn === 'function')
                                     fn(targetElement, next, animType);
-                                // Update current media exposure for device-mgmt heartbeat/debug
-                                try {
-                                    window.__posterramaCurrentMedia = next;
-                                    window.__posterramaCurrentMediaId =
-                                        next.id || next.title || next.posterUrl || null;
-                                    window.__posterramaPaused = false;
-                                } catch (_) {
-                                    /* expose best-effort */
-                                }
+                                // Keep heartbeat focused on hero; do not override current media here
                             }
                             const randomFactor = Math.random() * Math.random();
                             const isNegative = Math.random() < 0.5;
@@ -742,10 +740,7 @@
 
                     // Seed current media for device-mgmt visibility (prefer hero if present)
                     try {
-                        const first =
-                            layoutVariant === 'heroGrid'
-                                ? currentPosters && currentPosters[0]
-                                : currentPosters && currentPosters[0];
+                        const first = currentPosters && currentPosters[0];
                         if (first) {
                             window.__posterramaCurrentMedia = first;
                             window.__posterramaCurrentMediaId =
@@ -755,6 +750,7 @@
                     } catch (_) {
                         /* expose initial media best-effort */
                     }
+                    // Initial beat handled near hero attach when applicable
 
                     // Minimal playback hooks so device-mgmt commands log and act
                     try {
@@ -782,6 +778,11 @@
                                 } catch (_) {
                                     /* ignore flag */
                                 }
+                                try {
+                                    triggerLiveBeat();
+                                } catch (_) {
+                                    /* noop */
+                                }
                             },
                             resume: () => {
                                 _state.paused = false;
@@ -789,6 +790,11 @@
                                     window.__posterramaPaused = false;
                                 } catch (_) {
                                     /* ignore flag */
+                                }
+                                try {
+                                    triggerLiveBeat();
+                                } catch (_) {
+                                    /* noop */
                                 }
                                 try {
                                     _state.refreshNow && _state.refreshNow();
@@ -832,6 +838,20 @@
             runtime: {
                 initializeGrid(params = {}) {
                     try {
+                        // Local throttled heartbeat helper
+                        const safeBeat = () => {
+                            try {
+                                const dev = window.PosterramaDevice;
+                                if (!dev || typeof dev.beat !== 'function') return;
+                                const now = Date.now();
+                                const until = window.__posterramaBeatCooldownUntil || 0;
+                                if (now < until) return;
+                                window.__posterramaBeatCooldownUntil = now + 1500;
+                                dev.beat();
+                            } catch (_) {
+                                /* noop */
+                            }
+                        };
                         const {
                             wallartGrid,
                             layoutInfo,
@@ -957,6 +977,23 @@
                                 heroEl.style.transition = 'opacity 600ms ease';
                                 setTimeout(() => (heroEl.style.opacity = '1'), 60);
                                 wallartGrid.appendChild(heroEl);
+                                // Expose hero as current media for device heartbeat
+                                try {
+                                    window.__posterramaCurrentMedia = firstHero;
+                                    window.__posterramaCurrentMediaId =
+                                        firstHero.id ||
+                                        firstHero.title ||
+                                        firstHero.posterUrl ||
+                                        null;
+                                    window.__posterramaPaused = false;
+                                } catch (_) {
+                                    /* best-effort hero exposure */
+                                }
+                                try {
+                                    safeBeat();
+                                } catch (_) {
+                                    /* noop */
+                                }
 
                                 // Mark occupied
                                 if (portraitMode) {
@@ -1010,6 +1047,20 @@
                                                 const fn = window.animatePosterChange || null;
                                                 if (fn && typeof fn === 'function')
                                                     fn(heroElNow, next, 'fade');
+                                            }
+                                            // Update heartbeat exposure to new hero
+                                            try {
+                                                window.__posterramaCurrentMedia = next;
+                                                window.__posterramaCurrentMediaId =
+                                                    next.id || next.title || next.posterUrl || null;
+                                                window.__posterramaPaused = false;
+                                            } catch (_) {
+                                                /* noop */
+                                            }
+                                            try {
+                                                safeBeat();
+                                            } catch (_) {
+                                                /* noop */
                                             }
                                         }, ms);
                                     }
