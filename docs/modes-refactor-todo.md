@@ -90,7 +90,7 @@ Last updated: 2025-10-14
 9. Lint and cleanup pass
 
 - [x] Remove blanket `/* eslint-disable no-empty */` in `public/script.js` & `public/admin.js` (surfaced individual empty blocks)
-- [x] Stage batch annotations/removals of remaining empty catch blocks in `public/script.js` (Phase 1 + Batches 2–6 complete). Next: tackle `public/admin.js` empty blocks in larger focused passes.
+- [x] All empty catch blocks in `public/script.js` annotated (Phase 1 + Batches 2–6 + final sweep). Next: tackle `public/admin.js` empty blocks in larger focused passes.
 - [ ] Audit remaining `POSTERRAMA_DEBUG` gating for potential dead code
 - [ ] After screensaver extraction, trim unused functions in `script.js` and eventually delete file
 - [ ] Run `npm run lint:fix`; manually resolve leftovers
