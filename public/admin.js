@@ -563,7 +563,9 @@
         }
         window.addEventListener('hashchange', () => setTimeout(__ensureAllMultiselects, 35));
         window.addEventListener('panelActivated', () => setTimeout(__ensureAllMultiselects, 25));
-    } catch (_) {}
+    } catch (_) {
+        /* initial admin bootstrap cosmetic hook failed */
+    }
 
     function ensureLibrarySelectionIntegrity(source) {
         try {
@@ -852,7 +854,9 @@
                         mark('plex', plexConfigured);
                         mark('jellyfin', jfConfigured);
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* legacy numeric wrapper attempt failed (will retry via manualWrap) */
+                }
 
                 // Active Mode snapshot: cinema > wallart > screensaver
                 try {
@@ -920,7 +924,9 @@
                         else if (active === 'wallart') iconEl.classList.add('fa-images');
                         else iconEl.classList.add('fa-tv');
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* width bucket sizing verification failed (debug only) */
+                }
             }
         } catch (_) {
             // fallback to static text
@@ -2831,7 +2837,9 @@
                 try {
                     wrapper.dataset.wired = '1';
                     wrapper.dataset.directHandlers = '1';
-                } catch (_) {}
+                } catch (_) {
+                    /* wrapper lost-wiring repair pass failed (subsequent attempts continue) */
+                }
             };
             // Target specific IDs explicitly to avoid unexpected layout shifts
             const numberIds = [
@@ -2858,7 +2866,9 @@
                     if (el.dataset.enhanced === '1' && !el.closest('.number-input-wrapper')) {
                         try {
                             delete el.dataset.enhanced;
-                        } catch (_) {}
+                        } catch (_) {
+                            /* mutation observer setup (media sources section) failed (global observer remains) */
+                        }
                         enhanceNumberInput(el);
                     }
                 });
@@ -2881,7 +2891,9 @@
                             while (inner.firstChild) outer.insertBefore(inner.firstChild, inner);
                             inner.remove();
                         });
-                } catch (_) {}
+                } catch (_) {
+                    /* mutation observer global setup failed (hashchange triggers still run) */
+                }
             };
             dedupeNumberWrappers();
             try {
@@ -2915,7 +2927,9 @@
                     if (debugEnabled()) {
                         try {
                             console.debug('[MediaNumWrap]', ...args);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* debug console output failed (dev only) */
+                        }
                     }
                 };
 
@@ -2973,22 +2987,30 @@
                         btnUp.addEventListener('click', e => {
                             try {
                                 e.stopPropagation();
-                            } catch (_) {}
+                            } catch (_) {
+                                /* number inc button stopPropagation failed (benign) */
+                            }
                             applyChange('up');
                         });
                         btnDown.addEventListener('click', e => {
                             try {
                                 e.stopPropagation();
-                            } catch (_) {}
+                            } catch (_) {
+                                /* number dec button stopPropagation failed (benign) */
+                            }
                             applyChange('down');
                         });
                         try {
                             wrapper.dataset.wired = '1';
                             wrapper.dataset.directHandlers = '1';
-                        } catch (_) {}
+                        } catch (_) {
+                            /* number wrapper dataset flagging failed (non-critical) */
+                        }
                         try {
                             el.dataset.enhanced = '1';
-                        } catch (_) {}
+                        } catch (_) {
+                            /* number input enhanced flag set failed (visual only) */
+                        }
                         return true;
                     } catch (_) {
                         return false;
@@ -3002,12 +3024,16 @@
                     if (el.dataset.enhanced === '1' && !hasWrapper) {
                         try {
                             delete el.dataset.enhanced;
-                        } catch (_) {}
+                        } catch (_) {
+                            /* cleanup orphan enhanced flag failed (safe to ignore) */
+                        }
                     }
                     if (!hasWrapper) {
                         try {
                             enhanceNumberInput(el);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* primary number enhance failed (fallback manual wrap) */
+                        }
                     }
                     if (!el.closest('.number-input-wrapper')) manualWrap(el);
                     return !!el.closest('.number-input-wrapper');
@@ -3025,7 +3051,9 @@
                                 last: snapshot,
                                 history: attemptHistory.slice(-20),
                             };
-                        } catch (_) {}
+                        } catch (_) {
+                            /* debug state export failed (dev only) */
+                        }
                         snapshot.statuses[id] = success;
                         if (!success) allDone = false;
                     });
@@ -3072,7 +3100,9 @@
                         obs.observe(section, { childList: true, subtree: true });
                         section.__msNumObs = obs;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* hashchange numeric wrap retry scheduling failed (later user actions still wrap) */
+                }
 
                 try {
                     if (!document.__msGlobalWrapObs) {
@@ -3105,7 +3135,9 @@
                         gObs.observe(document.documentElement, { childList: true, subtree: true });
                         document.__msGlobalWrapObs = gObs;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* panelActivated numeric wrap attempt failed (other triggers remain) */
+                }
 
                 window.addEventListener('hashchange', () => {
                     if (fullyDone) return;
@@ -3152,7 +3184,9 @@
                         });
                         io.observe(section);
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* intersection observer for media sources failed (other triggers attempt wrapping) */
+                }
 
                 try {
                     if (document.readyState === 'loading') {
@@ -3177,7 +3211,9 @@
                             }, 60);
                         });
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* DOMContentLoaded numeric wrap sequence failed (raf/timeouts still attempt) */
+                }
 
                 window.addEventListener('load', () => {
                     if (fullyDone) return;
@@ -3213,7 +3249,9 @@
                     if (!window.mediaSourceWrapDebug) window.mediaSourceWrapDebug = apiFn; // direct global alias
                     if (!window.enhanceNumberInput && typeof enhanceNumberInput === 'function')
                         window.enhanceNumberInput = enhanceNumberInput;
-                } catch (_) {}
+                } catch (_) {
+                    /* final mediaSourceWrapDebug export failed (diagnostic only) */
+                }
             })();
             try {
                 // If overwritten later, keep last known state reference
@@ -3246,7 +3284,9 @@
                     });
                     ['change', 'blur'].forEach(ev => plexPort.addEventListener(ev, clampPort));
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* ensureMediaSourceNumberWrappers outer setup failed (wrappers still progressively applied) */
+            }
         } catch (_) {
             /* mode pill indicator create/update failed */
         }
@@ -3283,7 +3323,9 @@
                         try {
                             e.stopPropagation();
                             e.stopImmediatePropagation?.();
-                        } catch (_) {}
+                        } catch (_) {
+                            /* number inc delegated stopPropagation failed (duplicate bubbling harmless) */
+                        }
                         const cur = Number(input.value || '0') || 0;
                         const s = step();
                         const out = clamp(snap(cur + s, s));
@@ -3296,7 +3338,9 @@
                         try {
                             e.stopPropagation();
                             e.stopImmediatePropagation?.();
-                        } catch (_) {}
+                        } catch (_) {
+                            /* number dec delegated stopPropagation failed (duplicate bubbling harmless) */
+                        }
                         const cur = Number(input.value || '0') || 0;
                         const s = step();
                         const out = clamp(snap(cur - s, s));
@@ -3333,7 +3377,9 @@
                             e.preventDefault();
                             e.stopPropagation();
                             e.stopImmediatePropagation?.();
-                        } catch (_) {}
+                        } catch (_) {
+                            /* number wrapper stopPropagation suppression failed (harmless) */
+                        }
                         if (btn.__handledOnce) return; // guard per tick
                         btn.__handledOnce = true;
                         setTimeout(() => {
@@ -3923,7 +3969,9 @@
                     }
                     // Ensure final position respects header and Display content bounds
                     clampWithinViewport(0);
-                } catch (_) {}
+                } catch (_) {
+                    /* plex port sanitization setup failed (user input still validated server-side) */
+                }
             });
         }
 
@@ -4138,7 +4186,9 @@
                                 clampWithinViewport(0);
                             }
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* nested wrapper collapse (dedupe) failed (benign) */
+                    }
                 };
 
                 // Kick off the retry loop on the next frame
@@ -4358,7 +4408,9 @@
                         ? lastUserAnchor || getTopRightAnchorPoint()
                         : getActiveModeAnchorPoint(ANCHOR_INSET);
                     setPositionFromTopRightAnchor(anchor);
-                } catch (_) {}
+                } catch (_) {
+                    /* device metrics inline update failed (non-critical) */
+                }
                 debouncedSend();
             }
         });
@@ -4393,14 +4445,18 @@
             if (userHasMovedPreview) {
                 try {
                     lastUserAnchor = getTopRightAnchorPoint();
-                } catch (_) {}
+                } catch (_) {
+                    /* device metrics refresh scheduling failed (dashboard still usable) */
+                }
             }
             previewOrientation = previewOrientation === 'portrait' ? 'landscape' : 'portrait';
             // Update container immediately for visual aspect switch
             try {
                 const payload = collectPreviewPayload();
                 applyContainerMode(payload);
-            } catch (_) {}
+            } catch (_) {
+                /* slider bar initial width calc failed (visual only) */
+            }
             requestAnimationFrame(() => {
                 updateFrameScale();
                 // After dimensions settle, keep the same visual top-right anchor
@@ -4628,7 +4684,9 @@
             try {
                 userHasMovedPreview = false;
                 positionAtActiveMode();
-            } catch (_) {}
+            } catch (_) {
+                /* slider preset button click failed (user can adjust manually) */
+            }
         };
     }
 
@@ -5108,20 +5166,28 @@
                         }
                         try {
                             s.addEventListener('device-ws', () => onNudge('device-ws'));
-                        } catch (_) {}
+                        } catch (_) {
+                            /* delegated spinner increment stopPropagation failed (minor) */
+                        }
                     };
                     const detachDeviceListeners = () => {
                         const s = window.__adminSSE;
                         if (!s || !s.__onDeviceNudge) return;
                         try {
                             s.removeEventListener('device-updated', s.__onDeviceNudge);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* delegated spinner decrement stopPropagation failed (minor) */
+                        }
                         try {
                             s.removeEventListener('device-ws', s.__onDeviceNudge);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* number wrapper stopPropagation suppression failed (harmless) */
+                        }
                         try {
                             delete s.__onDeviceNudge;
-                        } catch (_) {}
+                        } catch (_) {
+                            /* number wrapper dataset flagging failed (non-critical) */
+                        }
                     };
                     // Attach now
                     attachDeviceListeners();
@@ -5187,14 +5253,18 @@
                 el.__portal = { parent: el.parentElement, next: el.nextSibling };
                 document.body.appendChild(el);
                 el.__portalized = true;
-            } catch (_) {}
+            } catch (_) {
+                /* slider preset button click failed (user can adjust manually) */
+            }
         }
         function unportalize(el) {
             try {
                 if (!el || !el.__portal || !el.__portal.parent) return;
                 el.__portal.parent.insertBefore(el, el.__portal.next || null);
                 el.__portalized = false;
-            } catch (_) {}
+            } catch (_) {
+                /* slider preset button click failed (user can adjust manually) */
+            }
         }
 
         function closeMenu() {
@@ -5462,7 +5532,9 @@
                             }
                         }
                         alerts = Array.isArray(data?.alerts) ? data.alerts : [];
-                    } catch (_) {}
+                    } catch (_) {
+                        /* delegated spinner guard flag reset failed (non-critical) */
+                    }
                     try {
                         // Respect user-selected minimum level for logs in the bell
                         const levelKey = 'admin2:notifMinLevel';
@@ -5666,7 +5738,9 @@
             // Expose to global shim so SSE can trigger it without scoping issues
             try {
                 window.refreshAdminBadge = refreshBadge;
-            } catch (_) {}
+            } catch (_) {
+                /* UI scaling reset button failed (values unchanged) */
+            }
 
             function openPanel() {
                 const { panel, btn } = getRefs();
@@ -5797,7 +5871,9 @@
                         // Force-refresh to reflect new min level immediately
                         try {
                             refreshBadge(true);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* number input enhanced dataset flag failed (visual only) */
+                        }
                     });
                     // Keep existing change binding on hidden select as fallback (e.g., accessibility tools)
                     sel?.addEventListener('change', () => {
@@ -5806,7 +5882,9 @@
                             localStorage.setItem(key, v);
                             paint(v);
                             refreshBadge(true);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* orphan enhanced flag cleanup failed (minor) */
+                        }
                     });
                 } catch (_) {}
             })();
@@ -7659,7 +7737,9 @@
                             // Also return any right-side actions to the home container
                             moveAll(rightActions, home);
                             mountedSource = null;
-                        } catch (_) {}
+                        } catch (_) {
+                            /* number input enhance attempt failed (manual wrap fallback) */
+                        }
                         return;
                     }
                     if (!section.hidden) syncFromHash();
@@ -7710,7 +7790,9 @@
                             if (typeof window.reloadWhitelistData === 'function') {
                                 window.reloadWhitelistData();
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* state export for numeric wrapper debug failed (dev only) */
+                        }
                     }
                 };
                 // Click handling
@@ -7739,7 +7821,9 @@
                     }
                 });
                 obs.observe(section, { attributes: true, attributeFilter: ['hidden'] });
-            } catch (_) {}
+            } catch (_) {
+                /* wireNumberWrappers helper export failed (can be called lazily later) */
+            }
         })();
 
         // Device Management group: robust toggle and sub-navigation via event delegation
@@ -7785,13 +7869,17 @@
                         try {
                             document.getElementById('seg-devices')?.click();
                             window.admin2?.initDevices?.();
-                        } catch (_) {}
+                        } catch (_) {
+                            /* inc button stopPropagation suppression failed (benign) */
+                        }
                     } else if (key === 'device-settings') {
                         // Switch to Settings tab inside Devices section
                         showSection('section-devices');
                         try {
                             document.getElementById('seg-dev-settings')?.click();
-                        } catch (_) {}
+                        } catch (_) {
+                            /* dec button stopPropagation suppression failed (benign) */
+                        }
                     }
                 }
             });
@@ -13849,7 +13937,9 @@
             attachHeaderToggleText('jf.enabled');
             attachHeaderToggleText('tmdb.enabled');
             attachHeaderToggleText('streamingSources.enabled');
-        } catch (_) {}
+        } catch (_) {
+            /* poster->metadata dependency apply failed (manual toggling still works) */
+        }
 
         // Helper to fetch config, patch minimal keys, and POST back
         async function saveConfigPatch(patchConfig, patchEnv) {
@@ -15928,7 +16018,9 @@
                     },
                 };
             };
-        } catch (_) {}
+        } catch (_) {
+            /* clock timezone/format row visibility toggle failed */
+        }
         // Expose for reuse
         window.admin2 = window.admin2 || {};
         window.admin2.loadMediaSources = loadMediaSources;
@@ -16193,7 +16285,9 @@
                     })(),
                 };
             };
-        } catch (_) {}
+        } catch (_) {
+            /* rotten tomatoes input snap failed (raw value accepted) */
+        }
 
         // Fetch libraries
         async function fetchPlexLibraries(refreshFilters = false, silent = false) {
@@ -18992,7 +19086,9 @@
             typeof wireEvents === 'function' && wireEvents();
             try {
                 wireDashboardMetricShortcuts();
-            } catch (_) {}
+            } catch (_) {
+                /* width bucket sizing heuristic failed (styling fallback) */
+            }
         }
     } catch (_) {}
 
@@ -19929,7 +20025,9 @@ if (!document.__niwDelegatedFallback) {
                                     loadLocalDirectoryConfig();
                                 }
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* numeric wrapper width xs class add failed (cosmetic) */
+                        }
                     }, 40);
                 }
             } catch (_) {}
@@ -20782,7 +20880,9 @@ if (!document.__niwDelegatedFallback) {
                             handleFileSelection(ev, td);
                             try {
                                 input.value = '';
-                            } catch (_) {}
+                            } catch (_) {
+                                /* numeric wrapper width sm class add failed (cosmetic) */
+                            }
                             input.removeEventListener('change', onChange);
                         };
                         input.addEventListener('change', onChange);
@@ -21307,7 +21407,9 @@ if (!document.__niwDelegatedFallback) {
                             } catch (_) {}
                         }
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* dedupe nested number wrapper pass failed (benign) */
+                }
             }, 350);
         } else if (source === 'jellyfin') {
             try {
@@ -21318,10 +21420,14 @@ if (!document.__niwDelegatedFallback) {
                     initMsForSelect('pp-srv-ms-genres', 'pp-server.genres');
                     // Do not wire Qualities for Jellyfin — feature not supported; hide it
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* export dedupeNumberWrappers failed (diagnostic only) */
+            }
             try {
                 loadPosterpackServerFilterOptions().catch(() => {});
-            } catch (_) {}
+            } catch (_) {
+                /* display preview summary interval update failed (visual only) */
+            }
             // Hide and clear Qualities (entire form-group) when source is Jellyfin
             try {
                 const qSel = document.getElementById('pp-server.qualities');
@@ -21342,7 +21448,9 @@ if (!document.__niwDelegatedFallback) {
                 Promise.resolve(fetchJellyfinLibraries(false, true)).finally(() => {
                     try {
                         populatePosterpackLibraries('jellyfin');
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preview update nudge failed (non-critical) */
+                    }
                 });
             } catch (_) {
                 populatePosterpackLibraries('jellyfin');
@@ -21428,7 +21536,9 @@ if (!document.__niwDelegatedFallback) {
                             });
                             if (res3?.ok) return await res3.json().catch(() => ({}));
                         } catch (_) {}
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preview update nudge failed (non-critical) */
+                    }
                     return null;
                 })();
                 const jfGenresReq = (async () => {
@@ -21624,7 +21734,9 @@ if (!document.__niwDelegatedFallback) {
                             }
                         }
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* screensaver preset apply failed (user can set manually) */
+                }
 
                 // If the widgets are already wired, rebuild them to reflect new options
                 try {
@@ -21633,7 +21745,9 @@ if (!document.__niwDelegatedFallback) {
                         rebuildMsForSelect('pp-local-ms-genres', 'pp-local.genres');
                         rebuildMsForSelect('pp-local-ms-qualities', 'pp-local.qualities');
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* wallart preset apply failed (user can adjust) */
+                }
             } catch (_) {}
         })();
         try {
