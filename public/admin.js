@@ -3385,7 +3385,9 @@
                         setTimeout(() => {
                             try {
                                 delete btn.__handledOnce;
-                            } catch (_) {}
+                            } catch (_) {
+                                /* notify min-level icon click refresh failed (will retry) */
+                            }
                         }, 0);
                         const stepVal = (() => Number(input.step || '1') || 1)();
                         const min = input.min === '' ? null : Number(input.min);
@@ -9247,7 +9249,9 @@
                                         );
                                 });
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* notify min-level select change failed (non-critical) */
+                        }
                     }
                 }
                 // Responsive controls: collapse secondary buttons on narrow widths
@@ -10857,7 +10861,9 @@
                     bindHover('.js-dupes-hover', dupesCard);
                     // Also bind media hover for now-playing thumbnails on freshly rendered cards
                     bindHover('.js-media-hover', mediaCard);
-                } catch (_) {}
+                } catch (_) {
+                    /* initMinLevelControl setup failed (defaults still apply) */
+                }
             }
 
             // Reflow handlers for responsive action overflow
@@ -11493,7 +11499,9 @@
                                         '[ModalDebug] create-device rect',
                                         overlay.getBoundingClientRect().toJSON()
                                     );
-                            } catch (_) {}
+                            } catch (_) {
+                                /* close other header menu failed (ignorable) */
+                            }
                         }
                         const confirmBtn = document.getElementById('btn-create-device-confirm');
                         const onConfirm = async () => {
@@ -11890,7 +11898,9 @@
                             pinBtn.classList.toggle('is-pinned', pinned);
                             try {
                                 pinBtn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
-                            } catch (_) {}
+                            } catch (_) {
+                                /* close user menu during notif open failed (ignored) */
+                            }
                             const icon = pinBtn.querySelector('i');
                             if (icon)
                                 icon.className = `fas ${pinned ? 'fa-map-pin' : 'fa-thumbtack'}`;
@@ -12121,7 +12131,9 @@
                                         card.classList.add('has-nowplay');
                                         try {
                                             bindHover && bindHover('.js-media-hover', mediaCard);
-                                        } catch (_) {}
+                                        } catch (_) {
+                                            /* force add open class failed (panel may still open later) */
+                                        }
                                         requestAnimationFrame(() => {
                                             img.style.opacity = '1';
                                         });
@@ -15272,7 +15284,9 @@
                             } finally {
                                 try {
                                     fetchJellyfinLibraries(true, true);
-                                } catch (_) {}
+                                } catch (_) {
+                                    /* notif panel ensureVisible fallback failed (visual only) */
+                                }
                             }
                         })();
                     }
@@ -15874,7 +15888,9 @@
                     // Wire steppers for this wrapper (delegated handler expects correct structure)
                     try {
                         window.admin2?.wireNumberWrappers?.(niw.closest('.form-grid') || document);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* panel zero-rect sizing fallback failed (panel may remain hidden) */
+                    }
                 } else {
                     // Plain number input exists: ensure value is clamped and wrapper enhanced
                     const input = /** @type {HTMLInputElement} */ (existing);
@@ -15944,7 +15960,9 @@
                             window.admin2?.wireNumberWrappers?.(
                                 niw.closest('.form-grid') || document
                             );
-                        } catch (_) {}
+                        } catch (_) {
+                            /* notification panel visibility flag set failed (non-blocking) */
+                        }
                     } else {
                         const input = /** @type {HTMLInputElement} */ (existing);
                         const raw = Number(streaming.minRating);
@@ -16956,7 +16974,9 @@
                             try {
                                 rebuildMsForSelect('jf-ms-movies', 'jf.movies');
                                 rebuildMsForSelect('jf-ms-shows', 'jf.shows');
-                            } catch (_) {}
+                            } catch (_) {
+                                /* refreshBadge(true) on open failed (panel still opens) */
+                            }
                         }, 0);
                     }
                     // Rebuild multiselect options
@@ -20869,7 +20889,9 @@ if (!document.__niwDelegatedFallback) {
                         input.__opening = true;
                         try {
                             input.value = '';
-                        } catch (_) {}
+                        } catch (_) {
+                            /* refreshBadge on visibilitychange failed (ignored) */
+                        }
                         const clearOpen = () => {
                             input.__opening = false;
                         };
@@ -21274,7 +21296,9 @@ if (!document.__niwDelegatedFallback) {
                             }
                             previewHost.style.display = sample.length ? '' : 'none';
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* refreshBadge on pageshow failed (will run on next interval) */
+                    }
                 } else {
                     showNotification(result?.error || 'Preview failed', 'error');
                 }
@@ -21473,7 +21497,9 @@ if (!document.__niwDelegatedFallback) {
                     if (!jfMapOk && typeof fetchJellyfinLibraries === 'function') {
                         await Promise.resolve(fetchJellyfinLibraries(false, true)).catch(() => {});
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* notif mutation observer install failed (manual refresh only) */
+                }
 
                 // Build Jellyfin movie/show library name arrays if available
                 let jfMovieLibs = [];
@@ -21911,7 +21937,9 @@ if (!document.__niwDelegatedFallback) {
                             fill('pp-plex.shows', names2);
                         }
                         return;
-                    } catch (_) {}
+                    } catch (_) {
+                        /* persist CLEAR_SUPPRESS_KEY failed (badge may bounce) */
+                    }
                 }
                 if (counts && counts.size) {
                     const movieNames = allNames.filter(
@@ -22174,8 +22202,12 @@ if (!document.__niwDelegatedFallback) {
                                 credentials: 'include',
                             });
                             if (res3?.ok) return await res3.json().catch(() => ({}));
-                        } catch (_) {}
-                    } catch (_) {}
+                        } catch (_) {
+                            /* refreshBadge delayed after mark-all failed (will retry later) */
+                        }
+                    } catch (_) {
+                        /* periodic badgeTick refresh failed (will retry) */
+                    }
                     return null;
                 })();
                 const jfGenresReq = (async () => {
@@ -22195,7 +22227,9 @@ if (!document.__niwDelegatedFallback) {
                                     const js = await res.json().catch(() => ({}));
                                     if (Array.isArray(js?.genres) && js.genres.length) return js;
                                 }
-                            } catch (_) {}
+                            } catch (_) {
+                                /* frequent open-panel refresh failed (next interval will retry) */
+                            }
                         }
                         // Fallback: try all-libraries GET to avoid empty genres
                         try {
@@ -22341,11 +22375,15 @@ if (!document.__niwDelegatedFallback) {
                     rebuildMsForSelect('pp-srv-ms-genres', 'pp-server.genres');
                     rebuildMsForSelect('pp-srv-ms-qualities', 'pp-server.qualities');
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* initial refreshBadge prime failed (will retry shortly) */
+            }
         })();
         try {
             await window.__ppSrvFiltersInFlight;
-        } catch (_) {}
+        } catch (_) {
+            /* refreshBadge(true) on online failed (network unstable) */
+        }
         window.__ppSrvFiltersInFlight = null;
     }
 
@@ -22524,7 +22562,9 @@ if (!document.__niwDelegatedFallback) {
                         try {
                             // eslint-disable-next-line no-undef
                             updateSourceSaveButtonLabel('local');
-                        } catch (_) {}
+                        } catch (_) {
+                            /* refreshBadge on focus failed (ignored) */
+                        }
                         // Wire label updater once
                         try {
                             if (enabledInput && enabledInput.dataset.restartWired !== 'true') {
@@ -22534,7 +22574,9 @@ if (!document.__niwDelegatedFallback) {
                                 );
                                 enabledInput.dataset.restartWired = 'true';
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* notify center event listener binding failed (degrades gracefully) */
+                        }
                     }
 
                     // Update status pill (match Plex/Jellyfin styling)
