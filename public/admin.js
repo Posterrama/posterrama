@@ -1868,7 +1868,7 @@
                 pill.classList.toggle('status-warning', !enabled);
             }
         } catch (_) {
-            /* computeLocalTotalSafe: local total calculation failed (returns 0) */
+            /* loadCfgBackupSchedule: UI pill render fallback if elements missing */
         }
     }
     async function saveCfgBackupSchedule(opts) {
@@ -1894,7 +1894,9 @@
             }
             try {
                 await loadCfgBackupSchedule();
-            } catch (_) {}
+            } catch (_) {
+                /* re-load schedule after save failed (non-fatal since save succeeded) */
+            }
         } catch (e) {
             if (!silent) {
                 window.notify?.toast({
@@ -1941,7 +1943,9 @@
             s.addEventListener('backup-restored', refresh);
             s.addEventListener('backup-cleanup', refresh);
         }
-    } catch (_) {}
+    } catch (_) {
+        /* SSE backup refresh wiring failed (SSE unavailable) */
+    }
 
     // format uptime helper (not used everywhere but kept for parity/UI)
 
@@ -2011,7 +2015,9 @@
                     el2?.classList.add('active');
                 }
             });
-        } catch (_) {}
+        } catch (_) {
+            /* ensureNavActive: nav highlighting not critical */
+        }
     }
 
     function showSection(id) {
@@ -2042,7 +2048,7 @@
                     window.admin2?.initDevices?.();
                 }
             } catch (_) {
-                /* silent */
+                /* device section lazy-init failed (user can refresh or navigate again) */
             }
         }
         // Update header title for basic context switch
@@ -2126,7 +2132,7 @@
                     'siteServer.port',
                 ].forEach(id => ensureWrapped(document.getElementById(id)));
             } catch (_) {
-                /* non-fatal */
+                /* dashboard live metrics start/stop failed - continue without live updates */
             }
         }
 
@@ -2180,9 +2186,13 @@
                         window.__displayPreviewInit = true;
                         initDisplayPreviewV2();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* display preview reanchor attempt failed (layout still usable) */
+                }
             }
-        } catch (_) {}
+        } catch (_) {
+            /* toggle preview container visibility failed */
+        }
     }
 
     // Removed unused syncCustomSelect helper; cleaned stray references to selectEl/list.
@@ -2812,7 +2822,9 @@
                         enhanceNumberInput(el);
                     }
                 });
-            } catch (_) {}
+            } catch (_) {
+                /* display section lazy init failed */
+            }
             // Expose so other flows (like panel routing) can enhance late-mounted or hidden inputs
             window.admin2 = window.admin2 || {};
             window.admin2.enhanceNumberInput = enhanceNumberInput;
@@ -3189,7 +3201,9 @@
                     ['change', 'blur'].forEach(ev => plexPort.addEventListener(ev, clampPort));
                 }
             } catch (_) {}
-        } catch (_) {}
+        } catch (_) {
+            /* mode pill indicator create/update failed */
+        }
 
         // Wire number steppers for statically-defined wrappers (e.g., pre-wrapped inputs in Media Sources)
         // Expose as a helper and call initially and on panel visibility
@@ -3313,7 +3327,9 @@
                 );
                 document.__niwDelegated = true;
             }
-        } catch (_) {}
+        } catch (_) {
+            /* radio indicator resize realignment failed */
+        }
 
         // Screensaver: live summary + presets (affect global Effect/Playback/Clock)
         try {
@@ -3364,7 +3380,9 @@
                     // Trigger preview update when interval changes
                     try {
                         window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* slider bar width update failed (visual only) */
+                    }
                 });
                 elEffect?.addEventListener(ev, () => {
                     applyPauseVisibility();
@@ -3698,7 +3716,9 @@
             // by sending an early nudge after the frame wires up (handled later in initDisplayPreviewV2)
             try {
                 window.__forcePreviewUpdate && window.__forcePreviewUpdate();
-            } catch (_) {}
+            } catch (_) {
+                /* slider label init failed */
+            }
 
             // Save handler
             const saveBtn = document.getElementById('btn-save-display');
@@ -4234,7 +4254,9 @@
                 setTimeout(sendUpdate, 0);
                 setTimeout(sendUpdate, 200);
             }
-        } catch (_) {}
+        } catch (_) {
+            /* poster->metadata dependency wiring failed */
+        }
 
         // Wire global input/change handlers within Display section
         const section = document.getElementById('section-display');
@@ -4359,7 +4381,9 @@
         try {
             const payload0 = collectPreviewPayload();
             applyContainerMode(payload0);
-        } catch (_) {}
+        } catch (_) {
+            /* clock timezone/format row visibility enforcement failed */
+        }
         // Initial scale sync
         requestAnimationFrame(updateFrameScale);
 
