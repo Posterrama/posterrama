@@ -37,7 +37,9 @@ const logger = window.logger || {
         try {
             const sp = new URLSearchParams(window.location.search);
             if (sp.get('debug') === 'true') return;
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: URL param parse best-effort; fallback is non-debug mode */
+        }
         // Allow forcing live debug via global flag
         if (typeof window !== 'undefined' && window.__POSTERRAMA_LIVE_DEBUG === true) {
             return;
@@ -207,7 +209,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const item = mediaQueue[idx] || mediaQueue[0];
                     bg2 = item && item.backgroundUrl ? item.backgroundUrl : null;
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: style priming is optional for embedded browsers */
+            }
             if (bg2 && bg2 !== 'null' && bg2 !== 'undefined') {
                 la.style.backgroundImage = `url('${bg2}')`;
                 lb.style.backgroundImage = `url('${bg2}')`;
@@ -400,12 +404,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             try {
                 if (activeLayer) activeLayer.style.animationPlayState = 'paused';
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: heartbeat is best-effort; offline devices keep local state */
+            }
         } else {
             // Resume: restart slideshow timer and unfreeze animations
             try {
                 if (activeLayer) activeLayer.style.animationPlayState = 'running';
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: animation playState may be unsupported in some browsers */
+            }
             startTimer();
         }
         try {
@@ -461,7 +469,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const idx = currentIndex >= 0 ? currentIndex : 0;
                     mediaItem = mediaQueue[idx] || mediaQueue[0];
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: cancel of non-existent retry timer is safe no-op */
+            }
             if (mediaItem && mediaItem.backgroundUrl) {
                 const bg = mediaItem.backgroundUrl;
                 if (bg && bg !== 'null' && bg !== 'undefined') {
@@ -504,7 +514,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ev.preventDefault();
                 ev.stopImmediatePropagation();
                 ev.stopPropagation();
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: unable to read mediaQueue for background priming */
+            }
             return false;
         };
         [
@@ -536,14 +548,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!document.body.__prevOverflow)
                     document.body.__prevOverflow = document.body.style.overflow;
                 document.body.style.overflow = 'hidden';
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: reading activeLayer animation state is non-critical */
+            }
             // Notify heartbeat of poweredOff state (best effort)
             try {
                 window.__posterramaPoweredOff = true;
                 window.PosterramaDevice &&
                     window.PosterramaDevice.beat &&
                     window.PosterramaDevice.beat();
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: optional PosterramaDevice heartbeat */
+            }
         } catch (_) {
             /* ignore: background visibility assurance */
         }
@@ -555,13 +571,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 document.body.style.overflow = document.body.__prevOverflow || '';
                 delete document.body.__prevOverflow;
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: setPaused false resume attempt; non-fatal if layer missing */
+            }
             try {
                 window.__posterramaPoweredOff = false;
                 window.PosterramaDevice &&
                     window.PosterramaDevice.beat &&
                     window.PosterramaDevice.beat();
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: PosterramaDevice heartbeat nudge not critical */
+            }
         } catch (_) {
             /* ignore: Ken Burns detection fallback */
         }
@@ -676,7 +696,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.PosterramaDevice &&
                     window.PosterramaDevice.beat &&
                     window.PosterramaDevice.beat();
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: clearing existing reinit retry timer */
+            }
         } catch (e) {
             console.error('[Live] switchSource failed', e);
             showError(e.message || 'Failed switching source');
@@ -1055,7 +1077,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (cfg && cfg.cinema) {
                             window.cinemaDisplay.updateConfig(cfg);
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* ignore: accessing mediaQueue index for reinit is best-effort */
+                    }
                 };
                 // Initial sync plus interval
                 syncCinemaConfig();
@@ -1182,7 +1206,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const abs = new URL(base + nextMode, window.location.origin).toString();
                     return void window.location.replace(abs);
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: blackout element overflow stash not critical */
+            }
             // If on standalone cinema page and admin disables cinema or enables wallart, exit to root
             if (document.body && document.body.dataset.mode === 'cinema') {
                 const turningCinemaOff =
@@ -1267,7 +1293,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     syncSs();
                     setInterval(syncSs, 8000);
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: heartbeat update during powerOff is optional */
+            }
 
             try {
                 const debugOn =
@@ -1731,7 +1759,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ) {
                     window.PosterramaScreensaver.stop();
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: restoring overflow style may fail if body is detached */
+            }
             window._lastWallartEnabled = false;
             try {
                 const debugOn =
@@ -1780,7 +1810,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ) {
                     window.PosterramaScreensaver.stop();
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* ignore: heartbeat update during powerOn is optional */
+            }
             // Check if wallart mode is already active BEFORE removing the class
             const isAlreadyActive = body.classList.contains('wallart-mode');
             // Detect changes that require a restart of the wallart grid
@@ -2192,7 +2224,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             ) {
                 return window.PosterramaWallart.calculateLayout(density);
             }
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: audio/video pause/resume heartbeat optional */
+        }
         // Fallback to legacy inline implementation
         const screenWidth = window.innerWidth;
         const screenHeight = window.innerHeight;
