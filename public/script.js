@@ -1,5 +1,5 @@
 'use strict';
-/* eslint-disable no-empty */
+// NOTE: Removed blanket 'eslint-disable no-empty'. Individual empty catches now annotated.
 /**
  * posterrama.app - Client-side logic
  *

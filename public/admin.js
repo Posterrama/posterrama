@@ -1,5 +1,5 @@
 /* Admin v2 Dashboard (theme-based) */
-/* eslint-disable no-empty */
+// NOTE: Removed blanket 'eslint-disable no-empty'; empty catches now annotated with purpose.
 /* global saveConfigPatch, miniCache, inflight, refreshOverviewLastSync */
 /* global initMsForSelect, rebuildMsForSelect, getMultiSelectValues, fetchPlexLibraries */
 /* global fetchJellyfinLibraries, populatePosterpackLibraries */
