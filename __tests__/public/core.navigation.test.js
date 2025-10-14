@@ -68,12 +68,8 @@ describe('PosterramaCore navigation URL building', () => {
     });
 
     test('navigateToMode applies same normalization', () => {
-        const ctxCore = loadCoreAt('/wallart');
-        // Manually spy on replace
-        const win = ctxCore && global.window; // global.window not set; adapt
-        // We'll re-load to get access to window object inside context
+        // Re-load to get a fresh window with spyable replace
         const context = { window: undefined, URL };
-        // create context with spyable replace
         const w = {
             location: {
                 href: 'https://example.test/wallart',
