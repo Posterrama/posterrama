@@ -1253,13 +1253,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (_) {}
 
-            if (window.POSTERRAMA_DEBUG) {
-                try {
-                    console.log(
-                        '[LIVE APPLY] incoming partial',
-                        JSON.parse(JSON.stringify(partial))
-                    );
-                } catch (_) {}
+            try {
+                const debugOn =
+                    (window.logger &&
+                        typeof window.logger.isDebug === 'function' &&
+                        window.logger.isDebug()) ||
+                    window.POSTERRAMA_DEBUG;
+                if (debugOn) {
+                    try {
+                        (window.logger && window.logger.debug ? window.logger.debug : console.log)(
+                            '[LIVE APPLY] incoming partial',
+                            JSON.parse(JSON.stringify(partial))
+                        );
+                    } catch (_) {
+                        /* ignore debug log */
+                    }
+                }
+            } catch (_) {
+                /* ignore debug detection */
             }
             // Merge into current appConfig (shallow for top-level, deep for known groups)
             const next = { ...appConfig };
@@ -1706,24 +1717,42 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (_) {}
             window._lastWallartEnabled = false;
-            if (window.POSTERRAMA_DEBUG) {
-                const msg = '[WALLART] Skip apply: cinemaMode active';
-                try {
-                    logger.debug(msg);
-                } catch (_) {
-                    console.log(msg);
+            try {
+                const debugOn =
+                    (window.logger &&
+                        typeof window.logger.isDebug === 'function' &&
+                        window.logger.isDebug()) ||
+                    window.POSTERRAMA_DEBUG;
+                if (debugOn) {
+                    const msg = '[WALLART] Skip apply: cinemaMode active';
+                    try {
+                        logger.debug(msg);
+                    } catch (_) {
+                        console.log(msg);
+                    }
                 }
+            } catch (_) {
+                /* ignore debug log */
             }
             return;
         }
         const nextWallartEnabled = !!config.wallartMode?.enabled;
-        if (window.POSTERRAMA_DEBUG) {
-            const meta = { enabled: nextWallartEnabled, wallartMode: config.wallartMode };
-            try {
-                logger.debug('[WALLART] applyWallartMode invoked', meta);
-            } catch (_) {
-                console.log('[WALLART] applyWallartMode invoked', meta);
+        try {
+            const debugOn =
+                (window.logger &&
+                    typeof window.logger.isDebug === 'function' &&
+                    window.logger.isDebug()) ||
+                window.POSTERRAMA_DEBUG;
+            if (debugOn) {
+                const meta = { enabled: nextWallartEnabled, wallartMode: config.wallartMode };
+                try {
+                    logger.debug('[WALLART] applyWallartMode invoked', meta);
+                } catch (_) {
+                    console.log('[WALLART] applyWallartMode invoked', meta);
+                }
             }
+        } catch (_) {
+            /* ignore debug log */
         }
         window._lastWallartEnabled = nextWallartEnabled;
         if (nextWallartEnabled) {
