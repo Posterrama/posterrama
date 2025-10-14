@@ -8736,7 +8736,7 @@
                         moreWrap.style.display = 'none';
                     }
                 } catch (_) {
-                    /* noop */
+                    /* device card action collapse failed (layout may overflow; non-fatal) */
                 }
             }
 
@@ -9074,7 +9074,7 @@
                     });
                     input.addEventListener('blur', () => finish(true));
                 } catch (_) {
-                    /* ignore */
+                    /* bulk bar responsive collapse failed (controls still functional) */
                 }
             }
             function updateBulkUI() {
@@ -9155,7 +9155,7 @@
                         };
                     }
                 } catch (_) {
-                    /* ignore */
+                    /* inline rename init failed (rename action skipped) */
                 }
             }
             async function sendCommand(id, type, payload) {
@@ -9280,7 +9280,7 @@
                         }
                     }
                 } catch (_) {
-                    /* non-fatal */
+                    /* pairing namebar build failed (falls back to generic title) */
                 }
                 const fmtExp = ms => {
                     const s = Math.max(0, Math.round(ms / 1000));
@@ -9476,7 +9476,9 @@
                                 }
                             });
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* clear pairing tick timer failed (timer was already null) */
+                    }
                 }
 
                 // Helper to show a short success state and fade out the modal
@@ -10506,7 +10508,9 @@
                                 }
                             });
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* clear pairing poll timer failed (timer likely not set) */
+                    }
                 }
                 const typeEl = document.getElementById('sendcmd-type');
                 const payloadEl = document.getElementById('sendcmd-payload');
@@ -10716,7 +10720,9 @@
                         document
                             .querySelectorAll('#device-grid .device-card')
                             .forEach(collapseCardActions);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* modal merge rect debug failed (diagnostic only) */
+                    }
                 };
                 return debounce(fn, 150);
             })();
@@ -10947,7 +10953,9 @@
                     // Reflect state for a11y
                     try {
                         btn.setAttribute('aria-expanded', String(!!willOpen));
-                    } catch (_) {}
+                    } catch (_) {
+                        /* pairing overlay rect debug/portal move failed (visual fallback) */
+                    }
                 });
             });
             document.addEventListener('click', () => {
