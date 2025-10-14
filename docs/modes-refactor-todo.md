@@ -83,7 +83,7 @@ Last updated: 2025-10-14
 
 8. Debug and diagnostics
 
-- [ ] Replace remaining `POSTERRAMA_DEBUG` checks in modules with `window.logger.isDebug()`; then remove the bridge in `client-logger.js` (grep shows usages in `wallart-display.js`, `script.js`, `screensaver.js`)
+- [ ] Replace remaining `POSTERRAMA_DEBUG` checks in modules with `window.logger.isDebug()`; then remove the bridge in `client-logger.js` (PHASE 1 done for wallart & screensaver; remaining legacy usages in `script.js` only)
 - [ ] Add minimal wallart unit tests: pause/resume halts refresh; `__posterramaPlayback` hooks trigger an immediate refresh
 - [ ] Verify device-mgmt heartbeat payload on wallart includes title/thumb when available
 
