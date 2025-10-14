@@ -90,4 +90,16 @@ describe('PosterramaCore navigation URL building', () => {
         context.window.PosterramaCore.navigateToMode('cinema');
         expect(context.window.location.replaceCalled).toBe('https://example.test/cinema');
     });
+
+    test('deep subpath wallart -> screensaver keeps hierarchy', () => {
+        const core = loadCoreAt('/a/b/c/wallart');
+        const url = core.buildUrlForMode('screensaver');
+        expect(url).toBe('https://example.test/a/b/c/screensaver');
+    });
+
+    test('root path screensaver -> cinema', () => {
+        const core = loadCoreAt('/screensaver');
+        const url = core.buildUrlForMode('cinema');
+        expect(url).toBe('https://example.test/cinema');
+    });
 });
