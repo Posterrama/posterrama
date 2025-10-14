@@ -48,7 +48,9 @@
         try {
             window.__adminTrace = window.__adminTrace || [];
             window.__adminTrace.push('after:sentinel');
-        } catch (_) {}
+        } catch (_) {
+            /* adminTrace push is best-effort (localStorage/memory issues) */
+        }
         // Portal watchdog (deferred): only repairs after user opens panel at least once to avoid auto-open side effect
         try {
             if (!window.__notifPortalWatch) {
@@ -79,7 +81,9 @@
                     }
                 }, 1200);
             }
-        } catch (_) {}
+        } catch (_) {
+            /* portal watchdog setup failed; resilience feature only */
+        }
         // NOTE: portal watchdog is a resilience fallback. Can be removed once root cause of zero-size containment is permanently fixed.
     } catch (diagErr) {
         /* admin diag helper init failed (suppressed) */
@@ -216,7 +220,9 @@
                 if (ctrl) ctrl.setAttribute('aria-expanded', 'false');
                 // Do not force menu.style.display; CSS tied to .ms-open handles visibility
             });
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: __closeAllMsExcept cleanup loop failures (DOM mutation during iteration) */
+        }
     }
     function initMsForSelect(idBase, selectId) {
         const sel = document.getElementById(selectId);
