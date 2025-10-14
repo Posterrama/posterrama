@@ -633,12 +633,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     Math.min(dur, 24 * 60 * 60 * 1000)
                 ); // cap at 24h safety
             }
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: resume timer best-effort after pin duration */
+        }
         try {
             window.PosterramaDevice &&
                 window.PosterramaDevice.beat &&
                 window.PosterramaDevice.beat();
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: device heartbeat optional after pin operation */
+        }
         // Optional: extend pause interval behavior for transition-based cycles
         try {
             if (typeof window.applySettings === 'function') {
@@ -646,7 +650,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     effectPauseTime: Math.max(appConfig.effectPauseTime || 0, 999999),
                 });
             }
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: effectPauseTime preview application is non-critical */
+        }
     }
     async function switchSource(_sourceKey) {
         const raw = (_sourceKey || '').toString().trim();
@@ -658,12 +664,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 '[Live] source.switch applying',
                 src || '(clear to all)'
             );
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: logging fallback for source switch debug */
+        }
         try {
             // Update persisted selection (best-effort)
             if (CLEAR_SET.has(src)) localStorage.removeItem('posterrama.selectedSource');
             else localStorage.setItem('posterrama.selectedSource', src);
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: localStorage persistence not available (private mode / sandbox) */
+        }
         try {
             // Cancel running timers to avoid race during reload
             if (timerId) {
@@ -674,7 +684,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 clearTimeout(controlsTimer);
                 controlsTimer = null;
             }
-        } catch (_) {}
+        } catch (_) {
+            /* ignore: timer clear race during rapid source switches */
+        }
         try {
             // Refetch media (optionally filtered) and restart slideshow near current item
             const cacheBuster = `&_=${Date.now()}`;
