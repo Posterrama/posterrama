@@ -300,12 +300,7 @@
                                 } catch (_) {
                                     /* noop */
                                 }
-                                // Prompt a fast live update after pause toggle
-                                try {
-                                    triggerLiveBeat();
-                                } catch (_) {
-                                    /* noop */
-                                }
+                                // Note: triggerLiveBeat() removed - playback hooks already send it
                                 showControls();
                             };
                         if (pauseBtn)
@@ -373,12 +368,7 @@
                                 } catch (_) {
                                     /* noop */
                                 }
-                                // Prompt a fast live update after pause toggle
-                                try {
-                                    triggerLiveBeat();
-                                } catch (_) {
-                                    /* noop */
-                                }
+                                // Note: triggerLiveBeat() removed - playback hooks already send it
                             }
                         });
                     } catch (_) {
@@ -429,11 +419,7 @@
                                 } catch (_) {
                                     /* noop */
                                 }
-                                try {
-                                    triggerLiveBeat();
-                                } catch (_) {
-                                    /* noop */
-                                }
+                                // Note: triggerLiveBeat() removed - showNextBackground sends it
                                 api.showNextBackground({ forceNext: true });
                             },
                         };
@@ -534,6 +520,26 @@
                     const nextUrl = nextItem?.backgroundUrl || null;
                     if (!nextUrl || nextUrl === 'null' || nextUrl === 'undefined') return;
 
+                    // Expose current media EARLY (before image load) for accurate initial heartbeat
+                    try {
+                        window.__posterramaCurrentMedia = nextItem;
+                        window.__posterramaCurrentMediaId =
+                            nextItem?.id || nextItem?.title || nextItem?.posterUrl || null;
+                        window.__posterramaPaused = !!_state.paused;
+                    } catch (_) {
+                        /* noop */
+                    }
+
+                    // Send early heartbeat so admin sees correct initial media
+                    // (before waiting for image preload)
+                    if (opts.sendEarlyBeat !== false) {
+                        try {
+                            triggerLiveBeat();
+                        } catch (_) {
+                            /* noop */
+                        }
+                    }
+
                     // Choose inactive/active layers from globals if present
                     const active = window.activeLayer || la;
                     const inactive = window.inactiveLayer || lb;
@@ -627,7 +633,7 @@
                             }, 1600);
                             // Update metadata/poster/clearlogo
                             updateInfo(nextItem);
-                            // Expose current media for device-mgmt
+                            // Update globals (already done early, but keep for safety)
                             try {
                                 window.__posterramaCurrentMedia = nextItem;
                                 window.__posterramaCurrentMediaId =
@@ -636,12 +642,7 @@
                             } catch (_) {
                                 /* noop */
                             }
-                            // Prompt a fast live update after media change
-                            try {
-                                triggerLiveBeat();
-                            } catch (_) {
-                                /* noop */
-                            }
+                            // Note: triggerLiveBeat() removed here - now sent early (before image load)
                         } catch (_) {
                             /* noop */
                         }
