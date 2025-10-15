@@ -99,7 +99,7 @@ P2 — Isolation, previews, and tests
 
 - [x] Preview route tests added
 - [x] CSS isolation tests (11 tests covering shared IDs, iframe isolation, mode scoping)
-- [ ] Wallart unit tests: pause/resume halts refresh; `__posterramaPlayback` hooks trigger immediate refresh
+- [x] Wallart unit tests: pause/resume halts refresh; `__posterramaPlayback` hooks trigger immediate refresh (15 tests)
 
 6. Logging and metrics alignment
 
@@ -115,7 +115,10 @@ P3 — Cleanup and docs
 - [x] public/script.js: empty catches annotated (done)
 - [x] public/admin.js: empty catches annotated (done)
 - [x] Previews formatted and linted; server preview stamping formatted and annotated
-- [ ] Audit remaining `POSTERRAMA_DEBUG` gating for potential dead code
+- [x] Audit remaining `POSTERRAMA_DEBUG` gating for potential dead code
+    - Audit complete: only used in screensaver.js and wallart-display.js as fallback when logger.isDebug() unavailable
+    - Also set by client-logger.js based on localStorage('posterrama_debug')
+    - No dead code found; pattern is intentional backwards-compat
 - [ ] Cinema migration off `script.js`
 - [ ] After cinema migration: delete `public/script.js` and references; run `npm run lint:fix`
 
