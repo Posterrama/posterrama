@@ -1983,7 +1983,7 @@
             try {
                 console.debug('[admin2]', ...args);
             } catch (_) {
-                // ignore
+                // ignore (source-status fetch unavailable; leave pills unchanged)
             }
         }
     };
@@ -4058,7 +4058,9 @@
                 const anchor = getActiveModeAnchorPoint(ANCHOR_INSET);
                 setPositionFromTopRightAnchor(anchor);
                 lastAutoAnchor = anchor;
-            } catch (_) {}
+            } catch (_) {
+                /* header toggle text wiring failed (visual label remains static) */
+            }
         }
 
         // Unified re-anchor helper used by resize/transition handlers
@@ -4069,7 +4071,9 @@
                     : getActiveModeAnchorPoint(ANCHOR_INSET);
                 setPositionFromTopRightAnchor(anchor);
                 if (!userHasMovedPreview) lastAutoAnchor = anchor;
-            } catch (_) {}
+            } catch (_) {
+                /* force header toggle text refresh failed (non-critical) */
+            }
         }
 
         // Expose a safe global nudge for re-anchoring after section navigation.
@@ -4195,7 +4199,9 @@
 
                 // Kick off the retry loop on the next frame
                 requestAnimationFrame(tryAnchor);
-            } catch (_) {}
+            } catch (_) {
+                /* aria-hidden attribute set failed (cosmetic only) */
+            }
         };
 
         function collectPreviewPayload() {
@@ -4317,13 +4323,17 @@
                     { type: 'posterrama.preview.update', payload: postPayload },
                     window.location.origin
                 );
-            } catch (_) {}
+            } catch (_) {
+                /* update modal aria-hidden sync failed (visual state still closed) */
+            }
         }
         // Expose a minimal hook for other UI parts to nudge the preview
         window.__forcePreviewUpdate = () => {
             try {
                 sendUpdate();
-            } catch (_) {}
+            } catch (_) {
+                /* aria-hidden attribute sync failed (modal accessibility may be stale) */
+            }
         };
 
         function debouncedSend() {
@@ -4363,7 +4373,9 @@
                     });
                 }
                 window.addEventListener('resize', onResizeOrShell);
-            } catch (_) {}
+            } catch (_) {
+                /* aria-hidden attribute sync failed (modal accessibility may be stale) */
+            }
         });
 
         // If the iframe already loaded before this wiring, use current contentWindow and try an initial send
@@ -4435,7 +4447,9 @@
                     setPositionFromTopRightAnchor(anchor);
                     requestAnimationFrame(() => setPositionFromTopRightAnchor(anchor));
                 });
-            } catch (_) {}
+            } catch (_) {
+                /* aria-hidden attribute sync failed (modal accessibility may be stale) */
+            }
         });
 
         // Orientation toggle for non-cinema modes: landscape <-> portrait
@@ -4478,7 +4492,9 @@
                 try {
                     const payload = collectPreviewPayload();
                     applyContainerMode(payload);
-                } catch (_) {}
+                } catch (_) {
+                    /* populate existing locations failed (datalist will simply be empty) */
+                }
                 requestAnimationFrame(() => {
                     updateFrameScale();
                     // Maintain the anchor across mode switches
@@ -4589,7 +4605,9 @@
                     startLeft = rect.left;
                     computeBounds();
                     e.preventDefault();
-                } catch (_) {}
+                } catch (_) {
+                    /* overlay rect debug logging failed (diagnostic only) */
+                }
             }
 
             function onPointerMove(e) {
@@ -4620,11 +4638,15 @@
                         container.style.left = Math.round(rect.left) + 'px';
                         container.style.top = Math.round(rect.top) + 'px';
                         lastUserAnchor = getTopRightAnchorPoint();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* hovercard status live-refresh failed (will retry next cycle) */
+                    }
                 }
                 try {
                     grip.releasePointerCapture?.(e.pointerId);
-                } catch (_) {}
+                } catch (_) {
+                    /* live reconcile diff check failed (non-fatal; will retry next cycle) */
+                }
             }
 
             // Prefer Pointer Events; fall back to mouse/touch if not supported
@@ -5043,7 +5065,9 @@
             setTimeout(() => {
                 try {
                     okBtn?.focus();
-                } catch (_) {}
+                } catch (_) {
+                    /* overview counts retry scheduling failed (will update on manual action) */
+                }
             }, 0);
             overlay.classList.add('open');
         });
@@ -5078,7 +5102,9 @@
                     try {
                         const existing = window.__adminSSE;
                         if (existing && existing.readyState !== 2 /* CLOSED */) return;
-                    } catch (_) {}
+                    } catch (_) {
+                        /* hovercard media live-refresh failed (will retry next cycle) */
+                    }
 
                     try {
                         const src = new EventSource('/api/admin/events');
@@ -5121,7 +5147,9 @@
                                         }, 3000);
                                     }
                                 }
-                            } catch (_) {}
+                            } catch (_) {
+                                /* applying active devices metric shortcut failed (non-fatal) */
+                            }
                         };
                     } catch (_) {
                         // If creation fails (e.g., endpoint down), retry with backoff
@@ -5157,7 +5185,9 @@
                                         );
                                     } catch (_) {}
                                 }
-                            } catch (_) {}
+                            } catch (_) {
+                                /* scheduled overview counts retry failed (will self-correct later) */
+                            }
                         };
                         // Store on the instance so we can remove on reconnect
                         s.__onDeviceNudge = onNudge;
@@ -5203,7 +5233,9 @@
                             attachDeviceListeners();
                         }
                     }, 1500);
-                } catch (_) {}
+                } catch (_) {
+                    /* plex recentOnly days toggle wiring failed (user can still edit days manually) */
+                }
             } catch (_) {
                 // Ignore if EventSource not available or endpoint not reachable; polling remains
             }
@@ -5291,7 +5323,9 @@
                 // Ensure the user menu is closed when opening settings
                 try {
                     typeof closeUserMenu === 'function' && closeUserMenu();
-                } catch (_) {}
+                } catch (_) {
+                    /* jellyfin recentOnly days toggle wiring failed (user can still edit days manually) */
+                }
                 // Also ensure notifications panel is closed when opening settings
                 try {
                     if (window.__closeNotifyCenter) window.__closeNotifyCenter();
@@ -5301,7 +5335,9 @@
                         panel?.classList.remove('open');
                         btn?.setAttribute('aria-expanded', 'false');
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* filter diff comparison failed (will re-evaluate next reconcile) */
+                }
                 // Show (hidden) and dynamically position using fixed coordinates (escape parent stacking context)
                 settingsMenu.style.display = 'block';
                 settingsMenu.style.position = 'fixed';
@@ -5416,7 +5452,9 @@
                         badge.style.display = 'none';
                         badge.setAttribute('aria-hidden', 'true');
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* filter re-evaluation compare failed (benign; will re-render next tick) */
+                }
             }
             function loadDismissed() {
                 try {
@@ -5439,14 +5477,18 @@
                             }
                         });
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* filter re-evaluation failed (non-fatal; will recompute on next tick) */
+                }
             }
             function persistDismissed() {
                 try {
                     const now = Date.now();
                     const arr = Array.from(dismissed).map(key => ({ key, t: now }));
                     localStorage.setItem(DISMISS_STORE, JSON.stringify(arr));
-                } catch (_) {}
+                } catch (_) {
+                    /* devices filter change diff check failed (re-render skipped) */
+                }
             }
             // Load persisted dismissed notifications on init
             loadDismissed();
@@ -5468,7 +5510,9 @@
                     const t = l?.timestamp;
                     ms = typeof t === 'number' ? t : Date.parse(String(t));
                     if (!Number.isFinite(ms)) ms = 0;
-                } catch (_) {}
+                } catch (_) {
+                    /* devices filter change diff check failed (re-render skipped) */
+                }
                 const bucket = Math.floor(ms / 60000); // minute-level bucket
                 return `L|${String(l?.level || 'warn')}|${normalize(l?.message || '')}|${bucket}`;
             };
@@ -5493,7 +5537,9 @@
                 try {
                     const v = Number(localStorage.getItem(NOTIF_MAX_ITEMS_KEY));
                     if (Number.isFinite(v) && v > 0 && v <= 100) return Math.floor(v);
-                } catch (_) {}
+                } catch (_) {
+                    /* plex days checkbox toggle wire failed (user can toggle manually) */
+                }
                 return 100; // default increased
             }
 
@@ -5507,7 +5553,9 @@
                             return __notifCache.data;
                         }
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* jellyfin days checkbox toggle wire failed (user can toggle manually) */
+                }
 
                 // Build a single-flight promise for both alerts and logs
                 __notifInflight = (async () => {
@@ -5562,7 +5610,9 @@
                                     ? jr.items
                                     : [];
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* bulk delete modal portal fallback failed (overlay still usable) */
+                    }
                     return { alerts, logs };
                 })();
 
@@ -5710,7 +5760,9 @@
                                     '<div class="notify-item notify-empty"><div class="notify-title" style="grid-column:1 / -1; text-align:center; opacity:.85;">No notifications</div></div>';
                             return;
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* active devices metric shortcut navigation failed (benign) */
+                    }
                     let { alerts, logs } = await fetchAlertsAndLogs({ force });
                     // Apply session dismissals so cleared items don't bounce back immediately
                     ({ alerts, logs } = applyDismissedFilter(alerts, logs));
@@ -5724,11 +5776,15 @@
                     setBadge(count);
                     try {
                         window.__notifRendering = true;
-                    } catch (_) {}
+                    } catch (_) {
+                        /* bulk action overlay portalization failed (size fallback applied) */
+                    }
                     renderPanel({ alerts, logs });
                     try {
                         window.__notifRendering = false;
-                    } catch (_) {}
+                    } catch (_) {
+                        /* previous enabled state detection failed (restart decision may be skipped) */
+                    }
                 } catch (_) {
                     setBadge(0);
                     const { list } = getRefs();
@@ -5752,13 +5808,17 @@
                         document.body.appendChild(panel);
                         panel.setAttribute('data-portal', 'true');
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* group assign modal debug rect failed (non-fatal) */
+                }
                 panel?.classList.add('open');
                 if (panel) panel.setAttribute('aria-hidden', 'false');
                 btn?.setAttribute('aria-expanded', 'true');
                 try {
                     window.__notifUserOpenedOnce = true;
-                } catch (_) {}
+                } catch (_) {
+                    /* group assign modal debug rect failed (non-fatal) */
+                }
                 if (panel) {
                     // Reusable visibility enforcement for panel or modal elements
                     // (Will be extracted for modals too.)
@@ -5778,12 +5838,10 @@
                                         try {
                                             document.body.appendChild(el);
                                             el.setAttribute('data-portal', 'true');
-                                        } catch (e) {}
+                                        } catch (_) {
+                                            /* integrity post-check failed (selections remain as-is) */
+                                        }
                                     }
-                                    el.style.minWidth = el.style.minWidth || '320px';
-                                    if (!el.style.width) el.style.width = '360px';
-                                    el.style.minHeight = el.style.minHeight || '140px';
-                                    el.style.padding = el.style.padding || '8px 0 4px';
                                     el.style.overflow = el.style.overflow || 'auto';
                                     el.style.visibility = 'visible';
                                     el.style.opacity = '1';
@@ -5820,7 +5878,9 @@
                                 /* manual width bucket sizing failed (non-blocking) */
                             }
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preset apply API failed for device (continue others) */
+                    }
                 }
             }
             function closePanel() {
@@ -5841,7 +5901,9 @@
             try {
                 window.__closeNotifyCenter = closePanel;
                 window.__openNotifyCenter = openPanel;
-            } catch (_) {}
+            } catch (_) {
+                /* expose reconcileDevicesNow hook failed (SSE still triggers periodic reconcile) */
+            }
 
             // Initialize min-level selector (hidden) + compact icon filter bindings
             (function initMinLevelControl() {
@@ -5888,7 +5950,9 @@
                             /* orphan enhanced flag cleanup failed (minor) */
                         }
                     });
-                } catch (_) {}
+                } catch (_) {
+                    /* bulk pair debug log failed (non-critical) */
+                }
             })();
 
             // Guard to avoid duplicate bindings if init runs again
@@ -5907,7 +5971,9 @@
                         },
                         true
                     );
-                } catch (_) {}
+                } catch (_) {
+                    /* bulk override debug log failed (non-critical) */
+                }
                 // Delegated toggle open on bell
                 document.addEventListener('click', async e => {
                     const notifBtn = e.target.closest?.('#notif-btn');
@@ -5928,7 +5994,9 @@
                             }
                             try {
                                 typeof closeUserMenu === 'function' && closeUserMenu();
-                            } catch (_) {}
+                            } catch (_) {
+                                /* applying offline devices metric shortcut failed (non-fatal) */
+                            }
                             // Force bypass TTL when the user explicitly opens the panel
                             // Resilient open: ensure panel opens even if refreshBadge fails
                             console.debug('NOTIFY_OPEN_ATTEMPT');
@@ -6034,7 +6102,9 @@
                 window.addEventListener('pageshow', () => {
                     try {
                         refreshBadge();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* offline devices metric shortcut navigation failed (benign) */
+                    }
                 });
 
                 // Observe DOM mutations to handle soft DOM swaps (e.g., partial renders)
@@ -6105,7 +6175,9 @@
                             CLEAR_SUPPRESS_KEY,
                             String(Date.now() + CLEAR_SUPPRESS_MS)
                         );
-                    } catch (_) {}
+                    } catch (_) {
+                        /* media sources overview metric shortcut failed (non-fatal) */
+                    }
                     // Re-sync from source after a short delay to respect suppression
                     setTimeout(() => {
                         try {
@@ -6124,7 +6196,9 @@
                     if (document.visibilityState !== 'visible') return;
                     if (typeof window.refreshAdminBadge === 'function') window.refreshAdminBadge();
                     else refreshBadge();
-                } catch (_) {}
+                } catch (_) {
+                    /* bulk sendcmd debug log failed (non-critical) */
+                }
             }, 500);
             setInterval(badgeTick, 15000);
 
@@ -6138,7 +6212,9 @@
                             window.refreshAdminBadge();
                         else refreshBadge();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* plex days checkbox toggle wire failed (user can toggle manually) */
+                }
             }, 5000);
 
             // Initial paint so users see counts without clicking
@@ -6151,12 +6227,16 @@
                 window.addEventListener('online', () => {
                     try {
                         refreshBadge(true);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preset clear API failed for device (continue others) */
+                    }
                 });
                 window.addEventListener('focus', () => {
                     try {
                         refreshBadge();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* bulk delete overlay rect/portal guard failed (fallback sizing applies) */
+                    }
                 });
             } catch (_) {}
         })();
@@ -6185,7 +6265,9 @@
                 // Ensure the settings menu is closed when opening user menu
                 try {
                     typeof closeMenu === 'function' && closeMenu();
-                } catch (_) {}
+                } catch (_) {
+                    /* jellyfin days checkbox toggle wire failed (user can toggle manually) */
+                }
                 // Also ensure notifications panel is closed when opening user menu
                 try {
                     if (window.__closeNotifyCenter) window.__closeNotifyCenter();
@@ -6195,7 +6277,9 @@
                         panel?.classList.remove('open');
                         btn?.setAttribute('aria-expanded', 'false');
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* group assign modal debug rect failed (non-fatal) */
+                }
                 // Use fixed positioning like settings to escape stacking contexts
                 userMenu.style.display = 'block';
                 userMenu.style.position = 'fixed';
@@ -7357,7 +7441,9 @@
             // Immediately close the settings menu and trigger restart on single click
             try {
                 closeMenu();
-            } catch (_) {}
+            } catch (_) {
+                /* menu already closed or DOM structure changed (non-critical) */
+            }
             const el = e.currentTarget;
             el.classList.add('disabled');
             window.triggerRestartAndPoll({
@@ -7387,13 +7473,19 @@
                     showSection('section-devices');
                     try {
                         document.getElementById('seg-devices')?.click();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* activating default device tab failed (cosmetic) */
+                    }
                     try {
                         window.admin2?.initDevices?.();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* device init already ran or not yet loaded */
+                    }
                     try {
                         if (location.hash !== '#devices') location.hash = '#devices';
-                    } catch (_) {}
+                    } catch (_) {
+                        /* unable to update hash (history permissions / Safari quirk) */
+                    }
                 } else if (nav === 'operations') {
                     showSection('section-operations');
                     // ensure latest status/backups when entering
@@ -7406,10 +7498,14 @@
                     showSection('section-media-sources');
                     try {
                         if (location.hash !== '#plex') location.hash = '#plex';
-                    } catch (_) {}
+                    } catch (_) {
+                        /* hash sync for media sources failed (non-blocking) */
+                    }
                     try {
                         window.admin2?.maybeFetchPlexOnOpen?.();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* initial plex auto-fetch suppressed (can load manually) */
+                    }
                 }
             });
         });
@@ -7451,7 +7547,9 @@
                     rebuildMsForSelect('jf-ms-movies', 'jf.movies');
                     rebuildMsForSelect('jf-ms-shows', 'jf.shows');
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* multiselect rebuild failed (UI will fallback to raw selects) */
+            }
             // Keep the main page header static for Media Sources; individual panels have their own titles
             const el = document.getElementById(panelId);
             if (el) {
@@ -7543,7 +7641,9 @@
                     nums.forEach(el => window.admin2?.enhanceNumberInput?.(el));
                     // Wire steppers for statically pre-wrapped number inputs in this panel
                     window.admin2?.wireNumberWrappers?.(active);
-                } catch (_) {}
+                } catch (_) {
+                    /* number input enhancement failed (controls still usable) */
+                }
             }, 60);
         }
 
@@ -7688,7 +7788,9 @@
                             // Defer to the next frame to ensure DOM is in place
                             requestAnimationFrame(() => forceUpdateHeaderToggleText(inputId));
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preset apply API failed for device (continue others) */
+                    }
                 };
 
                 // Click handling
@@ -7752,7 +7854,9 @@
                 });
                 // Initial sync if already on sources
                 if (!section.hidden) syncFromHash();
-            } catch (_) {}
+            } catch (_) {
+                /* sources tabs init failed (section falls back to static panels) */
+            }
         })();
 
         // ----- Device Management segmented tabs (mirror Display/Sources) -----
@@ -7846,10 +7950,14 @@
                     showSection('section-devices');
                     try {
                         document.getElementById('seg-devices')?.click();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preset clear API failed for device (continue others) */
+                    }
                     try {
                         window.admin2?.initDevices?.();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* previous enabled state detection failed (restart decision may be skipped) */
+                    }
                     return;
                 }
                 const sub = e.target.closest('.nav-subitem');
@@ -7983,7 +8091,9 @@
                     try {
                         document.getElementById('seg-devices')?.click();
                         window.admin2?.initDevices?.();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* device tab activation on hash route failed (benign) */
+                    }
                     // showSection already calls ensureNavActive
                     return;
                 }
@@ -7991,7 +8101,9 @@
                     showSection('section-devices');
                     try {
                         document.getElementById('seg-dev-settings')?.click();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* settings tab activation on hash route failed (benign) */
+                    }
                     return;
                 }
                 if (h === '#jellyfin') {
@@ -8017,7 +8129,9 @@
                     showSection('section-media-sources');
                     try {
                         if (location.hash !== '#plex') location.hash = '#plex';
-                    } catch (_) {}
+                    } catch (_) {
+                        /* unable to redirect overview hash to #plex (non-critical) */
+                    }
                     return;
                 }
                 // Default: keep current section or overview
@@ -8027,7 +8141,9 @@
         window.addEventListener('hashchange', () => {
             try {
                 sessionStorage.setItem('admin:lastRoute', location.hash || '');
-            } catch (_) {}
+            } catch (_) {
+                /* sessionStorage lastRoute persistence failed (non-critical) */
+            }
         });
         // Initial route on load
         try {
@@ -8348,7 +8464,9 @@
                     reload: () => loadDevices(),
                     render: () => renderPage(),
                 };
-            } catch (_) {}
+            } catch (_) {
+                /* plex host/port population failed (inputs may be empty) */
+            }
 
             const slugify = s =>
                 String(s || '')
@@ -8529,7 +8647,7 @@
                         if (key) (uaScMap[key] = uaScMap[key] || []).push(d);
                     });
                 } catch (_) {
-                    /* global mutation observer setup failed (hashchange + retries still run) */
+                    /* mutation observer setup failed (hashchange + retries still run) */
                 }
                 state.dupMaps = { hwMap, iidMap, uaScMap };
             }
@@ -8891,14 +9009,18 @@
                 cb?.addEventListener('change', e => {
                     try {
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preset apply API failed for device (continue others) */
+                    }
                     try {
                         if (window.__uiDebug)
                             console.info('[DevUI] selection change', {
                                 id: card.getAttribute('data-id'),
                                 checked: cb.checked,
                             });
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preset clear API failed for device (continue others) */
+                    }
                     card.classList.toggle('selected', cb.checked);
                     updateBulkUI();
                 });
@@ -8906,7 +9028,9 @@
                     try {
                         e.preventDefault();
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* previous enabled state detection failed (restart decision may be skipped) */
+                    }
                     const id = card.getAttribute('data-id');
                     await sendCommand(id, 'power.toggle');
                 });
@@ -8914,13 +9038,17 @@
                     try {
                         e.preventDefault();
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* previous enabled state detection failed (restart decision may be skipped) */
+                    }
                     const id = card.getAttribute('data-id');
                     // Suppress SW update toasts briefly around action
                     try {
                         window.__suppressSwUpdateToasts = true;
                         setTimeout(() => (window.__suppressSwUpdateToasts = false), 8000);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* previous enabled state detection failed (restart decision may be skipped) */
+                    }
                     // one-time spin animation on the icon
                     try {
                         const icon = card.querySelector('.btn-reload i');
@@ -9558,7 +9686,9 @@
                             ta.select();
                             try {
                                 document.execCommand?.('copy');
-                            } catch (_) {}
+                            } catch (_) {
+                                /* display section lazy init failed (user can still navigate manually) */
+                            }
                             window.getSelection()?.removeAllRanges?.();
                             document.body.removeChild(ta);
                         }
@@ -10984,7 +11114,9 @@
                             .map(r => `<option value="${escapeHtml(r)}"></option>`)
                             .join('');
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* location datalist build failed (non-fatal; user may type any value) */
+                }
                 __showOverlay(overlay, 'modal-assign-location');
                 try {
                     if (window.__uiDebug)
@@ -10992,7 +11124,9 @@
                             '[ModalDebug] assign-location rect',
                             overlay.getBoundingClientRect().toJSON()
                         );
-                } catch (_) {}
+                } catch (_) {
+                    /* assign-location modal debug rect read failed (overlay still opens) */
+                }
                 setTimeout(() => locationInput?.focus(), 50);
             }
             btnLocationApply?.addEventListener('click', async () => {
@@ -11316,7 +11450,9 @@
                                     }
                                 }
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* hovercard build (status/media) failed (skip update, continue) */
+                        }
                         // If dupes hovercard, rebuild content from trigger datasets
                         try {
                             if (card && card.id === 'hc-dupes') {
@@ -11348,20 +11484,26 @@
                                     });
                                 });
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* hovercard build (dupes) failed (leave previous content) */
+                        }
                         positionHover(card, tr);
                         card.classList.add('open');
                         // Track the current trigger so we can live-refresh while open
                         try {
                             card._trigger = tr;
-                        } catch (_) {}
+                        } catch (_) {
+                            /* record of hover trigger failed (live refresh disabled) */
+                        }
                     };
                     const hide = () => {
                         clearHide();
                         card.classList.remove('open');
                         try {
                             card._trigger = null;
-                        } catch (_) {}
+                        } catch (_) {
+                            /* clearing hover trigger reference failed (benign) */
+                        }
                     };
                     tr.addEventListener('mouseenter', show);
                     tr.addEventListener('focus', show);
@@ -11870,7 +12012,9 @@
                     // Keep in-memory state fresh for hovercards and filters
                     try {
                         state.all = list;
-                    } catch (_) {}
+                    } catch (_) {
+                        /* display metric shortcut navigation failed (benign) */
+                    }
                     const byId = new Map(
                         list.map(d => [String(d.id || d.deviceId || d._id || d.name || ''), d])
                     );
@@ -11913,7 +12057,9 @@
                             // Keep data-status attribute in sync for styling/hooks
                             try {
                                 card.setAttribute('data-status', status);
-                            } catch (_) {}
+                            } catch (_) {
+                                /* status data-status attribute sync failed (cosmetic only) */
+                            }
                             // Update only the status pill (js-status-hover) and replace its inner content to avoid duplicates
                             const statusPill = card.querySelector(
                                 '.device-badges .js-status-hover'
@@ -12000,7 +12146,9 @@
                                     const el = card.querySelector(s);
                                     if (el) el.disabled = disabled;
                                 });
-                            } catch (_) {}
+                            } catch (_) {
+                                /* disable secondary controls while offline/powered-off failed (non-fatal) */
+                            }
                             // No separate powered-off pill anymore
                         } catch (_) {
                             /* direct wrapper nested removal failed (harmless) */
@@ -12020,7 +12168,9 @@
                                 card.classList.remove('has-nowplay');
                                 try {
                                     np.remove();
-                                } catch (_) {}
+                                } catch (_) {
+                                    /* now-playing thumb remove during offline transition failed (safe) */
+                                }
                             } else if (np) {
                                 const img = np.querySelector('img');
                                 if (img && src) {
@@ -12059,7 +12209,9 @@
                                                 try {
                                                     img.setAttribute('src', src);
                                                     img.setAttribute('alt', nextAlt);
-                                                } catch (_) {}
+                                                } catch (_) {
+                                                    /* direct src/alt swap fallback failed (image may remain old) */
+                                                }
                                                 img.__fading = false;
                                             }
                                         };
@@ -12069,7 +12221,9 @@
                                             card.classList.remove('has-nowplay');
                                             try {
                                                 np.remove();
-                                            } catch (_) {}
+                                            } catch (_) {
+                                                /* remove broken now-playing thumbnail failed (layout OK) */
+                                            }
                                         };
                                         // Start preloading to test if image is valid
                                         pre.src = src;
@@ -12094,7 +12248,9 @@
                                 if (!src) {
                                     try {
                                         np.remove();
-                                    } catch (_) {}
+                                    } catch (_) {
+                                        /* stale now-playing thumbnail node removal failed (benign) */
+                                    }
                                 }
                             } else if (src && status !== 'offline') {
                                 // Thumbnail became available; test if it loads before injecting
@@ -12249,7 +12405,9 @@
                                 positionHover(hcMedia, tr);
                             }
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* hovercard live refresh failed (will retry next cycle) */
+                    }
                     const t1 = performance.now?.() || Date.now();
                     ddbg('reconcileDeviceToolbarStatesOnce duration', Math.round(t1 - t0) + 'ms');
                 } catch (_) {
@@ -12268,7 +12426,9 @@
                         renderPage();
                         return;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* devices filter change diff check failed (re-render skipped) */
+                }
             }
             function startDevicesLiveReconcile() {
                 stopDevicesLiveReconcile();
@@ -12288,7 +12448,9 @@
             try {
                 window.admin2 = window.admin2 || {};
                 window.admin2.reconcileDevicesNow = list => reconcileDeviceToolbarStatesOnce(list);
-            } catch (_) {}
+            } catch (_) {
+                /* expose reconcileDevicesNow hook failed (optional SSE push hook) */
+            }
             // Start live reconcile now and on tab visibility changes
             startDevicesLiveReconcile();
             document.addEventListener('visibilitychange', () => {
@@ -12333,7 +12495,9 @@
                 ).map(c => c.getAttribute('data-id'));
                 try {
                     if (window.__uiDebug) console.info('[BulkAction] pair', ids);
-                } catch (_) {}
+                } catch (_) {
+                    /* debug log best-effort (console unavailable) */
+                }
                 await openPairingFor(ids);
             });
             (function () {
@@ -12346,7 +12510,9 @@
                 ).map(c => c.getAttribute('data-id'));
                 try {
                     if (window.__uiDebug) console.info('[BulkAction] override', ids);
-                } catch (_) {}
+                } catch (_) {
+                    /* debug log best-effort (console unavailable) */
+                }
                 await openOverrideFor(ids);
             });
             document.getElementById('bulk-sendcmd')?.addEventListener('click', async () => {
@@ -12355,7 +12521,9 @@
                 ).map(c => c.getAttribute('data-id'));
                 try {
                     if (window.__uiDebug) console.info('[BulkAction] sendcmd', ids);
-                } catch (_) {}
+                } catch (_) {
+                    /* debug log best-effort (console unavailable) */
+                }
                 await openSendCmdFor(ids);
             });
             document.getElementById('bulk-clearoverrides')?.addEventListener('click', async () => {
@@ -12511,7 +12679,9 @@
                                 }
                             });
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* bulk action overlay portalization guard failed (fallback applies) */
+                    }
                 }
             });
             document.getElementById('bulk-poweroff')?.addEventListener('click', async () => {
@@ -12627,7 +12797,9 @@
                             '[ModalDebug] group-assign rect',
                             overlay.getBoundingClientRect().toJSON()
                         );
-                } catch (_) {}
+                } catch (_) {
+                    /* plex days checkbox toggle wire failed (user can toggle manually) */
+                }
             }
             async function patchDeviceGroups(deviceId, mutate) {
                 try {
@@ -12714,7 +12886,9 @@
                             '[ModalDebug] assign-preset rect',
                             overlay.getBoundingClientRect().toJSON()
                         );
-                } catch (_) {}
+                } catch (_) {
+                    /* jellyfin days checkbox toggle wire failed (user can toggle manually) */
+                }
             }
             btnPresetApply?.addEventListener('click', async () => {
                 const preset = presetSelect?.value || '';
@@ -12739,7 +12913,9 @@
                             body: JSON.stringify({ preset }),
                         });
                         ok++;
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preset apply API failed for device (continue others) */
+                    }
                 }
                 window.notify?.toast({
                     type: 'success',
@@ -12770,7 +12946,9 @@
                             body: JSON.stringify({ preset: null }),
                         });
                         ok++;
-                    } catch (_) {}
+                    } catch (_) {
+                        /* preset clear API failed for device (continue others) */
+                    }
                 }
                 window.notify?.toast({
                     type: 'success',
@@ -13567,7 +13745,9 @@
     // Fallback: ensure Devices section gets initialized even if user lands directly
     try {
         window.admin2?.initDevices?.();
-    } catch (_) {}
+    } catch (_) {
+        /* initial devices init on load failed (user can trigger manually) */
+    }
     // If dashboard is the active tab on load, start live updates
     try {
         const dashEl = document.getElementById('section-dashboard');
@@ -13636,9 +13816,13 @@
                                     state.query = '';
                                 }
                                 window.admin2?.devicesDebug?.render?.();
-                            } catch (_) {}
+                            } catch (_) {
+                                /* active devices metric filter apply failed (non-critical) */
+                            }
                         }, 0);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* active devices metric navigation failed (user can navigate manually) */
+                    }
                 },
                 'View active devices'
             );
@@ -13658,9 +13842,13 @@
                                     state.query = '';
                                 }
                                 window.admin2?.devicesDebug?.render?.();
-                            } catch (_) {}
+                            } catch (_) {
+                                /* offline devices metric filter apply failed (non-critical) */
+                            }
                         }, 0);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* offline devices metric navigation failed (user can navigate manually) */
+                    }
                 },
                 'View offline devices'
             );
@@ -13676,7 +13864,9 @@
                                 .querySelectorAll('section.panel')
                                 .forEach(p => (p.hidden = p.id !== 'panel-sources-overview'));
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* media sources overview navigation failed (fallback: no section switch) */
+                    }
                 },
                 'View media sources overview'
             );
@@ -13691,9 +13881,13 @@
                             // Lazy init if available
                             try {
                                 window.admin2?.initDisplaySection?.();
-                            } catch (_) {}
+                            } catch (_) {
+                                /* display section lazy init failed (user may open manually) */
+                            }
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* display settings metric navigation failed (ignored) */
+                    }
                 },
                 'Open Display settings'
             );
@@ -13804,7 +13998,9 @@
             overlay?.classList.remove('open');
             try {
                 overlay?.setAttribute('aria-hidden', 'true');
-            } catch (_) {}
+            } catch (_) {
+                /* aria-hidden attribute sync failed (modal accessibility may be stale) */
+            }
             window.notify?.toast({
                 type: 'info',
                 title: 'Updating…',
@@ -13834,7 +14030,9 @@
         } catch (e) {
             try {
                 console.warn('wireEvents() init failed', e);
-            } catch (_) {}
+            } catch (_) {
+                /* console unavailable to warn about wireEvents failure */
+            }
         }
         // Always wire dashboard metric shortcuts
         try {
@@ -13888,7 +14086,9 @@
                     // Also reflect changes coming from form checkbox
                     jfInsecureHeader.addEventListener('change', updateLabelState);
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* jf insecure header toggle enhancement failed (basic checkbox still works) */
+            }
         }
         const portInput = document.getElementById('SERVER_PORT');
         // Sync Recently header toggles with hidden form checkboxes (Plex/Jellyfin)
@@ -13925,7 +14125,9 @@
                 input.addEventListener('change', apply);
                 apply();
                 input.dataset.htTextWired = '1';
-            } catch (_) {}
+            } catch (_) {
+                /* header toggle text attach failed (label remains static) */
+            }
         }
 
         // Force update helper: update label text once without wiring
@@ -13940,7 +14142,9 @@
                 const checked = !!input.checked;
                 textEl.textContent = checked ? onText : offText;
                 label.classList.toggle('is-on', checked);
-            } catch (_) {}
+            } catch (_) {
+                /* header toggle one-shot text update failed (cosmetic) */
+            }
         };
 
         // Wire Enabled/Disabled text for Media Sources header toggles (and Streaming)
@@ -13971,7 +14175,7 @@
                 if (typeof inflight?.delete === 'function')
                     inflight.delete('/api/admin/config|GET');
             } catch (_) {
-                /* no-op */
+                /* media source live preview wiring failed (counts will update on manual refresh) */
             }
             return j;
         }
@@ -14067,7 +14271,7 @@
                     pill.classList.add(`status-${cls}`);
                 }
             } catch (_) {
-                /* no-op */
+                /* setCardStatus UI update failed (non-fatal cosmetic) */
             }
         }
 
@@ -14092,7 +14296,9 @@
                         if (sourceKey === 'tmdb') {
                             return !!(currentCfg.tmdbSource && currentCfg.tmdbSource.enabled);
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* previous enabled state detection failed (restart decision may be skipped) */
+                    }
                     return undefined;
                 })();
 
@@ -14136,7 +14342,7 @@
                         }
                     }
                 } catch (_) {
-                    /* width bucket sizing classification failed (defaults apply) */
+                    /* source mirror toggle sync failed (form state may be out of date) */
                 }
                 // Restart app when toggled on/off (only if state changed where detectable)
                 try {
@@ -14153,7 +14359,9 @@
                             credentials: 'include',
                         }).catch(() => {});
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* mirror toggle state sync failed (overview) */
+                }
                 return true;
             } catch (e) {
                 window.notify?.toast({
@@ -14243,7 +14451,9 @@
                         if (mirror) mirror.checked = el.checked;
                         loadMediaSources(true).catch(() => {});
                     });
-                } catch (_) {}
+                } catch (_) {
+                    /* mirror toggle state sync failed (overview) */
+                }
 
                 // JELLYFIN card + libs
                 try {
@@ -14276,7 +14486,9 @@
                         if (mirror) mirror.checked = el.checked;
                         loadMediaSources(true).catch(() => {});
                     });
-                } catch (_) {}
+                } catch (_) {
+                    /* mirror toggle state sync failed (overview) */
+                }
 
                 // TMDB card + category
                 try {
@@ -14300,9 +14512,11 @@
                         if (mirror) mirror.checked = el.checked;
                         loadMediaSources(true).catch(() => {});
                     });
-                } catch (_) {}
+                } catch (_) {
+                    /* tmdb overview toggle wiring failed (fallback to form toggle) */
+                }
             } catch (_) {
-                /* non-fatal */
+                /* overview card compute or UI update failed (non-fatal) */
             }
         }
 
@@ -14494,7 +14708,9 @@
                         setTimeout(() => {
                             try {
                                 refreshOverviewCounts();
-                            } catch (_) {}
+                            } catch (_) {
+                                /* overview counts retry scheduling failed (will update on manual action) */
+                            }
                         }, retryIn);
                     } else if (res.ok) {
                         items = (await res.json().catch(() => [])) || [];
@@ -14714,7 +14930,7 @@
                         if (Number.isFinite(c.jellyfin)) filteredJf = c.jellyfin;
                     }
                 } catch (_) {
-                    // ignore and fall back to cached playlist derived counts
+                    /* filter-preview fetch failed (falling back to cached playlist counts) */
                 }
 
                 // Always compute true totals (sum of selected library counts)
@@ -14726,7 +14942,9 @@
                     const sum = arr =>
                         (arr || []).reduce((acc, name) => acc + (map.get(name)?.itemCount || 0), 0);
                     totalPlex = sum(movies) + sum(shows);
-                } catch (_) {}
+                } catch (_) {
+                    /* filter-preview fetch failed (falling back to cached playlist counts) */
+                }
                 try {
                     // We prefer the richer global map built during the last explicit Jellyfin library fetch
                     let map = null;
@@ -14771,7 +14989,9 @@
                                 totalJf = prevTotal; // retain previous total until a non-zero recompute occurs
                             }
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* previous total pill parse failed (ok to skip) */
+                    }
                     // debug removed: Jellyfin counts compute
                 } catch (e) {
                     if (__debugOn) {
@@ -14817,7 +15037,9 @@
                         else if (typeof tv === 'string' && /^\d+$/.test(tv))
                             tmdbTotal = parseInt(tv, 10);
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* fetchLibraryCounts(plex) failed (totalPlex stays null) */
+                }
                 // Display counts: for TMDB we don't have UI filters, so show a single total number.
                 const displayTmdb = Number.isFinite(tmdbTotal) ? tmdbTotal : filteredTmdb;
 
@@ -14915,7 +15137,9 @@
                         });
                         pcb.dataset.daysToggleWired = 'true';
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* plex days checkbox toggle wire failed (user can toggle manually) */
+                }
                 // Jellyfin filters
                 safeOn('jf.yearFilter', 'input');
                 safeOn('jf.ratingFilter-hidden');
@@ -14933,7 +15157,9 @@
                         });
                         jcb.dataset.daysToggleWired = 'true';
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* jellyfin days checkbox toggle wire failed (user can toggle manually) */
+                }
 
                 // Keep overview "Libraries: Movies X, Shows Y" in sync with current selections
                 const updateLibsMeta = () => {
@@ -14960,7 +15186,9 @@
                             if (v) v.textContent = `${mv + sv}`;
                             jfLibsEl.title = `Libraries selected: Movies ${mv}, Shows ${sv}`;
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* previous total pill parse failed (ok to skip) */
+                    }
                 };
                 const onLibChange = selId => {
                     const sel = document.getElementById(selId);
@@ -14971,11 +15199,11 @@
                             if (selId.startsWith('plex.'))
                                 window.__plexUserModifiedSelection = true;
                             if (selId.startsWith('jf.')) window.__jfUserModifiedSelection = true;
-                        } catch (_) {
-                            /* button click stopPropagation failed (minor; event may bubble) */
+                        } catch (e) {
+                            if (__debugOn) {
+                                console.debug('[Admin][Jellyfin][Counts][Compute] failed', e);
+                            }
                         }
-                        updateLibsMeta();
-                        // Recompute counts too; we cannot filter by library in playlist, but keep it reactive
                         refreshOverviewCounts();
                     });
                     sel.dataset.countWired = 'true';
@@ -15000,7 +15228,9 @@
                 try {
                     const ae = document.activeElement;
                     if (ae && ids.includes(ae.id)) ae.blur();
-                } catch (_) {}
+                } catch (_) {
+                    /* activeElement blur safeguard failed (benign) */
+                }
                 ids.forEach(id => {
                     const el = document.getElementById(id);
                     if (!el || el.dataset.requireClickWired === 'true') return;
@@ -15014,7 +15244,9 @@
                         setTimeout(() => {
                             try {
                                 el.focus({ preventScroll: true });
-                            } catch (_) {}
+                            } catch (_) {
+                                // ignore; leave as-is if items not available
+                            }
                         }, 0);
                     };
                     // Pointer interactions unlock editing
@@ -15025,13 +15257,15 @@
                         if (el.readOnly) {
                             try {
                                 el.blur();
-                            } catch (_) {}
+                            } catch (_) {
+                                /* blur safeguard failed (keep readonly focus prevention best-effort) */
+                            }
                         }
                     });
                     el.dataset.requireClickWired = 'true';
                 });
             } catch (_) {
-                /* no-op */
+                /* wireLiveMediaSourcePreview safeguard failed (defer to manual refresh) */
             }
         }
 
@@ -15082,7 +15316,9 @@
                         badge
                     );
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* plex header toggle text force refresh failed (label may be stale) */
+            }
             // Plex
             const plexEnabled = !!plex.enabled;
             // Direct config model: use stored hostname/port directly (legacy *EnvVar removed)
@@ -15094,11 +15330,15 @@
                 cb.dataset.originalEnabled = plexEnabled ? 'true' : 'false';
                 try {
                     updateSourceSaveButtonLabel('plex');
-                } catch (_) {}
+                } catch (_) {
+                    /* plex Save button label update failed (label may be stale) */
+                }
             }
             try {
                 requestAnimationFrame(() => forceUpdateHeaderToggleText('plex.enabled'));
-            } catch (_) {}
+            } catch (_) {
+                /* plex enabled header toggle forced text update failed (label may be stale) */
+            }
             // Prefill status pill based on enabled + presence of host/port
             try {
                 const pill = document.getElementById('plex-status-pill-header');
@@ -15131,7 +15371,7 @@
                 }
                 // Removed globe link rendering in header actions
             } catch (_) {
-                /* no-op */
+                /* plex config status pill update failed (UI will fallback to previous state) */
             }
             // Populate Plex host/port more defensively: if empty but we have server config values fallback
             try {
@@ -15151,7 +15391,9 @@
                     portInput.value = existingPort || portVal || '';
                     portInput.classList.toggle('is-placeholder', !portInput.value);
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* plex host/port population failed (inputs may be empty) */
+            }
             // Install / update Plex health indicator
             try {
                 let health = document.getElementById('plex-health-indicator');
@@ -15285,7 +15527,7 @@
                                 try {
                                     fetchJellyfinLibraries(true, true);
                                 } catch (_) {
-                                    /* notif panel ensureVisible fallback failed (visual only) */
+                                    /* jellyfin libraries auto fetch failed (user can click refresh manually) */
                                 }
                             }
                         })();
@@ -15549,7 +15791,7 @@
                     }
                 }
             } catch (_) {
-                /* no-op */
+                /* guardSensitiveInputs failed (inputs remain editable normally) */
             }
             setMultiSelect(
                 'plex.movies',
@@ -16461,7 +16703,9 @@
                     // Post-fetch integrity safeguard
                     try {
                         ensureLibrarySelectionIntegrity('plex');
-                    } catch (_) {}
+                    } catch (_) {
+                        /* integrity post-check failed (selections remain as-is) */
+                    }
                 }
             })();
             return window.__plexLibsInFlight;
@@ -16501,7 +16745,7 @@
                 try {
                     hidden.dispatchEvent(new Event('change', { bubbles: true }));
                 } catch (_) {
-                    /* global wrap observer setup failed (other triggers still attempt) */
+                    /* wrap observer setup failed (other triggers still attempt) */
                 }
             }
         }
