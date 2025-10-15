@@ -143,6 +143,12 @@
         "time": "03:30",
         "retention": 10
     },
+    "rootRoute": {
+        "behavior": "landing",
+        "defaultMode": "screensaver",
+        "statusCode": 302,
+        "bypassParam": "landing"
+    },
     "testKeyConfig": "fromConfig",
     "someInt": 42,
     "localDirectory": {

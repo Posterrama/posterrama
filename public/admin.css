@@ -1,3 +1,31 @@
+/* Entry Route: subtle disabled style for status wrapper */
+.form-group.inline-field.nowrap.is-disabled {
+    opacity: 0.6;
+}
+
+/* Entry Route: compact rows/columns */
+.operations-panel .entry-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 6px; /* override any large defaults from .metric-row */
+}
+.operations-panel .entry-col {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    flex: 1 1 420px;
+    min-width: 320px;
+}
+.operations-panel .entry-col .select-wrap.compact {
+    min-width: 200px;
+}
+.operations-panel #rootRoute_status_wrap .select-wrap.compact {
+    min-width: 240px;
+}
+
 #modal-override .override-layout {
     position: relative;
     /* Migrated to accent system: supply only variables */
@@ -1692,6 +1720,22 @@ body {
         box-shadow 0.2s ease;
     background: var(--color-bg-card);
     color: var(--color-text-primary);
+}
+
+/* Compact field variants for Operations left column cards */
+.compact-input {
+    padding: 8px 10px !important;
+    min-height: 34px !important;
+    font-size: 0.92rem !important;
+}
+.select-wrap.compact select {
+    padding: 8px 34px 8px 10px !important; /* leave space for caret */
+    min-height: 34px !important;
+    font-size: 0.92rem !important;
+}
+.select-wrap.compact .select-caret {
+    right: 10px;
+    font-size: 12px;
 }
 
 .form-group input::placeholder,
@@ -7479,6 +7523,12 @@ body.page-logs {
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+/* Entry Route rows must remain horizontal; override generic column layout */
+.operations-panel .metric-row.entry-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px; /* keep compact spacing */
 }
 /* Small, muted inline hints */
 .operations-panel .micro-hint {

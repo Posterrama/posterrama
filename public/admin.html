@@ -395,6 +395,7 @@
           </div>
         </div>
         <div class="panel-content">
+          
           <!-- Floating Live Preview (reuses /preview page) -->
           <div id="display-preview-container" class="pip-mode screensaver-mode">
             <div class="preview-shell">
@@ -2082,6 +2083,47 @@
               </div>
 
               <div id="cfg-backup-list" class="compact-backup-list"></div>
+            </section>
+
+            <!-- Entry Route (moved here to left column) -->
+            <section class="perf-card" aria-label="Entry Route">
+              <h3><i class="fas fa-signs-post"></i> Entry Route</h3>
+              <div class="card-subtext">What should "/" do?</div>
+              <div class="subtle" id="entry-route-tip" style="margin-top:6px;">
+                Tip: Use 302 for normal browser navigation. Choose 307 if intermediaries or non-GET requests must preserve the HTTP method.
+              </div>
+              <!-- Compact dual-row layout: behavior + status on one row; bypass + action on next row -->
+              <div class="metric-row mt-6 entry-row">
+                <div class="form-group inline-field nowrap entry-col">
+                  <label for="rootRoute_behavior" style="margin:0;display:inline-flex;align-items:center;" title="Show the landing page at '/' or redirect to a specific mode." aria-describedby="entry-route-tip">Behavior</label>
+                  <div class="select-wrap has-caret compact">
+                    <select id="rootRoute_behavior">
+                      <option value="landing">Show landing</option>
+                      <option value="redirect">Redirect to a mode</option>
+                    </select>
+                    <span class="select-caret" aria-hidden="true">▾</span>
+                  </div>
+                </div>
+                <div id="rootRoute_status_wrap" class="form-group inline-field nowrap entry-col">
+                  <label for="rootRoute_statusCode" style="margin:0;display:inline-flex;align-items:center;" title="302: method may change to GET. 307: method/body preserved. 302 suits browsers, 307 is safer for API flows.">Redirect status</label>
+                  <div class="select-wrap has-caret compact">
+                    <select id="rootRoute_statusCode">
+                      <option value="302">302 Temporary</option>
+                      <option value="307">307 Temporary (preserve method)</option>
+                    </select>
+                    <span class="select-caret" aria-hidden="true">▾</span>
+                  </div>
+                </div>
+              </div>
+              <div class="metric-row mt-6 entry-row">
+                <div class="form-group inline-field nowrap entry-col">
+                  <label for="rootRoute_bypassParam" style="margin:0;display:inline-flex;align-items:center;" title="Append ?flag to '/' to skip redirect and show the landing page (default: ?landing).">Bypass query flag</label>
+                  <input id="rootRoute_bypassParam" type="text" placeholder="landing" class="w-160 compact-input" maxlength="32" pattern="[A-Za-z][A-Za-z0-9_-]*" title="Start with a letter; then letters, numbers, '_' or '-' (max 32). Leave empty to disable bypass." />
+                </div>
+                <div class="actions sub-actions" style="margin-left:auto; display:flex; align-items:center;">
+                  <a id="rootRoute_bypass_open" href="/?landing" target="_blank" rel="noopener" class="btn btn-link btn-sm" title="Open landing (bypass)">Open /?landing</a>
+                </div>
+              </div>
             </section>
         </div>
   <div class="ops-col">

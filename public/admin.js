@@ -3793,6 +3793,25 @@
             })(),
             // Screensaver specific: none (backgroundRefreshMinutes managed in Operations)
         };
+        // Root Route (landing vs redirect)
+        try {
+            const behavior = (
+                document.getElementById('rootRoute_behavior')?.value || 'landing'
+            ).trim();
+            const defaultMode = (
+                document.getElementById('rootRoute_defaultMode')?.value || 'screensaver'
+            ).trim();
+            const statusCodeStr = (
+                document.getElementById('rootRoute_statusCode')?.value || '302'
+            ).trim();
+            const bypassParam = (
+                document.getElementById('rootRoute_bypassParam')?.value || 'landing'
+            ).trim();
+            const statusCode = Number(statusCodeStr) === 307 ? 307 : 302;
+            patch.rootRoute = { behavior, defaultMode, statusCode, bypassParam };
+        } catch (_) {
+            /* rootRoute UI not present; skip adding to patch */
+        }
         // If screensaver active, ensure other modes disabled
         if (active === 'screensaver') {
             patch.cinemaMode = false;
@@ -3806,6 +3825,22 @@
             // Prefill
             const cfg = await loadAdminConfig();
             hydrateDisplayForm(cfg);
+            // Hydrate Root Route UI
+            try {
+                const c = cfg?.config || cfg || {};
+                const rr = c.rootRoute || {};
+                const setSel = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el && val != null) el.value = String(val);
+                };
+                setSel('rootRoute_behavior', rr.behavior || 'landing');
+                setSel('rootRoute_defaultMode', rr.defaultMode || 'screensaver');
+                setSel('rootRoute_statusCode', String(rr.statusCode == 307 ? 307 : 302));
+                const bp = document.getElementById('rootRoute_bypassParam');
+                if (bp) bp.value = rr.bypassParam || 'landing';
+            } catch (_) {
+                /* missing rootRoute UI elements - safe to ignore */
+            }
 
             // Default radio based on cfg
             const w = (cfg?.config || cfg)?.wallartMode || {};
@@ -19386,11 +19421,49 @@
                 const enabled = !!document.getElementById('siteServer.enabled')?.checked;
                 const portVal = Number(document.getElementById('siteServer.port')?.value || 4001);
 
+                // Collect Entry Route (rootRoute)
+                const rrBehavior =
+                    document.getElementById('rootRoute_behavior')?.value || 'landing';
+                const rrStatusCode = Number(
+                    document.getElementById('rootRoute_statusCode')?.value || '302'
+                );
+                const bypassEl = document.getElementById('rootRoute_bypassParam');
+                const rrBypassParam = (bypassEl?.value || 'landing').trim();
+
+                // Client-side validation for bypass flag (non-empty only)
+                try {
+                    const utils =
+                        (typeof window !== 'undefined' && window.__adminUtils) || undefined;
+                    const validate = utils?.validateBypassParam;
+                    if (
+                        rrBypassParam &&
+                        typeof validate === 'function' &&
+                        !validate(rrBypassParam)
+                    ) {
+                        window.notify?.toast({
+                            type: 'warning',
+                            title: 'Invalid bypass flag',
+                            message:
+                                "Use 1-32 chars: start with a letter; letters, numbers, '_' or '-' allowed.",
+                            duration: 4500,
+                        });
+                        if (bypassEl && typeof bypassEl.focus === 'function') bypassEl.focus();
+                        return; // abort save
+                    }
+                } catch (_) {
+                    /* validation helper unavailable; proceed */
+                }
+
                 await saveConfigPatch(
                     {
                         serverPort: serverPort,
                         backgroundRefreshMinutes,
                         siteServer: { enabled, port: portVal },
+                        rootRoute: {
+                            behavior: rrBehavior,
+                            statusCode: rrStatusCode === 307 ? 307 : 302,
+                            bypassParam: rrBypassParam || 'landing',
+                        },
                     },
                     { SERVER_PORT: String(serverPort) }
                 );
@@ -19535,6 +19608,48 @@
                 sitePill.classList.toggle('status-warning', !site.enabled);
                 sitePill.classList.toggle('status-success', !!site.enabled);
             }
+            // Entry Route (rootRoute)
+            try {
+                const rr = cfg.rootRoute || {};
+                const beh = document.getElementById('rootRoute_behavior');
+                const code = document.getElementById('rootRoute_statusCode');
+                const bp = document.getElementById('rootRoute_bypassParam');
+                if (beh) beh.value = rr.behavior || 'landing';
+                if (code) code.value = String(rr.statusCode === 307 ? 307 : 302);
+                if (bp) bp.value = rr.bypassParam || 'landing';
+                // Update bypass open link text/href
+                try {
+                    const link = document.getElementById('rootRoute_bypass_open');
+                    const flag = (bp?.value || 'landing').trim();
+                    if (link) {
+                        const q = flag ? `?${encodeURIComponent(flag)}` : '';
+                        link.href = `/${q}`;
+                        link.textContent = q ? `Open /${q}` : 'Open /';
+                        link.title = q
+                            ? 'Open landing (bypass)'
+                            : 'Open / (landing if landing behavior)';
+                    }
+                } catch (_) {
+                    /* noop */
+                }
+                // Apply visibility based on behavior
+                try {
+                    const behavior = beh?.value || 'landing';
+                    const wrap = document.getElementById('rootRoute_status_wrap');
+                    const statusEl = document.getElementById('rootRoute_statusCode');
+                    const utils = window.__adminUtils || {};
+                    if (typeof utils.applyRedirectStatusState === 'function') {
+                        utils.applyRedirectStatusState(behavior, statusEl, wrap);
+                    } else if (statusEl) {
+                        statusEl.disabled = behavior !== 'redirect';
+                        statusEl.setAttribute('aria-disabled', String(behavior !== 'redirect'));
+                    }
+                } catch (_) {
+                    /* non-fatal */
+                }
+            } catch (_) {
+                /* non-fatal */
+            }
             // Ensure the unified save button label is correct after loading
             if (typeof window.updateOpsSaveButtonLabel === 'function') {
                 window.updateOpsSaveButtonLabel();
@@ -19542,6 +19657,59 @@
         } catch (e) {
             // non-fatal
         }
+    }
+
+    // Toggle Entry Route status visibility on behavior change
+    try {
+        const behSel = document.getElementById('rootRoute_behavior');
+        if (behSel) {
+            const applyBehaviorState = () => {
+                try {
+                    const behavior = behSel.value;
+                    const wrap = document.getElementById('rootRoute_status_wrap');
+                    const statusEl = document.getElementById('rootRoute_statusCode');
+                    const utils = window.__adminUtils || {};
+                    if (typeof utils.applyRedirectStatusState === 'function') {
+                        utils.applyRedirectStatusState(behavior, statusEl, wrap);
+                    } else if (statusEl) {
+                        statusEl.disabled = behavior !== 'redirect';
+                        statusEl.setAttribute('aria-disabled', String(behavior !== 'redirect'));
+                    }
+                } catch (_) {
+                    /* non-fatal */
+                }
+            };
+            // Apply once on load to ensure sensible initial state
+            applyBehaviorState();
+            behSel.addEventListener('change', applyBehaviorState);
+        }
+
+        // Keep the bypass open link in sync with user input
+        const bypassInput = document.getElementById('rootRoute_bypassParam');
+        if (bypassInput) {
+            const updateBypassLink = () => {
+                try {
+                    const link = document.getElementById('rootRoute_bypass_open');
+                    const flag = (bypassInput.value || 'landing').trim();
+                    if (link) {
+                        const q = flag ? `?${encodeURIComponent(flag)}` : '';
+                        link.href = `/${q}`;
+                        link.textContent = q ? `Open /${q}` : 'Open /';
+                        link.title = q
+                            ? 'Open landing (bypass)'
+                            : 'Open / (landing if landing behavior)';
+                    }
+                } catch (_) {
+                    /* noop */
+                }
+            };
+            // Initialize once so the link is consistent on load
+            updateBypassLink();
+            bypassInput.addEventListener('input', updateBypassLink);
+            bypassInput.addEventListener('change', updateBypassLink);
+        }
+    } catch (_) {
+        /* optional behavior wire */
     }
 
     // Version + update pill

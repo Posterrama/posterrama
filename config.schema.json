@@ -739,6 +739,42 @@
             "required": ["enabled", "time", "retention"],
             "additionalProperties": false
         },
+        "rootRoute": {
+            "description": "Behavior for the entry route '/': landing page or redirect to a default mode.",
+            "type": "object",
+            "properties": {
+                "behavior": {
+                    "description": "How '/' should behave: 'landing' serves index.html, 'redirect' issues a temporary redirect.",
+                    "type": "string",
+                    "enum": ["landing", "redirect"],
+                    "default": "landing"
+                },
+                "defaultMode": {
+                    "description": "Target mode for redirect when behavior is 'redirect'. Optional; if omitted, the active Display Settings mode will be used.",
+                    "type": "string",
+                    "enum": ["screensaver", "wallart", "cinema"],
+                    "default": "screensaver"
+                },
+                "statusCode": {
+                    "description": "HTTP status code to use for redirect (temporary only).",
+                    "type": "integer",
+                    "enum": [302, 307],
+                    "default": 302
+                },
+                "bypassParam": {
+                    "description": "Query parameter name that, when present, forces landing (useful for admin/dev).",
+                    "type": "string",
+                    "default": "landing"
+                }
+            },
+            "additionalProperties": false,
+            "default": {
+                "behavior": "landing",
+                "defaultMode": "screensaver",
+                "statusCode": 302,
+                "bypassParam": "landing"
+            }
+        },
         "testKeyConfig": {
             "type": "string",
             "default": "fromConfig"

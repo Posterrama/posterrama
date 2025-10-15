@@ -1352,6 +1352,45 @@ app.get(['/admin', '/admin.html'], (req, res, next) => {
  */
 // Serve main index.html with automatic asset versioning
 app.get(['/', '/index.html'], (req, res, next) => {
+    // Configurable root redirect for kiosk/signage
+    try {
+        const cfg = require('./config.json');
+        const rr = cfg?.rootRoute || {};
+        const behavior = rr.behavior || 'landing';
+        const bypassParam = rr.bypassParam || 'landing';
+        const wantsBypass = bypassParam && typeof req.query?.[bypassParam] !== 'undefined';
+
+        if (behavior === 'redirect' && !wantsBypass) {
+            // Determine target mode path
+            // Prefer explicit rootRoute.defaultMode for backward compatibility; otherwise use active Display setting
+            let mode = rr.defaultMode;
+            if (!mode) {
+                // fallback: derive from Display Settings in config
+                const ds = cfg || {};
+                mode =
+                    (ds.cinemaMode && 'cinema') ||
+                    (ds.wallartMode && (ds.wallartMode.enabled ? 'wallart' : null)) ||
+                    'screensaver';
+            }
+            mode = mode || 'screensaver';
+            let targetPath = '/screensaver';
+            if (mode === 'wallart') targetPath = '/wallart';
+            else if (mode === 'cinema') targetPath = '/cinema';
+
+            const xfPrefix = req.headers['x-forwarded-prefix'] || '';
+            // prettier-ignore
+            const basePath = xfPrefix && xfPrefix !== '/' ? String(xfPrefix).replace(/\/$/, '') : '';
+            const location = `${basePath}${targetPath}`;
+            const status = Number(rr.statusCode) === 307 ? 307 : 302;
+            // Prevent caches from storing the redirect
+            res.setHeader('Cache-Control', 'no-store');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            return res.redirect(status, location);
+        }
+    } catch (e) {
+        // non-fatal; fall through to landing
+    }
     // Only log actual display page access, not admin accessing the page
     const isAdminAccess =
         req.headers.referer?.includes('/admin') ||
@@ -14564,6 +14603,44 @@ app.post(
             'PLEX_TOKEN' in sanitizedEnv
         );
 
+        // Detect rootRoute defaultMode change to optionally broadcast navigation
+        let __broadcastModeChange = null;
+        try {
+            const beforeMode = (existingConfig?.rootRoute?.defaultMode || '').toString();
+            const afterMode = (mergedConfig?.rootRoute?.defaultMode || '').toString();
+            const behavior = (mergedConfig?.rootRoute?.behavior || 'landing').toString();
+            const allowed = new Set(['screensaver', 'wallart', 'cinema']);
+            if (
+                behavior === 'redirect' &&
+                ((beforeMode && afterMode && beforeMode !== afterMode && allowed.has(afterMode)) ||
+                    // If defaultMode removed, broadcast using new active mode from Display Settings
+                    (!afterMode && beforeMode))
+            ) {
+                // Determine target mode: prefer afterMode if present; else compute from Display Settings
+                let target = afterMode;
+                if (!target) {
+                    const ds = mergedConfig || {};
+                    target =
+                        (ds.cinemaMode && 'cinema') ||
+                        (ds.wallartMode && (ds.wallartMode.enabled ? 'wallart' : null)) ||
+                        'screensaver';
+                }
+                __broadcastModeChange = target;
+                logger.info(
+                    '[Admin API] rootRoute.defaultMode changed (redirect). Will broadcast',
+                    {
+                        from: beforeMode || 'derived',
+                        to: __broadcastModeChange,
+                    }
+                );
+            }
+        } catch (e) {
+            logger.warn(
+                '[Admin API] Unable to diff rootRoute.defaultMode for broadcast:',
+                e?.message || e
+            );
+        }
+
         // Write to config.json and .env
         await writeConfig(mergedConfig);
         if (isDebug) logger.debug('[Admin API] Successfully wrote to config.json.');
@@ -14609,6 +14686,21 @@ app.post(
 
         // Clear the /get-config cache so changes are immediately visible
         cacheManager.delete('GET:/get-config');
+
+        // After saving and cache invalidation, broadcast mode navigate if scheduled
+        try {
+            if (__broadcastModeChange) {
+                const mode = __broadcastModeChange;
+                const ok = wsHub.broadcast({
+                    kind: 'command',
+                    type: 'mode.navigate',
+                    payload: { mode },
+                });
+                logger.info('[WS] Broadcast: mode.navigate', { mode, ok });
+            }
+        } catch (e) {
+            logger.warn('[WS] mode.navigate broadcast failed:', e?.message || e);
+        }
 
         // Restart PM2 to clear environment cache ONLY if environment variables changed
         // Display settings don't require restart, only tokens/keys/secrets do

@@ -1525,6 +1525,20 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 }
                 break;
             }
+            case 'mode.navigate': {
+                try {
+                    const target = (payload && payload.mode) || '';
+                    const Core = typeof window !== 'undefined' ? window.PosterramaCore : null;
+                    if (Core && typeof Core.navigateToMode === 'function') {
+                        liveDbg('[Live] invoking Core.navigateToMode', { target });
+                        Core.navigateToMode(String(target || 'screensaver'));
+                        return;
+                    }
+                } catch (_) {
+                    // Core not available or navigation failed; ignore
+                }
+                break;
+            }
             default:
                 // Unknown or unsupported command type
                 break;
