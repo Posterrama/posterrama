@@ -17,7 +17,9 @@
         setTimeout(function () {
             try {
                 el.style.display = 'none';
-            } catch (_) {}
+            } catch (_) {
+                // ignore: loader element cleanup is non-critical
+            }
         }, 150);
     }
 

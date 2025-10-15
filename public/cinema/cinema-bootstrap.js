@@ -76,9 +76,13 @@
                         loader.style.opacity = '0';
                         loader.style.display = 'none';
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // ignore: cleanup failure is non-critical
+                }
             }
-        } catch (_) {}
+        } catch (_) {
+            // ignore: loader hide attempt after start is non-critical
+        }
     }
 
     if (document.readyState === 'loading') {
