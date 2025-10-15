@@ -12,3 +12,4 @@ cache/
 public/assets/
 dist/
 build/
+public/script.js

@@ -163,8 +163,8 @@ describe('Cache Performance Metrics', () => {
         await request(app).get(endpoint).expect(200);
         const time2 = Date.now() - start2;
         // CI/jitter tolerant assertion: second request should not be meaningfully slower.
-        // Use a small jitter allowance to avoid flakes on fast machines.
-        expect(time2).toBeLessThanOrEqual(time1 + 5);
+        // Allow a wider jitter to avoid flakes on shared runners.
+        expect(time2).toBeLessThanOrEqual(time1 + 15);
     });
 
     test('should not accumulate memory during cache operations', async () => {

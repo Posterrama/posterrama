@@ -251,7 +251,7 @@
             // ignore overlay application errors (preview resilience)
         }
     }
-    // On load: if preview sends payload, we listen via script.js->applySettings; else poll initial config
+    // On load: apply preview payload if provided; else poll initial config
     window.addEventListener('message', ev => {
         try {
             if (ev.origin !== window.location.origin) return;

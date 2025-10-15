@@ -72,7 +72,7 @@ function removeStandaloneConsoleLogs(filePath) {
 }
 
 // Files to process
-const filesToProcess = ['public/admin.js', 'public/script.js', 'public/sw.js'];
+const filesToProcess = ['public/admin.js', 'public/sw.js'];
 
 console.log('🧹 Precise console.log removal starting...\n');
 

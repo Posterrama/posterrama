@@ -11,6 +11,13 @@ const APP_CACHE_MAX_ITEMS = 200; // cap app/static entries
 const STATIC_ASSETS = [
     '/',
     '/index.html',
+    // Mode pages: ensure offline fallback never shows landing promo
+    '/cinema',
+    '/cinema.html',
+    '/wallart',
+    '/wallart.html',
+    '/screensaver',
+    '/screensaver.html',
     // Note: CSS/JS are versioned via query params; we'll cache them at runtime (SWR)
     '/manifest.json',
     '/favicon.ico',
@@ -159,8 +166,28 @@ self.addEventListener('fetch', event => {
                     return networkResponse;
                 })
                 .catch(() => {
-                    // Fallback to cached shell
-                    return caches.match(request).then(resp => resp || caches.match('/index.html'));
+                    // Fallback to correct cached shell based on path
+                    return caches.match(request).then(resp => {
+                        if (resp) return resp;
+                        // Path-based fallback to avoid showing landing promo on mode pages
+                        const p = url.pathname;
+                        if (p.startsWith('/cinema')) {
+                            return caches
+                                .match('/cinema.html')
+                                .then(r => r || caches.match('/cinema'));
+                        }
+                        if (p.startsWith('/wallart')) {
+                            return caches
+                                .match('/wallart.html')
+                                .then(r => r || caches.match('/wallart'));
+                        }
+                        if (p.startsWith('/screensaver')) {
+                            return caches
+                                .match('/screensaver.html')
+                                .then(r => r || caches.match('/screensaver'));
+                        }
+                        return caches.match('/index.html');
+                    });
                 })
         );
         return;

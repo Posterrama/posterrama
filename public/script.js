@@ -1,105 +1,25 @@
-'use strict';
-// NOTE: Removed blanket 'eslint-disable no-empty'. Individual empty catches now annotated.
-/**
- * posterrama.app - Client-side logic
- *
- * Author: Mark Frelink
- * Last Modified: 2025-07-26
- * License: GPL-3.0-or-later - This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
+/*
+  Deprecated legacy orchestrator (script.js)
+  -----------------------------------------
+  This file used to contain the legacy front-end orchestrator for all display modes.
+  As of the cinema/wallart/screensaver migrations, it is no longer referenced at runtime.
 
-// Simple frontend logger to match backend logger interface
-// Use window.logger if client-logger.js is loaded, otherwise create fallback
-const logger = window.logger || {
-    debug: () => {}, // silenced for cleaner browser console
-    info: () => {}, // silenced for cleaner browser console
-    warn: (message, data) => console.warn(`[WARN] ${message}`, data || ''),
-    error: (message, data) => console.error(`[ERROR] ${message}`, data || ''),
-};
+  We keep a tiny stub for a short transition period to avoid breaking external automation
+  or forks that might still reference /public/script.js directly.
 
-// Silence generic console noise on the public page (keep warn/error),
-// but DO NOT silence when debug is enabled via client-logger, URL (?debug=true), or a global flag.
-(() => {
+  If you see this in production, something is still loading script.js; please remove that include.
+*/
+(function warnIfLoaded() {
     try {
-        // If client-logger is present and says we're in debug, keep console intact
-        if (
-            typeof window !== 'undefined' &&
-            window.logger &&
-            typeof window.logger.isDebug === 'function' &&
-            window.logger.isDebug()
-        ) {
-            return; // leave console methods untouched for debugging
-        }
-        // Allow quick enable via URL param
-        try {
-            const sp = new URLSearchParams(window.location.search);
-            if (sp.get('debug') === 'true') return;
-        } catch (_) {
-            /* ignore: URL param parse best-effort; fallback is non-debug mode */
-        }
-        // Allow forcing live debug via global flag
-        if (typeof window !== 'undefined' && window.__POSTERRAMA_LIVE_DEBUG === true) {
-            return;
-        }
-        const noop = () => {};
-        console.log = noop;
-        console.info = noop;
-        console.debug = noop;
+        // eslint-disable-next-line no-console
+        console.warn('[Posterrama] Deprecated: public/script.js is no longer used. Remove any includes.');
     } catch (_) {
-        /* ignore: disabling console may fail in some embedded browsers */
+        // no-op
     }
 })();
-
-// --- Reliable Server Connectivity Check ---
-let connectivityState = { lastCheck: 0, isOnline: true }; // Assume online initially
-function isServerReachable() {
-    const now = Date.now();
-    const cacheTimeout = 30000; // 30 seconds cache
-
-    // Return cached result if recent
-    if (now - connectivityState.lastCheck < cacheTimeout) {
-        return connectivityState.isOnline;
-    }
-
-    // Quick synchronous test using fetch with very short timeout
-    // This runs in background and updates cache for next call
-    const testConnection = async () => {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 sec timeout
-
-            const response = await fetch('/health', {
-                method: 'HEAD',
-                signal: controller.signal,
-                cache: 'no-cache',
-            });
-
-            clearTimeout(timeoutId);
-            connectivityState = { lastCheck: now, isOnline: response.ok };
-        } catch (e) {
-            connectivityState = { lastCheck: now, isOnline: false };
-        }
-    };
-
-    // Start background test but return cached result immediately
-    testConnection();
-    return connectivityState.isOnline;
-}
-
-document.addEventListener('DOMContentLoaded', async () => {
-    // --- Detect standalone cinema mode page ---
-    const isCinemaPage = document.body.dataset.mode === 'cinema';
-    if (isCinemaPage) {
-        logger.info('[Script] Running in cinema mode - delegating to cinema-display.js');
-    }
-
-    // (Ken Burns debug helpers removed)
-    // --- iOS background behavior: lock to 'clip' mode ---
-    (function () {
-        const ua = navigator.userAgent || '';
+/* LEGACY REMAINDER (commented out) — deprecated code kept for reference
+(function(){
+    const ua = navigator.userAgent || '';
         const isIOS = /iPhone|iPad|iPod/i.test(ua);
         if (!isIOS) return; // only apply on iOS
         // Force clip behavior consistently; ignore URL/localStorage
@@ -111,321 +31,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const layerB = document.getElementById('layer-b');
     const infoContainer = document.getElementById('info-container');
     const textWrapper = document.getElementById('text-wrapper');
-    const posterWrapper = document.getElementById('poster-wrapper');
-    const posterEl = document.getElementById('poster');
-    const posterLink = document.getElementById('poster-link');
-    const titleEl = document.getElementById('title');
-    const taglineEl = document.getElementById('tagline');
-    const yearEl = document.getElementById('year');
-    const ratingEl = document.getElementById('rating');
-    const clearlogoEl = document.getElementById('clearlogo');
-    const timeHours = document.getElementById('time-hours');
-    const timeMinutes = document.getElementById('time-minutes');
-    const pauseButton = document.getElementById('pause-button');
-    const nextButton = document.getElementById('next-button');
-    const prevButton = document.getElementById('prev-button');
-    const controlsContainer = document.getElementById('controls-container');
-    const loader = document.getElementById('loader');
-
-    // (Ken Burns monitor removed)
-
-    // Prime background visibility very early in screensaver mode to prevent black flashes
-    try {
-        // We'll correct if modes change later
-        if (layerA && layerB) {
-            layerA.style.transition = 'none';
-            layerB.style.transition = 'none';
-            layerA.style.opacity = '1';
-            layerB.style.opacity = '0';
-        }
-    } catch (_) {
-        // intentionally empty: early priming is best-effort only
-    }
-
-    // --- Create and inject Rotten Tomatoes badge ---
-    const rtBadge = document.createElement('div');
-    rtBadge.id = 'rt-badge';
-
-    const rtIcon = document.createElement('img');
-    rtIcon.id = 'rt-icon';
-    rtIcon.alt = 'Rotten Tomatoes';
-
-    rtBadge.appendChild(rtIcon);
-    posterEl.appendChild(rtBadge);
-
-    // Helper: ensure the RT badge stays attached to the poster element, even if posterEl.innerHTML was reset
-    function ensureRtBadgeAttached() {
-        try {
-            // Skip RT badge in cinema mode
-            const isCinemaPage = document.body.dataset.mode === 'cinema';
-            if (isCinemaPage) return;
-
-            if (!rtBadge.isConnected || rtBadge.parentNode !== posterEl) {
-                posterEl.appendChild(rtBadge);
-            }
-        } catch (_) {
-            // no-op: conservative safety
-        }
-    }
-
-    // Helper: in screensaver mode, re-assert visibility of poster/metadata/info container
-    function ensureScreensaverVisibility() {
-        try {
-            if (
-                window.PosterramaScreensaver &&
-                typeof window.PosterramaScreensaver.ensureVisibility === 'function'
-            ) {
-                return window.PosterramaScreensaver.ensureVisibility();
-            }
-            // Fallback inline behavior (kept for safety if module not loaded)
-            const isScreensaver = !appConfig.cinemaMode && !appConfig.wallartMode?.enabled;
-            if (!isScreensaver) return;
-            const posterVisible = appConfig.showPoster !== false;
-            const metaVisible = appConfig.showMetadata !== false;
-            if (posterWrapper) posterWrapper.classList.toggle('is-hidden', !posterVisible);
-            if (textWrapper) textWrapper.classList.toggle('is-hidden', !metaVisible);
-            if (posterVisible || metaVisible) {
-                infoContainer.classList.add('visible');
-                if (infoContainer.style.display === 'none') infoContainer.style.display = 'flex';
-            } else {
-                infoContainer.classList.remove('visible');
-            }
-        } catch (_) {
-            /* ignore: best-effort navigation sync */
-        }
-    }
-
-    // Helper: ensure at least one background layer is visible to avoid black screen
-    function ensureBackgroundVisible() {
-        try {
-            const la = document.getElementById('layer-a');
-            const lb = document.getElementById('layer-b');
-            if (!la || !lb) return;
-            // Use currentIndex to find the current media item safely
-            let bg2 = null;
-            try {
-                if (Array.isArray(mediaQueue) && mediaQueue.length > 0) {
-                    const idx = currentIndex >= 0 ? currentIndex : 0;
-                    const item = mediaQueue[idx] || mediaQueue[0];
-                    bg2 = item && item.backgroundUrl ? item.backgroundUrl : null;
-                }
-            } catch (_) {
-                /* ignore: style priming is optional for embedded browsers */
-            }
-            if (bg2 && bg2 !== 'null' && bg2 !== 'undefined') {
-                la.style.backgroundImage = `url('${bg2}')`;
-                lb.style.backgroundImage = `url('${bg2}')`;
-            } else {
-                la.style.backgroundImage = '';
-                lb.style.backgroundImage = '';
-            }
-            const aOp = parseFloat(getComputedStyle(la).opacity || '1');
-            const bOp = parseFloat(getComputedStyle(lb).opacity || '1');
-            if (aOp <= 0.01 && bOp <= 0.01) {
-                // Prefer the layer that already has a background image to avoid flashing black
-                let target = activeLayer || la;
-                try {
-                    const aBg = getComputedStyle(la).backgroundImage;
-                    const bBg = getComputedStyle(lb).backgroundImage;
-                    const aHas = aBg && aBg !== 'none' && aBg !== 'initial';
-                    const bHas = bBg && bBg !== 'none' && bBg !== 'initial';
-                    if (aHas && !bHas) target = la;
-                    else if (bHas && !aHas) target = lb;
-                } catch (_) {
-                    // best-effort; fall back to activeLayer
-                }
-                target.style.opacity = '1'; // Ensure the target layer is visible
-            }
-        } catch (_) {
-            // ignore
-        }
-    }
-
-    // Helper: detect if a Ken Burns animation is currently active on either layer
-    function isKenBurnsActive() {
-        try {
-            if (
-                window.PosterramaScreensaver &&
-                typeof window.PosterramaScreensaver.isKenBurnsActive === 'function'
-            ) {
-                return window.PosterramaScreensaver.isKenBurnsActive();
-            }
-            if (window.IS_PREVIEW) return false;
-            const la = document.getElementById('layer-a');
-            const lb = document.getElementById('layer-b');
-            if (!la || !lb) return false;
-            return (
-                (la.hasAttribute('data-ken-burns') &&
-                    la.getAttribute('data-ken-burns') !== 'false') ||
-                (lb.hasAttribute('data-ken-burns') && lb.getAttribute('data-ken-burns') !== 'false')
-            );
-        } catch (_) {
-            return false;
-        }
-    }
-
-    // --- State ---
-    let mediaQueue = [];
-    // Reflect mediaQueue onto window so modules (wallart/screensaver) can access it reliably
-    try {
-        Object.defineProperty(window, 'mediaQueue', {
-            configurable: true,
-            enumerable: false,
-            get() {
-                return mediaQueue;
-            },
-            set(val) {
-                mediaQueue = Array.isArray(val) ? val : [];
-            },
-        });
-    } catch (_) {
-        window.mediaQueue = mediaQueue;
-    }
-    let currentIndex = -1;
-    let activeLayer = layerA;
-    let inactiveLayer = layerB;
-    let isPaused = false;
-    // expose paused status globally for device heartbeat/admin
-    Object.defineProperty(window, '__posterramaPaused', {
-        get() {
-            return isPaused;
-        },
-    });
-    // Expose current media id and pin state for device-mgmt heartbeat
-    let currentMediaId = null;
-    let isPinned = false;
-    let pinnedMediaId = null;
-    Object.defineProperty(window, '__posterramaCurrentMediaId', {
-        get() {
-            // In wallart mode, use the hero poster's ID
-            const isWallart = appConfig?.wallartMode?.enabled === true;
-            if (
-                isWallart &&
-                Array.isArray(window.__wallartCurrentPosters) &&
-                window.__wallartCurrentPosters[0]
-            ) {
-                const hero = window.__wallartCurrentPosters[0];
-                // Construct mediaId similar to how it's done in the main flow
-                return hero.id || hero.title || null;
-            }
-            return currentMediaId;
-        },
-    });
-    Object.defineProperty(window, '__posterramaPinned', {
-        get() {
-            return isPinned;
-        },
-    });
-    Object.defineProperty(window, '__posterramaPinnedMediaId', {
-        get() {
-            return pinnedMediaId;
-        },
-    });
-    // Expose current media details to device-mgmt (thumbnail/poster/background + basics)
-    Object.defineProperty(window, '__posterramaCurrentMedia', {
-        get() {
-            try {
-                // In wallart mode, use the hero poster (first in currentPosters array)
-                const isWallart = appConfig?.wallartMode?.enabled === true;
-
-                // Debug logging
-                if (typeof console !== 'undefined' && console.debug) {
-                    console.debug('[CurrentMedia] Wallart check:', {
-                        isWallart,
-                        hasWallartPosters: !!window.__wallartCurrentPosters,
-                        wallartPostersLength: window.__wallartCurrentPosters?.length,
-                        hasHero: !!window.__wallartCurrentPosters?.[0],
-                        heroTitle: window.__wallartCurrentPosters?.[0]?.title,
-                        heroPosterUrl: window.__wallartCurrentPosters?.[0]?.posterUrl,
-                    });
-                }
-
-                if (
-                    isWallart &&
-                    Array.isArray(window.__wallartCurrentPosters) &&
-                    window.__wallartCurrentPosters[0]
-                ) {
-                    const hero = window.__wallartCurrentPosters[0];
-                    console.debug('[CurrentMedia] Using wallart hero:', hero.title, hero.posterUrl);
-                    return {
-                        title: hero.title || null,
-                        year: hero.year || null,
-                        rating: hero.rating != null ? Number(hero.rating) : null,
-                        posterUrl: hero.posterUrl || null,
-                        backgroundUrl: hero.backgroundUrl || null,
-                        thumbnailUrl: hero.posterUrl || hero.thumbnailUrl || null, // Use posterUrl as thumbnail for hero
-                        runtime: hero.runtime || hero.runtimeMs || hero.duration || null,
-                        genres: hero.genres || null,
-                        overview: hero.overview || hero.summary || hero.plot || null,
-                        tagline: hero.tagline || null,
-                        contentRating: hero.contentRating || null,
-                    };
-                }
-
-                // Normal screensaver/cinema mode: use current media from queue
-                if (currentIndex < 0 || currentIndex >= mediaQueue.length) return null;
-                const it = mediaQueue[currentIndex];
-                if (!it) return null;
-                console.debug('[CurrentMedia] Using queue item:', it.title, it.thumbnailUrl);
-                return {
-                    title: it.title || null,
-                    year: it.year || null,
-                    rating: it.rating != null ? Number(it.rating) : null,
-                    posterUrl: it.posterUrl || null,
-                    backgroundUrl: it.backgroundUrl || null,
-                    thumbnailUrl: it.thumbnailUrl || null,
-                    runtime: it.runtime || it.runtimeMs || it.duration || null,
-                    genres: it.genres || null,
-                    overview: it.overview || it.summary || it.plot || null,
-                    tagline: it.tagline || null,
-                    contentRating: it.contentRating || null,
-                };
-            } catch (err) {
-                console.error('[CurrentMedia] Error:', err);
-                return null;
-            }
-        },
-    });
-    // Expose minimal playback control API for WS/admin control
-    // Unified programmatic pause/resume that mirrors the UI button behavior
-    function setPaused(val) {
-        const next = !!val;
-        isPaused = next;
-        try {
-            if (pauseButton) pauseButton.classList.toggle('is-paused', next);
-        } catch (_) {
-            /* ignore: config sync transient failure */
-        }
-        if (next) {
-            // Pause: stop slideshow timer and freeze animations
-            if (timerId) {
-                clearInterval(timerId);
-                timerId = null;
-            }
-            try {
-                if (activeLayer) activeLayer.style.animationPlayState = 'paused';
-            } catch (_) {
-                /* ignore: heartbeat is best-effort; offline devices keep local state */
-            }
-        } else {
-            // Resume: restart slideshow timer and unfreeze animations
-            try {
-                if (activeLayer) activeLayer.style.animationPlayState = 'running';
-            } catch (_) {
-                /* ignore: animation playState may be unsupported in some browsers */
-            }
-            startTimer();
-        }
-        try {
-            window.PosterramaDevice &&
-                window.PosterramaDevice.beat &&
-                window.PosterramaDevice.beat();
-        } catch (_) {
-            /* ignore: auto-exit poll fetch failed */
-        }
-    }
-
-    function reinitBackgroundForScreensaver() {
+    /*
+    Deprecated legacy orchestrator (script.js)
+    -----------------------------------------
+    This file is intentionally minimized. It is no longer used by Posterrama.
+    If you see this file being loaded in production, please remove any includes to /public/script.js.
+    */
+    (function warnIfLoaded() {
+      try {
+        // eslint-disable-next-line no-console
+        console.warn('[Posterrama] Deprecated: public/script.js is no longer used. Remove any includes.');
+      } catch (_) {
+        // no-op
+      }
+    })();
         try {
             if (
                 window.PosterramaScreensaver &&
@@ -6512,3 +6131,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Export updateClock function for promo site clock synchronization
     window.updateClock = updateClock;
 });
+})();
+*/

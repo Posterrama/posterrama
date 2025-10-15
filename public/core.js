@@ -151,6 +151,27 @@
     // Server stamps /sw.js?v=<version> so we always fetch the latest worker.
     try {
         if ('serviceWorker' in navigator && !window.__swRegisteredViaCore) {
+            // Listen for controllerchange so when a new SW takes control we refresh the shell once
+            try {
+                const sw = navigator.serviceWorker;
+                if (
+                    sw &&
+                    typeof sw.addEventListener === 'function' &&
+                    !window.__swCtlChangeHooked
+                ) {
+                    sw.addEventListener('controllerchange', () => {
+                        try {
+                            // Debounced reload to avoid loops
+                            Core.throttleReload();
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    });
+                    window.__swCtlChangeHooked = true;
+                }
+            } catch (_) {
+                /* ignore */
+            }
             window.addEventListener('load', () => {
                 try {
                     const swUrl = window.__swUrl || '/sw.js';

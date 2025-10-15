@@ -2,18 +2,20 @@
 
 Purpose: split each display mode into its own self-contained page (no duplication), keep index.html minimal, and unify navigation/preview flows.
 
-Last updated: 2025-10-15 (post Entry Route + SW registration pass)
+Last updated: 2025-10-15 (post Entry Route + SW registration + controllerchange handling + SW update test + preview routes/tests)
 
 ## Status snapshot (Oct 15)
 
 - Routes/page split completed for all three modes; navigation normalization bug covered by tests and fixed.
-- Wallart is fully isolated (no legacy orchestrator); Screensaver still leans on legacy `script.js` for full behavior.
-- Core navigation/helpers live in `public/core.js` and are subpath-safe; stamped assets wired for all mode pages.
+- Wallart is fully isolated (no legacy orchestrator). Screensaver extraction completed — no legacy `script.js` bleed on `/screensaver` (verified by route tests).
+- Core navigation/helpers live in `public/core.js` and are subpath-safe; stamped assets wired for all mode pages and previews.
 - Entry Route behavior implemented: root (`/`) now serves landing or redirects per admin config; includes X-Forwarded-Prefix handling and tests.
+- Service Worker: centralized registration in `core.js`; controllerchange triggers throttled reload; stamped `sw.js` honored. Unit + integration-lite tests added.
+- Admin preview pages added: `/preview-wallart` and `/preview-screensaver` with stamped assets; isolation tests assert correct assets and absence of legacy orchestrator.
 - Lint/test/security pipeline is green; coverage ~92% statements across repo.
-- Admin UI cleanup: all empty catch blocks in `public/admin.js` annotated; no-empty now passes (supports the refactor by reducing noise and risk while touching mode pages).
+- Admin/UI cleanup: empty catch blocks annotated where needed; no-empty passes.
 
-## Completed
+## Completed ✅
 
 - Dedicated routes: `/cinema`, `/wallart`, `/screensaver`
 - Direct switching between modes (subpath-aware) available and validated in practice
@@ -28,12 +30,14 @@ Last updated: 2025-10-15 (post Entry Route + SW registration pass)
 - Mode modules split:
     - Screensaver: `public/screensaver/screensaver.js`, `public/screensaver/screensaver.css`
     - Wallart: `public/wallart/wallart-display.js`, `public/wallart/wallart.css`
-- Server asset stamping wired for `core.js`, `wallart/wallart-display.js(.css)`, `screensaver/screensaver.js(.css)`
+    - Screensaver extraction finalized: timers/transitions/rotation moved; `/screensaver` no longer includes `script.js`.
+- Server asset stamping wired for `core.js`, `wallart/wallart-display.js(.css)`, `screensaver/screensaver.js(.css)` and preview assets.
 - Unified auto-exit/navigation via `Core.startAutoExitPoll` with subpath-safe behavior
 - Basic tests:
     - Route tests for `/cinema`, `/wallart`, `/screensaver` (200 + HTML content-type)
     - URL building tests for `buildUrlForMode()` and navigation regression (`navigateToMode` leading slash)
     - Route tests assert stamped, per-mode assets are referenced for all three pages
+    - Preview route tests for `/preview-wallart` and `/preview-screensaver` assert stamped assets and no legacy `script.js` includes (also validates `.html` aliases)
     - Navigation regression test added after wallart→cinema missing-slash bug (commit: fix(navigation) + test)
 
 - Wallart page bootstrap (no legacy orchestrator):
@@ -44,22 +48,14 @@ Last updated: 2025-10-15 (post Entry Route + SW registration pass)
 
 - Screensaver stability:
     - Modular fallback implements rotation (fade/slide/Ken Burns) and uses multiple queue items
-    - Page prefers legacy `script.js` orchestrator for now to preserve full behavior and logs; module is retained as fallback
+    - Note: Cinema still relies on legacy `script.js` (for now) to preserve behavior/logs; migration tracked under Open TODOs
 
 - Index/landing cleanup (first pass):
     - Removed index auto-redirect and legacy inline wallart CSS (kept landing minimal)
 
-## Open TODOs (organized by priority)
+## Open TODOs (organized by priority) 🔜
 
 P1 — Core refactor completion (highest impact)
-
-1. Screensaver extraction (no legacy bleed)
-
-- [x] Move remaining logic from `public/script.js` (slideshow timers, Ken Burns, source switching) into `public/screensaver/screensaver.js`
-- [x] Remove `script.js` include from `/screensaver` once feature parity is verified
-- [x] Port any mode-specific styles out of global CSS (audit `style.css` for screensaver/wallart/cinema selectors)
-    - Note: residual base styles remain in `style.css` intentionally (shared loader, base layout) — mode-specific CSS is now `screensaver/screensaver.css`.
-    - Regression guard: `/screensaver` HTML must not contain `script.js`; tests added/extended.
 
 2. Entry route decision for `/`
 
@@ -68,18 +64,21 @@ P1 — Core refactor completion (highest impact)
 3. Service worker consistency
 
 - [x] Centralize registration via `core.js` (auto-registers on pages that include `core.js`: cinema, wallart, screensaver). Existing per-page registration (admin, index) remains for redundancy. Minimal unit test added.
-- [ ] Test cache-busting and update flow when switching modes (add integration test that navigates across modes and asserts controllerchange/update flow)
+- [x] Test cache-busting and update flow: added integration-lite test simulating controllerchange; core now listens for `controllerchange` and triggers a throttled reload. Registration prefers stamped `window.__swUrl` when provided.
 
 P2 — Isolation, previews, and tests
 
 4. Admin preview isolation
 
-- [ ] Add `preview-wallart.html/js/css` and `preview-screensaver.html/js/css` (or document why not needed)
+- [x] Add `preview-wallart.html/js/css` and `preview-screensaver.html/js/css`
+- [x] Add server stamping routes for `/preview-wallart` and `/preview-screensaver`
+- [x] Add preview route tests (stamped assets, no legacy `script.js`, .html aliases)
 - [ ] Audit/fix selector bleed (prefer classes over IDs)
 
 5. Tests expansion
 
-- [ ] 1–2 preview isolation tests to prevent CSS bleed
+- [x] Preview route tests added
+- [ ] 1–2 CSS isolation tests to prevent selector bleed
 - [ ] Wallart unit tests: pause/resume halts refresh; `__posterramaPlayback` hooks trigger immediate refresh
 
 6. Logging and metrics alignment
@@ -95,9 +94,10 @@ P3 — Cleanup and docs
 - [x] Remove blanket no-empty disables; annotate individual sites
 - [x] public/script.js: empty catches annotated (done)
 - [x] public/admin.js: empty catches annotated (done)
+- [x] Previews formatted and linted; server preview stamping formatted and annotated
 - [ ] Audit remaining `POSTERRAMA_DEBUG` gating for potential dead code
-- [ ] After screensaver extraction: trim unused from `script.js`; delete file
-- [ ] Run `npm run lint:fix` and manually resolve leftovers (post-extraction)
+- [ ] Cinema migration off `script.js`
+- [ ] After cinema migration: delete `public/script.js` and references; run `npm run lint:fix`
 
 8. Docs
 
@@ -121,13 +121,15 @@ Phase 1 — Screensaver extraction (2–3 days)
 
 Phase 2 — Admin preview isolation (1–2 days)
 
-- Add dedicated preview pages (or document why avoided); ensure no selector bleed
-- Wire to existing assets with stamped URLs; simple smoke test per preview
+- Add dedicated preview pages; ensure no selector bleed
+- Wire to existing assets with stamped URLs; smoke test per preview
+- Status: routes + assets + basic tests completed
 
 Phase 3 — Service worker consistency (1 day)
 
 - Centralize registration via `core.js` or per-page with stamping
 - Verify update flow and cache-busting during mode switches
+- Status: completed (controllerchange handling + tests green)
 
 Phase 4 — Cleanup and docs (1–2 days)
 

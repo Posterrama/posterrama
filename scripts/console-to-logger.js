@@ -49,7 +49,7 @@ function replaceConsoleWithLogger(filePath) {
 }
 
 // Files to process
-const filesToProcess = ['public/admin.js', 'public/script.js', 'public/sw.js'];
+const filesToProcess = ['public/admin.js', 'public/sw.js'];
 
 console.log('🔄 Replacing console.log with logger.debug...\n');
 

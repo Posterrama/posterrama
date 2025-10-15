@@ -1,159 +1,182 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
-# Author: Posterrama Team
+# 🚀 Posterrama LXC Installer for Proxmox
 # License: MIT
-# Source: https://github.com/Posterrama/posterrama
+# Author: Mark Frelink
+
+set -e
 
 APP="Posterrama"
-var_tags="${var_tags:-media;plex;jellyfin;screensaver}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-2048}"
-var_disk="${var_disk:-8}"
-var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
-var_unprivileged="${var_unprivileged:-1}"
 
-header_info "$APP"
-variables
-color
-catch_errors
+# ===== Functies =====
+msg() { echo -e "\e[1;34m$1\e[0m"; }
+error() { echo -e "\e[1;31m$1\e[0m"; exit 1; }
+prompt() { read -rp "$1" input; echo "${input}"; }
 
-function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
-  if [[ ! -d /opt/posterrama ]]; then
-    msg_error "No ${APP} Installation Found!"
-    exit
-  fi
+# ===== Detect next available CTID =====
+next_ctid=$(pct list | awk 'NR>1 {print $1}' | sort -n | tail -n1)
+next_ctid=$((next_ctid + 1))
 
-  if check_for_gh_release "posterrama" "Posterrama/posterrama"; then
-    msg_info "Stopping Service"
-    systemctl stop posterrama
-    msg_ok "Stopped Service"
+msg "=== 🚀 $APP LXC Installer ==="
+msg "Using next available CTID: $next_ctid"
 
-    msg_info "Creating Backup"
-    cp -r /opt/posterrama/config.json /opt/posterrama/config.json.bak
-    cp -r /opt/posterrama/.env /opt/posterrama/.env.bak
-    cp -r /opt/posterrama/devices.json /opt/posterrama/devices.json.bak 2>/dev/null || true
-    msg_ok "Backup Created"
+# ===== User input =====
+# Wachtwoord check
+while true; do
+    read -rsp "Root Password (min 5 characters): " rootpw1; echo
+    read -rsp "Repeat Root Password: " rootpw2; echo
+    if [[ ${#rootpw1} -lt 5 ]]; then
+        echo "⚠️ Password must be at least 5 characters."
+        continue
+    fi
+    [[ "$rootpw1" == "$rootpw2" ]] && break || echo "⚠️ Passwords do not match, try again."
+done
 
-    msg_info "Updating Posterrama"
-    cd /opt/posterrama
-    git fetch origin
-    LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
-    git checkout $LATEST_TAG
-    $STD npm ci --omit=dev
-    msg_ok "Updated Posterrama to $LATEST_TAG"
+hostname=$(prompt "Hostname [posterrama]: ")
+hostname=${hostname:-posterrama}
 
-    msg_info "Restoring Configuration"
-    mv /opt/posterrama/config.json.bak /opt/posterrama/config.json
-    mv /opt/posterrama/.env.bak /opt/posterrama/.env
-    [[ -f /opt/posterrama/devices.json.bak ]] && mv /opt/posterrama/devices.json.bak /opt/posterrama/devices.json
-    msg_ok "Configuration Restored"
+# Disk size check
+while true; do
+    disk_size=$(prompt "Disk Size (GB, 4-50) [10]: ")
+    disk_size=${disk_size:-10}
+    if ! [[ "$disk_size" =~ ^[0-9]+$ ]]; then
+        echo "⚠️ Please enter a numeric value."
+        continue
+    fi
+    if (( disk_size < 4 || disk_size > 50 )); then
+        echo "⚠️ Disk size must be between 4 and 50 GB."
+        continue
+    fi
+    break
+done
 
-    msg_info "Starting Service"
-    systemctl start posterrama
-    msg_ok "Started Service"
+# CPU cores check
+while true; do
+    cpu_cores=$(prompt "CPU Cores (1-4) [2]: ")
+    cpu_cores=${cpu_cores:-2}
+    if ! [[ "$cpu_cores" =~ ^[0-9]+$ ]] || (( cpu_cores < 1 || cpu_cores > 4 )); then
+        echo "⚠️ CPU cores must be a number between 1 and 4."
+        continue
+    fi
+    break
+done
 
-    msg_ok "Update Successfully!"
-  fi
-  exit
-}
+# RAM size check
+while true; do
+    ram_size=$(prompt "RAM Size (MB, 1024-8192) [2048]: ")
+    ram_size=${ram_size:-2048}
+    if ! [[ "$ram_size" =~ ^[0-9]+$ ]] || (( ram_size < 1024 || ram_size > 8192 )); then
+        echo "⚠️ RAM must be a number between 1024 and 8192 MB."
+        continue
+    fi
+    break
+done
 
-start
-build_container
-description
+bridge=$(prompt "Bridge [vmbr0]: ")
+bridge=${bridge:-vmbr0}
 
-msg_info "Setting Up Container OS"
-$STD apt-get update
-$STD apt-get install -y \
-  curl \
-  git \
-  sudo \
-  mc
-msg_ok "Set Up Container OS"
+ipv4=$(prompt "IPv4 [dhcp]: ")
+ipv4=${ipv4:-dhcp}
 
-msg_info "Installing Node.js"
-NODE_VERSION="22" NODE_MODULE="npm" setup_nodejs
-msg_ok "Installed Node.js"
+ssh_access="yes"
+msg "🔑 Root SSH access will be enabled automatically."
 
-msg_info "Installing Posterrama"
-cd /opt
-RELEASE=$(curl -s https://api.github.com/repos/Posterrama/posterrama/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-$STD git clone --depth 1 --branch ${RELEASE} https://github.com/Posterrama/posterrama.git
-cd /opt/posterrama
-$STD npm ci --omit=dev
-msg_ok "Installed Posterrama ${RELEASE}"
+# ===== List available storages =====
+msg "\n📦 Available storages:"
+mapfile -t storages < <(pvesm status | awk 'NR>1 {print $1}')
+mapfile -t types < <(pvesm status | awk 'NR>1 {print $2}')
+mapfile -t frees < <(pvesm status | awk 'NR>1 {print $6}')
 
-msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/posterrama.service
-[Unit]
-Description=Posterrama Digital Movie Poster App
-After=network.target
+for i in "${!storages[@]}"; do
+    printf "%d.) %s (%s) Free: %sMB\n" "$((i+1))" "${storages[$i]}" "${types[$i]}" "${frees[$i]}"
+done
 
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/posterrama
-ExecStart=/usr/bin/node /opt/posterrama/server.js
-Restart=always
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
-Environment=NODE_ENV=production
-Environment=PORT=4000
+# Storage selecties (fooproof)
+while true; do
+    read -rp "Select storage for template (number): " tmpl_storage_num
+    if ! [[ "$tmpl_storage_num" =~ ^[0-9]+$ ]] || (( tmpl_storage_num < 1 || tmpl_storage_num > ${#storages[@]} )); then
+        echo "⚠️ Invalid selection. Try again."
+        continue
+    fi
+    tmpl_storage="${storages[$((tmpl_storage_num-1))]}"
+    break
+done
 
-[Install]
-WantedBy=multi-user.target
-EOF
+while true; do
+    read -rp "Select storage for container rootfs (number): " rootfs_storage_num
+    if ! [[ "$rootfs_storage_num" =~ ^[0-9]+$ ]] || (( rootfs_storage_num < 1 || rootfs_storage_num > ${#storages[@]} )); then
+        echo "⚠️ Invalid selection. Try again."
+        continue
+    fi
+    rootfs_storage="${storages[$((rootfs_storage_num-1))]}"
+    break
+done
 
-systemctl enable --now posterrama.service
-msg_ok "Created Service"
+# ===== Select latest Debian 13 template =====
+msg "\n🔍 Selecting latest Debian 13 template from $tmpl_storage..."
+tmpl_list=($(pveam list $tmpl_storage | awk 'NR>1 && /debian-13-standard/ {print $1}'))
+tmpl="${tmpl_list[-1]}"
 
-msg_info "Creating Initial Configuration"
-cat <<EOF >/opt/posterrama/.env
-NODE_ENV=production
-PORT=4000
-SESSION_SECRET=$(openssl rand -base64 32)
-EOF
+# Download template if not present
+if [[ -z "$tmpl" ]]; then
+    msg "⬇️ Template not found locally. Updating template list and downloading..."
+    pveam update
+    tmpl_list=($(pveam list $tmpl_storage | awk 'NR>1 && /debian-13-standard/ {print $1}'))
+    tmpl="${tmpl_list[-1]}"
+    if [[ -z "$tmpl" ]]; then
+        error "No Debian 13 templates found in storage $tmpl_storage."
+    fi
+    pveam download "$tmpl_storage" "$tmpl"
+fi
+msg "Using template: $tmpl"
 
-cat <<EOF >/opt/posterrama/config.json
-{
-  "sources": {
-    "plex": {
-      "enabled": false,
-      "serverUrl": "",
-      "token": ""
-    },
-    "jellyfin": {
-      "enabled": false,
-      "serverUrl": "",
-      "apiKey": "",
-      "userId": ""
-    },
-    "tmdb": {
-      "enabled": false,
-      "apiKey": ""
-    }
-  },
-  "display": {
-    "transitionIntervalSeconds": 10,
-    "transitionEffect": "fade"
-  }
-}
-EOF
-msg_ok "Created Initial Configuration"
+# ===== Create container =====
+msg "\n🧱 Creating container $next_ctid ..."
+pct create "$next_ctid" "$tmpl" \
+    --hostname "$hostname" \
+    --cores "$cpu_cores" \
+    --memory "$ram_size" \
+    --net0 name=eth0,bridge="$bridge",ip="$ipv4" \
+    --rootfs "$rootfs_storage":"$disk_size" \
+    --password "$rootpw1" \
+    --features nesting=1
 
-msg_info "Cleaning Up"
-$STD apt-get autoremove -y
-$STD apt-get autoclean -y
-msg_ok "Cleaned Up"
+# ===== Start container =====
+pct start "$next_ctid"
 
-msg_ok "Completed Successfully!\n"
-echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:4000${CL}"
-echo -e "${INFO}${YW} Complete setup in the admin panel:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:4000/admin.html${CL}"
+# ===== Wait until container is ready =====
+msg "🔍 Waiting for container $next_ctid to become ready..."
+spinner="/-\|"
+max_attempts=30
+attempt=0
+while ! pct exec "$next_ctid" -- true >/dev/null 2>&1; do
+    printf "\r⏳ Booting container... %s" "${spinner:attempt%4:1}"
+    sleep 2
+    ((attempt++))
+    if [ $attempt -gt $max_attempts ]; then
+        echo
+        error "Container $next_ctid did not become ready in time."
+    fi
+done
+echo
+msg "✅ Container $next_ctid is up and running."
+
+# ===== Enable SSH access =====
+pct exec "$next_ctid" -- bash -c "mkdir -p /root/.ssh && chmod 700 /root/.ssh"
+if [[ -f "$HOME/.ssh/id_rsa.pub" ]]; then
+    pct push "$next_ctid" "$HOME/.ssh/id_rsa.pub" /root/.ssh/authorized_keys
+    pct exec "$next_ctid" -- chmod 600 /root/.ssh/authorized_keys
+    msg "🔑 SSH key added to container root"
+fi
+
+# ===== Basic system prep (update, upgrade, install curl) =====
+msg "📦 Updating and installing curl inside container..."
+pct exec "$next_ctid" -- bash -c "apt update && apt upgrade -y && apt install -y curl"
+
+# ===== Install Posterrama =====
+msg "📦 Installing $APP inside container..."
+pct exec "$next_ctid" -- bash -c "curl -fsSL https://raw.githubusercontent.com/Posterrama/posterrama/main/install.sh | bash"
+
+# ===== Show Posterrama access =====
+msg() { echo -e "\e[1;34m$1\e[0m"; }
+ct_ip=$(pct exec "$next_ctid" -- hostname -I | awk '{print $1}')
+msg "🌐 You can access Posterrama at: http://$ct_ip:4000"

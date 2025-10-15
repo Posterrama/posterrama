@@ -79,7 +79,7 @@ function removeConsoleLogs(filePath) {
 }
 
 // Files to process
-const filesToProcess = ['public/admin.js', 'public/script.js', 'public/sw.js'];
+const filesToProcess = ['public/admin.js', 'public/sw.js'];
 
 console.log('🧹 Smart console.log removal starting...\n');
 

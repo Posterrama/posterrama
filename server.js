@@ -57,7 +57,6 @@ function getAssetVersions() {
     const now = Date.now();
     if (now - lastVersionCheck > VERSION_CACHE_TTL) {
         const criticalAssets = [
-            'script.js',
             'core.js',
             'admin.js',
             'style.css',
@@ -68,6 +67,7 @@ function getAssetVersions() {
             // Cinema display assets (used on /cinema)
             'cinema/cinema-display.js',
             'cinema/cinema-display.css',
+            'cinema/cinema-bootstrap.js',
             'preview-cinema.js',
             'preview-cinema.css',
             'logs.js',
@@ -78,6 +78,11 @@ function getAssetVersions() {
             'device-mgmt.js',
             'lazy-loading.js',
             'notify.js',
+            // Preview assets
+            'preview-wallart.js',
+            'preview-wallart.css',
+            'preview-screensaver.js',
+            'preview-screensaver.css',
             // Screensaver assets
             'screensaver/screensaver.js',
             'screensaver/screensaver.css',
@@ -1120,10 +1125,6 @@ app.get('/preview', (req, res) => {
             const stamped = raw
                 .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
                 .replace(
-                    /script\.js\?v=[^"&\s]+/g,
-                    `script.js?v=${versions['script.js'] || ASSET_VERSION}`
-                )
-                .replace(
                     /style\.css\?v=[^"&\s]+/g,
                     `style.css?v=${versions['style.css'] || ASSET_VERSION}`
                 )
@@ -1150,8 +1151,120 @@ app.get('/preview', (req, res) => {
     // Fallback minimal HTML (should not be used in normal installs)
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(
-        `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Posterrama Preview</title><link rel="stylesheet" href="/style.css?v=${ASSET_VERSION}"><style>body{background:#000;color:#fff}</style></head><body><div id="layer-a" class="screensaver-layer"></div><div id="layer-b" class="screensaver-layer"></div><div id="clock-widget-container"><div id="time-widget"><span id="time-hours">00</span><span id="time-separator">:</span><span id="time-minutes">00</span></div></div><div id="clearlogo-container"><img id="clearlogo" alt="ClearLogo"/></div><div id="info-container"><div id="poster-wrapper"><a id="poster-link" href="#" target="_blank" rel="noopener noreferrer"><div id="poster-a" class="poster-layer"></div><div id="poster-b" class="poster-layer"></div><div id="poster"></div></a></div><div id="text-wrapper"><h1 id="title"></h1><p id="tagline"></p><div id="meta-info"><span id="year"></span><span id="rating"></span></div></div></div><div id="controls-container" style="display:none"></div><div id="branding-container" style="display:none"></div><script>window.IS_PREVIEW=true;</script><script src="/script.js?v=${ASSET_VERSION}"></script></body></html>`
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Posterrama Preview</title><link rel="stylesheet" href="/style.css?v=${ASSET_VERSION}"><style>body{background:#000;color:#fff}</style></head><body><div id="layer-a" class="screensaver-layer"></div><div id="layer-b" class="screensaver-layer"></div><div id="clock-widget-container"><div id="time-widget"><span id="time-hours">00</span><span id="time-separator">:</span><span id="time-minutes">00</span></div></div><div id="clearlogo-container"><img id="clearlogo" alt="ClearLogo"/></div><div id="info-container"><div id="poster-wrapper"><a id="poster-link" href="#" target="_blank" rel="noopener noreferrer"><div id="poster-a" class="poster-layer"></div><div id="poster-b" class="poster-layer"></div><div id="poster"></div></a></div><div id="text-wrapper"><h1 id="title"></h1><p id="tagline"></p><div id="meta-info"><span id="year"></span><span id="rating"></span></div></div></div><div id="controls-container" style="display:none"></div><div id="branding-container" style="display:none"></div><script>window.IS_PREVIEW=true;/* legacy orchestrator removed */</script></body></html>`
     );
+});
+
+// Dedicated preview pages for isolated mode testing (wallart/screensaver)
+app.get(['/preview-wallart', '/preview-wallart.html'], (req, res) => {
+    try {
+        const filePath = path.join(__dirname, 'public', 'preview-wallart.html');
+        if (fs.existsSync(filePath)) {
+            const raw = fs.readFileSync(filePath, 'utf8');
+            const versions = getAssetVersions();
+            const stamped = raw
+                .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
+                .replace(
+                    /\/style\.css\?v=[^"'\s>]+/g,
+                    `/style.css?v=${versions['style.css'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/wallart\/wallart\.css\?v=[^"'\s>]+/g,
+                    `/wallart/wallart.css?v=${versions['wallart/wallart.css'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/wallart\/wallart-display\.js\?v=[^"'\s>]+/g,
+                    `/wallart/wallart-display.js?v=${versions['wallart/wallart-display.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/preview-wallart\.js\?v=[^"'\s>]+/g,
+                    `/preview-wallart.js?v=${versions['preview-wallart.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/preview-wallart\.css\?v=[^"'\s>]+/g,
+                    `/preview-wallart.css?v=${versions['preview-wallart.css'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
+                    `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/core\.js(\?v=[^"'\s>]+)?/g,
+                    `/core.js?v=${versions['core.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/manifest\.json(\?v=[^"'\s>]+)?/g,
+                    `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/sw\.js(\?v=[^"'\s>]+)?/g,
+                    `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`
+                );
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            return res.send(stamped);
+        }
+    } catch (_) {
+        // non-fatal: serve 404 below
+    }
+    return res.status(404).send('Preview not available');
+});
+
+app.get(['/preview-screensaver', '/preview-screensaver.html'], (req, res) => {
+    try {
+        const filePath = path.join(__dirname, 'public', 'preview-screensaver.html');
+        if (fs.existsSync(filePath)) {
+            const raw = fs.readFileSync(filePath, 'utf8');
+            const versions = getAssetVersions();
+            const stamped = raw
+                .replace(/\{\{ASSET_VERSION\}\}\//g, ASSET_VERSION)
+                .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
+                .replace(
+                    /\/style\.css\?v=[^"'\s>]+/g,
+                    `/style.css?v=${versions['style.css'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/screensaver\/screensaver\.css\?v=[^"'\s>]+/g,
+                    `/screensaver/screensaver.css?v=${versions['screensaver/screensaver.css'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/screensaver\/screensaver\.js\?v=[^"'\s>]+/g,
+                    `/screensaver/screensaver.js?v=${versions['screensaver/screensaver.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/preview-screensaver\.js\?v=[^"'\s>]+/g,
+                    `/preview-screensaver.js?v=${versions['preview-screensaver.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/preview-screensaver\.css\?v=[^"'\s>]+/g,
+                    `/preview-screensaver.css?v=${versions['preview-screensaver.css'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
+                    `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/core\.js(\?v=[^"'\s>]+)?/g,
+                    `/core.js?v=${versions['core.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/manifest\.json(\?v=[^"'\s>]+)?/g,
+                    `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/sw\.js(\?v=[^"'\s>]+)?/g,
+                    `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`
+                );
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            return res.send(stamped);
+        }
+    } catch (_) {
+        // non-fatal: serve 404 below
+    }
+    return res.status(404).send('Preview not available');
 });
 
 // Rate Limiting
@@ -1354,7 +1467,14 @@ app.get(['/admin', '/admin.html'], (req, res, next) => {
 app.get(['/', '/index.html'], (req, res, next) => {
     // Configurable root redirect for kiosk/signage
     try {
-        const cfg = require('./config.json');
+        // Read config fresh each request so admin changes apply without restart
+        let cfg = null;
+        try {
+            const rawCfg = fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8');
+            cfg = JSON.parse(rawCfg);
+        } catch (_) {
+            cfg = null; // fall through to landing if config can't be read
+        }
         const rr = cfg?.rootRoute || {};
         const behavior = rr.behavior || 'landing';
         const bypassParam = rr.bypassParam || 'landing';
@@ -1441,10 +1561,6 @@ app.get(['/', '/index.html'], (req, res, next) => {
         // Replace asset version placeholders with individual file versions
         const stamped = contents
             .replace(
-                /script\.js\?v=[^"&\s]+/g,
-                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
-            )
-            .replace(
                 /style\.css\?v=[^"&\s]+/g,
                 `style.css?v=${versions['style.css'] || ASSET_VERSION}`
             )
@@ -1495,70 +1611,7 @@ app.get(['/', '/index.html'], (req, res, next) => {
  */
 // Serve cinema.html with automatic asset versioning
 app.get(['/cinema', '/cinema.html'], (req, res, next) => {
-    try {
-        // If cinema mode is disabled, serve the main index.html directly to avoid external redirect loops
-        let currentConfig = null;
-        try {
-            const raw = fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8');
-            currentConfig = JSON.parse(raw);
-        } catch (_) {
-            currentConfig = null;
-        }
-        if (!currentConfig || currentConfig.cinemaMode !== true) {
-            // Serve the stamped index.html content (same stamping logic as '/') to ensure HTML content-type
-            const idxPath = path.join(__dirname, 'public', 'index.html');
-            try {
-                const contents = fs.readFileSync(idxPath, 'utf8');
-                const versions = getAssetVersions();
-                const stamped = contents
-                    .replace(
-                        /script\.js\?v=[^"&\s]+/g,
-                        `script.js?v=${versions['script.js'] || ASSET_VERSION}`
-                    )
-                    .replace(
-                        /style\.css\?v=[^"&\s]+/g,
-                        `style.css?v=${versions['style.css'] || ASSET_VERSION}`
-                    )
-                    .replace(
-                        /\/wallart\/wallart\.css(\?v=[^"'\s>]+)?/g,
-                        `/wallart/wallart.css?v=${versions['wallart/wallart.css'] || ASSET_VERSION}`
-                    )
-                    .replace(
-                        /device-mgmt\.js\?v=[^"&\s]+/g,
-                        `device-mgmt.js?v=${versions['device-mgmt.js'] || ASSET_VERSION}`
-                    )
-                    .replace(
-                        /lazy-loading\.js\?v=[^"&\s]+/g,
-                        `lazy-loading.js?v=${versions['lazy-loading.js'] || ASSET_VERSION}`
-                    )
-                    // Stamp client-side logger
-                    .replace(
-                        /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
-                        `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
-                    )
-                    // Stamp manifest
-                    .replace(
-                        /\/manifest\.json(\?v=[^"'\s>]+)?/g,
-                        `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
-                    )
-                    // Ensure service worker registration always fetches latest sw.js
-                    .replace(
-                        /\/sw\.js(\?v=[^"'\s>]+)?/g,
-                        `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`
-                    );
-
-                res.setHeader('Cache-Control', 'no-cache');
-                return res.send(stamped);
-            } catch (e) {
-                // If reading or stamping fails, fall back to sending the file
-                return res.status(200).sendFile(idxPath);
-            }
-        }
-    } catch (e) {
-        // On config read error, serve index.html as a safe fallback
-        const idxPath = path.join(__dirname, 'public', 'index.html');
-        return res.status(200).sendFile(idxPath);
-    }
+    // Always serve cinema.html; client-side guard will redirect to '/' if disabled
     // Log cinema display access (with same de-duplication as index)
     const isAdminAccess =
         req.headers.referer?.includes('/admin') ||
@@ -1603,11 +1656,7 @@ app.get(['/cinema', '/cinema.html'], (req, res, next) => {
         const versions = getAssetVersions();
 
         // Replace asset version placeholders with individual file versions
-        const stamped = contents
-            .replace(
-                /script\.js\?v=[^"&\s]+/g,
-                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
-            )
+        let stamped = contents
             .replace(
                 /style\.css\?v=[^"&\s]+/g,
                 `style.css?v=${versions['style.css'] || ASSET_VERSION}`
@@ -1638,6 +1687,10 @@ app.get(['/cinema', '/cinema.html'], (req, res, next) => {
                 /cinema\/cinema-display\.css\?v=[^"&\s]+/g,
                 `cinema/cinema-display.css?v=${versions['cinema/cinema-display.css'] || ASSET_VERSION}`
             )
+            .replace(
+                /\/cinema\/cinema-bootstrap\.js\?v=[^"'\s>]+/g,
+                `/cinema/cinema-bootstrap.js?v=${versions['cinema/cinema-bootstrap.js'] || ASSET_VERSION}`
+            )
             // Stamp client-side logger
             .replace(
                 /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
@@ -1650,6 +1703,14 @@ app.get(['/cinema', '/cinema.html'], (req, res, next) => {
             )
             // Ensure service worker registration always fetches latest sw.js
             .replace(/\/sw\.js(\?v=[^"'\s>]+)?/g, `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`);
+
+        // Ensure no legacy orchestrator include is present (migration complete)
+        stamped = stamped.replace(/<script[^>]*src=["']\/?script\.js[^>]*><\/script>\s*/g, '');
+        // Ensure MODE_HINT is present for cinema mode behaviors
+        stamped = stamped.replace(
+            /<script\s+src=["']cinema\/cinema-display\.js[^>]*><\/script>/,
+            match => `${match}\n<script>window.MODE_HINT = 'cinema';</script>`
+        );
 
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
         res.send(stamped);
@@ -1682,10 +1743,6 @@ app.get('/promo.html', (req, res, next) => {
         const versions = getAssetVersions();
 
         const stamped = contents
-            .replace(
-                /script\.js\?v=[^"&\s]+/g,
-                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
-            )
             .replace(
                 /style\.css\?v=[^"&\s]+/g,
                 `style.css?v=${versions['style.css'] || ASSET_VERSION}`
@@ -1764,10 +1821,6 @@ app.get(['/wallart', '/wallart.html'], (req, res, next) => {
 
         const versions = getAssetVersions();
         const stamped = contents
-            .replace(
-                /script\.js\?v=[^"&\s]+/g,
-                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
-            )
             .replace(
                 /style\.css\?v=[^"&\s]+/g,
                 `style.css?v=${versions['style.css'] || ASSET_VERSION}`
@@ -1877,10 +1930,6 @@ app.get(['/screensaver', '/screensaver.html'], (req, res, next) => {
         const versions = getAssetVersions();
         const stamped = contents
             .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
-            .replace(
-                /script\.js\?v=[^"&\s]+/g,
-                `script.js?v=${versions['script.js'] || ASSET_VERSION}`
-            )
             .replace(
                 /style\.css\?v=[^"&\s]+/g,
                 `style.css?v=${versions['style.css'] || ASSET_VERSION}`
@@ -1994,7 +2043,13 @@ app.get(
             }
 
             const entryKey = String(req.query.entry || '').toLowerCase();
-            const zipRel = String(req.query.zip || '').trim();
+            let zipRel = String(req.query.zip || '').trim();
+            // Be robust to percent-encoded query values
+            try {
+                if (/%[0-9A-Fa-f]{2}/.test(zipRel)) zipRel = decodeURIComponent(zipRel);
+            } catch (_) {
+                /* ignore decode issues; use raw */
+            }
 
             // Validate required parameters
             if (!zipRel || !entryKey) return res.status(400).send('Missing parameters');
@@ -2116,7 +2171,13 @@ app.head(
                 return res.sendStatus(404);
             }
             const entryKey = String(req.query.entry || '').toLowerCase();
-            const zipRel = String(req.query.zip || '').trim();
+            let zipRel = String(req.query.zip || '').trim();
+            // Be robust to percent-encoded query values
+            try {
+                if (/%[0-9A-Fa-f]{2}/.test(zipRel)) zipRel = decodeURIComponent(zipRel);
+            } catch (_) {
+                /* ignore decode issues; use raw */
+            }
 
             // Validate required parameters
             if (!zipRel || !entryKey) return res.sendStatus(400);

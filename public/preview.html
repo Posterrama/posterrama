@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Posterrama – Live Preview</title>
     <meta name="robots" content="noindex,nofollow" />
-    <link rel="preload" href="/script.js?v={{ASSET_VERSION}}" as="script" />
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Load main app styles so screensaver/wallart preview render correctly -->
     <link rel="stylesheet" href="/style.css?v={{ASSET_VERSION}}" />
@@ -64,11 +64,7 @@
     <div id="controls-container"></div>
     <div id="branding-container"></div>
 
-    <script>
-      // Signal to script.js that we're in preview mode
-      window.IS_PREVIEW = true;
-    </script>
-    <script src="/script.js?v={{ASSET_VERSION}}"></script>
+    
   <script>
     (function () {
       function loadCinemaAssets() {

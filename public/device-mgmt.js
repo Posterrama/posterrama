@@ -393,7 +393,7 @@
         let poweredOff;
         try {
             if (typeof window !== 'undefined') {
-                // Current media identifier exposed by script.js
+                // Current media identifier (legacy script.js used to expose this)
                 if (window.__posterramaCurrentMediaId != null)
                     mediaId = window.__posterramaCurrentMediaId;
                 // Pin state and the media it pinned (if available)
@@ -1233,7 +1233,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                             /* ignore sync handler errors */
                         }
                     } else if (msg.kind === 'apply-settings' && msg.payload) {
-                        // Apply partial settings live if script.js exposed applySettings
+                        // Apply partial settings live if a global applySettings is exposed (legacy support)
                         try {
                             if (typeof window.applySettings === 'function') {
                                 liveDbg('[Live] WS apply-settings received', {

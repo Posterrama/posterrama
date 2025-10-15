@@ -1,0 +1,7 @@
+/* Preview (Screensaver) scope */
+body.preview-page {
+    background: #000;
+}
+#branding-container {
+    display: none !important;
+}
