@@ -88,12 +88,17 @@ P2 — Isolation, previews, and tests
 - [x] Add `preview-wallart.html/js/css` and `preview-screensaver.html/js/css`
 - [x] Add server stamping routes for `/preview-wallart` and `/preview-screensaver`
 - [x] Add preview route tests (stamped assets, no legacy `script.js`, .html aliases)
-- [ ] Audit/fix selector bleed (prefer classes over IDs)
+- [x] Audit/fix selector bleed (prefer classes over IDs)
+    - Audit completed via CSS isolation tests
+    - Documented all shared IDs across modes (loader, poster, info-container, etc.)
+    - Verified preview shell uses separate pv-\* namespace
+    - Confirmed iframe isolation prevents CSS bleed
+    - Future refactor: consider mode-prefixed IDs (cinema-loader, wallart-loader) for stronger isolation
 
 5. Tests expansion
 
 - [x] Preview route tests added
-- [ ] 1–2 CSS isolation tests to prevent selector bleed
+- [x] CSS isolation tests (11 tests covering shared IDs, iframe isolation, mode scoping)
 - [ ] Wallart unit tests: pause/resume halts refresh; `__posterramaPlayback` hooks trigger immediate refresh
 
 6. Logging and metrics alignment
