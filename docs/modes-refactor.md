@@ -7,6 +7,8 @@
 
 Posterrama's display modes (Cinema, Wallart, Screensaver) are now fully isolated, self-contained pages with dedicated display modules. The legacy `script.js` orchestrator has been removed, and each mode loads only its required assets.
 
+**Index.html is now a pure landing shell** - all mode-specific DOM, logic, and controls have been moved to their respective mode pages (cinema.html, wallart.html, screensaver.html).
+
 ### Key Goals Achieved
 
 - **Isolation**: Each mode has its own HTML, CSS, and JS - no cross-contamination
@@ -14,6 +16,7 @@ Posterrama's display modes (Cinema, Wallart, Screensaver) are now fully isolated
 - **Preview Support**: Admin preview pages use iframes for proper isolation
 - **Service Worker**: Centralized registration with cache-busting and update handling
 - **Entry Route**: Configurable root behavior (landing page or redirect to active mode)
+- **Clean Landing**: index.html contains only PWA/meta tags and promo box (no mode markup)
 
 ## Architecture
 
@@ -21,7 +24,9 @@ Posterrama's display modes (Cinema, Wallart, Screensaver) are now fully isolated
 
 ```
 public/
-├── index.html                    # Landing page (root route)
+├── index.html                    # Landing page (root route) - PURE SHELL ONLY
+│                                 # Contains: PWA meta, promo box, loader
+│                                 # No mode DOM (no layers, controls, poster-wrapper)
 ├── cinema.html                   # Cinema mode page
 ├── wallart.html                  # Wallart mode page
 ├── screensaver.html              # Screensaver mode page
@@ -190,6 +195,34 @@ window.__posterramaPlayback = {
 - Layer-based transitions (layer-a ↔ layer-b)
 - Configurable duration and effects
 - Multiple items in queue for variety
+
+### Landing Page (index.html)
+
+**Status**: Pure marketing shell (as of Oct 2025)
+
+**Purpose**: PWA manifest, SEO metadata, promo box for mode selection
+
+**What it contains**:
+
+- `#loader` - Initial loading spinner
+- `#error-message` - Error display
+- `#promo-box` - Marketing content with mode selection buttons
+
+**What it does NOT contain**:
+
+- No mode-specific DOM (no layers, controls, poster-wrapper, clock widget)
+- No MODE_HINT detection logic
+- No wallart/cinema/screensaver markup
+- All mode DOM lives in dedicated mode pages
+
+**Behavior**:
+
+- Can serve as landing page (shows promo) OR
+- Redirect to active mode (via admin config: `rootRoute.behavior`)
+- landing.js handles promo display and loader hiding
+- No mode orchestration happens here
+
+**Migration Note**: Prior to Oct 2025, index.html contained screensaver layers, controls, and MODE_HINT logic. These were removed to achieve true isolation.
 
 ## Shared Utilities (core.js)
 
@@ -779,7 +812,7 @@ If you have customizations in old `script.js`:
 
 ### Known Limitations
 
-1. **Shared IDs**: All modes use same IDs (isolated by browsing context)
+1. ~~**Shared IDs**: All modes use same IDs (isolated by browsing context)~~ ✓ Resolved - each mode has dedicated HTML
 2. **No Hot Reload**: Dev requires manual refresh
 3. **Single Active SW**: Can't have multiple SW versions simultaneously
 4. **Config Polling**: 15s delay for auto-exit (by design)
@@ -793,6 +826,17 @@ If you have customizations in old `script.js`:
 - **Todo Tracker**: [modes-refactor-todo.md](./modes-refactor-todo.md)
 
 ## Changelog
+
+### 2025-10-15: Index.html Pure Landing Shell
+
+- ✅ Removed all mode-specific DOM from index.html
+    - Removed: screensaver layers, clock widget, ClearLogo, info container, controls, branding
+    - Removed: MODE_HINT class detection logic
+    - Result: 94 lines removed (314 → 220 lines)
+- ✅ index.html now contains only: loader, error-message, promo-box
+- ✅ Mode-specific markup lives exclusively in dedicated mode pages
+- ✅ landing.js unchanged (still targets #loader and #promo-box)
+- ✅ Tests pass, lint clean
 
 ### 2025-10-15: Modes Refactor Complete
 
