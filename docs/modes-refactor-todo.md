@@ -2,7 +2,7 @@
 
 Purpose: split each display mode into its own self-contained page (no duplication), keep index.html minimal, and unify navigation/preview flows.
 
-Last updated: 2025-10-15 (post Entry Route + SW registration + controllerchange handling + SW update test + preview routes/tests)
+Last updated: 2025-10-15 (post cinema spinner fix + script.js cleanup)
 
 ## Status snapshot (Oct 15)
 
@@ -12,6 +12,8 @@ Last updated: 2025-10-15 (post Entry Route + SW registration + controllerchange 
 - Entry Route behavior implemented: root (`/`) now serves landing or redirects per admin config; includes X-Forwarded-Prefix handling and tests.
 - Service Worker: centralized registration in `core.js`; controllerchange triggers throttled reload; stamped `sw.js` honored. Unit + integration-lite tests added.
 - Admin preview pages added: `/preview-wallart` and `/preview-screensaver` with stamped assets; isolation tests assert correct assets and absence of legacy orchestrator.
+- **Cinema spinner fix**: Added `cinema-bootstrap.js` to fetch initial media and dispatch `mediaUpdated` event; spinner now hides on load. SW precaches mode routes with path-based fallbacks.
+- **script.js cleanup**: Removed 6000+ lines of deprecated code with unclosed comment blocks; file now minimal (25 lines) and passes lint. Removed from `.eslintignore`.
 - Lint/test/security pipeline is green; coverage ~92% statements across repo.
 - Admin/UI cleanup: empty catch blocks annotated where needed; no-empty passes.
 
@@ -50,8 +52,21 @@ Last updated: 2025-10-15 (post Entry Route + SW registration + controllerchange 
     - Modular fallback implements rotation (fade/slide/Ken Burns) and uses multiple queue items
     - Note: Cinema still relies on legacy `script.js` (for now) to preserve behavior/logs; migration tracked under Open TODOs
 
+- Cinema bootstrap and spinner fix:
+    - Created `cinema-bootstrap.js` to fetch initial config and media
+    - Dispatches `mediaUpdated` event to trigger cinema-display.js
+    - Loader properly hidden after media loads
+    - Service Worker precaches `/cinema`, `/wallart`, `/screensaver` with path-based fallbacks
+
 - Index/landing cleanup (first pass):
     - Removed index auto-redirect and legacy inline wallart CSS (kept landing minimal)
+    - Landing.js scoped to root page only with multiple guards (never runs on mode routes)
+
+- script.js cleanup:
+    - Removed 6116 lines of deprecated code with unclosed comment block
+    - File reduced to minimal 25-line stub
+    - Passes `node -c` syntax validation
+    - Removed from `.eslintignore`; now fully linted
 
 ## Open TODOs (organized by priority) 🔜
 
