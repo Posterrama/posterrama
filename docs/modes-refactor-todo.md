@@ -50,23 +50,22 @@ Last updated: 2025-10-15 (post cinema spinner fix + script.js cleanup)
 
 - Screensaver stability:
     - Modular fallback implements rotation (fade/slide/Ken Burns) and uses multiple queue items
-    - Note: Cinema still relies on legacy `script.js` (for now) to preserve behavior/logs; migration tracked under Open TODOs
 
 - Cinema bootstrap and spinner fix:
     - Created `cinema-bootstrap.js` to fetch initial config and media
     - Dispatches `mediaUpdated` event to trigger cinema-display.js
     - Loader properly hidden after media loads
     - Service Worker precaches `/cinema`, `/wallart`, `/screensaver` with path-based fallbacks
+    - Cinema fully migrated off legacy orchestrator
 
 - Index/landing cleanup (first pass):
     - Removed index auto-redirect and legacy inline wallart CSS (kept landing minimal)
     - Landing.js scoped to root page only with multiple guards (never runs on mode routes)
 
-- script.js cleanup:
-    - Removed 6116 lines of deprecated code with unclosed comment block
-    - File reduced to minimal 25-line stub
-    - Passes `node -c` syntax validation
-    - Removed from `.eslintignore`; now fully linted
+- Legacy orchestrator removed:
+    - Deleted `public/script.js` (previously 6000+ lines of deprecated code)
+    - All modes now use dedicated display modules
+    - No runtime references to script.js remain
 
 ## Open TODOs (organized by priority) 🔜
 
@@ -119,10 +118,8 @@ P3 — Cleanup and docs
     - Audit complete: only used in screensaver.js and wallart-display.js as fallback when logger.isDebug() unavailable
     - Also set by client-logger.js based on localStorage('posterrama_debug')
     - No dead code found; pattern is intentional backwards-compat
-- [ ] Cinema migration off `script.js`
-- [ ] After cinema migration: delete `public/script.js` and references; run `npm run lint:fix`
-
-8. Docs
+- [x] Cinema migration off `script.js` (cinema already using cinema-display.js and cinema-bootstrap.js)
+- [x] Delete `public/script.js` and update references; run `npm run lint` ✓ passes8. Docs
 
 - [ ] Draft `docs/modes-refactor.md` with final structure, file map, troubleshooting
 - [ ] Include notes on proxies/subpaths, previews, and SW expectations
