@@ -2,7 +2,9 @@
 
 Purpose: split each display mode into its own self-contained page (no duplication), keep index.html minimal, and unify navigation/preview flows.
 
-Last updated: 2025-10-15 (post cinema spinner fix + script.js cleanup)
+**Status: ✅ COMPLETE** (2025-10-15)
+
+Last updated: 2025-10-15 (all tasks complete - legacy orchestrator removed, docs finalized)
 
 ## Status snapshot (Oct 15)
 
@@ -121,8 +123,23 @@ P3 — Cleanup and docs
 - [x] Cinema migration off `script.js` (cinema already using cinema-display.js and cinema-bootstrap.js)
 - [x] Delete `public/script.js` and update references; run `npm run lint` ✓ passes8. Docs
 
-- [ ] Draft `docs/modes-refactor.md` with final structure, file map, troubleshooting
-- [ ] Include notes on proxies/subpaths, previews, and SW expectations
+- [x] Draft `docs/modes-refactor.md` with final structure, file map, troubleshooting
+- [x] Include notes on proxies/subpaths, previews, and SW expectations
+    - Complete documentation covering:
+        - Architecture overview and file structure
+        - Route mapping and server implementation
+        - Mode-specific details (cinema, wallart, screensaver)
+        - Shared utilities (core.js)
+        - Service Worker strategy
+        - CSS isolation patterns
+        - Entry Route configuration
+        - Device management integration
+        - Admin preview system
+        - Subpath/reverse proxy support
+        - Testing guide
+        - Troubleshooting section
+        - Migration guide from legacy script.js
+        - Performance and security notes
 
 ## Acceptance criteria
 
