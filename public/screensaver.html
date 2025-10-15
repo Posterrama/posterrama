@@ -74,6 +74,8 @@
     <script src="/core.js?v={{ASSET_VERSION}}"></script>
     <script src="/screensaver/screensaver.js?v={{ASSET_VERSION}}"></script>
     <script>
+        // Hint for SW stamping: server stamps this path in routed responses
+        try { window.__swUrl = '/sw.js?v={{ASSET_VERSION}}'; } catch (e) {}
         (function () {
             async function ensureConfig() {
                 try {

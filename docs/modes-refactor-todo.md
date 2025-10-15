@@ -55,9 +55,11 @@ P1 — Core refactor completion (highest impact)
 
 1. Screensaver extraction (no legacy bleed)
 
-- [ ] Move remaining logic from `public/script.js` (slideshow timers, Ken Burns, source switching) into `public/screensaver/screensaver.js`
-- [ ] Remove `script.js` include from `/screensaver` once feature parity is verified
-- [ ] Port any mode-specific styles out of global CSS (audit `style.css` for screensaver/wallart/cinema selectors)
+- [x] Move remaining logic from `public/script.js` (slideshow timers, Ken Burns, source switching) into `public/screensaver/screensaver.js`
+- [x] Remove `script.js` include from `/screensaver` once feature parity is verified
+- [x] Port any mode-specific styles out of global CSS (audit `style.css` for screensaver/wallart/cinema selectors)
+    - Note: residual base styles remain in `style.css` intentionally (shared loader, base layout) — mode-specific CSS is now `screensaver/screensaver.css`.
+    - Regression guard: `/screensaver` HTML must not contain `script.js`; tests added/extended.
 
 2. Entry route decision for `/`
 

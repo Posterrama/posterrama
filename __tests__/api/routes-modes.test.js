@@ -29,6 +29,8 @@ describe('Mode routes', () => {
         expect(res.text).toMatch(/\/core\.js\?v=/);
         expect(res.text).toMatch(/wallart\/wallart-display\.js\?v=/);
         expect(res.text).toMatch(/wallart\/wallart\.css\?v=/);
+        // service worker registration should be stamped in HTML
+        expect(res.text).toMatch(/\/sw\.js\?v=/);
     });
 
     it('GET /screensaver returns HTML', async () => {
@@ -39,5 +41,9 @@ describe('Mode routes', () => {
         expect(res.text).toMatch(/\/core\.js\?v=/);
         expect(res.text).toMatch(/screensaver\/screensaver\.js\?v=/);
         expect(res.text).toMatch(/screensaver\/screensaver\.css\?v=/);
+        // no legacy orchestrator script on screensaver page
+        expect(res.text).not.toMatch(/script\.js\?v=/);
+        // service worker registration should be stamped in HTML
+        expect(res.text).toMatch(/\/sw\.js\?v=/);
     });
 });

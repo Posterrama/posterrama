@@ -153,8 +153,9 @@
         if ('serviceWorker' in navigator && !window.__swRegisteredViaCore) {
             window.addEventListener('load', () => {
                 try {
+                    const swUrl = window.__swUrl || '/sw.js';
                     navigator.serviceWorker
-                        .register('/sw.js')
+                        .register(swUrl)
                         .then(() => {
                             window.__swRegisteredViaCore = true;
                         })
