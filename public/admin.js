@@ -3827,7 +3827,7 @@
             try {
                 window.__forcePreviewUpdate && window.__forcePreviewUpdate();
             } catch (_) {
-                /* slider label init failed */
+                /* forcePreviewUpdate best-effort (preview will refresh on next interaction) */
             }
 
             // Save handler
@@ -3851,7 +3851,9 @@
                                       miniCache.delete('/api/admin/config|GET');
                                   if (typeof inflight?.delete === 'function')
                                       inflight.delete('/api/admin/config|GET');
-                              } catch (_) {}
+                              } catch (_) {
+                                  /* config cache invalidation best-effort (non-fatal) */
+                              }
                           })());
                     window.notify?.toast({
                         type: 'success',
@@ -4179,7 +4181,9 @@
                                 // Keep scale updated in case layout changed
                                 try {
                                     updateFrameScale();
-                                } catch (_) {}
+                                } catch (_) {
+                                    /* preview scale refresh failed (will retry on next frame) */
+                                }
                                 tryAnchor();
                             });
                         } else {
@@ -4788,14 +4792,18 @@
                 m.setAttribute('data-portal', 'true');
                 window.__ensureVisible?.(m, 'modal');
             }
-        } catch (_) {}
+        } catch (_) {
+            /* portal relocation after showOverlay failed (overlay remains visible) */
+        }
         // Focus first focusable element inside modal for accessibility
         try {
             const first = m.querySelector(
                 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
             );
             first?.focus?.();
-        } catch (_) {}
+        } catch (_) {
+            /* focus-first element not found (accessibility enhancement optional) */
+        }
     }
     // Unified overlay show helper (for legacy direct handlers using classList only)
     function __showOverlay(el, label = 'overlay') {
@@ -4848,7 +4856,7 @@
                                 hiddenAncestor
                             );
                         } catch (_) {
-                            /* jellyfin all-libs genre fallback failed (genres may be minimal) */
+                            /* portalize attempt failed; keep original parent */
                         }
                     }
                     // Retry measurement after potential portal
@@ -4874,11 +4882,11 @@
                                 );
                             }
                         } catch (_) {
-                            /* increment stopPropagation failed (harmless) */
+                            /* retry measurement failed (diagnostic only) */
                         }
                     });
                 } catch (_) {
-                    /* posterpack ratings/genres/qualities aggregate failed (filters limited) */
+                    /* hard sizing attempt failed (will remain at default sizing) */
                 }
             }
         } catch (e) {
@@ -4907,10 +4915,14 @@
     // Expose for external callers / guards
     try {
         if (!window.__showOverlay) window.__showOverlay = __showOverlay;
-    } catch (_) {}
+    } catch (_) {
+        /* expose __showOverlay best-effort (not critical) */
+    }
     try {
         // Removed legacy __ensureVisible exposure (debug helper) – no longer needed
-    } catch (_) {}
+    } catch (_) {
+        /* legacy __ensureVisible exposure intentionally disabled */
+    }
     try {
         window.forceModalPortal = function (id) {
             const el = document.getElementById(id);
@@ -4927,7 +4939,9 @@
                 // debug removed
             }
         };
-    } catch (_) {}
+    } catch (_) {
+        /* modal helpers exposure failed (optional) */
+    }
     function closeModal(id) {
         const m = document.getElementById(id);
         if (!m) return;
@@ -4969,7 +4983,9 @@
     try {
         window.openModal = openModal;
         window.closeModal = closeModal;
-    } catch (_) {}
+    } catch (_) {
+        /* exposing modal open/close helpers failed (non-critical) */
+    }
     // Global backdrop click handler (capture outside inner modal)
     document.addEventListener('click', e => {
         try {
@@ -4983,7 +4999,9 @@
                 const id = overlay.id;
                 if (id) closeModal(id);
             }
-        } catch (_) {}
+        } catch (_) {
+            /* backdrop click-to-close failed (ignored) */
+        }
     });
     async function confirmAction({
         title = 'Confirm',
@@ -5066,7 +5084,7 @@
                 try {
                     okBtn?.focus();
                 } catch (_) {
-                    /* overview counts retry scheduling failed (will update on manual action) */
+                    /* focus on OK button failed (accessibility enhancement optional) */
                 }
             }, 0);
             overlay.classList.add('open');
@@ -5076,7 +5094,9 @@
     // Expose confirmAction globally so section scripts (e.g., Cinema UI) can use the themed modal
     try {
         window.confirmAction = confirmAction;
-    } catch (_) {}
+    } catch (_) {
+        /* expose confirmAction is best-effort; ignore in hardened environments */
+    }
 
     function wireEvents() {
         // Prevent duplicate wiring (DOMContentLoaded + immediate call race)
@@ -5138,7 +5158,9 @@
                                 if (src.readyState === 2 /* CLOSED */) {
                                     try {
                                         src.close();
-                                    } catch (_) {}
+                                    } catch (_) {
+                                        /* best-effort: closing EventSource may fail in some browsers */
+                                    }
                                     if (window.__adminSSE === src) window.__adminSSE = null;
                                     if (!reconnectTimer) {
                                         reconnectTimer = setTimeout(() => {
@@ -5183,7 +5205,9 @@
                                             dt + 'ms',
                                             `(${list.length} devices)`
                                         );
-                                    } catch (_) {}
+                                    } catch (_) {
+                                        /* debug timing log is optional; proceed silently */
+                                    }
                                 }
                             } catch (_) {
                                 /* scheduled overview counts retry failed (will self-correct later) */
@@ -5990,12 +6014,12 @@
                             try {
                                 typeof closeMenu === 'function' && closeMenu();
                             } catch (_) {
-                                /* width bucket size sm failed (fallback default width) */
+                                /* closeMenu optional; ignore if unavailable */
                             }
                             try {
                                 typeof closeUserMenu === 'function' && closeUserMenu();
                             } catch (_) {
-                                /* applying offline devices metric shortcut failed (non-fatal) */
+                                /* closeUserMenu optional; ignore if unavailable */
                             }
                             // Force bypass TTL when the user explicitly opens the panel
                             // Resilient open: ensure panel opens even if refreshBadge fails
@@ -6030,7 +6054,9 @@
                                         );
                                         try {
                                             panel.classList.add('open');
-                                        } catch (_) {}
+                                        } catch (_) {
+                                            /* force-open class add failed; allow next cycle to retry */
+                                        }
                                     }
                                     // If computed style still hiding it, force critical visibility properties
                                     const cs = getComputedStyle(panel);
@@ -6094,7 +6120,7 @@
                         try {
                             refreshBadge();
                         } catch (_) {
-                            /* up button stopPropagation failed (no side effects) */
+                            /* best-effort refresh on tab visible; ignore errors */
                         }
                     }
                 });
@@ -6103,7 +6129,7 @@
                     try {
                         refreshBadge();
                     } catch (_) {
-                        /* offline devices metric shortcut navigation failed (benign) */
+                        /* best-effort refresh on pageshow; ignore errors */
                     }
                 });
 
@@ -6118,7 +6144,9 @@
                                 if (center || countEl) {
                                     try {
                                         refreshBadge();
-                                    } catch (_) {}
+                                    } catch (_) {
+                                        /* best-effort badge refresh; ignore transient failures */
+                                    }
                                 }
                             }, 300)
                         );
@@ -6220,7 +6248,9 @@
             // Initial paint so users see counts without clicking
             try {
                 refreshBadge();
-            } catch (_) {}
+            } catch (_) {
+                /* initial badge refresh failed (non-critical, will retry on timers) */
+            }
 
             // Refresh aggressively on network regain and window focus
             try {
@@ -6238,7 +6268,9 @@
                         /* bulk delete overlay rect/portal guard failed (fallback sizing applies) */
                     }
                 });
-            } catch (_) {}
+            } catch (_) {
+                /* event listener registration best-effort; ignore in non-window contexts */
+            }
         })();
 
         // User dropdown (Account)
@@ -7738,7 +7770,9 @@
                                         freshTabsRow2.appendChild(ra);
                                     }
                                     if (ra) rightActions = ra;
-                                } catch (_) {}
+                                } catch (_) {
+                                    /* header actions retry failed; will attempt again shortly */
+                                }
                                 mountSourceHeaderActions(val);
                             }, 50);
                             return;
@@ -7751,7 +7785,7 @@
                         others.forEach(n => rightActions && rightActions.appendChild(n));
                         mountedSource = val;
                     } catch (_) {
-                        /* ignore */
+                        /* mountSourceHeaderActions best-effort; non-fatal if it fails */
                     }
                 };
 
@@ -9058,13 +9092,17 @@
                             void icon.offsetWidth;
                             icon.classList.add('icon-spin-once');
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* suppressSwUpdateToasts flag update failed (non-critical) */
+                    }
                     await sendCommand(id, 'core.mgmt.reload');
                     // Keep hash neutral to avoid router reactions
                     try {
                         if (location.hash && location.hash !== '#devices')
                             location.hash = '#devices';
-                    } catch (_) {}
+                    } catch (_) {
+                        /* location hash normalization failed; safe to ignore */
+                    }
                     window.notify?.toast({
                         type: 'info',
                         title: 'Reload',
@@ -9075,13 +9113,17 @@
                     try {
                         e.preventDefault();
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* suppressSwUpdateToasts flag update failed (non-critical) */
+                    }
                     const id = card.getAttribute('data-id');
                     // Suppress SW update toasts briefly around action
                     try {
                         window.__suppressSwUpdateToasts = true;
                         setTimeout(() => (window.__suppressSwUpdateToasts = false), 8000);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* location hash normalization failed; safe to ignore */
+                    }
                     // broom sweep animation
                     try {
                         const icon = card.querySelector('.btn-clearcache i');
@@ -9090,13 +9132,17 @@
                             void icon.offsetWidth; // restart
                             icon.classList.add('broom-sweep');
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* UI debug log optional; continue */
+                    }
                     await sendCommand(id, 'core.mgmt.clearCache');
                     // Keep hash neutral to avoid router reactions
                     try {
                         if (location.hash && location.hash !== '#devices')
                             location.hash = '#devices';
-                    } catch (_) {}
+                    } catch (_) {
+                        /* UI debug log optional; continue */
+                    }
                     window.notify?.toast({
                         type: 'success',
                         title: 'Clear cache',
@@ -9107,18 +9153,24 @@
                     try {
                         e.preventDefault();
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* click guard failed; continue with pairing flow */
+                    }
                     const id = card.getAttribute('data-id');
                     try {
                         if (window.__uiDebug) console.info('[DevUI] btn-pair click', id);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* debug log optional; ignore */
+                    }
                     await openPairingFor([id]);
                 });
                 card.querySelector('.btn-remote')?.addEventListener('click', async e => {
                     try {
                         e.preventDefault();
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* click guard failed; continue with remote flow */
+                    }
                     const id = card.getAttribute('data-id');
                     openRemoteFor(id);
                 });
@@ -9126,7 +9178,9 @@
                     try {
                         e.preventDefault();
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* click guard failed; continue with override flow */
+                    }
                     const id = card.getAttribute('data-id');
                     openOverrideFor([id]);
                 });
@@ -9134,7 +9188,9 @@
                     try {
                         e.preventDefault();
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* click guard failed; continue with clear override flow */
+                    }
                     const id = card.getAttribute('data-id');
                     const proceed = await (async () => {
                         try {
@@ -9179,18 +9235,24 @@
                     try {
                         e.preventDefault();
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* click guard failed; continue with sendcmd flow */
+                    }
                     const id = card.getAttribute('data-id');
                     try {
                         if (window.__uiDebug) console.info('[DevUI] btn-sendcmd click', id);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* debug log optional; ignore */
+                    }
                     openSendCmdFor([id]);
                 });
                 card.querySelector('.btn-playpause')?.addEventListener('click', async e => {
                     try {
                         e.preventDefault();
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* click guard failed; continue with play/pause flow */
+                    }
                     const id = card.getAttribute('data-id');
                     const btn = card.querySelector('.btn-playpause');
                     const icon = btn?.querySelector('i');
@@ -9234,7 +9296,9 @@
                     try {
                         e.preventDefault();
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* click guard failed; continue with pin flow */
+                    }
                     const id = card.getAttribute('data-id');
                     const btn = card.querySelector('.btn-pin');
                     const icon = btn?.querySelector('i');
@@ -9292,7 +9356,9 @@
                     try {
                         e.preventDefault();
                         e.stopPropagation();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* click guard failed; continue with rename */
+                    }
                     startRename(card);
                 });
                 // per-card merge/group buttons removed; actions available via toolbar
@@ -9482,7 +9548,9 @@
                                 '[ModalDebug] merge rect',
                                 overlay.getBoundingClientRect().toJSON()
                             );
-                    } catch (_) {}
+                    } catch (_) {
+                        /* merge modal debug log optional; ignore */
+                    }
                 }
             }
             async function submitMerge() {
@@ -9528,13 +9596,17 @@
                     if (container._tickTimer) {
                         try {
                             clearInterval(container._tickTimer);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* clearInterval may throw if timer already cleared; ignore */
+                        }
                         container._tickTimer = null;
                     }
                     if (container._pairPollTimer) {
                         try {
                             clearInterval(container._pairPollTimer);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* clearInterval may throw if timer already cleared; ignore */
+                        }
                         container._pairPollTimer = null;
                     }
                 }
@@ -9702,7 +9774,9 @@
                     if (container._tickTimer) {
                         try {
                             clearInterval(container._tickTimer);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* clearInterval may throw if timer already cleared; ignore */
+                        }
                         container._tickTimer = null;
                     }
                     const tick = () => {
@@ -9772,13 +9846,17 @@
                         if (container && container._tickTimer) {
                             try {
                                 clearInterval(container._tickTimer);
-                            } catch (_) {}
+                            } catch (_) {
+                                /* clearInterval may throw if timer already cleared; ignore */
+                            }
                             container._tickTimer = null;
                         }
                         if (container && container._pairPollTimer) {
                             try {
                                 clearInterval(container._pairPollTimer);
-                            } catch (_) {}
+                            } catch (_) {
+                                /* clearInterval may throw if timer already cleared; ignore */
+                            }
                             container._pairPollTimer = null;
                         }
                         pairingOverlay.classList.add('fade-out');
@@ -9787,7 +9865,7 @@
                             pairingOverlay.classList.remove('fade-out');
                         }, 650);
                     } catch (_) {
-                        /* noop */
+                        /* pairing modal success close is best-effort; ignore */
                     }
                 }
 
@@ -9810,16 +9888,22 @@
                                 if (recentlyPaired && !codeStillMatches) {
                                     try {
                                         await loadDevices();
-                                    } catch (_) {}
+                                    } catch (_) {
+                                        /* load/refresh after pairing is best-effort; ignore */
+                                    }
                                     try {
                                         await refreshDevices();
-                                    } catch (_) {}
+                                    } catch (_) {
+                                        /* device refresh after pairing is best-effort; ignore */
+                                    }
                                     closePairingModalWithSuccess();
                                     // Stop polling after success
                                     if (container._pairPollTimer) {
                                         try {
                                             clearInterval(container._pairPollTimer);
-                                        } catch (_) {}
+                                        } catch (_) {
+                                            /* clearInterval may throw if timer already cleared; ignore */
+                                        }
                                         container._pairPollTimer = null;
                                     }
                                     return;
@@ -9868,13 +9952,17 @@
 
                                 btn.offsetHeight;
                                 btn.classList.add('pulse');
-                            } catch (_) {}
+                            } catch (_) {
+                                /* pulse feedback animation best-effort; ignore */
+                            }
                             if (key === 'playpause') {
                                 await sendCommand(targetId, 'playback.toggle');
                             } else {
                                 await sendCommand(targetId, 'remote.key', { key });
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* remote command send failed; UI already resilient */
+                        }
                     });
                     overlay._remoteBound = true;
                 }
@@ -9945,7 +10033,9 @@
                             ) {
                                 collected.push(dev.settingsOverride);
                             }
-                        } catch (_) {}
+                        } catch (_) {
+                            /* per-device overrides load best-effort; skip on failure */
+                        }
                     }
                     return collected;
                 }
@@ -15460,7 +15550,9 @@
                     jfEnabledInput.dataset.originalEnabled = jfEnabled ? 'true' : 'false';
                     try {
                         updateSourceSaveButtonLabel('jellyfin');
-                    } catch (_) {}
+                    } catch (_) {
+                        /* save button label update optional; ignore */
+                    }
                 }
                 const jfHostInput = document.getElementById('jf.hostname');
                 if (jfHostInput && jf.hostname) jfHostInput.value = jf.hostname;
@@ -15739,7 +15831,9 @@
                 const cb = getInput('plex.recentOnly');
                 const days = getInput('plex.recentDays');
                 if (days) days.disabled = !(cb && cb.checked);
-            } catch (_) {}
+            } catch (_) {
+                /* days enable/disable sync optional; ignore */
+            }
             // Plex ratings/qualities multiselects (theme-demo)
             try {
                 const ratingsCsv = Array.isArray(plex.ratingFilter)
@@ -15815,7 +15909,9 @@
             if (getInput('jf.enabled')) getInput('jf.enabled').checked = jfEnabled;
             try {
                 requestAnimationFrame(() => forceUpdateHeaderToggleText('jf.enabled'));
-            } catch (_) {}
+            } catch (_) {
+                /* header toggle text refresh optional; ignore */
+            }
             // Header pill for Jellyfin
             try {
                 const pill = document.getElementById('jf-status-pill-header');
@@ -15862,7 +15958,7 @@
                     }
                 }
             } catch (_) {
-                /* no-op */
+                /* header pill update optional; ignore */
             }
             // Legacy Jellyfin env host/port vars removed; rely on config values already loaded above.
             if (getInput('jf.hostname')) {
@@ -15942,7 +16038,9 @@
                     (env.JELLYFIN_INSECURE_HTTPS || '').toString().toLowerCase() === 'true';
                 if (headerTgl) headerTgl.checked = envFlag;
                 if (formCb) formCb.checked = envFlag;
-            } catch (_) {}
+            } catch (_) {
+                /* init insecure https flag optional; ignore */
+            }
             const jfRecentlyHeader = getInput('jf.recentOnlyHeader');
             if (jfRecentlyHeader) jfRecentlyHeader.checked = !!jf.recentlyAddedOnly;
             if (getInput('jf.recentDays'))
@@ -15952,7 +16050,9 @@
                 const cb = getInput('jf.recentOnly');
                 const days = getInput('jf.recentDays');
                 if (days) days.disabled = !(cb && cb.checked);
-            } catch (_) {}
+            } catch (_) {
+                /* sync days enablement optional; ignore */
+            }
             if (getInput('jf.yearFilter')) {
                 const v = jf.yearFilter;
                 getInput('jf.yearFilter').value = v == null ? '' : String(v);
@@ -15999,7 +16099,9 @@
             if (getInput('tmdb.enabled')) getInput('tmdb.enabled').checked = !!tmdb.enabled;
             try {
                 requestAnimationFrame(() => forceUpdateHeaderToggleText('tmdb.enabled'));
-            } catch (_) {}
+            } catch (_) {
+                /* requestAnimationFrame optional; ignore */
+            }
             // Header pill for TMDB
             try {
                 const pill = document.getElementById('tmdb-status-pill-header');
@@ -16022,7 +16124,7 @@
                     }
                 }
             } catch (_) {
-                /* no-op */
+                /* TMDB header pill update optional; ignore */
             }
             if (getInput('tmdb.apikey')) {
                 // Show masked value when an API key exists, or keep empty for user to fill
@@ -16141,7 +16243,9 @@
                     input.value = String(v);
                     try {
                         window.admin2?.enhanceNumberInput?.(input);
-                    } catch (_) {}
+                    } catch (_) {
+                        /* posterpack library populate optional; ignore */
+                    }
                 }
             })();
             if (getInput('tmdb.yearFilter')) {
@@ -16214,7 +16318,9 @@
                         input.value = String(v);
                         try {
                             window.admin2?.enhanceNumberInput?.(input);
-                        } catch (_) {}
+                        } catch (_) {
+                            /* optional enhancement of number input failed; ignore */
+                        }
                     }
                 })();
                 // Build provider multiselect options
@@ -16601,7 +16707,9 @@
                                 });
                             }
                         });
-                    } catch (_) {}
+                    } catch (_) {
+                        /* counts refresh optional; ignore */
+                    }
                     const movies = libs
                         .filter(l => l.type === 'movie')
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
@@ -16661,7 +16769,9 @@
                         if (srcSel && srcSel.value === 'plex') {
                             populatePosterpackLibraries('plex');
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* posterpack library populate optional; ignore */
+                    }
                     if (!silent) {
                         window.notify?.toast({
                             type: 'success',
@@ -16674,7 +16784,9 @@
                     // Immediately refresh counts to update the header pill
                     try {
                         refreshOverviewCounts();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* counts refresh optional; ignore */
+                    }
                     // Optionally refresh dependent filters now that libraries are known
                     if (window.__plexLibsRefreshRequested) {
                         try {
@@ -16734,7 +16846,9 @@
                     /* media sources section observer setup failed (fallback retries still run) */
                 }
             }, 600);
-        } catch (_) {}
+        } catch (_) {
+            /* auto-fetch init optional; ignore */
+        }
 
         // ------- Plex Genre Filter (chips with hidden input) -------
         function setPlexGenreFilterHidden(val) {
@@ -17232,7 +17346,9 @@
                         if (srcSel && srcSel.value === 'jellyfin') {
                             populatePosterpackLibraries('jellyfin');
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* posterpack library populate optional; ignore */
+                    }
                     if (!silent) {
                         window.notify?.toast({
                             type: 'success',
@@ -17244,12 +17360,16 @@
                     // Force recount after library data updates so totals reflect immediately
                     try {
                         refreshOverviewCounts();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* counts refresh optional; ignore */
+                    }
                     // Optionally refresh dependent filters now that libraries are known
                     try {
                         // Refresh overview item counts now that libraries are known (parity with Plex)
                         refreshOverviewCounts();
-                    } catch (_) {}
+                    } catch (_) {
+                        /* counts refresh optional; ignore */
+                    }
                     if (window.__jfLibsRefreshRequested) {
                         try {
                             loadJellyfinRatings?.(getJfHidden?.('jf.ratingFilter-hidden'));
@@ -17279,7 +17399,9 @@
                     // Post-fetch integrity safeguard
                     try {
                         ensureLibrarySelectionIntegrity('jellyfin');
-                    } catch (_) {}
+                    } catch (_) {
+                        /* integrity post-check failed (selections remain as-is) */
+                    }
                 }
             })();
             return window.__jfLibsInFlight;
@@ -18591,7 +18713,9 @@
                 el.value = val || '';
                 try {
                     el.dispatchEvent(new Event('change', { bubbles: true }));
-                } catch (_) {}
+                } catch (_) {
+                    /* change event dispatch optional; ignore */
+                }
             }
         }
         function getPlexHidden(id) {
@@ -19116,7 +19240,9 @@
                 // If baseline exists, reflect button label
                 try {
                     updateSourceSaveButtonLabel('local');
-                } catch (_) {}
+                } catch (_) {
+                    /* best-effort label sync; harmless if helper not available */
+                }
             } catch (_) {
                 /* plex port sanitization listener failed (user must input valid digits) */
             }
@@ -19354,7 +19480,9 @@
                 /* width bucket sizing heuristic failed (styling fallback) */
             }
         }
-    } catch (_) {}
+    } catch (_) {
+        /* optional eager wire-up; safe to skip on older browsers */
+    }
 
     async function refreshOperationsPanels() {
         try {
@@ -20254,7 +20382,9 @@ if (!document.__niwDelegatedFallback) {
                 // Ensure init is attempted
                 try {
                     window.admin2?.maybeInitLocalDirectoryOnOpen?.();
-                } catch (_) {}
+                } catch (_) {
+                    /* best-effort init; ignore if admin2 or method not available */
+                }
                 // If content remains the static placeholder, force a config load
                 setTimeout(() => {
                     try {
@@ -20265,7 +20395,9 @@ if (!document.__niwDelegatedFallback) {
                         if (!hasList && hasEmpty) {
                             loadLocalDirectoryConfig();
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* optional placeholder check; non-fatal if DOM not ready */
+                    }
                 }, 50);
             };
             const mo = new MutationObserver(() => checkAndInit());
@@ -20294,9 +20426,13 @@ if (!document.__niwDelegatedFallback) {
                         }
                     }, 40);
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* hash handling is optional; ignore transient errors */
+            }
         });
-    } catch (_) {}
+    } catch (_) {
+        /* observer wiring is optional and may fail in legacy contexts */
+    }
 
     function initFileDropZone() {
         // Quick Upload removed; only wire per-directory buttons/inputs
@@ -20329,7 +20465,9 @@ if (!document.__niwDelegatedFallback) {
             // Ensure selecting same file again will fire 'change'
             try {
                 fi.value = '';
-            } catch (_) {}
+            } catch (_) {
+                /* clearing input value can fail on some browsers; safe to ignore */
+            }
             // Fallback: clear opening state after a short delay in case no 'change' fires (cancel)
             const clearOpen = () => {
                 fi.__opening = false;
@@ -20343,7 +20481,9 @@ if (!document.__niwDelegatedFallback) {
                 // Reset so same file selection triggers change next time
                 try {
                     fi.value = '';
-                } catch (_) {}
+                } catch (_) {
+                    /* resetting input to allow same-file reselect; ignore if blocked */
+                }
                 fi.removeEventListener('change', onChange);
             };
             fi.addEventListener('change', onChange);
@@ -20541,7 +20681,9 @@ if (!document.__niwDelegatedFallback) {
                 initMsForSelect('pp-jf-ms-movies', 'pp-jf.movies');
                 initMsForSelect('pp-jf-ms-shows', 'pp-jf.shows');
             }
-        } catch (_) {}
+        } catch (_) {
+            /* multiselect init is cosmetic; ignore failures */
+        }
 
         // Clear completed jobs
         const clearJobsBtn = document.getElementById('btn-clear-completed-jobs');
@@ -20861,7 +21003,9 @@ if (!document.__niwDelegatedFallback) {
                     img.addEventListener('error', onError, { once: true });
                 }
             });
-        } catch (_) {}
+        } catch (_) {
+            /* icon thumb enhancer is optional; ignore errors */
+        }
     }
 
     function renderDirectoryContents(contents) {
@@ -20959,7 +21103,9 @@ if (!document.__niwDelegatedFallback) {
                         zipRel = abs.startsWith(base)
                             ? abs.slice(base.length).replace(/^\/+/, '')
                             : abs; // fallback: best-effort
-                    } catch (_) {}
+                    } catch (_) {
+                        /* compute relative zip path best-effort; fall back to absolute */
+                    }
                     const tUrl = `/local-posterpack?zip=${encodeURIComponent(zipRel)}&entry=thumbnail`;
                     // Render both a tiny img and a fallback icon; we hide the icon once the image loads
                     iconHtml = `
@@ -21054,7 +21200,9 @@ if (!document.__niwDelegatedFallback) {
                     img.addEventListener('error', onError, { once: true });
                 }
             });
-        } catch (_) {}
+        } catch (_) {
+            /* zip thumb enhancement optional; ignore errors */
+        }
 
         // Also update the Local header count by summing top-level directory itemCounts
         try {
@@ -21256,7 +21404,9 @@ if (!document.__niwDelegatedFallback) {
         try {
             const sourceSelect = document.getElementById('posterpack.source');
             if (sourceSelect) handleSourceSelection({ target: sourceSelect });
-        } catch (_) {}
+        } catch (_) {
+            /* posterpack visibility update is optional; ignore */
+        }
     }
 
     function scanDirectory() {
@@ -21430,7 +21580,9 @@ if (!document.__niwDelegatedFallback) {
                 if (!ok && typeof fetchPlexLibraries === 'function') {
                     await Promise.resolve(fetchPlexLibraries(false, true)).catch(() => {});
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* multiselect rebuild is optional */
+            }
             const mvSel =
                 typeof getMultiSelectValues === 'function'
                     ? getMultiSelectValues('pp-plex.movies')
@@ -21465,7 +21617,9 @@ if (!document.__niwDelegatedFallback) {
                 if (!ok && typeof fetchJellyfinLibraries === 'function') {
                     await Promise.resolve(fetchJellyfinLibraries(false, true)).catch(() => {});
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* jellyfin library map ensure optional; continue */
+            }
             const mvSel =
                 typeof getMultiSelectValues === 'function'
                     ? getMultiSelectValues('pp-jf.movies')
@@ -21597,8 +21751,12 @@ if (!document.__niwDelegatedFallback) {
                                     );
                                 }
                             })
-                            .catch(() => {});
-                    } catch (_) {}
+                            .catch(() => {
+                                /* local filter options load best-effort; UI can proceed */
+                            });
+                    } catch (_) {
+                        /* init local multiselects is cosmetic; continue */
+                    }
                 }
             }
         }
@@ -21631,7 +21789,9 @@ if (!document.__niwDelegatedFallback) {
                     initMsForSelect('pp-srv-ms-genres', 'pp-server.genres');
                     initMsForSelect('pp-srv-ms-qualities', 'pp-server.qualities');
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* init multiselects is optional */
+            }
             // Ensure Qualities (entire form-group) is visible for Plex
             try {
                 const qSel = document.getElementById('pp-server.qualities');
@@ -21642,16 +21802,22 @@ if (!document.__niwDelegatedFallback) {
                 }
                 const qRoot = document.getElementById('pp-srv-ms-qualities');
                 if (qRoot) qRoot.classList.remove('disabled');
-            } catch (_) {}
+            } catch (_) {
+                /* show qualities is cosmetic; ignore */
+            }
             try {
                 loadPosterpackServerFilterOptions().catch(() => {});
-            } catch (_) {}
+            } catch (_) {
+                /* server filter options are optional; ignore */
+            }
             // Proactively fetch Plex libraries using the main fetcher (reads config/inputs), then populate
             try {
                 Promise.resolve(fetchPlexLibraries(false, true)).finally(() => {
                     try {
                         populatePosterpackLibraries('plex');
-                    } catch (_) {}
+                    } catch (_) {
+                        /* populate fallback failed; another retry will occur */
+                    }
                 });
             } catch (_) {
                 populatePosterpackLibraries('plex');
@@ -21672,7 +21838,9 @@ if (!document.__niwDelegatedFallback) {
                             // Call with internal copy fallback via kind detection
                             try {
                                 populatePosterpackLibraries('plex');
-                            } catch (_) {}
+                            } catch (_) {
+                                /* last-resort populate is optional */
+                            }
                         }
                     }
                 } catch (_) {
@@ -21710,7 +21878,9 @@ if (!document.__niwDelegatedFallback) {
                     Array.from(qSel.options).forEach(o => (o.selected = false));
                     qSel.dispatchEvent(new Event('change', { bubbles: true }));
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* jellyfin libs populate hide/clear qualities is cosmetic */
+            }
             // Proactively fetch Jellyfin libraries using the main fetcher, then populate
             try {
                 Promise.resolve(fetchJellyfinLibraries(false, true)).finally(() => {
@@ -21767,7 +21937,9 @@ if (!document.__niwDelegatedFallback) {
                         jfMovieLibs = names.slice();
                         jfShowLibs = names.slice();
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* building jf movie/show lib name lists is optional */
+                }
 
                 // Prepare requests
                 const plexRatingsReq = window
@@ -21805,7 +21977,9 @@ if (!document.__niwDelegatedFallback) {
                                 credentials: 'include',
                             });
                             if (res3?.ok) return await res3.json().catch(() => ({}));
-                        } catch (_) {}
+                        } catch (_) {
+                            /* plain plex genres fallback failed; continue */
+                        }
                     } catch (_) {
                         /* preview update nudge failed (non-critical) */
                     }
@@ -21839,7 +22013,9 @@ if (!document.__niwDelegatedFallback) {
                                 credentials: 'include',
                             });
                             if (r2?.ok) return await r2.json().catch(() => ({}));
-                        } catch (_) {}
+                        } catch (_) {
+                            /* jellyfin all-genres fallback failed; continue */
+                        }
                         return null;
                     } catch (_) {
                         return null;
@@ -22018,11 +22194,15 @@ if (!document.__niwDelegatedFallback) {
                 } catch (_) {
                     /* wallart preset apply failed (user can adjust) */
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* posterpack local filters rebuild optional; ignore */
+            }
         })();
         try {
             await window.__ppLocalFiltersInFlight;
-        } catch (_) {}
+        } catch (_) {
+            /* awaiting local filters in-flight optional; ignore */
+        }
         window.__ppLocalFiltersInFlight = null;
     }
 
@@ -22054,7 +22234,9 @@ if (!document.__niwDelegatedFallback) {
                         return true;
                     }
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* toast guard optional; ignore */
+            }
             return false;
         };
         const toastNoLibsOnce = src => {
@@ -22068,7 +22250,9 @@ if (!document.__niwDelegatedFallback) {
                         'warning'
                     );
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* rebuild multiselect optional; ignore */
+            }
         };
         const fill = (selId, names) => {
             const sel = document.getElementById(selId);
@@ -22095,7 +22279,9 @@ if (!document.__niwDelegatedFallback) {
                     const msId = map[selId];
                     if (msId) rebuildMsForSelect(msId, selId);
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* rebuild multiselect for select optional */
+            }
         };
         const fetchAndFillPlex = async () => {
             try {
@@ -22182,7 +22368,7 @@ if (!document.__niwDelegatedFallback) {
                         }
                         return;
                     } catch (_) {
-                        /* persist CLEAR_SUPPRESS_KEY failed (badge may bounce) */
+                        /* plex libs main fetch fallback failed; continue */
                     }
                 }
                 if (counts && counts.size) {
@@ -22211,7 +22397,9 @@ if (!document.__niwDelegatedFallback) {
                     // As last resort, toast instead of mixing all into both lists
                     toastNoLibsOnce('Plex');
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* plex fetch-and-fill is best-effort */
+            }
         };
         const fetchAndFillJf = async () => {
             try {
@@ -22277,7 +22465,9 @@ if (!document.__niwDelegatedFallback) {
                             fill('pp-jf.shows', names2);
                         }
                         return;
-                    } catch (_) {}
+                    } catch (_) {
+                        /* build jf lib name arrays best-effort; continue */
+                    }
                 }
                 if (counts && counts.size) {
                     const movieNames = allNames.filter(
@@ -22309,7 +22499,9 @@ if (!document.__niwDelegatedFallback) {
                         toastNoLibsOnce('Jellyfin');
                     }
                 }
-            } catch (_) {}
+            } catch (_) {
+                /* jellyfin fetch-and-fill is best-effort */
+            }
         };
         if (kind === 'plex') fetchAndFillPlex();
         else if (kind === 'jellyfin') fetchAndFillJf();
@@ -22379,7 +22571,9 @@ if (!document.__niwDelegatedFallback) {
                     if (!jfMapOk && typeof fetchJellyfinLibraries === 'function') {
                         await Promise.resolve(fetchJellyfinLibraries(false, true)).catch(() => {});
                     }
-                } catch (_) {}
+                } catch (_) {
+                    /* jellyfin fetch-and-fill is best-effort */
+                }
 
                 // Gather selected Posterpack Jellyfin libraries if available, else fallback to discovered/all
                 const readSelected = id =>
@@ -22409,7 +22603,9 @@ if (!document.__niwDelegatedFallback) {
                             jfMovieLibs = names.slice();
                             jfShowLibs = names.slice();
                         }
-                    } catch (_) {}
+                    } catch (_) {
+                        /* jellyfin all-genres GET fallback failed; continue */
+                    }
                 }
 
                 const plexRatingsReq = window
@@ -22481,7 +22677,9 @@ if (!document.__niwDelegatedFallback) {
                                 credentials: 'include',
                             });
                             if (r2?.ok) return await r2.json().catch(() => ({}));
-                        } catch (_) {}
+                        } catch (_) {
+                            /* plain plex genres fallback failed; continue */
+                        }
                         return null;
                     } catch (_) {
                         return null;
@@ -22944,8 +23142,8 @@ if (!document.__niwDelegatedFallback) {
                     saveBtn && (saveBtn.dataset.restartRequired = 'true');
                     await window.triggerRestartAndPoll();
                 }
-            } catch (e) {
-                console.error('Local restart check error:', e);
+            } catch (_) {
+                /* restart trigger optional; ignore if helper unavailable */
             }
         } catch (error) {
             console.error('Save error:', error);
@@ -23054,7 +23252,9 @@ if (!document.__niwDelegatedFallback) {
                         try {
                             const sourceSelect = document.getElementById('posterpack.source');
                             if (sourceSelect) handleSourceSelection({ target: sourceSelect });
-                        } catch (_) {}
+                        } catch (_) {
+                            /* jellyfin all-genres fallback failed; continue */
+                        }
                     } else {
                         showNotification(
                             result.message || result.error || 'Delete failed',
@@ -23074,7 +23274,9 @@ if (!document.__niwDelegatedFallback) {
         window.deletePath = deletePath;
         window.deleteSelected = deleteSelected;
         window.createFolder = createFolder; // still disabled, but callable
-    } catch (_) {}
+    } catch (_) {
+        /* exposing helpers to window is optional */
+    }
 
     function clearCompletedJobs() {
         // Client-side cleanup only in maintenance mode
