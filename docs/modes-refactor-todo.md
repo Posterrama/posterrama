@@ -2,13 +2,14 @@
 
 Purpose: split each display mode into its own self-contained page (no duplication), keep index.html minimal, and unify navigation/preview flows.
 
-Last updated: 2025-10-15
+Last updated: 2025-10-15 (post Entry Route + SW registration pass)
 
 ## Status snapshot (Oct 15)
 
 - Routes/page split completed for all three modes; navigation normalization bug covered by tests and fixed.
 - Wallart is fully isolated (no legacy orchestrator); Screensaver still leans on legacy `script.js` for full behavior.
 - Core navigation/helpers live in `public/core.js` and are subpath-safe; stamped assets wired for all mode pages.
+- Entry Route behavior implemented: root (`/`) now serves landing or redirects per admin config; includes X-Forwarded-Prefix handling and tests.
 - Lint/test/security pipeline is green; coverage ~92% statements across repo.
 - Admin UI cleanup: all empty catch blocks in `public/admin.js` annotated; no-empty now passes (supports the refactor by reducing noise and risk while touching mode pages).
 
@@ -60,12 +61,12 @@ P1 — Core refactor completion (highest impact)
 
 2. Entry route decision for `/`
 
-- [ ] Decide: keep `/` as landing vs. 302 to `/screensaver` (server-side); implement chosen behavior
+- [x] Implemented: `/` behavior configurable via admin UI (landing or redirect to active mode). Server handles X-Forwarded-Prefix, sets no-store on redirects, and broadcasts client navigation on target change. Tests added for redirect behavior and WS broadcast.
 
 3. Service worker consistency
 
-- [ ] Register SW per page (or centralize via `core.js`) with stamped URL
-- [ ] Test cache-busting and update flow when switching modes
+- [x] Centralize registration via `core.js` (auto-registers on pages that include `core.js`: cinema, wallart, screensaver). Existing per-page registration (admin, index) remains for redundancy. Minimal unit test added.
+- [ ] Test cache-busting and update flow when switching modes (add integration test that navigates across modes and asserts controllerchange/update flow)
 
 P2 — Isolation, previews, and tests
 

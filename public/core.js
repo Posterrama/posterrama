@@ -145,4 +145,28 @@
 
     // Expose
     window.PosterramaCore = Core;
+
+    // Lightweight, centralized Service Worker registration
+    // Pages that include core.js (cinema, wallart, screensaver) will auto-register.
+    // Server stamps /sw.js?v=<version> so we always fetch the latest worker.
+    try {
+        if ('serviceWorker' in navigator && !window.__swRegisteredViaCore) {
+            window.addEventListener('load', () => {
+                try {
+                    navigator.serviceWorker
+                        .register('/sw.js')
+                        .then(() => {
+                            window.__swRegisteredViaCore = true;
+                        })
+                        .catch(() => {
+                            /* silent */
+                        });
+                } catch (_) {
+                    /* ignore */
+                }
+            });
+        }
+    } catch (_) {
+        /* ignore */
+    }
 })();
