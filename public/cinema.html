@@ -22,8 +22,14 @@
     <body data-mode="cinema">
         <script>
             // Early guard: if cinema mode is not enabled anymore, immediately go back to root
+            // Skip this check in preview mode (iframe or ?preview=1)
             (async function () {
                 try {
+                    // Check if in preview mode
+                    const params = new URLSearchParams(window.location.search);
+                    const isPreview = params.get('preview') === '1' || window.self !== window.top;
+                    if (isPreview) return; // Skip guard in preview mode
+                    
                     const resp = await fetch('/get-config?_t=' + Date.now(), { cache: 'no-cache' });
                     if (!resp.ok) return; // fail open
                     const cfg = await resp.json();

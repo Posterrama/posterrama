@@ -74,7 +74,11 @@
             try {
                 const el = $('clearlogo');
                 if (!el) return;
-                if (url) {
+
+                // Check if clearlogo should be shown
+                const clearlogoEnabled = window.appConfig?.showClearlogo !== false;
+
+                if (url && clearlogoEnabled) {
                     el.src = url;
                     el.style.opacity = '1';
                 } else {
@@ -194,12 +198,100 @@
                 /* noop */
             }
         };
+
+        // Global clock update function that can be called from anywhere
+        let _clockUpdateFn = null;
+
         const api = {
             // Lifecycle: start screensaver helpers (idempotent)
             start() {
                 try {
                     if (_state.started) return;
                     _state.started = true;
+
+                    // Initialize clock widget
+                    try {
+                        const updateClock = () => {
+                            try {
+                                const config = window.appConfig || {};
+                                const format = config.clockFormat || '24h';
+                                const timezone = config.clockTimezone || 'auto';
+
+                                console.log(
+                                    '[Clock] Updating clock with format:',
+                                    format,
+                                    'timezone:',
+                                    timezone
+                                );
+
+                                // Get current time in the specified timezone
+                                let now;
+                                const isLocalTimezone =
+                                    timezone === 'local' ||
+                                    timezone === 'auto' ||
+                                    timezone === 'Auto' ||
+                                    !timezone;
+
+                                if (isLocalTimezone) {
+                                    now = new Date();
+                                } else {
+                                    // Use Intl API for timezone support
+                                    const timeString = new Date().toLocaleString('en-US', {
+                                        timeZone: timezone,
+                                    });
+                                    now = new Date(timeString);
+                                }
+
+                                let hours = now.getHours();
+                                const minutes = String(now.getMinutes()).padStart(2, '0');
+
+                                console.log('[Clock] Raw hours:', hours, 'format:', format);
+
+                                // Apply 12h/24h format
+                                if (format === '12h') {
+                                    hours = hours % 12 || 12; // Convert 0 to 12 for midnight
+                                    console.log('[Clock] Converted to 12h:', hours);
+                                }
+
+                                const hoursStr = String(hours).padStart(2, '0');
+                                const hoursEl = document.getElementById('time-hours');
+                                const minutesEl = document.getElementById('time-minutes');
+
+                                console.log('[Clock] Setting time:', hoursStr + ':' + minutes);
+
+                                if (hoursEl) hoursEl.textContent = hoursStr;
+                                if (minutesEl) minutesEl.textContent = minutes;
+                            } catch (e) {
+                                console.error('[Clock] Error in updateClock:', e);
+                                // Fallback to simple local time on error - but respect format!
+                                try {
+                                    const config = window.appConfig || {};
+                                    const format = config.clockFormat || '24h';
+                                    const now = new Date();
+                                    let hours = now.getHours();
+
+                                    if (format === '12h') {
+                                        hours = hours % 12 || 12;
+                                    }
+
+                                    const hoursStr = String(hours).padStart(2, '0');
+                                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                                    const hoursEl = document.getElementById('time-hours');
+                                    const minutesEl = document.getElementById('time-minutes');
+                                    if (hoursEl) hoursEl.textContent = hoursStr;
+                                    if (minutesEl) minutesEl.textContent = minutes;
+                                } catch (fallbackErr) {
+                                    console.error('[Clock] Fallback also failed:', fallbackErr);
+                                }
+                            }
+                        };
+                        _clockUpdateFn = updateClock; // Store for later use
+                        updateClock(); // Initial update
+                        setInterval(updateClock, 1000); // Update every second
+                    } catch (_) {
+                        /* clock update is optional */
+                    }
+
                     // Seed a random starting index so refresh doesn't always begin at same item
                     try {
                         const items = Array.isArray(window.mediaQueue) ? window.mediaQueue : [];
@@ -658,16 +750,100 @@
                     const isScreensaver =
                         !window.appConfig?.cinemaMode && !window.appConfig?.wallartMode?.enabled;
                     if (!isScreensaver) return;
+
                     const posterVisible = window.appConfig?.showPoster !== false;
                     const metaVisible = window.appConfig?.showMetadata !== false;
+                    const clockVisible = window.appConfig?.clockWidget !== false;
+                    const clearlogoVisible =
+                        window.appConfig?.showClearlogo !== false &&
+                        window.appConfig?.showClearLogo !== false; // Handle both spellings
+                    const rtVisible = window.appConfig?.showRottenTomatoes !== false;
 
                     const infoContainer = document.getElementById('info-container');
                     const posterWrapper = document.getElementById('poster-wrapper');
                     const textWrapper = document.getElementById('text-wrapper');
+                    const clockContainer = document.getElementById('clock-widget-container');
+                    const clearlogoEl = document.getElementById('clearlogo');
 
                     // Toggle poster and metadata wrappers
                     if (posterWrapper) posterWrapper.classList.toggle('is-hidden', !posterVisible);
                     if (textWrapper) textWrapper.classList.toggle('is-hidden', !metaVisible);
+
+                    // Toggle clock widget
+                    if (clockContainer) {
+                        clockContainer.classList.toggle('is-hidden', !clockVisible);
+                        if (clockVisible) {
+                            clockContainer.style.display = 'flex';
+                            // Update clock immediately when shown or settings changed
+                            if (_clockUpdateFn) _clockUpdateFn();
+                        } else {
+                            clockContainer.style.display = 'none';
+                        }
+                    }
+
+                    // Apply UI scaling via CSS custom properties
+                    try {
+                        const uiScaling = window.appConfig?.uiScaling || {};
+                        const globalScale = (uiScaling.global || 100) / 100;
+                        const contentScale = (uiScaling.content || 100) / 100;
+                        const clearlogoScale = (uiScaling.clearlogo || 100) / 100;
+                        const clockScale = (uiScaling.clock || 100) / 100;
+
+                        const root = document.documentElement;
+
+                        // Apply global scale to root font size (affects everything using rem units)
+                        if (globalScale !== 1) {
+                            root.style.fontSize = `${globalScale * 16}px`;
+                        } else {
+                            root.style.fontSize = '';
+                        }
+
+                        // Apply content scale via CSS variable (used by #info-container and #poster-wrapper)
+                        root.style.setProperty('--content-scale', String(contentScale));
+
+                        // Apply clearlogo scale via CSS variable (used by #clearlogo-container)
+                        root.style.setProperty('--clearlogo-scale', String(clearlogoScale));
+
+                        // Apply clock scale via CSS variable (used by #time-widget)
+                        root.style.setProperty('--clock-scale', String(clockScale));
+
+                        console.log(
+                            '[Screensaver.ensureVisibility] Applied UI scaling via CSS variables',
+                            {
+                                global: globalScale,
+                                content: contentScale,
+                                clearlogo: clearlogoScale,
+                                clock: clockScale,
+                            }
+                        );
+                    } catch (e) {
+                        console.error('[Screensaver.ensureVisibility] UI scaling error:', e);
+                    }
+
+                    // Toggle clearlogo - respect both setting and URL availability
+                    if (clearlogoEl) {
+                        const hasUrl = clearlogoEl.src && clearlogoEl.src !== '';
+                        if (clearlogoVisible && hasUrl) {
+                            clearlogoEl.style.opacity = '1';
+                        } else {
+                            clearlogoEl.style.opacity = '0';
+                        }
+                    }
+
+                    // Toggle Rotten Tomatoes badge
+                    try {
+                        if (_rtBadge) {
+                            if (rtVisible) {
+                                _rtBadge.style.opacity = '1';
+                                _rtBadge.style.display = 'block';
+                            } else {
+                                _rtBadge.style.opacity = '0';
+                                _rtBadge.style.display = 'none';
+                            }
+                        }
+                    } catch (_) {
+                        /* RT badge toggle is optional */
+                    }
 
                     // If any is visible, ensure the container is shown
                     if (posterVisible || metaVisible) {
@@ -682,8 +858,18 @@
                         // Hide the container when nothing should be shown
                         infoContainer.classList.remove('visible');
                     }
-                } catch (_) {
-                    /* noop: visibility update is best-effort */
+
+                    console.log('[Screensaver.ensureVisibility] Updated visibility', {
+                        poster: posterVisible,
+                        meta: metaVisible,
+                        clock: clockVisible,
+                        clearlogo: clearlogoVisible,
+                        clearlogoHasUrl: clearlogoEl?.src ? 'yes' : 'no',
+                        rottenTomatoes: rtVisible,
+                        uiScaling: window.appConfig?.uiScaling,
+                    });
+                } catch (e) {
+                    console.error('[Screensaver.ensureVisibility] Error:', e);
                 }
             },
 
@@ -822,31 +1008,142 @@
                     /* noop: reinit is best-effort */
                 }
             },
-            // Live settings apply (from device-mgmt WS)
+            // Live settings apply (from preview mode, WebSocket, etc.)
             applySettings(patch = {}) {
                 try {
-                    const cfg = Object.assign({}, window.appConfig || {});
-                    // Only pick screensaver-related knobs
-                    const allowed = [
+                    console.log(
+                        '[Screensaver.applySettings] Received patch with keys:',
+                        Object.keys(patch)
+                    );
+
+                    // Get current config for comparison
+                    const oldConfig = window.appConfig || {};
+
+                    // Settings that affect timing/cycling and require restart
+                    const restartSettings = ['transitionEffect', 'transitionIntervalSeconds'];
+
+                    // Visual settings that only need UI update
+                    const visualSettings = [
                         'showPoster',
                         'showMetadata',
-                        'transitionEffect',
-                        'transitionIntervalSeconds',
+                        'clockWidget',
+                        'clockFormat',
+                        'clockTimezone',
+                        'showClearlogo',
+                        'showClearLogo', // Note: admin sends showClearLogo, config has showClearlogo
+                        'showRottenTomatoes',
+                        'uiElementScaling',
+                        'uiScaling', // Handle nested uiScaling object
                     ];
-                    let changed = false;
-                    for (const k of allowed) {
-                        if (Object.prototype.hasOwnProperty.call(patch, k)) {
-                            cfg[k] = patch[k];
-                            changed = true;
+
+                    // Check if any restart settings ACTUALLY CHANGED VALUE
+                    let needsRestart = false;
+                    for (const key of restartSettings) {
+                        if (key in patch && patch[key] !== oldConfig[key]) {
+                            needsRestart = true;
+                            console.log(
+                                '[Screensaver.applySettings] Restart needed - value changed:',
+                                key,
+                                'from',
+                                oldConfig[key],
+                                'to',
+                                patch[key]
+                            );
+                            break;
                         }
                     }
-                    if (!changed) return;
-                    window.appConfig = cfg;
-                    // Apply visibility and restart cycler with new interval/effect
+
+                    // Check if any visual settings changed VALUE
+                    let hasVisualChanges = false;
+                    let clockSettingsChanged = false;
+
+                    for (const key of visualSettings) {
+                        if (key in patch) {
+                            // Handle nested uiScaling object
+                            if (key === 'uiScaling' && typeof patch[key] === 'object') {
+                                const oldUiScaling = oldConfig.uiScaling || {};
+                                const newUiScaling = patch[key] || {};
+                                const scalingKeys = ['global', 'content', 'clearlogo', 'clock'];
+                                for (const sk of scalingKeys) {
+                                    if (
+                                        newUiScaling[sk] != null &&
+                                        newUiScaling[sk] !== oldUiScaling[sk]
+                                    ) {
+                                        hasVisualChanges = true;
+                                        console.log(
+                                            '[Screensaver.applySettings] UI Scaling change detected:',
+                                            sk,
+                                            'from',
+                                            oldUiScaling[sk],
+                                            'to',
+                                            newUiScaling[sk]
+                                        );
+                                        break;
+                                    }
+                                }
+                            } else if (patch[key] !== oldConfig[key]) {
+                                hasVisualChanges = true;
+                                console.log(
+                                    '[Screensaver.applySettings] Visual change detected:',
+                                    key,
+                                    'from',
+                                    oldConfig[key],
+                                    'to',
+                                    patch[key]
+                                );
+
+                                // Track if clock-related settings changed
+                                if (key === 'clockFormat' || key === 'clockTimezone') {
+                                    clockSettingsChanged = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // Special handling for showClearLogo vs showClearlogo mismatch
+                    if ('showClearLogo' in patch && !('showClearlogo' in patch)) {
+                        patch.showClearlogo = patch.showClearLogo;
+                        if (patch.showClearlogo !== oldConfig.showClearlogo) {
+                            hasVisualChanges = true;
+                            console.log(
+                                '[Screensaver.applySettings] Visual change detected: showClearlogo (via showClearLogo)'
+                            );
+                        }
+                    }
+
+                    if (!needsRestart && !hasVisualChanges) {
+                        console.log('[Screensaver.applySettings] No actual value changes detected');
+                        return;
+                    }
+
+                    // window.appConfig is already updated by core.js
+                    console.log(
+                        '[Screensaver.applySettings] Updating UI, needsRestart:',
+                        needsRestart
+                    );
+
+                    // Always update visibility for visual elements
                     api.ensureVisibility();
-                    api.startCycler();
-                } catch (_) {
-                    /* noop */
+
+                    // If clock settings changed, force immediate clock update
+                    if (clockSettingsChanged && _clockUpdateFn) {
+                        console.log(
+                            '[Screensaver.applySettings] Clock settings changed, forcing update'
+                        );
+                        _clockUpdateFn();
+                    }
+
+                    // Only restart cycler if timing/effect changed
+                    if (needsRestart) {
+                        console.log('[Screensaver.applySettings] Restarting cycler');
+                        api.startCycler();
+                    } else {
+                        console.log(
+                            '[Screensaver.applySettings] Visual-only update, keeping current media'
+                        );
+                    }
+                } catch (e) {
+                    console.error('[Screensaver.applySettings] Error:', e);
                 }
             },
         };
@@ -854,16 +1151,21 @@
         // Attach to window; only on the screensaver page we actually use it, on others wrappers will no-op
         window.PosterramaScreensaver = api;
 
-        // Provide global applySettings hook consumed by device-mgmt
+        // Listen for settingsUpdated event from core.js (preview mode, WebSocket, etc.)
         try {
             if (document.body && document.body.dataset.mode === 'screensaver') {
-                window.applySettings = patch => {
+                window.addEventListener('settingsUpdated', event => {
                     try {
-                        api.applySettings(patch || {});
-                    } catch (_) {
-                        /* noop */
+                        console.log('[Screensaver] Received settingsUpdated event', event.detail);
+                        const settings = event.detail?.settings;
+                        if (settings) {
+                            api.applySettings(settings);
+                        }
+                    } catch (e) {
+                        console.error('[Screensaver] Failed to handle settingsUpdated:', e);
                     }
-                };
+                });
+                console.log('[Screensaver] Registered settingsUpdated listener');
             }
         } catch (_) {
             /* noop */

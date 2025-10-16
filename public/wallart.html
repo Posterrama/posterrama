@@ -279,8 +279,12 @@
     <script>
         (async function() {
             // Skip redirect if already on a mode-specific page or in preview mode
+            // Skip mode checks if running in preview mode (iframe or ?preview=1)
+            const params = new URLSearchParams(window.location.search);
+            const isPreview = params.get('preview') === '1' || window.self !== window.top || window.IS_PREVIEW;
+            
             // Also skip if server hints a specific mode (MODE_HINT)
-            if (window.IS_PREVIEW || window.MODE_HINT || window.location.pathname.includes('/cinema') || 
+            if (isPreview || window.MODE_HINT || window.location.pathname.includes('/cinema') || 
                 window.location.pathname.includes('/wallart') || 
                 window.location.pathname.includes('/screensaver')) {
                 return;

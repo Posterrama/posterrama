@@ -1,7 +1,0 @@
-/* Preview (Wallart) scope: keep it minimal, inherit wallart styles */
-body.preview-page {
-    background: #000;
-}
-#branding-container {
-    display: none !important;
-}

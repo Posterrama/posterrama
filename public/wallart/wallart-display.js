@@ -1416,6 +1416,55 @@
         };
 
         window.PosterramaWallart = api;
+
+        // Listen for settingsUpdated event from core.js (preview mode, WebSocket, etc.)
+        try {
+            if (document.body && document.body.dataset.mode === 'wallart') {
+                window.addEventListener('settingsUpdated', event => {
+                    try {
+                        console.log('[Wallart] Received settingsUpdated event', event.detail);
+                        const settings = event.detail?.settings;
+                        if (!settings) return;
+
+                        // Check if wallart mode is enabled in the new settings
+                        const wallartEnabled = settings.wallartMode?.enabled;
+                        if (wallartEnabled === false) return;
+
+                        // Wallart settings that might require UI update
+                        const wallartKeys = [
+                            'wallartMode',
+                            'density',
+                            'layoutVariant',
+                            'animationsEnabled',
+                            'ambientGradient',
+                        ];
+
+                        let hasWallartChanges = false;
+                        for (const key of wallartKeys) {
+                            if (key in settings) {
+                                hasWallartChanges = true;
+                                break;
+                            }
+                        }
+
+                        if (hasWallartChanges) {
+                            console.log('[Wallart] Settings changed, triggering UI update');
+                            // Trigger grid refresh if API supports it
+                            if (api && typeof api.start === 'function') {
+                                // For now, just log - full implementation would reinit grid
+                                console.log('[Wallart] Would refresh grid here');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[Wallart] Failed to handle settingsUpdated:', e);
+                    }
+                });
+                console.log('[Wallart] Registered settingsUpdated listener');
+            }
+        } catch (_) {
+            /* noop */
+        }
+
         try {
             const debugOn =
                 (window.logger &&

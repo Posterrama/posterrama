@@ -4250,48 +4250,43 @@
 
         function shouldHardReset(prev, next) {
             if (!prev) return false;
-            // Hard-reset when any major mode changes (cinema/wallart/screensaver transitions)
+            // ONLY hard-reset when the active MODE changes (cinema/wallart/screensaver transitions)
+            // All other setting changes should be applied live via applySettings
             const prevCinema = !!prev.cinemaMode;
             const nextCinema = !!next.cinemaMode;
             const prevWallart = !!(prev.wallartMode && prev.wallartMode.enabled);
             const nextWallart = !!(next.wallartMode && next.wallartMode.enabled);
 
-            // If cinema state changes, always reset
-            if (prevCinema !== nextCinema) return true;
+            // Determine previous and next modes
+            const prevMode = prevCinema ? 'cinema' : prevWallart ? 'wallart' : 'screensaver';
+            const nextMode = nextCinema ? 'cinema' : nextWallart ? 'wallart' : 'screensaver';
 
-            // If wallart state changes, always reset
-            if (prevWallart !== nextWallart) return true;
-
-            // If wallart is active and settings changed, reset to apply new layout/density
-            if (nextWallart && prev.wallartMode && next.wallartMode) {
-                const prevSettings = prev.wallartMode;
-                const nextSettings = next.wallartMode;
-                // Check key wallart settings that affect layout rendering
-                if (prevSettings.density !== nextSettings.density) return true;
-                if (prevSettings.layoutVariant !== nextSettings.layoutVariant) return true;
-                if (prevSettings.animationType !== nextSettings.animationType) return true;
-                if (prevSettings.ambientGradient !== nextSettings.ambientGradient) return true;
-                // Check heroGrid settings if using heroGrid layout
-                if (nextSettings.layoutVariant === 'heroGrid') {
-                    const prevHero = prevSettings.layoutSettings?.heroGrid || {};
-                    const nextHero = nextSettings.layoutSettings?.heroGrid || {};
-                    if (prevHero.heroSide !== nextHero.heroSide) return true;
-                    if (prevHero.biasAmbientToHero !== nextHero.biasAmbientToHero) return true;
-                }
-            }
-
-            // No mode change detected
-            return false;
+            // Only reset if mode changed
+            return prevMode !== nextMode;
         }
 
         function hardReset() {
             try {
-                // Simple iframe reload; the preview page restores state from incoming payload
-                frame.contentWindow?.location.reload();
+                // Determine the target display route based on current mode
+                const payload = collectPreviewPayload();
+                const isCinema = !!payload.cinemaMode;
+                const isWallart = !!(payload.wallartMode && payload.wallartMode.enabled);
+
+                let targetPath = '/screensaver';
+                if (isCinema) targetPath = '/cinema';
+                else if (isWallart) targetPath = '/wallart';
+
+                // Set iframe src to the actual display page with preview flag
+                const newSrc = `${targetPath}?preview=1&cb=${Date.now()}`;
+                frame.setAttribute('src', newSrc);
             } catch (_) {
-                // Fallback: nudge via src cache-bust
-                const src = frame.getAttribute('src') || '/preview';
-                frame.setAttribute('src', src.split('?')[0] + '?cb=' + Date.now());
+                // Fallback: reload current page
+                try {
+                    frame.contentWindow?.location.reload();
+                } catch (_) {
+                    const src = frame.getAttribute('src') || '/screensaver?preview=1';
+                    frame.setAttribute('src', src.split('?')[0] + '?preview=1&cb=' + Date.now());
+                }
             }
         }
 
@@ -4333,13 +4328,48 @@
             frameEl.style.top = '50%';
         }
 
+        function ensureCorrectPreviewRoute(payload) {
+            // Ensure iframe is pointing to the correct display route for the current mode
+            const isCinema = !!payload.cinemaMode;
+            const isWallart = !!(payload.wallartMode && payload.wallartMode.enabled);
+
+            let expectedPath = '/screensaver';
+            if (isCinema) expectedPath = '/cinema';
+            else if (isWallart) expectedPath = '/wallart';
+
+            // Check current iframe src
+            const currentSrc = frame.getAttribute('src') || '';
+            const currentPath = currentSrc.split('?')[0];
+
+            // If path doesn't match, update it
+            if (currentPath !== expectedPath) {
+                const newSrc = `${expectedPath}?preview=1&cb=${Date.now()}`;
+                frame.setAttribute('src', newSrc);
+                return true; // Indicates we did a route change
+            }
+            return false; // No route change needed
+        }
+
         function sendUpdate() {
             if (!previewWin) return;
             const payload = collectPreviewPayload();
+
+            // Check if we need to switch to a different display route
+            const didRouteChange = ensureCorrectPreviewRoute(payload);
+            if (didRouteChange) {
+                // Route changed, iframe will reload - wait for it
+                console.log('[Preview] Route changed, skipping postMessage');
+                lastPayload = payload;
+                return;
+            }
+
             if (shouldHardReset(lastPayload, payload)) {
+                console.log('[Preview] Hard reset triggered');
                 lastPayload = payload;
                 return hardReset();
             }
+
+            console.log('[Preview] Sending live update via postMessage');
             lastPayload = payload;
             // Reflect mode/orientation on the container so aspect and scale update smoothly
             applyContainerMode(payload);

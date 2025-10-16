@@ -489,6 +489,36 @@
         }
     });
 
+    // Listen for settingsUpdated event from core.js (preview mode, WebSocket, etc.)
+    window.addEventListener('settingsUpdated', event => {
+        try {
+            console.log('[Cinema] Received settingsUpdated event', event.detail);
+            const settings = event.detail?.settings;
+            if (!settings) return;
+
+            // Check if cinema mode is enabled
+            if (settings.cinemaMode === false) return;
+
+            // Cinema-specific settings
+            const cinemaKeys = ['cinemaMode', 'orientation', 'header', 'footer', 'ambilight'];
+
+            let hasCinemaChanges = false;
+            for (const key of cinemaKeys) {
+                if (key in settings) {
+                    hasCinemaChanges = true;
+                    break;
+                }
+            }
+
+            if (hasCinemaChanges && settings.cinema) {
+                console.log('[Cinema] Settings changed, updating cinema config');
+                handleConfigUpdate(settings);
+            }
+        } catch (e) {
+            console.error('[Cinema] Failed to handle settingsUpdated:', e);
+        }
+    });
+
     // Recompute on resize to keep layout correct
     window.addEventListener('resize', () => updatePosterLayout());
 

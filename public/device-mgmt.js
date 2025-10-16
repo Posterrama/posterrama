@@ -8,6 +8,19 @@
  */
 
 (function () {
+    // --- Early preview mode detection -------------------------------------------
+    // Skip device management entirely in preview mode (iframe embed in admin)
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const isPreview = params.get('preview') === '1' || window.self !== window.top;
+        if (isPreview) {
+            // console.info('[DeviceMgmt] Preview mode detected – skipping initialization.');
+            return; // abort IIFE
+        }
+    } catch (_) {
+        // ignore preview detection errors
+    }
+
     // --- Early bypass detection -------------------------------------------------
     // If the server flagged this client as bypassed (IP allow list), skip loading the entire
     // device management subsystem (registration, heartbeats, websockets, overlays).

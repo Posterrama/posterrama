@@ -78,11 +78,6 @@ function getAssetVersions() {
             'device-mgmt.js',
             'lazy-loading.js',
             'notify.js',
-            // Preview assets
-            'preview-wallart.js',
-            'preview-wallart.css',
-            'preview-screensaver.js',
-            'preview-screensaver.css',
             // Screensaver assets
             'screensaver/screensaver.js',
             'screensaver/screensaver.css',
@@ -1116,155 +1111,17 @@ app.use((req, res, next) => {
  *         content:
  *           text/html: {}
  */
+// Modern preview: direct iframe to actual display routes with ?preview=1
+// This ensures preview always matches production behavior exactly
 app.get('/preview', (req, res) => {
-    try {
-        const filePath = path.join(__dirname, 'public', 'preview.html');
-        if (fs.existsSync(filePath)) {
-            const raw = fs.readFileSync(filePath, 'utf8');
-            const versions = getAssetVersions();
-            const stamped = raw
-                .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
-                .replace(
-                    /style\.css\?v=[^"&\s]+/g,
-                    `style.css?v=${versions['style.css'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /cinema\/cinema-display\.css\?v=[^"&\s]+/g,
-                    `cinema/cinema-display.css?v=${versions['cinema/cinema-display.css'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /preview-cinema\.js\?v=[^"&\s]+/g,
-                    `preview-cinema.js?v=${versions['preview-cinema.js'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /preview-cinema\.css\?v=[^"&\s]+/g,
-                    `preview-cinema.css?v=${versions['preview-cinema.css'] || ASSET_VERSION}`
-                );
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            res.setHeader('Pragma', 'no-cache');
-            res.setHeader('Expires', '0');
-            return res.send(stamped);
-        }
-    } catch (_) {
-        // fall through to simple HTML if file missing
-    }
-    // Fallback minimal HTML (should not be used in normal installs)
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(
-        `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Posterrama Preview</title><link rel="stylesheet" href="/style.css?v=${ASSET_VERSION}"><style>body{background:#000;color:#fff}</style></head><body><div id="layer-a" class="screensaver-layer"></div><div id="layer-b" class="screensaver-layer"></div><div id="clock-widget-container"><div id="time-widget"><span id="time-hours">00</span><span id="time-separator">:</span><span id="time-minutes">00</span></div></div><div id="clearlogo-container"><img id="clearlogo" alt="ClearLogo"/></div><div id="info-container"><div id="poster-wrapper"><a id="poster-link" href="#" target="_blank" rel="noopener noreferrer"><div id="poster-a" class="poster-layer"></div><div id="poster-b" class="poster-layer"></div><div id="poster"></div></a></div><div id="text-wrapper"><h1 id="title"></h1><p id="tagline"></p><div id="meta-info"><span id="year"></span><span id="rating"></span></div></div></div><div id="controls-container" style="display:none"></div><div id="branding-container" style="display:none"></div><script>window.IS_PREVIEW=true;/* legacy orchestrator removed */</script></body></html>`
-    );
-});
+    const mode = req.query.mode || 'screensaver';
+    let targetPath = '/screensaver';
+    if (mode === 'cinema') targetPath = '/cinema';
+    else if (mode === 'wallart') targetPath = '/wallart';
 
-// Dedicated preview pages for isolated mode testing (wallart/screensaver)
-app.get(['/preview-wallart', '/preview-wallart.html'], (req, res) => {
-    try {
-        const filePath = path.join(__dirname, 'public', 'preview-wallart.html');
-        if (fs.existsSync(filePath)) {
-            const raw = fs.readFileSync(filePath, 'utf8');
-            const versions = getAssetVersions();
-            const stamped = raw
-                .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
-                .replace(
-                    /\/style\.css\?v=[^"'\s>]+/g,
-                    `/style.css?v=${versions['style.css'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/wallart\/wallart\.css\?v=[^"'\s>]+/g,
-                    `/wallart/wallart.css?v=${versions['wallart/wallart.css'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/wallart\/wallart-display\.js\?v=[^"'\s>]+/g,
-                    `/wallart/wallart-display.js?v=${versions['wallart/wallart-display.js'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/preview-wallart\.js\?v=[^"'\s>]+/g,
-                    `/preview-wallart.js?v=${versions['preview-wallart.js'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/preview-wallart\.css\?v=[^"'\s>]+/g,
-                    `/preview-wallart.css?v=${versions['preview-wallart.css'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
-                    `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/core\.js(\?v=[^"'\s>]+)?/g,
-                    `/core.js?v=${versions['core.js'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/manifest\.json(\?v=[^"'\s>]+)?/g,
-                    `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/sw\.js(\?v=[^"'\s>]+)?/g,
-                    `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`
-                );
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            res.setHeader('Pragma', 'no-cache');
-            res.setHeader('Expires', '0');
-            return res.send(stamped);
-        }
-    } catch (_) {
-        // non-fatal: serve 404 below
-    }
-    return res.status(404).send('Preview not available');
-});
-
-app.get(['/preview-screensaver', '/preview-screensaver.html'], (req, res) => {
-    try {
-        const filePath = path.join(__dirname, 'public', 'preview-screensaver.html');
-        if (fs.existsSync(filePath)) {
-            const raw = fs.readFileSync(filePath, 'utf8');
-            const versions = getAssetVersions();
-            const stamped = raw
-                .replace(/\{\{ASSET_VERSION\}\}\//g, ASSET_VERSION)
-                .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
-                .replace(
-                    /\/style\.css\?v=[^"'\s>]+/g,
-                    `/style.css?v=${versions['style.css'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/screensaver\/screensaver\.css\?v=[^"'\s>]+/g,
-                    `/screensaver/screensaver.css?v=${versions['screensaver/screensaver.css'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/screensaver\/screensaver\.js\?v=[^"'\s>]+/g,
-                    `/screensaver/screensaver.js?v=${versions['screensaver/screensaver.js'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/preview-screensaver\.js\?v=[^"'\s>]+/g,
-                    `/preview-screensaver.js?v=${versions['preview-screensaver.js'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/preview-screensaver\.css\?v=[^"'\s>]+/g,
-                    `/preview-screensaver.css?v=${versions['preview-screensaver.css'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
-                    `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/core\.js(\?v=[^"'\s>]+)?/g,
-                    `/core.js?v=${versions['core.js'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/manifest\.json(\?v=[^"'\s>]+)?/g,
-                    `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
-                )
-                .replace(
-                    /\/sw\.js(\?v=[^"'\s>]+)?/g,
-                    `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`
-                );
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            res.setHeader('Pragma', 'no-cache');
-            res.setHeader('Expires', '0');
-            return res.send(stamped);
-        }
-    } catch (_) {
-        // non-fatal: serve 404 below
-    }
-    return res.status(404).send('Preview not available');
+    // Redirect to the actual display page with preview flag
+    // The display page will detect ?preview=1 and adjust behavior (no auto-exit, etc.)
+    res.redirect(`${targetPath}?preview=1`);
 });
 
 // Rate Limiting
@@ -1300,8 +1157,10 @@ const testApiLimiter =
 
 // IMPORTANT: Avoid double limiting admin endpoints. Apply general API limiter to /api/*
 // except when the request targets /api/admin/*, which already has its own limiter.
+// Also exclude metrics endpoints from rate limiting as they're polled frequently by the dashboard.
 app.use('/api/', (req, res, next) => {
     if (req.originalUrl && req.originalUrl.startsWith('/api/admin')) return next();
+    if (req.originalUrl && req.originalUrl.startsWith('/api/v1/metrics')) return next();
     return testApiLimiter(req, res, next);
 });
 app.use('/get-config', apiLimiter);
