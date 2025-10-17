@@ -1094,17 +1094,30 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         } catch (_) {
             // ignore logger availability check
         }
+        // Only log to console if debug is enabled (check URL param or localStorage)
         try {
+            let debugEnabled = false;
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                debugEnabled = urlParams.get('debug') === 'true';
+                if (!debugEnabled) {
+                    debugEnabled = localStorage.getItem('posterrama_debug_enabled') === 'true';
+                }
+            } catch (_) {
+                /* URL/localStorage check failed */
+            }
+
+            if (debugEnabled) {
+                console.info.apply(console, arguments);
+            }
+
+            // Always log to window.logger if available (for debugLogView)
             if (
                 typeof window !== 'undefined' &&
                 window.logger &&
-                typeof window.logger.debug === 'function' &&
-                window.logger.isDebug &&
-                window.logger.isDebug()
+                typeof window.logger.debug === 'function'
             ) {
                 window.logger.debug.apply(window.logger, arguments);
-            } else {
-                console.info.apply(console, arguments);
             }
         } catch (_) {
             // ignore logger fallback
