@@ -1838,6 +1838,93 @@
                                 img.style.transform = 'rotateY(0deg)';
                             });
                         }, duration / 2);
+                    } else if (anim === 'parallax') {
+                        // Subtle depth/parallax effect with scale and opacity
+                        img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
+                        img.style.transform = 'scale(0.95) translateZ(-50px)';
+                        img.style.opacity = '0';
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Movie Poster';
+                            img.style.transform = 'scale(1.05) translateZ(50px)';
+                            img.style.transition = 'none';
+                            requestAnimationFrame(() => {
+                                img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
+                                img.style.transform = 'scale(1) translateZ(0)';
+                                img.style.opacity = '1';
+                            });
+                        }, duration);
+                    } else if (anim === 'neonpulse') {
+                        // Neon pulse effect with glow
+                        img.style.transition = `opacity ${duration}ms ease, filter ${duration}ms ease`;
+                        img.style.filter = 'brightness(0.3) blur(10px)';
+                        img.style.opacity = '0';
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Movie Poster';
+                            img.style.filter = 'brightness(1.5) blur(0px)';
+                            img.style.transition = 'none';
+                            requestAnimationFrame(() => {
+                                img.style.transition = `opacity ${duration}ms ease, filter ${duration}ms ease`;
+                                img.style.opacity = '1';
+                                img.style.filter = 'brightness(1) blur(0px)';
+                            });
+                        }, duration);
+                    } else if (anim === 'chromaticshift') {
+                        // RGB split/chromatic aberration effect
+                        const keyframes = `
+                            @keyframes chromaticOut {
+                                0% { transform: translate(0, 0); filter: none; }
+                                100% { 
+                                    transform: translate(-3px, 0); 
+                                    filter: saturate(2) hue-rotate(10deg);
+                                    opacity: 0;
+                                }
+                            }
+                            @keyframes chromaticIn {
+                                0% { 
+                                    transform: translate(3px, 0); 
+                                    filter: saturate(2) hue-rotate(-10deg);
+                                    opacity: 0;
+                                }
+                                100% { transform: translate(0, 0); filter: none; opacity: 1; }
+                            }
+                        `;
+
+                        // Inject keyframes if not already present
+                        if (!document.getElementById('chromatic-keyframes')) {
+                            const style = document.createElement('style');
+                            style.id = 'chromatic-keyframes';
+                            style.textContent = keyframes;
+                            document.head.appendChild(style);
+                        }
+
+                        img.style.animation = `chromaticOut ${duration}ms ease forwards`;
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Movie Poster';
+                            img.style.animation = `chromaticIn ${duration}ms ease forwards`;
+                        }, duration);
+                    } else if (anim === 'mosaicshatter') {
+                        // Mosaic/pixelate effect
+                        img.style.transition = `filter ${duration}ms ease, opacity ${duration}ms ease`;
+                        img.style.filter = 'blur(20px) saturate(0)';
+                        img.style.opacity = '0';
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Movie Poster';
+                            img.style.filter = 'blur(20px) saturate(0)';
+                            img.style.transition = 'none';
+                            requestAnimationFrame(() => {
+                                img.style.transition = `filter ${duration}ms ease, opacity ${duration}ms ease`;
+                                img.style.filter = 'blur(0px) saturate(1)';
+                                img.style.opacity = '1';
+                            });
+                        }, duration);
                     } else {
                         // Default: fade
                         img.style.transition = `opacity ${duration}ms ease`;
