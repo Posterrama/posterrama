@@ -927,9 +927,6 @@
 
                     // Reset background layers to empty state
                     // showNextBackground() will handle setting the first image
-                    console.log(
-                        '[Screensaver.reinitBackground] Clearing layers, startCycler will load first image'
-                    );
                     la.style.backgroundImage = '';
                     lb.style.backgroundImage = '';
 
@@ -953,11 +950,6 @@
                             if (!Number.isFinite(_state.idx) || _state.idx < -1) {
                                 _state.idx = 0;
                             }
-                            console.log(
-                                '[Screensaver.reinitBackground] Index ready:',
-                                _state.idx,
-                                '- startCycler will show first image'
-                            );
                         }
                     } catch (_) {
                         /* noop: set initial index */
