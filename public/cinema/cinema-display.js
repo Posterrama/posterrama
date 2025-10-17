@@ -493,20 +493,17 @@
 
             // Recreate header if header settings changed
             if (newConfig.cinema.header) {
-                console.log('[Cinema] Header settings changed, recreating header');
                 createHeader();
             }
 
             // Recreate footer if footer settings changed
             if (newConfig.cinema.footer && currentMedia) {
-                console.log('[Cinema] Footer settings changed, recreating footer');
                 const cinemaMedia = mapMediaToCinemaFormat(currentMedia);
                 createFooter(cinemaMedia);
             }
 
             // Update ambilight if ambilight settings changed
             if (newConfig.cinema.ambilight) {
-                console.log('[Cinema] Ambilight settings changed, updating');
                 createAmbilight();
                 if (currentMedia && currentMedia.dominantColor) {
                     updateAmbilightColor(currentMedia.dominantColor);
@@ -553,7 +550,6 @@
     // Listen for settingsUpdated event from core.js (preview mode, WebSocket, BroadcastChannel, etc.)
     window.addEventListener('settingsUpdated', event => {
         try {
-            console.log('[Cinema] Received settingsUpdated event', event.detail);
             const settings = event.detail?.settings;
             if (!settings) return;
 
@@ -562,10 +558,7 @@
 
             // Check if cinema config object exists with settings
             if (settings.cinema && typeof settings.cinema === 'object') {
-                console.log('[Cinema] Cinema settings changed, updating config');
                 handleConfigUpdate(settings);
-            } else {
-                console.log('[Cinema] No cinema config in settings update');
             }
         } catch (e) {
             console.error('[Cinema] Failed to handle settingsUpdated:', e);

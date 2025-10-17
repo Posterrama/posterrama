@@ -4372,18 +4372,15 @@
             const didRouteChange = ensureCorrectPreviewRoute(payload);
             if (didRouteChange) {
                 // Route changed, iframe will reload - wait for it
-                console.log('[Preview] Route changed, skipping postMessage');
                 lastPayload = payload;
                 return;
             }
 
             if (shouldHardReset(lastPayload, payload)) {
-                console.log('[Preview] Hard reset triggered');
                 lastPayload = payload;
                 return hardReset();
             }
 
-            console.log('[Preview] Sending live update via postMessage');
             lastPayload = payload;
             // Reflect mode/orientation on the container so aspect and scale update smoothly
             applyContainerMode(payload);

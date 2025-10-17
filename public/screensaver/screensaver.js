@@ -816,16 +816,6 @@
 
                         // Apply clock scale via CSS variable (used by #time-widget)
                         root.style.setProperty('--clock-scale', String(clockScale));
-
-                        console.log(
-                            '[Screensaver.ensureVisibility] Applied UI scaling via CSS variables',
-                            {
-                                global: globalScale,
-                                content: contentScale,
-                                clearlogo: clearlogoScale,
-                                clock: clockScale,
-                            }
-                        );
                     } catch (e) {
                         console.error('[Screensaver.ensureVisibility] UI scaling error:', e);
                     }
@@ -868,16 +858,6 @@
                         // Hide the container when nothing should be shown
                         infoContainer.classList.remove('visible');
                     }
-
-                    console.log('[Screensaver.ensureVisibility] Updated visibility', {
-                        poster: posterVisible,
-                        meta: metaVisible,
-                        clock: clockVisible,
-                        clearlogo: clearlogoVisible,
-                        clearlogoHasUrl: clearlogoEl?.src ? 'yes' : 'no',
-                        rottenTomatoes: rtVisible,
-                        uiScaling: window.appConfig?.uiScaling,
-                    });
                 } catch (e) {
                     console.error('[Screensaver.ensureVisibility] Error:', e);
                 }
@@ -989,11 +969,6 @@
             // Live settings apply (from preview mode, WebSocket, etc.)
             applySettings(patch = {}) {
                 try {
-                    console.log(
-                        '[Screensaver.applySettings] Received patch with keys:',
-                        Object.keys(patch)
-                    );
-
                     // Get current config for comparison
                     const oldConfig = window.appConfig || {};
 
@@ -1019,14 +994,6 @@
                     for (const key of restartSettings) {
                         if (key in patch && patch[key] !== oldConfig[key]) {
                             needsRestart = true;
-                            console.log(
-                                '[Screensaver.applySettings] Restart needed - value changed:',
-                                key,
-                                'from',
-                                oldConfig[key],
-                                'to',
-                                patch[key]
-                            );
                             break;
                         }
                     }
@@ -1048,27 +1015,11 @@
                                         newUiScaling[sk] !== oldUiScaling[sk]
                                     ) {
                                         hasVisualChanges = true;
-                                        console.log(
-                                            '[Screensaver.applySettings] UI Scaling change detected:',
-                                            sk,
-                                            'from',
-                                            oldUiScaling[sk],
-                                            'to',
-                                            newUiScaling[sk]
-                                        );
                                         break;
                                     }
                                 }
                             } else if (patch[key] !== oldConfig[key]) {
                                 hasVisualChanges = true;
-                                console.log(
-                                    '[Screensaver.applySettings] Visual change detected:',
-                                    key,
-                                    'from',
-                                    oldConfig[key],
-                                    'to',
-                                    patch[key]
-                                );
 
                                 // Track if clock-related settings changed
                                 if (key === 'clockFormat' || key === 'clockTimezone') {
@@ -1083,42 +1034,26 @@
                         patch.showClearlogo = patch.showClearLogo;
                         if (patch.showClearlogo !== oldConfig.showClearlogo) {
                             hasVisualChanges = true;
-                            console.log(
-                                '[Screensaver.applySettings] Visual change detected: showClearlogo (via showClearLogo)'
-                            );
                         }
                     }
 
                     if (!needsRestart && !hasVisualChanges) {
-                        console.log('[Screensaver.applySettings] No actual value changes detected');
                         return;
                     }
 
                     // window.appConfig is already updated by core.js
-                    console.log(
-                        '[Screensaver.applySettings] Updating UI, needsRestart:',
-                        needsRestart
-                    );
 
                     // Always update visibility for visual elements
                     api.ensureVisibility();
 
                     // If clock settings changed, force immediate clock update
                     if (clockSettingsChanged && _clockUpdateFn) {
-                        console.log(
-                            '[Screensaver.applySettings] Clock settings changed, forcing update'
-                        );
                         _clockUpdateFn();
                     }
 
                     // Only restart cycler if timing/effect changed
                     if (needsRestart) {
-                        console.log('[Screensaver.applySettings] Restarting cycler');
                         api.startCycler();
-                    } else {
-                        console.log(
-                            '[Screensaver.applySettings] Visual-only update, keeping current media'
-                        );
                     }
                 } catch (e) {
                     console.error('[Screensaver.applySettings] Error:', e);
