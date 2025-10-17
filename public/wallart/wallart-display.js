@@ -1726,8 +1726,10 @@
                                     newWallartConfig.animationType
                                 );
 
-                                // Find a random poster to animate
-                                const posters = document.querySelectorAll('.poster-slot img');
+                                // Find a random poster to animate - use correct selector
+                                const posters = document.querySelectorAll(
+                                    '.wallart-poster-item img'
+                                );
                                 console.log(
                                     '[Wallart] Found posters for animation demo:',
                                     posters.length
