@@ -1726,13 +1726,19 @@
         }
 
         // Expose animatePosterChange for poster replacement animations
+        // Restored from v2.7.8 where all animations worked perfectly
         try {
-            window.animatePosterChange = function (posterElement, newItem, animationType = 'fade') {
+            window.animatePosterChange = function (element, newItem, animationType = 'fade') {
                 try {
-                    if (!posterElement || !newItem || !newItem.posterUrl) return;
+                    if (!element || !newItem || !newItem.posterUrl) return;
 
-                    const img = posterElement.querySelector('img');
+                    const img = element.querySelector('img');
                     if (!img) return;
+
+                    // Mobile detection for optimized animations
+                    const isMobile =
+                        window.innerWidth <= 768 ||
+                        /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
 
                     // Determine animation type
                     const anim = String(animationType).toLowerCase();
@@ -1746,65 +1752,71 @@
 
                     // Apply animation based on type
                     if (anim === 'slideleft') {
-                        // Create a new img element for the slide-in effect
-                        const newImg = document.createElement('img');
-                        newImg.src = newItem.posterUrl;
-                        newImg.alt = newItem.title || 'Movie Poster';
-                        newImg.style.cssText = img.style.cssText;
-                        newImg.style.position = 'absolute';
-                        newImg.style.top = '0';
-                        newImg.style.left = '0';
-                        newImg.style.transform = 'translateX(100%)';
-                        newImg.style.transition = `transform ${duration}ms ease`;
+                        // Mobile optimized timings and transforms
+                        const slideScale = isMobile ? 'scale(1)' : 'scale(1.05)';
+                        const slideTime = isMobile ? '0.4s' : '0.6s';
+                        const waitTime = isMobile ? 400 : 600;
+                        const slideDistance = isMobile ? '50px' : '100px';
 
-                        posterElement.appendChild(newImg);
+                        // Reset any existing transition first
+                        img.style.transition = 'none';
+                        img.style.transform = `${slideScale} translateX(0px)`;
+                        img.offsetHeight; // Force reflow
 
-                        // Slide out old, slide in new
-                        img.style.transition = `transform ${duration}ms ease`;
-                        requestAnimationFrame(() => {
-                            img.style.transform = 'translateX(-100%)';
-                            newImg.style.transform = 'translateX(0)';
-                        });
+                        // Step 1: Slide out to the left with fade
+                        img.style.transition = `all ${slideTime} ease-in-out`;
+                        img.style.opacity = '0';
+                        img.style.transform = `${slideScale} translateX(-${slideDistance})`;
 
+                        // Step 2: Change image and slide in from right
                         setTimeout(() => {
                             img.src = newItem.posterUrl;
                             img.alt = newItem.title || 'Movie Poster';
-                            img.style.transform = 'translateX(0)';
                             img.style.transition = 'none';
-                            if (posterElement.contains(newImg)) {
-                                posterElement.removeChild(newImg);
-                            }
-                        }, duration + 50);
+                            img.style.transform = `${slideScale} translateX(${slideDistance})`;
+                            img.style.opacity = '0';
+                            img.offsetHeight; // Force reflow
+
+                            // Step 3: Slide in from right
+                            img.style.transition = `all ${slideTime} ease-out`;
+                            setTimeout(() => {
+                                img.style.opacity = '1';
+                                img.style.transform = `${slideScale} translateX(0px)`;
+                            }, 50);
+                        }, waitTime);
                     } else if (anim === 'slideup') {
-                        // Create a new img element for the slide-in effect
-                        const newImg = document.createElement('img');
-                        newImg.src = newItem.posterUrl;
-                        newImg.alt = newItem.title || 'Movie Poster';
-                        newImg.style.cssText = img.style.cssText;
-                        newImg.style.position = 'absolute';
-                        newImg.style.top = '0';
-                        newImg.style.left = '0';
-                        newImg.style.transform = 'translateY(100%)';
-                        newImg.style.transition = `transform ${duration}ms ease`;
+                        // Mobile optimized timings and transforms
+                        const slideScale = isMobile ? 'scale(1)' : 'scale(1.05)';
+                        const slideTime = isMobile ? '0.4s' : '0.6s';
+                        const waitTime = isMobile ? 400 : 600;
+                        const slideDistance = isMobile ? '50px' : '100px';
 
-                        posterElement.appendChild(newImg);
+                        // Reset any existing transition first
+                        img.style.transition = 'none';
+                        img.style.transform = `${slideScale} translateY(0px)`;
+                        img.offsetHeight; // Force reflow
 
-                        // Slide out old, slide in new
-                        img.style.transition = `transform ${duration}ms ease`;
-                        requestAnimationFrame(() => {
-                            img.style.transform = 'translateY(-100%)';
-                            newImg.style.transform = 'translateY(0)';
-                        });
+                        // Step 1: Slide up and fade out
+                        img.style.transition = `all ${slideTime} ease-in-out`;
+                        img.style.opacity = '0';
+                        img.style.transform = `${slideScale} translateY(-${slideDistance})`;
 
+                        // Step 2: Change image and slide in from bottom
                         setTimeout(() => {
                             img.src = newItem.posterUrl;
                             img.alt = newItem.title || 'Movie Poster';
-                            img.style.transform = 'translateY(0)';
                             img.style.transition = 'none';
-                            if (posterElement.contains(newImg)) {
-                                posterElement.removeChild(newImg);
-                            }
-                        }, duration + 50);
+                            img.style.transform = `${slideScale} translateY(${slideDistance})`;
+                            img.style.opacity = '0';
+                            img.offsetHeight; // Force reflow
+
+                            // Step 3: Slide in from bottom
+                            img.style.transition = `all ${slideTime} ease-out`;
+                            setTimeout(() => {
+                                img.style.opacity = '1';
+                                img.style.transform = `${slideScale} translateY(0px)`;
+                            }, 50);
+                        }, waitTime);
                     } else if (anim === 'zoom') {
                         // Zoom out old, zoom in new
                         img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
@@ -1824,7 +1836,7 @@
                         }, duration);
                     } else if (anim === 'flip') {
                         // 3D flip effect - need perspective on parent
-                        posterElement.style.perspective = '1000px';
+                        element.style.perspective = '1000px';
                         img.style.transition = `transform ${duration / 2}ms ease`;
                         img.style.transform = 'rotateY(90deg)';
 
@@ -1940,8 +1952,7 @@
                     }
 
                     // Update dataset
-                    posterElement.dataset.posterId =
-                        newItem.id || newItem.title || newItem.posterUrl;
+                    element.dataset.posterId = newItem.id || newItem.title || newItem.posterUrl;
                 } catch (e) {
                     console.warn('[animatePosterChange] Error:', e);
                 }
