@@ -287,13 +287,17 @@
             if (isPreview || window.MODE_HINT || window.location.pathname.includes('/cinema') || 
                 window.location.pathname.includes('/wallart') || 
                 window.location.pathname.includes('/screensaver')) {
+                window.__wallartModeVerified = true; // Mark as verified to prevent auto-exit poll from reloading
                 return;
             }
 
             try {
                 // Fetch config to determine which mode is active
                 const response = await fetch('/get-config', { cache: 'no-cache' });
-                if (!response.ok) return; // Failed to fetch config, continue loading index.html
+                if (!response.ok) {
+                    window.__wallartModeVerified = true; // Allow page to continue even if config fails
+                    return;
+                }
 
                 const config = await response.json();
 
@@ -314,13 +318,16 @@
                 if (config.wallartMode && config.wallartMode.enabled === true) {
                     console.log('[Posterrama] Wallart mode detected, continue on /wallart');
                     document.body.classList.add('wallart-mode');
+                    window.__wallartModeVerified = true; // Mark as verified
                     return;
                 }
 
-                // No wallart: let the rest of page init, auto-exit polling will navigate to cinema/screensaver if needed
+                // No wallart: auto-exit polling will navigate to cinema/screensaver if needed
+                window.__wallartModeVerified = true;
             } catch (err) {
                 // Failed to check config, continue loading index.html
                 console.warn('[Posterrama] Failed to check mode config, loading index.html', err);
+                window.__wallartModeVerified = true; // Allow page to continue
             }
         })();
     </script>
@@ -420,7 +427,33 @@
             } else if (window.MODE_HINT === 'screensaver') {
                 document.body.classList.remove('wallart-mode');
             }
-            try { window.PosterramaCore && window.PosterramaCore.startAutoExitPoll({ currentMode: 'wallart', intervalMs: 15000 }); } catch (e) {}
+            // Wait for inline redirect script to verify wallart mode before starting auto-exit poll
+            // This prevents reload loops on initial page load
+            const startPoll = () => {
+                try { 
+                    window.PosterramaCore && window.PosterramaCore.startAutoExitPoll({ currentMode: 'wallart', intervalMs: 15000 }); 
+                } catch (e) {}
+            };
+            if (window.__wallartModeVerified) {
+                // Already verified, safe to start poll after a delay
+                setTimeout(startPoll, 3000);
+            } else {
+                // Wait for verification flag
+                const checkInterval = setInterval(() => {
+                    if (window.__wallartModeVerified) {
+                        clearInterval(checkInterval);
+                        setTimeout(startPoll, 3000);
+                    }
+                }, 100);
+                // Failsafe: start anyway after 5 seconds
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    if (!window.__wallartModeVerified) {
+                        window.__wallartModeVerified = true;
+                        startPoll();
+                    }
+                }, 5000);
+            }
         });
     </script>
     <script>

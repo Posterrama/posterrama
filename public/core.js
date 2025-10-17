@@ -47,29 +47,26 @@
     Core.buildUrlForMode = function buildUrlForMode(mode) {
         const base = Core.buildBasePath();
         const origin = window.location.origin;
-        // Helper to safely join base + segment ensuring exactly one slash after origin
-        function join(seg) {
-            let b = base || '/';
-            if (!b.startsWith('/')) b = '/' + b; // enforce leading slash
-            if (!b.endsWith('/')) b += '/';
-            seg = (seg || '').replace(/^\/+/, '');
-            return b + seg;
-        }
+
+        // Determine the target mode segment
         let pathSegment = 'screensaver';
         if (mode === 'cinema') pathSegment = 'cinema';
         else if (mode === 'wallart') pathSegment = 'wallart';
-        const url = new URL(join(pathSegment), origin).toString();
-        // Final hardening: if an implementation bug elsewhere stripped the slash after origin, fix it here
-        try {
-            const o = origin.replace(/\/?$/, '');
-            if (url.startsWith(o) && !url.startsWith(o + '/')) {
-                const rest = url.slice(o.length).replace(/^\/+/, '');
-                return o + '/' + rest;
-            }
-        } catch (_) {
-            /* ignore */
-        }
-        return url;
+
+        // Ensure base starts with slash and ends with slash
+        let b = base || '/';
+        if (!b.startsWith('/')) b = '/' + b;
+        if (!b.endsWith('/')) b += '/';
+
+        // Remove leading slashes from segment
+        const seg = pathSegment.replace(/^\/+/, '');
+
+        // Build full URL: origin + base + segment
+        // URL constructor requires origin to NOT have trailing slash, but our base already has leading slash
+        const cleanOrigin = origin.replace(/\/$/, '');
+        const fullPath = b + seg;
+
+        return cleanOrigin + fullPath;
     };
 
     let lastNavTs = 0;

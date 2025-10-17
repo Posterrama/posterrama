@@ -1422,7 +1422,21 @@
             if (document.body && document.body.dataset.mode === 'wallart') {
                 window.addEventListener('settingsUpdated', event => {
                     try {
-                        console.log('[Wallart] Received settingsUpdated event', event.detail);
+                        // ONLY apply live updates in preview mode to avoid disrupting real wallart display
+                        const isPreview =
+                            window.PosterramaCore && window.PosterramaCore.isPreviewMode
+                                ? window.PosterramaCore.isPreviewMode()
+                                : false;
+
+                        if (!isPreview) {
+                            console.log('[Wallart] Ignoring settingsUpdated - not in preview mode');
+                            return;
+                        }
+
+                        console.log(
+                            '[Wallart] Received settingsUpdated event in preview mode',
+                            event.detail
+                        );
                         const settings = event.detail?.settings;
                         if (!settings) return;
 
@@ -1430,30 +1444,121 @@
                         const wallartEnabled = settings.wallartMode?.enabled;
                         if (wallartEnabled === false) return;
 
-                        // Wallart settings that might require UI update
-                        const wallartKeys = [
-                            'wallartMode',
-                            'density',
-                            'layoutVariant',
-                            'animationsEnabled',
+                        // Get old config for comparison - if empty, wallart hasn't started yet, so skip
+                        const oldConfig = _state.wallartConfig || {};
+                        if (Object.keys(oldConfig).length === 0) {
+                            console.log(
+                                '[Wallart] Skipping settings update - wallart not yet initialized'
+                            );
+                            return;
+                        }
+
+                        const newWallartConfig = settings.wallartMode || {};
+
+                        // Separate layout changes (require restart) from config-only changes
+                        const layoutKeys = ['density', 'layoutVariant'];
+                        const configKeys = [
                             'ambientGradient',
+                            'refreshRate',
+                            'randomness',
+                            'animationType',
                         ];
 
-                        let hasWallartChanges = false;
-                        for (const key of wallartKeys) {
-                            if (key in settings) {
-                                hasWallartChanges = true;
+                        let needsLayoutRebuild = false;
+                        let needsConfigUpdate = false;
+
+                        for (const key of layoutKeys) {
+                            if (
+                                key in newWallartConfig &&
+                                newWallartConfig[key] !== oldConfig[key]
+                            ) {
+                                needsLayoutRebuild = true;
+                                console.log(
+                                    '[Wallart] Layout change detected:',
+                                    key,
+                                    'from',
+                                    oldConfig[key],
+                                    'to',
+                                    newWallartConfig[key]
+                                );
                                 break;
                             }
                         }
 
-                        if (hasWallartChanges) {
-                            console.log('[Wallart] Settings changed, triggering UI update');
-                            // Trigger grid refresh if API supports it
-                            if (api && typeof api.start === 'function') {
-                                // For now, just log - full implementation would reinit grid
-                                console.log('[Wallart] Would refresh grid here');
+                        if (!needsLayoutRebuild) {
+                            for (const key of configKeys) {
+                                if (
+                                    key in newWallartConfig &&
+                                    newWallartConfig[key] !== oldConfig[key]
+                                ) {
+                                    needsConfigUpdate = true;
+                                    console.log(
+                                        '[Wallart] Config change detected:',
+                                        key,
+                                        'from',
+                                        oldConfig[key],
+                                        'to',
+                                        newWallartConfig[key]
+                                    );
+                                    break;
+                                }
                             }
+                        }
+
+                        // Check heroGrid settings (nested in layoutSettings.heroGrid)
+                        if (
+                            'layoutSettings' in newWallartConfig &&
+                            newWallartConfig.layoutSettings &&
+                            'heroGrid' in newWallartConfig.layoutSettings
+                        ) {
+                            const oldHero =
+                                (oldConfig.layoutSettings && oldConfig.layoutSettings.heroGrid) ||
+                                {};
+                            const newHero = newWallartConfig.layoutSettings.heroGrid || {};
+                            const heroKeys = [
+                                'heroSide',
+                                'heroRotationMinutes',
+                                'biasAmbientToHero',
+                            ];
+
+                            for (const key of heroKeys) {
+                                if (key in newHero && newHero[key] !== oldHero[key]) {
+                                    needsLayoutRebuild = true;
+                                    console.log(
+                                        '[Wallart] Hero setting change detected:',
+                                        key,
+                                        'from',
+                                        oldHero[key],
+                                        'to',
+                                        newHero[key]
+                                    );
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (needsLayoutRebuild) {
+                            console.log(
+                                '[Wallart] Layout change detected in PREVIEW - full reload required'
+                            );
+                            // For preview mode, we need a full page reload for layout changes
+                            // because the grid structure changes significantly
+                            console.log('[Wallart] Triggering page reload for layout change');
+                            window.location.reload();
+                        } else if (needsConfigUpdate) {
+                            console.log('[Wallart] Updating config only (no layout change needed)');
+                            // Update the stored config so future operations use new values
+                            _state.wallartConfig = { ..._state.wallartConfig, ...newWallartConfig };
+                            window.wallartConfig = { ..._state.wallartConfig };
+
+                            // Config updates (tempo, animation) will be picked up by existing cycle
+                            console.log(
+                                '[Wallart] Config updated, existing grid continues with new settings'
+                            );
+                        } else {
+                            console.log(
+                                '[Wallart] No visual changes detected, keeping current grid'
+                            );
                         }
                     } catch (e) {
                         console.error('[Wallart] Failed to handle settingsUpdated:', e);
