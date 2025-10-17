@@ -550,7 +550,7 @@
         }
     });
 
-    // Listen for settingsUpdated event from core.js (preview mode, WebSocket, etc.)
+    // Listen for settingsUpdated event from core.js (preview mode, WebSocket, BroadcastChannel, etc.)
     window.addEventListener('settingsUpdated', event => {
         try {
             console.log('[Cinema] Received settingsUpdated event', event.detail);

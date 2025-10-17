@@ -1560,7 +1560,7 @@
 
         window.PosterramaWallart = api;
 
-        // Listen for settingsUpdated event from core.js (preview mode, WebSocket, etc.)
+        // Listen for settingsUpdated event from core.js (preview mode, WebSocket, BroadcastChannel, etc.)
         try {
             if (document.body && document.body.dataset.mode === 'wallart') {
                 window.addEventListener('settingsUpdated', event => {
@@ -1569,27 +1569,8 @@
                             window.debugLog('WALLART_SETTINGS_UPDATED_EVENT', {
                                 detail: event.detail,
                             });
-                        // ONLY apply live updates in preview mode to avoid disrupting real wallart display
-                        const isPreview =
-                            window.PosterramaCore && window.PosterramaCore.isPreviewMode
-                                ? window.PosterramaCore.isPreviewMode()
-                                : false;
 
-                        window.debugLog && window.debugLog('WALLART_PREVIEW_CHECK', { isPreview });
-
-                        if (!isPreview) {
-                            console.log('[Wallart] Ignoring settingsUpdated - not in preview mode');
-                            window.debugLog &&
-                                window.debugLog('WALLART_SETTINGS_IGNORED', {
-                                    reason: 'not preview',
-                                });
-                            return;
-                        }
-
-                        console.log(
-                            '[Wallart] Received settingsUpdated event in preview mode',
-                            event.detail
-                        );
+                        console.log('[Wallart] Received settingsUpdated event', event.detail);
                         const settings = event.detail?.settings;
                         if (!settings) return;
 

@@ -1154,7 +1154,7 @@
         // Attach to window; only on the screensaver page we actually use it, on others wrappers will no-op
         window.PosterramaScreensaver = api;
 
-        // Listen for settingsUpdated event from core.js (preview mode, WebSocket, etc.)
+        // Listen for settingsUpdated event from core.js (preview mode, WebSocket, BroadcastChannel, etc.)
         try {
             if (document.body && document.body.dataset.mode === 'screensaver') {
                 window.addEventListener('settingsUpdated', event => {
