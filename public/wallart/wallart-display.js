@@ -462,9 +462,11 @@
                             }
                             window.debugLog &&
                                 window.debugLog('WALLART_REFRESH_TICK_GET_CONFIG', {});
+                            // Use _state.wallartConfig to get latest settings (may be updated by preview)
+                            const currentConfig = _state.wallartConfig || wallartConfig;
                             const animationType =
-                                wallartConfig.animationType ||
-                                wallartConfig.animationPack ||
+                                currentConfig.animationType ||
+                                currentConfig.animationPack ||
                                 'fade';
 
                             const packType = String(animationType).toLowerCase();
