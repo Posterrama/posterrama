@@ -124,8 +124,8 @@ run_tests() {
     fi
     
     # External Service contracts (WARNING only - external dependencies)  
-    print_status "   → External service contract validatie..."
-    if npm run test:regression:external >/dev/null 2>&1; then
+    print_status "   → External service contract validatie (kan 15-20s duren)..."
+    if timeout 30s npm run test:regression:external >/dev/null 2>&1; then
         print_success "     External Services: Alle service contracts geldig"
     else
         print_warning "     External Services: Mogelijke API wijzigingen gedetecteerd"

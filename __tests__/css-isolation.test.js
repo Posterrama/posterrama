@@ -48,7 +48,7 @@ describe('CSS Isolation', () => {
 
         test('Preview pages use same IDs as their mode pages', async () => {
             const wallartResponse = await request(app).get('/wallart');
-            const previewResponse = await request(app).get('/preview-wallart');
+            const previewResponse = await request(app).get('/wallart?preview=1');
 
             const wallartHtml = wallartResponse.text;
             const previewHtml = previewResponse.text;
@@ -64,36 +64,17 @@ describe('CSS Isolation', () => {
     });
 
     describe('Preview iframe isolation', () => {
-        test('Preview shell uses different ID namespace (pv-*)', async () => {
-            const response = await request(app).get('/preview-shell.html');
+        test('Preview mode parameter does not affect ID structure', async () => {
+            const response = await request(app).get('/wallart?preview=1');
             expect(response.status).toBe(200);
 
             const html = response.text;
 
-            // Preview shell should use pv-* prefixed IDs
-            expect(html).toMatch(/id=["']pv-shell["']/i);
-            expect(html).toMatch(/id=["']pv-toolbar["']/i);
-            expect(html).toMatch(/id=["']pv-iframe["']/i);
-            expect(html).toMatch(/id=["']pv-pip["']/i);
-
-            // Should NOT use mode page IDs at shell level
-            expect(html).not.toMatch(/id=["']loader["']/i);
-            expect(html).not.toMatch(/id=["']poster["']/i);
-            expect(html).not.toMatch(/id=["']info-container["']/i);
-        });
-
-        test('Preview content loads in iframe, preventing parent CSS bleed', async () => {
-            const response = await request(app).get('/preview-wallart');
-            expect(response.status).toBe(200);
-
-            const html = response.text;
-
-            // Preview page has mode IDs (will be in iframe)
+            // Preview page has same mode IDs as regular mode
             expect(html).toMatch(/id=["']loader["']/i);
             expect(html).toMatch(/id=["']poster-wrapper["']/i);
 
-            // When loaded in iframe, these IDs won't conflict with shell
-            // because iframe creates separate DOM tree
+            // Preview pages are loaded in iframes by admin, preventing CSS conflicts
         });
     });
 

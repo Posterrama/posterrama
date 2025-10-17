@@ -23,11 +23,15 @@ describe('Root route redirect behavior', () => {
     });
 
     test('defaults to landing (no redirect)', async () => {
-        // Use original config (which defaults to landing via schema/example)
+        // Temporarily set config to landing behavior
+        withTempConfig({
+            rootRoute: { behavior: 'landing' },
+        });
         jest.resetModules();
         // Clear server cache
         Object.keys(require.cache).forEach(k => {
             if (k.endsWith(path.sep + 'server.js')) delete require.cache[k];
+            if (k.endsWith(path.sep + 'config.json')) delete require.cache[k];
         });
         const app = require('../../server');
         const res = await request(app).get('/');

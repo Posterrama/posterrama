@@ -16,9 +16,9 @@ describe('PosterramaCore SW update flow (integration-lite)', () => {
         const calls = { registerUrl: null, reloads: 0 };
         const windowMock = {
             location: {
-                href: 'https://example.test/screensaver',
+                href: 'https://example.test/admin',
                 origin: 'https://example.test',
-                pathname: '/screensaver',
+                pathname: '/admin', // Use admin path, not display mode
                 replace: () => {},
             },
             addEventListener: (evt, fn) => {
