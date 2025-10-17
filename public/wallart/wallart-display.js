@@ -772,7 +772,9 @@
                         refreshTick();
                     };
                     if (_state.refreshTimeout) clearTimeout(_state.refreshTimeout);
-                    _state.refreshTimeout = setTimeout(refreshTick, 1200);
+                    // TEMP DEBUG: Disable auto-refresh to test if this causes reload loop
+                    window.debugLog && window.debugLog('WALLART_REFRESH_DISABLED_FOR_TEST', {});
+                    // _state.refreshTimeout = setTimeout(refreshTick, 1200);
 
                     // Seed current media for device-mgmt visibility (prefer hero if present)
                     try {
