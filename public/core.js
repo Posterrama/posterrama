@@ -341,6 +341,35 @@
     // Expose
     window.PosterramaCore = Core;
 
+    // Listen for config updates via BroadcastChannel (from admin Save Settings)
+    // This allows all tabs (screensaver/wallart/cinema) to receive updates without WebSocket
+    try {
+        if (typeof BroadcastChannel !== 'undefined' && !Core.isPreviewMode()) {
+            const configChannel = new BroadcastChannel('posterrama-config');
+            configChannel.onmessage = event => {
+                try {
+                    if (event.data && event.data.type === 'config-updated') {
+                        console.log('[Core] Received config update via BroadcastChannel', {
+                            timestamp: event.data.timestamp,
+                            settingsKeys: Object.keys(event.data.settings || {}),
+                        });
+
+                        // Dispatch settingsUpdated event just like WebSocket does
+                        const settingsEvent = new CustomEvent('settingsUpdated', {
+                            detail: { settings: event.data.settings },
+                        });
+                        window.dispatchEvent(settingsEvent);
+                    }
+                } catch (e) {
+                    console.error('[Core] BroadcastChannel message handling failed:', e);
+                }
+            };
+            console.log('[Core] BroadcastChannel listener registered for config updates');
+        }
+    } catch (e) {
+        console.warn('[Core] BroadcastChannel setup failed:', e);
+    }
+
     // Lightweight, centralized Service Worker registration
     // Pages that include core.js (cinema, wallart, screensaver) will auto-register.
     // Server stamps /sw.js?v=<version> so we always fetch the latest worker.

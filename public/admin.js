@@ -3890,6 +3890,20 @@
                                   /* config cache invalidation best-effort (non-fatal) */
                               }
                           })());
+
+                    // Notify all tabs/windows to reload config via BroadcastChannel
+                    try {
+                        const channel = new BroadcastChannel('posterrama-config');
+                        channel.postMessage({
+                            type: 'config-updated',
+                            timestamp: Date.now(),
+                            settings: patch,
+                        });
+                        channel.close();
+                    } catch (e) {
+                        console.warn('[Admin] BroadcastChannel not supported or failed:', e);
+                    }
+
                     window.notify?.toast({
                         type: 'success',
                         title: 'Display saved',
