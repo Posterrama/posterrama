@@ -571,8 +571,17 @@
                             layerB.style.backgroundImage &&
                             layerB.style.backgroundImage !== 'none');
 
-                    if (hasBackground) {
-                        // Background already set, advance to next one
+                    console.log('[Screensaver.startCycler] hasBackground check:', {
+                        hasBackground,
+                        layerABg: layerA?.style.backgroundImage,
+                        layerBBg: layerB?.style.backgroundImage,
+                    });
+
+                    if (!hasBackground) {
+                        // No background yet, show first one immediately
+                        console.log(
+                            '[Screensaver.startCycler] No background detected, showing first image immediately'
+                        );
                         setTimeout(() => {
                             try {
                                 api.showNextBackground();
@@ -580,6 +589,10 @@
                                 /* noop: startCycler best-effort */
                             }
                         }, 10);
+                    } else {
+                        console.log(
+                            '[Screensaver.startCycler] Background already exists, will wait for interval'
+                        );
                     }
                 } catch (_) {
                     /* noop */
