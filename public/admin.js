@@ -15841,12 +15841,8 @@
                     );
                 } else if (hasToken) {
                     el.dataset.actualToken = 'EXISTING_TOKEN';
-                    console.log(
-                        '[Token Init] ⚠ Set placeholder: EXISTING_TOKEN (no localStorage)'
-                    );
                 } else {
                     el.dataset.actualToken = '';
-                    console.log('[Token Init] ✗ No token found');
                 }
 
                 if (hasToken) {
@@ -16068,12 +16064,8 @@
                     );
                 } else if (hasKey) {
                     el.dataset.actualToken = 'EXISTING_TOKEN';
-                    console.log(
-                        '[Jellyfin Init] ⚠ Set placeholder: EXISTING_TOKEN (no localStorage)'
-                    );
                 } else {
                     el.dataset.actualToken = '';
-                    console.log('[Jellyfin Init] ✗ No API key found');
                 }
 
                 if (hasKey) {
@@ -16222,10 +16214,8 @@
                     );
                 } else if (tmdb.apiKey) {
                     el.dataset.actualToken = 'EXISTING_TOKEN';
-                    console.log('[TMDB Init] ⚠ Set placeholder: EXISTING_TOKEN (no localStorage)');
                 } else {
                     el.dataset.actualToken = '';
-                    console.log('[TMDB Init] ✗ No API key found');
                 }
 
                 if (tmdb.apiKey) {

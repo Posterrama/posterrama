@@ -459,19 +459,11 @@
             // Update config
             const oldOrientation = cinemaConfig.orientation;
 
-            console.log('[Cinema] Config before update:', JSON.parse(JSON.stringify(cinemaConfig)));
-            console.log(
-                '[Cinema] New config received:',
-                JSON.parse(JSON.stringify(newConfig.cinema))
-            );
-
             if (newConfig.cinema.orientation) {
                 cinemaConfig.orientation = newConfig.cinema.orientation;
             }
             if (newConfig.cinema.header) {
-                console.log('[Cinema] Merging header config:', newConfig.cinema.header);
                 cinemaConfig.header = { ...cinemaConfig.header, ...newConfig.cinema.header };
-                console.log('[Cinema] Header config after merge:', cinemaConfig.header);
             }
             if (newConfig.cinema.footer) {
                 cinemaConfig.footer = { ...cinemaConfig.footer, ...newConfig.cinema.footer };

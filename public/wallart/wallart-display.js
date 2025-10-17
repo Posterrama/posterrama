@@ -1691,31 +1691,15 @@
                                 newWallartConfig.animationType &&
                                 newWallartConfig.animationType !== oldConfig.animationType;
 
-                            console.log('[Wallart] Animation change check:', {
-                                animationChanged,
-                                old: oldConfig.animationType,
-                                new: newWallartConfig.animationType,
-                                hasAnimateFunction: !!window.animatePosterChange,
-                            });
-
                             // Update the stored config so future operations use new values
                             _state.wallartConfig = { ..._state.wallartConfig, ...newWallartConfig };
                             window.wallartConfig = { ..._state.wallartConfig };
 
                             // If animation changed, demonstrate it immediately in preview
                             if (animationChanged && window.animatePosterChange) {
-                                console.log(
-                                    '[Wallart] Animation type changed - demonstrating new animation:',
-                                    newWallartConfig.animationType
-                                );
-
                                 // Find a random poster to animate - use correct selector
                                 const posters = document.querySelectorAll(
                                     '.wallart-poster-item img'
-                                );
-                                console.log(
-                                    '[Wallart] Found posters for animation demo:',
-                                    posters.length
                                 );
 
                                 if (posters.length > 0) {
@@ -1726,11 +1710,6 @@
 
                                     // Get the parent poster element (not the img)
                                     const posterElement = randomImg.parentElement;
-
-                                    console.log(
-                                        '[Wallart] Triggering animation demo on poster:',
-                                        posterElement
-                                    );
 
                                     // Trigger the animation by "replacing" the poster with itself
                                     // This will show the animation effect without changing content

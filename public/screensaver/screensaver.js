@@ -215,13 +215,6 @@
                                 const format = config.clockFormat || '24h';
                                 const timezone = config.clockTimezone || 'auto';
 
-                                console.log(
-                                    '[Clock] Updating clock with format:',
-                                    format,
-                                    'timezone:',
-                                    timezone
-                                );
-
                                 // Get current time in the specified timezone
                                 let now;
                                 const isLocalTimezone =
@@ -243,19 +236,14 @@
                                 let hours = now.getHours();
                                 const minutes = String(now.getMinutes()).padStart(2, '0');
 
-                                console.log('[Clock] Raw hours:', hours, 'format:', format);
-
                                 // Apply 12h/24h format
                                 if (format === '12h') {
                                     hours = hours % 12 || 12; // Convert 0 to 12 for midnight
-                                    console.log('[Clock] Converted to 12h:', hours);
                                 }
 
                                 const hoursStr = String(hours).padStart(2, '0');
                                 const hoursEl = document.getElementById('time-hours');
                                 const minutesEl = document.getElementById('time-minutes');
-
-                                console.log('[Clock] Setting time:', hoursStr + ':' + minutes);
 
                                 if (hoursEl) hoursEl.textContent = hoursStr;
                                 if (minutesEl) minutesEl.textContent = minutes;
@@ -569,17 +557,8 @@
                             layerB.style.backgroundImage &&
                             layerB.style.backgroundImage !== 'none');
 
-                    console.log('[Screensaver.startCycler] hasBackground check:', {
-                        hasBackground,
-                        layerABg: layerA?.style.backgroundImage,
-                        layerBBg: layerB?.style.backgroundImage,
-                    });
-
                     if (!hasBackground) {
                         // No background yet, show first one immediately
-                        console.log(
-                            '[Screensaver.startCycler] No background detected, showing first image immediately'
-                        );
                         setTimeout(() => {
                             try {
                                 api.showNextBackground();
@@ -587,10 +566,6 @@
                                 /* noop: startCycler best-effort */
                             }
                         }, 10);
-                    } else {
-                        console.log(
-                            '[Screensaver.startCycler] Background already exists, will wait for interval'
-                        );
                     }
                 } catch (_) {
                     /* noop */
@@ -1159,7 +1134,6 @@
             if (document.body && document.body.dataset.mode === 'screensaver') {
                 window.addEventListener('settingsUpdated', event => {
                     try {
-                        console.log('[Screensaver] Received settingsUpdated event', event.detail);
                         const settings = event.detail?.settings;
                         if (settings) {
                             api.applySettings(settings);
@@ -1168,7 +1142,6 @@
                         console.error('[Screensaver] Failed to handle settingsUpdated:', e);
                     }
                 });
-                console.log('[Screensaver] Registered settingsUpdated listener');
             }
         } catch (_) {
             /* noop */

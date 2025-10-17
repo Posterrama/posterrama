@@ -249,11 +249,8 @@
     // Setup preview mode postMessage listener for live settings updates
     Core.setupPreviewListener = function setupPreviewListener() {
         if (!Core.isPreviewMode()) {
-            console.log('[setupPreviewListener] Not in preview mode, skipping');
             return;
         }
-
-        console.log('[setupPreviewListener] Setting up preview listener in preview mode');
 
         // Store preview config override
         window.__previewConfig = null;
@@ -271,16 +268,9 @@
         };
 
         window.addEventListener('message', event => {
-            console.log('[setupPreviewListener] Received message event', {
-                origin: event.origin,
-                windowOrigin: window.location.origin,
-                dataType: event.data?.type,
-            });
-
             try {
                 // Security: verify origin matches current window
                 if (event.origin !== window.location.origin) {
-                    console.log('[setupPreviewListener] Origin mismatch, ignoring');
                     return;
                 }
 
@@ -288,14 +278,6 @@
 
                 // Handle preview update messages from admin
                 if (data.type === 'posterrama.preview.update' && data.payload) {
-                    console.log(
-                        '[setupPreviewListener] Received preview update, applying directly',
-                        {
-                            payload: data.payload,
-                            payloadKeys: Object.keys(data.payload || {}),
-                        }
-                    );
-
                     // Store the preview config
                     window.__previewConfig = data.payload;
 
@@ -303,14 +285,10 @@
                     try {
                         // Merge new settings into existing appConfig
                         if (typeof window.appConfig === 'object' && window.appConfig !== null) {
-                            console.log('[setupPreviewListener] Merging into existing appConfig');
                             Object.assign(window.appConfig, data.payload);
                         } else {
-                            console.log('[setupPreviewListener] Creating new appConfig');
                             window.appConfig = data.payload;
                         }
-
-                        console.log('[setupPreviewListener] Dispatching settingsUpdated event');
 
                         // Trigger a custom event that modules can listen to for live updates
                         window.dispatchEvent(
@@ -318,8 +296,6 @@
                                 detail: { settings: data.payload },
                             })
                         );
-
-                        console.log('[setupPreviewListener] Settings applied successfully');
                     } catch (e) {
                         console.error('[setupPreviewListener] Failed to apply settings:', e);
                     }
@@ -332,10 +308,7 @@
 
     // Auto-setup preview listener if in preview mode
     if (Core.isPreviewMode()) {
-        console.log('[Core Init] In preview mode, calling setupPreviewListener');
         Core.setupPreviewListener();
-    } else {
-        console.log('[Core Init] Not in preview mode');
     }
 
     // Expose
@@ -349,17 +322,11 @@
             configChannel.onmessage = event => {
                 try {
                     if (event.data && event.data.type === 'config-updated') {
-                        console.log('[Core] Received config update via BroadcastChannel', {
-                            timestamp: event.data.timestamp,
-                            settingsKeys: Object.keys(event.data.settings || {}),
-                        });
-
                         // Update window.appConfig first (merge new settings into existing config)
                         if (!window.appConfig) {
                             window.appConfig = {};
                         }
                         Object.assign(window.appConfig, event.data.settings);
-                        console.log('[Core] Updated window.appConfig with new settings');
 
                         // Dispatch settingsUpdated event just like WebSocket does
                         const settingsEvent = new CustomEvent('settingsUpdated', {
@@ -371,7 +338,6 @@
                     console.error('[Core] BroadcastChannel message handling failed:', e);
                 }
             };
-            console.log('[Core] BroadcastChannel listener registered for config updates');
         }
     } catch (e) {
         console.warn('[Core] BroadcastChannel setup failed:', e);
