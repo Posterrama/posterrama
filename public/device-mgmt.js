@@ -1112,6 +1112,13 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
     }
     function connectWS() {
         if (!state.enabled || !state.deviceId || !state.deviceSecret) return;
+        // Don't create duplicate connections
+        if (
+            state.ws &&
+            (state.ws.readyState === WebSocket.CONNECTING || state.ws.readyState === WebSocket.OPEN)
+        ) {
+            return;
+        }
         const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
         const url = `${proto}://${window.location.host}/ws/devices`;
         window.debugLog && window.debugLog('DEVICE_MGMT_WS_CONNECT', { url });
@@ -1705,7 +1712,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         // Also send one early beat once the runtime exposes current media to reduce initial mismatch
         try {
             let tries = 0;
-            const early = setInterval(() => {
+            state.earlyBeatTimer = setInterval(() => {
                 tries++;
                 try {
                     const hasCurr =
@@ -1715,7 +1722,8 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                 (window.__posterramaCurrentMedia.title ||
                                     window.__posterramaCurrentMedia.posterUrl)));
                     if (hasCurr || tries > 6) {
-                        clearInterval(early);
+                        clearInterval(state.earlyBeatTimer);
+                        state.earlyBeatTimer = null;
                         // small debounce to let UI settle
                         setTimeout(
                             () => {
@@ -1729,25 +1737,35 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         );
                     }
                 } catch (_) {
-                    clearInterval(early);
+                    if (state.earlyBeatTimer) {
+                        clearInterval(state.earlyBeatTimer);
+                        state.earlyBeatTimer = null;
+                    }
                 }
             }, 300);
         } catch (_) {
             /* ignore early-beat probe errors */
         }
 
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                // send a quick beat when user returns
-                sendHeartbeat();
-            }
-        });
-        // debounce small resize bursts
-        let resizeDebounce;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeDebounce);
-            resizeDebounce = setTimeout(sendHeartbeat, 500);
-        });
+        // Event listeners: only add once, not on every startHeartbeat call
+        if (!state.heartbeatListenersAdded) {
+            state.heartbeatListenersAdded = true;
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    // send a quick beat when user returns
+                    sendHeartbeat();
+                }
+            });
+
+            // debounce small resize bursts
+            let resizeDebounce;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeDebounce);
+                resizeDebounce = setTimeout(sendHeartbeat, 500);
+            });
+        }
+
         // connect live channel
         connectWS();
     }
@@ -1757,6 +1775,10 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             clearTimeout(state.heartbeatTimer);
             clearInterval(state.heartbeatTimer);
             state.heartbeatTimer = null;
+        }
+        if (state.earlyBeatTimer) {
+            clearInterval(state.earlyBeatTimer);
+            state.earlyBeatTimer = null;
         }
     }
 
