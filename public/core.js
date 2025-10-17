@@ -354,6 +354,13 @@
                             settingsKeys: Object.keys(event.data.settings || {}),
                         });
 
+                        // Update window.appConfig first (merge new settings into existing config)
+                        if (!window.appConfig) {
+                            window.appConfig = {};
+                        }
+                        Object.assign(window.appConfig, event.data.settings);
+                        console.log('[Core] Updated window.appConfig with new settings');
+
                         // Dispatch settingsUpdated event just like WebSocket does
                         const settingsEvent = new CustomEvent('settingsUpdated', {
                             detail: { settings: event.data.settings },
