@@ -558,14 +558,29 @@
                             /* noop */
                         }
                     }, intervalMs);
-                    // Kick an immediate advance if we already have a background set
-                    setTimeout(() => {
-                        try {
-                            api.showNextBackground();
-                        } catch (_) {
-                            /* noop: startCycler best-effort */
-                        }
-                    }, 10);
+
+                    // Only advance immediately if no background is currently shown
+                    // (prevents skipping the first media item on fresh load)
+                    const layerA = document.getElementById('layer-a');
+                    const layerB = document.getElementById('layer-b');
+                    const hasBackground =
+                        (layerA &&
+                            layerA.style.backgroundImage &&
+                            layerA.style.backgroundImage !== 'none') ||
+                        (layerB &&
+                            layerB.style.backgroundImage &&
+                            layerB.style.backgroundImage !== 'none');
+
+                    if (hasBackground) {
+                        // Background already set, advance to next one
+                        setTimeout(() => {
+                            try {
+                                api.showNextBackground();
+                            } catch (_) {
+                                /* noop: startCycler best-effort */
+                            }
+                        }, 10);
+                    }
                 } catch (_) {
                     /* noop */
                 }
