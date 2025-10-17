@@ -1,6 +1,7 @@
 // Wallart module: begin extracting wallart-specific helpers from script.js
 /* eslint-disable prettier/prettier */
 (function initWallartModule() {
+    window.debugLog && window.debugLog('WALLART_MODULE_INIT', { timestamp: Date.now() });
     try {
         const logDebug = msg => {
             try {
@@ -289,12 +290,33 @@
                     };
                     const wallartConfig = { ...(cfg || {}), ...(window.wallartConfig || {}) };
 
+                    window.debugLog &&
+                        window.debugLog('WALLART_START_CALLED', {
+                            hasConfig: !!cfg,
+                            retryCount: _state.startRetries || 0,
+                        });
+
                     // Reuse global appConfig/mediaQueue when available to avoid duplicate fetches
                     const appConfig = window.appConfig || {};
                     const mediaQueue = Array.isArray(window.mediaQueue) ? window.mediaQueue : [];
 
                     // If no media yet, try to fetch then retry shortly to avoid blank screen
                     if (!mediaQueue || mediaQueue.length === 0) {
+                        window.debugLog &&
+                            window.debugLog('WALLART_NO_MEDIA_RETRY', {
+                                retryCount: _state.startRetries || 0,
+                            });
+
+                        // Prevent infinite retry loop
+                        _state.startRetries = (_state.startRetries || 0) + 1;
+                        if (_state.startRetries > 5) {
+                            window.debugLog && window.debugLog('WALLART_MAX_RETRIES_EXCEEDED', {});
+                            console.error(
+                                '[Wallart] Max retries exceeded, cannot start without media'
+                            );
+                            return;
+                        }
+
                         try {
                             if (typeof window.fetchMedia === 'function') {
                                 window.fetchMedia(true).catch(() => {
@@ -318,6 +340,13 @@
                         }, 600);
                         return;
                     }
+
+                    // Reset retry counter on successful start
+                    _state.startRetries = 0;
+                    window.debugLog &&
+                        window.debugLog('WALLART_START_WITH_MEDIA', {
+                            mediaCount: mediaQueue.length,
+                        });
 
                     // Ensure grid exists via helper
                     const created = api.runtime.createGridElement(wallartConfig);
