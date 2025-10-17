@@ -75,10 +75,8 @@
                 const el = $('clearlogo');
                 if (!el) return;
 
-                // Check if clearlogo should be shown
-                const clearlogoEnabled = window.appConfig?.showClearlogo !== false;
-
-                if (url && clearlogoEnabled) {
+                // Just set/clear the src - visibility is controlled by ensureVisibility()
+                if (url) {
                     el.src = url;
                     el.style.opacity = '1';
                 } else {
@@ -753,6 +751,15 @@
                             }, 1600);
                             // Update metadata/poster/clearlogo
                             updateInfo(nextItem);
+
+                            // Ensure visibility immediately after updating info to prevent flash
+                            // of disabled elements (e.g., clearlogo showing briefly when disabled)
+                            try {
+                                api.ensureVisibility();
+                            } catch (_) {
+                                /* noop */
+                            }
+
                             // Update globals (already done early, but keep for safety)
                             try {
                                 window.__posterramaCurrentMedia = nextItem;
