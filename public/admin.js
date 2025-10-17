@@ -3763,6 +3763,8 @@
             // Modes
             cinemaMode: cinemaEnabled,
             cinemaOrientation: val('cinemaOrientation'),
+            // Preview orientation for screensaver/wallart (not saved to config, just for preview)
+            previewOrientation: previewOrientation,
             wallartMode: {
                 enabled: wallartEnabled,
                 density: val('wallartMode_density'),

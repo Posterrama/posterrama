@@ -1043,6 +1043,13 @@
                         _clockUpdateFn();
                     }
 
+                    // Apply preview orientation if provided (for preview mode only)
+                    if (patch.previewOrientation) {
+                        const isPortrait = patch.previewOrientation === 'portrait';
+                        document.body.classList.toggle('preview-portrait', isPortrait);
+                        document.body.classList.toggle('preview-landscape', !isPortrait);
+                    }
+
                     // Only restart cycler if timing/effect changed
                     if (needsRestart) {
                         api.startCycler();

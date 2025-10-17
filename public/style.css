@@ -2469,3 +2469,23 @@ body.promo-site.wallart-mode #promo-box {
         min-width: 70px !important;
     }
 }
+
+/* Preview orientation overrides for admin preview iframe */
+/* When preview is in portrait mode (via orientation toggle in admin) */
+body.preview-portrait {
+    /* Portrait mode detected - content should adapt to 1080x1920 viewport */
+}
+
+body.preview-landscape {
+    /* Landscape mode (default) - content adapts to 1920x1080 viewport */
+}
+
+/* Responsive portrait detection via media query (for real devices and preview) */
+@media (orientation: portrait) and (max-width: 1200px) {
+    /* Portrait orientation detected via viewport - responsive adjustments here */
+    body.screensaver-mode #info-container,
+    body:not(.cinema-mode):not(.wallart-mode) #info-container {
+        /* Adjust screensaver info container for portrait */
+        max-width: 90%;
+    }
+}

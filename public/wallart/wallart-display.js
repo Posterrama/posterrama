@@ -1573,6 +1573,13 @@
                         const settings = event.detail?.settings;
                         if (!settings) return;
 
+                        // Apply preview orientation if provided (for preview mode only)
+                        if (settings.previewOrientation) {
+                            const isPortrait = settings.previewOrientation === 'portrait';
+                            document.body.classList.toggle('preview-portrait', isPortrait);
+                            document.body.classList.toggle('preview-landscape', !isPortrait);
+                        }
+
                         // Check if wallart mode is enabled in the new settings
                         const wallartEnabled = settings.wallartMode?.enabled;
                         if (wallartEnabled === false) return;
