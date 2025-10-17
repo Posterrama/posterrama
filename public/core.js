@@ -196,6 +196,14 @@
     // Define this BEFORE setupPreviewListener so it's available when postMessage arrives
     window.applySettings = function applySettings(newSettings) {
         try {
+            window.debugLog &&
+                window.debugLog('APPLY_SETTINGS_CALLED', {
+                    keys: Object.keys(newSettings),
+                    cinemaMode: newSettings.cinemaMode,
+                    wallartEnabled: newSettings.wallartMode?.enabled,
+                    caller: new Error().stack.split('\n')[2]?.trim(),
+                });
+
             console.log('[applySettings] Received settings update', {
                 keys: Object.keys(newSettings),
                 cinemaMode: newSettings.cinemaMode,
@@ -214,6 +222,11 @@
                 '[applySettings] Updated window.appConfig, dispatching settingsUpdated event'
             );
 
+            window.debugLog &&
+                window.debugLog('APPLY_SETTINGS_DISPATCH_EVENT', {
+                    hasWallartMode: !!newSettings.wallartMode,
+                });
+
             // Trigger a custom event that modules can listen to for live updates
             window.dispatchEvent(
                 new CustomEvent('settingsUpdated', {
@@ -222,6 +235,7 @@
             );
         } catch (e) {
             console.error('[applySettings] Failed to apply settings:', e);
+            window.debugLog && window.debugLog('APPLY_SETTINGS_ERROR', { error: e.message });
         }
     };
 

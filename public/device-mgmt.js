@@ -1114,11 +1114,13 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         if (!state.enabled || !state.deviceId || !state.deviceSecret) return;
         const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
         const url = `${proto}://${window.location.host}/ws/devices`;
+        window.debugLog && window.debugLog('DEVICE_MGMT_WS_CONNECT', { url });
         try {
             const ws = new WebSocket(url);
             state.ws = ws;
             ws.onopen = () => {
                 liveDbg('[Live] WS open', { url });
+                window.debugLog && window.debugLog('DEVICE_MGMT_WS_OPEN', { url });
                 try {
                     ws.send(
                         JSON.stringify({
@@ -1257,6 +1259,11 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                 liveDbg('[Live] WS apply-settings received', {
                                     keys: Object.keys(msg.payload || {}),
                                 });
+                                window.debugLog &&
+                                    window.debugLog('DEVICE_MGMT_WS_APPLY_SETTINGS', {
+                                        keys: Object.keys(msg.payload || {}),
+                                        payload: msg.payload,
+                                    });
                                 window.applySettings(msg.payload);
                                 // Not a command, but we can optionally ack to log reception
                                 try {

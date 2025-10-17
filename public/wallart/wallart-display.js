@@ -1422,14 +1422,24 @@
             if (document.body && document.body.dataset.mode === 'wallart') {
                 window.addEventListener('settingsUpdated', event => {
                     try {
+                        window.debugLog &&
+                            window.debugLog('WALLART_SETTINGS_UPDATED_EVENT', {
+                                detail: event.detail,
+                            });
                         // ONLY apply live updates in preview mode to avoid disrupting real wallart display
                         const isPreview =
                             window.PosterramaCore && window.PosterramaCore.isPreviewMode
                                 ? window.PosterramaCore.isPreviewMode()
                                 : false;
 
+                        window.debugLog && window.debugLog('WALLART_PREVIEW_CHECK', { isPreview });
+
                         if (!isPreview) {
                             console.log('[Wallart] Ignoring settingsUpdated - not in preview mode');
+                            window.debugLog &&
+                                window.debugLog('WALLART_SETTINGS_IGNORED', {
+                                    reason: 'not preview',
+                                });
                             return;
                         }
 
@@ -1541,6 +1551,10 @@
                             console.log(
                                 '[Wallart] Layout change detected in PREVIEW - full reload required'
                             );
+                            window.debugLog &&
+                                window.debugLog('WALLART_LAYOUT_REBUILD_RELOAD', {
+                                    reason: 'layout change in preview',
+                                });
                             // For preview mode, we need a full page reload for layout changes
                             // because the grid structure changes significantly
                             console.log('[Wallart] Triggering page reload for layout change');
