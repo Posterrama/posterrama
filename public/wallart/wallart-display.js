@@ -1702,9 +1702,39 @@
                             window.location.reload();
                         } else if (needsConfigUpdate) {
                             console.log('[Wallart] Updating config only (no layout change needed)');
+
+                            // Check if animation type changed - if so, demo it immediately
+                            const animationChanged =
+                                newWallartConfig.animationType &&
+                                newWallartConfig.animationType !== oldConfig.animationType;
+
                             // Update the stored config so future operations use new values
                             _state.wallartConfig = { ..._state.wallartConfig, ...newWallartConfig };
                             window.wallartConfig = { ..._state.wallartConfig };
+
+                            // If animation changed, demonstrate it immediately in preview
+                            if (animationChanged && window.animatePosterChange) {
+                                console.log(
+                                    '[Wallart] Animation type changed - demonstrating new animation:',
+                                    newWallartConfig.animationType
+                                );
+
+                                // Find a random poster to animate
+                                const posters = document.querySelectorAll('.poster-slot img');
+                                if (posters.length > 0) {
+                                    const randomPoster =
+                                        posters[Math.floor(Math.random() * posters.length)];
+                                    const currentSrc = randomPoster.src;
+
+                                    // Trigger the animation by "replacing" the poster with itself
+                                    // This will show the animation effect without changing content
+                                    window.animatePosterChange(randomPoster, {
+                                        anim: newWallartConfig.animationType,
+                                        url: currentSrc,
+                                        title: 'Animation Preview',
+                                    });
+                                }
+                            }
 
                             // Config updates (tempo, animation) will be picked up by existing cycle
                             console.log(
