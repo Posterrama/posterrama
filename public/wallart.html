@@ -82,6 +82,9 @@
 
         <!-- Client-side Logger for controlled debugging -->
         <script src="/client-logger.js"></script>
+        
+        <!-- Persistent Debug Logger (survives reloads) -->
+        <script src="/debug-logger.js"></script>
 
         <!-- Styles -->
     <link rel="stylesheet" href="style.css?v=20250828a" />
@@ -278,6 +281,8 @@
     <!-- Mode-based redirect: automatically redirect to mode-specific page -->
     <script>
         (async function() {
+            window.debugLog && window.debugLog('REDIRECT_SCRIPT_START', { pathname: window.location.pathname });
+            
             // Skip redirect if already on a mode-specific page or in preview mode
             // Skip mode checks if running in preview mode (iframe or ?preview=1)
             const params = new URLSearchParams(window.location.search);
@@ -287,22 +292,31 @@
             if (isPreview || window.MODE_HINT || window.location.pathname.includes('/cinema') || 
                 window.location.pathname.includes('/wallart') || 
                 window.location.pathname.includes('/screensaver')) {
+                window.debugLog && window.debugLog('REDIRECT_SKIP', { reason: 'already on mode page', isPreview, modeHint: window.MODE_HINT });
                 window.__wallartModeVerified = true; // Mark as verified to prevent auto-exit poll from reloading
                 return;
             }
 
             try {
+                window.debugLog && window.debugLog('REDIRECT_FETCH_CONFIG', {});
+                
                 // Fetch config to determine which mode is active
                 const response = await fetch('/get-config', { cache: 'no-cache' });
                 if (!response.ok) {
+                    window.debugLog && window.debugLog('REDIRECT_CONFIG_FAIL', { status: response.status });
                     window.__wallartModeVerified = true; // Allow page to continue even if config fails
                     return;
                 }
 
                 const config = await response.json();
+                window.debugLog && window.debugLog('REDIRECT_CONFIG_LOADED', { 
+                    cinemaMode: config.cinemaMode, 
+                    wallartEnabled: config.wallartMode?.enabled 
+                });
 
                 // Redirect to cinema if cinema mode is enabled
                 if (config.cinemaMode === true) {
+                    window.debugLog && window.debugLog('REDIRECT_TO_CINEMA', {});
                     console.log('[Posterrama] Cinema mode detected, redirecting to /cinema');
                     if (window.PosterramaCore && window.PosterramaCore.buildUrlForMode) {
                         window.location.replace(window.PosterramaCore.buildUrlForMode('cinema'));
@@ -316,6 +330,7 @@
 
                 // If wallart is enabled, we are already on /wallart; keep initializing.
                 if (config.wallartMode && config.wallartMode.enabled === true) {
+                    window.debugLog && window.debugLog('REDIRECT_WALLART_VERIFIED', {});
                     console.log('[Posterrama] Wallart mode detected, continue on /wallart');
                     document.body.classList.add('wallart-mode');
                     window.__wallartModeVerified = true; // Mark as verified
@@ -323,9 +338,11 @@
                 }
 
                 // No wallart: auto-exit polling will navigate to cinema/screensaver if needed
+                window.debugLog && window.debugLog('REDIRECT_NO_MODE', {});
                 window.__wallartModeVerified = true;
             } catch (err) {
                 // Failed to check config, continue loading index.html
+                window.debugLog && window.debugLog('REDIRECT_ERROR', { error: err.message });
                 console.warn('[Posterrama] Failed to check mode config, loading index.html', err);
                 window.__wallartModeVerified = true; // Allow page to continue
             }
@@ -422,6 +439,8 @@
     <script>
         // If server indicated a mode, apply it immediately to avoid race conditions
         document.addEventListener('DOMContentLoaded', () => {
+            window.debugLog && window.debugLog('DOM_READY', { verified: window.__wallartModeVerified });
+            
             if (window.MODE_HINT === 'wallart') {
                 document.body.classList.add('wallart-mode');
             } else if (window.MODE_HINT === 'screensaver') {
@@ -430,17 +449,23 @@
             // Wait for inline redirect script to verify wallart mode before starting auto-exit poll
             // This prevents reload loops on initial page load
             const startPoll = () => {
+                window.debugLog && window.debugLog('AUTO_EXIT_POLL_START', {});
                 try { 
                     window.PosterramaCore && window.PosterramaCore.startAutoExitPoll({ currentMode: 'wallart', intervalMs: 15000 }); 
-                } catch (e) {}
+                } catch (e) {
+                    window.debugLog && window.debugLog('AUTO_EXIT_POLL_ERROR', { error: e.message });
+                }
             };
             if (window.__wallartModeVerified) {
                 // Already verified, safe to start poll after a delay
+                window.debugLog && window.debugLog('POLL_DELAY_VERIFIED', { delayMs: 3000 });
                 setTimeout(startPoll, 3000);
             } else {
                 // Wait for verification flag
+                window.debugLog && window.debugLog('POLL_WAIT_VERIFY', {});
                 const checkInterval = setInterval(() => {
                     if (window.__wallartModeVerified) {
+                        window.debugLog && window.debugLog('POLL_VERIFIED_VIA_INTERVAL', {});
                         clearInterval(checkInterval);
                         setTimeout(startPoll, 3000);
                     }
@@ -449,6 +474,7 @@
                 setTimeout(() => {
                     clearInterval(checkInterval);
                     if (!window.__wallartModeVerified) {
+                        window.debugLog && window.debugLog('POLL_FAILSAFE_TRIGGER', {});
                         window.__wallartModeVerified = true;
                         startPoll();
                     }

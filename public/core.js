@@ -139,34 +139,55 @@
         // Skip auto-exit in preview mode to avoid navigation loops
         const inPreview = Core.isPreviewMode();
         if (inPreview) {
+            window.debugLog && window.debugLog('AUTO_EXIT_SKIP_PREVIEW', {});
             return;
         }
 
         try {
             const currentMode = String(opts.currentMode || '').toLowerCase();
             const baseInterval = Math.max(5000, Number(opts.intervalMs || 15000));
-            if (window.__autoExitTimer) clearInterval(window.__autoExitTimer);
+            if (window.__autoExitTimer) {
+                window.debugLog && window.debugLog('AUTO_EXIT_CLEAR_EXISTING', {});
+                clearInterval(window.__autoExitTimer);
+            }
+
+            window.debugLog &&
+                window.debugLog('AUTO_EXIT_SETUP', { currentMode, intervalMs: baseInterval });
 
             const tick = async () => {
                 try {
+                    window.debugLog && window.debugLog('AUTO_EXIT_TICK', { currentMode });
                     const cfg = await Core.fetchConfig();
                     const target = Core.getActiveMode(cfg);
+                    window.debugLog &&
+                        window.debugLog('AUTO_EXIT_CHECK', {
+                            currentMode,
+                            targetMode: target,
+                            willNavigate: target && currentMode && target !== currentMode,
+                        });
                     if (target && currentMode && target !== currentMode) {
+                        window.debugLog &&
+                            window.debugLog('AUTO_EXIT_NAVIGATE', {
+                                from: currentMode,
+                                to: target,
+                            });
                         Core.navigateToMode(target);
                     }
-                } catch (_) {
-                    // ignore transient failures
+                } catch (e) {
+                    window.debugLog &&
+                        window.debugLog('AUTO_EXIT_TICK_ERROR', { error: e.message });
                 }
             };
 
             // First check shortly after load, then at intervals with slight jitter
+            window.debugLog && window.debugLog('AUTO_EXIT_FIRST_TICK', { delayMs: 800 });
             setTimeout(tick, 800);
             window.__autoExitTimer = setInterval(() => {
                 const jitter = Math.floor(Math.random() * 1500);
                 setTimeout(tick, jitter);
             }, baseInterval);
-        } catch (_) {
-            /* ignore */
+        } catch (e) {
+            window.debugLog && window.debugLog('AUTO_EXIT_SETUP_ERROR', { error: e.message });
         }
     };
 
