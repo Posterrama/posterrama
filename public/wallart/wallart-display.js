@@ -428,13 +428,25 @@
                     const refreshTick = () => {
                         window.debugLog && window.debugLog('WALLART_REFRESH_TICK', {});
                         try {
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_PAUSED_CHECK', {
+                                    paused: !!_state.paused,
+                                });
                             // Respect paused state (used by remote controls)
                             if (_state.paused) {
                                 _state.refreshTimeout = setTimeout(refreshTick, 2000);
                                 return;
                             }
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_EXTRACT_STATE', {});
                             const { wallartGrid, currentPosters, usedPosters } = _state;
                             const mediaQueue = _state.mediaQueue;
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_VALIDATION', {
+                                    hasGrid: !!wallartGrid,
+                                    postersCount: currentPosters?.length || 0,
+                                    mediaCount: mediaQueue?.length || 0,
+                                });
                             if (
                                 !wallartGrid ||
                                 currentPosters.length === 0 ||
@@ -448,18 +460,31 @@
                                     });
                                 return; // nothing to do
                             }
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_GET_CONFIG', {});
                             const animationType =
                                 wallartConfig.animationType ||
                                 wallartConfig.animationPack ||
                                 'fade';
 
                             const packType = String(animationType).toLowerCase();
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_QUERY_DOM', { packType });
                             const tileEls = wallartGrid.querySelectorAll('.wallart-poster-item');
                             const cols = parseInt(wallartGrid.dataset.columns || '0', 10);
                             const rows = parseInt(wallartGrid.dataset.rows || '0', 10);
                             const total = currentPosters.length;
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_DOM_QUERIED', {
+                                    tileCount: tileEls.length,
+                                    cols,
+                                    rows,
+                                    total,
+                                });
                             if (!cols || !rows || tileEls.length === 0) return;
 
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_DEFINE_HELPERS', {});
                             // Helper to get a new poster (uses module helper)
                             const getUnique = excludeId =>
                                 api.runtime.getUniqueRandomPoster(
@@ -469,6 +494,10 @@
                                     excludeId
                                 );
 
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_CHECK_PACK_TYPE', {
+                                    packType,
+                                });
                             // Burst-style packs
                             if (
                                 packType === 'staggered' ||
@@ -660,6 +689,10 @@
 
                                 // Execute burst
                                 let maxDelay = 0;
+                                window.debugLog &&
+                                    window.debugLog('WALLART_REFRESH_TICK_EXECUTE_BURST', {
+                                        orderedCount: ordered.length,
+                                    });
                                 for (const idx of ordered) {
                                     const delay = delays.get(idx) || 0;
                                     if (delay > maxDelay) maxDelay = delay;
@@ -679,9 +712,17 @@
                                         currentPosters[idx] = next;
                                         targetElement.dataset.posterId =
                                             next.id || next.title || String(idx);
+                                        window.debugLog &&
+                                            window.debugLog('WALLART_REFRESH_TICK_BEFORE_ANIMATE', {
+                                                idx,
+                                            });
                                         const fn = window.animatePosterChange || null;
                                         if (fn && typeof fn === 'function')
                                             fn(targetElement, next, 'fade');
+                                        window.debugLog &&
+                                            window.debugLog('WALLART_REFRESH_TICK_AFTER_ANIMATE', {
+                                                idx,
+                                            });
                                         // Keep heartbeat focused on hero; do not override current media here
                                     }, delay);
                                 }
@@ -715,6 +756,8 @@
                                 return; // done
                             }
 
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_SINGLE_TILE_PATH', {});
                             // Single-tile update path
                             let randomPosition;
                             let attempts = 0;
@@ -726,6 +769,10 @@
                                 currentPosters.length > 1 &&
                                 attempts < 20
                             );
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_RANDOM_POSITION_SELECTED', {
+                                    randomPosition,
+                                });
                             if (wallartGrid.dataset.heroGrid === 'true') {
                                 if (tileEls[randomPosition]?.dataset?.hero === 'true') {
                                     const candidates = Array.from(tileEls)
@@ -739,6 +786,10 @@
                                     }
                                 }
                             }
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_HERO_CHECK_DONE', {
+                                    randomPosition,
+                                });
                             window.lastWallartPosition = randomPosition;
                             const currentPosterAtPosition = currentPosters[randomPosition];
                             const currentPosterId = currentPosterAtPosition
@@ -752,6 +803,10 @@
                                 usedPosters.delete(currentPosterId);
                             currentPosters[randomPosition] = next;
                             const targetElement = tileEls[randomPosition];
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_SINGLE_BEFORE_ANIMATE', {
+                                    randomPosition,
+                                });
                             if (targetElement) {
                                 targetElement.dataset.posterId =
                                     next.id || next.title || randomPosition;
@@ -761,13 +816,24 @@
                                     fn(targetElement, next, animType);
                                 // Keep heartbeat focused on hero; do not override current media here
                             }
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_SINGLE_AFTER_ANIMATE', {
+                                    randomPosition,
+                                });
                             const randomFactor = Math.random() * Math.random();
                             const isNegative = Math.random() < 0.5;
                             const randomVariation =
                                 (isNegative ? -1 : 1) * randomFactor * maxRandomVariation;
                             const nextInterval = Math.max(200, refreshInterval + randomVariation);
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_SCHEDULE_NEXT', {
+                                    nextInterval,
+                                });
                             _state.refreshTimeout = setTimeout(refreshTick, nextInterval);
+                            window.debugLog && window.debugLog('WALLART_REFRESH_TICK_COMPLETE', {});
                         } catch (_) {
+                            window.debugLog &&
+                                window.debugLog('WALLART_REFRESH_TICK_ERROR', { error: String(_) });
                             // non-fatal: schedule another attempt to keep UI alive
                             _state.refreshTimeout = setTimeout(refreshTick, 3000);
                         }
