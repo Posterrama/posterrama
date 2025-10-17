@@ -362,12 +362,18 @@
                     sw.addEventListener('controllerchange', () => {
                         try {
                             window.debugLog && window.debugLog('SW_CONTROLLERCHANGE_EVENT', {});
-                            // Don't auto-reload wallart displays - they should run continuously
+                            // Don't auto-reload display modes - they should run continuously
                             // Admin can manually reload if needed
-                            const isWallart = window.location.pathname.includes('/wallart');
-                            if (isWallart) {
+                            const pathname = window.location.pathname;
+                            const isDisplayMode =
+                                pathname.includes('/wallart') ||
+                                pathname.includes('/screensaver') ||
+                                pathname.includes('/cinema');
+                            if (isDisplayMode) {
                                 window.debugLog &&
-                                    window.debugLog('SW_CONTROLLERCHANGE_SKIPPED_WALLART', {});
+                                    window.debugLog('SW_CONTROLLERCHANGE_SKIPPED_DISPLAY', {
+                                        pathname,
+                                    });
                                 return;
                             }
                             // Debounced reload to avoid loops
