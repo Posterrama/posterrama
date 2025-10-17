@@ -1742,7 +1742,6 @@
 
                     // Determine animation type
                     const anim = String(animationType).toLowerCase();
-                    const duration = 600; // ms
 
                     console.log('[animatePosterChange]', {
                         anim,
@@ -1750,8 +1749,38 @@
                         url: newItem.posterUrl,
                     });
 
+                    // Map burst patterns to fade for individual tiles
+                    if (anim === 'staggered' || anim === 'ripple' || anim === 'scanline') {
+                        animationType = 'fade';
+                    }
+
                     // Apply animation based on type
-                    if (anim === 'slideleft') {
+                    if (
+                        anim === 'fade' ||
+                        anim === 'staggered' ||
+                        anim === 'ripple' ||
+                        anim === 'scanline'
+                    ) {
+                        console.log('[animatePosterChange] Using FADE animation');
+                        const fadeTime = isMobile ? '0.4s' : '0.5s';
+                        const waitTime = isMobile ? 400 : 500;
+
+                        // Step 1: Fade out current image
+                        img.style.transition = `opacity ${fadeTime} ease-in-out`;
+                        img.style.opacity = '0';
+
+                        // Step 2: After fade out, change image and fade in
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Movie Poster';
+
+                            // Step 3: Fade in new image
+                            setTimeout(() => {
+                                img.style.opacity = '1';
+                            }, 50);
+                        }, waitTime);
+                    } else if (anim === 'slideleft') {
+                        console.log('[animatePosterChange] Using SLIDELEFT animation');
                         // Mobile optimized timings and transforms
                         const slideScale = isMobile ? 'scale(1)' : 'scale(1.05)';
                         const slideTime = isMobile ? '0.4s' : '0.6s';
@@ -1785,6 +1814,7 @@
                             }, 50);
                         }, waitTime);
                     } else if (anim === 'slideup') {
+                        console.log('[animatePosterChange] Using SLIDEUP animation');
                         // Mobile optimized timings and transforms
                         const slideScale = isMobile ? 'scale(1)' : 'scale(1.05)';
                         const slideTime = isMobile ? '0.4s' : '0.6s';
@@ -1818,6 +1848,7 @@
                             }, 50);
                         }, waitTime);
                     } else if (anim === 'zoom') {
+                        console.log('[animatePosterChange] Using ZOOM animation');
                         // Zoom out old, zoom in new
                         img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
                         img.style.transform = 'scale(1.3)';
@@ -1835,6 +1866,7 @@
                             });
                         }, duration);
                     } else if (anim === 'flip') {
+                        console.log('[animatePosterChange] Using FLIP animation');
                         // 3D flip effect - need perspective on parent
                         element.style.perspective = '1000px';
                         img.style.transition = `transform ${duration / 2}ms ease`;
@@ -1851,6 +1883,7 @@
                             });
                         }, duration / 2);
                     } else if (anim === 'parallax') {
+                        console.log('[animatePosterChange] Using PARALLAX animation');
                         // Subtle depth/parallax effect with scale and opacity
                         img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
                         img.style.transform = 'scale(0.95) translateZ(-50px)';
@@ -1868,6 +1901,7 @@
                             });
                         }, duration);
                     } else if (anim === 'neonpulse') {
+                        console.log('[animatePosterChange] Using NEONPULSE animation');
                         // Neon pulse effect with glow
                         img.style.transition = `opacity ${duration}ms ease, filter ${duration}ms ease`;
                         img.style.filter = 'brightness(0.3) blur(10px)';
@@ -1885,6 +1919,7 @@
                             });
                         }, duration);
                     } else if (anim === 'chromaticshift') {
+                        console.log('[animatePosterChange] Using CHROMATICSHIFT animation');
                         // RGB split/chromatic aberration effect
                         const keyframes = `
                             @keyframes chromaticOut {
@@ -1921,6 +1956,7 @@
                             img.style.animation = `chromaticIn ${duration}ms ease forwards`;
                         }, duration);
                     } else if (anim === 'mosaicshatter') {
+                        console.log('[animatePosterChange] Using MOSAICSHATTER animation');
                         // Mosaic/pixelate effect
                         img.style.transition = `filter ${duration}ms ease, opacity ${duration}ms ease`;
                         img.style.filter = 'blur(20px) saturate(0)';
