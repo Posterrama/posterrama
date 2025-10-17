@@ -560,20 +560,12 @@
             // Check if cinema mode is enabled
             if (settings.cinemaMode === false) return;
 
-            // Cinema-specific settings
-            const cinemaKeys = ['cinemaMode', 'orientation', 'header', 'footer', 'ambilight'];
-
-            let hasCinemaChanges = false;
-            for (const key of cinemaKeys) {
-                if (key in settings) {
-                    hasCinemaChanges = true;
-                    break;
-                }
-            }
-
-            if (hasCinemaChanges && settings.cinema) {
-                console.log('[Cinema] Settings changed, updating cinema config');
+            // Check if cinema config object exists with settings
+            if (settings.cinema && typeof settings.cinema === 'object') {
+                console.log('[Cinema] Cinema settings changed, updating config');
                 handleConfigUpdate(settings);
+            } else {
+                console.log('[Cinema] No cinema config in settings update');
             }
         } catch (e) {
             console.error('[Cinema] Failed to handle settingsUpdated:', e);
