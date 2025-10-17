@@ -1736,22 +1736,30 @@
                                 );
 
                                 if (posters.length > 0) {
-                                    const randomPoster =
+                                    const randomImg =
                                         posters[Math.floor(Math.random() * posters.length)];
-                                    const currentSrc = randomPoster.src;
+                                    const currentSrc = randomImg.src;
+                                    const currentAlt = randomImg.alt || 'Animation Preview';
+
+                                    // Get the parent poster element (not the img)
+                                    const posterElement = randomImg.parentElement;
 
                                     console.log(
                                         '[Wallart] Triggering animation demo on poster:',
-                                        randomPoster
+                                        posterElement
                                     );
 
                                     // Trigger the animation by "replacing" the poster with itself
                                     // This will show the animation effect without changing content
-                                    window.animatePosterChange(randomPoster, {
-                                        anim: newWallartConfig.animationType,
-                                        url: currentSrc,
-                                        title: 'Animation Preview',
-                                    });
+                                    // animatePosterChange expects (element, newItem, animationType)
+                                    window.animatePosterChange(
+                                        posterElement,
+                                        {
+                                            posterUrl: currentSrc,
+                                            title: currentAlt,
+                                        },
+                                        newWallartConfig.animationType
+                                    );
                                 }
                             }
 
