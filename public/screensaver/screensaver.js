@@ -963,40 +963,13 @@
                         el.style.transform = 'none';
                     });
 
-                    // Choose a media item based on the current state index
-                    let mediaItem = null;
-                    try {
-                        if (Array.isArray(window.mediaQueue) && window.mediaQueue.length > 0) {
-                            // Use _state.idx which was randomly seeded in start()
-                            // Map through shuffle order if available
-                            const items = window.mediaQueue;
-                            const mappedIdx =
-                                _state.order && _state.order.length === items.length
-                                    ? _state.order[Math.max(0, _state.idx % items.length)]
-                                    : Math.max(0, _state.idx % items.length);
-                            mediaItem = items[mappedIdx] || items[0];
-                            console.log(
-                                '[Screensaver.reinitBackground] Selected mediaItem:',
-                                mediaItem?.title,
-                                'at shuffled index:',
-                                mappedIdx
-                            );
-                        }
-                    } catch (_) {
-                        /* noop: media queue best-effort */ void 0;
-                    }
-
-                    if (mediaItem && mediaItem.backgroundUrl) {
-                        const bg = mediaItem.backgroundUrl;
-                        if (bg && bg !== 'null' && bg !== 'undefined') {
-                            la.style.backgroundImage = `url('${bg}')`;
-                            // Preload lb with the same image as a safe fallback; it will be replaced on next cycle
-                            lb.style.backgroundImage = `url('${bg}')`;
-                        } else {
-                            la.style.backgroundImage = '';
-                            lb.style.backgroundImage = '';
-                        }
-                    }
+                    // Reset background layers to empty state
+                    // showNextBackground() will handle setting the first image
+                    console.log(
+                        '[Screensaver.reinitBackground] Clearing layers, startCycler will load first image'
+                    );
+                    la.style.backgroundImage = '';
+                    lb.style.backgroundImage = '';
 
                     // Make sure the visible layer shows immediately
                     la.style.transition = 'none';
@@ -1007,7 +980,9 @@
                     // Reset references to a known state
                     window.activeLayer = la;
                     window.inactiveLayer = lb;
-                    // Set initial index so the first advance picks the next item correctly
+
+                    // Don't update metadata here - showNextBackground() will handle it
+                    // Just ensure _state.idx is valid
                     try {
                         const items = Array.isArray(window.mediaQueue) ? window.mediaQueue : [];
                         if (items.length > 0) {
@@ -1017,28 +992,10 @@
                                 _state.idx = 0;
                             }
                             console.log(
-                                '[Screensaver.reinitBackground] Using index:',
+                                '[Screensaver.reinitBackground] Index ready:',
                                 _state.idx,
-                                'for item:',
-                                items[_state.idx]?.title
+                                '- startCycler will show first image'
                             );
-                            // Initialize info from initial item
-                            updateInfo(items[_state.idx] || items[0]);
-                            try {
-                                const curr = items[_state.idx] || items[0];
-                                window.__posterramaCurrentMedia = curr;
-                                window.__posterramaCurrentMediaId =
-                                    curr?.id || curr?.title || curr?.posterUrl || null;
-                                window.__posterramaPaused = !!_state.paused;
-                            } catch (_) {
-                                /* noop */
-                            }
-                            // Prompt a fast live update after initializing current media
-                            try {
-                                triggerLiveBeat();
-                            } catch (_) {
-                                /* noop */
-                            }
                         }
                     } catch (_) {
                         /* noop: set initial index */
