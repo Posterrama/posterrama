@@ -92,8 +92,15 @@
     let lastReloadTs = 0;
     Core.throttleReload = function throttleReload(nextUrl) {
         const now = Date.now();
+        window.debugLog &&
+            window.debugLog('CORE_THROTTLE_RELOAD_CALLED', {
+                nextUrl,
+                timeSinceLastReload: now - lastReloadTs,
+                willReload: now - lastReloadTs >= 8000,
+            });
         if (now - lastReloadTs < 8000) return; // prevent rapid reload loops
         lastReloadTs = now;
+        window.debugLog && window.debugLog('CORE_THROTTLE_RELOAD_EXECUTING', { nextUrl });
         if (nextUrl) return void window.location.replace(nextUrl);
         window.location.reload();
     };
@@ -354,6 +361,15 @@
                 ) {
                     sw.addEventListener('controllerchange', () => {
                         try {
+                            window.debugLog && window.debugLog('SW_CONTROLLERCHANGE_EVENT', {});
+                            // Don't auto-reload wallart displays - they should run continuously
+                            // Admin can manually reload if needed
+                            const isWallart = window.location.pathname.includes('/wallart');
+                            if (isWallart) {
+                                window.debugLog &&
+                                    window.debugLog('SW_CONTROLLERCHANGE_SKIPPED_WALLART', {});
+                                return;
+                            }
                             // Debounced reload to avoid loops
                             Core.throttleReload();
                         } catch (_) {
