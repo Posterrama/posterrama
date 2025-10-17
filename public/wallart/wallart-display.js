@@ -1742,6 +1742,7 @@
 
                     // Determine animation type
                     const anim = String(animationType).toLowerCase();
+                    const duration = 600; // ms - default animation duration
 
                     console.log('[animatePosterChange]', {
                         anim,
