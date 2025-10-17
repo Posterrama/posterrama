@@ -3764,8 +3764,7 @@
             cinemaMode: cinemaEnabled,
             cinemaOrientation: val('cinemaOrientation'),
             // Preview orientation for screensaver/wallart (not saved to config, just for preview)
-            // eslint-disable-next-line no-undef
-            previewOrientation: previewOrientation,
+            previewOrientation: window.__previewOrientation || 'landscape',
             wallartMode: {
                 enabled: wallartEnabled,
                 density: val('wallartMode_density'),
@@ -3951,6 +3950,8 @@
         let userHasMovedPreview = false;
         // Preview-only orientation state for non-cinema modes
         let previewOrientation = 'landscape'; // 'landscape' | 'portrait'
+        // Store in window so collectDisplayFormPatch can access it
+        window.__previewOrientation = previewOrientation;
         // Remember user's custom anchor after drag so we can preserve it across changes
         let lastUserAnchor = null; // { ax, ay }
         // Remember the last precise auto-anchor we placed to (when not user-moved)
@@ -4549,6 +4550,7 @@
                 }
             }
             previewOrientation = previewOrientation === 'portrait' ? 'landscape' : 'portrait';
+            window.__previewOrientation = previewOrientation; // Sync to window
             // Update container immediately for visual aspect switch
             try {
                 const payload = collectPreviewPayload();
