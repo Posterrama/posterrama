@@ -963,15 +963,24 @@
                         el.style.transform = 'none';
                     });
 
-                    // Choose a media item
+                    // Choose a media item based on the current state index
                     let mediaItem = null;
                     try {
                         if (Array.isArray(window.mediaQueue) && window.mediaQueue.length > 0) {
-                            const idx =
-                                typeof window.currentIndex === 'number' && window.currentIndex >= 0
-                                    ? window.currentIndex
-                                    : 0;
-                            mediaItem = window.mediaQueue[idx] || window.mediaQueue[0];
+                            // Use _state.idx which was randomly seeded in start()
+                            // Map through shuffle order if available
+                            const items = window.mediaQueue;
+                            const mappedIdx =
+                                _state.order && _state.order.length === items.length
+                                    ? _state.order[Math.max(0, _state.idx % items.length)]
+                                    : Math.max(0, _state.idx % items.length);
+                            mediaItem = items[mappedIdx] || items[0];
+                            console.log(
+                                '[Screensaver.reinitBackground] Selected mediaItem:',
+                                mediaItem?.title,
+                                'at shuffled index:',
+                                mappedIdx
+                            );
                         }
                     } catch (_) {
                         /* noop: media queue best-effort */ void 0;
@@ -1002,15 +1011,17 @@
                     try {
                         const items = Array.isArray(window.mediaQueue) ? window.mediaQueue : [];
                         if (items.length > 0) {
-                            // Only set an initial index if we haven't seeded one yet
-                            if (!Number.isFinite(_state.idx) || _state.idx < 0) {
-                                const initialIdx =
-                                    typeof window.currentIndex === 'number' &&
-                                    window.currentIndex >= 0
-                                        ? window.currentIndex
-                                        : 0;
-                                _state.idx = initialIdx;
+                            // Use the ALREADY SEEDED random index from start(), don't override it!
+                            // Only initialize to 0 if completely unset (edge case)
+                            if (!Number.isFinite(_state.idx) || _state.idx < -1) {
+                                _state.idx = 0;
                             }
+                            console.log(
+                                '[Screensaver.reinitBackground] Using index:',
+                                _state.idx,
+                                'for item:',
+                                items[_state.idx]?.title
+                            );
                             // Initialize info from initial item
                             updateInfo(items[_state.idx] || items[0]);
                             try {
