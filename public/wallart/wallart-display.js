@@ -468,8 +468,20 @@
                                 'fade';
 
                             const packType = String(animationType).toLowerCase();
+
+                            // Determine poster transition effect
+                            // If packType is a burst pattern, use fade for individual posters
+                            // Otherwise, use the packType as the poster transition
+                            const burstPatterns = ['staggered', 'ripple', 'scanline'];
+                            const posterTransition = burstPatterns.includes(packType)
+                                ? 'fade'
+                                : packType;
+
                             window.debugLog &&
-                                window.debugLog('WALLART_REFRESH_TICK_QUERY_DOM', { packType });
+                                window.debugLog('WALLART_REFRESH_TICK_QUERY_DOM', {
+                                    packType,
+                                    posterTransition,
+                                });
                             const tileEls = wallartGrid.querySelectorAll('.wallart-poster-item');
                             const cols = parseInt(wallartGrid.dataset.columns || '0', 10);
                             const rows = parseInt(wallartGrid.dataset.rows || '0', 10);
@@ -715,10 +727,11 @@
                                         window.debugLog &&
                                             window.debugLog('WALLART_REFRESH_TICK_BEFORE_ANIMATE', {
                                                 idx,
+                                                posterTransition,
                                             });
                                         const fn = window.animatePosterChange || null;
                                         if (fn && typeof fn === 'function')
-                                            fn(targetElement, next, 'fade');
+                                            fn(targetElement, next, posterTransition);
                                         window.debugLog &&
                                             window.debugLog('WALLART_REFRESH_TICK_AFTER_ANIMATE', {
                                                 idx,
@@ -806,14 +819,14 @@
                             window.debugLog &&
                                 window.debugLog('WALLART_REFRESH_TICK_SINGLE_BEFORE_ANIMATE', {
                                     randomPosition,
+                                    posterTransition,
                                 });
                             if (targetElement) {
                                 targetElement.dataset.posterId =
                                     next.id || next.title || randomPosition;
                                 const fn = window.animatePosterChange || null;
-                                const animType = animationType;
                                 if (fn && typeof fn === 'function')
-                                    fn(targetElement, next, animType);
+                                    fn(targetElement, next, posterTransition);
                                 // Keep heartbeat focused on hero; do not override current media here
                             }
                             window.debugLog &&
@@ -1031,6 +1044,18 @@
                                 appConfig.heroRotationMinutes;
                             const heroRotationMinutes = Math.max(0, Number(heroRotValue) || 10);
 
+                            // Determine poster transition for hero rotation
+                            const animationType =
+                                wallartConfig.animationType ||
+                                wallartConfig.animationPack ||
+                                'fade';
+                            const burstPatterns = ['staggered', 'ripple', 'scanline'];
+                            const heroPosterTransition = burstPatterns.includes(
+                                animationType.toLowerCase()
+                            )
+                                ? 'fade'
+                                : animationType.toLowerCase();
+
                             wallartGrid.dataset.layoutVariant = 'heroGrid';
                             wallartGrid.dataset.heroGrid = 'true';
                             wallartGrid.dataset.heroSide = heroSide;
@@ -1162,7 +1187,7 @@
                                             if (heroElNow) {
                                                 const fn = window.animatePosterChange || null;
                                                 if (fn && typeof fn === 'function')
-                                                    fn(heroElNow, next, 'fade');
+                                                    fn(heroElNow, next, heroPosterTransition);
                                             }
                                             // Update heartbeat exposure to new hero
                                             try {
@@ -1698,6 +1723,103 @@
             }
         } catch (_) {
             /* noop */
+        }
+
+        // Expose animatePosterChange for poster replacement animations
+        try {
+            window.animatePosterChange = function (posterElement, newItem, animationType = 'fade') {
+                try {
+                    if (!posterElement || !newItem || !newItem.posterUrl) return;
+
+                    const img = posterElement.querySelector('img');
+                    if (!img) return;
+
+                    // Determine animation type
+                    const anim = String(animationType).toLowerCase();
+                    const duration = 600; // ms
+
+                    // Apply animation based on type
+                    if (anim === 'slideLeft' || anim === 'slideleft') {
+                        // Slide out left, new slides in from right
+                        img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
+                        img.style.transform = 'translateX(-100%)';
+                        img.style.opacity = '0';
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Movie Poster';
+                            img.style.transform = 'translateX(100%)';
+                            setTimeout(() => {
+                                img.style.transform = 'translateX(0)';
+                                img.style.opacity = '1';
+                            }, 50);
+                        }, duration);
+                    } else if (anim === 'slideUp' || anim === 'slideup') {
+                        // Slide out up, new slides in from bottom
+                        img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
+                        img.style.transform = 'translateY(-100%)';
+                        img.style.opacity = '0';
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Movie Poster';
+                            img.style.transform = 'translateY(100%)';
+                            setTimeout(() => {
+                                img.style.transform = 'translateY(0)';
+                                img.style.opacity = '1';
+                            }, 50);
+                        }, duration);
+                    } else if (anim === 'zoom') {
+                        // Zoom out old, zoom in new
+                        img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
+                        img.style.transform = 'scale(1.2)';
+                        img.style.opacity = '0';
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Movie Poster';
+                            img.style.transform = 'scale(0.8)';
+                            setTimeout(() => {
+                                img.style.transform = 'scale(1)';
+                                img.style.opacity = '1';
+                            }, 50);
+                        }, duration);
+                    } else if (anim === 'flip') {
+                        // 3D flip effect
+                        img.style.transition = `transform ${duration}ms ease`;
+                        img.style.transform = 'rotateY(90deg)';
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Movie Poster';
+                            img.style.transform = 'rotateY(-90deg)';
+                            setTimeout(() => {
+                                img.style.transform = 'rotateY(0deg)';
+                            }, 50);
+                        }, duration / 2);
+                    } else {
+                        // Default: fade
+                        img.style.transition = `opacity ${duration}ms ease`;
+                        img.style.opacity = '0';
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Movie Poster';
+                            setTimeout(() => {
+                                img.style.opacity = '1';
+                            }, 50);
+                        }, duration);
+                    }
+
+                    // Update dataset
+                    posterElement.dataset.posterId =
+                        newItem.id || newItem.title || newItem.posterUrl;
+                } catch (e) {
+                    console.warn('[animatePosterChange] Error:', e);
+                }
+            };
+        } catch (_) {
+            /* noop: animation helper is optional */
         }
 
         try {
