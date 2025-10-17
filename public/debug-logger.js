@@ -53,7 +53,9 @@
         try {
             localStorage.removeItem('posterrama_debug_enabled');
             console.log('[DEBUG] Debug logging disabled.');
-        } catch (_) {}
+        } catch (_) {
+            /* localStorage unavailable */
+        }
     };
 
     // Log function - only logs to console if debug is enabled
