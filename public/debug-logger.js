@@ -70,6 +70,25 @@
         referrer: document.referrer,
     });
 
+    // Track uncaught errors that might cause reloads
+    window.addEventListener('error', event => {
+        window.debugLog('UNCAUGHT_ERROR', {
+            message: event.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            error: event.error?.stack || event.error?.toString(),
+        });
+    });
+
+    // Track unhandled promise rejections
+    window.addEventListener('unhandledrejection', event => {
+        window.debugLog('UNHANDLED_REJECTION', {
+            reason: event.reason?.toString() || event.reason,
+            stack: event.reason?.stack,
+        });
+    });
+
     console.log(
         '[DEBUG] Persistent logger ready. Use debugLogView() to see all logs, debugLogClear() to clear.'
     );

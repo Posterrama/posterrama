@@ -385,6 +385,7 @@
 
                     // Tick function (adapted from legacy refreshSinglePoster)
                     const refreshTick = () => {
+                        window.debugLog && window.debugLog('WALLART_REFRESH_TICK', {});
                         try {
                             // Respect paused state (used by remote controls)
                             if (_state.paused) {
@@ -398,6 +399,12 @@
                                 currentPosters.length === 0 ||
                                 mediaQueue.length === 0
                             ) {
+                                window.debugLog &&
+                                    window.debugLog('WALLART_REFRESH_NO_DATA', {
+                                        hasGrid: !!wallartGrid,
+                                        postersCount: currentPosters.length,
+                                        mediaCount: mediaQueue.length,
+                                    });
                                 return; // nothing to do
                             }
                             const animationType =
