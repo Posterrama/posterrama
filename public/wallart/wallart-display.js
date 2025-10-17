@@ -1708,6 +1708,13 @@
                                 newWallartConfig.animationType &&
                                 newWallartConfig.animationType !== oldConfig.animationType;
 
+                            console.log('[Wallart] Animation change check:', {
+                                animationChanged,
+                                old: oldConfig.animationType,
+                                new: newWallartConfig.animationType,
+                                hasAnimateFunction: !!window.animatePosterChange,
+                            });
+
                             // Update the stored config so future operations use new values
                             _state.wallartConfig = { ..._state.wallartConfig, ...newWallartConfig };
                             window.wallartConfig = { ..._state.wallartConfig };
@@ -1721,10 +1728,20 @@
 
                                 // Find a random poster to animate
                                 const posters = document.querySelectorAll('.poster-slot img');
+                                console.log(
+                                    '[Wallart] Found posters for animation demo:',
+                                    posters.length
+                                );
+
                                 if (posters.length > 0) {
                                     const randomPoster =
                                         posters[Math.floor(Math.random() * posters.length)];
                                     const currentSrc = randomPoster.src;
+
+                                    console.log(
+                                        '[Wallart] Triggering animation demo on poster:',
+                                        randomPoster
+                                    );
 
                                     // Trigger the animation by "replacing" the poster with itself
                                     // This will show the animation effect without changing content
