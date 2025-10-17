@@ -1738,64 +1738,105 @@
                     const anim = String(animationType).toLowerCase();
                     const duration = 600; // ms
 
+                    console.log('[animatePosterChange]', {
+                        anim,
+                        title: newItem.title,
+                        url: newItem.posterUrl,
+                    });
+
                     // Apply animation based on type
-                    if (anim === 'slideLeft' || anim === 'slideleft') {
-                        // Slide out left, new slides in from right
-                        img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
-                        img.style.transform = 'translateX(-100%)';
-                        img.style.opacity = '0';
+                    if (anim === 'slideleft') {
+                        // Create a new img element for the slide-in effect
+                        const newImg = document.createElement('img');
+                        newImg.src = newItem.posterUrl;
+                        newImg.alt = newItem.title || 'Movie Poster';
+                        newImg.style.cssText = img.style.cssText;
+                        newImg.style.position = 'absolute';
+                        newImg.style.top = '0';
+                        newImg.style.left = '0';
+                        newImg.style.transform = 'translateX(100%)';
+                        newImg.style.transition = `transform ${duration}ms ease`;
+
+                        posterElement.appendChild(newImg);
+
+                        // Slide out old, slide in new
+                        img.style.transition = `transform ${duration}ms ease`;
+                        requestAnimationFrame(() => {
+                            img.style.transform = 'translateX(-100%)';
+                            newImg.style.transform = 'translateX(0)';
+                        });
 
                         setTimeout(() => {
                             img.src = newItem.posterUrl;
                             img.alt = newItem.title || 'Movie Poster';
-                            img.style.transform = 'translateX(100%)';
-                            setTimeout(() => {
-                                img.style.transform = 'translateX(0)';
-                                img.style.opacity = '1';
-                            }, 50);
-                        }, duration);
-                    } else if (anim === 'slideUp' || anim === 'slideup') {
-                        // Slide out up, new slides in from bottom
-                        img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
-                        img.style.transform = 'translateY(-100%)';
-                        img.style.opacity = '0';
+                            img.style.transform = 'translateX(0)';
+                            img.style.transition = 'none';
+                            if (posterElement.contains(newImg)) {
+                                posterElement.removeChild(newImg);
+                            }
+                        }, duration + 50);
+                    } else if (anim === 'slideup') {
+                        // Create a new img element for the slide-in effect
+                        const newImg = document.createElement('img');
+                        newImg.src = newItem.posterUrl;
+                        newImg.alt = newItem.title || 'Movie Poster';
+                        newImg.style.cssText = img.style.cssText;
+                        newImg.style.position = 'absolute';
+                        newImg.style.top = '0';
+                        newImg.style.left = '0';
+                        newImg.style.transform = 'translateY(100%)';
+                        newImg.style.transition = `transform ${duration}ms ease`;
+
+                        posterElement.appendChild(newImg);
+
+                        // Slide out old, slide in new
+                        img.style.transition = `transform ${duration}ms ease`;
+                        requestAnimationFrame(() => {
+                            img.style.transform = 'translateY(-100%)';
+                            newImg.style.transform = 'translateY(0)';
+                        });
 
                         setTimeout(() => {
                             img.src = newItem.posterUrl;
                             img.alt = newItem.title || 'Movie Poster';
-                            img.style.transform = 'translateY(100%)';
-                            setTimeout(() => {
-                                img.style.transform = 'translateY(0)';
-                                img.style.opacity = '1';
-                            }, 50);
-                        }, duration);
+                            img.style.transform = 'translateY(0)';
+                            img.style.transition = 'none';
+                            if (posterElement.contains(newImg)) {
+                                posterElement.removeChild(newImg);
+                            }
+                        }, duration + 50);
                     } else if (anim === 'zoom') {
                         // Zoom out old, zoom in new
                         img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
-                        img.style.transform = 'scale(1.2)';
+                        img.style.transform = 'scale(1.3)';
                         img.style.opacity = '0';
 
                         setTimeout(() => {
                             img.src = newItem.posterUrl;
                             img.alt = newItem.title || 'Movie Poster';
-                            img.style.transform = 'scale(0.8)';
-                            setTimeout(() => {
+                            img.style.transform = 'scale(0.7)';
+                            img.style.transition = 'none';
+                            requestAnimationFrame(() => {
+                                img.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
                                 img.style.transform = 'scale(1)';
                                 img.style.opacity = '1';
-                            }, 50);
+                            });
                         }, duration);
                     } else if (anim === 'flip') {
-                        // 3D flip effect
-                        img.style.transition = `transform ${duration}ms ease`;
+                        // 3D flip effect - need perspective on parent
+                        posterElement.style.perspective = '1000px';
+                        img.style.transition = `transform ${duration / 2}ms ease`;
                         img.style.transform = 'rotateY(90deg)';
 
                         setTimeout(() => {
                             img.src = newItem.posterUrl;
                             img.alt = newItem.title || 'Movie Poster';
                             img.style.transform = 'rotateY(-90deg)';
-                            setTimeout(() => {
+                            img.style.transition = 'none';
+                            requestAnimationFrame(() => {
+                                img.style.transition = `transform ${duration / 2}ms ease`;
                                 img.style.transform = 'rotateY(0deg)';
-                            }, 50);
+                            });
                         }, duration / 2);
                     } else {
                         // Default: fade
@@ -1805,9 +1846,9 @@
                         setTimeout(() => {
                             img.src = newItem.posterUrl;
                             img.alt = newItem.title || 'Movie Poster';
-                            setTimeout(() => {
+                            requestAnimationFrame(() => {
                                 img.style.opacity = '1';
-                            }, 50);
+                            });
                         }, duration);
                     }
 
