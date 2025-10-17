@@ -41,6 +41,9 @@
         },
     };
 
+    // ===== State =====
+    let currentMedia = null; // Track current media for live updates
+
     // ===== DOM Element References =====
     let headerEl = null;
     let footerEl = null;
@@ -306,8 +309,11 @@
     }
 
     // ===== Update Cinema Display =====
-    function updateCinemaDisplay(currentMedia) {
-        log('Updating cinema display', currentMedia);
+    function updateCinemaDisplay(media) {
+        log('Updating cinema display', media);
+
+        // Store current media for live config updates
+        currentMedia = media;
 
         // Hide loader when content is ready
         const loader = document.getElementById('loader');
@@ -317,19 +323,19 @@
 
         // Update poster
         const posterEl = document.getElementById('poster');
-        if (posterEl && currentMedia && currentMedia.posterUrl) {
-            posterEl.style.backgroundImage = `url('${currentMedia.posterUrl}')`;
+        if (posterEl && media && media.posterUrl) {
+            posterEl.style.backgroundImage = `url('${media.posterUrl}')`;
         }
 
         // Map Plex/Jellyfin/TMDB properties to cinema format
-        const cinemaMedia = mapMediaToCinemaFormat(currentMedia);
+        const cinemaMedia = mapMediaToCinemaFormat(media);
 
         // Update footer with current media info
         createFooter(cinemaMedia);
 
         // Update ambilight based on poster colors
-        if (cinemaConfig.ambilight.enabled && currentMedia && currentMedia.dominantColor) {
-            updateAmbilightColor(currentMedia.dominantColor);
+        if (cinemaConfig.ambilight.enabled && media && media.dominantColor) {
+            updateAmbilightColor(media.dominantColor);
         }
     }
 
@@ -450,7 +456,62 @@
         log('Handling cinema config update', newConfig);
 
         if (newConfig.cinema) {
-            initCinemaMode(newConfig.cinema);
+            // Update config
+            const oldOrientation = cinemaConfig.orientation;
+
+            if (newConfig.cinema.orientation) {
+                cinemaConfig.orientation = newConfig.cinema.orientation;
+            }
+            if (newConfig.cinema.header) {
+                cinemaConfig.header = { ...cinemaConfig.header, ...newConfig.cinema.header };
+            }
+            if (newConfig.cinema.footer) {
+                cinemaConfig.footer = { ...cinemaConfig.footer, ...newConfig.cinema.footer };
+                if (newConfig.cinema.footer.specs) {
+                    cinemaConfig.footer.specs = {
+                        ...cinemaConfig.footer.specs,
+                        ...newConfig.cinema.footer.specs,
+                    };
+                }
+            }
+            if (newConfig.cinema.ambilight) {
+                cinemaConfig.ambilight = {
+                    ...cinemaConfig.ambilight,
+                    ...newConfig.cinema.ambilight,
+                };
+            }
+
+            // Apply orientation if changed
+            if (newConfig.cinema.orientation && newConfig.cinema.orientation !== oldOrientation) {
+                console.log(
+                    '[Cinema] Orientation changed, applying:',
+                    newConfig.cinema.orientation
+                );
+                applyCinemaOrientation(newConfig.cinema.orientation);
+                updatePosterLayout();
+            }
+
+            // Recreate header if header settings changed
+            if (newConfig.cinema.header) {
+                console.log('[Cinema] Header settings changed, recreating header');
+                createHeader();
+            }
+
+            // Recreate footer if footer settings changed
+            if (newConfig.cinema.footer && currentMedia) {
+                console.log('[Cinema] Footer settings changed, recreating footer');
+                const cinemaMedia = mapMediaToCinemaFormat(currentMedia);
+                createFooter(cinemaMedia);
+            }
+
+            // Update ambilight if ambilight settings changed
+            if (newConfig.cinema.ambilight) {
+                console.log('[Cinema] Ambilight settings changed, updating');
+                createAmbilight();
+                if (currentMedia && currentMedia.dominantColor) {
+                    updateAmbilightColor(currentMedia.dominantColor);
+                }
+            }
         }
     }
 
