@@ -14607,6 +14607,45 @@ app.post(
         // Clear the /get-config cache so changes are immediately visible
         cacheManager.delete('GET:/get-config');
 
+        // Broadcast settings update to all connected displays
+        try {
+            logger.info('[WS] Broadcasting settings update to all displays');
+            const settingsPayload = {
+                transitionIntervalSeconds: mergedConfig.transitionIntervalSeconds,
+                transitionEffect: mergedConfig.transitionEffect,
+                effectPauseTime: mergedConfig.effectPauseTime,
+                clockWidget: mergedConfig.clockWidget,
+                clockFormat: mergedConfig.clockFormat,
+                clockTimezone: mergedConfig.clockTimezone,
+                showPoster: mergedConfig.showPoster,
+                showMetadata: mergedConfig.showMetadata,
+                showClearLogo: mergedConfig.showClearLogo,
+                showRottenTomatoes: mergedConfig.showRottenTomatoes,
+                rottenTomatoesMinimumScore: mergedConfig.rottenTomatoesMinimumScore,
+                uiScaling: mergedConfig.uiScaling,
+                syncEnabled: mergedConfig.syncEnabled,
+                syncAlignMaxDelayMs: mergedConfig.syncAlignMaxDelayMs,
+                cinemaMode: mergedConfig.cinemaMode,
+                cinemaOrientation: mergedConfig.cinemaOrientation,
+                wallartMode: mergedConfig.wallartMode,
+                cinema: mergedConfig.cinema,
+                rootRoute: mergedConfig.rootRoute,
+            };
+
+            const broadcastOk = wsHub.broadcast({
+                kind: 'command',
+                type: 'settings.apply',
+                payload: settingsPayload,
+            });
+
+            logger.info('[WS] Settings broadcast result:', {
+                broadcastOk,
+                connectedDevices: wsHub.getConnectedDevices?.()?.length || 0,
+            });
+        } catch (e) {
+            logger.warn('[WS] Settings broadcast failed:', e?.message || e);
+        }
+
         // After saving and cache invalidation, broadcast mode navigate if scheduled
         try {
             if (__broadcastModeChange) {

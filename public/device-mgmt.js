@@ -1222,6 +1222,34 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         } catch (_) {
                             /* ignore playback hook errors */
                         }
+
+                        // Handle settings.apply command from server broadcast
+                        if (t === 'settings.apply' && msg.payload) {
+                            try {
+                                liveDbg('[Live] WS settings.apply received', {
+                                    keys: Object.keys(msg.payload || {}),
+                                });
+                                window.debugLog &&
+                                    window.debugLog('DEVICE_MGMT_WS_SETTINGS_APPLY', {
+                                        keys: Object.keys(msg.payload || {}),
+                                        payload: msg.payload,
+                                    });
+
+                                // Dispatch settingsUpdated event for all displays
+                                const event = new CustomEvent('settingsUpdated', {
+                                    detail: { settings: msg.payload },
+                                });
+                                window.dispatchEvent(event);
+
+                                sendAck('ok');
+                                return;
+                            } catch (e) {
+                                liveDbg('[Live] settings.apply failed:', e);
+                                sendAck('error', String(e?.message || e));
+                                return;
+                            }
+                        }
+
                         // Fallback to mgmt command handler
                         liveDbg('[Live] delegating to handleCommand', { type: msg.type });
                         // For commands that may reload/reset, ack first then perform action
