@@ -502,6 +502,11 @@
                         count: data.commandsQueued.length,
                         types: data.commandsQueued.map(c => c && c.type).filter(Boolean),
                     });
+                    window.debugLog &&
+                        window.debugLog('DEVICE_MGMT_HEARTBEAT_COMMANDS', {
+                            count: data.commandsQueued.length,
+                            types: data.commandsQueued.map(c => c && c.type).filter(Boolean),
+                        });
                 } catch (_) {
                     /* ignore debug errors */
                 }
@@ -1322,9 +1327,11 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         const type = cmd?.type || '';
         const payload = cmd?.payload;
         liveDbg('[Live] queued command received', { type });
+        window.debugLog && window.debugLog('DEVICE_MGMT_COMMAND', { type, payload });
         switch (type) {
             // Core management commands
             case 'core.mgmt.reload':
+                window.debugLog && window.debugLog('DEVICE_MGMT_CMD_RELOAD', {});
                 forceReload();
                 break;
             case 'core.mgmt.swUnregister':
@@ -1560,12 +1567,18 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 
     // Prevent rapid reload loops: allow at most one reload every 8 seconds
     function safeReload(nextUrl) {
+        window.debugLog && window.debugLog('DEVICE_MGMT_SAFE_RELOAD_CALLED', { nextUrl });
         try {
             const now = Date.now();
             const key = 'pr_last_reload_ts';
             const last = Number(localStorage.getItem(key) || '0');
             if (now - last < 8000) {
                 // Too soon since last reload; skip
+                window.debugLog &&
+                    window.debugLog('DEVICE_MGMT_RELOAD_BLOCKED', {
+                        timeSinceLast: now - last,
+                        threshold: 8000,
+                    });
                 return;
             }
             localStorage.setItem(key, String(now));
@@ -1573,6 +1586,8 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             // If localStorage unavailable, still proceed but we tried
         }
 
+        window.debugLog &&
+            window.debugLog('DEVICE_MGMT_RELOAD_EXECUTING', { nextUrl: nextUrl || 'reload' });
         try {
             if (nextUrl && typeof nextUrl === 'string') {
                 window.location.replace(nextUrl);
@@ -1590,6 +1605,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
     }
 
     function forceReload() {
+        window.debugLog && window.debugLog('DEVICE_MGMT_FORCE_RELOAD', {});
         try {
             const busted = cacheBustUrl(window.location.href);
             // Also remove known query params that can cause repeated actions
@@ -1646,6 +1662,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         stopHeartbeat();
         // Stagger first beat a bit to avoid thundering herd on reloads
         const firstIn = 3000 + Math.floor(Math.random() * 2000);
+        window.debugLog && window.debugLog('DEVICE_MGMT_HEARTBEAT_START', { firstIn });
         state.heartbeatTimer = setTimeout(() => {
             sendHeartbeat();
             state.heartbeatTimer = setInterval(sendHeartbeat, 20000);
