@@ -3764,6 +3764,7 @@
             cinemaMode: cinemaEnabled,
             cinemaOrientation: val('cinemaOrientation'),
             // Preview orientation for screensaver/wallart (not saved to config, just for preview)
+            // eslint-disable-next-line no-undef
             previewOrientation: previewOrientation,
             wallartMode: {
                 enabled: wallartEnabled,
