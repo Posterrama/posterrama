@@ -349,14 +349,21 @@
                         });
 
                     // Ensure grid exists via helper
+                    window.debugLog && window.debugLog('WALLART_CREATE_GRID_START', {});
                     const created = api.runtime.createGridElement(wallartConfig);
                     const wallartGrid = created.gridEl;
                     const layoutInfo = created.layoutInfo;
+                    window.debugLog &&
+                        window.debugLog('WALLART_CREATE_GRID_DONE', {
+                            hasGrid: !!wallartGrid,
+                            hasLayout: !!layoutInfo,
+                        });
                     if (!wallartGrid || !layoutInfo) return;
 
                     const layoutVariant = wallartConfig.layoutVariant || 'classic';
 
                     // Populate grid and compute initial state
+                    window.debugLog && window.debugLog('WALLART_INIT_GRID_START', {});
                     const posterCount = Math.min(
                         Number(layoutInfo.posterCount) || 0,
                         mediaQueue.length
@@ -372,6 +379,10 @@
                     });
                     const currentPosters = init?.currentPosters || [];
                     const usedPosters = init?.usedPosters || new Set();
+                    window.debugLog &&
+                        window.debugLog('WALLART_INIT_GRID_DONE', {
+                            postersCount: currentPosters.length,
+                        });
 
                     // Persist module state
                     _state.wallartGrid = wallartGrid;
@@ -382,6 +393,7 @@
                     _state.mediaQueue = mediaQueue;
                     _state.currentPosters = currentPosters;
                     _state.usedPosters = usedPosters;
+                    window.debugLog && window.debugLog('WALLART_STATE_PERSISTED', {});
 
                     // Expose read-only getter for device-mgmt heartbeats
                     try {
@@ -772,9 +784,9 @@
                         refreshTick();
                     };
                     if (_state.refreshTimeout) clearTimeout(_state.refreshTimeout);
-                    // TEMP DEBUG: Disable auto-refresh to test if this causes reload loop
-                    window.debugLog && window.debugLog('WALLART_REFRESH_DISABLED_FOR_TEST', {});
-                    // _state.refreshTimeout = setTimeout(refreshTick, 1200);
+                    window.debugLog &&
+                        window.debugLog('WALLART_SCHEDULE_REFRESH_TICK', { delayMs: 1200 });
+                    _state.refreshTimeout = setTimeout(refreshTick, 1200);
 
                     // Seed current media for device-mgmt visibility (prefer hero if present)
                     try {
