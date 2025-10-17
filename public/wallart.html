@@ -357,12 +357,18 @@
         (function () {
             // Minimal, page-local bootstrap to populate media and start wallart without legacy script.js
             async function ensureConfig() {
+                window.debugLog && window.debugLog('WALLART_ENSURE_CONFIG_START', {});
                 try {
-                    if (window.appConfig && window.wallartConfig) return true;
+                    if (window.appConfig && window.wallartConfig) {
+                        window.debugLog && window.debugLog('WALLART_CONFIG_ALREADY_EXISTS', {});
+                        return true;
+                    }
                     const useCore = !!(window.PosterramaCore && window.PosterramaCore.fetchConfig);
+                    window.debugLog && window.debugLog('WALLART_FETCH_CONFIG', { useCore });
                     const cfg = useCore
                         ? await window.PosterramaCore.fetchConfig()
                         : await (await fetch('/get-config', { cache: 'no-cache', headers: { 'Cache-Control': 'no-cache' } })).json();
+                    window.debugLog && window.debugLog('WALLART_CONFIG_FETCHED', { hasConfig: !!cfg });
                     try {
                         if (!Object.getOwnPropertyDescriptor(window, 'appConfig')) {
                             Object.defineProperty(window, 'appConfig', { value: cfg, writable: true });
@@ -375,58 +381,83 @@
                         } else {
                             window.wallartConfig = wcfg;
                         }
-                    } catch (_) {
+                    } catch (e) {
+                        window.debugLog && window.debugLog('WALLART_CONFIG_DEFINE_ERROR', { error: e.message });
                         window.appConfig = cfg;
                         window.wallartConfig = (cfg && cfg.wallartMode) || {};
                     }
+                    window.debugLog && window.debugLog('WALLART_ENSURE_CONFIG_SUCCESS', {});
                     return true;
-                } catch (_) {
+                } catch (e) {
+                    window.debugLog && window.debugLog('WALLART_ENSURE_CONFIG_FAIL', { error: e.message });
                     return false;
                 }
             }
             async function ensureMediaQueue() {
+                window.debugLog && window.debugLog('WALLART_ENSURE_MEDIA_START', {});
                 try {
-                    if (Array.isArray(window.mediaQueue) && window.mediaQueue.length > 0) return true;
+                    if (Array.isArray(window.mediaQueue) && window.mediaQueue.length > 0) {
+                        window.debugLog && window.debugLog('WALLART_MEDIA_ALREADY_EXISTS', { count: window.mediaQueue.length });
+                        return true;
+                    }
                     const count = Math.max(60, Math.min(400, Math.floor((window.innerWidth * window.innerHeight) / 8000)));
                     const type = (window.appConfig && window.appConfig.type) || 'movies';
                     const url = `/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+                    window.debugLog && window.debugLog('WALLART_FETCH_MEDIA', { url });
                     const res = await fetch(url, { cache: 'no-cache', headers: { 'Cache-Control': 'no-cache' } });
-                    if (!res.ok) return false;
+                    if (!res.ok) {
+                        window.debugLog && window.debugLog('WALLART_MEDIA_FETCH_FAIL', { status: res.status });
+                        return false;
+                    }
                     const data = await res.json();
                     const items = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
-                    if (!items.length) return false;
+                    if (!items.length) {
+                        window.debugLog && window.debugLog('WALLART_MEDIA_EMPTY', {});
+                        return false;
+                    }
                     try {
                         if (!Object.getOwnPropertyDescriptor(window, 'mediaQueue')) {
                             Object.defineProperty(window, 'mediaQueue', { value: items, writable: true });
                         } else {
                             window.mediaQueue = items;
                         }
-                    } catch (_) {
+                    } catch (e) {
+                        window.debugLog && window.debugLog('WALLART_MEDIA_DEFINE_ERROR', { error: e.message });
                         window.mediaQueue = items;
                     }
+                    window.debugLog && window.debugLog('WALLART_ENSURE_MEDIA_SUCCESS', { count: items.length });
                     return true;
-                } catch (_) {
+                } catch (e) {
+                    window.debugLog && window.debugLog('WALLART_ENSURE_MEDIA_FAIL', { error: e.message });
                     return false;
                 }
             }
             async function startWallartOnceReady() {
+                window.debugLog && window.debugLog('WALLART_START_ONCE_READY', {});
                 try {
                     await ensureConfig();
                     try { window.logger && window.logger.debug && window.logger.debug('[WALLART] bootstrap: config loaded', { hasWallartConfig: !!window.wallartConfig }); } catch(_) {}
                     // Initialize device management to enable heartbeats and live WS logs
+                    window.debugLog && window.debugLog('WALLART_INIT_DEVICE_MGMT', {});
                     try {
                         if (window.PosterramaDevice && typeof window.PosterramaDevice.init === 'function') {
                             window.PosterramaDevice.init(window.appConfig || {});
                         }
-                    } catch (_) { /* noop: device-mgmt optional */ }
+                    } catch (e) { 
+                        window.debugLog && window.debugLog('WALLART_DEVICE_MGMT_ERROR', { error: e.message });
+                    }
                     await ensureMediaQueue();
                     try { window.logger && window.logger.debug && window.logger.debug('[WALLART] bootstrap: media ready', { count: (Array.isArray(window.mediaQueue) && window.mediaQueue.length) || 0 }); } catch(_) {}
+                    window.debugLog && window.debugLog('WALLART_START_MODULE', { hasModule: !!(window.PosterramaWallart && typeof window.PosterramaWallart.start === 'function') });
                     if (window.PosterramaWallart && typeof window.PosterramaWallart.start === 'function') {
                         window.PosterramaWallart.start(window.wallartConfig || {});
                         try { window.logger && window.logger.debug && window.logger.debug('[WALLART] module start invoked'); } catch(_) {}
                         try { const loader = document.getElementById('loader'); if (loader) { loader.style.opacity='0'; loader.style.display='none'; } } catch(_) {}
                     }
-                } catch (_) {}
+                    window.debugLog && window.debugLog('WALLART_BOOTSTRAP_COMPLETE', {});
+                } catch (e) {
+                    window.debugLog && window.debugLog('WALLART_START_ERROR', { error: e.message, stack: e.stack });
+                }
             }
             // Kick on DOM ready
             if (document.readyState === 'loading') {
