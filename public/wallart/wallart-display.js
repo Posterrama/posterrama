@@ -1576,8 +1576,22 @@
                         // Apply preview orientation if provided (for preview mode only)
                         if (settings.previewOrientation) {
                             const isPortrait = settings.previewOrientation === 'portrait';
+                            const wasPortrait =
+                                document.body.classList.contains('preview-portrait');
+
                             document.body.classList.toggle('preview-portrait', isPortrait);
                             document.body.classList.toggle('preview-landscape', !isPortrait);
+
+                            // If orientation changed, rebuild layout
+                            if (wasPortrait !== isPortrait) {
+                                window.debugLog &&
+                                    window.debugLog('WALLART_ORIENTATION_CHANGE_RELOAD', {
+                                        wasPortrait,
+                                        isPortrait,
+                                    });
+                                // Orientation change requires full layout rebuild
+                                window.location.reload();
+                            }
                         }
 
                         // Check if wallart mode is enabled in the new settings

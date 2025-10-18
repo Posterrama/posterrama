@@ -22,8 +22,7 @@
 
     Core.buildBasePath = function buildBasePath() {
         // Normalize: collapse multiple slashes
-        let p = (window.location.pathname || '/').replace(/\/+/, '/');
-        p = p.replace(/\/+/g, '/');
+        let p = (window.location.pathname || '/').replace(/\/+/g, '/');
         // Strip trailing slash (except root)
         if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
 
@@ -36,11 +35,17 @@
             p = '/' + parts.join('/');
         } else {
             // Remove only the last segment (current file or page)
-            p = p.replace(/[^/]+$/, '');
+            // Examples: /wallart -> /, /app/wallart -> /app/, /cinema -> /
+            const lastSlash = p.lastIndexOf('/');
+            if (lastSlash >= 0) {
+                p = p.substring(0, lastSlash + 1); // keep up to and including the slash
+            }
         }
 
-        // Ensure single trailing slash
+        // Ensure trailing slash
         if (!p.endsWith('/')) p += '/';
+        // Collapse any resulting double slashes
+        p = p.replace(/\/+/g, '/');
         return p;
     };
 
@@ -53,18 +58,21 @@
         if (mode === 'cinema') pathSegment = 'cinema';
         else if (mode === 'wallart') pathSegment = 'wallart';
 
-        // Ensure base starts with slash and ends with slash
-        let b = base || '/';
+        // Normalize base: ensure it starts and ends with a single slash
+        let b = (base || '/').replace(/\/+/g, '/'); // collapse multiple slashes
         if (!b.startsWith('/')) b = '/' + b;
         if (!b.endsWith('/')) b += '/';
 
-        // Remove leading slashes from segment
+        // Remove any leading slashes from segment
         const seg = pathSegment.replace(/^\/+/, '');
 
-        // Build full URL: origin + base + segment
-        // URL constructor requires origin to NOT have trailing slash, but our base already has leading slash
-        const cleanOrigin = origin.replace(/\/$/, '');
+        // Build full path: base + segment
+        // Example: / + cinema = /cinema, /app/ + cinema = /app/cinema
         const fullPath = b + seg;
+
+        // Build full URL: origin + fullPath
+        // Ensure origin has no trailing slash
+        const cleanOrigin = origin.replace(/\/$/, '');
 
         return cleanOrigin + fullPath;
     };
@@ -74,17 +82,7 @@
         const now = Date.now();
         if (now - lastNavTs < 1200) return; // debounce multi-triggers
         lastNavTs = now;
-        let url = Core.buildUrlForMode(mode);
-        // Safety: enforce slash after origin (guards against any malformed concatenations)
-        try {
-            const o = window.location.origin.replace(/\/?$/, '');
-            if (url.startsWith(o) && !url.startsWith(o + '/')) {
-                const rest = url.slice(o.length).replace(/^\/+/, '');
-                url = o + '/' + rest;
-            }
-        } catch (_) {
-            /* ignore */
-        }
+        const url = Core.buildUrlForMode(mode);
         if (opts.replace !== false) return void window.location.replace(url);
         window.location.href = url;
     };
