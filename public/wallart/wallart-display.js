@@ -1573,7 +1573,27 @@
                         const settings = event.detail?.settings;
                         if (!settings) return;
 
+                        // Check if wallart mode is enabled in the new settings
+                        const wallartEnabled = settings.wallartMode?.enabled;
+                        if (wallartEnabled === false) return;
+
+                        // Get old config for comparison - if empty, wallart hasn't started yet, so skip
+                        // We need this check BEFORE orientation handling to avoid rebuild on initial load
+                        const oldConfig = _state.wallartConfig || {};
+                        const isFirstLoad = Object.keys(oldConfig).length === 0;
+
+                        if (isFirstLoad) {
+                            // On first load, just set the orientation classes without triggering rebuild
+                            if (settings.previewOrientation) {
+                                const isPortrait = settings.previewOrientation === 'portrait';
+                                document.body.classList.toggle('preview-portrait', isPortrait);
+                                document.body.classList.toggle('preview-landscape', !isPortrait);
+                            }
+                            return;
+                        }
+
                         // Apply preview orientation if provided (for preview mode only)
+                        // Only check for changes AFTER initial load to avoid unnecessary rebuild
                         if (settings.previewOrientation) {
                             const isPortrait = settings.previewOrientation === 'portrait';
                             const wasPortrait =
@@ -1611,16 +1631,6 @@
                                 // Early return to avoid duplicate rebuild logic below
                                 return;
                             }
-                        }
-
-                        // Check if wallart mode is enabled in the new settings
-                        const wallartEnabled = settings.wallartMode?.enabled;
-                        if (wallartEnabled === false) return;
-
-                        // Get old config for comparison - if empty, wallart hasn't started yet, so skip
-                        const oldConfig = _state.wallartConfig || {};
-                        if (Object.keys(oldConfig).length === 0) {
-                            return;
                         }
 
                         const newWallartConfig = settings.wallartMode || {};
