@@ -1582,15 +1582,34 @@
                             document.body.classList.toggle('preview-portrait', isPortrait);
                             document.body.classList.toggle('preview-landscape', !isPortrait);
 
-                            // If orientation changed, rebuild layout
+                            // If orientation changed, rebuild layout WITHOUT reload to avoid infinite loop
                             if (wasPortrait !== isPortrait) {
                                 window.debugLog &&
-                                    window.debugLog('WALLART_ORIENTATION_CHANGE_RELOAD', {
+                                    window.debugLog('WALLART_ORIENTATION_CHANGE_REBUILD', {
                                         wasPortrait,
                                         isPortrait,
                                     });
-                                // Orientation change requires full layout rebuild
-                                window.location.reload();
+
+                                // Stop current cycle to avoid conflicts
+                                api.stop();
+
+                                // Rebuild grid with new orientation
+                                // Give browser a moment to apply orientation classes
+                                setTimeout(() => {
+                                    try {
+                                        // Merge latest settings into wallartConfig
+                                        const updatedConfig = {
+                                            ..._state.wallartConfig,
+                                            ...settings.wallartMode,
+                                        };
+                                        api.start(updatedConfig);
+                                    } catch (e) {
+                                        console.error('[Wallart] Orientation rebuild failed:', e);
+                                    }
+                                }, 100);
+
+                                // Early return to avoid duplicate rebuild logic below
+                                return;
                             }
                         }
 
