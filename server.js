@@ -18738,10 +18738,20 @@ if (require.main === module) {
 
             // Ensure local media directory structure exists on startup
             // This is critical - we should ALWAYS have these directories, even if local source is disabled
+            // Create a temporary instance just for directory creation if needed
             try {
                 if (!localDirectorySource) {
-                    logger.warn(
-                        'Local directory source not initialized, skipping directory creation'
+                    // Local source disabled, but we still need the directory structure
+                    const tempSource = new LocalDirectorySource(
+                        config.localDirectory || { rootPath: 'media', enabled: false },
+                        logger
+                    );
+                    await tempSource.createDirectoryStructure();
+                    logger.info(
+                        'Local media directory structure ensured on startup (source disabled)',
+                        {
+                            rootPath: tempSource.rootPath,
+                        }
                     );
                 } else {
                     await localDirectorySource.createDirectoryStructure();
