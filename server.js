@@ -18737,23 +18737,23 @@ if (require.main === module) {
             logger.info('Server startup complete - media cache is ready');
 
             // Ensure local media directory structure exists on startup
-            // This is critical - we should ALWAYS have these directories
-            if (config.localDirectory?.enabled) {
-                try {
-                    if (!localDirectorySource) {
-                        logger.warn('Local directory enabled but source not initialized');
-                    } else {
-                        await localDirectorySource.createDirectoryStructure();
-                        logger.info('Local media directory structure ensured on startup', {
-                            rootPath: localDirectorySource.rootPath,
-                        });
-                    }
-                } catch (e) {
-                    logger.error('Failed to ensure local media directory structure on startup:', {
-                        error: e?.message,
-                        stack: e?.stack,
+            // This is critical - we should ALWAYS have these directories, even if local source is disabled
+            try {
+                if (!localDirectorySource) {
+                    logger.warn(
+                        'Local directory source not initialized, skipping directory creation'
+                    );
+                } else {
+                    await localDirectorySource.createDirectoryStructure();
+                    logger.info('Local media directory structure ensured on startup', {
+                        rootPath: localDirectorySource.rootPath,
                     });
                 }
+            } catch (e) {
+                logger.error('Failed to ensure local media directory structure on startup:', {
+                    error: e?.message,
+                    stack: e?.stack,
+                });
             }
 
             // Schedule background refresh based on config
