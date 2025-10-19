@@ -869,8 +869,8 @@ configure_system_limits() {
 # Function to detect existing installation
 detect_existing_installation() {
     if [[ -d "$POSTERRAMA_DIR/.git" ]] && [[ -f "$POSTERRAMA_DIR/package.json" ]]; then
-        # Check if it's actually a Posterrama installation
-        if grep -q '"name": "posterrama"' "$POSTERRAMA_DIR/package.json" 2>/dev/null; then
+        # Check if it's actually a Posterrama installation (name can be posterrama or posterrama-app)
+        if grep -qE '"name": "posterrama(-app)?"' "$POSTERRAMA_DIR/package.json" 2>/dev/null; then
             return 0  # Existing installation found
         fi
     fi
