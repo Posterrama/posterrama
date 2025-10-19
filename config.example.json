@@ -124,6 +124,26 @@
             "ipAllowList": ["127.0.0.1", "::1", "192.168.0.0/16"]
         }
     },
+    "mqtt": {
+        "enabled": false,
+        "broker": {
+            "host": "localhost",
+            "port": 1883,
+            "username": "",
+            "passwordEnvVar": "MQTT_PASSWORD",
+            "tls": false
+        },
+        "discovery": {
+            "enabled": true,
+            "prefix": "homeassistant"
+        },
+        "topicPrefix": "posterrama",
+        "publishInterval": 30,
+        "availability": {
+            "enabled": true,
+            "timeout": 60
+        }
+    },
     "cache": {
         "maxSizeGB": 2,
         "minFreeDiskSpaceMB": 750,

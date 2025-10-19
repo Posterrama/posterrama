@@ -615,6 +615,133 @@
                 }
             }
         },
+        "mqtt": {
+            "description": "MQTT integration for Home Assistant and other automation platforms",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable MQTT integration"
+                },
+                "broker": {
+                    "type": "object",
+                    "properties": {
+                        "host": {
+                            "type": "string",
+                            "default": "localhost",
+                            "description": "MQTT broker hostname or IP"
+                        },
+                        "port": {
+                            "type": "integer",
+                            "default": 1883,
+                            "minimum": 1,
+                            "maximum": 65535,
+                            "description": "MQTT broker port"
+                        },
+                        "username": {
+                            "type": "string",
+                            "default": "",
+                            "description": "MQTT broker username (optional)"
+                        },
+                        "passwordEnvVar": {
+                            "type": "string",
+                            "default": "MQTT_PASSWORD",
+                            "description": "Environment variable containing MQTT password"
+                        },
+                        "tls": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Use TLS for MQTT connection"
+                        }
+                    },
+                    "required": ["host", "port"],
+                    "additionalProperties": false,
+                    "default": {
+                        "host": "localhost",
+                        "port": 1883,
+                        "username": "",
+                        "passwordEnvVar": "MQTT_PASSWORD",
+                        "tls": false
+                    }
+                },
+                "discovery": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Enable Home Assistant MQTT Discovery"
+                        },
+                        "prefix": {
+                            "type": "string",
+                            "default": "homeassistant",
+                            "description": "MQTT discovery topic prefix"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "enabled": true,
+                        "prefix": "homeassistant"
+                    }
+                },
+                "topicPrefix": {
+                    "type": "string",
+                    "default": "posterrama",
+                    "description": "Prefix for all Posterrama MQTT topics"
+                },
+                "publishInterval": {
+                    "type": "integer",
+                    "default": 30,
+                    "minimum": 5,
+                    "maximum": 300,
+                    "description": "Interval in seconds to publish device state updates"
+                },
+                "availability": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Publish availability status for devices"
+                        },
+                        "timeout": {
+                            "type": "integer",
+                            "default": 60,
+                            "minimum": 10,
+                            "maximum": 600,
+                            "description": "Seconds after last heartbeat to mark device offline"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "enabled": true,
+                        "timeout": 60
+                    }
+                }
+            },
+            "additionalProperties": false,
+            "default": {
+                "enabled": false,
+                "broker": {
+                    "host": "localhost",
+                    "port": 1883,
+                    "username": "",
+                    "passwordEnvVar": "MQTT_PASSWORD",
+                    "tls": false
+                },
+                "discovery": {
+                    "enabled": true,
+                    "prefix": "homeassistant"
+                },
+                "topicPrefix": "posterrama",
+                "publishInterval": 30,
+                "availability": {
+                    "enabled": true,
+                    "timeout": 60
+                }
+            }
+        },
         "tmdbSource": {
             "description": "Optional TMDB source configuration.",
             "type": "object",

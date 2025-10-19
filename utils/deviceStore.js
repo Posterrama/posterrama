@@ -2,8 +2,12 @@ const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
+const EventEmitter = require('events');
 const logger = require('./logger');
 const deepMerge = require('./deep-merge');
+
+// Event emitter for device changes
+const deviceEvents = new EventEmitter();
 
 // Helper function for mkdir with recursive option (compatible with older Node versions)
 async function ensureDir(dirPath) {
@@ -189,6 +193,10 @@ async function registerDevice({
     };
     all.push(device);
     await writeAll(all);
+
+    // Emit device registered event for MQTT
+    deviceEvents.emit('device:registered', device);
+
     return { device, secret };
 }
 
@@ -205,6 +213,10 @@ async function patchDevice(id, patch) {
     const now = new Date().toISOString();
     all[idx] = { ...all[idx], ...patch, updatedAt: now };
     await writeAll(all);
+
+    // Emit device patched event for MQTT
+    deviceEvents.emit('device:patched', all[idx]);
+
     return all[idx];
 }
 
@@ -351,6 +363,10 @@ async function updateHeartbeat(id, { clientInfo, currentState, installId, hardwa
     if (currentState) all[idx].currentState = { ...all[idx].currentState, ...currentState };
     all[idx].updatedAt = now;
     await writeAll(all);
+
+    // Emit device update event for MQTT and other listeners
+    deviceEvents.emit('device:updated', all[idx]);
+
     return all[idx];
 }
 
@@ -631,4 +647,5 @@ module.exports = {
     getActivePairings,
     mergeDevices,
     pruneOrphanGroupRefs,
+    deviceEvents, // Export EventEmitter for MQTT and other integrations
 };
