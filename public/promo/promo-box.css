@@ -1,0 +1,435 @@
+/**
+ * Promo Box Overlay Styles
+ * Styles for the promotional overlay shown on the promo site (port 4001)
+ * This overlay appears on top of any display mode (screensaver, cinema, wallart)
+ */
+
+/* ===== BASE PROMO BOX STYLES ===== */
+
+#promo-box.promo-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 99999;
+    background-color: rgba(20, 20, 20, 0.88);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    color: #fff;
+    padding: 40px 50px;
+    border-radius: 16px;
+    text-align: center;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    opacity: 1;
+    visibility: visible;
+}
+
+.promo-logo {
+    margin: 0 auto 25px auto;
+    width: 60px;
+    height: 60px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.promo-logo svg {
+    width: 100%;
+    height: 100%;
+}
+
+#promo-box.promo-overlay h1 {
+    font-size: 2.2em;
+    font-weight: 800;
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    line-height: 1.2;
+    color: #fff;
+}
+
+#promo-box.promo-overlay p {
+    font-size: 1.1em;
+    color: #b8b8b8;
+    margin-bottom: 30px;
+    max-width: 450px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.5;
+}
+
+.promo-brand-name {
+    font-weight: 700;
+    background: linear-gradient(90deg, #e0e0e0, #bb86fc, #53a8b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.movie-extensions {
+    font-size: 0.65em;
+    color: #fcd34d;
+    vertical-align: super;
+    font-weight: 400;
+    opacity: 0.9;
+    margin-left: 3px;
+    letter-spacing: 0.3px;
+    font-family: 'Kalam', cursive;
+    transform: rotate(-2deg);
+    display: inline-block;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    position: relative;
+    top: -2px;
+}
+
+.promo-cta {
+    margin-top: 20px;
+}
+
+.promo-cta a.button-promo {
+    display: inline-block;
+    background-color: #e5a00d;
+    color: #111;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1em;
+    padding: 14px 28px;
+    border-radius: 50px;
+    transition:
+        transform 0.2s ease-out,
+        box-shadow 0.2s ease-out,
+        background-color 0.2s;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.promo-cta a.button-promo:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(229, 160, 13, 0.4);
+    background-color: #ffb40f;
+}
+
+.promo-cta a.button-promo .fab {
+    margin-right: 10px;
+    font-size: 1.2em;
+    vertical-align: middle;
+}
+
+/* One-liner installation section */
+.oneliner-install {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.oneliner-text {
+    font-size: 1em;
+    color: #ccc;
+    margin-bottom: 12px;
+    font-weight: normal;
+}
+
+.oneliner-command {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 16px 50px 16px 20px;
+    margin: 12px auto;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    max-width: 90%;
+}
+
+.oneliner-command:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
+}
+
+.oneliner-command code {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+    font-size: 0.85em;
+    color: #ffffff;
+    background: none;
+    padding: 0;
+    white-space: nowrap;
+    overflow-x: auto;
+    font-weight: 400;
+    display: block;
+}
+
+.copy-indicator {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #cccccc;
+    transition: all 0.3s ease;
+    opacity: 0.7;
+}
+
+.copy-indicator:hover {
+    opacity: 1;
+    color: #ffffff;
+}
+
+.seo-content {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* Desktop and larger screens */
+@media (min-width: 768px) {
+    #promo-box.promo-overlay {
+        max-width: 700px;
+        padding: 50px 60px;
+    }
+
+    #promo-box.promo-overlay h1 {
+        font-size: 2.6em;
+        margin-bottom: 20px;
+    }
+
+    #promo-box.promo-overlay p {
+        font-size: 1.2em;
+        margin-bottom: 35px;
+        max-width: 500px;
+    }
+
+    .promo-logo {
+        width: 70px;
+        height: 70px;
+        margin-bottom: 30px;
+    }
+
+    .oneliner-command code {
+        font-size: 1em;
+    }
+}
+
+/* Large desktop screens */
+@media (min-width: 1200px) {
+    #promo-box.promo-overlay {
+        max-width: 700px;
+        padding: 60px 70px;
+    }
+
+    #promo-box.promo-overlay h1 {
+        font-size: 2.8em;
+    }
+
+    #promo-box.promo-overlay p {
+        font-size: 1.25em;
+        max-width: 550px;
+    }
+
+    .promo-logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 35px;
+    }
+}
+
+/* ===== OVERLAY-SPECIFIC OVERRIDES ===== */
+
+/* FORCE promo box to be visible as overlay */
+body.promo-site #promo-box.promo-overlay {
+    display: block !important;
+    opacity: 1 !important;
+    transform: translate(-50%, -50%) scale(1) !important;
+    z-index: 99999 !important;
+    visibility: visible !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+}
+
+/* Hide loader on promo site */
+body.promo-site #loader {
+    display: none !important;
+}
+
+/* FORCE cinema mode controls to stay hidden on promo site */
+body.promo-site.cinema-mode #controls-container,
+body.promo-site.cinema-mode #controls-container.visible {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Show controls on promo site only when NOT in cinema mode */
+body.promo-site:not(.cinema-mode) #controls-container.visible {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 15px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Ensure clock is positioned correctly ONLY in screensaver mode */
+body.promo-site.screensaver-mode #clock-widget-container {
+    position: fixed !important;
+    top: 30px !important;
+    left: 50px !important;
+    z-index: 10 !important;
+    display: block !important;
+}
+
+/* Ensure promo box doesn't interfere with clock positioning */
+body.promo-site #promo-box.promo-overlay {
+    z-index: 99999 !important;
+}
+
+/* Mobile promo box styling - optimal size and prominent text on mobile */
+@media screen and (max-width: 1024px) {
+    /* Force parent body to allow full width */
+    body.promo-site {
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Force promo box to use full screen width with small edge margin */
+    body.promo-site #promo-box.promo-overlay,
+    body.promo-site main#promo-box.promo-overlay {
+        width: calc(100vw - 10px) !important; /* Almost full width for maximum text space */
+        max-width: none !important;
+        padding: 50px 15px !important; /* Much more vertical padding top/bottom for breathing room */
+        box-sizing: border-box !important;
+        min-height: auto !important; /* Remove forced height, let content determine size */
+        margin: 0 5px !important; /* Minimal margin on each side */
+        position: relative !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important; /* Center it perfectly */
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    /* Make text exactly like old version */
+    body.promo-site #promo-box.promo-overlay h1 {
+        font-size: 3.8em !important; /* Big title like old version */
+        margin-bottom: 15px !important; /* More margin below title */
+        line-height: 1 !important;
+        font-weight: bold !important;
+    }
+
+    body.promo-site #promo-box.promo-overlay p {
+        font-size: 2.2em !important; /* Big text like old version */
+        line-height: 1.2 !important;
+        margin-bottom: 25px !important; /* More margin below paragraph */
+        max-width: none !important;
+        text-align: center !important;
+    }
+
+    /* Make button bigger with more padding */
+    body.promo-site #promo-box.promo-overlay .promo-cta a.button-promo {
+        font-size: 2em !important; /* Bigger button text */
+        padding: 25px 50px !important; /* Much more padding around button */
+        margin-top: 20px !important; /* More margin above button */
+        margin-bottom: 10px !important; /* Add margin below button for bottom spacing */
+        display: inline-block !important;
+    }
+
+    /* Make logo bigger with more space around it */
+    body.promo-site #promo-box.promo-overlay .promo-logo {
+        width: 90px !important; /* Bigger logo */
+        height: 90px !important;
+        margin-bottom: 20px !important; /* More margin below logo */
+        margin-top: 15px !important; /* More margin above logo for top spacing */
+    }
+
+    /* Style the oneliner installation section */
+    body.promo-site #promo-box.promo-overlay .oneliner-install {
+        margin-top: 25px !important;
+        text-align: center !important;
+    }
+
+    body.promo-site #promo-box.promo-overlay .oneliner-text {
+        font-size: 1.2em !important;
+        color: #ccc !important;
+        margin-bottom: 12px !important;
+        font-weight: normal !important;
+    }
+
+    body.promo-site #promo-box.promo-overlay .oneliner-command {
+        background: rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 12px !important;
+        padding: 16px 50px 16px 20px !important;
+        margin: 12px 0 !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        position: relative !important;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    body.promo-site #promo-box.promo-overlay .oneliner-command:hover {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    body.promo-site #promo-box.promo-overlay .oneliner-command code {
+        font-family:
+            'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace !important;
+        font-size: 0.85em !important;
+        color: #ffffff !important;
+        background: none !important;
+        padding: 0 !important;
+        white-space: nowrap !important;
+        overflow-x: auto !important;
+        font-weight: 400 !important;
+    }
+
+    body.promo-site #promo-box.promo-overlay .copy-indicator {
+        position: absolute !important;
+        right: 15px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        color: #cccccc !important;
+        transition: all 0.3s ease !important;
+        opacity: 0.7 !important;
+    }
+
+    body.promo-site #promo-box.promo-overlay .copy-indicator:hover {
+        opacity: 1 !important;
+        color: #ffffff !important;
+    }
+}
+
+/* Smaller devices - still big text but adjusted */
+@media screen and (max-width: 480px) {
+    body.promo-site #promo-box.promo-overlay {
+        width: calc(100vw - 20px) !important;
+        padding: 40px 25px !important;
+    }
+
+    body.promo-site #promo-box.promo-overlay h1 {
+        font-size: 3em !important;
+    }
+
+    body.promo-site #promo-box.promo-overlay p {
+        font-size: 1.7em !important;
+    }
+
+    body.promo-site #promo-box.promo-overlay .promo-cta a.button-promo {
+        font-size: 1.5em !important;
+    }
+}

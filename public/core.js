@@ -14,6 +14,47 @@
         return resp.json();
     };
 
+    Core.loadPromoOverlay = function loadPromoOverlay(cfg) {
+        // Only load promo overlay if config flag is set (typically on port 4001 promo site)
+        if (!cfg || cfg.promoBoxEnabled !== true) return;
+        if (window.__promoBoxInjected) return; // Already loaded
+
+        console.debug('[Core] Loading promo box overlay');
+
+        // Load CSS
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '/promo/promo-box.css?v=' + Date.now();
+        document.head.appendChild(link);
+
+        // Load JS
+        const script = document.createElement('script');
+        script.src = '/promo/promo-box-overlay.js?v=' + Date.now();
+        script.async = true;
+        document.body.appendChild(script);
+
+        // Also load Font Awesome for the GitHub icon if not already present
+        if (!document.querySelector('link[href*="font-awesome"]')) {
+            const fa = document.createElement('link');
+            fa.rel = 'stylesheet';
+            fa.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css';
+            fa.integrity =
+                'sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==';
+            fa.crossOrigin = 'anonymous';
+            fa.referrerPolicy = 'no-referrer';
+            document.head.appendChild(fa);
+        }
+
+        // Load Google Fonts for promo box if not already present
+        if (!document.querySelector('link[href*="fonts.googleapis.com"]')) {
+            const fonts = document.createElement('link');
+            fonts.rel = 'stylesheet';
+            fonts.href =
+                'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Kalam:wght@400;700&display=swap';
+            document.head.appendChild(fonts);
+        }
+    };
+
     Core.getActiveMode = function getActiveMode(cfg) {
         if (cfg?.cinemaMode === true) return 'cinema';
         if (cfg?.wallartMode?.enabled === true) return 'wallart';
