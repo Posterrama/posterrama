@@ -201,6 +201,18 @@ install_nodejs() {
         NODE_VERSION=$(node --version)
         NPM_VERSION=$(npm --version)
         print_success "Node.js $NODE_VERSION and npm $NPM_VERSION installed successfully"
+        
+        # Update npm to latest version to avoid version warnings
+        print_status "Updating npm to latest version..."
+        npm install -g npm@latest 2>&1 | grep -E "(updated|changed|added)" || true
+        
+        # Verify npm update
+        UPDATED_NPM_VERSION=$(npm --version)
+        if [[ "$UPDATED_NPM_VERSION" != "$NPM_VERSION" ]]; then
+            print_success "npm updated from $NPM_VERSION to $UPDATED_NPM_VERSION"
+        else
+            print_status "npm already at latest version $NPM_VERSION"
+        fi
     else
         print_error "Failed to install Node.js or npm"
         exit 1
