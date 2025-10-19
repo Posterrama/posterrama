@@ -857,31 +857,6 @@
                             "description": "When true, derive a small thumbnail (thumbnail.jpg) from poster.jpg inside generated posterpack ZIPs.",
                             "default": true
                         },
-                        "itemConcurrency": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "description": "Max items processed in parallel by posterpack generation"
-                        },
-                        "assetConcurrency": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "description": "Max concurrent asset downloads per item"
-                        },
-                        "maxInflightDownloads": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "description": "Global cap on total concurrent HTTP downloads across items (0 = unlimited)"
-                        },
-                        "retryMaxRetries": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "description": "Download retry attempts for asset fetching"
-                        },
-                        "retryBaseDelay": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "description": "Base delay in ms for exponential backoff on download retries"
-                        },
                         "enabled": {
                             "description": "Enable posterpack generation functionality.",
                             "type": "boolean",
@@ -1043,6 +1018,10 @@
                 }
             },
             "additionalProperties": false
+        },
+        "previewOrientation": {
+            "type": "string",
+            "default": "landscape"
         }
     },
     "required": [
