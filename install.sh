@@ -923,6 +923,18 @@ update_posterrama() {
         print_success "Updated from $CURRENT_COMMIT to $NEW_COMMIT"
     fi
     
+    # Update npm to latest version first
+    print_status "Updating npm to latest version..."
+    CURRENT_NPM_VERSION=$(npm --version 2>/dev/null || echo "unknown")
+    npm install -g npm@latest 2>&1 | grep -E "(updated|changed|added)" || true
+    UPDATED_NPM_VERSION=$(npm --version 2>/dev/null || echo "unknown")
+    
+    if [[ "$UPDATED_NPM_VERSION" != "$CURRENT_NPM_VERSION" ]]; then
+        print_success "npm updated from $CURRENT_NPM_VERSION to $UPDATED_NPM_VERSION"
+    else
+        print_status "npm already at latest version $UPDATED_NPM_VERSION"
+    fi
+    
     # Update dependencies
     print_status "Updating Node.js dependencies..."
     
