@@ -372,6 +372,7 @@ async function updateHeartbeat(id, { clientInfo, currentState, installId, hardwa
 
 async function deleteDevice(id) {
     const all = await readAll();
+    const device = all.find(d => d.id === id);
     const next = all.filter(d => d.id !== id);
     const removed = next.length !== all.length;
     if (removed) {
@@ -381,6 +382,10 @@ async function deleteDevice(id) {
             commandQueue.delete(id);
         } catch (_) {
             /* no-op */
+        }
+        // Emit deletion event for MQTT cleanup
+        if (device) {
+            deviceEvents.emit('device:deleted', device);
         }
     }
     return removed;

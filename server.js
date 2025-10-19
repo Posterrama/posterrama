@@ -18911,6 +18911,14 @@ if (require.main === module) {
                         }
                     });
 
+                    deviceStore.deviceEvents.on('device:deleted', async device => {
+                        try {
+                            await mqttBridge.onDeviceDelete(device);
+                        } catch (error) {
+                            logger.error('Error handling device:deleted event in MQTT:', error);
+                        }
+                    });
+
                     logger.info('✅ MQTT bridge initialized successfully');
                 } catch (mqttError) {
                     logger.error('❌ Failed to initialize MQTT bridge:', mqttError);

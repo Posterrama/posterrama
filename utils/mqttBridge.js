@@ -415,6 +415,55 @@ class MqttBridge extends EventEmitter {
     }
 
     /**
+     * Unpublish Home Assistant Discovery configuration for a deleted device
+     * Sends empty payload with retain flag to remove all entities
+     */
+    async unpublishDiscovery(device) {
+        if (!this.client || !this.connected) return;
+        if (!this.config.discovery?.enabled) return;
+
+        try {
+            const capabilities = capabilityRegistry.getAvailableCapabilities(device);
+            const discoveryPrefix = this.config.discovery.prefix || 'homeassistant';
+
+            logger.info('🗑️  Removing Home Assistant discovery for deleted device', {
+                deviceId: device.id,
+                capabilities: capabilities.length,
+            });
+
+            // Send empty payload to each discovery topic to remove entities
+            for (const cap of capabilities) {
+                const component = this.getHomeAssistantComponent(cap.entityType);
+                const objectId = cap.id.replace(/\./g, '_');
+                const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${objectId}/config`;
+
+                // Empty payload with retain flag removes the entity from Home Assistant
+                await this.publish(discoveryTopic, '', {
+                    qos: 1,
+                    retain: true,
+                });
+
+                logger.debug('🗑️  Removed discovery config', {
+                    deviceId: device.id,
+                    capability: cap.id,
+                    topic: discoveryTopic,
+                });
+            }
+
+            // Remove from tracking
+            this.discoveryPublished.delete(device.id);
+
+            logger.info('✅ Device removed from Home Assistant', {
+                deviceId: device.id,
+                name: device.name,
+            });
+        } catch (error) {
+            logger.error('Error unpublishing discovery:', error);
+            this.stats.errors++;
+        }
+    }
+
+    /**
      * Build Home Assistant Discovery configuration
      */
     buildDiscoveryConfig(device, capability, topicPrefix) {
@@ -606,6 +655,22 @@ class MqttBridge extends EventEmitter {
         await this.publishDeviceState(device);
         await this.publishDeviceAvailability(device);
         await this.publishDiscovery(device);
+    }
+
+    /**
+     * Handle device deletion event from deviceStore
+     */
+    async onDeviceDelete(device) {
+        // Remove all Home Assistant discovery configs for this device
+        await this.unpublishDiscovery(device);
+
+        // Clean up tracking
+        this.deviceStates.delete(device.id);
+
+        logger.info('🗑️  Device cleanup complete', {
+            deviceId: device.id,
+            name: device.name,
+        });
     }
 
     /**
