@@ -18814,50 +18814,52 @@ if (require.main === module) {
         }
 
         // Initialize MQTT bridge if enabled
-        let mqttBridge = null;
-        if (config.mqtt && config.mqtt.enabled) {
-            try {
-                logger.info('🔌 Initializing MQTT bridge...');
-                const MqttBridge = require('./utils/mqttBridge');
-                mqttBridge = new MqttBridge(config.mqtt);
-                await mqttBridge.init();
-                
-                // Store globally for access in other routes
-                global.__posterramaMqttBridge = mqttBridge;
-                
-                // Listen to device events for real-time MQTT updates
-                deviceStore.deviceEvents.on('device:updated', async (device) => {
-                    try {
-                        await mqttBridge.onDeviceUpdate(device);
-                    } catch (error) {
-                        logger.error('Error handling device:updated event in MQTT:', error);
-                    }
-                });
-                
-                deviceStore.deviceEvents.on('device:registered', async (device) => {
-                    try {
-                        await mqttBridge.onDeviceUpdate(device);
-                    } catch (error) {
-                        logger.error('Error handling device:registered event in MQTT:', error);
-                    }
-                });
-                
-                deviceStore.deviceEvents.on('device:patched', async (device) => {
-                    try {
-                        await mqttBridge.onDeviceUpdate(device);
-                    } catch (error) {
-                        logger.error('Error handling device:patched event in MQTT:', error);
-                    }
-                });
-                
-                logger.info('✅ MQTT bridge initialized successfully');
-            } catch (mqttError) {
-                logger.error('❌ Failed to initialize MQTT bridge:', mqttError);
-                // Don't crash the server if MQTT fails
+        (async () => {
+            let mqttBridge = null;
+            if (config.mqtt && config.mqtt.enabled) {
+                try {
+                    logger.info('🔌 Initializing MQTT bridge...');
+                    const MqttBridge = require('./utils/mqttBridge');
+                    mqttBridge = new MqttBridge(config.mqtt);
+                    await mqttBridge.init();
+
+                    // Store globally for access in other routes
+                    global.__posterramaMqttBridge = mqttBridge;
+
+                    // Listen to device events for real-time MQTT updates
+                    deviceStore.deviceEvents.on('device:updated', async device => {
+                        try {
+                            await mqttBridge.onDeviceUpdate(device);
+                        } catch (error) {
+                            logger.error('Error handling device:updated event in MQTT:', error);
+                        }
+                    });
+
+                    deviceStore.deviceEvents.on('device:registered', async device => {
+                        try {
+                            await mqttBridge.onDeviceUpdate(device);
+                        } catch (error) {
+                            logger.error('Error handling device:registered event in MQTT:', error);
+                        }
+                    });
+
+                    deviceStore.deviceEvents.on('device:patched', async device => {
+                        try {
+                            await mqttBridge.onDeviceUpdate(device);
+                        } catch (error) {
+                            logger.error('Error handling device:patched event in MQTT:', error);
+                        }
+                    });
+
+                    logger.info('✅ MQTT bridge initialized successfully');
+                } catch (mqttError) {
+                    logger.error('❌ Failed to initialize MQTT bridge:', mqttError);
+                    // Don't crash the server if MQTT fails
+                }
+            } else {
+                logger.debug('MQTT integration disabled in configuration');
             }
-        } else {
-            logger.debug('MQTT integration disabled in configuration');
-        }
+        })();
 
         // Start sync-tick broadcaster even if initial fetch failed
         try {
