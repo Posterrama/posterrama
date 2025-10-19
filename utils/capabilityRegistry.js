@@ -34,6 +34,7 @@ class CapabilityRegistry {
         this.registerManagementCapabilities();
         this.registerModeCapabilities();
         this.registerDisplaySettingsCapabilities();
+        this.registerCameraCapabilities();
 
         this.initialized = true;
         logger.info(
@@ -603,6 +604,20 @@ class CapabilityRegistry {
             stateGetter: device => {
                 return device.settingsOverride?.cinema?.ambilight?.strength || null;
             },
+        });
+    }
+
+    /**
+     * Register camera capability for poster preview
+     */
+    registerCameraCapabilities() {
+        this.register('camera.preview', {
+            name: 'Current Poster',
+            category: 'camera',
+            entityType: 'camera',
+            icon: 'mdi:image',
+            // No command handler - camera is read-only
+            commandHandler: () => Promise.resolve(),
         });
     }
 }

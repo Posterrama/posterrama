@@ -4547,6 +4547,66 @@ if (isDeviceMgmtEnabled()) {
         }
     });
 
+    // Get device preview (current poster image)
+    /**
+     * @swagger
+     * /api/devices/{id}/preview:
+     *   get:
+     *     summary: Get current poster preview image
+     *     description: Returns the current poster displayed on the device as a JPEG image. Used by Home Assistant camera entity.
+     *     tags: ['Devices']
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Device ID
+     *     responses:
+     *       200:
+     *         description: Poster image (JPEG)
+     *         content:
+     *           image/jpeg:
+     *             schema:
+     *               type: string
+     *               format: binary
+     *       404:
+     *         description: Device not found or no current poster
+     *       500:
+     *         description: Preview generation failed
+     */
+    app.get('/api/devices/:id/preview', async (req, res) => {
+        try {
+            const device = await deviceStore.getById(req.params.id);
+            if (!device) {
+                return res.status(404).json({ error: 'Device not found' });
+            }
+
+            // Get current media ID from device state
+            const mediaId = device.currentState?.mediaId;
+            if (!mediaId) {
+                return res.status(404).json({ error: 'No current poster' });
+            }
+
+            // Find the media item in the library
+            const mediaLibrary = global.__posterramaMediaLibrary || [];
+            const mediaItem = mediaLibrary.find(m => m.id === mediaId);
+
+            if (!mediaItem || !mediaItem.posterUrl) {
+                return res.status(404).json({ error: 'Poster not found' });
+            }
+
+            // Redirect to the poster URL
+            // The poster URL can be:
+            // 1. External TMDB/Plex/Jellyfin URL
+            // 2. Local cached image via /poster endpoint
+            res.redirect(302, mediaItem.posterUrl);
+        } catch (error) {
+            logger.error('Error generating device preview:', error);
+            res.status(500).json({ error: 'Preview generation failed' });
+        }
+    });
+
     // Admin: delete device
     /**
      * @swagger
