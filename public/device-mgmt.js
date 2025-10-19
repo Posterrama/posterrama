@@ -1798,6 +1798,13 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
     async function init(appConfig) {
         state.appConfig = appConfig || {};
 
+        // DISABLE device management completely on promo site
+        if (appConfig && appConfig.promoBoxEnabled === true) {
+            state.enabled = false;
+            console.debug('[Device Mgmt] Disabled on promo site');
+            return; // Skip all device management initialization
+        }
+
         const { id, secret } = await loadIdentityAsync();
         state.deviceId = id;
         state.deviceSecret = secret;

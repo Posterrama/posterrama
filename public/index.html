@@ -194,6 +194,48 @@
         <!-- Landing page scripts -->
         <script src="lazy-loading.js?v=20250825a"></script>
         <script src="device-mgmt.js?v=20250901a"></script>
+        <script>
+            // Auto-redirect to appropriate mode when config is available
+            // This is needed for the promo site (port 4001) which serves index.html at root
+            (async function() {
+                // Only redirect if we're at root path (avoid infinite loop)
+                const currentPath = window.location.pathname;
+                if (currentPath !== '/' && currentPath !== '/index.html') {
+                    console.debug('[Landing] Not at root, skipping auto-redirect');
+                    return;
+                }
+                
+                try {
+                    const resp = await fetch('/get-config?_t=' + Date.now(), { 
+                        cache: 'no-cache',
+                        headers: { 'Cache-Control': 'no-cache' }
+                    });
+                    
+                    if (!resp.ok) {
+                        console.debug('[Landing] Config fetch failed with status:', resp.status);
+                        return; // fail open, show landing page
+                    }
+                    
+                    const cfg = await resp.json();
+                    
+                    // Determine which mode to show
+                    let targetMode = 'screensaver'; // default
+                    if (cfg.cinemaMode === true) {
+                        targetMode = 'cinema';
+                    } else if (cfg.wallartMode && cfg.wallartMode.enabled === true) {
+                        targetMode = 'wallart';
+                    }
+                    
+                    console.debug('[Landing] Redirecting to mode:', targetMode);
+                    
+                    // Redirect to the appropriate mode page
+                    window.location.replace('/' + targetMode);
+                } catch (e) {
+                    // On error, just show landing page
+                    console.error('[Landing] Failed to fetch config for auto-redirect:', e);
+                }
+            })();
+        </script>
         <script src="landing.js?v=20251015b"></script>
         
         <!-- PWA Service Worker Registration -->

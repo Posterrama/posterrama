@@ -62,6 +62,19 @@
         <!-- Scripts -->
     <script src="device-mgmt.js?v=20250901a"></script>
     <script src="/core.js?v={{ASSET_VERSION}}"></script>
+        <script>
+            // Load promo overlay if enabled (typically port 4001 promo site)
+            (async function() {
+                try {
+                    const cfg = await window.PosterramaCore.fetchConfig();
+                    if (cfg && cfg.promoBoxEnabled === true) {
+                        window.PosterramaCore.loadPromoOverlay(cfg);
+                    }
+                } catch (e) {
+                    /* ignore */
+                }
+            })();
+        </script>
         <script src="cinema/cinema-display.js?v=20251012c"></script>
         <script src="/cinema/cinema-bootstrap.js?v={{ASSET_VERSION}}"></script>
         <script>

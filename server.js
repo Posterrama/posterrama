@@ -1593,32 +1593,12 @@ app.get(['/cinema', '/cinema.html'], (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
-// Serve promo.html with the same asset stamping and iOS cache-busting
-app.get('/promo.html', (req, res, next) => {
-    const filePath = path.join(__dirname, 'public', 'promo.html');
-    fs.readFile(filePath, 'utf8', (err, contents) => {
-        if (err) return next(err);
-
-        const versions = getAssetVersions();
-
-        const stamped = contents
-            .replace(
-                /style\.css\?v=[^"&\s]+/g,
-                `style.css?v=${versions['style.css'] || ASSET_VERSION}`
-            )
-            .replace(
-                /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
-                `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
-            )
-            .replace(
-                /\/manifest\.json(\?v=[^"'\s>]+)?/g,
-                `/manifest.json?v=${versions['manifest.json'] || ASSET_VERSION}`
-            )
-            .replace(/\/sw\.js(\?v=[^"'\s>]+)?/g, `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`);
-
-        res.setHeader('Cache-Control', 'no-cache');
-        res.send(stamped);
-    });
+// Redirect promo.html to root (which will show promo overlay via config)
+// The promo site (port 4001) sets promoBoxEnabled:true in /get-config,
+// and the mode pages will load the promo overlay automatically
+app.get('/promo.html', (req, res) => {
+    // Redirect to root, which will route to the appropriate mode with promo overlay
+    res.redirect(302, '/');
 });
 
 /**
@@ -13526,7 +13506,7 @@ app.post(
         const { port: portValue } = req.body;
 
         // DEBUG: Log what we received
-        logger.info('[Plex Test] Request body:', {
+        logger.debug('[Plex Test] Request body:', {
             hostname,
             token: token ? `${token.substring(0, 5)}...(${token.length})` : 'not provided',
             port: portValue,
@@ -13552,7 +13532,7 @@ app.post(
 
             if (plexServerConfig && plexServerConfig.tokenEnvVar) {
                 token = process.env[plexServerConfig.tokenEnvVar];
-                logger.info('[Plex Test] Using token from env:', {
+                logger.debug('[Plex Test] Using token from env:', {
                     envVar: plexServerConfig.tokenEnvVar,
                     tokenExists: !!token,
                     tokenLength: token ? token.length : 0,
@@ -18942,6 +18922,11 @@ if (require.main === module) {
         siteApp.get('/image', proxyApiRequest);
         siteApp.get('/local-posterpack', proxyApiRequest);
 
+        // Proxy mode pages (cinema, wallart, screensaver) to main app for asset stamping
+        siteApp.get(['/cinema', '/cinema.html'], proxyApiRequest);
+        siteApp.get(['/wallart', '/wallart.html'], proxyApiRequest);
+        siteApp.get(['/screensaver', '/screensaver.html'], proxyApiRequest);
+
         // A catch-all route to serve the index.html with promo box enabled for the public site.
         // This shows the marketing/promo content instead of the app interface.
         // IMPORTANT: This must come BEFORE express.static to override index.html
@@ -18961,7 +18946,9 @@ if (require.main === module) {
          *               type: string
          */
         siteApp.get('/', (req, res) => {
-            res.sendFile(path.join(__dirname, 'public', 'promo.html'));
+            // Serve index.html which will redirect to the appropriate mode
+            // The config intercept adds promoBoxEnabled:true, and mode pages load the overlay
+            res.sendFile(path.join(__dirname, 'public', 'index.html'));
         });
 
         // Disable caching for admin files on site server too
@@ -18983,24 +18970,20 @@ if (require.main === module) {
         // Serve static files (CSS, JS, etc.) from the 'public' directory
         siteApp.use(express.static(path.join(__dirname, 'public')));
 
-        // Fallback for other routes
+        // Fallback for unmatched routes - redirect to root
         /**
          * @swagger
          * /[site]/*:
          *   get:
          *     summary: Site server fallback route
-         *     description: Fallback route that serves the promotional page for any unmatched paths on the site server
+         *     description: Redirects unmatched paths to homepage
          *     tags: ['Site Server']
          *     responses:
-         *       200:
-         *         description: Promotional page HTML
-         *         content:
-         *           text/html:
-         *             schema:
-         *               type: string
+         *       302:
+         *         description: Redirect to homepage
          */
         siteApp.get('*', (req, res) => {
-            res.sendFile(path.join(__dirname, 'public', 'promo.html'));
+            res.redirect(302, '/');
         });
 
         // Start the optional public site server, but don't let failures crash the main app
