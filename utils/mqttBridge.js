@@ -217,14 +217,25 @@ class MqttBridge extends EventEmitter {
      */
     async handleDeviceCommand(deviceId, capabilityId, payload) {
         try {
-            const capability = capabilityRegistry.get(capabilityId);
+            // Convert MQTT topic format (underscores) to capability ID format (dots)
+            // e.g., "playback_next" -> "playback.next"
+            const normalizedCapabilityId = capabilityId.replace(/_/g, '.');
+
+            const capability = capabilityRegistry.get(normalizedCapabilityId);
 
             if (!capability) {
-                logger.warn('Unknown capability in command', { deviceId, capabilityId });
+                logger.warn('Unknown capability in command', {
+                    deviceId,
+                    capabilityId: normalizedCapabilityId,
+                });
                 return;
             }
 
-            logger.info('🎮 Executing MQTT command', { deviceId, capabilityId, payload });
+            logger.info('🎮 Executing MQTT command', {
+                deviceId,
+                capabilityId: normalizedCapabilityId,
+                payload,
+            });
 
             // Parse payload (might be JSON or simple string)
             let value = payload;
@@ -239,7 +250,10 @@ class MqttBridge extends EventEmitter {
             await capability.commandHandler(deviceId, value);
 
             this.stats.commandsExecuted++;
-            logger.debug('✅ Command executed successfully', { deviceId, capabilityId });
+            logger.debug('✅ Command executed successfully', {
+                deviceId,
+                capabilityId: normalizedCapabilityId,
+            });
         } catch (error) {
             logger.error('Error executing device command:', error);
             this.stats.errors++;
