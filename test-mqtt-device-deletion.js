@@ -96,7 +96,6 @@ client.on('connect', async () => {
                 // Step 4: Monitor for empty discovery payloads (removal)
                 console.log('4️⃣  Monitoring for discovery removal (10 seconds)...');
                 let removalCount = 0;
-                const originalHandler = client.listeners('message')[0];
 
                 client.on('message', (topic, message) => {
                     if (topic.includes(`posterrama_${testDeviceId}`) && message.toString() === '') {
