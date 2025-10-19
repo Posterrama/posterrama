@@ -866,45 +866,224 @@ configure_system_limits() {
     print_success "✅ System limits configured successfully"
 }
 
+# Function to detect existing installation
+detect_existing_installation() {
+    if [[ -d "$POSTERRAMA_DIR/.git" ]] && [[ -f "$POSTERRAMA_DIR/package.json" ]]; then
+        # Check if it's actually a Posterrama installation
+        if grep -q '"name": "posterrama"' "$POSTERRAMA_DIR/package.json" 2>/dev/null; then
+            return 0  # Existing installation found
+        fi
+    fi
+    return 1  # No existing installation
+}
+
+# Function to update existing installation
+update_posterrama() {
+    print_status "Existing Posterrama installation detected"
+    print_status "Performing update..."
+    
+    cd $POSTERRAMA_DIR
+    
+    # Get current version/commit before update
+    CURRENT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    print_status "Current version: $CURRENT_COMMIT"
+    
+    # Backup config before update
+    if [[ -f "$POSTERRAMA_DIR/config.json" ]]; then
+        print_status "Backing up configuration..."
+        cp config.json config.json.backup.$(date +%Y%m%d_%H%M%S)
+    fi
+    
+    # Pull latest changes
+    print_status "Pulling latest changes from repository..."
+    if [[ -n "$SUDO" ]]; then
+        $SUDO -u $POSTERRAMA_USER git -C $POSTERRAMA_DIR fetch --all
+        $SUDO -u $POSTERRAMA_USER git -C $POSTERRAMA_DIR reset --hard origin/main
+    else
+        su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && git fetch --all && git reset --hard origin/main"
+    fi
+    
+    NEW_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    
+    if [[ "$CURRENT_COMMIT" == "$NEW_COMMIT" ]]; then
+        print_success "Already at latest version ($NEW_COMMIT)"
+    else
+        print_success "Updated from $CURRENT_COMMIT to $NEW_COMMIT"
+    fi
+    
+    # Update dependencies
+    print_status "Updating Node.js dependencies..."
+    
+    # Find npm path
+    NPM_PATH=$(which npm 2>/dev/null || echo "")
+    if [[ -z "$NPM_PATH" ]]; then
+        print_error "npm not found in current PATH"
+        exit 1
+    fi
+    
+    # Run npm install
+    if [[ -n "$SUDO" ]]; then
+        if $SUDO -u $POSTERRAMA_USER bash -l -c "which npm >/dev/null 2>&1"; then
+            $SUDO -u $POSTERRAMA_USER bash -l -c "cd $POSTERRAMA_DIR && npm install"
+        else
+            $SUDO -u $POSTERRAMA_USER bash -c "cd $POSTERRAMA_DIR && /usr/local/bin/npm install"
+        fi
+    else
+        if su - $POSTERRAMA_USER -c "which npm >/dev/null 2>&1"; then
+            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && npm install"
+        else
+            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && /usr/local/bin/npm install"
+        fi
+    fi
+    
+    # Ensure proper permissions
+    $SUDO chown -R $POSTERRAMA_USER:$POSTERRAMA_USER $POSTERRAMA_DIR
+    
+    # Restart PM2 application
+    print_status "Restarting application..."
+    
+    # Detect PM2 user (check which systemd service exists)
+    if systemctl list-units --full --all | grep -q "pm2-root.service"; then
+        PM2_USER="root"
+        PM2_SERVICE="pm2-root"
+    elif systemctl list-units --full --all | grep -q "pm2-$POSTERRAMA_USER.service"; then
+        PM2_USER="$POSTERRAMA_USER"
+        PM2_SERVICE="pm2-$POSTERRAMA_USER"
+    else
+        print_warning "Could not detect PM2 service, attempting restart as $POSTERRAMA_USER"
+        PM2_USER="$POSTERRAMA_USER"
+        PM2_SERVICE="pm2-$POSTERRAMA_USER"
+    fi
+    
+    if [[ "$PM2_USER" == "root" ]]; then
+        pm2 restart all
+    else
+        if [[ -n "$SUDO" ]]; then
+            if $SUDO -u $PM2_USER bash -l -c "which pm2 >/dev/null 2>&1"; then
+                $SUDO -u $PM2_USER bash -l -c "pm2 restart all"
+            else
+                $SUDO -u $PM2_USER bash -c "/usr/local/bin/pm2 restart all"
+            fi
+        else
+            if su - $PM2_USER -c "which pm2 >/dev/null 2>&1"; then
+                su - $PM2_USER -c "pm2 restart all"
+            else
+                su - $PM2_USER -c "/usr/local/bin/pm2 restart all"
+            fi
+        fi
+    fi
+    
+    print_success "Application restarted successfully"
+    
+    # Show update completion info
+    show_update_completion_info
+}
+
+# Function to display update completion information
+show_update_completion_info() {
+    local SERVER_IP
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+    
+    echo ""
+    echo "=================================================================="
+    echo -e "${GREEN}✅ Posterrama Update Complete!${NC}"
+    echo "=================================================================="
+    echo ""
+    echo -e "${BLUE}📦 Updated to:${NC} $(git -C $POSTERRAMA_DIR rev-parse --short HEAD 2>/dev/null || echo 'latest')"
+    echo -e "${BLUE}📍 Installation Directory:${NC} $POSTERRAMA_DIR"
+    echo -e "${BLUE}🌐 Web Interface:${NC} http://$SERVER_IP:$DEFAULT_PORT"
+    echo -e "${BLUE}⚙️  Admin Panel:${NC} http://$SERVER_IP:$DEFAULT_PORT/admin"
+    echo ""
+    echo -e "${YELLOW}📋 What's New:${NC}"
+    echo "• Check the GitHub releases page for changelog"
+    echo "• Review your configuration in the admin panel"
+    echo "• Configuration backup saved with timestamp"
+    echo ""
+    
+    # Determine the correct service name and user
+    if systemctl list-units --full --all | grep -q "pm2-root.service"; then
+        SERVICE_NAME="pm2-root"
+        PM2_USER="root"
+    else
+        SERVICE_NAME="pm2-$POSTERRAMA_USER"
+        PM2_USER="$POSTERRAMA_USER"
+    fi
+    
+    echo -e "${YELLOW}🔧 Management Commands:${NC}"
+    if [[ -n "$SUDO" ]]; then
+        echo "• View status:    ${SUDO} systemctl status $SERVICE_NAME"
+        if [[ "$PM2_USER" == "root" ]]; then
+            echo "• View logs:      pm2 logs"
+        else
+            echo "• View logs:      ${SUDO} -u $PM2_USER pm2 logs"
+        fi
+    else
+        echo "• View status:    systemctl status $SERVICE_NAME"
+        if [[ "$PM2_USER" == "root" ]]; then
+            echo "• View logs:      pm2 logs"
+        else
+            echo "• View logs:      su - $PM2_USER -c 'pm2 logs'"
+        fi
+    fi
+    echo ""
+    echo -e "${GREEN}Update successful! 🎬${NC}"
+    echo "=================================================================="
+}
+
 # Main installation function
 main() {
     echo "=================================================================="
-    echo "🎬 Posterrama Automated Installation"
+    echo "🎬 Posterrama Automated Installation & Update"
     echo "=================================================================="
     echo ""
     
-    print_status "Starting installation process..."
+    # Check for existing installation first
+    if detect_existing_installation; then
+        print_success "Existing installation detected at $POSTERRAMA_DIR"
+        print_status "Running update mode..."
+        echo ""
+        
+        # Perform minimal checks needed for update
+        check_root
+        detect_os
+        
+        # Run update
+        update_posterrama
+    else
+        print_status "No existing installation found"
+        print_status "Starting fresh installation..."
+        echo ""
 
-    # ------------------------------------------------------------------
-    # NOTE (2025-09-17): See install.txt for advanced guidance.
-    # Potential future enhancements (not implemented here to avoid
-    # behavioral changes in an automated update):
-    #   * Add flag parsing (e.g. --no-firewall, --user <name>, --no-pm2)
-    #   * Prefer `npm ci` when package-lock.json present for reproducible builds
-    #   * Emit POSTERRAMA_AUTO_CHOWN / POSTERRAMA_DROP_PRIVS usage tips in
-    #     completion banner if root created files on first run
-    #   * Optional integrity verification when switching from git clone to
-    #     release tarball installs
-    #   * Detect existing installation and offer in-place upgrade mode only
-    # These are documented in install.txt so operators can plan.
-    # ------------------------------------------------------------------
-    
-    # Perform installation steps
-    check_root
-    detect_os
-    configure_system_limits
-    install_build_tools
-    install_git
-    install_jq
-    install_nodejs
-    install_pm2
-    create_user
-    install_posterrama
-    configure_firewall
-    setup_service
-    
-    # Show completion information
-    show_completion_info
+        # ------------------------------------------------------------------
+        # NOTE (2025-09-17): See install.txt for advanced guidance.
+        # Potential future enhancements (not implemented here to avoid
+        # behavioral changes in an automated update):
+        #   * Add flag parsing (e.g. --no-firewall, --user <name>, --no-pm2)
+        #   * Prefer `npm ci` when package-lock.json present for reproducible builds
+        #   * Emit POSTERRAMA_AUTO_CHOWN / POSTERRAMA_DROP_PRIVS usage tips in
+        #     completion banner if root created files on first run
+        #   * Optional integrity verification when switching from git clone to
+        #     release tarball installs
+        # These are documented in install.txt so operators can plan.
+        # ------------------------------------------------------------------
+        
+        # Perform full installation steps
+        check_root
+        detect_os
+        configure_system_limits
+        install_build_tools
+        install_git
+        install_jq
+        install_nodejs
+        install_pm2
+        create_user
+        install_posterrama
+        configure_firewall
+        setup_service
+        
+        # Show completion information
+        show_completion_info
+    fi
 }
 
 # Handle script interruption
