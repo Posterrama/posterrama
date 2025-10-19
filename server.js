@@ -4585,7 +4585,28 @@ if (isDeviceMgmtEnabled()) {
             // Get current media ID from device state
             const mediaId = device.currentState?.mediaId;
             if (!mediaId) {
-                return res.status(404).json({ error: 'No current poster' });
+                // Return placeholder SVG when no poster is available
+                const placeholderSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+                    <defs>
+                        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <rect width="400" height="600" fill="url(#bg)"/>
+                    <text x="200" y="280" font-family="Arial, sans-serif" font-size="24" fill="#ffffff" text-anchor="middle" opacity="0.5">
+                        Posterrama
+                    </text>
+                    <text x="200" y="320" font-family="Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle" opacity="0.3">
+                        No poster displayed
+                    </text>
+                    <circle cx="200" cy="200" r="60" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.2"/>
+                    <path d="M 200 160 L 200 240 M 160 200 L 240 200" stroke="#ffffff" stroke-width="2" opacity="0.2"/>
+                </svg>`;
+
+                res.setHeader('Content-Type', 'image/svg+xml');
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                return res.send(placeholderSvg);
             }
 
             // Find the media item in the library
@@ -4593,7 +4614,26 @@ if (isDeviceMgmtEnabled()) {
             const mediaItem = mediaLibrary.find(m => m.id === mediaId);
 
             if (!mediaItem || !mediaItem.posterUrl) {
-                return res.status(404).json({ error: 'Poster not found' });
+                // Return placeholder SVG when poster not found
+                const placeholderSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+                    <defs>
+                        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <rect width="400" height="600" fill="url(#bg)"/>
+                    <text x="200" y="280" font-family="Arial, sans-serif" font-size="20" fill="#ffffff" text-anchor="middle" opacity="0.5">
+                        ${mediaId}
+                    </text>
+                    <text x="200" y="320" font-family="Arial, sans-serif" font-size="14" fill="#ffffff" text-anchor="middle" opacity="0.3">
+                        Poster not found
+                    </text>
+                </svg>`;
+
+                res.setHeader('Content-Type', 'image/svg+xml');
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                return res.send(placeholderSvg);
             }
 
             // Redirect to the poster URL

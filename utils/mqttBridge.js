@@ -375,7 +375,7 @@ class MqttBridge extends EventEmitter {
         if (!this.config.discovery?.enabled) return;
 
         try {
-            // Skip if already published for this device
+            // Skip if already published for this device (unless force)
             if (this.discoveryPublished.has(device.id)) {
                 return;
             }
@@ -412,6 +412,14 @@ class MqttBridge extends EventEmitter {
             logger.error('Error publishing discovery:', error);
             this.stats.errors++;
         }
+    }
+
+    /**
+     * Force republish discovery for a device (clears cache first)
+     */
+    async republishDiscovery(device) {
+        this.discoveryPublished.delete(device.id);
+        await this.publishDiscovery(device);
     }
 
     /**
@@ -553,7 +561,24 @@ class MqttBridge extends EventEmitter {
                 // Camera uses a direct image URL instead of state topic
                 // Home Assistant will periodically fetch from this URL
                 const config = require('../config');
-                const baseUrl = config.baseUrl || 'http://localhost:4000';
+
+                // Use MQTT-specific external URL if configured, otherwise fall back to baseUrl
+                const baseUrl =
+                    this.config.externalUrl || config.baseUrl || 'http://localhost:4000';
+
+                // Warn if using localhost (won't work from Home Assistant)
+                if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+                    logger.warn(
+                        'Camera preview URL uses localhost - may not be accessible from Home Assistant',
+                        {
+                            url: baseUrl,
+                            device: device.id,
+                            suggestion:
+                                "Set mqtt.externalUrl in config.json to your server's IP address",
+                        }
+                    );
+                }
+
                 return {
                     ...baseConfig,
                     topic: `${topicPrefix}/device/${device.id}/camera`,
