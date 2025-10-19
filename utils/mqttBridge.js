@@ -489,6 +489,17 @@ class MqttBridge extends EventEmitter {
                     icon: capability.icon,
                 };
 
+            case 'text':
+                return {
+                    ...baseConfig,
+                    state_topic: stateTopic,
+                    value_template: `{{ value_json['${capability.id}'] | default('') }}`,
+                    command_topic: commandTopic,
+                    mode: 'text',
+                    pattern: capability.pattern || '.*',
+                    icon: capability.icon,
+                };
+
             case 'sensor':
                 return {
                     ...baseConfig,
@@ -511,6 +522,7 @@ class MqttBridge extends EventEmitter {
             switch: 'switch',
             select: 'select',
             number: 'number',
+            text: 'text',
             sensor: 'sensor',
             camera: 'camera',
         };
