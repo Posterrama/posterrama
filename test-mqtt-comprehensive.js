@@ -74,11 +74,7 @@ client.on('connect', () => {
     }, 10000);
 });
 
-let messageCount = 0;
-
 client.on('message', (topic, message) => {
-    messageCount++;
-
     // Only show state and availability updates
     if (topic.includes('/state')) {
         try {
