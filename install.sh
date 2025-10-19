@@ -891,7 +891,7 @@ update_posterrama() {
     # Backup config before update
     if [[ -f "$POSTERRAMA_DIR/config.json" ]]; then
         print_status "Backing up configuration..."
-        cp config.json config.json.backup.$(date +%Y%m%d_%H%M%S)
+        cp config.json "config.json.backup.$(date +%Y%m%d_%H%M%S)"
     fi
     
     # Pull latest changes
@@ -945,13 +945,16 @@ update_posterrama() {
     # Detect PM2 user (check which systemd service exists)
     if systemctl list-units --full --all | grep -q "pm2-root.service"; then
         PM2_USER="root"
+        # shellcheck disable=SC2034
         PM2_SERVICE="pm2-root"
     elif systemctl list-units --full --all | grep -q "pm2-$POSTERRAMA_USER.service"; then
         PM2_USER="$POSTERRAMA_USER"
+        # shellcheck disable=SC2034
         PM2_SERVICE="pm2-$POSTERRAMA_USER"
     else
         print_warning "Could not detect PM2 service, attempting restart as $POSTERRAMA_USER"
         PM2_USER="$POSTERRAMA_USER"
+        # shellcheck disable=SC2034
         PM2_SERVICE="pm2-$POSTERRAMA_USER"
     fi
     
