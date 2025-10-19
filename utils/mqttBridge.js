@@ -500,7 +500,7 @@ class MqttBridge extends EventEmitter {
                     icon: capability.icon,
                 };
 
-            case 'camera':
+            case 'camera': {
                 // Camera uses a direct image URL instead of state topic
                 // Home Assistant will periodically fetch from this URL
                 const config = require('../config');
@@ -511,6 +511,7 @@ class MqttBridge extends EventEmitter {
                     image_url: `${baseUrl}/api/devices/${device.id}/preview`,
                     icon: capability.icon,
                 };
+            }
 
             case 'sensor':
                 return {
