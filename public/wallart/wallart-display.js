@@ -275,6 +275,8 @@
             start(cfg) {
                 try {
                     // Throttled live heartbeat trigger to reflect updates immediately
+                    // Trigger immediate heartbeat on poster change
+                    // Simple debounce to prevent duplicate calls within 500ms
                     const triggerLiveBeat = () => {
                         try {
                             const dev = window.PosterramaDevice;
@@ -282,7 +284,7 @@
                             const now = Date.now();
                             const until = window.__posterramaBeatCooldownUntil || 0;
                             if (now < until) return;
-                            window.__posterramaBeatCooldownUntil = now + 1500;
+                            window.__posterramaBeatCooldownUntil = now + 500;
                             dev.beat();
                         } catch (_) {
                             /* noop */
