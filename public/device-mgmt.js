@@ -55,7 +55,11 @@
                 if (j && j.bypass) {
                     console.info('[DeviceMgmt] Bypass active (probe) – skipping initialization.');
                     // Replace the IIFE body with a noop; future calls to PosterramaDevice.init will be ignored.
-                    window.PosterramaDevice = { init: () => {}, bypass: true };
+                    window.PosterramaDevice = {
+                        init: () => {},
+                        getState: () => null,
+                        bypass: true,
+                    };
                 }
             })
             .catch(() => {
@@ -2073,6 +2077,16 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
     // Expose minimal debug helpers for testing without server roundtrip
     window.PosterramaDevice = {
         init,
+        getState: () => {
+            // Return current device state for header injection
+            return {
+                deviceId: state.deviceId,
+                deviceSecret: state.deviceSecret,
+                installId: state.installId || getInstallId(),
+                hardwareId: state.hardwareId || getHardwareId(),
+                enabled: state.enabled,
+            };
+        },
         beat: () => {
             try {
                 return sendHeartbeat();

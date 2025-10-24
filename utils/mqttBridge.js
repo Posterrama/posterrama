@@ -138,6 +138,11 @@ class MqttBridge extends EventEmitter {
 
             this.client = mqtt.connect(brokerUrl, options);
 
+            // Bind message handler IMMEDIATELY
+            this.client.on('message', (topic, message) => {
+                this.handleMessage(topic, message);
+            });
+
             this.client.on('connect', () => {
                 this.connected = true;
                 this.stats.connectedAt = new Date().toISOString();
@@ -165,10 +170,6 @@ class MqttBridge extends EventEmitter {
             this.client.on('offline', () => {
                 this.connected = false;
                 logger.warn('MQTT broker offline');
-            });
-
-            this.client.on('message', (topic, message) => {
-                this.handleMessage(topic, message);
             });
 
             // Connection timeout

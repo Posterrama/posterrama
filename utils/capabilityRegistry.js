@@ -366,7 +366,19 @@ class CapabilityRegistry {
 
                 // Store mode in device.settingsOverride (per-device mode)
                 const currentOverride = device.settingsOverride || {};
-                const updatedOverride = { ...currentOverride, mode };
+
+                // Build settings override that explicitly sets the mode AND disables conflicting legacy flags
+                // This ensures the device override takes precedence over global admin settings
+                const updatedOverride = {
+                    ...currentOverride,
+                    mode,
+                    // Explicitly override legacy boolean flags to prevent conflicts
+                    cinemaMode: mode === 'cinema',
+                    wallartMode: {
+                        ...(currentOverride.wallartMode || {}),
+                        enabled: mode === 'wallart',
+                    },
+                };
 
                 // Persist to devices.json
                 await deviceStore.patchDevice(deviceId, {

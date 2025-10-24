@@ -5,9 +5,30 @@
     Core.fetchConfig = async function fetchConfig(extra = {}) {
         const qs = `_t=${Date.now()}`;
         const url = `/get-config?${qs}`;
+
+        // Build headers with device identity if available (for per-device settings override)
+        const headers = {
+            'Cache-Control': 'no-cache',
+            ...(extra.headers || {}),
+        };
+
+        // Add device identity headers if device management is active
+        try {
+            if (typeof window !== 'undefined' && window.PosterramaDevice) {
+                const deviceState = window.PosterramaDevice.getState?.();
+                if (deviceState) {
+                    if (deviceState.deviceId) headers['X-Device-Id'] = deviceState.deviceId;
+                    if (deviceState.installId) headers['X-Install-Id'] = deviceState.installId;
+                    if (deviceState.hardwareId) headers['X-Hardware-Id'] = deviceState.hardwareId;
+                }
+            }
+        } catch (_) {
+            // Ignore device header injection failures
+        }
+
         const resp = await fetch(url, {
             cache: 'no-cache',
-            headers: { 'Cache-Control': 'no-cache' },
+            headers,
             ...extra,
         });
         if (!resp.ok) throw new Error('config fetch failed');
