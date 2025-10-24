@@ -203,3 +203,31 @@ Zie `scripts/remove-rate-limiters.js` voor geautomatiseerde verwijdering.
 5. Er is geen reëel DDoS risico
 
 **Aanbeveling**: Verwijder algemene rate limiters, behoud alleen device-management limiters voor echte abuse scenario's.
+
+## ✅ Status: Geïmplementeerd (2025-10-24)
+
+**Verwijderd**:
+
+- ✅ `apiLimiter` (1000 req/15min) - Algemene API bescherming
+- ✅ `adminApiLimiter` (3000 req/15min) - Admin API bescherming
+- ✅ `deviceCheckLimiter` (30 req/min) - Device check endpoint
+- ✅ `deviceHeartbeatLimiter` (120 req/min) - Device heartbeat endpoint
+
+**Behouden** (voor echte abuse bescherming):
+
+- ✅ `deviceRegisterLimiter` (10 req/min) - Nieuwe device registraties
+- ✅ `devicePairGenLimiter` (20 req/60min) - Pairing code generatie
+- ✅ `qrLimiter` (200 req/15min) - QR code generatie
+- ✅ `adminMergeLimiter` (10 req/60min) - Resource-intensieve merge operaties
+
+**Resultaat**:
+
+- ✅ Geen 429 errors meer tijdens normaal gebruik
+- ✅ Platform stabiel 24/7
+- ✅ Admin logs interface rustig (geen WARN spam)
+- ✅ Selectieve bescherming behouden waar nodig
+
+**Commits**:
+
+- `252cb1f` - Verwijdering algemene rate limiters
+- `036f01c` - Verwijdering deviceCheck en deviceHeartbeat limiters
