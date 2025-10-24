@@ -684,7 +684,9 @@ class MqttBridge extends EventEmitter {
         const packageJson = require('../package.json');
 
         const baseConfig = {
-            name: capability.name, // Capability name already includes context (e.g., "Next", "Current Poster")
+            // Use object_id to set the entity name without device prefix
+            object_id: capability.id.replace(/\./g, '_'),
+            name: capability.name, // Short name without device prefix
             unique_id: `posterrama_${device.id}_${capability.id}`,
             device: {
                 identifiers: [`posterrama_${device.id}`],
