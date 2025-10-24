@@ -240,6 +240,28 @@
                 try {
                     window.debugLog && window.debugLog('AUTO_EXIT_TICK', { currentMode });
                     const cfg = await Core.fetchConfig();
+
+                    // Update window.appConfig with fresh config from server
+                    // This ensures device-specific settings overrides are applied
+                    if (cfg && typeof cfg === 'object') {
+                        if (typeof window.appConfig === 'object' && window.appConfig !== null) {
+                            // Merge fresh config into existing appConfig
+                            Object.assign(window.appConfig, cfg);
+                        } else {
+                            window.appConfig = cfg;
+                        }
+
+                        // Dispatch settingsUpdated event so display modules can react
+                        try {
+                            const event = new CustomEvent('settingsUpdated', {
+                                detail: { settings: cfg },
+                            });
+                            window.dispatchEvent(event);
+                        } catch (_) {
+                            // Ignore event dispatch errors
+                        }
+                    }
+
                     const target = Core.getActiveMode(cfg);
                     window.debugLog &&
                         window.debugLog('AUTO_EXIT_CHECK', {

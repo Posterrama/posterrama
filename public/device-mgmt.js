@@ -1278,11 +1278,48 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                         payload: msg.payload,
                                     });
 
-                                // Dispatch settingsUpdated event for all displays
-                                const event = new CustomEvent('settingsUpdated', {
-                                    detail: { settings: msg.payload },
-                                });
-                                window.dispatchEvent(event);
+                                // Apply settings to window.appConfig
+                                if (typeof window.applySettings === 'function') {
+                                    window.applySettings(msg.payload);
+                                } else {
+                                    // Fallback: directly merge into appConfig and dispatch event
+                                    if (
+                                        typeof window.appConfig === 'object' &&
+                                        window.appConfig !== null
+                                    ) {
+                                        Object.assign(window.appConfig, msg.payload);
+                                    } else {
+                                        window.appConfig = msg.payload;
+                                    }
+
+                                    const event = new CustomEvent('settingsUpdated', {
+                                        detail: { settings: msg.payload },
+                                    });
+                                    window.dispatchEvent(event);
+                                }
+
+                                // For most settings changes, reload the page to ensure they take effect
+                                // Skip reload for mode changes (handled by mode.navigate command)
+                                // and for settings that should apply live
+                                const skipReloadKeys = ['mode', 'cinemaMode', 'wallartMode'];
+                                const hasNonModeChanges = Object.keys(msg.payload).some(
+                                    key => !skipReloadKeys.includes(key)
+                                );
+
+                                if (hasNonModeChanges) {
+                                    liveDbg('[Live] settings.apply triggering reload', {
+                                        reason: 'non-mode settings changed',
+                                    });
+                                    // Use safeReload to prevent rapid reload loops
+                                    setTimeout(() => {
+                                        try {
+                                            safeReload();
+                                        } catch (_) {
+                                            // Fallback to direct reload if safeReload not available
+                                            window.location.reload();
+                                        }
+                                    }, 500); // Small delay to allow ack to send
+                                }
 
                                 sendAck('ok');
                                 return;
