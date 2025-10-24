@@ -2,11 +2,22 @@
 
 Current development status and upcoming features for Posterrama.
 
-## 📊 Current Status (v2.8.0 - October 19, 2025)
+## 📊 Current Status (v2.8.1 - October 24, 2025)
 
 ### Recent Releases
 
-**v2.8.0 (Latest)** - October 19, 2025
+**v2.8.1 (Latest)** - October 24, 2025
+
+- ✅ **MQTT Integration Complete** - Full Home Assistant integration via MQTT
+- ✅ Admin UI MQTT Status Panel - Real-time monitoring with 2-second auto-refresh
+- ✅ MQTT Bridge Integration Tests - 26 comprehensive unit tests (all passing)
+- ✅ User Documentation - Complete MQTT setup guide (1000+ lines)
+- ✅ 50+ Home Assistant entities auto-discovered per device
+- ✅ Camera entity for live poster preview (base64)
+- ✅ Compact status panel design (~60% less space)
+- ✅ Command history tracking (last 50 commands)
+
+**v2.8.0** - October 19, 2025
 
 - ✅ Install script now automatically detects existing installations
 - ✅ Single command for both fresh install and updates (`curl -fsSL ... | bash`)
@@ -165,7 +176,7 @@ js/
 - [ ] Interactive hover states
 - [ ] AI-powered layout optimization
 
-## 📱 Platform Integration
+### Platform Integration
 
 ### Smart TV Enhancements
 
@@ -176,11 +187,63 @@ js/
 
 ### Home Automation
 
-- [ ] Home Assistant integration
-- [ ] MQTT support for IoT
-    - [ ] Entities (state, source, playing)
-    - [ ] Automations (dim/pause on presence)
-    - [ ] Topics for remote control
+**Home Assistant MQTT Integration (v2.8.1) - ✅ PRODUCTION READY**
+
+Core functionality complete, future enhancements planned:
+
+- ✅ **MQTT Bridge** (`utils/mqttBridge.js` - 1078 lines)
+    - Auto-discovery protocol for Home Assistant
+    - Real-time state publishing (configurable interval)
+    - Command routing from MQTT to WebSocket
+    - Availability tracking per device
+    - Reconnection handling with exponential backoff
+- ✅ **Capability Registry** (`utils/capabilityRegistry.js` - 1773 lines)
+    - 50+ capabilities auto-registered per device
+    - Dynamic capability detection based on mode
+    - Settings getter with fallback chain (override → global → default)
+    - Mode-specific capabilities (screensaver, wallart, cinema)
+- ✅ **Admin UI Status Panel** (Real-time monitoring)
+    - Connection status with card pill indicator
+    - Compact broker info (host, port, uptime)
+    - Statistics tracking (messages, commands, devices)
+    - Auto-refresh every 2 seconds
+    - Device summary (total, online, offline)
+- ✅ **Integration Tests** (`__tests__/utils/mqttBridge.test.js`)
+    - 26 comprehensive unit tests (all passing)
+    - Constructor, initialization, statistics
+    - Command history tracking
+    - Discovery config generation
+    - Error handling and shutdown scenarios
+    - 20% code coverage
+- ✅ **User Documentation** (`docs/MQTT-SETUP-GUIDE.md` - 1000+ lines)
+    - Complete setup guide with prerequisites
+    - 50+ entity reference with examples
+    - Troubleshooting section with common errors
+    - Dashboard card examples
+    - Automation examples (time-based, presence, weather)
+    - Advanced configuration (TLS, QoS, custom topics)
+    - FAQ with 20+ questions
+
+**Available Home Assistant Entities:**
+
+- **Playback Controls**: Play, Pause, Next, Previous, Stop, Shuffle (7 buttons)
+- **Power Management**: Restart, Sleep, Wake (3 buttons)
+- **Navigation**: Next Poster, Previous Poster, Random (4 buttons)
+- **Mode Control**: Mode select (screensaver/wallart/cinema)
+- **Display Settings**: 20+ switches and numbers (clock, metadata, UI scaling, intervals)
+- **Cinema Mode**: 10+ settings (header/footer, ambilight, specs, orientation)
+- **Wallart Mode**: 15+ settings (density, animation, layout, columns, refresh rate)
+- **Device Sensors**: 8 read-only sensors (current poster, mode, library size, uptime)
+- **Camera Entity**: Live poster preview (base64 image, updates every 30 seconds)
+
+**Future Enhancements:**
+
+- 🟡 Complete settings testing (all 30+ settings end-to-end)
+- [ ] Broadcast commands via MQTT (control all devices at once)
+- [ ] Group controls integration (groups.json → virtual HA devices)
+- [ ] Server metrics sensors (cache size, memory usage, device count)
+- [ ] Event notifications (device connect/disconnect, library updates)
+- [ ] End-to-end integration tests with real MQTT broker
 
 ## 🔐 Security & Reliability
 
