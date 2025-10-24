@@ -17,14 +17,8 @@ const logger = require('../utils/logger');
 
 async function cleanupEntities() {
     logger.info('🧹 Starting MQTT entity cleanup...');
-
-    // List of old/removed capability IDs that need explicit cleanup
-    const removedCapabilities = [
-        { id: 'device.lastSeen', entityType: 'sensor' },
-        { id: 'settings.wallartMode.refreshRate', entityType: 'number' },
-        { id: 'power.on', entityType: 'button' },
-        { id: 'power.off', entityType: 'button' },
-    ];
+    logger.info('⚠️  This will remove ALL Posterrama entities from Home Assistant');
+    logger.info('   They will be recreated with current configuration');
 
     // Check if MQTT is enabled
     if (!config.mqtt?.enabled) {
@@ -82,31 +76,56 @@ async function cleanupEntities() {
         for (const device of devices) {
             logger.info(`\n🔧 Processing device: ${device.name} (${device.id})`);
 
-            // Step 1a: Unpublish explicitly removed/old capabilities first
-            logger.info('  🗑️  Removing old/deleted capabilities...');
-            for (const cap of removedCapabilities) {
-                const component = getHomeAssistantComponent(cap.entityType);
-                const objectId = cap.id.replace(/\./g, '_');
-                const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${objectId}/config`;
+            // Step 1: Unpublish ALL entity types with a wildcard pattern
+            // This ensures we catch everything, including old renamed entities
+            logger.info('  🗑️  Removing ALL Posterrama entities (all components)...');
 
-                await publish(client, discoveryTopic, '', { qos: 1, retain: true });
-                totalUnpublished++;
+            const allComponents = [
+                'button',
+                'switch',
+                'select',
+                'number',
+                'text',
+                'sensor',
+                'camera',
+                'binary_sensor',
+                'light',
+                'climate',
+            ];
+
+            // For each component type, unpublish all possible entity patterns
+            for (const component of allComponents) {
+                // Unpublish all current known capabilities for this component
+                for (const cap of allCapabilities) {
+                    if (getHomeAssistantComponent(cap.entityType) === component) {
+                        const objectId = cap.id.replace(/\./g, '_');
+                        const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${objectId}/config`;
+                        await publish(client, discoveryTopic, '', { qos: 1, retain: true });
+                        totalUnpublished++;
+                    }
+                }
+
+                // Also unpublish common old patterns that might still exist
+                const oldPatterns = [
+                    'device_lastSeen',
+                    'settings_wallartMode_refreshRate',
+                    'power_on',
+                    'power_off',
+                    'device_reload',
+                    'device_reset',
+                    'settings_wallartMode_heroRotation', // Old switch version
+                ];
+
+                for (const pattern of oldPatterns) {
+                    const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${pattern}/config`;
+                    await publish(client, discoveryTopic, '', { qos: 1, retain: true });
+                    totalUnpublished++;
+                }
             }
-            logger.info(`  ✅ Removed ${removedCapabilities.length} old capabilities`);
 
-            // Step 1b: Unpublish ALL current capabilities (to clean up renamed/moved ones)
-            logger.info('  📤 Unpublishing all current capabilities...');
-            for (const cap of allCapabilities) {
-                const component = getHomeAssistantComponent(cap.entityType);
-                const objectId = cap.id.replace(/\./g, '_');
-                const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${objectId}/config`;
-
-                // Publish empty payload with retain flag to remove entity
-                await publish(client, discoveryTopic, '', { qos: 1, retain: true });
-                totalUnpublished++;
-            }
-
-            logger.info(`  ✅ Unpublished ${allCapabilities.length} current capabilities`);
+            logger.info(
+                `  ✅ Unpublished all entities across ${allComponents.length} component types`
+            );
 
             // Step 2: Wait a bit to ensure Home Assistant processes the unpublish
             await new Promise(resolve => setTimeout(resolve, 1000));
