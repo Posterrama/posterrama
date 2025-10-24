@@ -1299,16 +1299,23 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                 }
 
                                 // For most settings changes, reload the page to ensure they take effect
-                                // Skip reload for mode changes (handled by mode.navigate command)
-                                // and for settings that should apply live
-                                const skipReloadKeys = ['mode', 'cinemaMode', 'wallartMode'];
-                                const hasNonModeChanges = Object.keys(msg.payload).some(
-                                    key => !skipReloadKeys.includes(key)
-                                );
+                                // Skip reload ONLY for mode-only changes (handled by mode.navigate command)
+                                const isModeOnlyChange =
+                                    Object.keys(msg.payload).length === 1 &&
+                                    (msg.payload.mode !== undefined ||
+                                        msg.payload.cinemaMode !== undefined);
 
-                                if (hasNonModeChanges) {
+                                // Also skip reload if ONLY wallartMode.enabled is changing (mode flag)
+                                const isWallartModeToggle =
+                                    Object.keys(msg.payload).length === 1 &&
+                                    msg.payload.wallartMode &&
+                                    Object.keys(msg.payload.wallartMode).length === 1 &&
+                                    msg.payload.wallartMode.enabled !== undefined;
+
+                                if (!isModeOnlyChange && !isWallartModeToggle) {
                                     liveDbg('[Live] settings.apply triggering reload', {
-                                        reason: 'non-mode settings changed',
+                                        reason: 'settings changed',
+                                        keys: Object.keys(msg.payload),
                                     });
                                     // Use safeReload to prevent rapid reload loops
                                     setTimeout(() => {
