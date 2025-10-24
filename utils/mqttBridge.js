@@ -501,6 +501,14 @@ class MqttBridge extends EventEmitter {
             const imageBuffer = Buffer.from(response.data);
             await this.publish(cameraTopic, imageBuffer, { qos: 0, retain: false });
 
+            // Also publish a state update with timestamp to trigger HA refresh
+            const stateTopic = `${prefix}/device/${device.id}/camera/state`;
+            const statePayload = JSON.stringify({
+                updated: Date.now(),
+                posterUrl: posterUrl,
+            });
+            await this.publish(stateTopic, statePayload, { qos: 0, retain: false });
+
             logger.info('📷 Published camera image', {
                 deviceId: device.id,
                 imageSize: Math.round(imageBuffer.length / 1024) + 'KB',
@@ -799,12 +807,15 @@ class MqttBridge extends EventEmitter {
 
             case 'camera': {
                 // Camera uses MQTT topic to publish binary images
-                // Home Assistant will handle encoding internally
+                // State topic with timestamp triggers automatic refresh in HA
                 const cameraTopic = `${topicPrefix}/device/${device.id}/camera`;
+                const cameraStateTopic = `${topicPrefix}/device/${device.id}/camera/state`;
                 return {
                     ...baseConfig,
-                    topic: cameraTopic, // Required by Home Assistant for camera entities
-                    image_topic: cameraTopic,
+                    topic: cameraStateTopic, // State topic triggers HA to fetch new image
+                    image_topic: cameraTopic, // Actual image data
+                    json_attributes_topic: cameraStateTopic,
+                    value_template: '{{ value_json.updated }}', // Timestamp triggers refresh
                     // No image_encoding specified - HA expects raw binary data
                     icon: capability.icon,
                 };
