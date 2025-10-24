@@ -877,7 +877,8 @@ class MqttBridge extends EventEmitter {
             for (const device of devices) {
                 await this.publishDeviceState(device);
                 await this.publishDeviceAvailability(device);
-                await this.publishCameraState(device);
+                // Camera state is published via heartbeat events for real-time updates
+                // await this.publishCameraState(device);
                 await this.publishDiscovery(device);
             }
 
