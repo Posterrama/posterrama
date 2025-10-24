@@ -25,10 +25,18 @@ class MqttBridge extends EventEmitter {
         this.stats = {
             published: 0,
             errors: 0,
+            messagesPublished: 0,
+            messagesReceived: 0,
+            commandsExecuted: 0,
+            connectedAt: null,
+            lastPublish: null,
         };
         this.deviceStates = new Map();
         this.discoveryPublished = new Set();
         this.deviceModes = new Map(); // Track device modes to detect changes
+        this.commandHistory = []; // Last 50 commands
+        this.maxCommandHistory = 50;
+        this.startTime = Date.now();
     }
 
     /**
@@ -294,6 +302,18 @@ class MqttBridge extends EventEmitter {
             await capability.commandHandler(deviceId, value);
 
             this.stats.commandsExecuted++;
+
+            // Add to command history
+            this._addToCommandHistory({
+                timestamp: new Date().toISOString(),
+                deviceId,
+                deviceName: device?.name || deviceId,
+                capabilityId: normalizedCapabilityId,
+                capabilityName: capability.name,
+                payload: value,
+                success: true,
+            });
+
             logger.debug('✅ Command executed successfully', {
                 deviceId,
                 capabilityId: normalizedCapabilityId,
@@ -301,6 +321,15 @@ class MqttBridge extends EventEmitter {
         } catch (error) {
             logger.error('Error executing device command:', error);
             this.stats.errors++;
+
+            // Add failed command to history
+            this._addToCommandHistory({
+                timestamp: new Date().toISOString(),
+                deviceId,
+                capabilityId: normalizedCapabilityId,
+                error: error.message,
+                success: false,
+            });
         }
     }
 
@@ -969,12 +998,48 @@ class MqttBridge extends EventEmitter {
      * Get current statistics
      */
     getStats() {
+        const uptime = this.startTime ? Math.floor((Date.now() - this.startTime) / 1000) : 0;
+
+        // Support both flat and nested config structures
+        const brokerHost =
+            typeof this.config?.broker === 'string'
+                ? this.config.broker
+                : this.config?.broker?.host || 'localhost';
+        const brokerPort =
+            typeof this.config?.broker === 'object'
+                ? this.config.broker.port || 1883
+                : this.config?.port || 1883;
+
         return {
             ...this.stats,
             connected: this.connected,
             devices_published: this.deviceStates.size,
             discoveries_published: this.discoveryPublished.size,
+            uptime_seconds: uptime,
+            broker: {
+                host: brokerHost,
+                port: brokerPort,
+                username: this.config?.username || null,
+            },
+            discovery: {
+                enabled: this.config?.discovery?.enabled !== false,
+                prefix: this.config?.discovery?.prefix || 'homeassistant',
+            },
+            topicPrefix: this.config?.topicPrefix || 'posterrama',
+            commandHistory: this.commandHistory.slice(-20), // Last 20 commands for status display
         };
+    }
+
+    /**
+     * Add command to history (keep last N commands)
+     */
+    _addToCommandHistory(command) {
+        this.commandHistory.push(command);
+
+        // Keep only last N commands
+        if (this.commandHistory.length > this.maxCommandHistory) {
+            this.commandHistory = this.commandHistory.slice(-this.maxCommandHistory);
+        }
     }
 
     /**

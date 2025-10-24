@@ -2047,46 +2047,6 @@
                 </div>
               </div>
       </section>
-            <!-- Backups Group Title -->
-            <div class="ops-group">
-              <div class="ops-group-title"><i class="fas fa-folder-open"></i> Backups</div>
-            </div>
-            <!-- Config Backups (compact list) -->
-            <section class="perf-card" aria-label="Config Backups">
-              <h3><i class="fas fa-archive"></i> Config Backups</h3>
-              <div class="card-pill-spot">
-                <span id="cfg-backup-schedule-pill" class="status-pill status-warning">Disabled</span>
-              </div>
-              <div class="card-subtext">Create daily configuration backups and restore per file.</div>
-
-              <div class="actions main-actions">
-                <button type="button" id="btn-create-cfg-backup" class="btn btn-success btn-sm"><i class="fas fa-plus-circle"></i><span>Backup now</span></button>
-                <div class="input-row">
-                  <div class="form-group" style="margin:0;">
-                    <input type="number" id="input-keep-cfg-backups" min="1" max="60" value="5" class="w-90" title="Number of backups to keep" />
-                  </div>
-                  <button type="button" id="btn-cleanup-cfg-backups" class="btn btn-secondary btn-sm"><i class="fas fa-broom"></i><span>Cleanup</span></button>
-                </div>
-              </div>
-
-              <div class="actions sub-actions">
-                <div class="inline-field">
-                  <label for="input-cfg-backup-enabled" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Daily schedule</label>
-                  <label class="checkbox" style="margin-right:8px;">
-                    <input type="checkbox" id="input-cfg-backup-enabled" />
-                    <span class="checkmark"></span>
-                    <span>Enabled</span>
-                  </label>
-                  <div class="time-input" title="Run time">
-                    <i class="fas fa-clock" aria-hidden="true"></i>
-                    <input type="time" id="input-cfg-backup-time" value="02:30" class="w-110" aria-label="Backup time" />
-                  </div>
-                  
-                </div>
-              </div>
-
-              <div id="cfg-backup-list" class="compact-backup-list"></div>
-            </section>
 
             <!-- Entry Route (moved here to left column) -->
             <section class="perf-card" aria-label="Entry Route">
@@ -2128,6 +2088,126 @@
                 </div>
               </div>
             </section>
+
+            <!-- MQTT Group Title -->
+            <div class="ops-group">
+              <div class="ops-group-title"><i class="fas fa-rss"></i> MQTT</div>
+            </div>
+            <!-- MQTT Operations -->
+            <section class="perf-card" aria-label="MQTT Operations">
+              <h3><i class="fas fa-broadcast-tower"></i> MQTT Integration</h3>
+              <div class="card-pill-spot">
+                <span class="status-pill status-warning" id="mqtt-status-pill">Disabled</span>
+              </div>
+              <div class="card-subtext">Home Assistant MQTT Discovery integration.</div>
+              
+              <div class="metric-row mt-6">
+                <div class="form-group checkbox-group">
+                  <label class="checkbox" for="mqtt.enabled">
+                    <input type="checkbox" id="mqtt.enabled" />
+                    <span class="checkmark"></span>
+                    <span>Enable MQTT Integration</span>
+                  </label>
+                </div>
+                <div class="form-group checkbox-group">
+                  <label class="checkbox" for="mqtt.discovery.enabled">
+                    <input type="checkbox" id="mqtt.discovery.enabled" />
+                    <span class="checkmark"></span>
+                    <span>Enable Home Assistant Discovery</span>
+                  </label>
+                </div>
+              </div>
+
+              <div id="mqtt-settings-group" style="display:none;">
+                <div class="metric-row mt-6" style="display:flex;gap:20px;flex-wrap:wrap;">
+                  <div class="form-group" style="flex:0 0 auto;">
+                    <label for="mqtt.broker" style="margin:0 0 4px 0;display:block;">Broker Host</label>
+                    <input type="text" id="mqtt.broker" style="width:280px;height:36px;" placeholder="192.168.1.100" 
+                           title="MQTT broker hostname or IP address" />
+                  </div>
+                  <div class="form-group" style="flex:0 0 auto;">
+                    <label for="mqtt.port" style="margin:0 0 4px 0;display:block;">Broker Port</label>
+                    <input type="number" id="mqtt.port" min="1" max="65535" value="1883" style="width:110px;height:36px;" 
+                           title="MQTT broker port (default: 1883)" />
+                  </div>
+                </div>
+                <div class="metric-row mt-6" style="display:flex;gap:20px;flex-wrap:wrap;">
+                  <div class="form-group" style="flex:0 0 auto;">
+                    <label for="mqtt.username" style="margin:0 0 4px 0;display:block;">Username</label>
+                    <input type="text" id="mqtt.username" style="width:280px;height:36px;" placeholder="mqtt-user" 
+                           title="MQTT broker username (optional)" />
+                  </div>
+                  <div class="form-group" style="flex:0 0 auto;">
+                    <label for="mqtt.password" style="margin:0 0 4px 0;display:block;">Password</label>
+                    <input type="password" id="mqtt.password" style="width:280px;height:36px;" placeholder="••••••••" 
+                           title="MQTT broker password (optional)" />
+                  </div>
+                </div>
+                
+                <div class="actions main-actions" style="margin-top:16px;">
+                  <button type="button" id="btn-republish-mqtt" class="btn btn-success btn-sm">
+                    <i class="fas fa-paper-plane"></i><span>Republish All Devices</span>
+                  </button>
+                  <button type="button" id="btn-generate-ha-dashboard" class="btn btn-primary btn-sm">
+                    <i class="fas fa-home"></i><span>Generate HA Section</span>
+                  </button>
+                </div>
+                <div class="subtle" style="margin-top:8px;font-size:0.85rem;">
+                  Use this to restore devices in Home Assistant after deletion or configuration changes. Note: Save settings and restart server first if you just enabled MQTT.
+                </div>
+              </div>
+            </section>
+
+            <!-- MQTT Status Panel -->
+            <section class="perf-card" aria-label="MQTT Status" id="mqtt-status-panel" style="display:none;">
+              <h3><i class="fas fa-chart-line"></i> MQTT Status & Monitoring</h3>
+              <div class="card-pill-spot">
+                <span class="status-pill status-warning" id="mqtt-conn-pill">Checking...</span>
+              </div>
+              <div class="card-subtext">Real-time MQTT bridge status and activity.</div>
+
+              <!-- Broker Info -->
+              <div class="metric-row mt-6" id="mqtt-broker-info" style="display:none;">
+                <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.85rem;">
+                  <span><strong>Broker:</strong> <span id="mqtt-broker-host">-</span></span>
+                  <span><strong>Prefix:</strong> <span id="mqtt-topic-prefix">-</span></span>
+                  <span><strong>Discovery:</strong> <span id="mqtt-discovery-status">-</span></span>
+                  <span><strong>Uptime:</strong> <span id="mqtt-uptime">-</span></span>
+                </div>
+              </div>
+
+              <!-- Compact Stats & Devices Grid -->
+              <div class="metric-row" id="mqtt-stats-cards" style="display:none;margin-top:12px;">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;">
+                  <div style="background:rgba(96,165,250,0.1);padding:8px 12px;border-radius:6px;text-align:center;">
+                    <div style="font-size:1.4rem;font-weight:700;color:#60a5fa;" id="mqtt-stat-published">0</div>
+                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.7);margin-top:2px;">Published</div>
+                  </div>
+                  <div style="background:rgba(96,165,250,0.1);padding:8px 12px;border-radius:6px;text-align:center;">
+                    <div style="font-size:1.4rem;font-weight:700;color:#60a5fa;" id="mqtt-stat-received">0</div>
+                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.7);margin-top:2px;">Received</div>
+                  </div>
+                  <div style="background:rgba(96,165,250,0.1);padding:8px 12px;border-radius:6px;text-align:center;">
+                    <div style="font-size:1.4rem;font-weight:700;color:#60a5fa;" id="mqtt-stat-commands">0</div>
+                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.7);margin-top:2px;">Commands</div>
+                  </div>
+                  <div style="background:rgba(96,165,250,0.1);padding:8px 12px;border-radius:6px;text-align:center;">
+                    <div style="font-size:1.4rem;font-weight:700;color:#60a5fa;" id="mqtt-stat-devices">0</div>
+                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.7);margin-top:2px;">Devices</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Compact Device Summary -->
+              <div class="metric-row" id="mqtt-device-summary" style="display:none;margin-top:8px;">
+                <div style="display:flex;gap:12px;align-items:center;font-size:0.9rem;">
+                  <span><strong>Devices:</strong></span>
+                  <span id="mqtt-devices-total">0</span> total
+                  <span style="color:#10b981;font-weight:600;" id="mqtt-devices-online">0</span> online
+                  <span style="color:#ef4444;font-weight:600;" id="mqtt-devices-offline">0</span> offline
+                </div>
+              </div>
+            </section>
         </div>
   <div class="ops-col">
       <div class="ops-group">
@@ -2159,6 +2239,48 @@
                 </div>
               </div>
             </section>
+
+            <!-- Backups Group Title -->
+            <div class="ops-group">
+              <div class="ops-group-title"><i class="fas fa-folder-open"></i> Backups</div>
+            </div>
+            <!-- Config Backups (compact list) -->
+            <section class="perf-card" aria-label="Config Backups">
+              <h3><i class="fas fa-archive"></i> Config Backups</h3>
+              <div class="card-pill-spot">
+                <span id="cfg-backup-schedule-pill" class="status-pill status-warning">Disabled</span>
+              </div>
+              <div class="card-subtext">Create daily configuration backups and restore per file.</div>
+
+              <div class="actions main-actions">
+                <button type="button" id="btn-create-cfg-backup" class="btn btn-success btn-sm"><i class="fas fa-plus-circle"></i><span>Backup now</span></button>
+                <div class="input-row">
+                  <div class="form-group" style="margin:0;">
+                    <input type="number" id="input-keep-cfg-backups" min="1" max="60" value="5" class="w-90" title="Number of backups to keep" />
+                  </div>
+                  <button type="button" id="btn-cleanup-cfg-backups" class="btn btn-secondary btn-sm"><i class="fas fa-broom"></i><span>Cleanup</span></button>
+                </div>
+              </div>
+
+              <div class="actions sub-actions">
+                <div class="inline-field">
+                  <label for="input-cfg-backup-enabled" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Daily schedule</label>
+                  <label class="checkbox" style="margin-right:8px;">
+                    <input type="checkbox" id="input-cfg-backup-enabled" />
+                    <span class="checkmark"></span>
+                    <span>Enabled</span>
+                  </label>
+                  <div class="time-input" title="Run time">
+                    <i class="fas fa-clock" aria-hidden="true"></i>
+                    <input type="time" id="input-cfg-backup-time" value="02:30" class="w-110" aria-label="Backup time" />
+                  </div>
+                  
+                </div>
+              </div>
+
+              <div id="cfg-backup-list" class="compact-backup-list"></div>
+            </section>
+
   <!-- Promobox Site -->
             <section class="perf-card" aria-label="Promobox Site">
               <h3><i class="fas fa-bullhorn"></i> Promobox Site</h3>
@@ -2232,75 +2354,6 @@
                 <button type="button" id="btn-refresh-media" class="btn btn-success btn-sm">
                   <i class="fas fa-sync-alt"></i><span>Refresh Media</span>
                 </button>
-              </div>
-            </section>
-
-            <!-- MQTT Group Title -->
-            <div class="ops-group">
-              <div class="ops-group-title"><i class="fas fa-rss"></i> MQTT</div>
-            </div>
-            <!-- MQTT Operations -->
-            <section class="perf-card" aria-label="MQTT Operations">
-              <h3><i class="fas fa-broadcast-tower"></i> MQTT Integration</h3>
-              <div class="card-pill-spot">
-                <span class="status-pill status-warning" id="mqtt-status-pill">Disabled</span>
-              </div>
-              <div class="card-subtext">Home Assistant MQTT Discovery integration.</div>
-              
-              <div class="metric-row mt-6">
-                <div class="form-group checkbox-group">
-                  <label class="checkbox" for="mqtt.enabled">
-                    <input type="checkbox" id="mqtt.enabled" />
-                    <span class="checkmark"></span>
-                    <span>Enable MQTT Integration</span>
-                  </label>
-                </div>
-                <div class="form-group checkbox-group">
-                  <label class="checkbox" for="mqtt.discovery.enabled">
-                    <input type="checkbox" id="mqtt.discovery.enabled" />
-                    <span class="checkmark"></span>
-                    <span>Enable Home Assistant Discovery</span>
-                  </label>
-                </div>
-              </div>
-
-              <div id="mqtt-settings-group" style="display:none;">
-                <div class="metric-row mt-6" style="display:flex;gap:20px;flex-wrap:wrap;">
-                  <div class="form-group" style="flex:0 0 auto;">
-                    <label for="mqtt.broker" style="margin:0 0 4px 0;display:block;">Broker Host</label>
-                    <input type="text" id="mqtt.broker" style="width:280px;height:36px;" placeholder="192.168.1.100" 
-                           title="MQTT broker hostname or IP address" />
-                  </div>
-                  <div class="form-group" style="flex:0 0 auto;">
-                    <label for="mqtt.port" style="margin:0 0 4px 0;display:block;">Broker Port</label>
-                    <input type="number" id="mqtt.port" min="1" max="65535" value="1883" style="width:110px;height:36px;" 
-                           title="MQTT broker port (default: 1883)" />
-                  </div>
-                </div>
-                <div class="metric-row mt-6" style="display:flex;gap:20px;flex-wrap:wrap;">
-                  <div class="form-group" style="flex:0 0 auto;">
-                    <label for="mqtt.username" style="margin:0 0 4px 0;display:block;">Username</label>
-                    <input type="text" id="mqtt.username" style="width:280px;height:36px;" placeholder="mqtt-user" 
-                           title="MQTT broker username (optional)" />
-                  </div>
-                  <div class="form-group" style="flex:0 0 auto;">
-                    <label for="mqtt.password" style="margin:0 0 4px 0;display:block;">Password</label>
-                    <input type="password" id="mqtt.password" style="width:280px;height:36px;" placeholder="••••••••" 
-                           title="MQTT broker password (optional)" />
-                  </div>
-                </div>
-                
-                <div class="actions main-actions" style="margin-top:16px;">
-                  <button type="button" id="btn-republish-mqtt" class="btn btn-success btn-sm">
-                    <i class="fas fa-paper-plane"></i><span>Republish All Devices</span>
-                  </button>
-                  <button type="button" id="btn-generate-ha-dashboard" class="btn btn-primary btn-sm">
-                    <i class="fas fa-home"></i><span>Generate HA Section</span>
-                  </button>
-                </div>
-                <div class="subtle" style="margin-top:8px;font-size:0.85rem;">
-                  Use this to restore devices in Home Assistant after deletion or configuration changes. Note: Save settings and restart server first if you just enabled MQTT.
-                </div>
               </div>
             </section>
 

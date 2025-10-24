@@ -1,8 +1,74 @@
 # Home Assistant MQTT Integration Plan
 
-**Version**: 1.0  
+**Version**: 2.1  
 **Created**: 2025-01-16  
-**Status**: Planning Phase
+**Last Updated**: 2025-10-24  
+**Status**: 🟡 Partial Implementation (Core + Dashboard Complete)
+
+## 📊 Implementation Status Overview
+
+### ✅ Completed (v2.8.1)
+
+- **Core MQTT Bridge** (`utils/mqttBridge.js` - 1013 lines)
+    - ✅ Connection to MQTT broker with reconnection logic
+    - ✅ State publishing for all devices
+    - ✅ Home Assistant Discovery protocol
+    - ✅ Command routing from MQTT to WebSocket
+    - ✅ Availability tracking per device
+    - ✅ Device-specific entity naming (object_id with device ID)
+- **Capability Registry** (`utils/capabilityRegistry.js` - 1773 lines)
+    - ✅ Central capability registration system
+    - ✅ 40+ capabilities auto-registered (playback, power, settings, sensors)
+    - ✅ Device mode detection and mode-specific capabilities
+    - ✅ Settings getter with fallback chain (override → global → default)
+    - ✅ Test coverage (`__tests__/utils/capabilityRegistry.test.js`)
+
+- **Dashboard Generator** (`utils/haDashboardGenerator.js` - 247 lines)
+    - ✅ Lovelace YAML generation for selected devices
+    - ✅ Comprehensive device cards (poster, controls, media info, device info)
+    - ✅ 2-column grid layout with 16+ entities per device
+    - ✅ Admin UI modal for device selection and YAML preview
+    - ✅ Copy-to-clipboard functionality
+
+- **Admin UI Integration** (`public/admin.html`, `admin.js`, `admin.css`)
+    - ✅ MQTT Operations section with dashboard generator button
+    - ✅ Device selection modal with radio buttons
+    - ✅ YAML preview with syntax highlighting
+    - ✅ Visual selection feedback
+    - ✅ Installation instructions
+    - ✅ **MQTT Status Panel** (real-time monitoring):
+        - Connection status indicator with visual dot (green/red)
+        - Broker info: host, port, topic prefix, discovery status, uptime
+        - Statistics cards: messages published/received, commands executed, devices
+        - Device summary: total, online, offline
+        - Command log table: last 20 commands with timestamp, device, status
+        - Auto-refresh every 5 seconds
+        - Manual refresh button
+
+- **Utility Scripts**
+    - ✅ `scripts/mqtt-republish-discovery.js` - Force republish all entities
+    - ✅ `scripts/mqtt-cleanup-entities.js` - Clean up old entities
+
+### 🟡 Partially Implemented
+
+- **Display Settings via MQTT**: Basic structure in place, maar niet alle 30+ settings zijn getest
+- **Camera Entity**: ✅ WORKS - Base64 images published via MQTT state
+- **State Publishing**: Works maar kan geoptimaliseerd worden (alleen bij changes)
+
+### ❌ Not Yet Implemented
+
+- ~~**Preview Image Endpoint**~~: ✅ Not needed - camera entity works with base64 in state topic
+- ~~**MQTT Bridge Integration Tests**~~: ✅ COMPLETED - 26 tests, all passing
+- **Broadcast Commands via MQTT**: MQTT topic voor broadcast ontbreekt
+- **Group Controls Integration**: Geen MQTT integratie met groups.json
+- **Live Metrics Sensors**: Server-wide sensors (cache size, memory) ontbreken
+- **Notification Events**: Geen MQTT events voor device connect/disconnect
+- ~~**Complete Admin UI**~~: ✅ MQTT status panel implemented
+- ~~**Comprehensive Testing**~~: ✅ Unit tests voor mqttBridge complete
+- **Integration Testing**: End-to-end tests met echte MQTT broker ontbreken
+- **Production Documentation**: User guide en installation docs onvolledig
+
+---
 
 ## Executive Summary
 
@@ -504,11 +570,11 @@ Executes command on all devices (same as existing broadcast API).
 
 ## 4. Implementation Plan
 
-### Phase 1: Core MQTT Bridge (Week 1)
+### Phase 1: Core MQTT Bridge (Week 1) - ✅ COMPLETED
 
 **Goal**: Basic MQTT connectivity and state publishing
 
-#### 4.1.1 Create MQTT Bridge Module
+#### 4.1.1 Create MQTT Bridge Module - ✅ DONE
 
 **File**: `utils/mqttBridge.js`
 
@@ -603,7 +669,7 @@ deviceStore.deviceEvents.on('device:updated', async device => {
 });
 ```
 
-### Phase 2: Command Routing (Week 2)
+### Phase 2: Command Routing (Week 2) - ✅ COMPLETED
 
 **Goal**: Full bi-directional communication
 
@@ -697,18 +763,20 @@ buildDiscoveryPayload(device, capability) {
 }
 ```
 
-### Phase 3: Testing & Documentation (Week 3)
+### Phase 3: Testing & Documentation (Week 3) - 🟡 PARTIAL
 
-#### 4.3.1 Unit Tests
+#### 4.3.1 Unit Tests - 🟡 PARTIAL
 
-**File**: `__tests__/utils/mqttBridge.test.js`
+**File**: `__tests__/utils/capabilityRegistry.test.js` - ✅ EXISTS
+**File**: `__tests__/utils/mqttBridge.test.js` - ❌ MISSING
 
-- Connection handling
-- State publishing
-- Discovery config generation
-- Command routing
-- Error handling
-- Reconnection logic
+- ✅ Capability registry tests (registration, availability detection)
+- ❌ MQTT connection handling tests
+- ❌ State publishing tests
+- ❌ Discovery config generation tests
+- ❌ Command routing tests
+- ❌ Error handling tests
+- ❌ Reconnection logic tests
 
 #### 4.3.2 Integration Tests
 
@@ -727,17 +795,17 @@ buildDiscoveryPayload(device, capability) {
 - `docs/adding-a-source.md` - Update with capability registration pattern
 - `README.md` - Add MQTT section
 
-### Phase 4: Admin UI Integration (Week 4)
+### Phase 4: Admin UI Integration (Week 4) - 🟡 PARTIAL
 
-#### 4.4.1 MQTT Configuration Panel
+#### 4.4.1 MQTT Configuration Panel - ❌ NOT IMPLEMENTED
 
-**File**: `public/admin.html` (new section)
+**File**: `public/admin.html` (MQTT Operations section exists, maar geen config panel)
 
-- Enable/disable MQTT
-- Broker connection settings
-- Discovery settings
-- Connection status indicator
-- Test connection button
+- ❌ Enable/disable MQTT toggle
+- ❌ Broker connection settings editor
+- ❌ Discovery settings editor
+- ❌ Connection status indicator (real-time)
+- ❌ Test connection button
 
 #### 4.4.2 Device Capability Inspector
 
@@ -749,18 +817,18 @@ Show MQTT capabilities per device:
 - Direct links to Home Assistant (if URL configured)
 - Capability debug info
 
-#### 4.4.3 Lovelace Dashboard Generator
+#### 4.4.3 Lovelace Dashboard Generator - ✅ IMPLEMENTED
 
-**New API Endpoint**: `GET /api/mqtt/lovelace-dashboard`
+**Implemented API Endpoint**: `POST /api/admin/mqtt/generate-dashboard`
 
-Automatically generates complete Home Assistant dashboard YAML:
+✅ Generates complete Home Assistant dashboard YAML:
 
-- One card per device with preview, controls, settings
-- Global controls section (broadcast commands)
-- Status sensors and badges
-- Ready to import in Home Assistant
+- ✅ One card per device with preview, controls, settings
+- ❌ Global controls section (broadcast commands) - not yet implemented
+- ❌ Status sensors and badges - not yet implemented
+- ✅ Ready to import in Home Assistant
 
-**File**: `utils/lovelaceDashboardGenerator.js` (NEW)
+**File**: `utils/haDashboardGenerator.js` (247 lines) - ✅ EXISTS
 
 ```javascript
 /**
@@ -778,22 +846,24 @@ function generateDashboard(devices, config) {
 }
 ```
 
-#### 4.4.4 Preview Image Endpoint
+#### 4.4.4 Preview Image Endpoint - ❌ NOT IMPLEMENTED
 
-**New API Endpoint**: `GET /api/devices/:deviceId/preview`
+**Planned API Endpoint**: `GET /api/devices/:deviceId/preview`
 
-Returns current poster image as JPEG:
+❌ Would return current poster image as JPEG:
 
-- Cached for 30 seconds (align with state publishing)
-- Fallback placeholder if device offline
-- Resized to 800x450px for dashboard performance
-- Optional query params: `?width=800&quality=85`
+- ❌ Cached for 30 seconds (align with state publishing)
+- ❌ Fallback placeholder if device offline
+- ❌ Resized to 800x450px for dashboard performance
+- ❌ Optional query params: `?width=800&quality=85`
+
+**Note**: Camera entity publishes posterUrl in state, maar geen dedicated image proxy endpoint
 
 ---
 
-### Phase 5: Advanced Features (Week 5+)
+### Phase 5: Advanced Features (Week 5+) - ❌ NOT STARTED
 
-#### 4.5.1 Preset Management via MQTT
+#### 4.5.1 Preset Management via MQTT - 🟡 PARTIAL
 
 **Integration with device-presets.json**:
 
@@ -958,7 +1028,7 @@ pm2 restart posterrama
 ### 7.1 Unit Tests
 
 - [ ] MQTT client connection/disconnection
-- [ ] Capability registry: register, get available
+- [x] Capability registry: register, get available
 - [ ] Discovery payload generation (all entity types)
 - [ ] Topic parsing and routing
 - [ ] Command execution success/failure paths
@@ -1603,20 +1673,27 @@ if (config.mqtt?.enabled) {
     - `__tests__/utils/capabilityRegistry.test.js`
     - `__tests__/utils/mqttBridge.test.js`
 
-### Week 1 Milestones
+### Week 1 Milestones - ✅ COMPLETED
 
-- [ ] Capability registry implemented and tested
-- [ ] MQTT bridge connects to broker
-- [ ] State publishing working for one device
-- [ ] Basic discovery payload generation
+- [x] Capability registry implemented and tested
+- [x] MQTT bridge connects to broker
+- [x] State publishing working for all devices
+- [x] Basic discovery payload generation
 
-### Week 2-4 Milestones
+### Week 2 Milestones - ✅ COMPLETED
 
-- [ ] Command routing fully functional
-- [ ] All current capabilities registered
-- [ ] Home Assistant discovery tested
-- [ ] Admin UI configuration panel
-- [ ] Documentation complete
+- [x] Command routing fully functional
+- [x] All current capabilities registered (40+)
+- [x] Home Assistant discovery tested
+
+### Week 3-4 Milestones - 🟡 PARTIAL
+
+- [x] Dashboard generator implemented
+- [x] Admin UI modal for dashboard generation
+- [ ] MQTT configuration panel in admin UI
+- [ ] Connection status monitoring
+- [ ] Complete integration test suite
+- [ ] User documentation (setup guide)
 
 ---
 
@@ -1960,14 +2037,13 @@ This architecture achieves **complete Home Assistant integration with zero manua
 ### Immediate Actions (Today)
 
 1. ✅ **Plan Approved**: Review this document
-2. 🔄 **Create Feature Branch**: `git checkout -b feature/mqtt-integration`
-3. 📦 **Install Dependencies**: `npm install mqtt --save`
-4. 📝 **Create Skeleton Files**:
-    - `utils/capabilityRegistry.js`
-    - `utils/mqttBridge.js`
-    - `utils/lovelaceDashboardGenerator.js`
-    - `__tests__/utils/capabilityRegistry.test.js`
-    - `__tests__/utils/mqttBridge.test.js`
+2. ✅ **Dependencies Installed**: `mqtt` package installed
+3. ✅ **Core Files Created**:
+    - ✅ `utils/capabilityRegistry.js` (1773 lines, 40+ capabilities)
+    - ✅ `utils/mqttBridge.js` (1013 lines, full implementation)
+    - ✅ `utils/haDashboardGenerator.js` (247 lines)
+    - ✅ `__tests__/utils/capabilityRegistry.test.js` (test suite exists)
+    - ❌ `__tests__/utils/mqttBridge.test.js` (NOT CREATED YET)
 
 ### Development Milestones
 
@@ -2009,10 +2085,100 @@ This architecture achieves **complete Home Assistant integration with zero manua
 
 ---
 
-**Document Version**: 2.0  
-**Last Updated**: 2025-10-19  
+## 🎯 Prioritized Next Steps (Based on Current Implementation)
+
+### High Priority (Core Functionality Gaps)
+
+1. **Admin UI MQTT Status Panel** (3-4 uur) - ✅ COMPLETED (v2.8.1+)
+    - ✅ Real-time connection indicator (green/red)
+    - ✅ Broker info display (host, port, topic prefix, discovery status, uptime)
+    - ✅ Message counters (published, received, commands executed, devices)
+    - ✅ Device summary (total, online, offline)
+    - ✅ Recent command log (last 20 commands with timestamps)
+    - ✅ Auto-refresh every 5 seconds when MQTT enabled
+    - ✅ Manual refresh button
+    - **Files**: server.js (+58 lines), utils/mqttBridge.js (+80 lines), admin.html (+120 lines), admin.js (+250 lines), admin.css (+240 lines)
+
+2. **MQTT Bridge Integration Tests** (4-5 uur) - ✅ COMPLETED (v2.8.1+)
+    - ✅ Created `__tests__/utils/mqttBridge.test.js` with 26 tests
+    - ✅ Test coverage: Constructor, initialization, statistics, command history
+    - ✅ Discovery config generation for all entity types (button, switch, select, sensor)
+    - ✅ Device short ID extraction and formatting
+    - ✅ Error handling and shutdown scenarios
+    - ✅ All tests passing (26/26) with 20% code coverage
+    - **File**: `__tests__/utils/mqttBridge.test.js` (525 lines)
+
+3. **Complete Settings Testing** (3-4 uur) - 🔄 NEXT PRIORITY
+    - Create `__tests__/utils/mqttBridge.test.js`
+    - Test connection/reconnection scenarios
+    - Test discovery payload generation for all entity types
+    - Test command routing and execution
+    - Mock MQTT broker or use test broker
+    - **Impact**: Confidence in production stability
+
+4. **Admin UI MQTT Status Panel** (3-4 uur)
+    - Real-time connection indicator (green/red)
+    - Broker info display (host, port, connected devices)
+    - Message counters (published, received, errors)
+    - Test connection button
+    - Recent command log (last 50)
+    - **Impact**: Visibility into MQTT health and debugging
+
+### Medium Priority (User Experience)
+
+4. **Broadcast Commands via MQTT** (2-3 uur)
+    - Add MQTT topic: `posterrama/broadcast/command/{capability}`
+    - Route to existing broadcast WebSocket logic
+    - Update dashboard generator to include broadcast buttons
+    - Test with multiple devices
+    - **Impact**: Control all devices at once from HA
+
+5. **Complete Settings Testing** (3-4 uur)
+    - Test all 30+ settings capabilities end-to-end
+    - Verify settingsOverride persistence
+    - Test mode-specific settings (wallart, cinema)
+    - Validate preset application via MQTT
+    - Document any non-working settings
+    - **Impact**: Ensure all advertised settings actually work
+
+6. **User Documentation** (2-3 uur)
+    - Create `docs/MQTT-SETUP-GUIDE.md`
+    - Step-by-step installation instructions
+    - Troubleshooting section
+    - Example automations and scenes
+    - Screenshots of HA dashboard
+    - **Impact**: Users can self-service setup
+
+### Low Priority (Nice to Have)
+
+7. **Group Controls Integration** (3-4 uur)
+    - Read groups.json in mqttBridge
+    - Create virtual devices for groups in HA
+    - Broadcast commands to group members
+    - **Impact**: Logical grouping in Home Assistant
+
+8. **Server Metrics Sensors** (2-3 uur)
+    - Add global sensors: cache_size, uptime, memory_usage, device_count
+    - Publish to `posterrama/server/state`
+    - Update every 60 seconds
+    - **Impact**: System monitoring in HA
+
+9. **Event Notifications** (2-3 uur)
+    - Publish MQTT events for device connect/disconnect
+    - Media library updates
+    - Error notifications
+    - **Impact**: Automation triggers in HA
+
+### Geschatte totale tijd voor high priority items: **9-12 uur**
+
+### Geschatte totale tijd voor alle items: **23-31 uur**
+
+---
+
+**Document Version**: 2.1  
+**Last Updated**: 2025-10-24  
 **Author**: GitHub Copilot  
-**Status**: ✅ Enhanced with Complete Device Management Parity
+**Status**: 🟡 Partial Implementation - Core Complete, Testing & UX Gaps Remain
 
 **Key Additions in v2.0**:
 

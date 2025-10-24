@@ -17566,6 +17566,52 @@ app.post(
 
 /**
  * @swagger
+ * /api/admin/mqtt/status:
+ *   get:
+ *     summary: Get MQTT bridge status and statistics
+ *     description: Returns real-time status of MQTT connection, statistics, and recent command history
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: MQTT status retrieved successfully
+ *       503:
+ *         description: MQTT bridge not available
+ */
+app.get(
+    '/api/admin/mqtt/status',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const mqttBridge = global.__posterramaMqttBridge;
+
+        if (!mqttBridge) {
+            return res.json({
+                enabled: false,
+                connected: false,
+                message: 'MQTT integration is not enabled',
+            });
+        }
+
+        const stats = mqttBridge.getStats();
+        const devices = await deviceStore.getAll();
+        const onlineDevices = devices.filter(d => d.status === 'online');
+
+        res.json({
+            enabled: true,
+            ...stats,
+            deviceSummary: {
+                total: devices.length,
+                online: onlineDevices.length,
+                offline: devices.length - onlineDevices.length,
+                published: stats.devices_published || 0,
+            },
+        });
+    })
+);
+
+/**
+ * @swagger
  * /api/admin/reset-refresh:
  *   post:
  *     summary: Reset stuck playlist refresh state

@@ -6737,6 +6737,261 @@ body.page-logs {
     z-index: 11000;
 }
 
+/* ============================================================================
+   MQTT Status Panel
+   ============================================================================ */
+
+/* Connection Status Header */
+.mqtt-status-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+
+.mqtt-connection-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.status-dot-success {
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.status-dot-error {
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+    animation: none;
+}
+
+@keyframes pulse-dot {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Broker Info Grid */
+.mqtt-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.mqtt-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+}
+
+.mqtt-info-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.mqtt-info-value {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    font-family: 'Courier New', monospace;
+}
+
+/* Statistics Cards */
+.mqtt-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.mqtt-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(99, 102, 241, 0.08));
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.mqtt-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.mqtt-stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: rgba(59, 130, 246, 0.15);
+    border-radius: 8px;
+    color: #3b82f6;
+    font-size: 1.2rem;
+}
+
+.mqtt-stat-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mqtt-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1;
+}
+
+.mqtt-stat-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* Device Summary */
+.mqtt-device-summary-grid {
+    display: flex;
+    gap: 24px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    justify-content: space-around;
+}
+
+.mqtt-device-summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.mqtt-device-summary-count {
+    font-size: 2rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1;
+}
+
+.mqtt-device-summary-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* Command Log */
+.mqtt-command-log-container {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.mqtt-command-log {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.mqtt-command-log thead {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.mqtt-command-log th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mqtt-command-log tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.15s;
+}
+
+.mqtt-command-log tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.mqtt-command-log tbody tr:last-child {
+    border-bottom: none;
+}
+
+.mqtt-command-log td {
+    padding: 10px 12px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.mqtt-cmd-time {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.mqtt-cmd-device {
+    font-weight: 500;
+}
+
+.mqtt-cmd-command {
+    font-family: 'Courier New', monospace;
+    color: rgba(59, 130, 246, 0.9);
+}
+
+.mqtt-cmd-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.mqtt-cmd-status.status-success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.mqtt-cmd-status.status-error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
 /* HA Dashboard radio buttons */
 .ha-device-radio-label {
     display: flex;

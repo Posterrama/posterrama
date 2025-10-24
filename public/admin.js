@@ -19818,6 +19818,11 @@
                     mqttSettingsGroup.style.display = mqttEnabledEl.checked ? 'block' : 'none';
                 });
             }
+
+            // Trigger MQTT status panel update if MQTT is enabled
+            if (mqtt.enabled && typeof window.startMqttStatusRefresh === 'function') {
+                window.startMqttStatusRefresh();
+            }
             // Entry Route (rootRoute)
             try {
                 const rr = cfg.rootRoute || {};
@@ -20300,6 +20305,204 @@
                 console.error('Failed to reload whitelist data:', error);
             });
     };
+
+    // ============================================================================
+    // MQTT Status Panel
+    // ============================================================================
+
+    let mqttStatusRefreshTimer = null;
+
+    async function fetchMqttStatus() {
+        try {
+            const response = await fetch('/api/admin/mqtt/status', { credentials: 'include' });
+            if (!response.ok) {
+                throw new Error('Failed to fetch MQTT status');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Failed to fetch MQTT status:', error);
+            return null;
+        }
+    }
+
+    function formatUptime(seconds) {
+        if (!seconds || seconds < 0) return '0s';
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+
+        const parts = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0) parts.push(`${minutes}m`);
+        if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+        return parts.join(' ');
+    }
+
+    function formatTimestamp(isoString) {
+        if (!isoString) return '-';
+        const date = new Date(isoString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffSecs = Math.floor(diffMs / 1000);
+
+        if (diffSecs < 60) return `${diffSecs}s ago`;
+        if (diffSecs < 3600) return `${Math.floor(diffSecs / 60)}m ago`;
+        if (diffSecs < 86400) return `${Math.floor(diffSecs / 3600)}h ago`;
+
+        return date.toLocaleTimeString();
+    }
+
+    async function updateMqttStatusUI() {
+        const status = await fetchMqttStatus();
+
+        const statusPanel = document.getElementById('mqtt-status-panel');
+        const mqttEnabled = document.getElementById('mqtt.enabled');
+
+        // Show/hide panel based on MQTT enabled state
+        if (statusPanel && mqttEnabled) {
+            if (mqttEnabled.checked) {
+                statusPanel.style.display = '';
+            } else {
+                statusPanel.style.display = 'none';
+                return; // Don't update if disabled
+            }
+        }
+
+        if (!status) {
+            updateMqttConnectionStatus(false, 'Error fetching status');
+            return;
+        }
+
+        // Update connection status
+        updateMqttConnectionStatus(
+            status.connected,
+            status.connected ? 'Connected' : 'Disconnected'
+        );
+
+        // Show/hide info sections based on connection
+        const brokerInfo = document.getElementById('mqtt-broker-info');
+        const statsCards = document.getElementById('mqtt-stats-cards');
+        const deviceSummary = document.getElementById('mqtt-device-summary');
+
+        if (status.connected) {
+            if (brokerInfo) brokerInfo.style.display = '';
+            if (statsCards) statsCards.style.display = '';
+            if (deviceSummary) deviceSummary.style.display = '';
+
+            // Update broker info
+            updateElement(
+                'mqtt-broker-host',
+                `${status.broker?.host || 'unknown'}:${status.broker?.port || 1883}`
+            );
+            updateElement('mqtt-topic-prefix', status.topicPrefix || 'posterrama');
+            updateElement(
+                'mqtt-discovery-status',
+                status.discovery?.enabled ? `✓ ${status.discovery.prefix}` : '✗ Disabled'
+            );
+            updateElement('mqtt-uptime', formatUptime(status.uptime_seconds));
+
+            // Update statistics
+            updateElement('mqtt-stat-published', status.messagesPublished || 0);
+            updateElement('mqtt-stat-received', status.messagesReceived || 0);
+            updateElement('mqtt-stat-commands', status.commandsExecuted || 0);
+            updateElement('mqtt-stat-devices', status.devices_published || 0);
+
+            // Update device summary
+            updateElement('mqtt-devices-total', status.deviceSummary?.total || 0);
+            updateElement('mqtt-devices-online', status.deviceSummary?.online || 0);
+            updateElement('mqtt-devices-offline', status.deviceSummary?.offline || 0);
+        } else {
+            if (brokerInfo) brokerInfo.style.display = 'none';
+            if (statsCards) statsCards.style.display = 'none';
+            if (deviceSummary) deviceSummary.style.display = 'none';
+        }
+    }
+
+    function updateMqttConnectionStatus(connected, text) {
+        const pill = document.getElementById('mqtt-conn-pill');
+        const mqttStatusPill = document.getElementById('mqtt-status-pill');
+
+        // Update the card pill in the status panel
+        if (pill) {
+            pill.className = 'status-pill';
+            if (connected) {
+                pill.classList.add('status-success');
+                pill.textContent = 'Connected';
+            } else {
+                pill.classList.add('status-warning');
+                pill.textContent = 'Disconnected';
+            }
+        }
+
+        // Also update the main MQTT Integration card pill
+        if (mqttStatusPill) {
+            mqttStatusPill.className = 'status-pill';
+            if (connected) {
+                mqttStatusPill.classList.add('status-success');
+                mqttStatusPill.textContent = 'Connected';
+            } else {
+                mqttStatusPill.classList.add('status-warning');
+                mqttStatusPill.textContent = 'Disconnected';
+            }
+        }
+    }
+
+    function updateElement(id, value) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = value;
+        }
+    }
+
+    function startMqttStatusRefresh() {
+        stopMqttStatusRefresh();
+        updateMqttStatusUI(); // Initial update
+        mqttStatusRefreshTimer = setInterval(updateMqttStatusUI, 2000); // Refresh every 2 seconds for real-time updates
+    }
+
+    function stopMqttStatusRefresh() {
+        if (mqttStatusRefreshTimer) {
+            clearInterval(mqttStatusRefreshTimer);
+            mqttStatusRefreshTimer = null;
+        }
+    }
+
+    // Initialize MQTT status panel
+    function initMqttStatusPanel() {
+        // Watch for MQTT enabled checkbox changes
+        const mqttEnabled = document.getElementById('mqtt.enabled');
+        if (mqttEnabled) {
+            mqttEnabled.addEventListener('change', () => {
+                if (mqttEnabled.checked) {
+                    startMqttStatusRefresh();
+                } else {
+                    stopMqttStatusRefresh();
+                    const statusPanel = document.getElementById('mqtt-status-panel');
+                    if (statusPanel) statusPanel.style.display = 'none';
+                }
+            });
+
+            // Initial check
+            if (mqttEnabled.checked) {
+                startMqttStatusRefresh();
+            }
+        }
+    }
+
+    // Initialize when admin page loads
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMqttStatusPanel);
+    } else {
+        initMqttStatusPanel();
+    }
+
+    // Expose functions to window for manual calls
+    window.updateMqttStatusUI = updateMqttStatusUI;
+    window.startMqttStatusRefresh = startMqttStatusRefresh;
+    window.stopMqttStatusRefresh = stopMqttStatusRefresh;
 
     // ============================================================================
     // Home Assistant Dashboard Generator
