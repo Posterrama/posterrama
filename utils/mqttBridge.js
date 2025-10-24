@@ -73,6 +73,18 @@ class MqttBridge extends EventEmitter {
                     deviceId: device.id,
                 });
                 await this.publishDeviceState(device);
+                await this.publishCameraState(device);
+            });
+
+            // Listen for heartbeat updates to immediately publish camera changes
+            deviceStore.deviceEvents.on('device:updated', async device => {
+                logger.info('📡 Device heartbeat received, publishing state + camera', {
+                    deviceId: device.id,
+                    posterUrl: device.currentState?.posterUrl?.substring(0, 50),
+                });
+                await this.publishDeviceState(device);
+                await this.publishDeviceAvailability(device);
+                await this.publishCameraState(device);
             });
 
             logger.info('✅ MQTT bridge initialized successfully');
