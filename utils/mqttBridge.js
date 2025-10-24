@@ -86,7 +86,7 @@ class MqttBridge extends EventEmitter {
 
             // Listen for heartbeat updates to immediately publish camera changes
             deviceStore.deviceEvents.on('device:updated', async device => {
-                logger.info('📡 Device heartbeat received, publishing state + camera', {
+                logger.debug('📡 Device heartbeat received, publishing state + camera', {
                     deviceId: device.id,
                     posterUrl: device.currentState?.posterUrl?.substring(0, 50),
                 });
@@ -283,7 +283,7 @@ class MqttBridge extends EventEmitter {
                 return;
             }
 
-            logger.info('🎮 Executing MQTT command', {
+            logger.debug('🎮 Executing MQTT command', {
                 deviceId,
                 capabilityId: normalizedCapabilityId,
                 payload,
@@ -554,7 +554,7 @@ class MqttBridge extends EventEmitter {
 
             await this.publish(stateTopic, statePayload, { qos: 0, retain: false });
 
-            logger.info('📷 Published camera state (thumbnail + URL)', {
+            logger.debug('📷 Published camera state (thumbnail + URL)', {
                 deviceId: device.id,
                 imageUrl: imageUrlWithCacheBust.substring(0, 80) + '...',
             });

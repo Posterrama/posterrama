@@ -36,7 +36,7 @@ function registerConnection(ws, deviceId) {
     const existing = deviceToSocket.get(deviceId);
     if (existing && existing !== ws) {
         try {
-            logger.info('🔄 WebSocket: Replacing existing connection', {
+            logger.debug('🔄 WebSocket: Replacing existing connection', {
                 deviceId,
                 reason: 'single_connection_policy',
             });
@@ -49,7 +49,7 @@ function registerConnection(ws, deviceId) {
     deviceToSocket.set(deviceId, ws);
     socketToDevice.set(ws, deviceId);
 
-    logger.info('🟢 WebSocket: Device connected', {
+    logger.debug('🟢 WebSocket: Device connected', {
         deviceId,
         totalConnections: deviceToSocket.size,
         timestamp: new Date().toISOString(),
@@ -97,7 +97,7 @@ function unregister(ws) {
             }
         }
 
-        logger.info('🔴 WebSocket: Device disconnected', {
+        logger.debug('🔴 WebSocket: Device disconnected', {
             deviceId,
             cleanedUpAcks,
             totalConnections: deviceToSocket.size,
