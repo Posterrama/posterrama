@@ -405,7 +405,7 @@ class CapabilityRegistry {
             },
         });
 
-        // UI Scaling - Global
+        // UI Scaling - Global (screensaver only)
         this.register('settings.uiScaling.global', {
             name: 'UI Scale',
             category: 'settings',
@@ -415,6 +415,7 @@ class CapabilityRegistry {
             min: 50,
             max: 200,
             step: 10,
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     uiScaling: { global: parseInt(value) },
@@ -425,7 +426,7 @@ class CapabilityRegistry {
             },
         });
 
-        // UI Scaling - Content
+        // UI Scaling - Content (screensaver only)
         this.register('settings.uiScaling.content', {
             name: 'Content Scale',
             category: 'settings',
@@ -435,6 +436,7 @@ class CapabilityRegistry {
             min: 50,
             max: 200,
             step: 10,
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     uiScaling: { content: parseInt(value) },
@@ -463,23 +465,45 @@ class CapabilityRegistry {
             },
         });
 
-        // Wallart refresh rate
-        this.register('settings.wallartMode.refreshRate', {
-            name: 'Wallart Refresh Rate',
+        // Wallart poster refresh rate (seconds)
+        this.register('settings.wallartMode.posterRefreshRate', {
+            name: 'Poster Refresh Rate',
             category: 'settings',
             entityType: 'number',
-            icon: 'mdi:update',
+            icon: 'mdi:timer-outline',
+            unit: 's',
             min: 1,
-            max: 10,
+            max: 60,
             step: 1,
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
-                    wallartMode: { refreshRate: parseInt(value) },
+                    wallartMode: { posterRefreshRate: parseInt(value) },
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.wallartMode?.refreshRate || null;
+                return device.settingsOverride?.wallartMode?.posterRefreshRate || null;
+            },
+        });
+
+        // Wallart timing randomness
+        this.register('settings.wallartMode.timingRandomness', {
+            name: 'Timing Randomness',
+            category: 'settings',
+            entityType: 'number',
+            icon: 'mdi:dice-multiple',
+            unit: '%',
+            min: 0,
+            max: 100,
+            step: 5,
+            availableWhen: device => this.getDeviceMode(device) === 'wallart',
+            commandHandler: (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    wallartMode: { timingRandomness: parseInt(value) },
+                });
+            },
+            stateGetter: device => {
+                return device.settingsOverride?.wallartMode?.timingRandomness || null;
             },
         });
 
@@ -489,7 +513,20 @@ class CapabilityRegistry {
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:animation',
-            options: ['fade', 'flip', 'slide', 'zoom', 'none'],
+            options: [
+                'fade',
+                'crossfade',
+                'slide-left',
+                'slide-right',
+                'slide-up',
+                'slide-down',
+                'zoom-in',
+                'zoom-out',
+                'flip-horizontal',
+                'flip-vertical',
+                'rotate',
+                'none',
+            ],
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
@@ -498,6 +535,101 @@ class CapabilityRegistry {
             },
             stateGetter: device => {
                 return device.settingsOverride?.wallartMode?.animationType || null;
+            },
+        });
+
+        // Wallart ambiance
+        this.register('settings.wallartMode.ambiance', {
+            name: 'Ambiance',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:lightbulb-on',
+            availableWhen: device => this.getDeviceMode(device) === 'wallart',
+            commandHandler: (deviceId, value) => {
+                const boolValue = value === true || value === 'ON' || value === 1;
+                return wsHub.sendApplySettings(deviceId, {
+                    wallartMode: { ambiance: boolValue },
+                });
+            },
+            stateGetter: device => {
+                const val = device.settingsOverride?.wallartMode?.ambiance;
+                return val !== undefined ? val : null;
+            },
+        });
+
+        // Wallart bias to ambiance
+        this.register('settings.wallartMode.biasToAmbiance', {
+            name: 'Bias to Ambiance',
+            category: 'settings',
+            entityType: 'number',
+            icon: 'mdi:tune',
+            unit: '%',
+            min: 0,
+            max: 100,
+            step: 10,
+            availableWhen: device => this.getDeviceMode(device) === 'wallart',
+            commandHandler: (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    wallartMode: { biasToAmbiance: parseInt(value) },
+                });
+            },
+            stateGetter: device => {
+                return device.settingsOverride?.wallartMode?.biasToAmbiance || null;
+            },
+        });
+
+        // Wallart layout
+        this.register('settings.wallartMode.layout', {
+            name: 'Layout',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:view-dashboard',
+            options: ['classic', 'hero-grid'],
+            availableWhen: device => this.getDeviceMode(device) === 'wallart',
+            commandHandler: (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    wallartMode: { layout: value },
+                });
+            },
+            stateGetter: device => {
+                return device.settingsOverride?.wallartMode?.layout || null;
+            },
+        });
+
+        // Wallart hero side
+        this.register('settings.wallartMode.heroSide', {
+            name: 'Hero Side',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:page-layout-sidebar-left',
+            options: ['left', 'right'],
+            availableWhen: device => this.getDeviceMode(device) === 'wallart',
+            commandHandler: (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    wallartMode: { heroSide: value },
+                });
+            },
+            stateGetter: device => {
+                return device.settingsOverride?.wallartMode?.heroSide || null;
+            },
+        });
+
+        // Wallart hero rotation
+        this.register('settings.wallartMode.heroRotation', {
+            name: 'Hero Rotation',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:rotate-3d-variant',
+            availableWhen: device => this.getDeviceMode(device) === 'wallart',
+            commandHandler: (deviceId, value) => {
+                const boolValue = value === true || value === 'ON' || value === 1;
+                return wsHub.sendApplySettings(deviceId, {
+                    wallartMode: { heroRotation: boolValue },
+                });
+            },
+            stateGetter: device => {
+                const val = device.settingsOverride?.wallartMode?.heroRotation;
+                return val !== undefined ? val : null;
             },
         });
 
