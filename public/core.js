@@ -225,6 +225,21 @@
             return;
         }
 
+        // Skip auto-exit if device management is active but device not yet registered
+        // Unregistered devices would get global config instead of device overrides
+        try {
+            if (window.PosterramaDevice && window.PosterramaDevice.getState) {
+                const state = window.PosterramaDevice.getState();
+                if (!state || !state.deviceId) {
+                    console.log('[AUTO_EXIT] Skipping poll - device not registered yet');
+                    window.debugLog && window.debugLog('AUTO_EXIT_SKIP_UNREGISTERED', {});
+                    return;
+                }
+            }
+        } catch (_) {
+            // If we can't check device state, proceed with poll
+        }
+
         try {
             const currentMode = String(opts.currentMode || '').toLowerCase();
             const baseInterval = Math.max(5000, Number(opts.intervalMs || 15000));

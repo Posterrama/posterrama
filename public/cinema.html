@@ -82,27 +82,23 @@
             window.MODE_HINT = 'cinema';
         </script>
         <script>
-            // Initialize device management AND wait for it before starting auto-exit poll
+            // Start device management initialization (non-blocking)
+            // Device identity will be available from localStorage immediately if registered
             (async function() {
                 try {
                     if (window.PosterramaDevice && window.PosterramaDevice.init) {
                         const cfg = await window.PosterramaCore.fetchConfig();
-                        await window.PosterramaDevice.init(cfg || {});
-                        console.log('[Cinema] Device management initialized');
+                        window.PosterramaDevice.init(cfg || {}); // Don't await - let it run in background
+                        console.log('[Cinema] Device management init started');
                     }
                 } catch (e) {
                     console.warn('[Cinema] Device init failed:', e);
                 }
-                
-                // Start auto-exit poll AFTER device init completes
-                try {
-                    if (window.PosterramaCore && window.PosterramaCore.startAutoExitPoll) {
-                        window.PosterramaCore.startAutoExitPoll({ currentMode: 'cinema', intervalMs: 15000 });
-                    }
-                } catch (e) {
-                    console.warn('[Cinema] Auto-exit poll failed:', e);
-                }
             })();
+        </script>
+        <script>
+            // Start auto-exit poll immediately (device ID from localStorage if available)
+            try { window.PosterramaCore && window.PosterramaCore.startAutoExitPoll({ currentMode: 'cinema', intervalMs: 15000 }); } catch (e) {}
         </script>
     </body>
 </html>
