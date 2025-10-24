@@ -464,7 +464,27 @@ class VisualRegressionTester {
     }
 }
 
-describe('Visual Regression Tests', () => {
+/**
+ * Check if we should skip visual tests
+ * Skip on CI or when Chrome dependencies are missing
+ */
+const shouldSkipVisualTests = () => {
+    // Skip if explicitly disabled
+    if (process.env.SKIP_VISUAL_TESTS === '1') {
+        return true;
+    }
+
+    // Skip on CI environments without Chrome
+    if (process.env.CI && !process.env.CHROME_BIN) {
+        return true;
+    }
+
+    return false;
+};
+
+const describeVisual = shouldSkipVisualTests() ? describe.skip : describe;
+
+describeVisual('Visual Regression Tests', () => {
     let visualTester;
     let server;
 
@@ -487,17 +507,16 @@ describe('Visual Regression Tests', () => {
 
             const browserStarted = await visualTester.startBrowser();
             if (!browserStarted) {
-                console.warn(
-                    '⚠️ Visual regression tests will be skipped due to browser startup failure'
+                throw new Error(
+                    'Browser startup failed - Chrome/Chromium dependencies may be missing'
                 );
-                visualTester.browserAvailable = false;
-            } else {
-                visualTester.browserAvailable = true;
-                visualTester.baseUrl = `http://localhost:${testPort}`;
             }
+
+            visualTester.browserAvailable = true;
+            visualTester.baseUrl = `http://localhost:${testPort}`;
         } catch (error) {
             console.warn(`⚠️ Visual regression test setup failed: ${error.message}`);
-            visualTester.browserAvailable = false;
+            throw error;
         }
     });
 
