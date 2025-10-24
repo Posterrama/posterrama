@@ -653,6 +653,24 @@ class CapabilityRegistry {
             },
         });
 
+        // Cinema orientation
+        this.register('settings.cinema.orientation', {
+            name: 'Orientation',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:phone-rotate-portrait',
+            options: ['auto', 'portrait', 'portrait-flipped'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { orientation: value },
+                });
+            },
+            stateGetter: device => {
+                return device.settingsOverride?.cinema?.orientation || null;
+            },
+        });
+
         // Cinema header enabled
         this.register('settings.cinema.header.enabled', {
             name: 'Cinema Header',
@@ -676,21 +694,40 @@ class CapabilityRegistry {
         this.register('settings.cinema.header.text', {
             name: 'Cinema Header Text',
             category: 'settings',
-            entityType: 'text',
+            entityType: 'select',
             icon: 'mdi:format-title',
-            pattern: '.{0,50}',
+            options: ['None', 'Now Playing', 'Feature Presentation', 'Coming Soon'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
-                    cinema: { header: { text: value } },
+                    cinema: { header: { text: value === 'None' ? '' : value } },
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.cinema?.header?.text || null;
+                const text = device.settingsOverride?.cinema?.header?.text;
+                return text === '' || text === undefined ? 'None' : text;
             },
         });
 
-        // Cinema ambilight
+        // Cinema header style
+        this.register('settings.cinema.header.style', {
+            name: 'Header Marquee Style',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:palette',
+            options: ['classic', 'neon', 'minimal', 'theatre'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { header: { style: value } },
+                });
+            },
+            stateGetter: device => {
+                return device.settingsOverride?.cinema?.header?.style || null;
+            },
+        });
+
+        // Cinema ambilight enabled
         this.register('settings.cinema.ambilight.enabled', {
             name: 'Cinema Ambilight',
             category: 'settings',
@@ -727,6 +764,192 @@ class CapabilityRegistry {
             },
             stateGetter: device => {
                 return device.settingsOverride?.cinema?.ambilight?.strength || null;
+            },
+        });
+
+        // Cinema footer enabled
+        this.register('settings.cinema.footer.enabled', {
+            name: 'Cinema Footer',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:page-layout-footer',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                const boolValue = value === true || value === 'ON' || value === 1;
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { footer: { enabled: boolValue } },
+                });
+            },
+            stateGetter: device => {
+                const val = device.settingsOverride?.cinema?.footer?.enabled;
+                return val !== undefined ? val : null;
+            },
+        });
+
+        // Cinema footer type
+        this.register('settings.cinema.footer.type', {
+            name: 'Cinema Footer Type',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:view-split-horizontal',
+            options: ['marquee', 'specs'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { footer: { type: value } },
+                });
+            },
+            stateGetter: device => {
+                return device.settingsOverride?.cinema?.footer?.type || null;
+            },
+        });
+
+        // Cinema footer marquee text
+        this.register('settings.cinema.footer.marqueeText', {
+            name: 'Cinema Footer Text',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:format-text',
+            options: ['None', 'Feature Presentation', 'Now Showing', 'Coming Attractions'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { footer: { marqueeText: value === 'None' ? '' : value } },
+                });
+            },
+            stateGetter: device => {
+                const text = device.settingsOverride?.cinema?.footer?.marqueeText;
+                return text === '' || text === undefined ? 'None' : text;
+            },
+        });
+
+        // Cinema footer marquee style
+        this.register('settings.cinema.footer.marqueeStyle', {
+            name: 'Cinema Footer Style',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:palette',
+            options: ['classic', 'neon', 'minimal', 'theatre'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { footer: { marqueeStyle: value } },
+                });
+            },
+            stateGetter: device => {
+                return device.settingsOverride?.cinema?.footer?.marqueeStyle || null;
+            },
+        });
+
+        // Cinema footer specs style
+        this.register('settings.cinema.footer.specs.style', {
+            name: 'Cinema Footer Icons',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:shape',
+            options: ['subtle', 'filled', 'outline'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { footer: { specs: { style: value } } },
+                });
+            },
+            stateGetter: device => {
+                return device.settingsOverride?.cinema?.footer?.specs?.style || null;
+            },
+        });
+
+        // Cinema footer specs icon set
+        this.register('settings.cinema.footer.specs.iconSet', {
+            name: 'Cinema Footer Icon Set',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:image-filter-none',
+            options: ['filled', 'line'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { footer: { specs: { iconSet: value } } },
+                });
+            },
+            stateGetter: device => {
+                return device.settingsOverride?.cinema?.footer?.specs?.iconSet || null;
+            },
+        });
+
+        // Cinema footer specs - show resolution
+        this.register('settings.cinema.footer.specs.showResolution', {
+            name: 'Show Resolution',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:monitor',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                const boolValue = value === true || value === 'ON' || value === 1;
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { footer: { specs: { showResolution: boolValue } } },
+                });
+            },
+            stateGetter: device => {
+                const val = device.settingsOverride?.cinema?.footer?.specs?.showResolution;
+                return val !== undefined ? val : null;
+            },
+        });
+
+        // Cinema footer specs - show audio
+        this.register('settings.cinema.footer.specs.showAudio', {
+            name: 'Show Audio',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:speaker',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                const boolValue = value === true || value === 'ON' || value === 1;
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { footer: { specs: { showAudio: boolValue } } },
+                });
+            },
+            stateGetter: device => {
+                const val = device.settingsOverride?.cinema?.footer?.specs?.showAudio;
+                return val !== undefined ? val : null;
+            },
+        });
+
+        // Cinema footer specs - show aspect ratio
+        this.register('settings.cinema.footer.specs.showAspectRatio', {
+            name: 'Show Aspect Ratio',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:aspect-ratio',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                const boolValue = value === true || value === 'ON' || value === 1;
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { footer: { specs: { showAspectRatio: boolValue } } },
+                });
+            },
+            stateGetter: device => {
+                const val = device.settingsOverride?.cinema?.footer?.specs?.showAspectRatio;
+                return val !== undefined ? val : null;
+            },
+        });
+
+        // Cinema footer specs - show flags
+        this.register('settings.cinema.footer.specs.showFlags', {
+            name: 'Show Flags',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:flag',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                const boolValue = value === true || value === 'ON' || value === 1;
+                return wsHub.sendApplySettings(deviceId, {
+                    cinema: { footer: { specs: { showFlags: boolValue } } },
+                });
+            },
+            stateGetter: device => {
+                const val = device.settingsOverride?.cinema?.footer?.specs?.showFlags;
+                return val !== undefined ? val : null;
             },
         });
     }
