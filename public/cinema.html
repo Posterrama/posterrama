@@ -82,21 +82,27 @@
             window.MODE_HINT = 'cinema';
         </script>
         <script>
-            // Initialize device management before starting auto-exit poll
+            // Initialize device management AND wait for it before starting auto-exit poll
             (async function() {
                 try {
                     if (window.PosterramaDevice && window.PosterramaDevice.init) {
                         const cfg = await window.PosterramaCore.fetchConfig();
                         await window.PosterramaDevice.init(cfg || {});
+                        console.log('[Cinema] Device management initialized');
                     }
                 } catch (e) {
                     console.warn('[Cinema] Device init failed:', e);
                 }
+                
+                // Start auto-exit poll AFTER device init completes
+                try {
+                    if (window.PosterramaCore && window.PosterramaCore.startAutoExitPoll) {
+                        window.PosterramaCore.startAutoExitPoll({ currentMode: 'cinema', intervalMs: 15000 });
+                    }
+                } catch (e) {
+                    console.warn('[Cinema] Auto-exit poll failed:', e);
+                }
             })();
-        </script>
-        <script>
-            // Start a shared auto-exit poll to keep the page in the right mode
-            try { window.PosterramaCore && window.PosterramaCore.startAutoExitPoll({ currentMode: 'cinema', intervalMs: 15000 }); } catch (e) {}
         </script>
     </body>
 </html>
