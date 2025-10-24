@@ -315,13 +315,13 @@ class MqttBridge extends EventEmitter {
             const stateTopic = `${prefix}/device/${device.id}/state`;
 
             // Debug: log device structure to understand what data we have
-            logger.info('📊 Device data for state publishing', {
+            const effectiveMode =
+                device.clientInfo?.mode || device.currentState?.mode || 'screensaver';
+            logger.debug('📊 Device state for MQTT publishing', {
                 deviceId: device.id,
-                hasCurrentState: !!device.currentState,
-                currentStateKeys: device.currentState ? Object.keys(device.currentState) : null,
-                mode: device.currentState?.mode,
-                hasClientInfo: !!device.clientInfo,
-                clientInfoKeys: device.clientInfo ? Object.keys(device.clientInfo) : null,
+                mode: effectiveMode,
+                clientInfoMode: device.clientInfo?.mode,
+                currentStateMode: device.currentState?.mode,
                 screen: device.clientInfo?.screen,
             });
 
