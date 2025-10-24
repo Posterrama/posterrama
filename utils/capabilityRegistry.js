@@ -35,9 +35,33 @@ class CapabilityRegistry {
      * 3. Default value
      */
     getCinemaSetting(device, path, defaultValue) {
+        return this.getModeSetting(device, 'cinema', path, defaultValue);
+    }
+
+    /**
+     * Get screensaver setting value with fallback chain
+     */
+    getScreensaverSetting(device, path, defaultValue) {
+        return this.getModeSetting(device, 'screensaver', path, defaultValue);
+    }
+
+    /**
+     * Get wallart setting value with fallback chain
+     */
+    getWallartSetting(device, path, defaultValue) {
+        return this.getModeSetting(device, 'wallart', path, defaultValue);
+    }
+
+    /**
+     * Generic getter for any mode setting with fallback chain:
+     * 1. Device settingsOverride (MQTT commands)
+     * 2. Global config.json
+     * 3. Default value
+     */
+    getModeSetting(device, mode, path, defaultValue) {
         // Try device override first
         const parts = path.split('.');
-        let override = device.settingsOverride?.cinema;
+        let override = device.settingsOverride?.[mode];
         for (const part of parts) {
             if (override === undefined) break;
             override = override[part];
@@ -47,7 +71,7 @@ class CapabilityRegistry {
         // Try global config
         try {
             const config = require('../config.json');
-            let globalVal = config.cinema;
+            let globalVal = config[mode];
             for (const part of parts) {
                 if (globalVal === undefined) break;
                 globalVal = globalVal[part];
@@ -405,7 +429,19 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.transitionIntervalSeconds || null;
+                // Check device override
+                if (device.settingsOverride?.transitionIntervalSeconds !== undefined) {
+                    return device.settingsOverride.transitionIntervalSeconds;
+                }
+                // Check global config
+                try {
+                    const config = require('../config.json');
+                    if (config.transitionIntervalSeconds !== undefined) {
+                        return config.transitionIntervalSeconds;
+                    }
+                } catch (_) {}
+                // Return default
+                return 10;
             },
         });
 
@@ -424,7 +460,16 @@ class CapabilityRegistry {
                 return wsHub.sendApplySettings(deviceId, { effectPauseTime: parseInt(value) });
             },
             stateGetter: device => {
-                return device.settingsOverride?.effectPauseTime || null;
+                if (device.settingsOverride?.effectPauseTime !== undefined) {
+                    return device.settingsOverride.effectPauseTime;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.effectPauseTime !== undefined) {
+                        return config.effectPauseTime;
+                    }
+                } catch (_) {}
+                return 2;
             },
         });
 
@@ -440,7 +485,16 @@ class CapabilityRegistry {
                 return wsHub.sendApplySettings(deviceId, { transitionEffect: value });
             },
             stateGetter: device => {
-                return device.settingsOverride?.transitionEffect || null;
+                if (device.settingsOverride?.transitionEffect !== undefined) {
+                    return device.settingsOverride.transitionEffect;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.transitionEffect !== undefined) {
+                        return config.transitionEffect;
+                    }
+                } catch (_) {}
+                return 'kenburns';
             },
         });
 
@@ -456,7 +510,16 @@ class CapabilityRegistry {
                 return wsHub.sendApplySettings(deviceId, { clockFormat: value });
             },
             stateGetter: device => {
-                return device.settingsOverride?.clockFormat || null;
+                if (device.settingsOverride?.clockFormat !== undefined) {
+                    return device.settingsOverride.clockFormat;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.clockFormat !== undefined) {
+                        return config.clockFormat;
+                    }
+                } catch (_) {}
+                return '24h';
             },
         });
 
@@ -477,7 +540,16 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.uiScaling?.global || null;
+                if (device.settingsOverride?.uiScaling?.global !== undefined) {
+                    return device.settingsOverride.uiScaling.global;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.uiScaling?.global !== undefined) {
+                        return config.uiScaling.global;
+                    }
+                } catch (_) {}
+                return 100;
             },
         });
 
@@ -498,7 +570,16 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.uiScaling?.content || null;
+                if (device.settingsOverride?.uiScaling?.content !== undefined) {
+                    return device.settingsOverride.uiScaling.content;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.uiScaling?.content !== undefined) {
+                        return config.uiScaling.content;
+                    }
+                } catch (_) {}
+                return 100;
             },
         });
 
@@ -516,7 +597,16 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.wallartMode?.density || null;
+                if (device.settingsOverride?.wallartMode?.density !== undefined) {
+                    return device.settingsOverride.wallartMode.density;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.wallartMode?.density !== undefined) {
+                        return config.wallartMode.density;
+                    }
+                } catch (_) {}
+                return 'medium';
             },
         });
 
