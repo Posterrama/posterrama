@@ -243,17 +243,6 @@ class CapabilityRegistry {
                 return wsHub.sendCommand(deviceId, { type: 'playback.previous' });
             },
         });
-
-        this.register('playback.toggle', {
-            name: 'Play/Pause',
-            category: 'playback',
-            entityType: 'button',
-            icon: 'mdi:play-pause',
-            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
-            commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'playback.toggle' });
-            },
-        });
     }
 
     /**
@@ -582,7 +571,7 @@ class CapabilityRegistry {
 
         // UI Scaling - Global (screensaver only)
         this.register('settings.uiScaling.global', {
-            name: 'UI Scale',
+            name: 'Global Scale',
             category: 'settings',
             entityType: 'number',
             icon: 'mdi:magnify',
@@ -636,6 +625,70 @@ class CapabilityRegistry {
                     const config = require('../config.json');
                     if (config.uiScaling?.content !== undefined) {
                         return config.uiScaling.content;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return 100;
+            },
+        });
+
+        // UI Scaling - Clearlogo (screensaver only)
+        this.register('settings.uiScaling.clearlogo', {
+            name: 'Clearlogo Scale',
+            category: 'settings',
+            entityType: 'number',
+            icon: 'mdi:image-size-select-actual',
+            unit: '%',
+            min: 50,
+            max: 200,
+            step: 10,
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    uiScaling: { clearlogo: parseInt(value) },
+                });
+            },
+            stateGetter: device => {
+                if (device.settingsOverride?.uiScaling?.clearlogo !== undefined) {
+                    return device.settingsOverride.uiScaling.clearlogo;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.uiScaling?.clearlogo !== undefined) {
+                        return config.uiScaling.clearlogo;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return 100;
+            },
+        });
+
+        // UI Scaling - Clock (screensaver only)
+        this.register('settings.uiScaling.clock', {
+            name: 'Clock Scale',
+            category: 'settings',
+            entityType: 'number',
+            icon: 'mdi:clock-outline',
+            unit: '%',
+            min: 50,
+            max: 200,
+            step: 10,
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    uiScaling: { clock: parseInt(value) },
+                });
+            },
+            stateGetter: device => {
+                if (device.settingsOverride?.uiScaling?.clock !== undefined) {
+                    return device.settingsOverride.uiScaling.clock;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.uiScaling?.clock !== undefined) {
+                        return config.uiScaling.clock;
                     }
                 } catch (_) {
                     // Config not available
@@ -744,18 +797,19 @@ class CapabilityRegistry {
             entityType: 'select',
             icon: 'mdi:animation',
             options: [
+                'random',
                 'fade',
-                'crossfade',
-                'slide-left',
-                'slide-right',
-                'slide-up',
-                'slide-down',
-                'zoom-in',
-                'zoom-out',
-                'flip-horizontal',
-                'flip-vertical',
-                'rotate',
-                'none',
+                'slideLeft',
+                'slideUp',
+                'zoom',
+                'flip',
+                'staggered',
+                'ripple',
+                'scanline',
+                'parallax',
+                'neonPulse',
+                'chromaticShift',
+                'mosaicShatter',
             ],
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
@@ -874,11 +928,18 @@ class CapabilityRegistry {
             options: ['classic', 'hero-grid'],
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
+                // Convert kebab-case to camelCase for internal use
+                const layoutVariant = value === 'hero-grid' ? 'heroGrid' : value;
                 return applyAndPersistSettings(deviceId, {
-                    wallartMode: { layout: value },
+                    wallartMode: { layoutVariant },
                 });
             },
             stateGetter: device => {
+                // Check device override - support both old 'layout' and new 'layoutVariant'
+                if (device.settingsOverride?.wallartMode?.layoutVariant !== undefined) {
+                    const variant = device.settingsOverride.wallartMode.layoutVariant;
+                    return variant === 'heroGrid' ? 'hero-grid' : variant;
+                }
                 if (device.settingsOverride?.wallartMode?.layout !== undefined) {
                     return device.settingsOverride.wallartMode.layout;
                 }
@@ -1519,7 +1580,68 @@ class CapabilityRegistry {
      * Register additional switch capabilities
      */
     registerAdditionalSwitches() {
-        const wsHub = require('./wsHub');
+        // Local deepMerge helper for settings
+        const deepMerge = (target, source) => {
+            const result = { ...target };
+            for (const key in source) {
+                if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                    result[key] = deepMerge(result[key] || {}, source[key]);
+                } else {
+                    result[key] = source[key];
+                }
+            }
+            return result;
+        };
+
+        const applyAndPersistSettings = async (deviceId, settings) => {
+            const deviceStore = require('./deviceStore');
+            const wsHub = require('./wsHub');
+
+            try {
+                console.log('[applyAndPersistSettings] Starting...', { deviceId, settings });
+
+                // Get all devices and find ours
+                const allDevices = await deviceStore.getAll();
+                const device = allDevices.find(d => d.id === deviceId);
+
+                if (!device) {
+                    console.error('[applyAndPersistSettings] Device not found:', deviceId);
+                    throw new Error(`Device ${deviceId} not found`);
+                }
+
+                console.log(
+                    '[applyAndPersistSettings] Device found, current override:',
+                    device.settingsOverride
+                );
+
+                // Deep merge settings into device override
+                const currentOverride = device.settingsOverride || {};
+                const updatedOverride = deepMerge(currentOverride, settings);
+
+                console.log('[applyAndPersistSettings] Merged override:', updatedOverride);
+
+                // Persist to devices.json using patchDevice
+                await deviceStore.patchDevice(deviceId, {
+                    settingsOverride: updatedOverride,
+                });
+
+                console.log('[applyAndPersistSettings] Persisted to devices.json');
+
+                // Then send WebSocket message to apply immediately
+                await wsHub.sendApplySettings(deviceId, settings);
+
+                console.log('[applyAndPersistSettings] Sent WebSocket message');
+
+                // Small delay to ensure state is fully persisted before HA queries it
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                console.log('[applyAndPersistSettings] Completed successfully');
+                return true;
+            } catch (error) {
+                console.error('[applyAndPersistSettings] Error:', error);
+                throw error;
+            }
+        };
 
         // Show Clock - only for screensaver mode
         this.register('settings.showClock', {
@@ -1529,35 +1651,45 @@ class CapabilityRegistry {
             icon: 'mdi:clock-outline',
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: async (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                console.log('[ShowClock] Command received:', { deviceId, value });
+                const result = await applyAndPersistSettings(deviceId, {
                     clockWidget: value === 'ON',
                 });
+                console.log('[ShowClock] Settings persisted:', { clockWidget: value === 'ON' });
+                return result;
             },
             stateGetter: device => {
-                if (device.settingsOverride?.clockWidget !== undefined) {
-                    return device.settingsOverride.clockWidget;
-                }
-                try {
-                    const config = require('../config.json');
-                    if (config.clockWidget !== undefined) {
-                        return config.clockWidget;
-                    }
-                } catch (_) {
-                    // Config not available
-                }
-                return true;
+                const state =
+                    device.settingsOverride?.clockWidget !== undefined
+                        ? device.settingsOverride.clockWidget
+                        : (() => {
+                              try {
+                                  const config = require('../config.json');
+                                  return config.clockWidget !== undefined
+                                      ? config.clockWidget
+                                      : true;
+                              } catch (_) {
+                                  return true;
+                              }
+                          })();
+                console.log('[ShowClock] State getter:', {
+                    deviceId: device.id,
+                    state,
+                    override: device.settingsOverride?.clockWidget,
+                });
+                return state;
             },
         });
 
-        // Show Logo - only for screensaver mode
+        // Show Clearlogo - only for screensaver mode
         this.register('settings.showLogo', {
-            name: 'Show Logo',
+            name: 'Show Clearlogo',
             category: 'settings',
             entityType: 'switch',
             icon: 'mdi:image-area',
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: async (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     showClearLogo: value === 'ON',
                 });
             },
@@ -1585,7 +1717,7 @@ class CapabilityRegistry {
             icon: 'mdi:information',
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: async (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     showMetadata: value === 'ON',
                 });
             },
@@ -1610,10 +1742,10 @@ class CapabilityRegistry {
             name: 'Show Rotten Tomatoes',
             category: 'settings',
             entityType: 'switch',
-            icon: 'mdi:tomato',
+            icon: 'mdi:star-circle',
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: async (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     showRottenTomatoes: value === 'ON',
                 });
             },

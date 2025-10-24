@@ -123,6 +123,22 @@
         }, delayMs);
     }
 
+    // Deep merge helper for settings
+    // Recursively merges source into target without losing nested properties
+    function deepMerge(target, source) {
+        const result = { ...target };
+        for (const key in source) {
+            if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                // Recursively merge nested objects
+                result[key] = deepMerge(result[key] || {}, source[key]);
+            } else {
+                // Direct assignment for primitives and arrays
+                result[key] = source[key];
+            }
+        }
+        return result;
+    }
+
     function getStorage() {
         try {
             return window.localStorage;
@@ -1325,12 +1341,12 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                 if (typeof window.applySettings === 'function') {
                                     window.applySettings(msg.payload);
                                 } else {
-                                    // Fallback: directly merge into appConfig and dispatch event
+                                    // Fallback: deep merge into appConfig and dispatch event
                                     if (
                                         typeof window.appConfig === 'object' &&
                                         window.appConfig !== null
                                     ) {
-                                        Object.assign(window.appConfig, msg.payload);
+                                        window.appConfig = deepMerge(window.appConfig, msg.payload);
                                     } else {
                                         window.appConfig = msg.payload;
                                     }

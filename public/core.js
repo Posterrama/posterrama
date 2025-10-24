@@ -297,6 +297,22 @@
 
     // Global applySettings function for live configuration updates
     // Used by preview mode, WebSocket commands, and other runtime config changes
+    // Deep merge helper for settings
+    // Recursively merges source into target without losing nested properties
+    function deepMerge(target, source) {
+        const result = { ...target };
+        for (const key in source) {
+            if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                // Recursively merge nested objects
+                result[key] = deepMerge(result[key] || {}, source[key]);
+            } else {
+                // Direct assignment for primitives and arrays
+                result[key] = source[key];
+            }
+        }
+        return result;
+    }
+
     // Define this BEFORE setupPreviewListener so it's available when postMessage arrives
     window.applySettings = function applySettings(newSettings) {
         try {
@@ -316,9 +332,9 @@
                 showMetadata: newSettings.showMetadata,
             });
 
-            // Merge new settings into existing appConfig
+            // Merge new settings into existing appConfig using deep merge
             if (typeof window.appConfig === 'object' && window.appConfig !== null) {
-                Object.assign(window.appConfig, newSettings);
+                window.appConfig = deepMerge(window.appConfig, newSettings);
             } else {
                 window.appConfig = newSettings;
             }

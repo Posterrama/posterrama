@@ -364,6 +364,14 @@
 
                     const layoutVariant = wallartConfig.layoutVariant || 'classic';
 
+                    console.log('[Wallart] Starting grid initialization with layout:', {
+                        layoutVariant,
+                        configLayoutVariant: wallartConfig.layoutVariant,
+                        density: wallartConfig.density,
+                        columns: layoutInfo.columns,
+                        rows: layoutInfo.rows,
+                    });
+
                     // Populate grid and compute initial state
                     window.debugLog && window.debugLog('WALLART_INIT_GRID_START', {});
                     const posterCount = Math.min(
@@ -1035,7 +1043,14 @@
                                 excludeId
                             );
 
+                        console.log('[Wallart] initializeGrid layoutVariant check:', {
+                            layoutVariant,
+                            isHeroGrid: layoutVariant === 'heroGrid',
+                            isClassic: layoutVariant !== 'heroGrid',
+                        });
+
                         if (layoutVariant === 'heroGrid') {
+                            console.log('[Wallart] Using HERO GRID layout');
                             // Determine hero settings
                             const heroCfg = (wallartConfig.layoutSettings || {}).heroGrid || {};
                             const rawHeroSideValue =
@@ -1301,6 +1316,7 @@
                                 }
                             }
                         } else {
+                            console.log('[Wallart] Using CLASSIC layout');
                             // Classic layout
                             wallartGrid.dataset.layoutVariant = 'classic';
                             const pack = (
@@ -1398,6 +1414,12 @@
                 },
                 createGridElement(cfg = {}) {
                     try {
+                        // Remove existing grid if present (for rebuilds)
+                        const existingGrid = document.getElementById('wallart-grid');
+                        if (existingGrid) {
+                            existingGrid.remove();
+                        }
+
                         const layoutInfo = api.calculateLayout(cfg.density);
                         const grid = document.createElement('div');
                         grid.id = 'wallart-grid';
@@ -1637,6 +1659,24 @@
 
                         const newWallartConfig = settings.wallartMode || {};
 
+                        // IMPORTANT: settings contains only the DELTA (changed properties)
+                        // We need to merge with window.appConfig to get the FULL config for comparison
+                        const mergedWallartConfig = {
+                            ...window.appConfig?.wallartMode,
+                            ...newWallartConfig,
+                        };
+
+                        console.log('[Wallart] settingsUpdated comparison:', {
+                            oldLayoutVariant: oldConfig.layoutVariant,
+                            newLayoutVariant: mergedWallartConfig.layoutVariant,
+                            deltaLayoutVariant: newWallartConfig.layoutVariant,
+                            oldDensity: oldConfig.density,
+                            newDensity: mergedWallartConfig.density,
+                            deltaDensity: newWallartConfig.density,
+                            deltaKeys: Object.keys(newWallartConfig),
+                            mergedKeys: Object.keys(mergedWallartConfig),
+                        });
+
                         // Separate layout changes (require restart) from config-only changes
                         const layoutKeys = ['density', 'layoutVariant'];
                         const configKeys = [
@@ -1651,9 +1691,13 @@
 
                         for (const key of layoutKeys) {
                             if (
-                                key in newWallartConfig &&
-                                newWallartConfig[key] !== oldConfig[key]
+                                key in mergedWallartConfig &&
+                                mergedWallartConfig[key] !== oldConfig[key]
                             ) {
+                                console.log('[Wallart] Layout rebuild triggered by:', key, {
+                                    old: oldConfig[key],
+                                    new: mergedWallartConfig[key],
+                                });
                                 needsLayoutRebuild = true;
                                 break;
                             }
@@ -1662,8 +1706,8 @@
                         if (!needsLayoutRebuild) {
                             for (const key of configKeys) {
                                 if (
-                                    key in newWallartConfig &&
-                                    newWallartConfig[key] !== oldConfig[key]
+                                    key in mergedWallartConfig &&
+                                    mergedWallartConfig[key] !== oldConfig[key]
                                 ) {
                                     needsConfigUpdate = true;
                                     break;
@@ -1673,14 +1717,14 @@
 
                         // Check heroGrid settings (nested in layoutSettings.heroGrid)
                         if (
-                            'layoutSettings' in newWallartConfig &&
-                            newWallartConfig.layoutSettings &&
-                            'heroGrid' in newWallartConfig.layoutSettings
+                            'layoutSettings' in mergedWallartConfig &&
+                            mergedWallartConfig.layoutSettings &&
+                            'heroGrid' in mergedWallartConfig.layoutSettings
                         ) {
                             const oldHero =
                                 (oldConfig.layoutSettings && oldConfig.layoutSettings.heroGrid) ||
                                 {};
-                            const newHero = newWallartConfig.layoutSettings.heroGrid || {};
+                            const newHero = mergedWallartConfig.layoutSettings.heroGrid || {};
                             const heroKeys = [
                                 'heroSide',
                                 'heroRotationMinutes',
@@ -1696,21 +1740,50 @@
                         }
 
                         if (needsLayoutRebuild) {
-                            window.debugLog &&
-                                window.debugLog('WALLART_LAYOUT_REBUILD_RELOAD', {
-                                    reason: 'layout change in preview',
-                                });
-                            // For preview mode, we need a full page reload for layout changes
-                            // because the grid structure changes significantly
-                            window.location.reload();
+                            console.log('[Wallart] Layout change detected, rebuilding grid...', {
+                                oldLayoutVariant: oldConfig.layoutVariant,
+                                newLayoutVariant: mergedWallartConfig.layoutVariant,
+                                oldDensity: oldConfig.density,
+                                newDensity: mergedWallartConfig.density,
+                            });
+
+                            // Stop current cycle to avoid conflicts
+                            api.stop();
+
+                            // Clear state to force fresh rebuild
+                            _state.wallartGrid = null;
+                            _state.layoutInfo = null;
+                            _state.currentPosters = [];
+                            _state.usedPosters = new Set();
+
+                            // Update stored config BEFORE rebuild so api.start uses correct values
+                            _state.wallartConfig = mergedWallartConfig;
+                            window.wallartConfig = mergedWallartConfig;
+
+                            // Rebuild grid with new layout settings
+                            // Small delay to ensure DOM cleanup is complete
+                            setTimeout(() => {
+                                try {
+                                    console.log('[Wallart] Starting rebuild with config:', {
+                                        layoutVariant: mergedWallartConfig.layoutVariant,
+                                        density: mergedWallartConfig.density,
+                                    });
+                                    api.start(mergedWallartConfig);
+                                } catch (e) {
+                                    console.error('[Wallart] Layout rebuild failed:', e);
+                                }
+                            }, 150);
                         } else if (needsConfigUpdate) {
                             // Check if animation type changed - if so, demo it immediately
                             const animationChanged =
-                                newWallartConfig.animationType &&
-                                newWallartConfig.animationType !== oldConfig.animationType;
+                                mergedWallartConfig.animationType &&
+                                mergedWallartConfig.animationType !== oldConfig.animationType;
 
                             // Update the stored config so future operations use new values
-                            _state.wallartConfig = { ..._state.wallartConfig, ...newWallartConfig };
+                            _state.wallartConfig = {
+                                ..._state.wallartConfig,
+                                ...mergedWallartConfig,
+                            };
                             window.wallartConfig = { ..._state.wallartConfig };
 
                             // If animation changed, demonstrate it immediately in preview
@@ -1738,7 +1811,7 @@
                                             posterUrl: currentSrc,
                                             title: currentAlt,
                                         },
-                                        newWallartConfig.animationType
+                                        mergedWallartConfig.animationType
                                     );
                                 }
                             }
