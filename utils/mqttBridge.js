@@ -706,6 +706,15 @@ class MqttBridge extends EventEmitter {
             },
         };
 
+        // Add entity_category based on capability category
+        // 'mode' stays as main entity, 'settings' goes to configuration section
+        if (capability.category === 'settings') {
+            baseConfig.entity_category = 'config';
+        } else if (capability.category === 'diagnostic' || capability.category === 'sensor') {
+            baseConfig.entity_category = 'diagnostic';
+        }
+        // 'mode' and 'camera' categories get no entity_category = they appear as main controls
+
         // Add availability topic if enabled
         if (this.config.availability?.enabled) {
             baseConfig.availability = {
