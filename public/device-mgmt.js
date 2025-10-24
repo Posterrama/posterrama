@@ -428,6 +428,19 @@
         } catch (_) {
             // noop: unable to read current media from main app
         }
+
+        // Skip heartbeat if no media has loaded yet (avoid sending empty state during bootstrap)
+        // We only send if there's actual media content OR if device is explicitly powered off
+        const hasMediaContent = mediaId != null || (curr && curr.title);
+        const isInitialLoad = !hasMediaContent && !poweredOff;
+        if (isInitialLoad) {
+            try {
+                liveDbg('[Live] Skipping heartbeat - no media loaded yet');
+            } catch (_) {
+                /* debug logging unavailable */
+            }
+            return;
+        }
         const payload = {
             deviceId: state.deviceId,
             deviceSecret: state.deviceSecret,
@@ -1108,16 +1121,16 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             }
 
             if (debugEnabled) {
-                console.info.apply(console, arguments);
-            }
-
-            // Always log to window.logger if available (for debugLogView)
-            if (
-                typeof window !== 'undefined' &&
-                window.logger &&
-                typeof window.logger.debug === 'function'
-            ) {
-                window.logger.debug.apply(window.logger, arguments);
+                // Use window.logger if available (for debugLogView), otherwise console
+                if (
+                    typeof window !== 'undefined' &&
+                    window.logger &&
+                    typeof window.logger.debug === 'function'
+                ) {
+                    window.logger.debug.apply(window.logger, arguments);
+                } else {
+                    console.info.apply(console, arguments);
+                }
             }
         } catch (_) {
             // ignore logger fallback
