@@ -411,6 +411,47 @@ class CapabilityRegistry {
      */
     registerDisplaySettingsCapabilities() {
         const wsHub = require('./wsHub');
+        const deviceStore = require('./deviceStore');
+
+        /**
+         * Helper to persist settings to device override and send to device
+         * @param {string} deviceId - Device ID
+         * @param {object} settingsUpdate - Settings to apply
+         */
+        const applyAndPersistSettings = async (deviceId, settingsUpdate) => {
+            // Get current device
+            const device = await deviceStore.get(deviceId);
+            if (!device) {
+                throw new Error(`Device not found: ${deviceId}`);
+            }
+
+            // Deep merge settings into device.settingsOverride
+            const currentOverride = device.settingsOverride || {};
+            const mergedOverride = deepMergeSettings(currentOverride, settingsUpdate);
+
+            // Persist to devices.json
+            await deviceStore.patchDevice(deviceId, {
+                settingsOverride: mergedOverride,
+            });
+
+            // Send to device via WebSocket
+            await wsHub.sendApplySettings(deviceId, settingsUpdate);
+        };
+
+        /**
+         * Deep merge settings objects (handles nested objects like uiScaling, wallartMode, cinema)
+         */
+        const deepMergeSettings = (target, source) => {
+            const result = { ...target };
+            for (const key in source) {
+                if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                    result[key] = deepMergeSettings(result[key] || {}, source[key]);
+                } else {
+                    result[key] = source[key];
+                }
+            }
+            return result;
+        };
 
         // Transition interval (seconds between posters)
         this.register('settings.transitionInterval', {
@@ -424,7 +465,7 @@ class CapabilityRegistry {
             step: 5,
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     transitionIntervalSeconds: parseInt(value),
                 });
             },
@@ -459,7 +500,7 @@ class CapabilityRegistry {
             step: 1,
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, { effectPauseTime: parseInt(value) });
+                return applyAndPersistSettings(deviceId, { effectPauseTime: parseInt(value) });
             },
             stateGetter: device => {
                 if (device.settingsOverride?.effectPauseTime !== undefined) {
@@ -486,7 +527,7 @@ class CapabilityRegistry {
             options: ['fade', 'slide', 'zoom', 'kenburns', 'none'],
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, { transitionEffect: value });
+                return applyAndPersistSettings(deviceId, { transitionEffect: value });
             },
             stateGetter: device => {
                 if (device.settingsOverride?.transitionEffect !== undefined) {
@@ -513,7 +554,7 @@ class CapabilityRegistry {
             options: ['12h', '24h'],
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, { clockFormat: value });
+                return applyAndPersistSettings(deviceId, { clockFormat: value });
             },
             stateGetter: device => {
                 if (device.settingsOverride?.clockFormat !== undefined) {
@@ -543,7 +584,7 @@ class CapabilityRegistry {
             step: 10,
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     uiScaling: { global: parseInt(value) },
                 });
             },
@@ -575,7 +616,7 @@ class CapabilityRegistry {
             step: 10,
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     uiScaling: { content: parseInt(value) },
                 });
             },
@@ -604,7 +645,7 @@ class CapabilityRegistry {
             options: ['low', 'medium', 'high', 'ludicrous'],
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     wallartMode: { density: value },
                 });
             },
@@ -636,7 +677,7 @@ class CapabilityRegistry {
             step: 1,
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     wallartMode: { posterRefreshRate: parseInt(value) },
                 });
             },
@@ -668,7 +709,7 @@ class CapabilityRegistry {
             step: 5,
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     wallartMode: { timingRandomness: parseInt(value) },
                 });
             },
@@ -710,7 +751,7 @@ class CapabilityRegistry {
             ],
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     wallartMode: { animationType: value },
                 });
             },
@@ -739,7 +780,7 @@ class CapabilityRegistry {
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     wallartMode: { ambiance: boolValue },
                 });
             },
@@ -771,7 +812,7 @@ class CapabilityRegistry {
             step: 10,
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     wallartMode: { biasToAmbiance: parseInt(value) },
                 });
             },
@@ -805,7 +846,7 @@ class CapabilityRegistry {
             options: ['classic', 'hero-grid'],
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     wallartMode: { layout: value },
                 });
             },
@@ -837,7 +878,7 @@ class CapabilityRegistry {
             options: ['left', 'right'],
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     wallartMode: { heroSide: value },
                 });
             },
@@ -869,7 +910,7 @@ class CapabilityRegistry {
             step: 1,
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     wallartMode: { heroRotation: parseInt(value) },
                 });
             },
@@ -901,7 +942,7 @@ class CapabilityRegistry {
             options: ['auto', 'portrait', 'portrait-flipped'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     cinema: { orientation: value },
                 });
             },
@@ -919,7 +960,7 @@ class CapabilityRegistry {
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                await wsHub.sendApplySettings(deviceId, {
+                await applyAndPersistSettings(deviceId, {
                     cinema: { header: { enabled: boolValue } },
                 });
                 return true;
@@ -938,7 +979,7 @@ class CapabilityRegistry {
             options: ['None', 'Now Playing', 'Feature Presentation', 'Coming Soon'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     cinema: { header: { text: value === 'None' ? '' : value } },
                 });
             },
@@ -957,7 +998,7 @@ class CapabilityRegistry {
             options: ['classic', 'neon', 'minimal', 'theatre'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     cinema: { header: { style: value } },
                 });
             },
@@ -975,7 +1016,7 @@ class CapabilityRegistry {
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                await wsHub.sendApplySettings(deviceId, {
+                await applyAndPersistSettings(deviceId, {
                     cinema: { ambilight: { enabled: boolValue } },
                 });
                 return true;
@@ -997,7 +1038,7 @@ class CapabilityRegistry {
             step: 10,
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     cinema: { ambilight: { strength: parseInt(value) } },
                 });
             },
@@ -1015,7 +1056,7 @@ class CapabilityRegistry {
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                await wsHub.sendApplySettings(deviceId, {
+                await applyAndPersistSettings(deviceId, {
                     cinema: { footer: { enabled: boolValue } },
                 });
                 return true;
@@ -1034,7 +1075,7 @@ class CapabilityRegistry {
             options: ['marquee', 'specs'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     cinema: { footer: { type: value } },
                 });
             },
@@ -1052,7 +1093,7 @@ class CapabilityRegistry {
             options: ['None', 'Feature Presentation', 'Now Showing', 'Coming Attractions'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     cinema: { footer: { marqueeText: value === 'None' ? '' : value } },
                 });
             },
@@ -1075,7 +1116,7 @@ class CapabilityRegistry {
             options: ['classic', 'neon', 'minimal', 'theatre'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     cinema: { footer: { marqueeStyle: value } },
                 });
             },
@@ -1093,7 +1134,7 @@ class CapabilityRegistry {
             options: ['subtle', 'filled', 'outline'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     cinema: { footer: { specs: { style: value } } },
                 });
             },
@@ -1111,7 +1152,7 @@ class CapabilityRegistry {
             options: ['filled', 'line'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
-                return wsHub.sendApplySettings(deviceId, {
+                return applyAndPersistSettings(deviceId, {
                     cinema: { footer: { specs: { iconSet: value } } },
                 });
             },
@@ -1129,7 +1170,7 @@ class CapabilityRegistry {
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                await wsHub.sendApplySettings(deviceId, {
+                await applyAndPersistSettings(deviceId, {
                     cinema: { footer: { specs: { showResolution: boolValue } } },
                 });
                 return true;
@@ -1148,7 +1189,7 @@ class CapabilityRegistry {
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                await wsHub.sendApplySettings(deviceId, {
+                await applyAndPersistSettings(deviceId, {
                     cinema: { footer: { specs: { showAudio: boolValue } } },
                 });
                 return true;
@@ -1167,7 +1208,7 @@ class CapabilityRegistry {
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                await wsHub.sendApplySettings(deviceId, {
+                await applyAndPersistSettings(deviceId, {
                     cinema: { footer: { specs: { showAspectRatio: boolValue } } },
                 });
                 return true;
@@ -1186,7 +1227,7 @@ class CapabilityRegistry {
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                await wsHub.sendApplySettings(deviceId, {
+                await applyAndPersistSettings(deviceId, {
                     cinema: { footer: { specs: { showFlags: boolValue } } },
                 });
                 return true;
