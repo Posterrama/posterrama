@@ -5891,7 +5891,7 @@ app.use(
 // General request logger for debugging
 if (isDebug) {
     app.use((req, res, next) => {
-        logger.info(`[Request Logger] Received: ${req.method} ${req.originalUrl}`);
+        logger.debug(`[Request Logger] Received: ${req.method} ${req.originalUrl}`);
         next();
     });
 }
@@ -8848,7 +8848,7 @@ function isAuthenticated(req, res, next) {
     // 1. Check for session-based authentication (for browser users)
     if (req.session && req.session.user) {
         if (isDebug)
-            logger.info(`[Auth] Authenticated via session for user: ${req.session.user.username}`);
+            logger.debug(`[Auth] Authenticated via session for user: ${req.session.user.username}`);
         return next();
     }
 

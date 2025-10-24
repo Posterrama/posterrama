@@ -366,16 +366,8 @@ class MqttBridge extends EventEmitter {
             const prefix = this.config.topicPrefix || 'posterrama';
             const stateTopic = `${prefix}/device/${device.id}/state`;
 
-            // Debug: log device structure to understand what data we have
             const effectiveMode =
                 device.clientInfo?.mode || device.currentState?.mode || 'screensaver';
-            logger.debug('📊 Device state for MQTT publishing', {
-                deviceId: device.id,
-                mode: effectiveMode,
-                clientInfoMode: device.clientInfo?.mode,
-                currentStateMode: device.currentState?.mode,
-                screen: device.clientInfo?.screen,
-            });
 
             // Build state payload
             const state = {
@@ -470,8 +462,6 @@ class MqttBridge extends EventEmitter {
             }
 
             await this.publish(availTopic, payload, { qos: 1, retain: true });
-
-            logger.debug('📶 Published availability', { deviceId: device.id, status: payload });
         } catch (error) {
             logger.error('Error publishing availability:', error);
             this.stats.errors++;

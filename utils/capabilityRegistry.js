@@ -1672,11 +1672,6 @@ class CapabilityRegistry {
                                   return true;
                               }
                           })();
-                console.log('[ShowClock] State getter:', {
-                    deviceId: device.id,
-                    state,
-                    override: device.settingsOverride?.clockWidget,
-                });
                 return state;
             },
         });
