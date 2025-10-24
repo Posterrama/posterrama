@@ -18,6 +18,14 @@ const logger = require('../utils/logger');
 async function cleanupEntities() {
     logger.info('🧹 Starting MQTT entity cleanup...');
 
+    // List of old/removed capability IDs that need explicit cleanup
+    const removedCapabilities = [
+        { id: 'device.lastSeen', entityType: 'sensor' },
+        { id: 'settings.wallartMode.refreshRate', entityType: 'number' },
+        { id: 'power.on', entityType: 'button' },
+        { id: 'power.off', entityType: 'button' },
+    ];
+
     // Check if MQTT is enabled
     if (!config.mqtt?.enabled) {
         logger.error('❌ MQTT is not enabled in config.json');
@@ -74,8 +82,20 @@ async function cleanupEntities() {
         for (const device of devices) {
             logger.info(`\n🔧 Processing device: ${device.name} (${device.id})`);
 
-            // Step 1: Unpublish ALL known capabilities (removes old ones)
-            logger.info('  📤 Unpublishing all capabilities...');
+            // Step 1a: Unpublish explicitly removed/old capabilities first
+            logger.info('  🗑️  Removing old/deleted capabilities...');
+            for (const cap of removedCapabilities) {
+                const component = getHomeAssistantComponent(cap.entityType);
+                const objectId = cap.id.replace(/\./g, '_');
+                const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${objectId}/config`;
+
+                await publish(client, discoveryTopic, '', { qos: 1, retain: true });
+                totalUnpublished++;
+            }
+            logger.info(`  ✅ Removed ${removedCapabilities.length} old capabilities`);
+
+            // Step 1b: Unpublish ALL current capabilities (to clean up renamed/moved ones)
+            logger.info('  📤 Unpublishing all current capabilities...');
             for (const cap of allCapabilities) {
                 const component = getHomeAssistantComponent(cap.entityType);
                 const objectId = cap.id.replace(/\./g, '_');
@@ -86,7 +106,7 @@ async function cleanupEntities() {
                 totalUnpublished++;
             }
 
-            logger.info(`  ✅ Unpublished ${allCapabilities.length} capabilities`);
+            logger.info(`  ✅ Unpublished ${allCapabilities.length} current capabilities`);
 
             // Step 2: Wait a bit to ensure Home Assistant processes the unpublish
             await new Promise(resolve => setTimeout(resolve, 1000));
