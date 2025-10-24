@@ -359,7 +359,7 @@ class CapabilityRegistry {
                 logger.info('🔧 Mode select command handler (device override)', { deviceId, mode });
 
                 // Get current device
-                const device = await deviceStore.get(deviceId);
+                const device = await deviceStore.getById(deviceId);
                 if (!device) {
                     throw new Error(`Device not found: ${deviceId}`);
                 }
@@ -416,7 +416,7 @@ class CapabilityRegistry {
          */
         const applyAndPersistSettings = async (deviceId, settingsUpdate) => {
             // Get current device
-            const device = await deviceStore.get(deviceId);
+            const device = await deviceStore.getById(deviceId);
             if (!device) {
                 throw new Error(`Device not found: ${deviceId}`);
             }
