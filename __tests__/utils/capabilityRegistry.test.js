@@ -156,6 +156,8 @@ describe('Capability Registry', () => {
         });
 
         test('returns all always-available capabilities', () => {
+            capabilityRegistry.init();
+
             const device = {
                 id: 'test-device',
                 currentState: { mode: 'wallart' },
@@ -163,12 +165,14 @@ describe('Capability Registry', () => {
 
             const available = capabilityRegistry.getAvailableCapabilities(device);
 
-            // Should include capabilities without availableWhen condition
-            const hasNext = available.some(c => c.id === 'playback.next');
+            // Should include capabilities that are always available (no mode restriction)
             const hasReload = available.some(c => c.id === 'mgmt.reload');
 
-            expect(hasNext).toBe(true);
             expect(hasReload).toBe(true);
+
+            // Playback.next requires screensaver mode, so should NOT be available in wallart
+            const hasNext = available.some(c => c.id === 'playback.next');
+            expect(hasNext).toBe(false);
         });
 
         test('filters capabilities based on device state', () => {

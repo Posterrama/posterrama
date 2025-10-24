@@ -243,6 +243,17 @@ class CapabilityRegistry {
                 return wsHub.sendCommand(deviceId, { type: 'playback.previous' });
             },
         });
+
+        this.register('playback.toggle', {
+            name: 'Play/Pause Toggle',
+            category: 'playback',
+            entityType: 'button',
+            icon: 'mdi:play-pause',
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
+            commandHandler: deviceId => {
+                return wsHub.sendCommand(deviceId, { type: 'playback.toggle' });
+            },
+        });
     }
 
     /**
@@ -264,6 +275,32 @@ class CapabilityRegistry {
             stateGetter: device => {
                 // Switch state: true = ON (powered on), false = OFF (powered off)
                 return !device.currentState?.poweredOff;
+            },
+        });
+
+        this.register('power.on', {
+            name: 'Power On',
+            category: 'power',
+            entityType: 'button',
+            icon: 'mdi:power-on',
+            availableWhen: device => {
+                return device.currentState?.poweredOff === true;
+            },
+            commandHandler: deviceId => {
+                return wsHub.sendCommand(deviceId, { type: 'power.on' });
+            },
+        });
+
+        this.register('power.off', {
+            name: 'Power Off',
+            category: 'power',
+            entityType: 'button',
+            icon: 'mdi:power-off',
+            availableWhen: device => {
+                return device.currentState?.poweredOff !== true;
+            },
+            commandHandler: deviceId => {
+                return wsHub.sendCommand(deviceId, { type: 'power.off' });
             },
         });
     }
