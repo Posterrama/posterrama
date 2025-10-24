@@ -789,16 +789,6 @@ class CapabilityRegistry {
             },
         });
 
-        // Last Seen
-        this.register('device.lastSeen', {
-            name: 'Last Seen',
-            category: 'sensor',
-            entityType: 'sensor',
-            icon: 'mdi:clock-check',
-            deviceClass: 'timestamp',
-            stateGetter: device => device.lastSeenAt || null,
-        });
-
         // Device ID
         this.register('device.id', {
             name: 'Device ID',
