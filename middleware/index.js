@@ -186,6 +186,7 @@ function requestLoggingMiddleware() {
                     if (req.url.startsWith('/api/v1/metrics')) return; // admin metrics dashboard
                     if (req.url.startsWith('/api/admin/metrics')) return; // admin metrics calls
                     if (req.url.startsWith('/api/admin/status')) return; // admin status monitoring
+                    if (req.url.startsWith('/api/admin/mqtt/status')) return; // MQTT status polling
 
                     // Keep original behavior for tests to satisfy assertions
                     if (process.env.NODE_ENV === 'test') {

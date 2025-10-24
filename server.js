@@ -5891,7 +5891,18 @@ app.use(
 // General request logger for debugging
 if (isDebug) {
     app.use((req, res, next) => {
-        logger.debug(`[Request Logger] Received: ${req.method} ${req.originalUrl}`);
+        // Skip logging admin polling endpoints to reduce debug noise
+        const isPollingEndpoint =
+            req.originalUrl.startsWith('/api/admin/status') ||
+            req.originalUrl.startsWith('/api/admin/performance') ||
+            req.originalUrl.startsWith('/api/admin/mqtt/status') ||
+            req.originalUrl.startsWith('/api/admin/logs') ||
+            req.originalUrl.startsWith('/api/admin/metrics') ||
+            req.originalUrl.startsWith('/api/v1/metrics');
+
+        if (!isPollingEndpoint) {
+            logger.debug(`[Request Logger] Received: ${req.method} ${req.originalUrl}`);
+        }
         next();
     });
 }
