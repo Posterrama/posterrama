@@ -1335,7 +1335,20 @@ class CapabilityRegistry {
                     clockWidget: value === 'ON',
                 });
             },
-            stateGetter: device => device.settingsOverride?.clockWidget ?? false,
+            stateGetter: device => {
+                if (device.settingsOverride?.clockWidget !== undefined) {
+                    return device.settingsOverride.clockWidget;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.clockWidget !== undefined) {
+                        return config.clockWidget;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return true;
+            },
         });
 
         // Show Logo - only for screensaver mode
@@ -1350,7 +1363,20 @@ class CapabilityRegistry {
                     showClearLogo: value === 'ON',
                 });
             },
-            stateGetter: device => device.settingsOverride?.showClearLogo ?? false,
+            stateGetter: device => {
+                if (device.settingsOverride?.showClearLogo !== undefined) {
+                    return device.settingsOverride.showClearLogo;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.showClearLogo !== undefined) {
+                        return config.showClearLogo;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return true;
+            },
         });
 
         // Show Metadata - only for screensaver mode
@@ -1365,7 +1391,20 @@ class CapabilityRegistry {
                     showMetadata: value === 'ON',
                 });
             },
-            stateGetter: device => device.settingsOverride?.showMetadata ?? false,
+            stateGetter: device => {
+                if (device.settingsOverride?.showMetadata !== undefined) {
+                    return device.settingsOverride.showMetadata;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.showMetadata !== undefined) {
+                        return config.showMetadata;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return true;
+            },
         });
 
         // Show Rotten Tomatoes - only for screensaver mode
@@ -1380,7 +1419,20 @@ class CapabilityRegistry {
                     showRottenTomatoes: value === 'ON',
                 });
             },
-            stateGetter: device => device.settingsOverride?.showRottenTomatoes ?? false,
+            stateGetter: device => {
+                if (device.settingsOverride?.showRottenTomatoes !== undefined) {
+                    return device.settingsOverride.showRottenTomatoes;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.showRottenTomatoes !== undefined) {
+                        return config.showRottenTomatoes;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return true;
+            },
         });
     }
 }
