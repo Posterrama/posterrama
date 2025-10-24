@@ -449,14 +449,16 @@ class MqttBridge extends EventEmitter {
     }
 
     /**
-     * Publish camera state with URL (Home Assistant will fetch the image)
-     * Using url_topic approach for automatic refresh without manual reload
+     * Publish camera state - hybrid approach:
+     * 1. Binary image to camera topic (for thumbnail)
+     * 2. URL with timestamp to state topic (for auto-refresh)
      */
     async publishCameraState(device) {
         if (!this.client || !this.connected) return;
 
         try {
             const prefix = this.config.topicPrefix || 'posterrama';
+            const cameraTopic = `${prefix}/device/${device.id}/camera`;
             const stateTopic = `${prefix}/device/${device.id}/camera/state`;
 
             // Get the poster URL from device state
@@ -466,15 +468,40 @@ class MqttBridge extends EventEmitter {
                 return;
             }
 
-            // Build full image URL with cache-busting timestamp
+            // Build full image URL
             const config = require('../config');
+            const axios = require('axios');
             let imageUrl;
 
             if (posterUrl.startsWith('/')) {
-                // Local path - build full URL with external IP/hostname
+                // Local path - fetch from localhost for binary, use external URL for HA
+                const localUrl = `http://localhost:${config.serverPort || 4000}${posterUrl}`;
                 const baseUrl =
                     this.config.externalUrl || `http://192.168.10.20:${config.serverPort || 4000}`;
                 imageUrl = `${baseUrl}${posterUrl}`;
+
+                // Fetch image for binary publishing (thumbnail)
+                logger.debug('📷 Fetching camera image for thumbnail...', {
+                    deviceId: device.id,
+                    url: localUrl.substring(0, 80),
+                });
+
+                const response = await axios.get(localUrl, {
+                    responseType: 'arraybuffer',
+                    timeout: 5000,
+                    headers: {
+                        'User-Agent': 'Posterrama-MQTT-Bridge/2.8.1',
+                    },
+                });
+
+                // Publish binary image for thumbnail
+                const imageBuffer = Buffer.from(response.data);
+                await this.publish(cameraTopic, imageBuffer, { qos: 0, retain: false });
+
+                logger.debug('📷 Published binary image for thumbnail', {
+                    deviceId: device.id,
+                    size: Math.round(imageBuffer.length / 1024) + 'KB',
+                });
             } else if (posterUrl.startsWith('http')) {
                 // Already a full URL
                 imageUrl = posterUrl;
@@ -488,7 +515,7 @@ class MqttBridge extends EventEmitter {
             const separator = imageUrl.includes('?') ? '&' : '?';
             const imageUrlWithCacheBust = `${imageUrl}${separator}_t=${timestamp}`;
 
-            // Publish state with URL for HA to fetch
+            // Publish state with URL for auto-refresh
             const statePayload = JSON.stringify({
                 imageUrl: imageUrlWithCacheBust, // HA will fetch this URL
                 updated: timestamp,
@@ -497,7 +524,7 @@ class MqttBridge extends EventEmitter {
 
             await this.publish(stateTopic, statePayload, { qos: 0, retain: false });
 
-            logger.info('📷 Published camera state with URL', {
+            logger.info('📷 Published camera state (thumbnail + URL)', {
                 deviceId: device.id,
                 imageUrl: imageUrlWithCacheBust.substring(0, 80) + '...',
             });
@@ -794,16 +821,17 @@ class MqttBridge extends EventEmitter {
                 };
 
             case 'camera': {
-                // Camera uses url_topic approach for automatic refresh
-                // HA will fetch the URL on every update, bypassing cache
+                // Hybrid approach: image_topic for initial thumbnail + url_topic for auto-refresh
+                // HA displays thumbnail from binary image, then refreshes via URL updates
+                const cameraTopic = `${topicPrefix}/device/${device.id}/camera`;
                 const cameraStateTopic = `${topicPrefix}/device/${device.id}/camera/state`;
                 return {
                     ...baseConfig,
-                    topic: cameraStateTopic, // State topic with URL
-                    url_topic: cameraStateTopic, // HA fetches URL from this topic
+                    topic: cameraStateTopic, // Main state topic
+                    image_topic: cameraTopic, // Binary image for thumbnail
+                    url_topic: cameraStateTopic, // URL for automatic refresh
                     url_template: '{{ value_json.imageUrl }}', // Extract URL from JSON
                     json_attributes_topic: cameraStateTopic, // Additional attributes
-                    // HA will fetch the URL and cache-bust automatically
                     icon: capability.icon,
                 };
             }
