@@ -366,9 +366,6 @@ class MqttBridge extends EventEmitter {
             const prefix = this.config.topicPrefix || 'posterrama';
             const stateTopic = `${prefix}/device/${device.id}/state`;
 
-            const effectiveMode =
-                device.clientInfo?.mode || device.currentState?.mode || 'screensaver';
-
             // Build state payload
             const state = {
                 device_id: device.id,
