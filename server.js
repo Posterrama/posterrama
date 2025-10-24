@@ -8858,8 +8858,22 @@ function isAuthenticated(req, res, next) {
     }
     // 1. Check for session-based authentication (for browser users)
     if (req.session && req.session.user) {
-        if (isDebug)
-            logger.debug(`[Auth] Authenticated via session for user: ${req.session.user.username}`);
+        if (isDebug) {
+            // Skip auth logging for polling endpoints to reduce noise
+            const isPollingEndpoint =
+                req.originalUrl.startsWith('/api/admin/status') ||
+                req.originalUrl.startsWith('/api/admin/performance') ||
+                req.originalUrl.startsWith('/api/admin/mqtt/status') ||
+                req.originalUrl.startsWith('/api/admin/logs') ||
+                req.originalUrl.startsWith('/api/admin/metrics') ||
+                req.originalUrl.startsWith('/api/v1/metrics');
+
+            if (!isPollingEndpoint) {
+                logger.debug(
+                    `[Auth] Authenticated via session for user: ${req.session.user.username}`
+                );
+            }
+        }
         return next();
     }
 
