@@ -821,17 +821,15 @@ class MqttBridge extends EventEmitter {
                 };
 
             case 'camera': {
-                // Hybrid approach: image_topic for initial thumbnail + url_topic for auto-refresh
-                // HA displays thumbnail from binary image, then refreshes via URL updates
+                // Use image_topic with binary data for reliable display
+                // Re-publish on every heartbeat to force refresh
                 const cameraTopic = `${topicPrefix}/device/${device.id}/camera`;
                 const cameraStateTopic = `${topicPrefix}/device/${device.id}/camera/state`;
                 return {
                     ...baseConfig,
-                    topic: cameraStateTopic, // Main state topic
-                    image_topic: cameraTopic, // Binary image for thumbnail
-                    url_topic: cameraStateTopic, // URL for automatic refresh
-                    url_template: '{{ value_json.imageUrl }}', // Extract URL from JSON
-                    json_attributes_topic: cameraStateTopic, // Additional attributes
+                    topic: cameraTopic, // Binary image topic
+                    image_topic: cameraTopic, // Same - binary JPEG data
+                    json_attributes_topic: cameraStateTopic, // Metadata with timestamp
                     icon: capability.icon,
                 };
             }
