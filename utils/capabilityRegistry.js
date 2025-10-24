@@ -439,7 +439,9 @@ class CapabilityRegistry {
                     if (config.transitionIntervalSeconds !== undefined) {
                         return config.transitionIntervalSeconds;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // Config not available
+                }
                 // Return default
                 return 10;
             },
@@ -468,7 +470,9 @@ class CapabilityRegistry {
                     if (config.effectPauseTime !== undefined) {
                         return config.effectPauseTime;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // Config not available
+                }
                 return 2;
             },
         });
@@ -493,7 +497,9 @@ class CapabilityRegistry {
                     if (config.transitionEffect !== undefined) {
                         return config.transitionEffect;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // Config not available
+                }
                 return 'kenburns';
             },
         });
@@ -518,7 +524,9 @@ class CapabilityRegistry {
                     if (config.clockFormat !== undefined) {
                         return config.clockFormat;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // Config not available
+                }
                 return '24h';
             },
         });
@@ -548,7 +556,9 @@ class CapabilityRegistry {
                     if (config.uiScaling?.global !== undefined) {
                         return config.uiScaling.global;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // Config not available
+                }
                 return 100;
             },
         });
@@ -578,7 +588,9 @@ class CapabilityRegistry {
                     if (config.uiScaling?.content !== undefined) {
                         return config.uiScaling.content;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // Config not available
+                }
                 return 100;
             },
         });
@@ -605,7 +617,9 @@ class CapabilityRegistry {
                     if (config.wallartMode?.density !== undefined) {
                         return config.wallartMode.density;
                     }
-                } catch (_) {}
+                } catch (_) {
+                    // Config not available
+                }
                 return 'medium';
             },
         });
