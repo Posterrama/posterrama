@@ -289,7 +289,7 @@ class CapabilityRegistry {
     registerModeCapabilities() {
         this.register('mode.select', {
             name: 'Display Mode',
-            category: 'settings',
+            category: 'mode',
             entityType: 'select',
             icon: 'mdi:view-dashboard',
             options: ['screensaver', 'wallart', 'cinema'],
@@ -678,15 +678,16 @@ class CapabilityRegistry {
             entityType: 'switch',
             icon: 'mdi:page-layout-header',
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
-            commandHandler: (deviceId, value) => {
+            commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, {
+                await wsHub.sendApplySettings(deviceId, {
                     cinema: { header: { enabled: boolValue } },
                 });
+                return true;
             },
             stateGetter: device => {
                 const val = device.settingsOverride?.cinema?.header?.enabled;
-                return val !== undefined ? val : null;
+                return val !== undefined ? val : true;
             },
         });
 
@@ -734,15 +735,16 @@ class CapabilityRegistry {
             entityType: 'switch',
             icon: 'mdi:lightbulb-on',
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
-            commandHandler: (deviceId, value) => {
+            commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, {
+                await wsHub.sendApplySettings(deviceId, {
                     cinema: { ambilight: { enabled: boolValue } },
                 });
+                return true;
             },
             stateGetter: device => {
                 const val = device.settingsOverride?.cinema?.ambilight?.enabled;
-                return val !== undefined ? val : null;
+                return val !== undefined ? val : true;
             },
         });
 
@@ -774,15 +776,16 @@ class CapabilityRegistry {
             entityType: 'switch',
             icon: 'mdi:page-layout-footer',
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
-            commandHandler: (deviceId, value) => {
+            commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, {
+                await wsHub.sendApplySettings(deviceId, {
                     cinema: { footer: { enabled: boolValue } },
                 });
+                return true;
             },
             stateGetter: device => {
                 const val = device.settingsOverride?.cinema?.footer?.enabled;
-                return val !== undefined ? val : null;
+                return val !== undefined ? val : true;
             },
         });
 
@@ -884,15 +887,16 @@ class CapabilityRegistry {
             entityType: 'switch',
             icon: 'mdi:monitor',
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
-            commandHandler: (deviceId, value) => {
+            commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, {
+                await wsHub.sendApplySettings(deviceId, {
                     cinema: { footer: { specs: { showResolution: boolValue } } },
                 });
+                return true;
             },
             stateGetter: device => {
                 const val = device.settingsOverride?.cinema?.footer?.specs?.showResolution;
-                return val !== undefined ? val : null;
+                return val !== undefined ? val : true;
             },
         });
 
@@ -903,15 +907,16 @@ class CapabilityRegistry {
             entityType: 'switch',
             icon: 'mdi:speaker',
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
-            commandHandler: (deviceId, value) => {
+            commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, {
+                await wsHub.sendApplySettings(deviceId, {
                     cinema: { footer: { specs: { showAudio: boolValue } } },
                 });
+                return true;
             },
             stateGetter: device => {
                 const val = device.settingsOverride?.cinema?.footer?.specs?.showAudio;
-                return val !== undefined ? val : null;
+                return val !== undefined ? val : true;
             },
         });
 
@@ -922,15 +927,16 @@ class CapabilityRegistry {
             entityType: 'switch',
             icon: 'mdi:aspect-ratio',
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
-            commandHandler: (deviceId, value) => {
+            commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, {
+                await wsHub.sendApplySettings(deviceId, {
                     cinema: { footer: { specs: { showAspectRatio: boolValue } } },
                 });
+                return true;
             },
             stateGetter: device => {
                 const val = device.settingsOverride?.cinema?.footer?.specs?.showAspectRatio;
-                return val !== undefined ? val : null;
+                return val !== undefined ? val : true;
             },
         });
 
@@ -941,15 +947,16 @@ class CapabilityRegistry {
             entityType: 'switch',
             icon: 'mdi:flag',
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
-            commandHandler: (deviceId, value) => {
+            commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, {
+                await wsHub.sendApplySettings(deviceId, {
                     cinema: { footer: { specs: { showFlags: boolValue } } },
                 });
+                return true;
             },
             stateGetter: device => {
                 const val = device.settingsOverride?.cinema?.footer?.specs?.showFlags;
-                return val !== undefined ? val : null;
+                return val !== undefined ? val : false;
             },
         });
     }
