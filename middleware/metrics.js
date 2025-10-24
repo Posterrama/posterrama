@@ -76,7 +76,7 @@ const metricsMiddleware = (req, res, next) => {
             } else if (statusCode >= 500) {
                 logger.error('💥 Server error', performanceData);
             } else if (statusCode >= 400) {
-                logger.warn('⚠️ Client error', performanceData);
+                logger.debug('⚠️ Client error', performanceData);
             }
             // Removed routine "Request performance" logging
 

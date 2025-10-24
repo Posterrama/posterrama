@@ -3712,16 +3712,8 @@ if (isDeviceMgmtEnabled()) {
         10,
         'Too many device registrations from this IP, please try again later.'
     );
-    const deviceCheckLimiter = createRateLimiter(
-        60 * 1000,
-        30,
-        'Too many device check requests from this IP, please slow down.'
-    );
-    const deviceHeartbeatLimiter = createRateLimiter(
-        60 * 1000,
-        120,
-        'Too many device heartbeats from this IP, please slow down.'
-    );
+    // deviceCheckLimiter removed - called too frequently during normal operation
+    // deviceHeartbeatLimiter removed - called too frequently during normal operation
     // Lightweight cookie parsing to bind an install identifier across tabs
     const parseCookies = header => {
         const out = {};
@@ -3894,7 +3886,7 @@ if (isDeviceMgmtEnabled()) {
      *       400:
      *         description: Bad request
      */
-    app.post('/api/devices/check', deviceCheckLimiter, express.json(), async (req, res) => {
+    app.post('/api/devices/check', express.json(), async (req, res) => {
         try {
             const { deviceId } = req.body;
             if (!deviceId || typeof deviceId !== 'string') {
@@ -3979,7 +3971,7 @@ if (isDeviceMgmtEnabled()) {
      *       500:
      *         description: Heartbeat failed
      */
-    app.post('/api/devices/heartbeat', deviceHeartbeatLimiter, express.json(), async (req, res) => {
+    app.post('/api/devices/heartbeat', express.json(), async (req, res) => {
         try {
             const b = req.body || {};
             const deviceId = b.deviceId;
