@@ -9284,6 +9284,9 @@ async function writeConfig(newConfig) {
     }
 }
 
+// Make writeConfig available globally for MQTT capability handlers
+global.writeConfig = writeConfig;
+
 /**
  * Checks if the admin user has been set up.
  */

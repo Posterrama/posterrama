@@ -48,6 +48,14 @@
     async function start() {
         try {
             await ensureConfig();
+            // Initialize device management (WebSocket, heartbeat, etc.)
+            try {
+                if (window.PosterramaDevice && window.PosterramaDevice.init) {
+                    window.PosterramaDevice.init(window.appConfig || {});
+                }
+            } catch (e) {
+                console.warn('[Cinema Bootstrap] Failed to init device management:', e);
+            }
             const media = await fetchOneMedia();
             if (media) {
                 try {

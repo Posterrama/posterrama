@@ -295,8 +295,54 @@ class CapabilityRegistry {
             entityType: 'select',
             icon: 'mdi:view-dashboard',
             options: ['screensaver', 'wallart', 'cinema'],
-            commandHandler: (deviceId, mode) => {
-                return wsHub.sendApplySettings(deviceId, { mode });
+            commandHandler: async (deviceId, mode) => {
+                const logger = require('./logger');
+
+                logger.info('🔧 Mode select command handler', { deviceId, mode });
+
+                // Get the writeConfig function from server.js global scope
+                // This is defined in server.js and available in the Node.js runtime
+                const writeConfig = global.writeConfig;
+                if (!writeConfig) {
+                    throw new Error('writeConfig function not available');
+                }
+
+                // Get current config
+                const config = require('../config.json');
+
+                // Map mode to config flags
+                const updatedConfig = { ...config };
+
+                if (mode === 'cinema') {
+                    updatedConfig.cinemaMode = true;
+                    updatedConfig.wallartMode = updatedConfig.wallartMode || {};
+                    updatedConfig.wallartMode.enabled = false;
+                } else if (mode === 'wallart') {
+                    updatedConfig.cinemaMode = false;
+                    updatedConfig.wallartMode = updatedConfig.wallartMode || {};
+                    updatedConfig.wallartMode.enabled = true;
+                } else {
+                    // screensaver
+                    updatedConfig.cinemaMode = false;
+                    updatedConfig.wallartMode = updatedConfig.wallartMode || {};
+                    updatedConfig.wallartMode.enabled = false;
+                }
+
+                logger.info('🔧 Updating global config', {
+                    mode,
+                    cinemaMode: updatedConfig.cinemaMode,
+                    wallartEnabled: updatedConfig.wallartMode.enabled,
+                });
+
+                // Update global config (this will trigger BroadcastChannel updates to all devices)
+                try {
+                    await writeConfig(updatedConfig);
+                    logger.info('🔧 Global config updated successfully', { mode });
+                    return true;
+                } catch (err) {
+                    logger.error('🔧 Failed to update global config', { error: err.message });
+                    throw err;
+                }
             },
             stateGetter: device => {
                 return device.clientInfo?.mode || device.currentState?.mode || 'screensaver';

@@ -14,6 +14,7 @@ const mqtt = require('mqtt');
 const EventEmitter = require('events');
 const logger = require('./logger');
 const capabilityRegistry = require('./capabilityRegistry');
+const deviceStore = require('./deviceStore');
 
 class MqttBridge extends EventEmitter {
     constructor(config) {
@@ -65,6 +66,14 @@ class MqttBridge extends EventEmitter {
 
             // Setup periodic state publishing
             this.startStatePublishing();
+
+            // Listen for device changes to trigger immediate MQTT updates
+            deviceStore.deviceEvents.on('device:patched', async device => {
+                logger.debug('📡 Device patched, triggering MQTT state update', {
+                    deviceId: device.id,
+                });
+                await this.publishDeviceState(device);
+            });
 
             logger.info('✅ MQTT bridge initialized successfully');
         } catch (error) {
