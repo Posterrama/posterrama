@@ -310,6 +310,7 @@
 
             console.log('[applySettings] Received settings update', {
                 keys: Object.keys(newSettings),
+                wallartMode: newSettings.wallartMode,
                 cinemaMode: newSettings.cinemaMode,
                 clockWidget: newSettings.clockWidget,
                 showMetadata: newSettings.showMetadata,

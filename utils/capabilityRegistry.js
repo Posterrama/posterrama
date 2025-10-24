@@ -820,11 +820,31 @@ class CapabilityRegistry {
             step: 10,
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
+                const percentage = parseInt(value);
+                // Convert percentage to boolean: >50% means bias to hero poster
+                const biasToHero = percentage > 50;
+
                 return applyAndPersistSettings(deviceId, {
-                    wallartMode: { biasToAmbiance: parseInt(value) },
+                    wallartMode: {
+                        layoutSettings: {
+                            heroGrid: {
+                                biasAmbientToHero: biasToHero,
+                            },
+                        },
+                    },
                 });
             },
             stateGetter: device => {
+                // Check device override first
+                if (
+                    device.settingsOverride?.wallartMode?.layoutSettings?.heroGrid
+                        ?.biasAmbientToHero !== undefined
+                ) {
+                    return device.settingsOverride.wallartMode.layoutSettings.heroGrid
+                        .biasAmbientToHero
+                        ? 100
+                        : 0;
+                }
                 if (device.settingsOverride?.wallartMode?.biasToAmbiance !== undefined) {
                     return device.settingsOverride.wallartMode.biasToAmbiance;
                 }
@@ -887,10 +907,23 @@ class CapabilityRegistry {
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 return applyAndPersistSettings(deviceId, {
-                    wallartMode: { heroSide: value },
+                    wallartMode: {
+                        layoutSettings: {
+                            heroGrid: {
+                                heroSide: value,
+                            },
+                        },
+                    },
                 });
             },
             stateGetter: device => {
+                // Check device override first (may be at either path for backward compat)
+                if (
+                    device.settingsOverride?.wallartMode?.layoutSettings?.heroGrid?.heroSide !==
+                    undefined
+                ) {
+                    return device.settingsOverride.wallartMode.layoutSettings.heroGrid.heroSide;
+                }
                 if (device.settingsOverride?.wallartMode?.heroSide !== undefined) {
                     return device.settingsOverride.wallartMode.heroSide;
                 }
@@ -919,10 +952,24 @@ class CapabilityRegistry {
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 return applyAndPersistSettings(deviceId, {
-                    wallartMode: { heroRotation: parseInt(value) },
+                    wallartMode: {
+                        layoutSettings: {
+                            heroGrid: {
+                                heroRotationMinutes: parseInt(value),
+                            },
+                        },
+                    },
                 });
             },
             stateGetter: device => {
+                // Check device override first (may be at either path for backward compat)
+                if (
+                    device.settingsOverride?.wallartMode?.layoutSettings?.heroGrid
+                        ?.heroRotationMinutes !== undefined
+                ) {
+                    return device.settingsOverride.wallartMode.layoutSettings.heroGrid
+                        .heroRotationMinutes;
+                }
                 if (device.settingsOverride?.wallartMode?.heroRotation !== undefined) {
                     return device.settingsOverride.wallartMode.heroRotation;
                 }
