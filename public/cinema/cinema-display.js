@@ -315,6 +315,15 @@
         // Store current media for live config updates
         currentMedia = media;
 
+        // Expose current media globally for device heartbeat system
+        if (typeof window !== 'undefined' && media) {
+            window.__posterramaCurrentMedia = {
+                title: media.title,
+                mediaId: media.key,
+                type: media.type || 'movie',
+            };
+        }
+
         // Hide loader when content is ready
         const loader = document.getElementById('loader');
         if (loader) {
@@ -336,6 +345,25 @@
         // Update ambilight based on poster colors
         if (cinemaConfig.ambilight.enabled && media && media.dominantColor) {
             updateAmbilightColor(media.dominantColor);
+        }
+
+        // Trigger immediate heartbeat to reflect new media
+        triggerLiveBeat();
+    }
+
+    // Trigger immediate heartbeat on media change
+    // Simple debounce to prevent duplicate calls within 500ms
+    function triggerLiveBeat() {
+        try {
+            const dev = window.PosterramaDevice;
+            if (!dev || typeof dev.beat !== 'function') return;
+            const now = Date.now();
+            const until = window.__posterramaBeatCooldownUntil || 0;
+            if (now < until) return;
+            window.__posterramaBeatCooldownUntil = now + 500;
+            dev.beat();
+        } catch (_) {
+            /* noop */
         }
     }
 
