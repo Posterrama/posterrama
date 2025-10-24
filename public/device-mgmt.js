@@ -1149,7 +1149,6 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 state.deviceSecret = next.secret;
                 state.enabled = true;
                 startHeartbeat();
-                sendHeartbeat();
             } else {
                 // If setup was skipped again, re-add the button
                 addSetupButton();
@@ -2158,14 +2157,13 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                 // Enable device management and start heartbeat immediately
                                 state.enabled = true;
 
-                                // Send immediate heartbeat to update device status
+                                // Start heartbeat (will send early beat when media detected)
                                 try {
-                                    console.log('  → Sending heartbeat to update device status');
-                                    await sendHeartbeat();
+                                    console.log('  → Starting heartbeat system');
                                     startHeartbeat();
                                 } catch (heartbeatError) {
                                     console.log(
-                                        '  → Initial heartbeat failed:',
+                                        '  → Heartbeat start failed:',
                                         heartbeatError.message
                                     );
                                 }
@@ -2229,9 +2227,8 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             }
         }
 
-        // Start interval and also send one immediate heartbeat for visibility in Network tab
+        // Start heartbeat system (includes early beat when media detected)
         startHeartbeat();
-        sendHeartbeat();
     }
 
     // Expose minimal debug helpers for testing without server roundtrip
