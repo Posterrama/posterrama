@@ -807,15 +807,13 @@ class MqttBridge extends EventEmitter {
 
             case 'camera': {
                 // Camera uses MQTT topic to publish binary images
-                // State topic with timestamp triggers automatic refresh in HA
+                // json_attributes_topic with timestamp triggers automatic refresh in HA
                 const cameraTopic = `${topicPrefix}/device/${device.id}/camera`;
                 const cameraStateTopic = `${topicPrefix}/device/${device.id}/camera/state`;
                 return {
                     ...baseConfig,
-                    topic: cameraStateTopic, // State topic triggers HA to fetch new image
-                    image_topic: cameraTopic, // Actual image data
-                    json_attributes_topic: cameraStateTopic,
-                    value_template: '{{ value_json.updated }}', // Timestamp triggers refresh
+                    image_topic: cameraTopic, // Binary image data
+                    json_attributes_topic: cameraStateTopic, // State with timestamp triggers refresh
                     // No image_encoding specified - HA expects raw binary data
                     icon: capability.icon,
                 };
