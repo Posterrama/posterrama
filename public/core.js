@@ -56,6 +56,18 @@
     };
 
     Core.getActiveMode = function getActiveMode(cfg) {
+        // First check for explicit mode property (device overrides from MQTT/HA)
+        if (cfg?.mode && typeof cfg.mode === 'string') {
+            const normalized = String(cfg.mode).toLowerCase();
+            if (
+                normalized === 'cinema' ||
+                normalized === 'wallart' ||
+                normalized === 'screensaver'
+            ) {
+                return normalized;
+            }
+        }
+        // Fall back to legacy boolean flags (admin display settings)
         if (cfg?.cinemaMode === true) return 'cinema';
         if (cfg?.wallartMode?.enabled === true) return 'wallart';
         return 'screensaver';
@@ -109,7 +121,10 @@
 
         // Build full path: base + segment
         // Example: / + cinema = /cinema, /app/ + cinema = /app/cinema
-        const fullPath = b + seg;
+        let fullPath = b + seg;
+
+        // Ensure fullPath starts with a slash to prevent origin+path concatenation issues
+        if (!fullPath.startsWith('/')) fullPath = '/' + fullPath;
 
         // Build full URL: origin + fullPath
         // Ensure origin has no trailing slash
