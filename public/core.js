@@ -238,6 +238,13 @@
 
             const tick = async () => {
                 try {
+                    // Skip tick if tab is not visible (prevents multi-tab navigation loops)
+                    if (document.hidden || document.visibilityState === 'hidden') {
+                        window.debugLog &&
+                            window.debugLog('AUTO_EXIT_SKIP_HIDDEN', { currentMode });
+                        return;
+                    }
+
                     window.debugLog && window.debugLog('AUTO_EXIT_TICK', { currentMode });
                     const cfg = await Core.fetchConfig();
 
