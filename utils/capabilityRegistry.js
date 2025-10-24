@@ -220,28 +220,6 @@ class CapabilityRegistry {
                 return !device.currentState?.poweredOff;
             },
         });
-
-        this.register('power.on', {
-            name: 'Power On',
-            category: 'power',
-            entityType: 'button',
-            icon: 'mdi:power-on',
-            availableWhen: device => device.currentState?.poweredOff === true,
-            commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'power.on' });
-            },
-        });
-
-        this.register('power.off', {
-            name: 'Power Off',
-            category: 'power',
-            entityType: 'button',
-            icon: 'mdi:power-off',
-            availableWhen: device => device.currentState?.poweredOff !== true,
-            commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'power.off' });
-            },
-        });
     }
 
     /**
@@ -552,8 +530,7 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                const val = device.settingsOverride?.wallartMode?.ambiance;
-                return val !== undefined ? val : null;
+                return device.settingsOverride?.wallartMode?.ambiance ?? false;
             },
         });
 
@@ -628,8 +605,7 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                const val = device.settingsOverride?.wallartMode?.heroRotation;
-                return val !== undefined ? val : null;
+                return device.settingsOverride?.wallartMode?.heroRotation ?? false;
             },
         });
 
