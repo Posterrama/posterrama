@@ -584,6 +584,9 @@ class MqttBridge extends EventEmitter {
                 published: availableCapabilities.length,
                 unpublished: skippedCount,
             });
+
+            // Immediately publish state after discovery so switches show correct state
+            await this.publishDeviceState(device);
         } catch (error) {
             logger.error('Error publishing discovery:', error);
             this.stats.errors++;
@@ -838,7 +841,8 @@ class MqttBridge extends EventEmitter {
      * Start periodic state publishing
      */
     startStatePublishing() {
-        const interval = (this.config.publishInterval || 30) * 1000;
+        // Reduce interval from 30s to 5s for more responsive state updates
+        const interval = (this.config.publishInterval || 5) * 1000;
 
         this.publishTimer = setInterval(async () => {
             await this.publishAllDeviceStates();
