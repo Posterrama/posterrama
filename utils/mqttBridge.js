@@ -765,10 +765,11 @@ class MqttBridge extends EventEmitter {
 
             case 'camera': {
                 // Camera uses MQTT topic to publish base64-encoded images
-                // This is more reliable than image_url for Home Assistant
+                // Home Assistant expects 'image_topic' not 'topic' for camera entities
                 return {
                     ...baseConfig,
-                    topic: `${topicPrefix}/device/${device.id}/camera`,
+                    image_topic: `${topicPrefix}/device/${device.id}/camera`,
+                    image_encoding: 'b64', // Tell HA images are base64-encoded
                     icon: capability.icon,
                 };
             }

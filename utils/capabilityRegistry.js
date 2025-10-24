@@ -389,13 +389,14 @@ class CapabilityRegistry {
             },
         });
 
-        // Clock format
+        // Clock format - only for screensaver mode (when clock can be shown)
         this.register('settings.clockFormat', {
             name: 'Clock Format',
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:clock-time-four-outline',
             options: ['12h', '24h'],
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, { clockFormat: value });
             },
@@ -816,12 +817,13 @@ class CapabilityRegistry {
     registerAdditionalSwitches() {
         const wsHub = require('./wsHub');
 
-        // Show Clock
+        // Show Clock - only for screensaver mode
         this.register('settings.showClock', {
             name: 'Show Clock',
             category: 'settings',
             entityType: 'switch',
             icon: 'mdi:clock-outline',
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: async (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     clockWidget: value === 'ON',
@@ -830,12 +832,13 @@ class CapabilityRegistry {
             stateGetter: device => device.settingsOverride?.clockWidget ?? false,
         });
 
-        // Show Logo
+        // Show Logo - only for screensaver mode
         this.register('settings.showLogo', {
             name: 'Show Logo',
             category: 'settings',
             entityType: 'switch',
             icon: 'mdi:image-area',
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: async (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     showClearLogo: value === 'ON',
@@ -844,12 +847,13 @@ class CapabilityRegistry {
             stateGetter: device => device.settingsOverride?.showClearLogo ?? false,
         });
 
-        // Show Metadata
+        // Show Metadata - only for screensaver mode
         this.register('settings.showMetadata', {
             name: 'Show Metadata',
             category: 'settings',
             entityType: 'switch',
             icon: 'mdi:information',
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: async (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     showMetadata: value === 'ON',
@@ -858,12 +862,13 @@ class CapabilityRegistry {
             stateGetter: device => device.settingsOverride?.showMetadata ?? false,
         });
 
-        // Show Rotten Tomatoes
+        // Show Rotten Tomatoes - only for screensaver mode
         this.register('settings.showRottenTomatoes', {
             name: 'Show Rotten Tomatoes',
             category: 'settings',
             entityType: 'switch',
             icon: 'mdi:tomato',
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: async (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     showRottenTomatoes: value === 'ON',

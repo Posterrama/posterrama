@@ -4582,68 +4582,122 @@ if (isDeviceMgmtEnabled()) {
                 return res.status(404).json({ error: 'Device not found' });
             }
 
-            // Get current media ID from device state
-            const mediaId = device.currentState?.mediaId;
-            if (!mediaId) {
-                // Return placeholder SVG when no poster is available
-                const placeholderSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
-                    <defs>
-                        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
-                        </linearGradient>
-                    </defs>
-                    <rect width="400" height="600" fill="url(#bg)"/>
-                    <text x="200" y="280" font-family="Arial, sans-serif" font-size="24" fill="#ffffff" text-anchor="middle" opacity="0.5">
-                        Posterrama
-                    </text>
-                    <text x="200" y="320" font-family="Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle" opacity="0.3">
-                        No poster displayed
-                    </text>
-                    <circle cx="200" cy="200" r="60" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.2"/>
-                    <path d="M 200 160 L 200 240 M 160 200 L 240 200" stroke="#ffffff" stroke-width="2" opacity="0.2"/>
-                </svg>`;
+            // FIRST: Check if device has posterUrl in currentState (sent by device itself)
+            let posterUrl = device.currentState?.posterUrl;
 
-                res.setHeader('Content-Type', 'image/svg+xml');
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-                return res.send(placeholderSvg);
+            // FALLBACK: Try to find in media library by mediaId
+            if (!posterUrl) {
+                const mediaId = device.currentState?.mediaId;
+                if (!mediaId) {
+                    // Return placeholder SVG when no poster is available
+                    const placeholderSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+                        <defs>
+                            <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <rect width="400" height="600" fill="url(#bg)"/>
+                        <text x="200" y="280" font-family="Arial, sans-serif" font-size="24" fill="#ffffff" text-anchor="middle" opacity="0.5">
+                            Posterrama
+                        </text>
+                        <text x="200" y="320" font-family="Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle" opacity="0.3">
+                            No poster displayed
+                        </text>
+                        <circle cx="200" cy="200" r="60" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.2"/>
+                        <path d="M 200 160 L 200 240 M 160 200 L 240 200" stroke="#ffffff" stroke-width="2" opacity="0.2"/>
+                    </svg>`;
+
+                    res.setHeader('Content-Type', 'image/svg+xml');
+                    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                    return res.send(placeholderSvg);
+                }
+
+                // Find the media item in the library
+                const mediaLibrary = global.__posterramaMediaLibrary || [];
+                const mediaItem = mediaLibrary.find(m => m.id === mediaId);
+
+                if (!mediaItem || !mediaItem.posterUrl) {
+                    // Return placeholder SVG when poster not found
+                    const placeholderSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+                        <defs>
+                            <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <rect width="400" height="600" fill="url(#bg)"/>
+                        <text x="200" y="280" font-family="Arial, sans-serif" font-size="20" fill="#ffffff" text-anchor="middle" opacity="0.5">
+                            ${mediaId}
+                        </text>
+                        <text x="200" y="320" font-family="Arial, sans-serif" font-size="14" fill="#ffffff" text-anchor="middle" opacity="0.3">
+                            Poster not found
+                        </text>
+                    </svg>`;
+
+                    res.setHeader('Content-Type', 'image/svg+xml');
+                    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                    return res.send(placeholderSvg);
+                }
+
+                posterUrl = mediaItem.posterUrl;
             }
 
-            // Find the media item in the library
-            const mediaLibrary = global.__posterramaMediaLibrary || [];
-            const mediaItem = mediaLibrary.find(m => m.id === mediaId);
+            // If posterUrl starts with /, it's a local path - fetch it internally
+            if (posterUrl.startsWith('/')) {
+                // Build full local URL
+                const localUrl = `http://localhost:${config.serverPort || 4000}${posterUrl}`;
+                const axios = require('axios');
 
-            if (!mediaItem || !mediaItem.posterUrl) {
-                // Return placeholder SVG when poster not found
-                const placeholderSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
-                    <defs>
-                        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
-                        </linearGradient>
-                    </defs>
-                    <rect width="400" height="600" fill="url(#bg)"/>
-                    <text x="200" y="280" font-family="Arial, sans-serif" font-size="20" fill="#ffffff" text-anchor="middle" opacity="0.5">
-                        ${mediaId}
-                    </text>
-                    <text x="200" y="320" font-family="Arial, sans-serif" font-size="14" fill="#ffffff" text-anchor="middle" opacity="0.3">
-                        Poster not found
-                    </text>
-                </svg>`;
+                try {
+                    const imageResponse = await axios.get(localUrl, {
+                        responseType: 'arraybuffer',
+                        timeout: 10000,
+                    });
 
-                res.setHeader('Content-Type', 'image/svg+xml');
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-                return res.send(placeholderSvg);
+                    res.setHeader(
+                        'Content-Type',
+                        imageResponse.headers['content-type'] || 'image/jpeg'
+                    );
+                    res.setHeader('Cache-Control', 'public, max-age=3600');
+                    return res.send(Buffer.from(imageResponse.data));
+                } catch (err) {
+                    logger.error('Error fetching local poster:', err);
+                    // Fall through to external URL handling
+                }
             }
 
-            // Redirect to the poster URL
-            // The poster URL can be:
-            // 1. External TMDB/Plex/Jellyfin URL
-            // 2. Local cached image via /poster endpoint
-            res.redirect(302, mediaItem.posterUrl);
+            // For external URLs (Plex, Jellyfin, TMDB), proxy the image
+            // This ensures Home Assistant can access it even if the source requires auth
+            const axios = require('axios');
+            const imageResponse = await axios.get(posterUrl, {
+                responseType: 'arraybuffer',
+                timeout: 10000,
+                headers: {
+                    'User-Agent': 'Posterrama/2.8.1',
+                },
+            });
+
+            res.setHeader('Content-Type', imageResponse.headers['content-type'] || 'image/jpeg');
+            res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+            res.send(Buffer.from(imageResponse.data));
         } catch (error) {
             logger.error('Error generating device preview:', error);
-            res.status(500).json({ error: 'Preview generation failed' });
+
+            // Return error placeholder SVG
+            const errorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+                <rect width="400" height="600" fill="#1a1a2e"/>
+                <text x="200" y="280" font-family="Arial" font-size="18" fill="#ff6b6b" text-anchor="middle">
+                    Error loading poster
+                </text>
+                <text x="200" y="320" font-family="Arial" font-size="12" fill="#999" text-anchor="middle">
+                    ${error.message || 'Unknown error'}
+                </text>
+            </svg>`;
+
+            res.setHeader('Content-Type', 'image/svg+xml');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.status(500).send(errorSvg);
         }
     });
 
@@ -14839,13 +14893,38 @@ app.post(
         // We don't await this, so the admin UI gets a fast response.
         // Also reschedule the background refresh interval in case backgroundRefreshMinutes changed.
         // Add a small delay to prevent overwhelming the server during rapid config changes
-        setTimeout(() => {
+        setTimeout(async () => {
             try {
                 schedulePlaylistBackgroundRefresh();
             } catch (_) {
                 /* ignore */
             }
             refreshPlaylistCache();
+
+            // If baseUrl changed, republish MQTT discovery for all devices
+            try {
+                const mqttBridge = global.__posterramaMqttBridge;
+                if (mqttBridge && config.baseUrl) {
+                    const devices = await deviceStore.getAll();
+                    logger.info(
+                        '[MQTT] Republishing discovery for all devices after baseUrl change',
+                        {
+                            count: devices.length,
+                            baseUrl: config.baseUrl,
+                        }
+                    );
+                    devices.forEach(device => {
+                        mqttBridge.republishDiscovery(device).catch(err => {
+                            logger.warn('[MQTT] Failed to republish discovery for device', {
+                                deviceId: device.id,
+                                error: err.message,
+                            });
+                        });
+                    });
+                }
+            } catch (err) {
+                logger.warn('[MQTT] Failed to republish discovery after config save:', err.message);
+            }
         }, 1000);
 
         if (isDebug) {
@@ -17327,6 +17406,86 @@ app.post(
         if (isDebug) logger.debug(`[Admin API] ${message}`);
 
         res.json({ success: true, message: message, itemCount: itemCount, cacheCleared: cleared });
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/mqtt/republish:
+ *   post:
+ *     summary: Republish MQTT discovery for all devices
+ *     description: Forces republishing of Home Assistant MQTT discovery for all registered devices
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: MQTT discovery republished successfully
+ *       503:
+ *         description: MQTT bridge not available
+ */
+app.post(
+    '/api/admin/mqtt/republish',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        if (isDebug) logger.debug('[Admin API] Received request to republish MQTT discovery.');
+
+        const mqttBridge = global.__posterramaMqttBridge;
+        if (!mqttBridge) {
+            return res.status(503).json({
+                success: false,
+                message: 'MQTT bridge is not enabled or not connected',
+            });
+        }
+
+        const devices = await deviceStore.getAll();
+        logger.info('[Admin] Republishing MQTT discovery for all devices', {
+            deviceCount: devices.length,
+        });
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const device of devices) {
+            try {
+                // Unpublish all capabilities first to clean up old entities
+                await mqttBridge.unpublishAllCapabilities(device);
+
+                // Republish discovery with current mode's available capabilities
+                await mqttBridge.republishDiscovery(device);
+
+                // Clear state cache to force republish
+                mqttBridge.deviceStates?.delete(device.id);
+
+                // Set current mode in tracking
+                const currentMode =
+                    device.clientInfo?.mode || device.currentState?.mode || 'screensaver';
+                mqttBridge.deviceModes?.set(device.id, currentMode);
+
+                // Publish current state immediately
+                await mqttBridge.publishDeviceState(device);
+                await mqttBridge.publishCameraState(device);
+                successCount++;
+            } catch (err) {
+                logger.warn('[Admin] Failed to republish MQTT discovery for device', {
+                    deviceId: device.id,
+                    deviceName: device.name,
+                    error: err.message,
+                });
+                failCount++;
+            }
+        }
+
+        const message = `MQTT discovery republished: ${successCount} succeeded, ${failCount} failed`;
+        logger.info('[Admin] ' + message);
+
+        res.json({
+            success: true,
+            message,
+            successCount,
+            failCount,
+            totalDevices: devices.length,
+        });
     })
 );
 

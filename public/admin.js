@@ -13725,6 +13725,50 @@
             });
         }
 
+        // MQTT: Republish discovery
+        const btnRepublishMqtt = document.getElementById('btn-republish-mqtt');
+        if (btnRepublishMqtt) {
+            if (!btnRepublishMqtt.querySelector('.spinner')) {
+                const sp = document.createElement('span');
+                sp.className = 'spinner';
+                btnRepublishMqtt.insertBefore(sp, btnRepublishMqtt.firstChild);
+            }
+            btnRepublishMqtt.addEventListener('click', async () => {
+                try {
+                    btnRepublishMqtt.classList.add('btn-loading');
+                    const r = await fetch('/api/admin/mqtt/republish', {
+                        method: 'POST',
+                        credentials: 'include',
+                    });
+                    const j = await r.json().catch(() => ({}));
+                    if (!r.ok) {
+                        // Special message for 503 (MQTT not enabled)
+                        if (r.status === 503) {
+                            throw new Error(
+                                'MQTT is not enabled. Enable MQTT and save settings first, then restart the server.'
+                            );
+                        }
+                        throw new Error(j?.message || 'Republish failed');
+                    }
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'MQTT Discovery Republished',
+                        message: j?.message || `${j?.successCount || 0} devices updated`,
+                        duration: 3500,
+                    });
+                } catch (e) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Republish failed',
+                        message: e?.message || 'Unable to republish MQTT discovery',
+                        duration: 5000,
+                    });
+                } finally {
+                    btnRepublishMqtt.classList.remove('btn-loading');
+                }
+            });
+        }
+
         // OPERATIONS: Auto-Update controls
         const btnStartUpdate = document.getElementById('btn-start-update');
         const btnRollbackUpdate = document.getElementById('btn-rollback-update');
@@ -19383,6 +19427,34 @@
             }
         });
 
+        // Restart Server button
+        const btnRestartServer = document.getElementById('btn-restart-server');
+        if (btnRestartServer) {
+            if (!btnRestartServer.querySelector('.spinner')) {
+                const sp = document.createElement('span');
+                sp.className = 'spinner';
+                btnRestartServer.insertBefore(sp, btnRestartServer.firstChild);
+            }
+            btnRestartServer.addEventListener('click', async () => {
+                try {
+                    btnRestartServer.classList.add('btn-loading');
+                    await window.triggerRestartAndPoll({
+                        title: 'Restarting…',
+                        message: 'Server is restarting to apply configuration changes.',
+                    });
+                } catch (e) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Restart failed',
+                        message: e?.message || 'Unable to restart server',
+                        duration: 5000,
+                    });
+                } finally {
+                    btnRestartServer.classList.remove('btn-loading');
+                }
+            });
+        }
+
         // Helper: update Operations save button label depending on restart requirement
         function opsRestartNeeded() {
             const portEl = document.getElementById('SERVER_PORT');
@@ -19457,6 +19529,19 @@
                 const enabled = !!document.getElementById('siteServer.enabled')?.checked;
                 const portVal = Number(document.getElementById('siteServer.port')?.value || 4001);
 
+                // Collect URLs
+                const baseUrlEl = document.getElementById('baseUrl');
+                const baseUrl = (baseUrlEl?.value || '').trim() || 'http://localhost:4000';
+
+                // Collect MQTT
+                const mqttEnabled = !!document.getElementById('mqtt.enabled')?.checked;
+                const mqttDiscoveryEnabled =
+                    document.getElementById('mqtt.discovery.enabled')?.checked !== false; // Default true
+                const mqttBroker = (document.getElementById('mqtt.broker')?.value || '').trim();
+                const mqttPort = Number(document.getElementById('mqtt.port')?.value || 1883);
+                const mqttUsername = (document.getElementById('mqtt.username')?.value || '').trim();
+                const mqttPassword = (document.getElementById('mqtt.password')?.value || '').trim();
+
                 // Collect Entry Route (rootRoute)
                 const rrBehavior =
                     document.getElementById('rootRoute_behavior')?.value || 'landing';
@@ -19494,6 +19579,17 @@
                     {
                         serverPort: serverPort,
                         backgroundRefreshMinutes,
+                        baseUrl,
+                        mqtt: {
+                            enabled: mqttEnabled,
+                            broker: mqttBroker,
+                            port: mqttPort,
+                            username: mqttUsername,
+                            password: mqttPassword,
+                            discovery: {
+                                enabled: mqttDiscoveryEnabled,
+                            },
+                        },
                         siteServer: { enabled, port: portVal },
                         rootRoute: {
                             behavior: rrBehavior,
@@ -19504,19 +19600,21 @@
                     { SERVER_PORT: String(serverPort) }
                 );
 
+                // Check if restart is needed (port change OR MQTT settings change)
                 const needsRestart = btn.dataset.restartRequired === 'true' || opsRestartNeeded();
                 if (needsRestart) {
                     // eslint-disable-next-line no-undef
                     await triggerRestartAndPoll({
                         title: 'Restarting…',
-                        message: 'Port changed. Applying changes and restarting.',
+                        message: 'Configuration changed. Applying changes and restarting.',
                     });
                 } else {
                     window.notify?.toast({
                         type: 'success',
                         title: 'Saved',
-                        message: 'Operations settings updated',
-                        duration: 2500,
+                        message:
+                            'Operations settings updated. Restart required for MQTT changes to take effect.',
+                        duration: 4000,
                     });
                 }
             } catch (e) {
@@ -19607,6 +19705,42 @@
                 // Snapshot original for restart detection in unified save
                 portElMain.dataset.originalPort = String(portElMain.value);
             }
+            // Base URL
+            const baseUrlEl = document.getElementById('baseUrl');
+            if (baseUrlEl) {
+                baseUrlEl.value = cfg?.baseUrl || 'http://localhost:4000';
+            }
+            // Current URL helper
+            try {
+                const currentUrl = window.location.origin;
+                const currentBaseText = document.getElementById('current-url-base-text');
+                if (currentBaseText) currentBaseText.textContent = currentUrl;
+
+                const copyBaseBtn = document.getElementById('copy-current-url-base');
+                if (copyBaseBtn) {
+                    copyBaseBtn.addEventListener('click', async () => {
+                        try {
+                            await navigator.clipboard.writeText(currentUrl);
+                            if (baseUrlEl) baseUrlEl.value = currentUrl;
+                            window.notify?.toast({
+                                type: 'success',
+                                title: 'Copied',
+                                message: 'Current URL copied to Base URL field',
+                                duration: 2000,
+                            });
+                        } catch (e) {
+                            window.notify?.toast({
+                                type: 'error',
+                                title: 'Copy failed',
+                                message: e?.message || 'Unable to copy',
+                                duration: 3000,
+                            });
+                        }
+                    });
+                }
+            } catch (_) {
+                /* current url helper failed */
+            }
             // Background Refresh Minutes (Media)
             const brmEl = document.getElementById('ops.backgroundRefreshMinutes');
             if (brmEl) {
@@ -19643,6 +19777,38 @@
                 sitePill.textContent = site.enabled ? 'Enabled' : 'Disabled';
                 sitePill.classList.toggle('status-warning', !site.enabled);
                 sitePill.classList.toggle('status-success', !!site.enabled);
+            }
+            // MQTT
+            const mqtt = cfg.mqtt || {};
+            const mqttEnabledEl = document.getElementById('mqtt.enabled');
+            const mqttDiscoveryEnabledEl = document.getElementById('mqtt.discovery.enabled');
+            const mqttBrokerEl = document.getElementById('mqtt.broker');
+            const mqttPortEl = document.getElementById('mqtt.port');
+            const mqttUsernameEl = document.getElementById('mqtt.username');
+            const mqttPasswordEl = document.getElementById('mqtt.password');
+            const mqttSettingsGroup = document.getElementById('mqtt-settings-group');
+            const mqttPill = document.getElementById('mqtt-status-pill');
+
+            if (mqttEnabledEl) mqttEnabledEl.checked = !!mqtt.enabled;
+            if (mqttDiscoveryEnabledEl)
+                mqttDiscoveryEnabledEl.checked = mqtt.discovery?.enabled !== false; // Default true
+            if (mqttBrokerEl) mqttBrokerEl.value = mqtt.broker || '';
+            if (mqttPortEl) mqttPortEl.value = mqtt.port || 1883;
+            if (mqttUsernameEl) mqttUsernameEl.value = mqtt.username || '';
+            if (mqttPasswordEl) mqttPasswordEl.value = mqtt.password || '';
+            if (mqttSettingsGroup)
+                mqttSettingsGroup.style.display = mqtt.enabled ? 'block' : 'none';
+            if (mqttPill) {
+                mqttPill.textContent = mqtt.enabled ? 'Enabled' : 'Disabled';
+                mqttPill.classList.toggle('status-warning', !mqtt.enabled);
+                mqttPill.classList.toggle('status-success', !!mqtt.enabled);
+            }
+
+            // Toggle MQTT settings visibility
+            if (mqttEnabledEl && mqttSettingsGroup) {
+                mqttEnabledEl.addEventListener('change', () => {
+                    mqttSettingsGroup.style.display = mqttEnabledEl.checked ? 'block' : 'none';
+                });
             }
             // Entry Route (rootRoute)
             try {

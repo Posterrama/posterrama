@@ -1995,6 +1995,9 @@
             <div class="panel-subtitle">Run media refresh and manage auto-updates</div>
           </div>
           <div class="panel-actions">
+            <button type="button" id="btn-restart-server" class="btn btn-secondary btn-sm" title="Restart server">
+              <i class="fas fa-rotate"></i><span>Restart Server</span>
+            </button>
             <button type="button" id="btn-save-operations" class="btn btn-primary btn-sm" title="Save all operation settings">
               <i class="fas fa-save"></i><span>Save Settings</span>
             </button>
@@ -2140,6 +2143,21 @@
                   <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" class="w-110" />
                 </div>
               </div>
+              <div class="metric-row mt-6">
+                <div class="form-group" style="display: block;">
+                  <label for="baseUrl" style="margin:0 0 4px 0;display:flex;align-items:center;justify-content:space-between;">
+                    <span><i class="fas fa-link" style="margin-right:6px;"></i>Server Base URL</span>
+                    <button type="button" id="copy-current-url-base" class="btn btn-link btn-sm" title="Copy current URL" style="padding:2px 8px;font-size:0.85rem;">
+                      <i class="fas fa-copy"></i><span id="current-url-base-text">Loading...</span>
+                    </button>
+                  </label>
+                  <input type="url" id="baseUrl" style="width:100%;max-width:800px;" placeholder="http://localhost:4000" 
+                         title="External URL where Posterrama is accessible" />
+                  <div class="subtle" style="margin-top:4px;font-size:0.85rem;">
+                    External URL for all integrations (MQTT camera preview, API access, etc). Should be accessible from external services.
+                  </div>
+                </div>
+              </div>
             </section>
   <!-- Promobox Site -->
             <section class="perf-card" aria-label="Promobox Site">
@@ -2214,6 +2232,72 @@
                 <button type="button" id="btn-refresh-media" class="btn btn-success btn-sm">
                   <i class="fas fa-sync-alt"></i><span>Refresh Media</span>
                 </button>
+              </div>
+            </section>
+
+            <!-- MQTT Group Title -->
+            <div class="ops-group">
+              <div class="ops-group-title"><i class="fas fa-rss"></i> MQTT</div>
+            </div>
+            <!-- MQTT Operations -->
+            <section class="perf-card" aria-label="MQTT Operations">
+              <h3><i class="fas fa-broadcast-tower"></i> MQTT Integration</h3>
+              <div class="card-pill-spot">
+                <span class="status-pill status-warning" id="mqtt-status-pill">Disabled</span>
+              </div>
+              <div class="card-subtext">Home Assistant MQTT Discovery integration.</div>
+              
+              <div class="metric-row mt-6">
+                <div class="form-group checkbox-group">
+                  <label class="checkbox" for="mqtt.enabled">
+                    <input type="checkbox" id="mqtt.enabled" />
+                    <span class="checkmark"></span>
+                    <span>Enable MQTT Integration</span>
+                  </label>
+                </div>
+                <div class="form-group checkbox-group">
+                  <label class="checkbox" for="mqtt.discovery.enabled">
+                    <input type="checkbox" id="mqtt.discovery.enabled" />
+                    <span class="checkmark"></span>
+                    <span>Enable Home Assistant Discovery</span>
+                  </label>
+                </div>
+              </div>
+
+              <div id="mqtt-settings-group" style="display:none;">
+                <div class="metric-row mt-6" style="display:flex;gap:20px;flex-wrap:wrap;">
+                  <div class="form-group" style="flex:0 0 auto;">
+                    <label for="mqtt.broker" style="margin:0 0 4px 0;display:block;">Broker Host</label>
+                    <input type="text" id="mqtt.broker" style="width:280px;height:36px;" placeholder="192.168.1.100" 
+                           title="MQTT broker hostname or IP address" />
+                  </div>
+                  <div class="form-group" style="flex:0 0 auto;">
+                    <label for="mqtt.port" style="margin:0 0 4px 0;display:block;">Broker Port</label>
+                    <input type="number" id="mqtt.port" min="1" max="65535" value="1883" style="width:110px;height:36px;" 
+                           title="MQTT broker port (default: 1883)" />
+                  </div>
+                </div>
+                <div class="metric-row mt-6" style="display:flex;gap:20px;flex-wrap:wrap;">
+                  <div class="form-group" style="flex:0 0 auto;">
+                    <label for="mqtt.username" style="margin:0 0 4px 0;display:block;">Username</label>
+                    <input type="text" id="mqtt.username" style="width:280px;height:36px;" placeholder="mqtt-user" 
+                           title="MQTT broker username (optional)" />
+                  </div>
+                  <div class="form-group" style="flex:0 0 auto;">
+                    <label for="mqtt.password" style="margin:0 0 4px 0;display:block;">Password</label>
+                    <input type="password" id="mqtt.password" style="width:280px;height:36px;" placeholder="••••••••" 
+                           title="MQTT broker password (optional)" />
+                  </div>
+                </div>
+                
+                <div class="actions main-actions" style="margin-top:16px;">
+                  <button type="button" id="btn-republish-mqtt" class="btn btn-success btn-sm">
+                    <i class="fas fa-paper-plane"></i><span>Republish All Devices</span>
+                  </button>
+                </div>
+                <div class="subtle" style="margin-top:8px;font-size:0.85rem;">
+                  Use this to restore devices in Home Assistant after deletion or configuration changes. Note: Save settings and restart server first if you just enabled MQTT.
+                </div>
               </div>
             </section>
 
