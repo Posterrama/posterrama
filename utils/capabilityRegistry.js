@@ -20,6 +20,15 @@ class CapabilityRegistry {
     }
 
     /**
+     * Get device mode consistently
+     * @param {object} device - Device object
+     * @returns {string} Current mode
+     */
+    getDeviceMode(device) {
+        return device.clientInfo?.mode || device.currentState?.mode || 'screensaver';
+    }
+
+    /**
      * Initialize and register all core capabilities
      */
     init() {
@@ -35,6 +44,9 @@ class CapabilityRegistry {
         this.registerModeCapabilities();
         this.registerDisplaySettingsCapabilities();
         this.registerCameraCapabilities();
+        this.registerMediaSensors();
+        this.registerDeviceSensors();
+        this.registerAdditionalSwitches();
 
         this.initialized = true;
         logger.info(
@@ -96,6 +108,18 @@ class CapabilityRegistry {
     }
 
     /**
+     * Get all capabilities (regardless of availability)
+     * @returns {Array} All capability specs with IDs
+     */
+    getAllCapabilities() {
+        const all = [];
+        for (const [id, spec] of this.capabilities) {
+            all.push({ id, ...spec });
+        }
+        return all;
+    }
+
+    /**
      * Get a specific capability by ID
      * @param {string} id - Capability ID
      * @returns {object|null} Capability spec or null
@@ -124,7 +148,7 @@ class CapabilityRegistry {
             category: 'playback',
             entityType: 'button',
             icon: 'mdi:pause',
-            availableWhen: device => device.currentState?.mode === 'screensaver',
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
                 return wsHub.sendCommand(deviceId, { type: 'playback.pause' });
             },
@@ -135,7 +159,7 @@ class CapabilityRegistry {
             category: 'playback',
             entityType: 'button',
             icon: 'mdi:play',
-            availableWhen: device => device.currentState?.mode === 'screensaver',
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
                 return wsHub.sendCommand(deviceId, { type: 'playback.resume' });
             },
@@ -146,6 +170,7 @@ class CapabilityRegistry {
             category: 'playback',
             entityType: 'button',
             icon: 'mdi:skip-next',
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
                 return wsHub.sendCommand(deviceId, { type: 'playback.next' });
             },
@@ -156,6 +181,7 @@ class CapabilityRegistry {
             category: 'playback',
             entityType: 'button',
             icon: 'mdi:skip-previous',
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
                 return wsHub.sendCommand(deviceId, { type: 'playback.previous' });
             },
@@ -166,7 +192,7 @@ class CapabilityRegistry {
             category: 'playback',
             entityType: 'button',
             icon: 'mdi:play-pause',
-            availableWhen: device => device.currentState?.mode === 'screensaver',
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
                 return wsHub.sendCommand(deviceId, { type: 'playback.toggle' });
             },
@@ -229,6 +255,7 @@ class CapabilityRegistry {
             category: 'navigation',
             entityType: 'button',
             icon: 'mdi:pin',
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
                 return wsHub.sendCommand(deviceId, { type: 'playback.pin' });
             },
@@ -239,7 +266,12 @@ class CapabilityRegistry {
             category: 'navigation',
             entityType: 'button',
             icon: 'mdi:pin-off',
-            availableWhen: device => device.currentState?.pinned === true,
+            availableWhen: device => {
+                return (
+                    this.getDeviceMode(device) === 'screensaver' &&
+                    device.currentState?.pinned === true
+                );
+            },
             commandHandler: deviceId => {
                 return wsHub.sendCommand(deviceId, { type: 'playback.unpin' });
             },
@@ -289,7 +321,7 @@ class CapabilityRegistry {
                 return wsHub.sendApplySettings(deviceId, { mode });
             },
             stateGetter: device => {
-                return device.currentState?.mode || 'screensaver';
+                return device.clientInfo?.mode || device.currentState?.mode || 'screensaver';
             },
         });
     }
@@ -311,6 +343,7 @@ class CapabilityRegistry {
             min: 5,
             max: 300,
             step: 5,
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     transitionIntervalSeconds: parseInt(value),
@@ -331,6 +364,7 @@ class CapabilityRegistry {
             min: 0,
             max: 10,
             step: 1,
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, { effectPauseTime: parseInt(value) });
             },
@@ -346,75 +380,12 @@ class CapabilityRegistry {
             entityType: 'select',
             icon: 'mdi:transition',
             options: ['fade', 'slide', 'zoom', 'kenburns', 'none'],
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, { transitionEffect: value });
             },
             stateGetter: device => {
                 return device.settingsOverride?.transitionEffect || null;
-            },
-        });
-
-        // Show clear logo
-        this.register('settings.showClearLogo', {
-            name: 'Show Logo',
-            category: 'settings',
-            entityType: 'switch',
-            icon: 'mdi:image-text',
-            commandHandler: (deviceId, value) => {
-                const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, { showClearLogo: boolValue });
-            },
-            stateGetter: device => {
-                const val = device.settingsOverride?.showClearLogo;
-                return val !== undefined ? val : null;
-            },
-        });
-
-        // Show metadata
-        this.register('settings.showMetadata', {
-            name: 'Show Metadata',
-            category: 'settings',
-            entityType: 'switch',
-            icon: 'mdi:text-box-outline',
-            commandHandler: (deviceId, value) => {
-                const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, { showMetadata: boolValue });
-            },
-            stateGetter: device => {
-                const val = device.settingsOverride?.showMetadata;
-                return val !== undefined ? val : null;
-            },
-        });
-
-        // Show Rotten Tomatoes
-        this.register('settings.showRottenTomatoes', {
-            name: 'Show Rotten Tomatoes',
-            category: 'settings',
-            entityType: 'switch',
-            icon: 'mdi:fruit-cherries',
-            commandHandler: (deviceId, value) => {
-                const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, { showRottenTomatoes: boolValue });
-            },
-            stateGetter: device => {
-                const val = device.settingsOverride?.showRottenTomatoes;
-                return val !== undefined ? val : null;
-            },
-        });
-
-        // Clock widget
-        this.register('settings.clockWidget', {
-            name: 'Show Clock',
-            category: 'settings',
-            entityType: 'switch',
-            icon: 'mdi:clock-outline',
-            commandHandler: (deviceId, value) => {
-                const boolValue = value === true || value === 'ON' || value === 1;
-                return wsHub.sendApplySettings(deviceId, { clockWidget: boolValue });
-            },
-            stateGetter: device => {
-                const val = device.settingsOverride?.clockWidget;
-                return val !== undefined ? val : null;
             },
         });
 
@@ -480,7 +451,7 @@ class CapabilityRegistry {
             entityType: 'select',
             icon: 'mdi:grid',
             options: ['low', 'medium', 'high', 'ludicrous'],
-            availableWhen: device => device.currentState?.mode === 'wallart',
+            availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     wallartMode: { density: value },
@@ -500,7 +471,7 @@ class CapabilityRegistry {
             min: 1,
             max: 10,
             step: 1,
-            availableWhen: device => device.currentState?.mode === 'wallart',
+            availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     wallartMode: { refreshRate: parseInt(value) },
@@ -518,7 +489,7 @@ class CapabilityRegistry {
             entityType: 'select',
             icon: 'mdi:animation',
             options: ['fade', 'flip', 'slide', 'zoom', 'none'],
-            availableWhen: device => device.currentState?.mode === 'wallart',
+            availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     wallartMode: { animationType: value },
@@ -535,7 +506,7 @@ class CapabilityRegistry {
             category: 'settings',
             entityType: 'switch',
             icon: 'mdi:page-layout-header',
-            availableWhen: device => device.currentState?.mode === 'cinema',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
                 return wsHub.sendApplySettings(deviceId, {
@@ -555,7 +526,7 @@ class CapabilityRegistry {
             entityType: 'text',
             icon: 'mdi:format-title',
             pattern: '.{0,50}',
-            availableWhen: device => device.currentState?.mode === 'cinema',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     cinema: { header: { text: value } },
@@ -572,7 +543,7 @@ class CapabilityRegistry {
             category: 'settings',
             entityType: 'switch',
             icon: 'mdi:lightbulb-on',
-            availableWhen: device => device.currentState?.mode === 'cinema',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
                 return wsHub.sendApplySettings(deviceId, {
@@ -595,7 +566,7 @@ class CapabilityRegistry {
             min: 0,
             max: 100,
             step: 10,
-            availableWhen: device => device.currentState?.mode === 'cinema',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
                 return wsHub.sendApplySettings(deviceId, {
                     cinema: { ambilight: { strength: parseInt(value) } },
@@ -618,6 +589,287 @@ class CapabilityRegistry {
             icon: 'mdi:image',
             // No command handler - camera is read-only
             commandHandler: () => Promise.resolve(),
+        });
+    }
+
+    /**
+     * Register media metadata sensors
+     */
+    registerMediaSensors() {
+        // Title
+        this.register('media.title', {
+            name: 'Title',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:text',
+            stateGetter: device => device.currentState?.title || 'Unknown',
+        });
+
+        // Year
+        this.register('media.year', {
+            name: 'Year',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:calendar',
+            stateGetter: device => device.currentState?.year || null,
+        });
+
+        // Rating
+        this.register('media.rating', {
+            name: 'Rating',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:star',
+            stateGetter: device => device.currentState?.rating || null,
+        });
+
+        // Runtime
+        this.register('media.runtime', {
+            name: 'Runtime',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:clock-outline',
+            unitOfMeasurement: 'min',
+            stateGetter: device => device.currentState?.runtime || null,
+        });
+
+        // Genres
+        this.register('media.genres', {
+            name: 'Genres',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:tag-multiple',
+            stateGetter: device => {
+                const genres = device.currentState?.genres;
+                return Array.isArray(genres) ? genres.join(', ') : null;
+            },
+        });
+
+        // Content Rating
+        this.register('media.contentRating', {
+            name: 'Content Rating',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:shield-alert',
+            stateGetter: device => device.currentState?.contentRating || null,
+        });
+
+        // Tagline
+        this.register('media.tagline', {
+            name: 'Tagline',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:format-quote-close',
+            stateGetter: device => device.currentState?.tagline || null,
+        });
+    }
+
+    /**
+     * Register device status sensors
+     */
+    registerDeviceSensors() {
+        // WebSocket Status
+        this.register('device.wsStatus', {
+            name: 'WebSocket Status',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:lan-connect',
+            stateGetter: device => {
+                const wsHub = require('./wsHub');
+                return wsHub.isConnected(device.id) ? 'connected' : 'disconnected';
+            },
+        });
+
+        // Last Seen
+        this.register('device.lastSeen', {
+            name: 'Last Seen',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:clock-check',
+            deviceClass: 'timestamp',
+            stateGetter: device => device.lastSeenAt || null,
+        });
+
+        // Device ID
+        this.register('device.id', {
+            name: 'Device ID',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:identifier',
+            stateGetter: device => device.id,
+        });
+
+        // Resolution
+        this.register('device.resolution', {
+            name: 'Resolution',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:monitor-screenshot',
+            stateGetter: device => {
+                const screen = device.clientInfo?.screen;
+                if (screen?.w && screen?.h) {
+                    return `${screen.w}×${screen.h}`;
+                }
+                // Fallback: check if screen info is stored differently
+                if (screen?.width && screen?.height) {
+                    return `${screen.width}×${screen.height}`;
+                }
+                if (device.screen?.w && device.screen?.h) {
+                    return `${device.screen.w}×${device.screen.h}`;
+                }
+                if (device.screen?.width && device.screen?.height) {
+                    return `${device.screen.width}×${device.screen.height}`;
+                }
+                return 'Unknown';
+            },
+        });
+
+        // Mode
+        this.register('device.mode', {
+            name: 'Mode',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:view-dashboard',
+            stateGetter: device =>
+                device.clientInfo?.mode || device.currentState?.mode || 'screensaver',
+        });
+
+        // User Agent
+        this.register('device.userAgent', {
+            name: 'User Agent',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:information',
+            stateGetter: device => device.clientInfo?.userAgent || null,
+        });
+
+        // Client Type (parsed from user agent)
+        this.register('device.clientType', {
+            name: 'Client',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:devices',
+            stateGetter: device => {
+                const ua = device.clientInfo?.userAgent || '';
+                if (ua.includes('AppleTV')) return 'Apple TV';
+                if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS';
+                if (ua.includes('Chrome')) return 'Chrome';
+                if (ua.includes('Safari')) return 'Safari';
+                if (ua.includes('Firefox')) return 'Firefox';
+                if (ua.includes('Edge')) return 'Edge';
+                return 'Unknown';
+            },
+        });
+
+        // Status
+        this.register('device.status', {
+            name: 'Status',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:information-outline',
+            stateGetter: device => {
+                const wsHub = require('./wsHub');
+                const isConnected = wsHub.isConnected(device.id);
+                const lastSeen = device.lastSeenAt ? new Date(device.lastSeenAt) : null;
+                const now = new Date();
+
+                if (isConnected) return 'live';
+                if (lastSeen && (now - lastSeen) / 1000 < 60) return 'online';
+                return 'offline';
+            },
+        });
+
+        // Groups
+        this.register('device.groups', {
+            name: 'Groups',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:folder-multiple',
+            stateGetter: device => {
+                const groups = device.groups;
+                return Array.isArray(groups) && groups.length > 0 ? groups.join(', ') : 'None';
+            },
+        });
+
+        // Preset
+        this.register('device.preset', {
+            name: 'Preset',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:palette',
+            stateGetter: device => device.preset || 'Default',
+        });
+
+        // Location
+        this.register('device.location', {
+            name: 'Location',
+            category: 'sensor',
+            entityType: 'sensor',
+            icon: 'mdi:map-marker',
+            stateGetter: device => device.location || 'Not set',
+        });
+    }
+
+    /**
+     * Register additional switch capabilities
+     */
+    registerAdditionalSwitches() {
+        const wsHub = require('./wsHub');
+
+        // Show Clock
+        this.register('settings.showClock', {
+            name: 'Show Clock',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:clock-outline',
+            commandHandler: async (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    clockWidget: value === 'ON',
+                });
+            },
+            stateGetter: device => device.settingsOverride?.clockWidget ?? false,
+        });
+
+        // Show Logo
+        this.register('settings.showLogo', {
+            name: 'Show Logo',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:image-area',
+            commandHandler: async (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    showClearLogo: value === 'ON',
+                });
+            },
+            stateGetter: device => device.settingsOverride?.showClearLogo ?? false,
+        });
+
+        // Show Metadata
+        this.register('settings.showMetadata', {
+            name: 'Show Metadata',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:information',
+            commandHandler: async (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    showMetadata: value === 'ON',
+                });
+            },
+            stateGetter: device => device.settingsOverride?.showMetadata ?? false,
+        });
+
+        // Show Rotten Tomatoes
+        this.register('settings.showRottenTomatoes', {
+            name: 'Show Rotten Tomatoes',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:tomato',
+            commandHandler: async (deviceId, value) => {
+                return wsHub.sendApplySettings(deviceId, {
+                    showRottenTomatoes: value === 'ON',
+                });
+            },
+            stateGetter: device => device.settingsOverride?.showRottenTomatoes ?? false,
         });
     }
 }

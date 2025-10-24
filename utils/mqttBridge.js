@@ -18,37 +18,42 @@ const capabilityRegistry = require('./capabilityRegistry');
 class MqttBridge extends EventEmitter {
     constructor(config) {
         super();
-
-        this.config = config || {};
         this.client = null;
         this.connected = false;
-        this.publishTimer = null;
-        this.deviceStates = new Map(); // Track last published state to avoid duplicates
-        this.discoveryPublished = new Set(); // Track which devices have discovery published
-
-        // Stats
+        this.config = config || null;
         this.stats = {
-            messagesPublished: 0,
-            messagesReceived: 0,
-            commandsExecuted: 0,
+            published: 0,
             errors: 0,
-            lastPublish: null,
-            connectedAt: null,
         };
+        this.deviceStates = new Map();
+        this.discoveryPublished = new Set();
+        this.deviceModes = new Map(); // Track device modes to detect changes
     }
 
     /**
      * Initialize MQTT connection and setup
      */
     async init() {
-        if (!this.config.enabled) {
+        if (!this.config || !this.config.enabled) {
             logger.info('MQTT bridge disabled in configuration');
             return;
         }
 
         try {
+            // Support both flat and nested config structures
+            // If broker is a string (flat), use it directly
+            // If broker is an object (nested), use broker.host
+            const brokerHost =
+                typeof this.config.broker === 'string'
+                    ? this.config.broker
+                    : this.config.broker?.host || 'localhost';
+            const brokerPort =
+                typeof this.config.broker === 'object'
+                    ? this.config.broker.port || 1883
+                    : this.config.port || 1883;
+
             logger.info('🔌 Initializing MQTT bridge...', {
-                broker: `${this.config.broker.host}:${this.config.broker.port}`,
+                broker: `${brokerHost}:${brokerPort}`,
                 discovery: this.config.discovery?.enabled || false,
             });
 
@@ -74,7 +79,16 @@ class MqttBridge extends EventEmitter {
      */
     async connect() {
         return new Promise((resolve, reject) => {
-            const brokerUrl = `mqtt://${this.config.broker.host}:${this.config.broker.port}`;
+            // Support both flat and nested config structures
+            const brokerHost =
+                typeof this.config.broker === 'string'
+                    ? this.config.broker
+                    : this.config.broker?.host || 'localhost';
+            const brokerPort =
+                typeof this.config.broker === 'object'
+                    ? this.config.broker.port || 1883
+                    : this.config.port || 1883;
+            const brokerUrl = `mqtt://${brokerHost}:${brokerPort}`;
 
             const options = {
                 clientId: `posterrama_${Date.now()}`,
@@ -83,20 +97,28 @@ class MqttBridge extends EventEmitter {
                 connectTimeout: 30000,
             };
 
-            // Add authentication if configured
-            if (this.config.broker.username) {
-                options.username = this.config.broker.username;
+            // Add authentication if configured - support both structures
+            const username = this.config.broker?.username || this.config.username;
+            const password = this.config.broker?.password || this.config.password;
+
+            if (username) {
+                options.username = username;
             }
 
-            if (this.config.broker.passwordEnvVar) {
-                const password = process.env[this.config.broker.passwordEnvVar];
-                if (password) {
-                    options.password = password;
+            if (password) {
+                options.password = password;
+            }
+
+            // Also check for password from env var (legacy)
+            if (this.config.broker?.passwordEnvVar) {
+                const envPassword = process.env[this.config.broker.passwordEnvVar];
+                if (envPassword) {
+                    options.password = envPassword;
                 }
             }
 
             // TLS support
-            if (this.config.broker.tls) {
+            if (this.config.broker?.tls || this.config.tls) {
                 options.protocol = 'mqtts';
             }
 
@@ -292,13 +314,24 @@ class MqttBridge extends EventEmitter {
             const prefix = this.config.topicPrefix || 'posterrama';
             const stateTopic = `${prefix}/device/${device.id}/state`;
 
+            // Debug: log device structure to understand what data we have
+            logger.info('📊 Device data for state publishing', {
+                deviceId: device.id,
+                hasCurrentState: !!device.currentState,
+                currentStateKeys: device.currentState ? Object.keys(device.currentState) : null,
+                mode: device.currentState?.mode,
+                hasClientInfo: !!device.clientInfo,
+                clientInfoKeys: device.clientInfo ? Object.keys(device.clientInfo) : null,
+                screen: device.clientInfo?.screen,
+            });
+
             // Build state payload
             const state = {
                 device_id: device.id,
                 name: device.name || device.id,
                 location: device.location || '',
                 status: device.status || 'unknown',
-                mode: device.currentState?.mode || 'screensaver',
+                mode: device.clientInfo?.mode || device.currentState?.mode || 'screensaver',
                 paused: device.currentState?.paused || false,
                 pinned: device.currentState?.pinned || false,
                 powered_off: device.currentState?.poweredOff || false,
@@ -307,6 +340,32 @@ class MqttBridge extends EventEmitter {
                 last_seen: device.lastSeenAt || null,
                 preset: device.preset || '',
             };
+
+            // Check if mode changed - if so, republish discovery to update available entities
+            const currentMode = state.mode;
+            const previousMode = this.deviceModes.get(device.id);
+            const modeChanged = previousMode && previousMode !== currentMode;
+
+            if (modeChanged) {
+                logger.info('🔄 Device mode changed, republishing discovery', {
+                    deviceId: device.id,
+                    previousMode,
+                    currentMode,
+                });
+
+                // Unpublish ALL capabilities first (to remove unavailable ones from HA)
+                await this.unpublishAllCapabilities(device);
+
+                // Clear discovery cache to force republish
+                this.discoveryPublished.delete(device.id);
+
+                // Wait a bit to ensure HA processes the unpublish
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Republish only available capabilities for new mode
+                await this.publishDiscovery(device);
+            }
+            this.deviceModes.set(device.id, currentMode);
 
             // Add capability-specific state values
             const capabilities = capabilityRegistry.getAvailableCapabilities(device);
@@ -368,11 +427,85 @@ class MqttBridge extends EventEmitter {
     }
 
     /**
+     * Publish camera preview notification (triggers Home Assistant to fetch image_url)
+     */
+    async publishCameraState(device) {
+        if (!this.client || !this.connected) return;
+
+        try {
+            const prefix = this.config.topicPrefix || 'posterrama';
+            const cameraTopic = `${prefix}/device/${device.id}/camera`;
+
+            // Get the poster URL from device state
+            const posterUrl = device.currentState?.posterUrl;
+            if (!posterUrl) {
+                logger.info('No poster URL available for camera state', { deviceId: device.id });
+                return;
+            }
+
+            // Fetch the image and publish as base64
+            const config = require('../config');
+            const axios = require('axios');
+            let imageUrl;
+
+            // Build the full URL
+            if (posterUrl.startsWith('/')) {
+                // Local path - fetch from localhost
+                imageUrl = `http://localhost:${config.serverPort || 4000}${posterUrl}`;
+            } else if (posterUrl.startsWith('http')) {
+                // Already a full URL
+                imageUrl = posterUrl;
+            } else {
+                logger.info('Invalid poster URL format', { posterUrl });
+                return;
+            }
+
+            logger.info('📷 Fetching camera image...', {
+                deviceId: device.id,
+                imageUrl: imageUrl.substring(0, 100),
+            });
+
+            // Fetch the image
+            const response = await axios.get(imageUrl, {
+                responseType: 'arraybuffer',
+                timeout: 5000,
+                headers: {
+                    'User-Agent': 'Posterrama-MQTT-Bridge/2.8.1',
+                },
+            });
+
+            // Convert to base64
+            const base64Image = Buffer.from(response.data).toString('base64');
+
+            // Publish base64 image to MQTT
+            await this.publish(cameraTopic, base64Image, { qos: 0, retain: false });
+
+            logger.info('📷 Published camera image', {
+                deviceId: device.id,
+                imageSize: Math.round(response.data.length / 1024) + 'KB',
+                base64Size: Math.round(base64Image.length / 1024) + 'KB',
+            });
+        } catch (error) {
+            logger.error('Error publishing camera state:', {
+                error: error.message,
+                deviceId: device.id,
+            });
+            this.stats.errors++;
+        }
+    }
+
+    /**
      * Publish Home Assistant Discovery configuration for a device
      */
     async publishDiscovery(device) {
         if (!this.client || !this.connected) return;
-        if (!this.config.discovery?.enabled) return;
+        if (!this.config.discovery?.enabled) {
+            logger.debug('⏭️  Skipping discovery - discovery.enabled is false or undefined', {
+                deviceId: device.id,
+                discoveryEnabled: this.config.discovery?.enabled,
+            });
+            return;
+        }
 
         try {
             // Skip if already published for this device (unless force)
@@ -380,16 +513,24 @@ class MqttBridge extends EventEmitter {
                 return;
             }
 
-            const capabilities = capabilityRegistry.getAvailableCapabilities(device);
+            const allCapabilities = capabilityRegistry.getAllCapabilities();
+            const availableCapabilities = capabilityRegistry.getAvailableCapabilities(device);
             const discoveryPrefix = this.config.discovery.prefix || 'homeassistant';
             const topicPrefix = this.config.topicPrefix || 'posterrama';
 
+            const availableIds = new Set(availableCapabilities.map(c => c.id));
+            const skippedCount = allCapabilities.length - availableCapabilities.length;
+
             logger.info('🔍 Publishing Home Assistant discovery', {
                 deviceId: device.id,
-                capabilities: capabilities.length,
+                mode: device.clientInfo?.mode || device.currentState?.mode,
+                availableCapabilities: availableCapabilities.length,
+                totalCapabilities: allCapabilities.length,
+                skippedCapabilities: skippedCount,
             });
 
-            for (const cap of capabilities) {
+            // Publish only available capabilities
+            for (const cap of availableCapabilities) {
                 const discoveryConfig = this.buildDiscoveryConfig(device, cap, topicPrefix);
                 const component = this.getHomeAssistantComponent(cap.entityType);
                 const objectId = cap.id.replace(/\./g, '_');
@@ -403,11 +544,37 @@ class MqttBridge extends EventEmitter {
                 logger.debug('📡 Published discovery config', {
                     deviceId: device.id,
                     capability: cap.id,
+                    category: cap.category,
                     topic: discoveryTopic,
                 });
             }
 
+            // Explicitly unpublish unavailable capabilities to ensure they're removed from HA
+            for (const cap of allCapabilities) {
+                if (!availableIds.has(cap.id)) {
+                    const component = this.getHomeAssistantComponent(cap.entityType);
+                    const objectId = cap.id.replace(/\./g, '_');
+                    const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${objectId}/config`;
+
+                    await this.publish(discoveryTopic, '', {
+                        qos: 1,
+                        retain: true,
+                    });
+
+                    logger.debug('� Unpublished unavailable capability', {
+                        deviceId: device.id,
+                        capability: cap.id,
+                        reason: 'availableWhen check failed',
+                    });
+                }
+            }
+
             this.discoveryPublished.add(device.id);
+            logger.info('✅ Discovery publishing completed', {
+                deviceId: device.id,
+                published: availableCapabilities.length,
+                unpublished: skippedCount,
+            });
         } catch (error) {
             logger.error('Error publishing discovery:', error);
             this.stats.errors++;
@@ -420,6 +587,45 @@ class MqttBridge extends EventEmitter {
     async republishDiscovery(device) {
         this.discoveryPublished.delete(device.id);
         await this.publishDiscovery(device);
+    }
+
+    /**
+     * Unpublish ALL capabilities for a device (used when mode changes)
+     * This removes entities that are no longer available in the new mode
+     */
+    async unpublishAllCapabilities(device) {
+        if (!this.client || !this.connected) return;
+        if (!this.config.discovery?.enabled) return;
+
+        try {
+            const allCapabilities = capabilityRegistry.getAllCapabilities();
+            const discoveryPrefix = this.config.discovery.prefix || 'homeassistant';
+
+            logger.debug('🗑️  Unpublishing all capabilities for mode change', {
+                deviceId: device.id,
+                capabilityCount: allCapabilities.length,
+            });
+
+            // Send empty payload to each discovery topic to remove entities
+            for (const cap of allCapabilities) {
+                const component = this.getHomeAssistantComponent(cap.entityType);
+                const objectId = cap.id.replace(/\./g, '_');
+                const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${objectId}/config`;
+
+                // Empty payload with retain flag removes the entity from Home Assistant
+                await this.publish(discoveryTopic, '', {
+                    qos: 1,
+                    retain: true,
+                });
+            }
+
+            logger.debug('✅ All capabilities unpublished', {
+                deviceId: device.id,
+            });
+        } catch (error) {
+            logger.error('Error unpublishing all capabilities:', error);
+            this.stats.errors++;
+        }
     }
 
     /**
@@ -478,7 +684,7 @@ class MqttBridge extends EventEmitter {
         const packageJson = require('../package.json');
 
         const baseConfig = {
-            name: `${device.name || device.id} ${capability.name}`,
+            name: capability.name, // Capability name already includes context (e.g., "Next", "Current Poster")
             unique_id: `posterrama_${device.id}_${capability.id}`,
             device: {
                 identifiers: [`posterrama_${device.id}`],
@@ -558,42 +764,33 @@ class MqttBridge extends EventEmitter {
                 };
 
             case 'camera': {
-                // Camera uses a direct image URL instead of state topic
-                // Home Assistant will periodically fetch from this URL
-                const config = require('../config');
-
-                // Use MQTT-specific external URL if configured, otherwise fall back to baseUrl
-                const baseUrl =
-                    this.config.externalUrl || config.baseUrl || 'http://localhost:4000';
-
-                // Warn if using localhost (won't work from Home Assistant)
-                if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
-                    logger.warn(
-                        'Camera preview URL uses localhost - may not be accessible from Home Assistant',
-                        {
-                            url: baseUrl,
-                            device: device.id,
-                            suggestion:
-                                "Set mqtt.externalUrl in config.json to your server's IP address",
-                        }
-                    );
-                }
-
+                // Camera uses MQTT topic to publish base64-encoded images
+                // This is more reliable than image_url for Home Assistant
                 return {
                     ...baseConfig,
                     topic: `${topicPrefix}/device/${device.id}/camera`,
-                    image_url: `${baseUrl}/api/devices/${device.id}/preview`,
                     icon: capability.icon,
                 };
             }
 
-            case 'sensor':
-                return {
+            case 'sensor': {
+                const sensorConfig = {
                     ...baseConfig,
                     state_topic: stateTopic,
                     value_template: `{{ value_json['${capability.id}'] | default('unknown') }}`,
                     icon: capability.icon,
                 };
+
+                // Add optional sensor fields
+                if (capability.unitOfMeasurement) {
+                    sensorConfig.unit_of_measurement = capability.unitOfMeasurement;
+                }
+                if (capability.deviceClass) {
+                    sensorConfig.device_class = capability.deviceClass;
+                }
+
+                return sensorConfig;
+            }
 
             default:
                 return baseConfig;
@@ -642,6 +839,7 @@ class MqttBridge extends EventEmitter {
             for (const device of devices) {
                 await this.publishDeviceState(device);
                 await this.publishDeviceAvailability(device);
+                await this.publishCameraState(device);
                 await this.publishDiscovery(device);
             }
 
@@ -679,6 +877,7 @@ class MqttBridge extends EventEmitter {
     async onDeviceUpdate(device) {
         await this.publishDeviceState(device);
         await this.publishDeviceAvailability(device);
+        await this.publishCameraState(device);
         await this.publishDiscovery(device);
     }
 
