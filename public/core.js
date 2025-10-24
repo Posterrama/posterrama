@@ -245,6 +245,17 @@
                         return;
                     }
 
+                    // Skip tick if page recently navigated (prevent rapid redirect loops)
+                    const timeSinceNav = Date.now() - (window.__lastAutoExitNav || 0);
+                    if (timeSinceNav < 5000) {
+                        window.debugLog &&
+                            window.debugLog('AUTO_EXIT_SKIP_RECENT_NAV', {
+                                currentMode,
+                                timeSinceNav,
+                            });
+                        return;
+                    }
+
                     window.debugLog && window.debugLog('AUTO_EXIT_TICK', { currentMode });
                     const cfg = await Core.fetchConfig();
 
@@ -282,6 +293,7 @@
                                 from: currentMode,
                                 to: target,
                             });
+                        window.__lastAutoExitNav = Date.now(); // Track navigation timestamp
                         Core.navigateToMode(target);
                     }
                 } catch (e) {
@@ -291,8 +303,9 @@
             };
 
             // First check shortly after load, then at intervals with slight jitter
-            window.debugLog && window.debugLog('AUTO_EXIT_FIRST_TICK', { delayMs: 800 });
-            setTimeout(tick, 800);
+            // Delay first tick to allow page to stabilize after navigation
+            window.debugLog && window.debugLog('AUTO_EXIT_FIRST_TICK', { delayMs: 3000 });
+            setTimeout(tick, 3000); // Increased from 800ms to 3s
             window.__autoExitTimer = setInterval(() => {
                 const jitter = Math.floor(Math.random() * 1500);
                 setTimeout(tick, jitter);
