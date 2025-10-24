@@ -17424,6 +17424,68 @@ app.post(
 
 /**
  * @swagger
+ * /api/admin/mqtt/generate-dashboard:
+ *   post:
+ *     summary: Generate Home Assistant dashboard YAML
+ *     description: Generates a Lovelace dashboard configuration for selected devices
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               deviceIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of device IDs to include
+ *               includeSystemOverview:
+ *                 type: boolean
+ *                 default: true
+ *               includeQuickActions:
+ *                 type: boolean
+ *                 default: true
+ *               includeMobileView:
+ *                 type: boolean
+ *                 default: false
+ *     responses:
+ *       200:
+ *         description: Dashboard YAML generated successfully
+ */
+app.post(
+    '/api/admin/mqtt/generate-dashboard',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const { deviceIds = [], ...options } = req.body;
+
+        logger.info('[Admin] Generating HA dashboard', {
+            deviceCount: deviceIds.length,
+            options,
+        });
+
+        // Get selected devices
+        const allDevices = await deviceStore.getAll();
+        const selectedDevices = allDevices.filter(d => deviceIds.includes(d.id));
+
+        const generator = require('./utils/haDashboardGenerator');
+        const yaml = generator.generateDashboard(selectedDevices, options);
+        const info = generator.getPreviewInfo(selectedDevices);
+
+        res.json({
+            success: true,
+            yaml,
+            info,
+            deviceCount: selectedDevices.length,
+        });
+    })
+);
+
+/**
+ * @swagger
  * /api/admin/mqtt/republish:
  *   post:
  *     summary: Republish MQTT discovery for all devices

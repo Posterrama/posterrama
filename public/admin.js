@@ -13769,6 +13769,14 @@
             });
         }
 
+        // MQTT: Generate HA Dashboard
+        const btnGenerateHADashboard = document.getElementById('btn-generate-ha-dashboard');
+        if (btnGenerateHADashboard) {
+            btnGenerateHADashboard.addEventListener('click', () => {
+                openHADashboardModal();
+            });
+        }
+
         // OPERATIONS: Auto-Update controls
         const btnStartUpdate = document.getElementById('btn-start-update');
         const btnRollbackUpdate = document.getElementById('btn-rollback-update');
@@ -20292,6 +20300,225 @@
                 console.error('Failed to reload whitelist data:', error);
             });
     };
+
+    // ============================================================================
+    // Home Assistant Dashboard Generator
+    // ============================================================================
+
+    let haDashboardDevices = [];
+    let haDashboardYAML = '';
+
+    async function openHADashboardModal() {
+        console.log('[HA Dashboard] openHADashboardModal called');
+        console.log('[HA Dashboard] fetchJSON type:', typeof fetchJSON);
+        console.log('[HA Dashboard] fetchJSON defined?', typeof fetchJSON !== 'undefined');
+
+        const modal = document.getElementById('modal-ha-dashboard');
+        if (!modal) {
+            console.error('[HA Dashboard] Modal not found');
+            return;
+        }
+
+        // Use the existing modal helper if available
+        if (typeof openModal === 'function') {
+            console.log('[HA Dashboard] Using openModal helper');
+            openModal('modal-ha-dashboard');
+        } else {
+            console.log('[HA Dashboard] Using direct modal show');
+            modal.classList.add('active');
+            modal.removeAttribute('hidden');
+        }
+
+        // Load devices
+        try {
+            console.log('[HA Dashboard] Fetching devices from /api/devices');
+            const data = await fetchJSON('/api/devices');
+            console.log('[HA Dashboard] Fetch successful, data:', data);
+
+            // API returns array directly, not {devices: [...]}
+            haDashboardDevices = Array.isArray(data) ? data : data.devices || [];
+
+            console.log('[HA Dashboard] Loaded devices for dashboard:', haDashboardDevices.length);
+
+            renderDashboardDeviceList();
+        } catch (error) {
+            console.error('[HA Dashboard] Error loading devices:', error);
+            console.error('[HA Dashboard] Error stack:', error.stack);
+            document.getElementById('ha-dashboard-device-list').innerHTML =
+                `<p style="text-align: center; color: #ef4444;">Failed to load devices: ${error.message}</p>`;
+        }
+    }
+
+    function closeHADashboardModal() {
+        if (typeof closeModal === 'function') {
+            closeModal('modal-ha-dashboard');
+        } else {
+            const modal = document.getElementById('modal-ha-dashboard');
+            if (modal) {
+                modal.classList.remove('active');
+                modal.setAttribute('hidden', '');
+            }
+        }
+    }
+
+    function renderDashboardDeviceList() {
+        const container = document.getElementById('ha-dashboard-device-list');
+        if (!container) {
+            console.error('Device list container not found');
+            return;
+        }
+
+        console.log('Rendering device list:', haDashboardDevices.length, 'devices');
+
+        if (haDashboardDevices.length === 0) {
+            container.innerHTML =
+                '<p style="text-align: center; opacity: 0.6;">No devices found. Please add devices in Device Management.</p>';
+            return;
+        }
+
+        container.innerHTML = haDashboardDevices
+            .map((device, index) => {
+                const deviceName = device.name || 'Unnamed Device';
+                const deviceId = device.id;
+                const shortId = deviceId.substring(0, 8);
+
+                return `
+                <label class="ha-device-radio-label ${index === 0 ? 'selected' : ''}" data-label-id="${deviceId}">
+                    <input 
+                        type="radio" 
+                        name="ha-dashboard-device" 
+                        class="ha-dashboard-device-radio" 
+                        data-device-id="${device.id}" 
+                        ${index === 0 ? 'checked' : ''}
+                        onchange="updateRadioSelection(); generateHADashboard();"
+                    />
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 0.95rem;">${deviceName}</div>
+                        <div style="font-size: 0.75rem; opacity: 0.5; font-family: 'Courier New', monospace; margin-top: 2px;">${shortId}...</div>
+                    </div>
+                    <i class="fas fa-check-circle" style="color: #3b82f6; font-size: 16px; display: none;"></i>
+                </label>
+            `;
+            })
+            .join('');
+
+        console.log('Device list rendered successfully');
+
+        // Auto-generate on initial load
+        generateHADashboard();
+    }
+
+    function updateRadioSelection() {
+        // Update visual selection state
+        document.querySelectorAll('.ha-device-radio-label').forEach(label => {
+            const radio = label.querySelector('input[type="radio"]');
+            const checkIcon = label.querySelector('.fa-check-circle');
+            if (radio && radio.checked) {
+                label.classList.add('selected');
+                if (checkIcon) checkIcon.style.display = 'block';
+            } else {
+                label.classList.remove('selected');
+                if (checkIcon) checkIcon.style.display = 'none';
+            }
+        });
+    }
+
+    async function generateHADashboard() {
+        try {
+            // Get selected device ID (only one radio button)
+            const selectedRadio = document.querySelector('.ha-dashboard-device-radio:checked');
+
+            if (!selectedRadio) {
+                window.notify?.toast({
+                    type: 'warning',
+                    title: 'No device selected',
+                    message: 'Please select a device',
+                    duration: 3000,
+                });
+                return;
+            }
+
+            const selectedDeviceId = selectedRadio.dataset.deviceId;
+
+            // Get options
+            const options = {
+                deviceIds: [selectedDeviceId], // Single device in array
+            };
+
+            // Generate dashboard
+            const data = await fetchJSON('/api/admin/mqtt/generate-dashboard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(options),
+            });
+
+            if (!data.success) {
+                throw new Error(data.message || 'Generation failed');
+            }
+
+            haDashboardYAML = data.yaml;
+
+            // Update preview
+            const preview = document.getElementById('ha-dashboard-yaml-preview');
+            if (preview) {
+                preview.textContent = haDashboardYAML;
+            }
+
+            window.notify?.toast({
+                type: 'success',
+                title: 'Section Generated',
+                message: `Generated for ${data.deviceCount} device`,
+                duration: 3000,
+            });
+        } catch (error) {
+            console.error('Error generating dashboard:', error);
+            window.notify?.toast({
+                type: 'error',
+                title: 'Generation Failed',
+                message: error.message || 'Unable to generate section',
+                duration: 5000,
+            });
+        }
+    }
+
+    async function copyDashboardYAML() {
+        if (!haDashboardYAML) {
+            window.notify?.toast({
+                type: 'warning',
+                title: 'No dashboard generated',
+                message: 'Please select at least one device',
+                duration: 3000,
+            });
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(haDashboardYAML);
+            window.notify?.toast({
+                type: 'success',
+                title: 'Copied!',
+                message: 'Dashboard YAML copied to clipboard',
+                duration: 2500,
+            });
+        } catch (error) {
+            console.error('Copy error:', error);
+            window.notify?.toast({
+                type: 'error',
+                title: 'Copy failed',
+                message: 'Unable to copy to clipboard',
+                duration: 3000,
+            });
+        }
+    }
+
+    // Make HA Dashboard functions globally available for inline handlers
+    window.openHADashboardModal = openHADashboardModal;
+    window.closeHADashboardModal = closeHADashboardModal;
+    window.generateHADashboard = generateHADashboard;
+    window.copyDashboardYAML = copyDashboardYAML;
+    window.updateRadioSelection = updateRadioSelection;
 })();
 
 // ===== Fallback spinner delegation (late-phase safety net) =====

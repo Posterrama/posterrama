@@ -729,9 +729,14 @@ class MqttBridge extends EventEmitter {
     buildDiscoveryConfig(device, capability, topicPrefix) {
         const packageJson = require('../package.json');
 
+        // Create unique object_id using first 8 chars of device ID
+        // This ensures entities are unique per device
+        // Format: {capability}_{deviceShort} -> e.g., "camera_preview_ae4b77cb"
+        const deviceShortId = this._getDeviceShortId(device.id);
+
         const baseConfig = {
-            // Use object_id to set the entity name without device prefix
-            object_id: capability.id.replace(/\./g, '_'),
+            // Use object_id with device short ID to make entities unique per device
+            object_id: `${capability.id.replace(/\./g, '_')}_${deviceShortId}`,
             name: capability.name, // Short name without device prefix
             unique_id: `posterrama_${device.id}_${capability.id}`,
             device: {
@@ -994,6 +999,13 @@ class MqttBridge extends EventEmitter {
         }
 
         this.connected = false;
+    }
+
+    /**
+     * Get short device ID for entity naming (first 8 chars)
+     */
+    _getDeviceShortId(deviceId) {
+        return deviceId.substring(0, 8).replace(/-/g, '').toLowerCase();
     }
 }
 
