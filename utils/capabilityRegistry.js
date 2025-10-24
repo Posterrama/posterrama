@@ -29,6 +29,39 @@ class CapabilityRegistry {
     }
 
     /**
+     * Get cinema setting value with fallback chain:
+     * 1. Device settingsOverride (MQTT commands)
+     * 2. Global config.json
+     * 3. Default value
+     */
+    getCinemaSetting(device, path, defaultValue) {
+        // Try device override first
+        const parts = path.split('.');
+        let override = device.settingsOverride?.cinema;
+        for (const part of parts) {
+            if (override === undefined) break;
+            override = override[part];
+        }
+        if (override !== undefined) return override;
+
+        // Try global config
+        try {
+            const config = require('../config.json');
+            let globalVal = config.cinema;
+            for (const part of parts) {
+                if (globalVal === undefined) break;
+                globalVal = globalVal[part];
+            }
+            if (globalVal !== undefined) return globalVal;
+        } catch (_) {
+            // config not available
+        }
+
+        // Return default
+        return defaultValue;
+    }
+
+    /**
      * Initialize and register all core capabilities
      */
     init() {
@@ -667,7 +700,7 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.cinema?.orientation || null;
+                return this.getCinemaSetting(device, 'orientation', 'auto');
             },
         });
 
@@ -686,8 +719,7 @@ class CapabilityRegistry {
                 return true;
             },
             stateGetter: device => {
-                const val = device.settingsOverride?.cinema?.header?.enabled;
-                return val !== undefined ? val : true;
+                return this.getCinemaSetting(device, 'header.enabled', true);
             },
         });
 
@@ -705,8 +737,8 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                const text = device.settingsOverride?.cinema?.header?.text;
-                return text === '' || text === undefined ? 'None' : text;
+                const text = this.getCinemaSetting(device, 'header.text', 'Now Playing');
+                return text === '' ? 'None' : text;
             },
         });
 
@@ -724,7 +756,7 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.cinema?.header?.style || null;
+                return this.getCinemaSetting(device, 'header.style', 'classic');
             },
         });
 
@@ -743,8 +775,7 @@ class CapabilityRegistry {
                 return true;
             },
             stateGetter: device => {
-                const val = device.settingsOverride?.cinema?.ambilight?.enabled;
-                return val !== undefined ? val : true;
+                return this.getCinemaSetting(device, 'ambilight.enabled', true);
             },
         });
 
@@ -765,7 +796,7 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.cinema?.ambilight?.strength || null;
+                return this.getCinemaSetting(device, 'ambilight.strength', 60);
             },
         });
 
@@ -784,8 +815,7 @@ class CapabilityRegistry {
                 return true;
             },
             stateGetter: device => {
-                const val = device.settingsOverride?.cinema?.footer?.enabled;
-                return val !== undefined ? val : true;
+                return this.getCinemaSetting(device, 'footer.enabled', true);
             },
         });
 
@@ -803,7 +833,7 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.cinema?.footer?.type || null;
+                return this.getCinemaSetting(device, 'footer.type', 'specs');
             },
         });
 
@@ -821,8 +851,12 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                const text = device.settingsOverride?.cinema?.footer?.marqueeText;
-                return text === '' || text === undefined ? 'None' : text;
+                const text = this.getCinemaSetting(
+                    device,
+                    'footer.marqueeText',
+                    'Feature Presentation'
+                );
+                return text === '' ? 'None' : text;
             },
         });
 
@@ -840,7 +874,7 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.cinema?.footer?.marqueeStyle || null;
+                return this.getCinemaSetting(device, 'footer.marqueeStyle', 'classic');
             },
         });
 
@@ -858,7 +892,7 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.cinema?.footer?.specs?.style || null;
+                return this.getCinemaSetting(device, 'footer.specs.style', 'subtle');
             },
         });
 
@@ -876,7 +910,7 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.cinema?.footer?.specs?.iconSet || null;
+                return this.getCinemaSetting(device, 'footer.specs.iconSet', 'filled');
             },
         });
 
@@ -895,8 +929,7 @@ class CapabilityRegistry {
                 return true;
             },
             stateGetter: device => {
-                const val = device.settingsOverride?.cinema?.footer?.specs?.showResolution;
-                return val !== undefined ? val : true;
+                return this.getCinemaSetting(device, 'footer.specs.showResolution', true);
             },
         });
 
@@ -915,8 +948,7 @@ class CapabilityRegistry {
                 return true;
             },
             stateGetter: device => {
-                const val = device.settingsOverride?.cinema?.footer?.specs?.showAudio;
-                return val !== undefined ? val : true;
+                return this.getCinemaSetting(device, 'footer.specs.showAudio', true);
             },
         });
 
@@ -935,8 +967,7 @@ class CapabilityRegistry {
                 return true;
             },
             stateGetter: device => {
-                const val = device.settingsOverride?.cinema?.footer?.specs?.showAspectRatio;
-                return val !== undefined ? val : true;
+                return this.getCinemaSetting(device, 'footer.specs.showAspectRatio', true);
             },
         });
 
@@ -955,8 +986,7 @@ class CapabilityRegistry {
                 return true;
             },
             stateGetter: device => {
-                const val = device.settingsOverride?.cinema?.footer?.specs?.showFlags;
-                return val !== undefined ? val : false;
+                return this.getCinemaSetting(device, 'footer.specs.showFlags', false);
             },
         });
     }
