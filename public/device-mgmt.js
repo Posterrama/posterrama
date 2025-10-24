@@ -1281,20 +1281,29 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                 api.switchSource(msg.payload?.sourceKey);
                                 return void sendAck('ok');
                             }
-                            if (t === 'power.off' && api.powerOff) {
-                                liveDbg('[Live] invoking power.off');
-                                api.powerOff();
-                                return void sendAck('ok');
+                            if (t === 'power.off') {
+                                if (api.powerOff) {
+                                    liveDbg('[Live] invoking power.off');
+                                    api.powerOff();
+                                    return void sendAck('ok');
+                                }
+                                // No early return - fall through to handleCommand for fallback
                             }
-                            if (t === 'power.on' && api.powerOn) {
-                                liveDbg('[Live] invoking power.on');
-                                api.powerOn();
-                                return void sendAck('ok');
+                            if (t === 'power.on') {
+                                if (api.powerOn) {
+                                    liveDbg('[Live] invoking power.on');
+                                    api.powerOn();
+                                    return void sendAck('ok');
+                                }
+                                // No early return - fall through to handleCommand for fallback
                             }
-                            if (t === 'power.toggle' && api.powerToggle) {
-                                liveDbg('[Live] invoking power.toggle');
-                                api.powerToggle();
-                                return void sendAck('ok');
+                            if (t === 'power.toggle') {
+                                if (api.powerToggle) {
+                                    liveDbg('[Live] invoking power.toggle');
+                                    api.powerToggle();
+                                    return void sendAck('ok');
+                                }
+                                // No early return - fall through to handleCommand for fallback
                             }
                         } catch (_) {
                             /* ignore playback hook errors */
@@ -1636,6 +1645,29 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         liveDbg('[Live] invoking power.off (queued)');
                         return void api.powerOff();
                     }
+                    // Fallback: create simple power off overlay
+                    liveDbg('[Live] power.off fallback - creating overlay');
+                    const overlay = document.createElement('div');
+                    overlay.id = 'posterrama-power-off-overlay';
+                    overlay.style.cssText = `
+                        position: fixed;
+                        inset: 0;
+                        background: #000;
+                        z-index: 999999;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: rgba(255,255,255,0.3);
+                        font-family: system-ui, -apple-system, sans-serif;
+                        font-size: 24px;
+                    `;
+                    overlay.innerHTML = '<div>Display Off</div>';
+                    document.body.appendChild(overlay);
+
+                    // Mark as powered off
+                    if (typeof window !== 'undefined') {
+                        window.__posterramaPoweredOff = true;
+                    }
                 } catch (_) {
                     // ignore unsupported API or runtime
                 }
@@ -1649,6 +1681,17 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         liveDbg('[Live] invoking power.on (queued)');
                         return void api.powerOn();
                     }
+                    // Fallback: remove power off overlay if present
+                    liveDbg('[Live] power.on fallback - removing overlay');
+                    const overlay = document.getElementById('posterrama-power-off-overlay');
+                    if (overlay) {
+                        overlay.remove();
+                    }
+
+                    // Mark as powered on
+                    if (typeof window !== 'undefined') {
+                        window.__posterramaPoweredOff = false;
+                    }
                 } catch (_) {
                     // ignore unsupported API or runtime
                 }
@@ -1661,6 +1704,34 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                     if (api.powerToggle) {
                         liveDbg('[Live] invoking power.toggle (queued)');
                         return void api.powerToggle();
+                    }
+                    // Fallback: toggle based on current state
+                    liveDbg('[Live] power.toggle fallback');
+                    const isPoweredOff = window.__posterramaPoweredOff || false;
+                    if (isPoweredOff) {
+                        // Currently off, turn on
+                        const overlay = document.getElementById('posterrama-power-off-overlay');
+                        if (overlay) overlay.remove();
+                        window.__posterramaPoweredOff = false;
+                    } else {
+                        // Currently on, turn off
+                        const overlay = document.createElement('div');
+                        overlay.id = 'posterrama-power-off-overlay';
+                        overlay.style.cssText = `
+                            position: fixed;
+                            inset: 0;
+                            background: #000;
+                            z-index: 999999;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: rgba(255,255,255,0.3);
+                            font-family: system-ui, -apple-system, sans-serif;
+                            font-size: 24px;
+                        `;
+                        overlay.innerHTML = '<div>Display Off</div>';
+                        document.body.appendChild(overlay);
+                        window.__posterramaPoweredOff = true;
                     }
                 } catch (_) {
                     // ignore unsupported API or runtime
