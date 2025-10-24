@@ -205,6 +205,14 @@ function buildDiscoveryConfig(device, capability, topicPrefix, config) {
         },
     };
 
+    // Add entity_category based on capability category (CRITICAL for proper HA grouping)
+    if (capability.category === 'settings') {
+        baseConfig.entity_category = 'config';
+    } else if (capability.category === 'diagnostic' || capability.category === 'sensor') {
+        baseConfig.entity_category = 'diagnostic';
+    }
+    // 'mode' and 'camera' categories get no entity_category = they appear as main controls
+
     // Add availability if enabled
     if (config.mqtt.availability?.enabled) {
         baseConfig.availability = {
