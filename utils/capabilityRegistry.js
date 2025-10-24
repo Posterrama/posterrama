@@ -287,8 +287,6 @@ class CapabilityRegistry {
      * Register mode selection capabilities
      */
     registerModeCapabilities() {
-        const wsHub = require('./wsHub');
-
         this.register('mode.select', {
             name: 'Display Mode',
             category: 'settings',
