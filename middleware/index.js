@@ -149,8 +149,10 @@ function requestLoggingMiddleware() {
                 responseSize: res.locals.responseSize || 0,
             };
 
-            if (res.statusCode >= 400) {
+            if (res.statusCode >= 500) {
                 logger.warn('Request completed with error', logData);
+            } else if (res.statusCode >= 400) {
+                logger.debug('Request completed with client error', logData);
             } else if (duration > 5000) {
                 logger.warn('Slow request detected', logData);
             } else {
@@ -226,7 +228,7 @@ function errorHandlingMiddleware() {
         };
 
         if (error.statusCode && error.statusCode < 500) {
-            logger.warn('Client error occurred', errorData);
+            logger.debug('Client error occurred', errorData);
         } else {
             logger.error('Server error occurred', errorData);
         }

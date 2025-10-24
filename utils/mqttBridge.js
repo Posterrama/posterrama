@@ -399,7 +399,7 @@ class MqttBridge extends EventEmitter {
             const modeChanged = previousMode && previousMode !== currentMode;
 
             if (modeChanged) {
-                logger.info('🔄 Device mode changed, republishing discovery', {
+                logger.debug('🔄 Device mode changed, republishing discovery', {
                     deviceId: device.id,
                     previousMode,
                     currentMode,
@@ -594,7 +594,7 @@ class MqttBridge extends EventEmitter {
             const availableIds = new Set(availableCapabilities.map(c => c.id));
             const skippedCount = allCapabilities.length - availableCapabilities.length;
 
-            logger.info('🔍 Publishing Home Assistant discovery', {
+            logger.debug('🔍 Publishing Home Assistant discovery', {
                 deviceId: device.id,
                 mode: device.clientInfo?.mode || device.currentState?.mode,
                 availableCapabilities: availableCapabilities.length,
@@ -643,7 +643,7 @@ class MqttBridge extends EventEmitter {
             }
 
             this.discoveryPublished.add(device.id);
-            logger.info('✅ Discovery publishing completed', {
+            logger.debug('✅ Discovery publishing completed', {
                 deviceId: device.id,
                 published: availableCapabilities.length,
                 unpublished: skippedCount,
