@@ -449,69 +449,57 @@ class MqttBridge extends EventEmitter {
     }
 
     /**
-     * Publish camera preview notification (triggers Home Assistant to fetch image_url)
+     * Publish camera state with URL (Home Assistant will fetch the image)
+     * Using url_topic approach for automatic refresh without manual reload
      */
     async publishCameraState(device) {
         if (!this.client || !this.connected) return;
 
         try {
             const prefix = this.config.topicPrefix || 'posterrama';
-            const cameraTopic = `${prefix}/device/${device.id}/camera`;
+            const stateTopic = `${prefix}/device/${device.id}/camera/state`;
 
             // Get the poster URL from device state
             const posterUrl = device.currentState?.posterUrl;
             if (!posterUrl) {
-                logger.info('No poster URL available for camera state', { deviceId: device.id });
+                logger.debug('No poster URL available for camera state', { deviceId: device.id });
                 return;
             }
 
-            // Fetch the image and publish as base64
+            // Build full image URL with cache-busting timestamp
             const config = require('../config');
-            const axios = require('axios');
             let imageUrl;
 
-            // Build the full URL
             if (posterUrl.startsWith('/')) {
-                // Local path - fetch from localhost
-                imageUrl = `http://localhost:${config.serverPort || 4000}${posterUrl}`;
+                // Local path - build full URL with external IP/hostname
+                const baseUrl =
+                    this.config.externalUrl || `http://192.168.10.20:${config.serverPort || 4000}`;
+                imageUrl = `${baseUrl}${posterUrl}`;
             } else if (posterUrl.startsWith('http')) {
                 // Already a full URL
                 imageUrl = posterUrl;
             } else {
-                logger.info('Invalid poster URL format', { posterUrl });
+                logger.warn('Invalid poster URL format', { posterUrl });
                 return;
             }
 
-            logger.info('📷 Fetching camera image...', {
-                deviceId: device.id,
-                imageUrl: imageUrl.substring(0, 100),
-            });
+            // Add cache-busting timestamp as query parameter
+            const timestamp = Date.now();
+            const separator = imageUrl.includes('?') ? '&' : '?';
+            const imageUrlWithCacheBust = `${imageUrl}${separator}_t=${timestamp}`;
 
-            // Fetch the image
-            const response = await axios.get(imageUrl, {
-                responseType: 'arraybuffer',
-                timeout: 5000,
-                headers: {
-                    'User-Agent': 'Posterrama-MQTT-Bridge/2.8.1',
-                },
-            });
-
-            // Publish raw binary image data to MQTT (NOT base64)
-            // Home Assistant will handle the base64 encoding internally
-            const imageBuffer = Buffer.from(response.data);
-            await this.publish(cameraTopic, imageBuffer, { qos: 0, retain: false });
-
-            // Also publish a state update with timestamp to trigger HA refresh
-            const stateTopic = `${prefix}/device/${device.id}/camera/state`;
+            // Publish state with URL for HA to fetch
             const statePayload = JSON.stringify({
-                updated: Date.now(),
-                posterUrl: posterUrl,
+                imageUrl: imageUrlWithCacheBust, // HA will fetch this URL
+                updated: timestamp,
+                posterUrl: posterUrl, // Original path for reference
             });
+
             await this.publish(stateTopic, statePayload, { qos: 0, retain: false });
 
-            logger.info('📷 Published camera image', {
+            logger.info('📷 Published camera state with URL', {
                 deviceId: device.id,
-                imageSize: Math.round(imageBuffer.length / 1024) + 'KB',
+                imageUrl: imageUrlWithCacheBust.substring(0, 80) + '...',
             });
         } catch (error) {
             logger.error('Error publishing camera state:', {
@@ -806,17 +794,16 @@ class MqttBridge extends EventEmitter {
                 };
 
             case 'camera': {
-                // Camera uses MQTT topic to publish binary images
-                // Both topic and image_topic required for HA to display camera
-                // json_attributes_topic with timestamp triggers automatic refresh
-                const cameraTopic = `${topicPrefix}/device/${device.id}/camera`;
+                // Camera uses url_topic approach for automatic refresh
+                // HA will fetch the URL on every update, bypassing cache
                 const cameraStateTopic = `${topicPrefix}/device/${device.id}/camera/state`;
                 return {
                     ...baseConfig,
-                    topic: cameraTopic, // Required by HA for camera entities
-                    image_topic: cameraTopic, // Binary image data
-                    json_attributes_topic: cameraStateTopic, // State with timestamp for auto-refresh
-                    // No image_encoding specified - HA expects raw binary data
+                    topic: cameraStateTopic, // State topic with URL
+                    url_topic: cameraStateTopic, // HA fetches URL from this topic
+                    url_template: '{{ value_json.imageUrl }}', // Extract URL from JSON
+                    json_attributes_topic: cameraStateTopic, // Additional attributes
+                    // HA will fetch the URL and cache-bust automatically
                     icon: capability.icon,
                 };
             }
