@@ -106,7 +106,6 @@ describe('MQTT Bridge', () => {
     let mqtt;
     let logger;
     let capabilityRegistry;
-    let deviceStore;
 
     // Set timeout for async tests
     jest.setTimeout(5000);
@@ -119,7 +118,7 @@ describe('MQTT Bridge', () => {
         mqtt = require('mqtt');
         logger = require('../../utils/logger');
         capabilityRegistry = require('../../utils/capabilityRegistry');
-        deviceStore = require('../../utils/deviceStore');
+        require('../../utils/deviceStore'); // Import for side effects
         MqttBridge = require('../../utils/mqttBridge');
     });
 
@@ -177,7 +176,7 @@ describe('MQTT Bridge', () => {
             });
 
             // Don't actually wait for connection, just verify init was called
-            const initPromise = mqttBridge.init();
+            mqttBridge.init();
 
             // Verify initialization started
             expect(logger.info).toHaveBeenCalledWith(
@@ -452,7 +451,7 @@ describe('MQTT Bridge', () => {
             mqtt.connect.mockImplementationOnce(() => {
                 const client = {
                     ...mockMqttClient,
-                    on: jest.fn((event, handler) => {
+                    on: jest.fn((event, _handler) => {
                         if (event === 'error') {
                             // Don't actually call the error handler to avoid console noise
                             return client;

@@ -304,11 +304,12 @@ class MqttBridge extends EventEmitter {
             this.stats.commandsExecuted++;
 
             // Add to command history
+            const device = deviceStore.getDevice(deviceId);
             this._addToCommandHistory({
                 timestamp: new Date().toISOString(),
                 deviceId,
                 deviceName: device?.name || deviceId,
-                capabilityId: normalizedCapabilityId,
+                capabilityId: capabilityId,
                 capabilityName: capability.name,
                 payload: value,
                 success: true,
@@ -326,7 +327,7 @@ class MqttBridge extends EventEmitter {
             this._addToCommandHistory({
                 timestamp: new Date().toISOString(),
                 deviceId,
-                capabilityId: normalizedCapabilityId,
+                capabilityId: capabilityId,
                 error: error.message,
                 success: false,
             });

@@ -20325,36 +20325,6 @@
         }
     }
 
-    function formatUptime(seconds) {
-        if (!seconds || seconds < 0) return '0s';
-        const days = Math.floor(seconds / 86400);
-        const hours = Math.floor((seconds % 86400) / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-
-        const parts = [];
-        if (days > 0) parts.push(`${days}d`);
-        if (hours > 0) parts.push(`${hours}h`);
-        if (minutes > 0) parts.push(`${minutes}m`);
-        if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
-
-        return parts.join(' ');
-    }
-
-    function formatTimestamp(isoString) {
-        if (!isoString) return '-';
-        const date = new Date(isoString);
-        const now = new Date();
-        const diffMs = now - date;
-        const diffSecs = Math.floor(diffMs / 1000);
-
-        if (diffSecs < 60) return `${diffSecs}s ago`;
-        if (diffSecs < 3600) return `${Math.floor(diffSecs / 60)}m ago`;
-        if (diffSecs < 86400) return `${Math.floor(diffSecs / 3600)}h ago`;
-
-        return date.toLocaleTimeString();
-    }
-
     async function updateMqttStatusUI() {
         const status = await fetchMqttStatus();
 
@@ -20421,7 +20391,7 @@
         }
     }
 
-    function updateMqttConnectionStatus(connected, text) {
+    function updateMqttConnectionStatus(connected, _text) {
         const pill = document.getElementById('mqtt-conn-pill');
         const mqttStatusPill = document.getElementById('mqtt-status-pill');
 
