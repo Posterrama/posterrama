@@ -344,6 +344,9 @@ class CapabilityRegistry {
      * Register mode selection capabilities
      */
     registerModeCapabilities() {
+        const wsHub = require('./wsHub');
+        const deviceStore = require('./deviceStore');
+
         this.register('mode.select', {
             name: 'Display Mode',
             category: 'mode',
@@ -353,54 +356,47 @@ class CapabilityRegistry {
             commandHandler: async (deviceId, mode) => {
                 const logger = require('./logger');
 
-                logger.info('🔧 Mode select command handler', { deviceId, mode });
+                logger.info('🔧 Mode select command handler (device override)', { deviceId, mode });
 
-                // Get the writeConfig function from server.js global scope
-                // This is defined in server.js and available in the Node.js runtime
-                const writeConfig = global.writeConfig;
-                if (!writeConfig) {
-                    throw new Error('writeConfig function not available');
+                // Get current device
+                const device = await deviceStore.get(deviceId);
+                if (!device) {
+                    throw new Error(`Device not found: ${deviceId}`);
                 }
 
-                // Get current config
-                const config = require('../config.json');
+                // Store mode in device.settingsOverride (per-device mode)
+                const currentOverride = device.settingsOverride || {};
+                const updatedOverride = { ...currentOverride, mode };
 
-                // Map mode to config flags
-                const updatedConfig = { ...config };
-
-                if (mode === 'cinema') {
-                    updatedConfig.cinemaMode = true;
-                    updatedConfig.wallartMode = updatedConfig.wallartMode || {};
-                    updatedConfig.wallartMode.enabled = false;
-                } else if (mode === 'wallart') {
-                    updatedConfig.cinemaMode = false;
-                    updatedConfig.wallartMode = updatedConfig.wallartMode || {};
-                    updatedConfig.wallartMode.enabled = true;
-                } else {
-                    // screensaver
-                    updatedConfig.cinemaMode = false;
-                    updatedConfig.wallartMode = updatedConfig.wallartMode || {};
-                    updatedConfig.wallartMode.enabled = false;
-                }
-
-                logger.info('🔧 Updating global config', {
-                    mode,
-                    cinemaMode: updatedConfig.cinemaMode,
-                    wallartEnabled: updatedConfig.wallartMode.enabled,
+                // Persist to devices.json
+                await deviceStore.patchDevice(deviceId, {
+                    settingsOverride: updatedOverride,
                 });
 
-                // Update global config (this will trigger BroadcastChannel updates to all devices)
-                try {
-                    await writeConfig(updatedConfig);
-                    logger.info('🔧 Global config updated successfully', { mode });
-                    return true;
-                } catch (err) {
-                    logger.error('🔧 Failed to update global config', { error: err.message });
-                    throw err;
-                }
+                logger.info('✅ Device mode override saved', {
+                    deviceId,
+                    mode,
+                    override: updatedOverride,
+                });
+
+                // Send mode navigation command to device via WebSocket
+                await wsHub.sendCommand(deviceId, {
+                    type: 'mode.navigate',
+                    payload: { mode },
+                });
+
+                logger.info('✅ Mode navigation command sent to device', { deviceId, mode });
+
+                return true;
             },
             stateGetter: device => {
-                return device.clientInfo?.mode || device.currentState?.mode || 'screensaver';
+                // Check device override first, then clientInfo, then currentState
+                return (
+                    device.settingsOverride?.mode ||
+                    device.clientInfo?.mode ||
+                    device.currentState?.mode ||
+                    'screensaver'
+                );
             },
         });
     }
