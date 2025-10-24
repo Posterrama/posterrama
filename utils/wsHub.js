@@ -224,7 +224,7 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
 
                             // Log successful WebSocket device connection
                             const userAgent = req.headers['user-agent'] || 'Unknown';
-                            logger.info(
+                            logger.debug(
                                 `[WS] Device connected: ${ip} (${userAgent.substring(0, 40)}) - ${id.substring(0, 8)}...`,
                                 {
                                     deviceId: id,
