@@ -87,7 +87,41 @@
         checkCooldownUntil: 0,
         checkInFlight: false,
         registrationPollTimer: null,
+        // debounced reload for settings changes
+        pendingReloadTimer: null,
     };
+
+    // Debounced reload for settings changes
+    // Allows multiple rapid settings changes to batch before reloading
+    function debouncedReload(delayMs = 2000) {
+        // Clear any existing pending reload
+        if (state.pendingReloadTimer) {
+            clearTimeout(state.pendingReloadTimer);
+            state.pendingReloadTimer = null;
+        }
+
+        try {
+            console.log('[DeviceMgmt] Scheduling debounced reload in', delayMs, 'ms');
+        } catch (_) {
+            // ignore logging
+        }
+
+        // Schedule new reload
+        state.pendingReloadTimer = setTimeout(() => {
+            state.pendingReloadTimer = null;
+            try {
+                console.log('[DeviceMgmt] Executing debounced reload');
+            } catch (_) {
+                // ignore logging
+            }
+            try {
+                safeReload();
+            } catch (_) {
+                // Fallback to direct reload if safeReload not available
+                window.location.reload();
+            }
+        }, delayMs);
+    }
 
     function getStorage() {
         try {
@@ -1313,19 +1347,14 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                     msg.payload.wallartMode.enabled !== undefined;
 
                                 if (!isModeOnlyChange && !isWallartModeToggle) {
-                                    liveDbg('[Live] settings.apply triggering reload', {
+                                    liveDbg('[Live] settings.apply triggering debounced reload', {
                                         reason: 'settings changed',
                                         keys: Object.keys(msg.payload),
                                     });
-                                    // Use safeReload to prevent rapid reload loops
-                                    setTimeout(() => {
-                                        try {
-                                            safeReload();
-                                        } catch (_) {
-                                            // Fallback to direct reload if safeReload not available
-                                            window.location.reload();
-                                        }
-                                    }, 500); // Small delay to allow ack to send
+                                    // Use debounced reload to batch multiple rapid changes
+                                    // This prevents WebSocket disconnect issues when user makes
+                                    // multiple settings changes in Home Assistant quickly
+                                    debouncedReload(2000); // 2 second debounce window
                                 }
 
                                 sendAck('ok');
