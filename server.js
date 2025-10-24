@@ -9256,6 +9256,16 @@ async function writeConfig(newConfig) {
                 return acc;
             }, {}),
         });
+
+        // Trigger MQTT state update for all devices (config changes affect all devices)
+        if (global.__posterramaMqttBridge) {
+            try {
+                await global.__posterramaMqttBridge.publishAllDeviceStates();
+                logger.debug('MQTT state published after config change');
+            } catch (err) {
+                logger.warn('Failed to publish MQTT state after config change:', err.message);
+            }
+        }
     } catch (error) {
         logger.error('Failed to update configuration', {
             action: 'config_update_error',
