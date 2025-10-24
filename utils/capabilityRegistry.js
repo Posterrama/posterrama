@@ -641,7 +641,18 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.wallartMode?.posterRefreshRate || null;
+                if (device.settingsOverride?.wallartMode?.posterRefreshRate !== undefined) {
+                    return device.settingsOverride.wallartMode.posterRefreshRate;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.wallartMode?.refreshRate !== undefined) {
+                        return config.wallartMode.refreshRate;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return 4;
             },
         });
 
@@ -662,7 +673,18 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.wallartMode?.timingRandomness || null;
+                if (device.settingsOverride?.wallartMode?.timingRandomness !== undefined) {
+                    return device.settingsOverride.wallartMode.timingRandomness;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.wallartMode?.randomness !== undefined) {
+                        return config.wallartMode.randomness;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return 2;
             },
         });
 
@@ -693,7 +715,18 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.wallartMode?.animationType || null;
+                if (device.settingsOverride?.wallartMode?.animationType !== undefined) {
+                    return device.settingsOverride.wallartMode.animationType;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.wallartMode?.animationType !== undefined) {
+                        return config.wallartMode.animationType;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return 'fade';
             },
         });
 
@@ -711,7 +744,18 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.wallartMode?.ambiance ?? false;
+                if (device.settingsOverride?.wallartMode?.ambiance !== undefined) {
+                    return device.settingsOverride.wallartMode.ambiance;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.wallartMode?.ambientGradient !== undefined) {
+                        return config.wallartMode.ambientGradient;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return false;
             },
         });
 
@@ -732,7 +776,23 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.wallartMode?.biasToAmbiance || null;
+                if (device.settingsOverride?.wallartMode?.biasToAmbiance !== undefined) {
+                    return device.settingsOverride.wallartMode.biasToAmbiance;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (
+                        config.wallartMode?.layoutSettings?.heroGrid?.biasAmbientToHero !==
+                        undefined
+                    ) {
+                        return config.wallartMode.layoutSettings.heroGrid.biasAmbientToHero
+                            ? 100
+                            : 0;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return 0;
             },
         });
 
@@ -750,7 +810,21 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.wallartMode?.layout || null;
+                if (device.settingsOverride?.wallartMode?.layout !== undefined) {
+                    return device.settingsOverride.wallartMode.layout;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.wallartMode?.layoutVariant !== undefined) {
+                        // Convert camelCase to kebab-case
+                        return config.wallartMode.layoutVariant === 'heroGrid'
+                            ? 'hero-grid'
+                            : config.wallartMode.layoutVariant;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return 'classic';
             },
         });
 
@@ -768,25 +842,53 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.wallartMode?.heroSide || null;
+                if (device.settingsOverride?.wallartMode?.heroSide !== undefined) {
+                    return device.settingsOverride.wallartMode.heroSide;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.wallartMode?.layoutSettings?.heroGrid?.heroSide !== undefined) {
+                        return config.wallartMode.layoutSettings.heroGrid.heroSide;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return 'left';
             },
         });
 
-        // Wallart hero rotation
+        // Wallart hero rotation (minutes)
         this.register('settings.wallartMode.heroRotation', {
             name: 'Hero Rotation',
             category: 'settings',
-            entityType: 'switch',
+            entityType: 'number',
             icon: 'mdi:rotate-3d-variant',
+            unit: 'min',
+            min: 1,
+            max: 60,
+            step: 1,
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
-                const boolValue = value === true || value === 'ON' || value === 1;
                 return wsHub.sendApplySettings(deviceId, {
-                    wallartMode: { heroRotation: boolValue },
+                    wallartMode: { heroRotation: parseInt(value) },
                 });
             },
             stateGetter: device => {
-                return device.settingsOverride?.wallartMode?.heroRotation ?? false;
+                if (device.settingsOverride?.wallartMode?.heroRotation !== undefined) {
+                    return device.settingsOverride.wallartMode.heroRotation;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (
+                        config.wallartMode?.layoutSettings?.heroGrid?.heroRotationMinutes !==
+                        undefined
+                    ) {
+                        return config.wallartMode.layoutSettings.heroGrid.heroRotationMinutes;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return 8;
             },
         });
 
