@@ -87,15 +87,30 @@
                 /* noop */
             }
         };
-        // Heartbeat: throttle immediate beats to avoid spamming during rapid updates
+        // Heartbeat: smart cooldown to avoid spamming during rapid poster transitions
+        // while still allowing immediate beats for user actions
         const triggerLiveBeat = () => {
             try {
                 const dev = window.PosterramaDevice;
                 if (!dev || typeof dev.beat !== 'function') return;
                 const now = Date.now();
+
+                // Check when the last heartbeat was actually sent (from device-mgmt)
+                const lastBeat = window.__posterramaLastHeartbeatTime || 0;
+                const timeSinceLastBeat = now - lastBeat;
+
+                // Smart cooldown: if last heartbeat was less than 15s ago, skip this one
+                // The regular 20s interval will catch it anyway
+                // This prevents excessive heartbeats during rapid poster transitions
+                if (timeSinceLastBeat < 15000) {
+                    return; // Recent heartbeat exists, let the interval handle it
+                }
+
+                // Also apply a short debounce to prevent rapid-fire calls
                 const until = window.__posterramaBeatCooldownUntil || 0;
-                if (now < until) return; // still in cooldown window
-                window.__posterramaBeatCooldownUntil = now + 1500; // 1.5s throttle
+                if (now < until) return; // still in debounce window
+                window.__posterramaBeatCooldownUntil = now + 2000; // 2s debounce
+
                 dev.beat();
             } catch (_) {
                 /* noop */

@@ -509,6 +509,12 @@
                 return;
             }
             const data = await res.json();
+
+            // Track successful heartbeat time for smart cooldown in screensaver
+            if (typeof window !== 'undefined') {
+                window.__posterramaLastHeartbeatTime = Date.now();
+            }
+
             if (Array.isArray(data.commandsQueued) && data.commandsQueued.length) {
                 try {
                     liveDbg('[Live] heartbeat delivered commands', {
