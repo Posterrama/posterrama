@@ -484,16 +484,14 @@ class MqttBridge extends EventEmitter {
                 },
             });
 
-            // Convert to base64
-            const base64Image = Buffer.from(response.data).toString('base64');
-
-            // Publish base64 image to MQTT
-            await this.publish(cameraTopic, base64Image, { qos: 0, retain: false });
+            // Publish raw binary image data to MQTT (NOT base64)
+            // Home Assistant will handle the base64 encoding internally
+            const imageBuffer = Buffer.from(response.data);
+            await this.publish(cameraTopic, imageBuffer, { qos: 0, retain: false });
 
             logger.info('📷 Published camera image', {
                 deviceId: device.id,
-                imageSize: Math.round(response.data.length / 1024) + 'KB',
-                base64Size: Math.round(base64Image.length / 1024) + 'KB',
+                imageSize: Math.round(imageBuffer.length / 1024) + 'KB',
             });
         } catch (error) {
             logger.error('Error publishing camera state:', {
@@ -788,14 +786,14 @@ class MqttBridge extends EventEmitter {
                 };
 
             case 'camera': {
-                // Camera uses MQTT topic to publish base64-encoded images
-                // Home Assistant expects both 'topic' and 'image_topic' for camera entities
+                // Camera uses MQTT topic to publish binary images
+                // Home Assistant will handle encoding internally
                 const cameraTopic = `${topicPrefix}/device/${device.id}/camera`;
                 return {
                     ...baseConfig,
                     topic: cameraTopic, // Required by Home Assistant for camera entities
                     image_topic: cameraTopic,
-                    image_encoding: 'b64', // Tell HA images are base64-encoded
+                    // No image_encoding specified - HA expects raw binary data
                     icon: capability.icon,
                 };
             }
