@@ -424,7 +424,7 @@ class CapabilityRegistry {
 
             // Deep merge settings into device.settingsOverride
             const currentOverride = device.settingsOverride || {};
-            const mergedOverride = deepMergeSettings(currentOverride, settingsUpdate);
+            const mergedOverride = this.deepMergeSettings(currentOverride, settingsUpdate);
 
             // Persist to devices.json
             await deviceStore.patchDevice(deviceId, {
@@ -438,11 +438,11 @@ class CapabilityRegistry {
         /**
          * Deep merge settings objects (handles nested objects like uiScaling, wallartMode, cinema)
          */
-        const deepMergeSettings = (target, source) => {
+        this.deepMergeSettings = (target, source) => {
             const result = { ...target };
             for (const key in source) {
                 if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-                    result[key] = deepMergeSettings(result[key] || {}, source[key]);
+                    result[key] = this.deepMergeSettings(result[key] || {}, source[key]);
                 } else {
                     result[key] = source[key];
                 }
