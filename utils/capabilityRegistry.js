@@ -265,21 +265,31 @@ class CapabilityRegistry {
         this.register('mgmt.reload', {
             name: 'Reload',
             category: 'management',
-            entityType: 'button',
+            entityType: 'switch',
             icon: 'mdi:refresh',
-            commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'core.mgmt.reload' });
+            commandHandler: async (deviceId, value) => {
+                // For momentary switch: only act on ON, then auto-reset to OFF
+                if (value === 'ON' || value === true) {
+                    await wsHub.sendCommand(deviceId, { type: 'core.mgmt.reload' });
+                }
+                return true;
             },
+            stateGetter: () => false, // Always OFF (momentary switch)
         });
 
         this.register('mgmt.reset', {
             name: 'Reset',
             category: 'management',
-            entityType: 'button',
+            entityType: 'switch',
             icon: 'mdi:restore',
-            commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'core.mgmt.reset' });
+            commandHandler: async (deviceId, value) => {
+                // For momentary switch: only act on ON, then auto-reset to OFF
+                if (value === 'ON' || value === true) {
+                    await wsHub.sendCommand(deviceId, { type: 'core.mgmt.reset' });
+                }
+                return true;
             },
+            stateGetter: () => false, // Always OFF (momentary switch)
         });
     }
 
