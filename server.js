@@ -1124,54 +1124,11 @@ app.get('/preview', (req, res) => {
     res.redirect(`${targetPath}?preview=1`);
 });
 
-// Rate Limiting
+// Rate Limiting (Selective)
+// Rate limiters removed from general endpoints (/api/*, /get-media, /image) as they caused
+// 429 errors during normal usage. Posterrama is a private application with trusted clients.
+// Retained only for critical device management endpoints to prevent abuse.
 const { createRateLimiter } = require('./middleware/rateLimiter');
-
-// General API Rate Limiting (more lenient for screensaver usage)
-const apiLimiter = createRateLimiter(
-    15 * 60 * 1000, // 15 minutes
-    1000, // Max requests (increased for heavy usage)
-    'Too many requests from this IP, please try again later.'
-);
-
-// Admin API Rate Limiting (more lenient for development/testing)
-// Increased ceiling to reduce 429s during admin UI operations and bulk fetches
-const adminApiLimiter = createRateLimiter(
-    15 * 60 * 1000, // 15 minutes
-    3000, // Max requests per IP
-    'Too many admin API requests from this IP, please try again later.'
-);
-
-// Apply rate limiting
-app.use('/api/admin/', adminApiLimiter);
-
-// In test mode, use more lenient rate limiting for all /api/ routes
-const testApiLimiter =
-    process.env.NODE_ENV === 'test'
-        ? createRateLimiter(
-              15 * 60 * 1000,
-              1000,
-              'Too many requests from this IP, please try again later.'
-          )
-        : apiLimiter;
-
-// IMPORTANT: Avoid double limiting admin endpoints. Apply general API limiter to /api/*
-// except when the request targets /api/admin/*, which already has its own limiter.
-// Also exclude metrics endpoints from rate limiting as they're polled frequently by the dashboard.
-app.use('/api/', (req, res, next) => {
-    if (req.originalUrl && req.originalUrl.startsWith('/api/admin')) return next();
-    if (req.originalUrl && req.originalUrl.startsWith('/api/v1/metrics')) return next();
-    return testApiLimiter(req, res, next);
-});
-app.use('/get-config', apiLimiter);
-app.use('/get-media', apiLimiter);
-app.use('/get-media-by-key', apiLimiter);
-// For /image, allow internal job-queue traffic (identified by header) to bypass rate limiting
-app.use('/image', (req, res, next) => {
-    const internal = req.headers['x-posterrama-internal'] === '1';
-    if (internal) return next();
-    return apiLimiter(req, res, next);
-});
 
 // Lightweight template injection for admin.html to stamp asset version
 /**

@@ -186,7 +186,7 @@ describe('Devices E2E', () => {
             method: 'POST',
             body: JSON.stringify({ code: '000000' }),
         });
-        expect([400, 429, 500]).toContain(badClaim.res.status); // invalid, rate-limited, or server error
+        expect([400, 500]).toContain(badClaim.res.status); // invalid or server error
 
         await new Promise(resolve => setTimeout(resolve, 50));
 

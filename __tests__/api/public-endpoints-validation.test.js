@@ -148,9 +148,9 @@ describe('Public API Endpoints Validation', () => {
 
             const responses = await Promise.all(requests);
 
-            // All should succeed under normal rate limits or return expected status codes
+            // All should succeed or return expected status codes
             responses.forEach(res => {
-                expect([200, 202, 429, 503]).toContain(res.status);
+                expect([200, 202, 503]).toContain(res.status);
             });
         }, 10000);
     });

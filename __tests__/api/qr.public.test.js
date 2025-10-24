@@ -16,7 +16,7 @@ describe('Public QR endpoint', () => {
     });
     test('returns SVG by default', async () => {
         const res = await request(app).get('/api/qr?text=https%3A%2F%2Fexample.com');
-        expect([200, 401, 429]).toContain(res.status); // Accept 401 for authentication requirements
+        expect([200, 401]).toContain(res.status); // Accept 401 for authentication requirements
         if (res.status === 200) {
             expect(res.headers['content-type']).toMatch(/image\/svg\+xml/);
             const body = res.text || (res.body && res.body.toString('utf8')) || '';
@@ -27,7 +27,7 @@ describe('Public QR endpoint', () => {
 
     test('returns PNG when requested', async () => {
         const res = await request(app).get('/api/qr?format=png&text=hello');
-        expect([200, 401, 429]).toContain(res.status); // Accept 401 for authentication requirements
+        expect([200, 401]).toContain(res.status); // Accept 401 for authentication requirements
         if (res.status === 200) {
             expect(res.headers['content-type']).toMatch(/image\/png/);
             expect(res.body).toBeInstanceOf(Buffer);
