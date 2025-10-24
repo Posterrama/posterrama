@@ -89,7 +89,6 @@
                     if (window.PosterramaDevice && window.PosterramaDevice.init) {
                         const cfg = await window.PosterramaCore.fetchConfig();
                         window.PosterramaDevice.init(cfg || {}); // Don't await - let it run in background
-                        console.log('[Cinema] Device management init started');
                     }
                 } catch (e) {
                     console.warn('[Cinema] Device init failed:', e);

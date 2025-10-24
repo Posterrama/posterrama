@@ -231,7 +231,6 @@
             if (window.PosterramaDevice && window.PosterramaDevice.getState) {
                 const state = window.PosterramaDevice.getState();
                 if (!state || !state.deviceId) {
-                    console.log('[AUTO_EXIT] Skipping poll - device not registered yet');
                     window.debugLog && window.debugLog('AUTO_EXIT_SKIP_UNREGISTERED', {});
                     return;
                 }
@@ -297,16 +296,6 @@
 
                     const target = Core.getActiveMode(cfg);
 
-                    // DEBUG: Always log the mode check result
-                    console.log('[AUTO_EXIT_CHECK]', {
-                        currentMode,
-                        targetMode: target,
-                        configMode: cfg?.mode,
-                        cinemaMode: cfg?.cinemaMode,
-                        wallartEnabled: cfg?.wallartMode?.enabled,
-                        willNavigate: !!(target && currentMode && target !== currentMode),
-                    });
-
                     window.debugLog &&
                         window.debugLog('AUTO_EXIT_CHECK', {
                             currentMode,
@@ -314,12 +303,6 @@
                             willNavigate: target && currentMode && target !== currentMode,
                         });
                     if (target && currentMode && target !== currentMode) {
-                        console.log(
-                            '[AUTO_EXIT_NAVIGATE] Redirecting from',
-                            currentMode,
-                            'to',
-                            target
-                        );
                         window.debugLog &&
                             window.debugLog('AUTO_EXIT_NAVIGATE', {
                                 from: currentMode,
@@ -327,8 +310,6 @@
                             });
                         window.__lastAutoExitNav = Date.now(); // Track navigation timestamp
                         Core.navigateToMode(target);
-                    } else {
-                        console.log('[AUTO_EXIT_SKIP] No navigation needed, modes match');
                     }
                 } catch (e) {
                     window.debugLog &&
