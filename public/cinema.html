@@ -82,6 +82,19 @@
             window.MODE_HINT = 'cinema';
         </script>
         <script>
+            // Initialize device management before starting auto-exit poll
+            (async function() {
+                try {
+                    if (window.PosterramaDevice && window.PosterramaDevice.init) {
+                        const cfg = await window.PosterramaCore.fetchConfig();
+                        await window.PosterramaDevice.init(cfg || {});
+                    }
+                } catch (e) {
+                    console.warn('[Cinema] Device init failed:', e);
+                }
+            })();
+        </script>
+        <script>
             // Start a shared auto-exit poll to keep the page in the right mode
             try { window.PosterramaCore && window.PosterramaCore.startAutoExitPoll({ currentMode: 'cinema', intervalMs: 15000 }); } catch (e) {}
         </script>

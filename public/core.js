@@ -281,6 +281,17 @@
                     }
 
                     const target = Core.getActiveMode(cfg);
+
+                    // DEBUG: Always log the mode check result
+                    console.log('[AUTO_EXIT_CHECK]', {
+                        currentMode,
+                        targetMode: target,
+                        configMode: cfg?.mode,
+                        cinemaMode: cfg?.cinemaMode,
+                        wallartEnabled: cfg?.wallartMode?.enabled,
+                        willNavigate: !!(target && currentMode && target !== currentMode),
+                    });
+
                     window.debugLog &&
                         window.debugLog('AUTO_EXIT_CHECK', {
                             currentMode,
@@ -288,6 +299,12 @@
                             willNavigate: target && currentMode && target !== currentMode,
                         });
                     if (target && currentMode && target !== currentMode) {
+                        console.log(
+                            '[AUTO_EXIT_NAVIGATE] Redirecting from',
+                            currentMode,
+                            'to',
+                            target
+                        );
                         window.debugLog &&
                             window.debugLog('AUTO_EXIT_NAVIGATE', {
                                 from: currentMode,
@@ -295,6 +312,8 @@
                             });
                         window.__lastAutoExitNav = Date.now(); // Track navigation timestamp
                         Core.navigateToMode(target);
+                    } else {
+                        console.log('[AUTO_EXIT_SKIP] No navigation needed, modes match');
                     }
                 } catch (e) {
                     window.debugLog &&
@@ -305,7 +324,7 @@
             // First check shortly after load, then at intervals with slight jitter
             // Delay first tick to allow page to stabilize after navigation
             window.debugLog && window.debugLog('AUTO_EXIT_FIRST_TICK', { delayMs: 3000 });
-            setTimeout(tick, 3000); // Increased from 800ms to 3s
+            setTimeout(tick, 3000);
             window.__autoExitTimer = setInterval(() => {
                 const jitter = Math.floor(Math.random() * 1500);
                 setTimeout(tick, jitter);
