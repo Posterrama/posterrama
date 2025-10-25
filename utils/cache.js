@@ -757,15 +757,32 @@ class CacheDiskManager {
                 ? config.minFreeDiskSpaceMB
                 : this.minFreeDiskSpaceBytes / (1024 * 1024);
 
+        // Check if values actually changed to avoid noisy logging
+        const oldMaxSizeGB = this.maxSizeBytes / (1024 * 1024 * 1024);
+        const oldMinFreeMB = this.minFreeDiskSpaceBytes / (1024 * 1024);
+        const hasChanged =
+            Math.abs(oldMaxSizeGB - newMaxSizeGB) > 0.01 ||
+            Math.abs(oldMinFreeMB - newMinFreeMB) > 0.01 ||
+            this.autoCleanup !== (config.autoCleanup !== false);
+
         this.maxSizeBytes = newMaxSizeGB * 1024 * 1024 * 1024;
         this.minFreeDiskSpaceBytes = newMinFreeMB * 1024 * 1024;
         this.autoCleanup = config.autoCleanup !== false;
 
-        logger.info('Cache configuration updated', {
-            maxSizeGB: newMaxSizeGB,
-            minFreeDiskSpaceMB: newMinFreeMB,
-            autoCleanup: this.autoCleanup,
-        });
+        // Only log at INFO level if values actually changed meaningfully
+        if (hasChanged) {
+            logger.info('Cache configuration updated', {
+                maxSizeGB: newMaxSizeGB,
+                minFreeDiskSpaceMB: newMinFreeMB,
+                autoCleanup: this.autoCleanup,
+            });
+        } else {
+            logger.debug('Cache configuration unchanged', {
+                maxSizeGB: newMaxSizeGB,
+                minFreeDiskSpaceMB: newMinFreeMB,
+                autoCleanup: this.autoCleanup,
+            });
+        }
     }
 
     /**

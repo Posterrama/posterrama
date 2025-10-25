@@ -19590,10 +19590,12 @@
                         baseUrl,
                         mqtt: {
                             enabled: mqttEnabled,
-                            broker: mqttBroker,
-                            port: mqttPort,
-                            username: mqttUsername,
-                            password: mqttPassword,
+                            broker: {
+                                host: mqttBroker,
+                                port: mqttPort,
+                                username: mqttUsername,
+                                password: mqttPassword,
+                            },
                             discovery: {
                                 enabled: mqttDiscoveryEnabled,
                             },
@@ -19800,10 +19802,10 @@
             if (mqttEnabledEl) mqttEnabledEl.checked = !!mqtt.enabled;
             if (mqttDiscoveryEnabledEl)
                 mqttDiscoveryEnabledEl.checked = mqtt.discovery?.enabled !== false; // Default true
-            if (mqttBrokerEl) mqttBrokerEl.value = mqtt.broker || '';
-            if (mqttPortEl) mqttPortEl.value = mqtt.port || 1883;
-            if (mqttUsernameEl) mqttUsernameEl.value = mqtt.username || '';
-            if (mqttPasswordEl) mqttPasswordEl.value = mqtt.password || '';
+            if (mqttBrokerEl) mqttBrokerEl.value = mqtt.broker?.host || '';
+            if (mqttPortEl) mqttPortEl.value = mqtt.broker?.port || 1883;
+            if (mqttUsernameEl) mqttUsernameEl.value = mqtt.broker?.username || '';
+            if (mqttPasswordEl) mqttPasswordEl.value = mqtt.broker?.password || '';
             if (mqttSettingsGroup)
                 mqttSettingsGroup.style.display = mqtt.enabled ? 'block' : 'none';
             if (mqttPill) {
