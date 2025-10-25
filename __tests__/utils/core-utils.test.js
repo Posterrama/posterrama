@@ -2,6 +2,9 @@
  * Minimal tests for public/core.js helpers using a simulated DOM-like environment
  */
 
+const fs = require('fs');
+const path = require('path');
+
 describe('PosterramaCore helpers (simulated)', () => {
     beforeAll(() => {
         // Simulate browser globals
@@ -9,13 +12,13 @@ describe('PosterramaCore helpers (simulated)', () => {
             location: {
                 origin: 'http://localhost:4000',
                 pathname: '/some/base/index.html',
+                replace: jest.fn(),
             },
+            navigator: {},
         };
-        // Load core.js into this environment
-        const fs = require('fs');
-        const path = require('path');
+
+        // Load and eval core.js in the simulated global context
         const src = fs.readFileSync(path.join(__dirname, '../../public/core.js'), 'utf8');
-        // Execute the IIFE in this context
         // eslint-disable-next-line no-new-func
         new Function('window', src)(global.window);
     });
