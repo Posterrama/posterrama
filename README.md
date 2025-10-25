@@ -161,19 +161,15 @@ Where it shines:
 
 ### Home Assistant integration
 
-<table>
-<tr>
-<td width="370">
+<table style="border: none;">
+<tr style="border: none;">
+<td width="370" style="border: none;">
 <img src="./screenshots/home_assistant_mqtt.png" alt="Home Assistant MQTT Integration" width="370">
 <p style="color:#6a6a6a; font-size: 0.9em;"><em>Control Posterrama displays directly from Home Assistant</em></p>
 </td>
-<td valign="top">
+<td valign="top" style="border: none;">
 
 Connect your Posterrama displays to Home Assistant via MQTT and make them part of your smart home. Each display appears as a media player with full controls and customizable settings—all through the Home Assistant interface you already know.
-
-</td>
-</tr>
-</table>
 
 What you get:
 
@@ -182,6 +178,10 @@ What you get:
 - **Smart home integration**: Trigger display changes with scenes, automations, or schedules. Pause displays when movies start, switch to cinema mode for movie night, or rotate content based on time of day
 - **Real-time sync**: Changes in Posterrama instantly update in Home Assistant, and vice versa
 - **Multiple displays**: Manage all your screens individually or group them together
+
+</td>
+</tr>
+</table>
 
 Perfect for:
 
