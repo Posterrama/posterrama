@@ -18484,6 +18484,39 @@ app.get('/api/admin/logs', isAuthenticated, (req, res) => {
  *       400:
  *         description: Invalid log level provided
  */
+
+/**
+ * @swagger
+ * /api/admin/logs/level:
+ *   get:
+ *     summary: Get current log level
+ *     description: Returns the current Winston logger level and available log levels
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Current log level retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 currentLevel:
+ *                   type: string
+ *                   example: 'info'
+ *                   description: Current log level
+ *                 availableLevels:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly']
+ *                 winstonLevels:
+ *                   type: object
+ *                   description: Winston internal levels mapping
+ *       401:
+ *         description: Unauthorized - admin session required
+ */
 app.get('/api/admin/logs/level', isAuthenticated, (req, res) => {
     const availableLevels = ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'];
     res.json({
@@ -18493,6 +18526,72 @@ app.get('/api/admin/logs/level', isAuthenticated, (req, res) => {
     });
 });
 
+/**
+ * @swagger
+ * /api/admin/logs/level:
+ *   post:
+ *     summary: Change the application log level
+ *     description: >
+ *       Dynamically updates the Winston logger level at runtime without requiring a restart.
+ *       All log transports are updated to the new level. The change is logged for audit purposes.
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - level
+ *             properties:
+ *               level:
+ *                 type: string
+ *                 enum: ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly']
+ *                 description: New log level to set
+ *                 example: 'debug'
+ *     responses:
+ *       200:
+ *         description: Log level updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 previousLevel:
+ *                   type: string
+ *                   example: 'info'
+ *                 newLevel:
+ *                   type: string
+ *                   example: 'debug'
+ *                 message:
+ *                   type: string
+ *                   example: 'Log level successfully changed from info to debug'
+ *       400:
+ *         description: Invalid log level provided
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: 'Invalid log level'
+ *                 availableLevels:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 provided:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized - admin session required
+ *       500:
+ *         description: Server error while updating log level
+ */
 app.post('/api/admin/logs/level', isAuthenticated, (req, res) => {
     const { level } = req.body;
     const availableLevels = ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'];
@@ -18587,6 +18686,38 @@ app.post('/api/admin/notify/test', isAuthenticated, (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/admin/sse-test:
+ *   post:
+ *     summary: Test SSE broadcasting
+ *     description: >
+ *       Broadcasts a sample device event to all connected admin SSE clients for testing purposes.
+ *       Useful for debugging SSE connectivity and verifying event delivery.
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Test event broadcasted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'SSE test event broadcasted'
+ *                 eventType:
+ *                   type: string
+ *                   example: 'device-updated'
+ *       401:
+ *         description: Unauthorized - admin session required
+ *     x-internal: true
+ */
 // Admin SSE: simple test endpoint to broadcast a sample device event for debugging
 // Usage (in Admin console while logged in): fetch('/api/admin/sse-test', { method: 'POST' })
 app.post('/api/admin/sse-test', isAuthenticated, (req, res) => {
@@ -18875,16 +19006,23 @@ app.get('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) 
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/BackupSchedule'
- *     responses:
- *       200:
- *         description: Saved schedule
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/BackupScheduleResponse'
- *       400:
- *         description: Validation or save failure
+ *             type: object
+ *             properties:
+ *               enabled:
+ *                 type: boolean
+ *                 description: Enable or disable automated backups
+ *                 example: true
+ *               time:
+ *                 type: string
+ *                 pattern: '^\d{1,2}:\d{2}$'
+ *                 description: Daily backup time in HH:MM format (24-hour)
+ *                 example: '03:30'
+ *               retention:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 60
+ *                 description: Number of backups to retain
+ *                 example: 5
  */
 app.post('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) => {
     try {

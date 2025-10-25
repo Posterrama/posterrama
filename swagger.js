@@ -126,13 +126,25 @@ function generateSwaggerSpec() {
                 schemas: {
                     StandardOkResponse: {
                         type: 'object',
-                        properties: { ok: { type: 'boolean', example: true } },
+                        properties: {
+                            ok: { type: 'boolean', example: true },
+                        },
+                        example: { ok: true },
                     },
                     BackupCreateResponse: {
                         type: 'object',
                         properties: {
-                            ok: { type: 'boolean' },
+                            ok: { type: 'boolean', example: true },
                             backup: { $ref: '#/components/schemas/BackupRecord' },
+                        },
+                        example: {
+                            ok: true,
+                            backup: {
+                                id: 'config-backup-1730000000000',
+                                createdAt: '2025-10-25T12:00:00.000Z',
+                                sizeBytes: 4096,
+                                type: 'manual',
+                            },
                         },
                     },
                     BackupRecord: {
@@ -224,26 +236,54 @@ function generateSwaggerSpec() {
                     StandardErrorResponse: {
                         type: 'object',
                         properties: {
-                            error: { type: 'string', description: 'Error message' },
-                            code: { type: 'string', description: 'Optional machine-readable code' },
+                            error: {
+                                type: 'string',
+                                description: 'Error message',
+                                example: 'Invalid request',
+                            },
+                            code: {
+                                type: 'string',
+                                description: 'Optional machine-readable code',
+                                example: 'VALIDATION_ERROR',
+                            },
+                        },
+                        example: {
+                            error: 'Invalid request',
+                            code: 'VALIDATION_ERROR',
                         },
                     },
                     PaginatedMediaResponse: {
                         type: 'object',
                         description: 'Generic paginated media list wrapper',
                         properties: {
-                            ok: { type: 'boolean' },
+                            ok: { type: 'boolean', example: true },
                             total: {
                                 type: 'integer',
                                 description: 'Total items available (may be capped)',
+                                example: 150,
                             },
-                            page: { type: 'integer', description: 'Current page index (1-based)' },
-                            pageSize: { type: 'integer', description: 'Requested page size' },
+                            page: {
+                                type: 'integer',
+                                description: 'Current page index (1-based)',
+                                example: 1,
+                            },
+                            pageSize: {
+                                type: 'integer',
+                                description: 'Requested page size',
+                                example: 20,
+                            },
                             items: {
                                 type: 'array',
                                 description: 'Media items (shape depends on source aggregation)',
                                 items: { type: 'object' },
                             },
+                        },
+                        example: {
+                            ok: true,
+                            total: 150,
+                            page: 1,
+                            pageSize: 20,
+                            items: [],
                         },
                     },
                     // TODO(new-source): If your new source exposes new request/response shapes
@@ -332,8 +372,16 @@ function generateSwaggerSpec() {
                         type: 'object',
                         required: ['deviceId', 'deviceSecret'],
                         properties: {
-                            deviceId: { type: 'string' },
-                            deviceSecret: { type: 'string' },
+                            deviceId: { type: 'string', example: 'dev_abc123xyz' },
+                            deviceSecret: {
+                                type: 'string',
+                                example: '$2b$10$abcdefghijklmnopqrstuvwxyz1234567890',
+                                description: 'Bcrypt hashed secret - store securely',
+                            },
+                        },
+                        example: {
+                            deviceId: 'dev_abc123xyz',
+                            deviceSecret: '$2b$10$abcdefghijklmnopqrstuvwxyz1234567890',
                         },
                     },
                     DeviceQueuedCommand: {
@@ -372,11 +420,15 @@ function generateSwaggerSpec() {
                     DeviceHeartbeatResponse: {
                         type: 'object',
                         properties: {
-                            serverTime: { type: 'integer' },
+                            serverTime: { type: 'integer', example: 1730000000000 },
                             commandsQueued: {
                                 type: 'array',
                                 items: { $ref: '#/components/schemas/DeviceQueuedCommand' },
                             },
+                        },
+                        example: {
+                            serverTime: 1730000000000,
+                            commandsQueued: [],
                         },
                     },
                     PairingCodeRequest: {
@@ -392,12 +444,26 @@ function generateSwaggerSpec() {
                     PairingCodeResponse: {
                         type: 'object',
                         properties: {
-                            code: { type: 'string', description: 'Numeric pairing code' },
+                            code: {
+                                type: 'string',
+                                description: 'Numeric pairing code',
+                                example: '123456',
+                            },
                             token: {
                                 type: 'string',
                                 description: 'One-time token (only shown once) for added security',
+                                example: 'tok_abc123xyz789',
                             },
-                            expiresAt: { type: 'string', format: 'date-time' },
+                            expiresAt: {
+                                type: 'string',
+                                format: 'date-time',
+                                example: '2025-10-25T12:10:00.000Z',
+                            },
+                        },
+                        example: {
+                            code: '123456',
+                            token: 'tok_abc123xyz789',
+                            expiresAt: '2025-10-25T12:10:00.000Z',
                         },
                     },
                     PairingClaimRequest: {
@@ -828,8 +894,17 @@ function generateSwaggerSpec() {
                                 type: 'string',
                                 description:
                                     'The newly generated API key. Will only be shown once.',
+                                example: 'pk_live_1234567890abcdefghijklmnop',
                             },
-                            message: { type: 'string' },
+                            message: {
+                                type: 'string',
+                                example: 'API key generated successfully',
+                            },
+                        },
+                        example: {
+                            apiKey: 'pk_live_1234567890abcdefghijklmnop',
+                            message:
+                                'API key generated successfully. Store this securely - it will not be shown again.',
                         },
                     },
                     RefreshMediaResponse: {
@@ -845,6 +920,11 @@ function generateSwaggerSpec() {
                                 example: 150,
                                 description: 'Number of media items found after refresh.',
                             },
+                        },
+                        example: {
+                            success: true,
+                            message: 'Media playlist successfully refreshed. 150 items found.',
+                            itemCount: 150,
                         },
                     },
                     LogEntry: {
@@ -953,8 +1033,16 @@ function generateSwaggerSpec() {
                     ValidationResponse: {
                         type: 'object',
                         properties: {
-                            valid: { type: 'boolean', description: 'Whether the data is valid' },
-                            message: { type: 'string', description: 'Validation result message' },
+                            valid: {
+                                type: 'boolean',
+                                description: 'Whether the data is valid',
+                                example: true,
+                            },
+                            message: {
+                                type: 'string',
+                                description: 'Validation result message',
+                                example: 'Validation passed',
+                            },
                             sanitized: {
                                 type: 'object',
                                 description: 'Sanitized data if validation passed',
@@ -964,6 +1052,12 @@ function generateSwaggerSpec() {
                                 items: { type: 'string' },
                                 description: 'List of validation errors if any',
                             },
+                        },
+                        example: {
+                            valid: true,
+                            message: 'Validation passed',
+                            sanitized: {},
+                            errors: [],
                         },
                     },
                     PlexTestResponse: {
@@ -1034,16 +1128,29 @@ function generateSwaggerSpec() {
                             success: {
                                 type: 'boolean',
                                 description: 'Whether login was successful',
+                                example: true,
                             },
                             requires2FA: {
                                 type: 'boolean',
                                 description: 'Whether 2FA verification is required',
+                                example: false,
                             },
                             redirectTo: {
                                 type: 'string',
                                 description: 'URL to redirect to after login',
+                                example: '/admin',
                             },
-                            message: { type: 'string', description: 'Login result message' },
+                            message: {
+                                type: 'string',
+                                description: 'Login result message',
+                                example: 'Login successful',
+                            },
+                        },
+                        example: {
+                            success: true,
+                            requires2FA: false,
+                            redirectTo: '/admin',
+                            message: 'Login successful',
                         },
                     },
                     SessionResponse: {
@@ -1109,10 +1216,24 @@ function generateSwaggerSpec() {
                         type: 'object',
                         properties: {
                             success: { type: 'boolean', example: true },
-                            hasUpdate: { type: 'boolean' },
-                            currentVersion: { type: 'string' },
-                            latestVersion: { type: 'string' },
+                            hasUpdate: { type: 'boolean', example: true },
+                            currentVersion: { type: 'string', example: '2.8.0' },
+                            latestVersion: { type: 'string', example: '2.8.1' },
                             releaseInfo: { $ref: '#/components/schemas/GitHubRelease' },
+                        },
+                        example: {
+                            success: true,
+                            hasUpdate: true,
+                            currentVersion: '2.8.0',
+                            latestVersion: '2.8.1',
+                            releaseInfo: {
+                                id: 123456,
+                                tag_name: 'v2.8.1',
+                                name: 'Release 2.8.1',
+                                body: '## Bug Fixes\n- Fixed MQTT broker display issue',
+                                published_at: '2025-10-25T10:00:00Z',
+                                prerelease: false,
+                            },
                         },
                     },
                 },
