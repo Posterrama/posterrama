@@ -70,9 +70,30 @@ global.cleanupTimers = function () {
 process.env.NODE_ENV = 'test';
 process.env.TEST_SILENT = 'true'; // Suppress logger output
 
-// Snapshot immutable test fixture(s) to ensure tests do not mutate them in-place
+// Ensure config.json exists for tests (copy from example if missing)
 const fs = require('fs');
 const path = require('path');
+
+const configPath = path.join(__dirname, 'config.json');
+const configExamplePath = path.join(__dirname, 'config.example.json');
+
+if (!fs.existsSync(configPath) && fs.existsSync(configExamplePath)) {
+    try {
+        const exampleConfig = JSON.parse(fs.readFileSync(configExamplePath, 'utf8'));
+        // Create minimal test config
+        const testConfig = {
+            ...exampleConfig,
+            port: 4000,
+            mediaServers: [],
+        };
+        fs.writeFileSync(configPath, JSON.stringify(testConfig, null, 4));
+        console.log('✅ Created config.json from example for tests');
+    } catch (error) {
+        console.warn('⚠️ Could not create config.json:', error.message);
+    }
+}
+
+// Snapshot immutable test fixture(s) to ensure tests do not mutate them in-place
 const CRITICAL_FIXTURES = [
     path.join(__dirname, '__tests__', 'utils', 'fake-backup', 'package.json'),
 ];
