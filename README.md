@@ -154,8 +154,41 @@ What you can do:
 
 Where it shines:
 
-- At home — Quickly pause a screen when you get a call, pin a specific poster for a movie night, or tailor one display’s look (mode, grid density, info overlays) without touching the others.
+- At home — Quickly pause a screen when you get a call, pin a specific poster for a movie night, or tailor one display's look (mode, grid density, info overlays) without touching the others.
 - In commercial cinemas and venues — Keep foyer and hallway displays fresh and on‑brand. Swap promos in seconds, verify screens are healthy at a glance, and minimize downtime with one‑click reload/reset.
+
+---
+
+### Home Assistant integration
+
+<div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
+  <figure style="margin: 0; flex: 0 0 370px;">
+    <img src="./screenshots/home_assistant_mqtt.png" alt="Home Assistant MQTT Integration" width="370">
+    <figcaption style="text-align:left; color:#6a6a6a;"><em>Control Posterrama displays directly from Home Assistant</em></figcaption>
+  </figure>
+  <div style="flex: 1; min-width: 300px;">
+
+Connect your Posterrama displays to Home Assistant via MQTT and make them part of your smart home. Each display appears as a media player with full controls and customizable settings—all through the Home Assistant interface you already know.
+
+  </div>
+</div>
+
+What you get:
+
+- **Media player controls**: Play, pause, next/previous poster, and see what's currently showing
+- **50+ customization options**: Change display mode, animation style, transition speed, poster info visibility, and more—all exposed as switches, selects, and numbers in Home Assistant
+- **Smart home integration**: Trigger display changes with scenes, automations, or schedules. Pause displays when movies start, switch to cinema mode for movie night, or rotate content based on time of day
+- **Real-time sync**: Changes in Posterrama instantly update in Home Assistant, and vice versa
+- **Multiple displays**: Manage all your screens individually or group them together
+
+Perfect for:
+
+- **Home theaters**: Automatically switch displays when you start a movie
+- **Smart scenes**: Adjust poster displays as part of "Movie Night" or "Party Mode" scenes
+- **Scheduling**: Show different content during daytime vs. evening
+- **Voice control**: "Hey Google, next poster" or "Alexa, pause the display"
+
+Setup is straightforward—just enable MQTT in Posterrama settings, point it to your MQTT broker, and your displays appear in Home Assistant automatically. No manual configuration needed.
 
 ---
 
@@ -190,10 +223,6 @@ A quick peek at what's next. We're actively building these high‑impact upgrade
 - [ ] Music library support
 - [ ] Radarr/Sonarr/Lidarr integration
 - [ ] Steam and ROMM gaming libraries and collections
-
-**Integrations & automation**
-
-- [ ] Home Assistant support (MQTT) — publish device state and accept commands so displays can react to scenes, schedules, and smart‑home automations
 
 **Content & curation**
 
