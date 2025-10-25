@@ -1,9 +1,19 @@
 /**
  * Minimal tests for public/core.js helpers using a simulated DOM-like environment
+ * @jest-environment node
  */
 
 const fs = require('fs');
 const path = require('path');
+
+// Mock BroadcastChannel to prevent open handles
+global.BroadcastChannel = class MockBroadcastChannel {
+    constructor(name) {
+        this.name = name;
+    }
+    postMessage() {}
+    close() {}
+};
 
 describe('PosterramaCore helpers (simulated)', () => {
     beforeAll(() => {
@@ -21,6 +31,11 @@ describe('PosterramaCore helpers (simulated)', () => {
         const src = fs.readFileSync(path.join(__dirname, '../../public/core.js'), 'utf8');
         // eslint-disable-next-line no-new-func
         new Function('window', src)(global.window);
+    });
+
+    afterAll(() => {
+        // Clean up global window to prevent open handles
+        delete global.window;
     });
 
     it('buildUrlForMode builds subpath-safe URLs', () => {
