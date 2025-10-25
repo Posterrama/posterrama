@@ -173,6 +173,8 @@ What you get:
 - **Real-time sync**: Changes in Posterrama instantly update in Home Assistant, and vice versa
 - **Multiple displays**: Manage all your screens individually or group them together
 
+<br clear="left"/>
+
 Perfect for:
 
 - **Home theaters**: Automatically switch displays when you start a movie
