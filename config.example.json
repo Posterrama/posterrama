@@ -227,5 +227,6 @@
             "indexCacheSize": 1000,
             "watcherEnabled": true
         }
-    }
+    },
+    "previewOrientation": "landscape"
 }
