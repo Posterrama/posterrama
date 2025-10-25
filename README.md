@@ -161,17 +161,12 @@ Where it shines:
 
 ### Home Assistant integration
 
-<div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
-  <figure style="margin: 0; flex: 0 0 370px;">
-    <img src="./screenshots/home_assistant_mqtt.png" alt="Home Assistant MQTT Integration" width="370">
-    <figcaption style="text-align:left; color:#6a6a6a;"><em>Control Posterrama displays directly from Home Assistant</em></figcaption>
-  </figure>
-  <div style="flex: 1; min-width: 300px;">
+<figure>
+  <img src="./screenshots/home_assistant_mqtt.png" alt="Home Assistant MQTT Integration" width="370">
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>Control Posterrama displays directly from Home Assistant</em></figcaption>
+</figure>
 
 Connect your Posterrama displays to Home Assistant via MQTT and make them part of your smart home. Each display appears as a media player with full controls and customizable settings—all through the Home Assistant interface you already know.
-
-  </div>
-</div>
 
 What you get:
 
