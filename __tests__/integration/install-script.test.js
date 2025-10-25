@@ -3,7 +3,7 @@
  * Tests the install.sh script functionality in isolated environments
  */
 
-const { execSync, spawn } = require('child_process');
+const { execSync } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
@@ -58,7 +58,8 @@ describe('Install Script Integration Tests', () => {
                     return;
                 }
                 // shellcheck found issues
-                fail(`shellcheck validation failed:\n${err.stdout}`);
+                expect(true).toBe(false); // Force test to fail
+                console.error(`shellcheck validation failed:\n${err.stdout}`);
             }
         });
 

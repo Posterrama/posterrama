@@ -4,7 +4,6 @@
  */
 
 const request = require('supertest');
-const path = require('path');
 
 // Mock logger
 jest.mock('../../utils/logger');
@@ -340,7 +339,7 @@ describe('Performance Benchmarking Suite', () => {
                 const times = [];
                 for (let i = 0; i < 10000; i++) {
                     const start = performance.now();
-                    const parsed = new URL(url, 'http://localhost:4000');
+                    new URL(url, 'http://localhost:4000'); // eslint-disable-line no-new
                     times.push(performance.now() - start);
                 }
                 return {
