@@ -14965,6 +14965,50 @@ select:focus-visible {
         width: 100% !important;
         max-width: 100% !important;
     }
+
+    /* API Access card optimization */
+    #section-operations #api-key-display {
+        margin-top: var(--space-xs) !important;
+    }
+
+    #section-operations #api-key-display .input-row {
+        display: flex;
+        gap: 6px;
+        align-items: stretch;
+    }
+
+    #section-operations #api-key-display .input-row input {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.8rem !important;
+        padding: 8px !important;
+    }
+
+    #section-operations #api-key-display .input-row .actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
+    #section-operations #api-key-display .btn-icon {
+        width: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    #section-operations #api-key-display .btn-icon i {
+        font-size: 0.9rem !important;
+        margin: 0 !important;
+    }
+
+    /* API key buttons below */
+    #section-operations [aria-label='API Access Management'] > .actions {
+        margin-top: var(--space-sm) !important;
+    }
 }
 
 /* Cache bust: 2025-10-26 */
