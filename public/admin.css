@@ -14591,28 +14591,52 @@ select:focus-visible {
     #section-devices .device-card {
         padding: var(--space-sm) !important;
         min-height: auto !important;
+        max-width: 100%;
+        overflow: hidden;
     }
 
     #section-devices .device-card-header {
         flex-wrap: wrap !important;
         gap: 8px !important;
         padding-bottom: var(--space-xs) !important;
+        margin-bottom: var(--space-xs);
+    }
+
+    #section-devices .device-card-header .device-checkbox {
+        order: 1;
+        margin-right: 8px;
+    }
+
+    #section-devices .device-card-header .device-icon {
+        order: 2;
+        margin-right: 8px;
     }
 
     #section-devices .device-card-header .device-name {
+        order: 3;
         flex: 1 1 100% !important;
         font-size: 1rem !important;
-        margin-bottom: 4px;
+        margin: 8px 0 4px 0;
+        word-break: break-word;
     }
 
     #section-devices .device-card-header .device-status {
+        order: 4;
         font-size: 0.75rem !important;
         padding: 3px 8px !important;
     }
 
     #section-devices .device-card-header .badge {
+        order: 5;
         font-size: 0.7rem !important;
         padding: 2px 6px !important;
+    }
+
+    #section-devices .device-card-header .device-tools {
+        order: 6;
+        flex: 0 0 100%;
+        justify-content: flex-start;
+        margin-top: 8px;
     }
 
     /* Device body - stack vertically */
@@ -14625,11 +14649,28 @@ select:focus-visible {
         width: 100% !important;
     }
 
+    /* Device tools row - wrap into 2 rows if needed */
+    #section-devices .device-body-main .device-tools {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)) !important;
+        gap: 8px !important;
+        max-width: 100%;
+    }
+
+    #section-devices .device-body-main .device-tools .btn {
+        padding: 10px !important;
+        font-size: 1rem !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
     #section-devices .device-info {
         display: flex;
         flex-direction: column;
         gap: 6px;
         font-size: 0.85rem;
+        margin-top: var(--space-xs);
     }
 
     #section-devices .device-info .info-row {
@@ -14638,33 +14679,43 @@ select:focus-visible {
         gap: 8px;
     }
 
-    /* Device actions - wrap buttons */
+    /* Now Playing section - full width */
+    #section-devices .device-nowplay {
+        width: 100% !important;
+        margin-top: var(--space-sm);
+    }
+
+    /* Device actions - wrap buttons in 2 columns */
     #section-devices .device-actions {
         width: 100% !important;
-        flex-wrap: wrap !important;
-        gap: 6px !important;
-        margin-top: var(--space-xs);
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+        margin-top: var(--space-sm);
     }
 
     #section-devices .device-actions .btn {
-        flex: 1 1 calc(50% - 3px) !important;
+        flex: none !important;
+        width: 100% !important;
         min-width: 0 !important;
         font-size: 0.8rem !important;
-        padding: 8px 10px !important;
+        padding: 10px 8px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     #section-devices .device-actions .btn i {
         margin-right: 4px;
+        flex-shrink: 0;
     }
 
-    /* Device tools (top right icons) - make them visible and touchable */
-    #section-devices .device-tools {
-        gap: 6px !important;
-    }
-
-    #section-devices .device-tools .btn {
-        padding: 6px !important;
-        font-size: 0.9rem !important;
+    /* Status badges row - wrap if needed */
+    #section-devices .device-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: var(--space-xs);
     }
 
     /* Pagination - stack on mobile */
