@@ -14519,6 +14519,169 @@ select:focus-visible {
     #panel-local .select-wrap {
         width: 100%;
     }
+
+    /* ========================================
+       DEVICE MANAGEMENT MOBILE OPTIMIZATION
+       ======================================== */
+
+    /* Panel header */
+    #panel-device-management .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+    }
+
+    #panel-device-management .panel-title {
+        width: 100%;
+    }
+
+    #panel-device-management .panel-subtitle {
+        font-size: 0.85rem;
+    }
+
+    /* Device tabs section - reduce padding */
+    #section-devices #device-tabs {
+        padding: var(--space-sm) !important;
+    }
+
+    #section-devices #device-tabs .section-title {
+        font-size: 0.9rem;
+        margin-bottom: var(--space-xs);
+    }
+
+    #section-devices #device-tabs .form-row {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+    }
+
+    /* Device toolbar - stack vertically */
+    #section-devices .device-actions-right {
+        width: 100%;
+    }
+
+    #section-devices .device-toolbar {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+
+    #section-devices .device-toolbar .dropdown {
+        width: 100%;
+    }
+
+    #section-devices .device-toolbar .dropdown .btn {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    #section-devices .device-search-box {
+        width: 100% !important;
+    }
+
+    /* Device grid - single column */
+    #section-devices .device-grid {
+        grid-template-columns: 1fr !important;
+        gap: var(--space-sm) !important;
+        padding: var(--space-sm);
+    }
+
+    /* Device cards - optimize for mobile */
+    #section-devices .device-card {
+        padding: var(--space-sm) !important;
+        min-height: auto !important;
+    }
+
+    #section-devices .device-card-header {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        padding-bottom: var(--space-xs) !important;
+    }
+
+    #section-devices .device-card-header .device-name {
+        flex: 1 1 100% !important;
+        font-size: 1rem !important;
+        margin-bottom: 4px;
+    }
+
+    #section-devices .device-card-header .device-status {
+        font-size: 0.75rem !important;
+        padding: 3px 8px !important;
+    }
+
+    #section-devices .device-card-header .badge {
+        font-size: 0.7rem !important;
+        padding: 2px 6px !important;
+    }
+
+    /* Device body - stack vertically */
+    #section-devices .device-card-body {
+        flex-direction: column !important;
+        gap: var(--space-sm) !important;
+    }
+
+    #section-devices .device-body-main {
+        width: 100% !important;
+    }
+
+    #section-devices .device-info {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 0.85rem;
+    }
+
+    #section-devices .device-info .info-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    /* Device actions - wrap buttons */
+    #section-devices .device-actions {
+        width: 100% !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        margin-top: var(--space-xs);
+    }
+
+    #section-devices .device-actions .btn {
+        flex: 1 1 calc(50% - 3px) !important;
+        min-width: 0 !important;
+        font-size: 0.8rem !important;
+        padding: 8px 10px !important;
+    }
+
+    #section-devices .device-actions .btn i {
+        margin-right: 4px;
+    }
+
+    /* Device tools (top right icons) - make them visible and touchable */
+    #section-devices .device-tools {
+        gap: 6px !important;
+    }
+
+    #section-devices .device-tools .btn {
+        padding: 6px !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* Pagination - stack on mobile */
+    #section-devices .device-pagination {
+        flex-direction: column;
+        gap: var(--space-sm);
+        padding: var(--space-sm);
+    }
+
+    #section-devices .table-info {
+        text-align: center;
+        font-size: 0.85rem;
+    }
+
+    #section-devices .pagination {
+        justify-content: center;
+    }
 }
 
 /* Cache bust: 2025-10-26 */
