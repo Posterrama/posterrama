@@ -13844,4 +13844,178 @@ select:focus-visible {
     }
 }
 
+/* ===== DISPLAY SETTINGS MOBILE OPTIMIZATION ===== */
+
+@media (max-width: 768px) {
+    /* Mobile preview: positioned at right edge, collapsed by default */
+    #display-preview-container {
+        position: fixed !important;
+        right: -280px !important; /* Almost fully hidden, only tab edge visible */
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        z-index: 9999 !important;
+        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        display: block !important;
+    }
+
+    #display-preview-container.mobile-expanded {
+        right: 4px !important; /* Slide in, close to right edge */
+    }
+
+    #display-preview-container .preview-shell {
+        width: 280px !important;
+        height: auto !important;
+        aspect-ratio: 16 / 9 !important;
+        transform: scale(1) !important;
+        transform-origin: center right !important;
+        box-shadow: -6px 0 20px rgba(0, 0, 0, 0.6) !important;
+    }
+
+    #display-preview-container.portrait .preview-shell {
+        width: 160px !important;
+        aspect-ratio: 9 / 16 !important;
+    }
+
+    /* Subtle toggle tab on left side of preview */
+    #display-preview-container .mobile-preview-tab {
+        position: absolute;
+        left: -32px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 32px;
+        height: 60px;
+        background: linear-gradient(90deg, rgba(30, 35, 50, 0.7), rgba(30, 35, 50, 0.9));
+        backdrop-filter: blur(12px) saturate(150%);
+        -webkit-backdrop-filter: blur(12px) saturate(150%);
+        border-radius: 8px 0 0 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-right: 0;
+        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
+        cursor: pointer;
+        z-index: 1;
+        transition: all 0.2s ease;
+    }
+
+    #display-preview-container .mobile-preview-tab:active {
+        background: linear-gradient(90deg, rgba(40, 45, 60, 0.8), rgba(40, 45, 60, 0.95));
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    #display-preview-container .mobile-preview-tab i {
+        transition: transform 0.3s ease;
+    }
+
+    #display-preview-container.mobile-expanded .mobile-preview-tab i {
+        transform: rotate(180deg);
+    }
+
+    /* Hide drag handle on mobile */
+    #display-preview-container .preview-drag-handle {
+        display: none !important;
+    }
+
+    /* Adjust preview tools for mobile */
+    #display-preview-container .preview-tools {
+        bottom: 6px;
+        right: 6px;
+        gap: 4px;
+    }
+
+    #display-preview-container .preview-tools .pip-button {
+        padding: 5px 7px;
+        font-size: 0.7rem;
+    }
+
+    /* Make segmented controls scrollable on mobile */
+    #section-display .segmented {
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap;
+        gap: 6px;
+        padding: 4px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    #section-display .segmented::-webkit-scrollbar {
+        display: none;
+    }
+
+    #section-display .segmented .seg {
+        flex: 0 0 auto;
+        min-width: 110px;
+        font-size: 0.85rem;
+        padding: 10px 14px;
+        white-space: nowrap;
+    }
+
+    #section-display .segmented .seg i {
+        font-size: 0.9rem;
+    }
+
+    /* Compact mode cards on mobile */
+    #section-display .mode-card {
+        margin-bottom: var(--space-sm);
+    }
+
+    #section-display .form-section {
+        padding: var(--space-sm);
+    }
+
+    /* Make form grids single column on mobile */
+    #section-display .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Compact preset buttons */
+    #section-display .scaling-presets {
+        gap: 6px !important;
+    }
+
+    #section-display .scaling-presets .btn {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+    }
+
+    /* Make status pills wrap */
+    #section-display #saver-summary {
+        gap: 6px !important;
+    }
+
+    #section-display .status-pill {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+    }
+
+    /* Panel header adjustments */
+    #panel-display .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+    }
+
+    #panel-display .panel-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    #panel-display .panel-subtitle {
+        font-size: 0.85rem;
+    }
+
+    /* Compact section titles */
+    #section-display .section-title {
+        font-size: 0.9rem;
+    }
+
+    #section-display .card-title {
+        font-size: 0.9rem;
+    }
+}
+
 /* Cache bust: 2025-10-26 */
