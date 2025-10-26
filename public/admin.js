@@ -4797,6 +4797,58 @@
                 /* slider preset button click failed (user can adjust manually) */
             }
         };
+
+        // Mobile preview toggle functionality
+        (function initMobilePreview() {
+            const isMobile = () => window.innerWidth <= 768;
+
+            if (!isMobile()) return;
+
+            // Remove any existing mobile-expanded class to start collapsed
+            container.classList.remove('mobile-expanded');
+
+            // Create mobile toggle tab element
+            let tab = container.querySelector('.mobile-preview-tab');
+            if (!tab) {
+                tab = document.createElement('div');
+                tab.className = 'mobile-preview-tab';
+                tab.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                tab.title = 'Toggle preview';
+                container.appendChild(tab);
+            }
+
+            // Toggle preview on mobile by clicking the tab
+            tab.addEventListener('click', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Tab clicked, toggling preview');
+                container.classList.toggle('mobile-expanded');
+                console.log('Preview expanded:', container.classList.contains('mobile-expanded'));
+            });
+
+            // Close preview when clicking outside on mobile
+            const closePreview = e => {
+                if (
+                    !container.contains(e.target) &&
+                    container.classList.contains('mobile-expanded') &&
+                    isMobile()
+                ) {
+                    console.log('Clicked outside, closing preview');
+                    container.classList.remove('mobile-expanded');
+                }
+            };
+
+            document.addEventListener('click', closePreview);
+
+            // Prevent closing when clicking inside preview
+            container.addEventListener('click', e => {
+                if (!tab.contains(e.target)) {
+                    e.stopPropagation();
+                }
+            });
+
+            console.log('Mobile preview initialized, collapsed by default');
+        })();
     }
 
     async function refreshApiKeyStatus() {
