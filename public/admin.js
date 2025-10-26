@@ -4858,18 +4858,35 @@
                         '[DEBUG] Tab visibility updated:',
                         isDisplayActive ? 'visible' : 'hidden'
                     );
+
+                    // If leaving display settings, also hide the preview
+                    if (!isDisplayActive && container.classList.contains('mobile-expanded')) {
+                        container.classList.remove('mobile-expanded');
+                        container.style.display = 'none';
+                        console.log('[DEBUG] Left display settings, collapsed preview');
+                    }
                 }
             };
 
             // Initial visibility check
             updateTabVisibility();
 
-            // Watch for section changes
+            // Watch for section changes on display section
             const observer = new MutationObserver(updateTabVisibility);
             const section = document.getElementById('section-display');
             if (section) {
                 observer.observe(section, { attributes: true, attributeFilter: ['class'] });
             }
+
+            // Also watch all sections to detect when any other becomes active
+            document.querySelectorAll('[id^="section-"]').forEach(otherSection => {
+                if (otherSection.id !== 'section-display') {
+                    observer.observe(otherSection, {
+                        attributes: true,
+                        attributeFilter: ['class'],
+                    });
+                }
+            });
 
             // Toggle preview on mobile by clicking the tab
             tab.addEventListener('click', e => {
