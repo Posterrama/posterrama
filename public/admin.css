@@ -14387,41 +14387,73 @@ select:focus-visible {
     }
 
     #panel-local .browser-item {
-        padding: 10px 12px;
+        padding: 12px !important;
         gap: 10px;
+        flex-wrap: nowrap;
+        align-items: center;
     }
 
     #panel-local .browser-item-icon {
-        font-size: 1.2rem;
-        width: 32px;
-        flex-shrink: 0;
+        font-size: 1.2rem !important;
+        width: 32px !important;
+        min-width: 32px !important;
+        flex-shrink: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    #panel-local .browser-item-icon.has-thumb {
+        width: 32px !important;
     }
 
     #panel-local .browser-item-info {
         min-width: 0;
         flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
 
     #panel-local .browser-item-name {
-        font-size: 0.9rem;
+        font-size: 0.9rem !important;
         word-break: break-word;
+        display: flex !important;
+        flex-wrap: wrap;
+        gap: 6px !important;
+        align-items: center;
+    }
+
+    #panel-local .browser-item-name .status-pill {
+        font-size: 0.7rem !important;
+        padding: 2px 6px !important;
     }
 
     #panel-local .browser-item-meta {
         font-size: 0.75rem;
         flex-wrap: wrap;
         gap: 6px;
+        color: var(--color-text-secondary);
     }
 
     #panel-local .browser-item-actions {
         flex-shrink: 0;
-        gap: 4px;
+        gap: 6px !important;
+        display: flex !important;
+        opacity: 1 !important; /* Always visible on mobile */
     }
 
     #panel-local .browser-item-actions .btn {
-        padding: 6px 8px;
-        font-size: 0.8rem;
-        min-width: auto;
+        padding: 8px 12px !important;
+        font-size: 0.8rem !important;
+        min-width: auto !important;
+        white-space: nowrap;
+    }
+
+    #panel-local .browser-item-actions .btn i {
+        margin-right: 4px;
+    }
+
+    #panel-local .browser-item-actions .btn span {
+        display: inline !important; /* Show text on action buttons */
     }
 
     /* Browser empty state */
