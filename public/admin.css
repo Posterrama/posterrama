@@ -13880,56 +13880,43 @@ select:focus-visible {
         aspect-ratio: 9 / 16 !important;
     }
 
-    /* Subtle toggle tab on RIGHT side of screen - only visible on Display Settings */
-    #section-display.active ~ * body #display-preview-container .mobile-preview-tab,
-    body.section-display #display-preview-container .mobile-preview-tab,
-    body #section-display.active #display-preview-container .mobile-preview-tab,
-    body #display-preview-container .mobile-preview-tab {
-        position: fixed !important; /* Fixed to screen, not absolute to container */
-        right: 0 !important; /* Stick to right edge of screen */
+    /* Subtle toggle tab on RIGHT side of screen - bright and visible */
+    .mobile-preview-tab {
+        position: fixed !important;
+        right: 0 !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
-        width: 36px !important;
-        height: 70px !important;
-        background: linear-gradient(
-            270deg,
-            rgba(30, 35, 50, 0.95),
-            rgba(30, 35, 50, 0.85)
-        ) !important;
+        width: 40px !important;
+        height: 80px !important;
+        background: rgba(40, 140, 200, 0.95) !important;
         backdrop-filter: blur(12px) saturate(150%) !important;
         -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
-        border-radius: 8px 0 0 8px !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 12px 0 0 12px !important;
+        border: 2px solid rgba(255, 255, 255, 0.25) !important;
         border-right: 0 !important;
-        box-shadow: -3px 0 10px rgba(0, 0, 0, 0.5) !important;
+        box-shadow: -4px 0 12px rgba(0, 0, 0, 0.6) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        color: rgba(255, 255, 255, 0.7) !important;
-        font-size: 1rem !important;
+        color: rgba(255, 255, 255, 0.95) !important;
+        font-size: 1.1rem !important;
         cursor: pointer !important;
-        z-index: 10000 !important; /* Higher than container */
-        transition:
-            opacity 0.2s ease,
-            background 0.2s ease !important;
+        z-index: 10000 !important;
+        transition: all 0.2s ease !important;
     }
 
     /* Hide tab when preview is expanded */
-    body #display-preview-container.mobile-expanded .mobile-preview-tab {
+    .mobile-expanded .mobile-preview-tab {
         opacity: 0 !important;
         pointer-events: none !important;
     }
 
-    body #display-preview-container .mobile-preview-tab:active {
-        background: linear-gradient(
-            270deg,
-            rgba(40, 45, 60, 0.95),
-            rgba(40, 45, 60, 0.8)
-        ) !important;
-        color: rgba(255, 255, 255, 0.9) !important;
+    .mobile-preview-tab:active {
+        background: rgba(50, 160, 220, 0.95) !important;
+        transform: translateY(-50%) scale(0.95) !important;
     }
 
-    body #display-preview-container .mobile-preview-tab i {
+    .mobile-preview-tab i {
         transition: transform 0.3s ease !important;
     }
 
@@ -13950,29 +13937,28 @@ select:focus-visible {
         font-size: 0.7rem;
     }
 
-    /* Make segmented controls wrap - Cinema on second row */
+    /* Make segmented controls scrollable horizontally on mobile */
     #section-display .segmented {
-        flex-wrap: wrap;
-        gap: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap;
+        gap: 6px;
         padding: 4px;
-        justify-content: center;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
     }
 
     #section-display .segmented::-webkit-scrollbar {
         display: none;
     }
 
-    /* First two buttons take half width each, third takes full width */
+    /* Buttons stay comfortable size, scroll if needed */
     #section-display .segmented .seg {
-        flex: 1 1 calc(50% - 4px);
-        min-width: 120px;
+        flex: 0 0 auto;
+        min-width: 110px;
         font-size: 0.85rem;
-        padding: 10px 12px;
+        padding: 10px 14px;
         white-space: nowrap;
-    }
-
-    #section-display .segmented .seg:last-child {
-        flex: 1 1 100%;
     }
 
     #section-display .segmented .seg i {
