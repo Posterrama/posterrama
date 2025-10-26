@@ -304,6 +304,117 @@ describe('CapabilityRegistry - 80% Coverage Push', () => {
         });
     });
 
+    describe('Screensaver Settings StateGetters with Config Fallback', () => {
+        test('transitionInterval returns override value', () => {
+            const cap = capabilityRegistry.get('settings.transitionInterval');
+            const device = { settingsOverride: { transitionInterval: 20000 } };
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+            expect(result).toBeGreaterThan(0);
+        });
+
+        test('transitionInterval returns default when no override', () => {
+            const cap = capabilityRegistry.get('settings.transitionInterval');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+            expect(result).toBeGreaterThan(0);
+        });
+
+        test('effectPauseTime returns override value', () => {
+            const cap = capabilityRegistry.get('settings.effectPauseTime');
+            const device = { settingsOverride: { effectPauseTime: 5 } };
+
+            expect(cap.stateGetter(device)).toBe(5);
+        });
+
+        test('transitionEffect returns override value', () => {
+            const cap = capabilityRegistry.get('settings.transitionEffect');
+            const device = { settingsOverride: { transitionEffect: 'zoom' } };
+
+            expect(cap.stateGetter(device)).toBe('zoom');
+        });
+
+        test('clockFormat returns override value', () => {
+            const cap = capabilityRegistry.get('settings.clockFormat');
+            const device = { settingsOverride: { clockFormat: '24h' } };
+
+            expect(cap.stateGetter(device)).toBe('24h');
+        });
+    });
+
+    describe('Cinema Mode Settings StateGetters', () => {
+        test('cinema.orientation returns override value', () => {
+            const cap = capabilityRegistry.get('settings.cinema.orientation');
+            const device = {
+                settingsOverride: {
+                    cinema: { orientation: 'horizontal' },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe('horizontal');
+        });
+
+        test('cinema.header.enabled returns override value', () => {
+            const cap = capabilityRegistry.get('settings.cinema.header.enabled');
+            const device = {
+                settingsOverride: {
+                    cinema: { header: { enabled: false } },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe(false);
+        });
+
+        test('cinema.ambilight.enabled returns override value', () => {
+            const cap = capabilityRegistry.get('settings.cinema.ambilight.enabled');
+            const device = {
+                settingsOverride: {
+                    cinema: { ambilight: { enabled: true } },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe(true);
+        });
+    });
+
+    describe('Wallart Mode Settings StateGetters', () => {
+        test('wallartMode.animationType returns override value', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.animationType');
+            const device = {
+                settingsOverride: {
+                    wallartMode: { animationType: 'fade' },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe('fade');
+        });
+
+        test('wallartMode.layout returns override value', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.layout');
+            const device = {
+                settingsOverride: {
+                    wallartMode: { layout: 'grid' },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe('grid');
+        });
+
+        test('wallartMode.heroSide returns override value', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.heroSide');
+            const device = {
+                settingsOverride: {
+                    wallartMode: { heroSide: 'right' },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe('right');
+        });
+    });
+
     describe('Capability Registration', () => {
         test('get returns capability for existing id', () => {
             const cap = capabilityRegistry.get('playback.pause');
