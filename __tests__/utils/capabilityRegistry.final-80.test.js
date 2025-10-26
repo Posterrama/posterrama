@@ -1198,6 +1198,157 @@ describe('CapabilityRegistry - 80% Coverage Push', () => {
         });
     });
 
+    describe('Helper Method Coverage', () => {
+        test('getCinemaSetting with existing nested path', () => {
+            const device = {
+                settingsOverride: {
+                    cinema: {
+                        ambilight: {
+                            strength: 0.5,
+                        },
+                    },
+                },
+            };
+
+            const result = capabilityRegistry.getCinemaSetting(device, 'ambilight.strength', 0.7);
+            expect(result).toBe(0.5);
+        });
+
+        test('getWallartSetting with existing value', () => {
+            const device = {
+                settingsOverride: {
+                    wallartMode: {
+                        animationType: 'slide',
+                    },
+                },
+            };
+
+            const result = capabilityRegistry.getWallartSetting(device, 'animationType', 'fade');
+            expect(result).toBe('slide');
+        });
+
+        test('getScreensaverSetting with existing value', () => {
+            const device = {
+                settingsOverride: {
+                    clockFormat: '12h',
+                },
+            };
+
+            const result = capabilityRegistry.getScreensaverSetting(device, 'clockFormat', '24h');
+            expect(result).toBe('12h');
+        });
+
+        test('getModeSetting delegates to getCinemaSetting', () => {
+            const device = {
+                settingsOverride: {
+                    cinema: {
+                        footer: {
+                            enabled: false,
+                        },
+                    },
+                },
+            };
+
+            const result = capabilityRegistry.getModeSetting(
+                device,
+                'cinema',
+                'footer.enabled',
+                true
+            );
+            expect(result).toBe(false);
+        });
+
+        test('getModeSetting delegates to getWallartSetting', () => {
+            const device = {
+                settingsOverride: {
+                    wallartMode: {
+                        layout: 'poster',
+                    },
+                },
+            };
+
+            const result = capabilityRegistry.getModeSetting(device, 'wallart', 'layout', 'hero');
+            expect(result).toBe('poster');
+        });
+
+        test('getModeSetting delegates to getScreensaverSetting', () => {
+            const device = {
+                settingsOverride: {
+                    showClock: false,
+                },
+            };
+
+            const result = capabilityRegistry.getModeSetting(
+                device,
+                'screensaver',
+                'showClock',
+                true
+            );
+            expect(result).toBe(false);
+        });
+
+        test('getDeviceMode prioritizes clientInfo over currentState', () => {
+            const device = {
+                clientInfo: { mode: 'wallart' },
+                currentState: { mode: 'cinema' },
+            };
+
+            expect(capabilityRegistry.getDeviceMode(device)).toBe('wallart');
+        });
+    });
+
+    describe('Additional State Getters', () => {
+        test('showLogo with undefined returns default', () => {
+            const cap = capabilityRegistry.get('settings.showLogo');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('boolean');
+        });
+
+        test('showClock with undefined returns default', () => {
+            const cap = capabilityRegistry.get('settings.showClock');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('boolean');
+        });
+
+        test('backgroundDimming with undefined returns default', () => {
+            const cap = capabilityRegistry.get('settings.backgroundDimming');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+    });
+
+    describe('Capability Registry Basics', () => {
+        test('getAllCapabilities returns consistent results', () => {
+            const all1 = capabilityRegistry.getAllCapabilities();
+            const all2 = capabilityRegistry.getAllCapabilities();
+
+            expect(all1.length).toBe(all2.length);
+            expect(all1.length).toBeGreaterThan(50);
+        });
+
+        test('has returns false for non-existent capability', () => {
+            expect(capabilityRegistry.has('completely.made.up.capability')).toBe(false);
+        });
+
+        test('get returns null for non-existent capability', () => {
+            expect(capabilityRegistry.get('completely.made.up.capability')).toBeNull();
+        });
+
+        test('getAvailableCapabilities returns array', () => {
+            const device = { clientInfo: { mode: 'screensaver' } };
+            const available = capabilityRegistry.getAvailableCapabilities(device);
+
+            expect(Array.isArray(available)).toBe(true);
+            expect(available.length).toBeGreaterThan(0);
+        });
+    });
+
     describe('Capability Registration', () => {
         test('get returns capability for existing id', () => {
             const cap = capabilityRegistry.get('playback.pause');
