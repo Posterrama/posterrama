@@ -13937,33 +13937,61 @@ select:focus-visible {
         font-size: 0.7rem;
     }
 
-    /* Make segmented controls scrollable horizontally on mobile */
-    #section-display .segmented {
+    /* Universal solution for segmented controls on mobile */
+    .segmented.controls {
+        display: flex;
         overflow-x: auto;
         overflow-y: hidden;
         flex-wrap: nowrap;
         gap: 6px;
         padding: 4px;
         -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
     }
 
-    #section-display .segmented::-webkit-scrollbar {
-        display: none;
+    .segmented.controls::-webkit-scrollbar {
+        height: 4px;
     }
 
-    /* Buttons stay comfortable size, scroll if needed */
-    #section-display .segmented .seg {
+    .segmented.controls::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 2px;
+    }
+
+    .segmented.controls::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+    }
+
+    .segmented.controls::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Buttons in segmented controls stay comfortable size */
+    .segmented.controls button,
+    .segmented.controls .seg {
         flex: 0 0 auto;
-        min-width: 110px;
+        min-width: 100px;
+        max-width: none;
         font-size: 0.85rem;
         padding: 10px 14px;
         white-space: nowrap;
     }
 
-    #section-display .segmented .seg i {
+    .segmented.controls button i,
+    .segmented.controls .seg i {
         font-size: 0.85rem;
         margin-right: 4px;
+    }
+
+    /* Specific override for display settings if needed */
+    #section-display .segmented {
+        gap: 6px;
+    }
+
+    #section-display .segmented .seg {
+        min-width: 110px;
     }
 
     /* Even more compact Active Mode card */

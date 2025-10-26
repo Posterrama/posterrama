@@ -4800,21 +4800,50 @@
 
         // Mobile preview toggle functionality
         (function initMobilePreview() {
+            console.log('[DEBUG] initMobilePreview called');
+            console.log('[DEBUG] window.innerWidth:', window.innerWidth);
+            console.log('[DEBUG] container:', container);
+
             const isMobile = () => window.innerWidth <= 768;
 
-            if (!isMobile()) return;
+            if (!isMobile()) {
+                console.log('[DEBUG] Not mobile, skipping preview tab creation');
+                return;
+            }
+
+            console.log('[DEBUG] Mobile detected, proceeding with tab creation');
 
             // Remove any existing mobile-expanded class to start collapsed
             container.classList.remove('mobile-expanded');
 
             // Create mobile toggle tab element
             let tab = container.querySelector('.mobile-preview-tab');
+            console.log('[DEBUG] Existing tab found:', tab);
+
             if (!tab) {
                 tab = document.createElement('div');
                 tab.className = 'mobile-preview-tab';
                 tab.innerHTML = '<i class="fas fa-chevron-left"></i>';
                 tab.title = 'Toggle preview';
                 container.appendChild(tab);
+                console.log('[DEBUG] Tab created and appended to container');
+                console.log('[DEBUG] Tab element:', tab);
+                console.log(
+                    '[DEBUG] Tab computed style display:',
+                    window.getComputedStyle(tab).display
+                );
+                console.log(
+                    '[DEBUG] Tab computed style position:',
+                    window.getComputedStyle(tab).position
+                );
+                console.log(
+                    '[DEBUG] Tab computed style right:',
+                    window.getComputedStyle(tab).right
+                );
+                console.log(
+                    '[DEBUG] Tab computed style zIndex:',
+                    window.getComputedStyle(tab).zIndex
+                );
             }
 
             // Toggle preview on mobile by clicking the tab
@@ -4847,7 +4876,8 @@
                 }
             });
 
-            console.log('Mobile preview initialized, collapsed by default');
+            console.log('[DEBUG] Mobile preview initialized, collapsed by default');
+            console.log('[DEBUG] Tab should be visible at right edge of screen');
         })();
     }
 
