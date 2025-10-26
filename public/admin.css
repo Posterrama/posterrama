@@ -14321,6 +14321,122 @@ select:focus-visible {
         margin-right: 0;
         font-size: 1rem; /* Restore icon size */
     }
+
+    /* ========================================
+       LOCAL PANEL MOBILE OPTIMIZATION
+       ======================================== */
+
+    /* Section title with actions - stack vertically */
+    #panel-local .section-title {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: var(--space-xs);
+    }
+
+    #panel-local .section-actions {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    #panel-local .section-actions .btn {
+        flex: 1 1 auto;
+        min-width: 120px;
+        font-size: 0.8rem;
+        padding: 8px 12px;
+    }
+
+    #panel-local .section-actions .btn span:not(.spinner) {
+        display: none; /* Hide text, keep icons only */
+    }
+
+    #panel-local .section-actions .btn i {
+        margin-right: 0;
+    }
+
+    /* Browser toolbar - stack elements */
+    #panel-local .browser-toolbar {
+        flex-direction: column;
+        gap: var(--space-xs);
+        padding: var(--space-sm);
+    }
+
+    #panel-local .breadcrumb {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    #panel-local .breadcrumb-item {
+        font-size: 0.85rem;
+        padding: 6px 10px;
+    }
+
+    #panel-local .browser-search {
+        width: 100%;
+    }
+
+    #panel-local .search-input-wrapper input {
+        font-size: 0.9rem;
+        padding: 10px 12px;
+    }
+
+    /* Browser content - optimize file/folder items */
+    #panel-local .browser-content {
+        padding: var(--space-sm);
+    }
+
+    #panel-local .browser-item {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+
+    #panel-local .browser-item-icon {
+        font-size: 1.2rem;
+        width: 32px;
+        flex-shrink: 0;
+    }
+
+    #panel-local .browser-item-info {
+        min-width: 0;
+        flex: 1;
+    }
+
+    #panel-local .browser-item-name {
+        font-size: 0.9rem;
+        word-break: break-word;
+    }
+
+    #panel-local .browser-item-meta {
+        font-size: 0.75rem;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    #panel-local .browser-item-actions {
+        flex-shrink: 0;
+        gap: 4px;
+    }
+
+    #panel-local .browser-item-actions .btn {
+        padding: 6px 8px;
+        font-size: 0.8rem;
+        min-width: auto;
+    }
+
+    /* Browser empty state */
+    #panel-local .browser-empty {
+        padding: var(--space-lg) var(--space-sm);
+        font-size: 0.9rem;
+    }
+
+    #panel-local .browser-empty i {
+        font-size: 2rem;
+    }
+
+    #panel-local .browser-empty small {
+        font-size: 0.75rem;
+    }
 }
 
 /* Cache bust: 2025-10-26 */
