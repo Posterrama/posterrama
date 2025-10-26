@@ -14394,9 +14394,9 @@ select:focus-visible {
     #panel-local .browser-item {
         display: flex !important;
         padding: 12px !important;
-        gap: 12px !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
+        gap: 8px !important;
+        flex-wrap: wrap !important;
+        align-items: flex-start !important;
     }
 
     #panel-local .browser-item-icon {
@@ -14405,48 +14405,59 @@ select:focus-visible {
         min-width: 36px !important;
         flex-shrink: 0 !important;
         margin-right: 0 !important;
+        align-self: flex-start !important;
     }
 
     #panel-local .browser-item-icon.has-thumb {
         width: 36px !important;
     }
 
+    /* Name takes remaining space on first row */
     #panel-local .browser-item-name {
-        flex: 1 1 auto !important;
+        flex: 1 1 calc(100% - 44px) !important;
         min-width: 0 !important;
-        font-size: 0.9rem !important;
+        font-size: 0.95rem !important;
         display: flex !important;
-        flex-direction: column !important;
-        gap: 4px !important;
-        align-items: flex-start !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        align-items: center !important;
+        line-height: 1.4 !important;
     }
 
     #panel-local .browser-item-name .name-text {
+        flex: 0 0 100%;
         word-break: break-word;
         overflow-wrap: break-word;
-        display: block;
-        width: 100%;
+        font-weight: 500;
     }
 
     #panel-local .browser-item-name .status-pill {
         font-size: 0.7rem !important;
         padding: 2px 6px !important;
         margin: 0 !important;
+        flex: 0 0 auto;
     }
 
+    /* Actions on their own row below, full width */
     #panel-local .browser-item-actions {
-        flex-shrink: 0 !important;
-        gap: 6px !important;
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        margin-left: 44px !important;
+        gap: 8px !important;
         display: flex !important;
+        flex-wrap: wrap !important;
         opacity: 1 !important;
         visibility: visible !important;
     }
 
     #panel-local .browser-item-actions .btn {
-        padding: 8px 12px !important;
-        font-size: 0.8rem !important;
-        min-width: auto !important;
+        flex: 1 1 auto !important;
+        min-width: 100px !important;
+        padding: 10px 14px !important;
+        font-size: 0.85rem !important;
         white-space: nowrap !important;
+        justify-content: center;
     }
 
     #panel-local .browser-item-actions .btn .spinner {
