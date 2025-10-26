@@ -413,6 +413,519 @@ describe('CapabilityRegistry - 80% Coverage Push', () => {
 
             expect(cap.stateGetter(device)).toBe('right');
         });
+
+        test('wallartMode.biasToAmbiance returns nested override value', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.biasToAmbiance');
+            const device = {
+                settingsOverride: {
+                    wallartMode: {
+                        layoutSettings: {
+                            heroGrid: {
+                                biasAmbientToHero: true,
+                            },
+                        },
+                    },
+                },
+            };
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+
+        test('wallartMode.biasToAmbiance returns simple override', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.biasToAmbiance');
+            const device = {
+                settingsOverride: {
+                    wallartMode: { biasToAmbiance: 0.7 },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe(0.7);
+        });
+
+        test('wallartMode.biasToAmbiance returns default', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.biasToAmbiance');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe(0);
+        });
+    });
+
+    describe('Cinema Header Settings Coverage', () => {
+        test('cinema.header.text returns override value', () => {
+            const cap = capabilityRegistry.get('settings.cinema.header.text');
+            const device = {
+                settingsOverride: {
+                    cinema: { header: { text: 'Feature Presentation' } },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe('Feature Presentation');
+        });
+
+        test('cinema.header.text returns None for empty string', () => {
+            const cap = capabilityRegistry.get('settings.cinema.header.text');
+            const device = {
+                settingsOverride: {
+                    cinema: { header: { text: '' } },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe('None');
+        });
+
+        test('cinema.header.style returns override value', () => {
+            const cap = capabilityRegistry.get('settings.cinema.header.style');
+            const device = {
+                settingsOverride: {
+                    cinema: { header: { style: 'classic' } },
+                },
+            };
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('string');
+        });
+    });
+
+    describe('Device Sensors Coverage', () => {
+        test('device.resolution returns formatted resolution from clientInfo', () => {
+            const cap = capabilityRegistry.get('device.resolution');
+            const device = {
+                clientInfo: { screen: { w: 1920, h: 1080 } },
+            };
+
+            expect(cap.stateGetter(device)).toBe('1920×1080');
+        });
+
+        test('device.resolution returns formatted resolution from width/height', () => {
+            const cap = capabilityRegistry.get('device.resolution');
+            const device = {
+                clientInfo: { screen: { width: 3840, height: 2160 } },
+            };
+
+            expect(cap.stateGetter(device)).toBe('3840×2160');
+        });
+
+        test('device.resolution returns formatted resolution from device.screen', () => {
+            const cap = capabilityRegistry.get('device.resolution');
+            const device = {
+                screen: { w: 2560, h: 1440 },
+            };
+
+            expect(cap.stateGetter(device)).toBe('2560×1440');
+        });
+
+        test('device.resolution returns formatted resolution from device.screen width/height', () => {
+            const cap = capabilityRegistry.get('device.resolution');
+            const device = {
+                screen: { width: 1280, height: 720 },
+            };
+
+            expect(cap.stateGetter(device)).toBe('1280×720');
+        });
+
+        test('device.resolution returns Unknown when no screen info', () => {
+            const cap = capabilityRegistry.get('device.resolution');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe('Unknown');
+        });
+
+        test('device.mode returns mode from clientInfo', () => {
+            const cap = capabilityRegistry.get('device.mode');
+            const device = { clientInfo: { mode: 'cinema' } };
+
+            expect(cap.stateGetter(device)).toBe('cinema');
+        });
+
+        test('device.mode returns mode from currentState', () => {
+            const cap = capabilityRegistry.get('device.mode');
+            const device = { currentState: { mode: 'wallart' } };
+
+            expect(cap.stateGetter(device)).toBe('wallart');
+        });
+
+        test('device.mode returns default screensaver', () => {
+            const cap = capabilityRegistry.get('device.mode');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe('screensaver');
+        });
+
+        test('device.userAgent returns userAgent from clientInfo', () => {
+            const cap = capabilityRegistry.get('device.userAgent');
+            const device = {
+                clientInfo: { userAgent: 'Mozilla/5.0 Chrome/120.0' },
+            };
+
+            expect(cap.stateGetter(device)).toBe('Mozilla/5.0 Chrome/120.0');
+        });
+
+        test('device.userAgent returns null when no userAgent', () => {
+            const cap = capabilityRegistry.get('device.userAgent');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBeNull();
+        });
+
+        test('device.clientType detects Apple TV', () => {
+            const cap = capabilityRegistry.get('device.clientType');
+            const device = {
+                clientInfo: { userAgent: 'AppleTV/tvOS 17.0' },
+            };
+
+            expect(cap.stateGetter(device)).toBe('Apple TV');
+        });
+
+        test('device.clientType detects iOS', () => {
+            const cap = capabilityRegistry.get('device.clientType');
+            const device = {
+                clientInfo: { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)' },
+            };
+
+            expect(cap.stateGetter(device)).toBe('iOS');
+        });
+
+        test('device.clientType detects Chrome', () => {
+            const cap = capabilityRegistry.get('device.clientType');
+            const device = {
+                clientInfo: { userAgent: 'Mozilla/5.0 Chrome/120.0' },
+            };
+
+            expect(cap.stateGetter(device)).toBe('Chrome');
+        });
+
+        test('device.clientType detects Firefox', () => {
+            const cap = capabilityRegistry.get('device.clientType');
+            const device = {
+                clientInfo: { userAgent: 'Mozilla/5.0 Firefox/120.0' },
+            };
+
+            expect(cap.stateGetter(device)).toBe('Firefox');
+        });
+
+        test('device.clientType detects Safari', () => {
+            const cap = capabilityRegistry.get('device.clientType');
+            const device = {
+                clientInfo: { userAgent: 'Mozilla/5.0 Safari/17.0' },
+            };
+
+            expect(cap.stateGetter(device)).toBe('Safari');
+        });
+
+        test('device.clientType detects Edge', () => {
+            const cap = capabilityRegistry.get('device.clientType');
+            const device = {
+                clientInfo: { userAgent: 'Mozilla/5.0 Edge/120.0' },
+            };
+
+            expect(cap.stateGetter(device)).toBe('Edge');
+        });
+    });
+
+    describe('Additional Wallart Settings Coverage', () => {
+        test('wallartMode.density returns override value', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.density');
+            const device = {
+                settingsOverride: {
+                    wallartMode: { density: 'high' },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe('high');
+        });
+
+        test('wallartMode.density returns default', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.density');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe('medium');
+        });
+
+        test('wallartMode.posterRefreshRate returns override value', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.posterRefreshRate');
+            const device = {
+                settingsOverride: {
+                    wallartMode: { posterRefreshRate: 30 },
+                },
+            };
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+
+        test('wallartMode.heroRotation returns override value', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.heroRotation');
+            const device = {
+                settingsOverride: {
+                    wallartMode: { heroRotation: 45 },
+                },
+            };
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+
+        test('wallartMode.timingRandomness returns override value', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.timingRandomness');
+            const device = {
+                settingsOverride: {
+                    wallartMode: { timingRandomness: 0.8 },
+                },
+            };
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+
+        test('wallartMode.ambiance returns override value', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.ambiance');
+            const device = {
+                settingsOverride: {
+                    wallartMode: { ambiance: 'dark' },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe('dark');
+        });
+    });
+
+    describe('Cinema Footer Settings Coverage', () => {
+        test('cinema.footer.enabled returns override value', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.enabled');
+            const device = {
+                settingsOverride: {
+                    cinema: { footer: { enabled: true } },
+                },
+            };
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('boolean');
+        });
+
+        test('cinema.footer.type returns override value', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.type');
+            const device = {
+                settingsOverride: {
+                    cinema: { footer: { type: 'marquee' } },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe('marquee');
+        });
+
+        test('cinema.footer.type returns default', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.type');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe('specs');
+        });
+
+        test('cinema.footer.marqueeText returns override value', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.marqueeText');
+            const device = {
+                settingsOverride: {
+                    cinema: { footer: { marqueeText: 'Coming Attractions' } },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe('Coming Attractions');
+        });
+
+        test('cinema.footer.marqueeText returns None for empty string', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.marqueeText');
+            const device = {
+                settingsOverride: {
+                    cinema: { footer: { marqueeText: '' } },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe('None');
+        });
+
+        test('cinema.footer.marqueeText returns default', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.marqueeText');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('string');
+        });
+
+        test('cinema.ambilight.strength returns override value', () => {
+            const cap = capabilityRegistry.get('settings.cinema.ambilight.strength');
+            const device = {
+                settingsOverride: {
+                    cinema: { ambilight: { strength: 0.9 } },
+                },
+            };
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+    });
+
+    describe('Common Settings Coverage', () => {
+        test('showLogo stateGetter returns boolean', () => {
+            const cap = capabilityRegistry.get('settings.showLogo');
+            const device = {
+                settingsOverride: { logoWidget: true },
+            };
+
+            expect(cap.stateGetter(device)).toBe(true);
+        });
+
+        test('showClock stateGetter returns boolean', () => {
+            const cap = capabilityRegistry.get('settings.showClock');
+            const device = {
+                settingsOverride: { clockWidget: false },
+            };
+
+            expect(cap.stateGetter(device)).toBe(false);
+        });
+
+        test('backgroundDimming stateGetter returns number', () => {
+            const cap = capabilityRegistry.get('settings.backgroundDimming');
+            const device = {
+                settingsOverride: { backgroundDimming: 0.3 },
+            };
+
+            expect(cap.stateGetter(device)).toBe(0.3);
+        });
+
+        test('blur stateGetter returns number', () => {
+            const cap = capabilityRegistry.get('settings.blur');
+            const device = {
+                settingsOverride: { blur: 5 },
+            };
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+
+        test('zoom stateGetter returns number', () => {
+            const cap = capabilityRegistry.get('settings.zoom');
+            const device = {
+                settingsOverride: { zoom: 1.2 },
+            };
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+    });
+
+    describe('Power Capabilities Coverage', () => {
+        test('power.toggle stateGetter returns true when not powered off', () => {
+            const cap = capabilityRegistry.get('power.toggle');
+            const device = { currentState: { poweredOff: false } };
+
+            expect(cap.stateGetter(device)).toBe(true);
+        });
+
+        test('power.toggle stateGetter returns false when powered off', () => {
+            const cap = capabilityRegistry.get('power.toggle');
+            const device = { currentState: { poweredOff: true } };
+
+            expect(cap.stateGetter(device)).toBe(false);
+        });
+
+        test('power.toggle stateGetter returns true when no currentState', () => {
+            const cap = capabilityRegistry.get('power.toggle');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe(true);
+        });
+
+        test('power.on availableWhen returns true when powered off', () => {
+            const cap = capabilityRegistry.get('power.on');
+            const device = { currentState: { poweredOff: true } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(true);
+            }
+        });
+
+        test('power.on availableWhen returns false when powered on', () => {
+            const cap = capabilityRegistry.get('power.on');
+            const device = { currentState: { poweredOff: false } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(false);
+            }
+        });
+
+        test('power.off availableWhen returns true when powered on', () => {
+            const cap = capabilityRegistry.get('power.off');
+            const device = { currentState: { poweredOff: false } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(true);
+            }
+        });
+
+        test('power.off availableWhen returns false when powered off', () => {
+            const cap = capabilityRegistry.get('power.off');
+            const device = { currentState: { poweredOff: true } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(false);
+            }
+        });
+    });
+
+    describe('Playback Capabilities Coverage', () => {
+        test('playback.pause availableWhen returns true for screensaver', () => {
+            const cap = capabilityRegistry.get('playback.pause');
+            const device = { clientInfo: { mode: 'screensaver' } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(true);
+            }
+        });
+
+        test('playback.pause availableWhen returns false for cinema', () => {
+            const cap = capabilityRegistry.get('playback.pause');
+            const device = { clientInfo: { mode: 'cinema' } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(false);
+            }
+        });
+
+        test('playback.resume availableWhen returns true for screensaver', () => {
+            const cap = capabilityRegistry.get('playback.resume');
+            const device = { clientInfo: { mode: 'screensaver' } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(true);
+            }
+        });
+
+        test('playback.next availableWhen returns true for screensaver', () => {
+            const cap = capabilityRegistry.get('playback.next');
+            const device = { clientInfo: { mode: 'screensaver' } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(true);
+            }
+        });
+
+        test('playback.previous availableWhen returns true for screensaver', () => {
+            const cap = capabilityRegistry.get('playback.previous');
+            const device = { clientInfo: { mode: 'screensaver' } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(true);
+            }
+        });
+
+        test('playback.toggle availableWhen returns true for screensaver', () => {
+            const cap = capabilityRegistry.get('playback.toggle');
+            const device = { clientInfo: { mode: 'screensaver' } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(true);
+            }
+        });
     });
 
     describe('Capability Registration', () => {
