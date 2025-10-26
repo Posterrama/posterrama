@@ -294,73 +294,76 @@ body.promo-site #promo-box.promo-overlay {
 
 /* Mobile promo box styling - optimal size and prominent text on mobile */
 @media screen and (max-width: 1024px) {
-    /* Force parent body to allow full width */
+    /* Force parent body to allow full width and scrolling */
     body.promo-site {
         margin: 0 !important;
         padding: 0 !important;
         overflow-x: hidden !important;
+        overflow-y: auto !important;
+        min-height: 100vh !important;
     }
 
     /* Force promo box to use full screen width with small edge margin */
     body.promo-site #promo-box.promo-overlay,
     body.promo-site main#promo-box.promo-overlay {
-        width: calc(100vw - 10px) !important; /* Almost full width for maximum text space */
+        width: calc(100vw - 20px) !important;
         max-width: none !important;
-        padding: 50px 15px !important; /* Much more vertical padding top/bottom for breathing room */
+        padding: 30px 20px !important;
         box-sizing: border-box !important;
-        min-height: auto !important; /* Remove forced height, let content determine size */
-        margin: 0 5px !important; /* Minimal margin on each side */
-        position: relative !important;
+        min-height: auto !important;
+        max-height: 90vh !important; /* Prevent extending beyond viewport */
+        overflow-y: auto !important; /* Allow scrolling if content is too tall */
+        margin: 5vh 10px !important; /* 5vh margin top/bottom for breathing room */
+        position: fixed !important;
+        top: 50% !important;
         left: 50% !important;
-        right: auto !important;
-        transform: translateX(-50%) !important; /* Center it perfectly */
-        margin-left: 0 !important;
-        margin-right: 0 !important;
+        transform: translate(-50%, -50%) !important; /* Perfect centering */
     }
 
-    /* Make text exactly like old version */
+    /* Make text readable but appropriately sized for mobile */
     body.promo-site #promo-box.promo-overlay h1 {
-        font-size: 3.8em !important; /* Big title like old version */
-        margin-bottom: 15px !important; /* More margin below title */
-        line-height: 1 !important;
+        font-size: 2em !important; /* Readable title size */
+        margin-bottom: 15px !important;
+        line-height: 1.2 !important;
         font-weight: bold !important;
     }
 
     body.promo-site #promo-box.promo-overlay p {
-        font-size: 2.2em !important; /* Big text like old version */
-        line-height: 1.2 !important;
-        margin-bottom: 25px !important; /* More margin below paragraph */
+        font-size: 1.1em !important; /* Readable paragraph size */
+        line-height: 1.4 !important;
+        margin-bottom: 20px !important;
         max-width: none !important;
         text-align: center !important;
     }
 
-    /* Make button bigger with more padding */
+    /* Make button appropriately sized */
     body.promo-site #promo-box.promo-overlay .promo-cta a.button-promo {
-        font-size: 2em !important; /* Bigger button text */
-        padding: 25px 50px !important; /* Much more padding around button */
-        margin-top: 20px !important; /* More margin above button */
-        margin-bottom: 10px !important; /* Add margin below button for bottom spacing */
+        font-size: 1.1em !important;
+        padding: 14px 28px !important;
+        margin-top: 15px !important;
+        margin-bottom: 15px !important;
         display: inline-block !important;
     }
 
-    /* Make logo bigger with more space around it */
+    /* Make logo appropriately sized */
     body.promo-site #promo-box.promo-overlay .promo-logo {
-        width: 90px !important; /* Bigger logo */
-        height: 90px !important;
-        margin-bottom: 20px !important; /* More margin below logo */
-        margin-top: 15px !important; /* More margin above logo for top spacing */
+        width: 60px !important;
+        height: 60px !important;
+        margin-bottom: 15px !important;
+        margin-top: 0 !important;
     }
 
     /* Style the oneliner installation section */
     body.promo-site #promo-box.promo-overlay .oneliner-install {
-        margin-top: 25px !important;
+        margin-top: 20px !important;
+        margin-bottom: 10px !important;
         text-align: center !important;
     }
 
     body.promo-site #promo-box.promo-overlay .oneliner-text {
-        font-size: 1.2em !important;
+        font-size: 0.9em !important;
         color: #ccc !important;
-        margin-bottom: 12px !important;
+        margin-bottom: 10px !important;
         font-weight: normal !important;
     }
 
@@ -370,8 +373,8 @@ body.promo-site #promo-box.promo-overlay {
         -webkit-backdrop-filter: blur(10px) !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
         border-radius: 12px !important;
-        padding: 16px 50px 16px 20px !important;
-        margin: 12px 0 !important;
+        padding: 12px 40px 12px 15px !important;
+        margin: 10px 0 !important;
         cursor: pointer !important;
         transition: all 0.3s ease !important;
         position: relative !important;
@@ -389,7 +392,7 @@ body.promo-site #promo-box.promo-overlay {
     body.promo-site #promo-box.promo-overlay .oneliner-command code {
         font-family:
             'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace !important;
-        font-size: 0.85em !important;
+        font-size: 0.75em !important;
         color: #ffffff !important;
         background: none !important;
         padding: 0 !important;
@@ -400,12 +403,13 @@ body.promo-site #promo-box.promo-overlay {
 
     body.promo-site #promo-box.promo-overlay .copy-indicator {
         position: absolute !important;
-        right: 15px !important;
+        right: 12px !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
         color: #cccccc !important;
         transition: all 0.3s ease !important;
         opacity: 0.7 !important;
+        font-size: 0.9em !important;
     }
 
     body.promo-site #promo-box.promo-overlay .copy-indicator:hover {
@@ -414,22 +418,29 @@ body.promo-site #promo-box.promo-overlay {
     }
 }
 
-/* Smaller devices - still big text but adjusted */
+/* Smaller devices - even more compact */
 @media screen and (max-width: 480px) {
     body.promo-site #promo-box.promo-overlay {
         width: calc(100vw - 20px) !important;
-        padding: 40px 25px !important;
+        padding: 25px 20px !important;
+        max-height: 85vh !important;
     }
 
     body.promo-site #promo-box.promo-overlay h1 {
-        font-size: 3em !important;
+        font-size: 1.6em !important;
     }
 
     body.promo-site #promo-box.promo-overlay p {
-        font-size: 1.7em !important;
+        font-size: 1em !important;
     }
 
     body.promo-site #promo-box.promo-overlay .promo-cta a.button-promo {
-        font-size: 1.5em !important;
+        font-size: 1em !important;
+        padding: 12px 24px !important;
+    }
+
+    body.promo-site #promo-box.promo-overlay .promo-logo {
+        width: 50px !important;
+        height: 50px !important;
     }
 }
