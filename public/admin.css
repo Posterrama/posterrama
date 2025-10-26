@@ -13950,28 +13950,29 @@ select:focus-visible {
         font-size: 0.7rem;
     }
 
-    /* Make segmented controls more compact on mobile */
+    /* Make segmented controls wrap - Cinema on second row */
     #section-display .segmented {
-        overflow-x: auto;
-        overflow-y: hidden;
-        flex-wrap: nowrap;
-        gap: 4px;
+        flex-wrap: wrap;
+        gap: 8px;
         padding: 4px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        justify-content: stretch;
+        justify-content: center;
     }
 
     #section-display .segmented::-webkit-scrollbar {
         display: none;
     }
 
+    /* First two buttons take half width each, third takes full width */
     #section-display .segmented .seg {
-        flex: 1 1 0;
-        min-width: 0;
-        font-size: 0.8rem;
-        padding: 10px 8px;
+        flex: 1 1 calc(50% - 4px);
+        min-width: 120px;
+        font-size: 0.85rem;
+        padding: 10px 12px;
         white-space: nowrap;
+    }
+
+    #section-display .segmented .seg:last-child {
+        flex: 1 1 100%;
     }
 
     #section-display .segmented .seg i {
