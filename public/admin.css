@@ -14022,9 +14022,19 @@ select:focus-visible {
         padding: var(--space-sm);
     }
 
-    /* Make form grids single column on mobile */
-    #section-display .form-grid {
+    /* Force all grids to single column on mobile */
+    #section-display .form-grid,
+    #section-display .form-grid.masonry,
+    #section-display #saver-cards,
+    #section-display #wallart-cards,
+    #section-display #cinema-cards {
         grid-template-columns: 1fr !important;
+        gap: var(--space-sm) !important;
+    }
+
+    /* Nested cards within mode cards */
+    #section-display .mode-card .mode-card {
+        padding: var(--space-sm) !important;
     }
 
     /* Compact preset buttons */
