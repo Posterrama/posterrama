@@ -15019,6 +15019,95 @@ select:focus-visible {
     #section-operations [aria-label='API Access Management'] > .actions {
         margin-top: var(--space-sm) !important;
     }
+
+    /* ========================================
+       PAIRING CODES MODAL MOBILE
+       ======================================== */
+
+    #modal-pairing .modal {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        margin: var(--space-sm);
+    }
+
+    #modal-pairing .modal-body {
+        padding: var(--space-sm) !important;
+    }
+
+    .pairing-item {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: var(--space-sm) !important;
+        padding: var(--space-sm) !important;
+    }
+
+    .pairing-meta {
+        width: 100%;
+    }
+
+    .pairing-header {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    .pairing-name {
+        font-size: 1rem !important;
+    }
+
+    .pairing-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 6px !important;
+        margin: 8px 0 !important;
+    }
+
+    .pairing-label {
+        width: 100% !important;
+        flex: none !important;
+        font-size: 0.85rem !important;
+        font-weight: 600;
+    }
+
+    .pairing-copy {
+        flex-direction: column !important;
+        gap: 8px !important;
+        width: 100%;
+    }
+
+    .pairing-copy .btn {
+        margin-left: 0 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .pairing-code {
+        width: 100% !important;
+        font-size: 0.85rem !important;
+        padding: 8px !important;
+        word-break: break-all;
+        white-space: normal !important;
+    }
+
+    .pairing-code.pairing-url {
+        white-space: normal !important;
+        word-break: break-all;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+
+    .pairing-footer {
+        flex-direction: column !important;
+        gap: var(--space-sm) !important;
+    }
+
+    .pairing-footer .btn {
+        width: 100% !important;
+    }
+
+    .pairing-exp {
+        text-align: center;
+        width: 100%;
+    }
 }
 
 /* Cache bust: 2025-10-26 */
