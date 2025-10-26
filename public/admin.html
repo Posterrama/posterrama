@@ -279,9 +279,9 @@
               <div style="display: grid; gap: 20px;">
                 <!-- CPU -->
                 <div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 0.9rem; color: var(--color-text-secondary); font-weight: 500;">CPU Usage</span>
-                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary);" id="perf-cpu">—</span>
+                  <div class="resource-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span class="resource-label" style="font-size: 0.9rem; color: var(--color-text-secondary); font-weight: 500;">CPU Usage</span>
+                    <span class="resource-value" style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary);" id="perf-cpu">—</span>
                   </div>
                   <div style="width: 100%; height: 8px; background: var(--color-bg-secondary); border-radius: 4px; overflow: hidden;">
                     <div style="height: 100%; background: linear-gradient(90deg, var(--color-info), var(--color-info-dark)); border-radius: 4px; transition: width 0.6s ease; width: 0%;" id="meter-cpu"></div>
@@ -290,9 +290,9 @@
                 
                 <!-- Memory -->
                 <div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 0.9rem; color: var(--color-text-secondary); font-weight: 500;">Memory Usage</span>
-                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary);" id="perf-mem">—</span>
+                  <div class="resource-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span class="resource-label" style="font-size: 0.9rem; color: var(--color-text-secondary); font-weight: 500;">Memory Usage</span>
+                    <span class="resource-value" style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary);" id="perf-mem">—</span>
                   </div>
                   <div style="width: 100%; height: 8px; background: var(--color-bg-secondary); border-radius: 4px; overflow: hidden;">
                     <div style="height: 100%; background: linear-gradient(90deg, var(--color-success), var(--color-success-dark)); border-radius: 4px; transition: width 0.6s ease; width: 0%;" id="meter-mem"></div>
@@ -301,9 +301,9 @@
 
                 <!-- Disk Usage: full-width bar like CPU/Memory -->
                 <div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 0.9rem; color: var(--color-text-secondary); font-weight: 500;">Disk Usage</span>
-                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary);" id="perf-disk">—</span>
+                  <div class="resource-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span class="resource-label" style="font-size: 0.9rem; color: var(--color-text-secondary); font-weight: 500;">Disk Usage</span>
+                    <span class="resource-value" style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary);" id="perf-disk">—</span>
                   </div>
                   <div style="width: 100%; height: 8px; background: var(--color-bg-secondary); border-radius: 4px; overflow: hidden;">
                     <div style="height: 100%; background: linear-gradient(90deg, var(--color-info), var(--color-info-dark)); border-radius: 4px; transition: width 0.6s ease; width: 0%;" id="meter-disk"></div>
@@ -315,7 +315,7 @@
                   <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px;">
                     <div style="display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary);">
                       <i class="fas fa-chart-line" style="color: var(--color-info);"></i>
-                      <span style="font-size: 0.9rem; font-weight: 500;">Load Average</span>
+                      <span style="font-size: 0.9rem; font-weight: 500;">Load</span>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                       <span style="background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; min-width: 48px; text-align: center; font-variant-numeric: tabular-nums;" id="perf-loadavg-1">—</span>
