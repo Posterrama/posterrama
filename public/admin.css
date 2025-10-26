@@ -14234,17 +14234,26 @@ select:focus-visible {
     /* Multiselect compact */
     #section-media-sources .multiselect .ms-control {
         min-height: 42px;
-        padding: 6px 10px;
+        padding: 8px 12px !important;
     }
 
     #section-media-sources .multiselect .ms-chips {
         gap: 6px;
         flex-wrap: wrap;
+        padding-right: 30px; /* Space for clear button */
     }
 
     #section-media-sources .multiselect .ms-chips .chip {
         font-size: 0.75rem;
         padding: 4px 8px;
+        max-width: calc(100% - 40px); /* Prevent overlap with clear button */
+    }
+
+    #section-media-sources .multiselect .ms-clear {
+        position: absolute;
+        right: 30px;
+        top: 50%;
+        transform: translateY(-50%);
     }
 
     #section-media-sources .multiselect .ms-menu {
@@ -14252,35 +14261,37 @@ select:focus-visible {
     }
 
     #section-media-sources .multiselect .ms-search {
-        padding: 10px;
+        padding: 10px !important;
     }
 
     #section-media-sources .multiselect .ms-search input {
-        padding: 8px 10px 8px 32px;
+        padding: 8px 10px 8px 32px !important;
     }
 
     #section-media-sources .multiselect .ms-actions {
-        padding: 8px 10px;
+        padding: 8px 10px !important;
     }
 
     #section-media-sources .multiselect .ms-options {
-        padding: 0;
+        padding: 0 !important;
     }
 
     #section-media-sources .multiselect .ms-option {
-        padding: 10px 12px !important;
+        padding: 12px 14px !important;
         min-height: auto !important;
+        gap: 12px !important;
     }
 
-    #section-media-sources .multiselect .ms-option-checkbox {
-        width: 24px !important;
-        height: 24px !important;
-        flex-shrink: 0;
+    #section-media-sources .multiselect .ms-option input[type='checkbox'] {
+        width: 18px !important;
+        height: 18px !important;
+        flex-shrink: 0 !important;
+        margin: 0 !important;
     }
 
     #section-media-sources .multiselect .ms-option-label {
-        font-size: 0.9rem;
-        padding-left: 10px;
+        font-size: 0.9rem !important;
+        flex: 1;
         word-break: break-word;
     }
 
