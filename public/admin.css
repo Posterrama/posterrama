@@ -13880,33 +13880,38 @@ select:focus-visible {
         aspect-ratio: 9 / 16 !important;
     }
 
-    /* Subtle toggle tab on RIGHT side of screen (not left of preview) */
+    /* Subtle toggle tab on RIGHT side of screen - only visible on Display Settings */
+    #section-display.active ~ * body #display-preview-container .mobile-preview-tab,
+    body.section-display #display-preview-container .mobile-preview-tab,
+    body #section-display.active #display-preview-container .mobile-preview-tab,
     body #display-preview-container .mobile-preview-tab {
         position: fixed !important; /* Fixed to screen, not absolute to container */
         right: 0 !important; /* Stick to right edge of screen */
         top: 50% !important;
         transform: translateY(-50%) !important;
-        width: 32px !important;
-        height: 60px !important;
+        width: 36px !important;
+        height: 70px !important;
         background: linear-gradient(
             270deg,
-            rgba(30, 35, 50, 0.9),
-            rgba(30, 35, 50, 0.7)
+            rgba(30, 35, 50, 0.95),
+            rgba(30, 35, 50, 0.85)
         ) !important;
         backdrop-filter: blur(12px) saturate(150%) !important;
         -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
         border-radius: 8px 0 0 8px !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
         border-right: 0 !important;
-        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.4) !important;
+        box-shadow: -3px 0 10px rgba(0, 0, 0, 0.5) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        color: rgba(255, 255, 255, 0.6) !important;
-        font-size: 0.9rem !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+        font-size: 1rem !important;
         cursor: pointer !important;
         z-index: 10000 !important; /* Higher than container */
-        transition: opacity 0.2s ease !important;
+        transition:
+            opacity 0.2s ease,
+            background 0.2s ease !important;
     }
 
     /* Hide tab when preview is expanded */
@@ -13945,15 +13950,16 @@ select:focus-visible {
         font-size: 0.7rem;
     }
 
-    /* Make segmented controls scrollable on mobile */
+    /* Make segmented controls more compact on mobile */
     #section-display .segmented {
         overflow-x: auto;
         overflow-y: hidden;
         flex-wrap: nowrap;
-        gap: 6px;
+        gap: 4px;
         padding: 4px;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
+        justify-content: stretch;
     }
 
     #section-display .segmented::-webkit-scrollbar {
@@ -13961,15 +13967,26 @@ select:focus-visible {
     }
 
     #section-display .segmented .seg {
-        flex: 0 0 auto;
-        min-width: 110px;
-        font-size: 0.85rem;
-        padding: 10px 14px;
+        flex: 1 1 0;
+        min-width: 0;
+        font-size: 0.8rem;
+        padding: 10px 8px;
         white-space: nowrap;
     }
 
     #section-display .segmented .seg i {
+        font-size: 0.85rem;
+        margin-right: 4px;
+    }
+
+    /* Even more compact Active Mode card */
+    #card-active-mode {
+        margin-bottom: var(--space-sm);
+    }
+
+    #card-active-mode .section-title {
         font-size: 0.9rem;
+        margin-bottom: var(--space-xs);
     }
 
     /* Compact mode cards on mobile */
