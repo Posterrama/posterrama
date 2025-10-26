@@ -13735,4 +13735,113 @@ select:focus-visible {
     align-items: center;
 }
 
-/* Cache bust: 2025-10-04 17:24 */
+/* ===== MOBILE RESPONSIVE STYLES ===== */
+
+/* Mobile optimization for System Performance section */
+@media (max-width: 768px) {
+    /* Stack the performance header vertically */
+    #panel-perf-dashboard .panel-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 16px !important;
+        padding: 16px !important;
+    }
+
+    /* Make status pills wrap and stack */
+    #panel-perf-dashboard .panel-header > div {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+
+    /* Adjust pill sizing for mobile */
+    .header-pill {
+        font-size: 0.75rem !important;
+        padding: 6px 10px !important;
+        flex: 0 1 auto !important;
+    }
+
+    .header-pill .label,
+    .header-pill .value {
+        font-size: 0.75rem !important;
+    }
+
+    /* Make resource grid single column on mobile */
+    #panel-perf-dashboard .panel-content > div[style*='grid-template-columns'] {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+
+    /* Reduce padding for mobile */
+    #panel-perf-dashboard .panel-content {
+        padding: 16px !important;
+    }
+
+    /* Adjust inner card padding and ensure they fit */
+    #panel-perf-dashboard .panel-content > div > div {
+        padding: 16px !important;
+        box-sizing: border-box !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+    }
+
+    /* Make sure text and numbers wrap properly */
+    #panel-perf-dashboard h3 {
+        font-size: 1rem !important;
+        word-wrap: break-word !important;
+    }
+
+    /* Reduce gap between labels and values on mobile */
+    #panel-perf-dashboard .resource-row {
+        gap: 4px !important;
+    }
+
+    /* Make resource usage containers use flexbox to prevent overflow */
+    #panel-perf-dashboard .panel-content > div > div > div > div[style*='display: flex'] {
+        gap: 8px !important;
+    }
+
+    /* Ensure progress bars and content don't overflow */
+    #panel-perf-dashboard .panel-content div[style*='width: 100%'] {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Hide debug badges and health indicators on mobile */
+    #plex-loaded-badge,
+    #plex-health-indicator,
+    #jellyfin-loaded-badge,
+    #jellyfin-health-indicator {
+        display: none !important;
+    }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+    /* Even more compact on small screens */
+    #panel-perf-dashboard .panel-header {
+        padding: 12px !important;
+    }
+
+    .header-pill {
+        font-size: 0.7rem !important;
+        padding: 5px 8px !important;
+        gap: 6px !important;
+    }
+
+    #panel-perf-dashboard .panel-content {
+        padding: 12px !important;
+    }
+
+    #panel-perf-dashboard .panel-content > div > div {
+        padding: 12px !important;
+    }
+
+    /* Smaller text in resource cards */
+    #panel-perf-dashboard h3 {
+        font-size: 0.95rem !important;
+    }
+}
+
+/* Cache bust: 2025-10-26 */
