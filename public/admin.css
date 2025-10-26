@@ -13880,7 +13880,7 @@ select:focus-visible {
         aspect-ratio: 9 / 16 !important;
     }
 
-    /* Subtle toggle tab on RIGHT side of screen - bright and visible */
+    /* Subtle toggle tab on RIGHT side of screen - glass morphism look */
     .mobile-preview-tab {
         position: fixed !important;
         right: 0 !important;
@@ -13888,17 +13888,19 @@ select:focus-visible {
         transform: translateY(-50%) !important;
         width: 40px !important;
         height: 80px !important;
-        background: rgba(40, 140, 200, 0.95) !important;
-        backdrop-filter: blur(12px) saturate(150%) !important;
-        -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
+        background: rgba(30, 35, 50, 0.6) !important;
+        backdrop-filter: blur(20px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
         border-radius: 12px 0 0 12px !important;
-        border: 2px solid rgba(255, 255, 255, 0.25) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-right: 0 !important;
-        box-shadow: -4px 0 12px rgba(0, 0, 0, 0.6) !important;
-        display: flex !important;
+        box-shadow:
+            -4px 0 20px rgba(0, 0, 0, 0.3),
+            inset 0 0 20px rgba(255, 255, 255, 0.05) !important;
+        display: none !important; /* Hidden by default, shown by JS */
         align-items: center !important;
         justify-content: center !important;
-        color: rgba(255, 255, 255, 0.95) !important;
+        color: rgba(255, 255, 255, 0.8) !important;
         font-size: 1.1rem !important;
         cursor: pointer !important;
         z-index: 10000 !important;
@@ -13912,7 +13914,7 @@ select:focus-visible {
     }
 
     .mobile-preview-tab:active {
-        background: rgba(50, 160, 220, 0.95) !important;
+        background: rgba(40, 50, 70, 0.7) !important;
         transform: translateY(-50%) scale(0.95) !important;
     }
 
