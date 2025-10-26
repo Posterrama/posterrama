@@ -9,11 +9,11 @@ To regenerate: npm run coverage:table
 
 | File | Statements (cov/total) | Statements % | Branches (cov/total) | Branches % | Functions (cov/total) | Functions % | Lines (cov/total) | Lines % | Meets thresholds |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|:--:|
-| utils/capabilityRegistry.js | 320/539 | 59.37 | 80/274 | 29.2 | 131/184 | 71.2 | 314/525 | 59.81 | ✅ |
 | utils/mqttBridge.js | 300/368 | 81.52 | 194/244 | 79.51 | 35/42 | 83.33 | 289/355 | 81.41 | ✅ |
 | sources/example.js | 59/71 | 83.1 | 27/39 | 69.23 | 5/6 | 83.33 | 58/67 | 86.57 | ✅ |
 | middleware/deviceBypass.js | 75/86 | 87.21 | 37/46 | 80.43 | 11/14 | 78.57 | 68/72 | 94.44 | ✅ |
 | utils/metrics.js | 207/234 | 88.46 | 87/110 | 79.09 | 38/40 | 95 | 198/224 | 88.39 | ✅ |
+| utils/capabilityRegistry.js | 487/539 | 90.35 | 196/274 | 71.53 | 174/184 | 94.57 | 475/525 | 90.48 | ✅ |
 | middleware/index.js | 82/90 | 91.11 | 90/101 | 89.11 | 14/14 | 100 | 77/80 | 96.25 | ✅ |
 | utils/logger.js | 144/158 | 91.14 | 73/99 | 73.74 | 36/40 | 90 | 127/135 | 94.07 | ✅ |
 | sources/plex.js | 197/215 | 91.63 | 155/195 | 79.49 | 28/32 | 87.5 | 175/191 | 91.62 | ✅ |
