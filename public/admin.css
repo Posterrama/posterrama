@@ -14485,6 +14485,40 @@ select:focus-visible {
     #panel-local .browser-empty small {
         font-size: 0.75rem;
     }
+
+    /* Posterpack Generation section */
+    #panel-local .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: var(--space-sm) !important;
+    }
+
+    #panel-local .form-group {
+        width: 100%;
+        margin-bottom: var(--space-md);
+    }
+
+    #panel-local .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.85rem;
+    }
+
+    #panel-local .form-group input,
+    #panel-local .form-group select,
+    #panel-local .form-group .select-wrap {
+        width: 100%;
+        max-width: 100%;
+        font-size: 0.9rem;
+    }
+
+    #panel-local .form-help {
+        font-size: 0.75rem;
+        margin-top: 4px;
+    }
+
+    #panel-local .select-wrap {
+        width: 100%;
+    }
 }
 
 /* Cache bust: 2025-10-26 */
