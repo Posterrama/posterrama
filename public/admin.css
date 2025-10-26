@@ -14112,6 +14112,41 @@ select:focus-visible {
         justify-content: space-between;
     }
 
+    /* Source tabs section - reduce padding */
+    #section-media-sources #sources-tabs {
+        padding: var(--space-sm) !important;
+    }
+
+    #section-media-sources #sources-tabs .section-title {
+        font-size: 0.9rem;
+        margin-bottom: var(--space-xs);
+    }
+
+    #section-media-sources #sources-tabs .form-row {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+    }
+
+    /* Move source-actions-right below segmented on mobile */
+    #section-media-sources .source-actions-right {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+    }
+
+    #section-media-sources .source-actions-right .status-pill {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+    }
+
+    #section-media-sources .source-actions-right .btn {
+        font-size: 0.75rem;
+        padding: 6px 10px;
+    }
+
     /* Actions home - wrap buttons */
     #section-media-sources .actions-home {
         flex-wrap: wrap;
