@@ -14227,20 +14227,12 @@ select:focus-visible {
     #section-media-sources .segmented .seg {
         min-width: 60px;
         padding: 10px;
+        font-size: 0; /* Hide text nodes */
     }
 
     #section-media-sources .segmented .seg i {
         margin-right: 0;
-        font-size: 1rem;
-    }
-
-    /* Hide text, keep only icons */
-    #section-media-sources .segmented .seg input[type='radio'] ~ * {
-        display: none;
-    }
-
-    #section-media-sources .segmented .seg input[type='radio'] ~ i {
-        display: inline-block;
+        font-size: 1rem; /* Restore icon size */
     }
 }
 
