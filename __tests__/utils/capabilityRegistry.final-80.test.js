@@ -1764,6 +1764,160 @@ describe('CapabilityRegistry - 80% Coverage Push', () => {
         });
     });
 
+    describe('Additional Edge Case Coverage', () => {
+        test('wallartMode.layout converts heroGrid to hero-grid', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.layout');
+            const device = {
+                settingsOverride: { wallartMode: { layoutVariant: 'heroGrid' } },
+            };
+
+            expect(cap.stateGetter(device)).toBe('hero-grid');
+        });
+
+        test('wallartMode.layout keeps classic as-is', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.layout');
+            const device = {
+                settingsOverride: { wallartMode: { layoutVariant: 'classic' } },
+            };
+
+            expect(cap.stateGetter(device)).toBe('classic');
+        });
+
+        test('wallartMode.layout falls back to old layout property', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.layout');
+            const device = {
+                settingsOverride: { wallartMode: { layout: 'classic' } },
+            };
+
+            expect(cap.stateGetter(device)).toBe('classic');
+        });
+
+        test('cinema.header.text converts empty string to None', () => {
+            const cap = capabilityRegistry.get('settings.cinema.header.text');
+            const device = {
+                settingsOverride: { cinema: { header: { text: '' } } },
+            };
+
+            const result = cap.stateGetter(device);
+            expect(result).toBe('None');
+        });
+
+        test('cinema.header.text returns actual text', () => {
+            const cap = capabilityRegistry.get('settings.cinema.header.text');
+            const device = {
+                settingsOverride: { cinema: { header: { text: 'Now Playing' } } },
+            };
+
+            expect(cap.stateGetter(device)).toBe('Now Playing');
+        });
+
+        test('getAllCapabilities returns all registered capabilities', () => {
+            const allCaps = capabilityRegistry.getAllCapabilities();
+
+            expect(Array.isArray(allCaps)).toBe(true);
+            expect(allCaps.length).toBeGreaterThan(60); // Should have 68 capabilities
+            expect(allCaps[0]).toHaveProperty('id');
+            expect(allCaps[0]).toHaveProperty('name');
+            expect(allCaps[0]).toHaveProperty('category');
+        });
+
+        test('getAvailableCapabilities filters by mode', () => {
+            const device = { clientInfo: { mode: 'cinema' } };
+            const available = capabilityRegistry.getAvailableCapabilities(device);
+
+            const cinemaOnly = available.filter(
+                c => c.id.includes('cinema') || c.id.includes('settings.cinema')
+            );
+            expect(cinemaOnly.length).toBeGreaterThan(0);
+
+            // Should not include wallart-specific capabilities
+            const wallartOnly = available.filter(c => c.id.includes('wallartMode'));
+            expect(wallartOnly.length).toBe(0);
+        });
+
+        test('power.toggle stateGetter with poweredOff true', () => {
+            const cap = capabilityRegistry.get('power.toggle');
+            const device = { currentState: { poweredOff: true } };
+
+            expect(cap.stateGetter(device)).toBe(false);
+        });
+
+        test('power.toggle stateGetter defaults to true', () => {
+            const cap = capabilityRegistry.get('power.toggle');
+            const device = { currentState: {} };
+
+            expect(cap.stateGetter(device)).toBe(true);
+        });
+
+        test('device.userAgent sensor returns from clientInfo', () => {
+            const cap = capabilityRegistry.get('device.userAgent');
+            const device = { clientInfo: { userAgent: 'Mozilla/5.0' } };
+
+            expect(cap.stateGetter(device)).toBe('Mozilla/5.0');
+        });
+
+        test('device.userAgent sensor returns Unknown when missing', () => {
+            const cap = capabilityRegistry.get('device.userAgent');
+            const device = { clientInfo: {} };
+
+            expect(cap.stateGetter(device)).toBeNull();
+        });
+
+        test('mode.select with cinema override', () => {
+            const cap = capabilityRegistry.get('mode.select');
+            const device = {
+                settingsOverride: { mode: 'cinema' },
+            };
+
+            expect(cap.stateGetter(device)).toBe('cinema');
+        });
+
+        test('mode.select falls back to clientInfo', () => {
+            const cap = capabilityRegistry.get('mode.select');
+            const device = {
+                clientInfo: { mode: 'wallart' },
+            };
+
+            expect(cap.stateGetter(device)).toBe('wallart');
+        });
+
+        test('mode.select falls back to currentState', () => {
+            const cap = capabilityRegistry.get('mode.select');
+            const device = {
+                currentState: { mode: 'cinema' },
+            };
+
+            expect(cap.stateGetter(device)).toBe('cinema');
+        });
+
+        test('uiScaling.clearlogo with override', () => {
+            const cap = capabilityRegistry.get('settings.uiScaling.clearlogo');
+            const device = {
+                settingsOverride: { uiScaling: { clearlogo: 150 } },
+            };
+
+            expect(cap.stateGetter(device)).toBe(150);
+        });
+
+        test('uiScaling.clock with override', () => {
+            const cap = capabilityRegistry.get('settings.uiScaling.clock');
+            const device = {
+                settingsOverride: { uiScaling: { clock: 120 } },
+            };
+
+            expect(cap.stateGetter(device)).toBe(120);
+        });
+
+        test('uiScaling.content with override', () => {
+            const cap = capabilityRegistry.get('settings.uiScaling.content');
+            const device = {
+                settingsOverride: { uiScaling: { content: 180 } },
+            };
+
+            expect(cap.stateGetter(device)).toBe(180);
+        });
+    });
+
     describe('Capability Registration', () => {
         test('get returns capability for existing id', () => {
             const cap = capabilityRegistry.get('playback.pause');
