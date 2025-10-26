@@ -14129,18 +14129,6 @@ select:focus-visible {
         padding: 4px 8px;
     }
 
-    /* Force all form grids to single column */
-    #section-media-sources .form-grid,
-    #section-media-sources .form-grid.plex-dense,
-    #section-media-sources .form-grid.jellyfin-dense,
-    #section-media-sources #plex-server-grid,
-    #section-media-sources #plex-filters-grid,
-    #section-media-sources #jellyfin-server-grid,
-    #section-media-sources #jellyfin-filters-grid {
-        grid-template-columns: 1fr !important;
-        gap: var(--space-sm) !important;
-    }
-
     /* Form sections */
     #section-media-sources .form-section {
         padding: var(--space-sm);
@@ -14148,17 +14136,51 @@ select:focus-visible {
 
     #section-media-sources .section-title {
         font-size: 0.9rem;
-        margin-bottom: var(--space-xs);
-    }
-
-    /* Form groups */
-    #section-media-sources .form-group {
         margin-bottom: var(--space-sm);
     }
 
+    /* Server grid - keep as regular form groups, don't use grid override */
+    #section-media-sources #plex-server-grid,
+    #section-media-sources #jellyfin-server-grid,
+    #section-media-sources #tmdb-server-grid {
+        display: block !important;
+        grid-template-columns: unset !important;
+    }
+
+    #section-media-sources #plex-server-grid .form-group,
+    #section-media-sources #jellyfin-server-grid .form-group,
+    #section-media-sources #tmdb-server-grid .form-group {
+        margin-bottom: var(--space-md);
+        display: block;
+        width: 100%;
+    }
+
+    #section-media-sources #plex-server-grid .form-group label,
+    #section-media-sources #jellyfin-server-grid .form-group label,
+    #section-media-sources #tmdb-server-grid .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    #section-media-sources #plex-server-grid .form-group input,
+    #section-media-sources #jellyfin-server-grid .form-group input,
+    #section-media-sources #tmdb-server-grid .form-group input {
+        width: 100%;
+        display: block;
+    }
+
+    /* Regular form grids - single column */
+    #section-media-sources
+        .form-grid:not(#plex-server-grid):not(#jellyfin-server-grid):not(#tmdb-server-grid) {
+        grid-template-columns: 1fr !important;
+        gap: var(--space-sm) !important;
+    }
+
+    /* Form groups */
     #section-media-sources .form-group label {
         font-size: 0.85rem;
-        margin-bottom: 6px;
     }
 
     #section-media-sources .form-help {
@@ -14199,6 +14221,26 @@ select:focus-visible {
     #section-media-sources .ms-actions .btn {
         font-size: 0.75rem;
         padding: 6px 10px;
+    }
+
+    /* Hide text labels on segmented controls, show only icons */
+    #section-media-sources .segmented .seg {
+        min-width: 60px;
+        padding: 10px;
+    }
+
+    #section-media-sources .segmented .seg i {
+        margin-right: 0;
+        font-size: 1rem;
+    }
+
+    /* Hide text, keep only icons */
+    #section-media-sources .segmented .seg input[type='radio'] ~ * {
+        display: none;
+    }
+
+    #section-media-sources .segmented .seg input[type='radio'] ~ i {
+        display: inline-block;
     }
 }
 
