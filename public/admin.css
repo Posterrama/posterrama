@@ -13972,10 +13972,10 @@ select:focus-visible {
     .segmented.controls button,
     .segmented.controls .seg {
         flex: 0 0 auto;
-        min-width: 100px;
+        min-width: 90px;
         max-width: none;
         font-size: 0.85rem;
-        padding: 10px 14px;
+        padding: 10px 12px;
         white-space: nowrap;
     }
 
@@ -13985,13 +13985,22 @@ select:focus-visible {
         margin-right: 4px;
     }
 
+    /* Show short text on mobile, hide full text */
+    .seg-short-text {
+        display: inline;
+    }
+
+    .seg-full-text {
+        display: none;
+    }
+
     /* Specific override for display settings if needed */
     #section-display .segmented {
         gap: 6px;
     }
 
     #section-display .segmented .seg {
-        min-width: 110px;
+        min-width: 85px;
     }
 
     /* Even more compact Active Mode card */

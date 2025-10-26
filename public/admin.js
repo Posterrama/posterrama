@@ -4803,6 +4803,7 @@
             console.log('[DEBUG] initMobilePreview called');
             console.log('[DEBUG] window.innerWidth:', window.innerWidth);
             console.log('[DEBUG] container:', container);
+            console.log('[DEBUG] container display style:', container.style.display);
 
             const isMobile = () => window.innerWidth <= 768;
 
@@ -4816,8 +4817,8 @@
             // Remove any existing mobile-expanded class to start collapsed
             container.classList.remove('mobile-expanded');
 
-            // Create mobile toggle tab element
-            let tab = container.querySelector('.mobile-preview-tab');
+            // Create mobile toggle tab element - APPEND TO BODY, not container!
+            let tab = document.querySelector('.mobile-preview-tab');
             console.log('[DEBUG] Existing tab found:', tab);
 
             if (!tab) {
@@ -4825,8 +4826,8 @@
                 tab.className = 'mobile-preview-tab';
                 tab.innerHTML = '<i class="fas fa-chevron-left"></i>';
                 tab.title = 'Toggle preview';
-                container.appendChild(tab);
-                console.log('[DEBUG] Tab created and appended to container');
+                document.body.appendChild(tab); // Append to body instead of container!
+                console.log('[DEBUG] Tab created and appended to BODY');
                 console.log('[DEBUG] Tab element:', tab);
                 console.log(
                     '[DEBUG] Tab computed style display:',
@@ -4844,6 +4845,30 @@
                     '[DEBUG] Tab computed style zIndex:',
                     window.getComputedStyle(tab).zIndex
                 );
+                console.log('[DEBUG] Tab offsetParent:', tab.offsetParent);
+            }
+
+            // Show/hide tab based on section visibility
+            const updateTabVisibility = () => {
+                const section = document.getElementById('section-display');
+                const isDisplayActive = section && section.classList.contains('active');
+                if (tab) {
+                    tab.style.display = isDisplayActive ? 'flex' : 'none';
+                    console.log(
+                        '[DEBUG] Tab visibility updated:',
+                        isDisplayActive ? 'visible' : 'hidden'
+                    );
+                }
+            };
+
+            // Initial visibility check
+            updateTabVisibility();
+
+            // Watch for section changes
+            const observer = new MutationObserver(updateTabVisibility);
+            const section = document.getElementById('section-display');
+            if (section) {
+                observer.observe(section, { attributes: true, attributeFilter: ['class'] });
             }
 
             // Toggle preview on mobile by clicking the tab
@@ -4852,6 +4877,14 @@
                 e.stopPropagation();
                 console.log('Tab clicked, toggling preview');
                 container.classList.toggle('mobile-expanded');
+
+                // Show/hide container
+                if (container.classList.contains('mobile-expanded')) {
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+
                 console.log('Preview expanded:', container.classList.contains('mobile-expanded'));
             });
 
@@ -4859,22 +4892,17 @@
             const closePreview = e => {
                 if (
                     !container.contains(e.target) &&
+                    !tab.contains(e.target) &&
                     container.classList.contains('mobile-expanded') &&
                     isMobile()
                 ) {
                     console.log('Clicked outside, closing preview');
                     container.classList.remove('mobile-expanded');
+                    container.style.display = 'none';
                 }
             };
 
             document.addEventListener('click', closePreview);
-
-            // Prevent closing when clicking inside preview
-            container.addEventListener('click', e => {
-                if (!tab.contains(e.target)) {
-                    e.stopPropagation();
-                }
-            });
 
             console.log('[DEBUG] Mobile preview initialized, collapsed by default');
             console.log('[DEBUG] Tab should be visible at right edge of screen');
