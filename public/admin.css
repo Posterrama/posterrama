@@ -13850,7 +13850,7 @@ select:focus-visible {
     /* Force mobile preview to display and position correctly */
     body #display-preview-container {
         position: fixed !important;
-        right: -248px !important; /* Fully hidden except for 32px tab */
+        right: -280px !important; /* Fully hidden, tab will stick to right edge */
         top: 50% !important;
         left: auto !important;
         bottom: auto !important;
@@ -13880,15 +13880,19 @@ select:focus-visible {
         aspect-ratio: 9 / 16 !important;
     }
 
-    /* Subtle toggle tab on left side of preview */
+    /* Subtle toggle tab on RIGHT side of screen (not left of preview) */
     body #display-preview-container .mobile-preview-tab {
-        position: absolute !important;
-        left: -32px !important;
+        position: fixed !important; /* Fixed to screen, not absolute to container */
+        right: 0 !important; /* Stick to right edge of screen */
         top: 50% !important;
         transform: translateY(-50%) !important;
         width: 32px !important;
         height: 60px !important;
-        background: linear-gradient(90deg, rgba(30, 35, 50, 0.7), rgba(30, 35, 50, 0.9)) !important;
+        background: linear-gradient(
+            270deg,
+            rgba(30, 35, 50, 0.9),
+            rgba(30, 35, 50, 0.7)
+        ) !important;
         backdrop-filter: blur(12px) saturate(150%) !important;
         -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
         border-radius: 8px 0 0 8px !important;
@@ -13901,25 +13905,27 @@ select:focus-visible {
         color: rgba(255, 255, 255, 0.6) !important;
         font-size: 0.9rem !important;
         cursor: pointer !important;
-        z-index: 1 !important;
-        transition: all 0.2s ease !important;
+        z-index: 10000 !important; /* Higher than container */
+        transition: opacity 0.2s ease !important;
+    }
+
+    /* Hide tab when preview is expanded */
+    body #display-preview-container.mobile-expanded .mobile-preview-tab {
+        opacity: 0 !important;
+        pointer-events: none !important;
     }
 
     body #display-preview-container .mobile-preview-tab:active {
         background: linear-gradient(
-            90deg,
-            rgba(40, 45, 60, 0.8),
-            rgba(40, 45, 60, 0.95)
+            270deg,
+            rgba(40, 45, 60, 0.95),
+            rgba(40, 45, 60, 0.8)
         ) !important;
         color: rgba(255, 255, 255, 0.9) !important;
     }
 
     body #display-preview-container .mobile-preview-tab i {
         transition: transform 0.3s ease !important;
-    }
-
-    body #display-preview-container.mobile-expanded .mobile-preview-tab i {
-        transform: rotate(180deg) !important;
     }
 
     /* Hide drag handle on mobile */
