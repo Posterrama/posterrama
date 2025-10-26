@@ -14386,74 +14386,79 @@ select:focus-visible {
         padding: var(--space-sm);
     }
 
+    #panel-local .browser-list {
+        display: flex;
+        flex-direction: column;
+    }
+
     #panel-local .browser-item {
+        display: flex !important;
         padding: 12px !important;
-        gap: 10px;
-        flex-wrap: nowrap;
-        align-items: center;
+        gap: 12px !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
     }
 
     #panel-local .browser-item-icon {
-        font-size: 1.2rem !important;
-        width: 32px !important;
-        min-width: 32px !important;
+        font-size: 1.5rem !important;
+        width: 36px !important;
+        min-width: 36px !important;
         flex-shrink: 0 !important;
         margin-right: 0 !important;
     }
 
     #panel-local .browser-item-icon.has-thumb {
-        width: 32px !important;
-    }
-
-    #panel-local .browser-item-info {
-        min-width: 0;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+        width: 36px !important;
     }
 
     #panel-local .browser-item-name {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
         font-size: 0.9rem !important;
-        word-break: break-word;
         display: flex !important;
-        flex-wrap: wrap;
-        gap: 6px !important;
-        align-items: center;
+        flex-direction: column !important;
+        gap: 4px !important;
+        align-items: flex-start !important;
+    }
+
+    #panel-local .browser-item-name .name-text {
+        word-break: break-word;
+        overflow-wrap: break-word;
+        display: block;
+        width: 100%;
     }
 
     #panel-local .browser-item-name .status-pill {
         font-size: 0.7rem !important;
         padding: 2px 6px !important;
-    }
-
-    #panel-local .browser-item-meta {
-        font-size: 0.75rem;
-        flex-wrap: wrap;
-        gap: 6px;
-        color: var(--color-text-secondary);
+        margin: 0 !important;
     }
 
     #panel-local .browser-item-actions {
-        flex-shrink: 0;
+        flex-shrink: 0 !important;
         gap: 6px !important;
         display: flex !important;
-        opacity: 1 !important; /* Always visible on mobile */
+        opacity: 1 !important;
+        visibility: visible !important;
     }
 
     #panel-local .browser-item-actions .btn {
         padding: 8px 12px !important;
         font-size: 0.8rem !important;
         min-width: auto !important;
-        white-space: nowrap;
+        white-space: nowrap !important;
+    }
+
+    #panel-local .browser-item-actions .btn .spinner {
+        display: none !important; /* Hide spinners on mobile */
     }
 
     #panel-local .browser-item-actions .btn i {
-        margin-right: 4px;
+        margin-right: 4px !important;
     }
 
-    #panel-local .browser-item-actions .btn span {
-        display: inline !important; /* Show text on action buttons */
+    #panel-local .browser-item-actions .btn .hide-on-xs {
+        display: inline !important;
     }
 
     /* Browser empty state */
