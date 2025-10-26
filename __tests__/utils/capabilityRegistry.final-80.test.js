@@ -928,6 +928,276 @@ describe('CapabilityRegistry - 80% Coverage Push', () => {
         });
     });
 
+    describe('Navigation Capabilities Coverage', () => {
+        test('pin.current availableWhen returns true for screensaver', () => {
+            const cap = capabilityRegistry.get('pin.current');
+            const device = { clientInfo: { mode: 'screensaver' } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(true);
+            }
+        });
+
+        test('pin.current availableWhen returns false for cinema', () => {
+            const cap = capabilityRegistry.get('pin.current');
+            const device = { clientInfo: { mode: 'cinema' } };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(false);
+            }
+        });
+
+        test('pin.unpin availableWhen returns true when pinned in screensaver', () => {
+            const cap = capabilityRegistry.get('pin.unpin');
+            const device = {
+                clientInfo: { mode: 'screensaver' },
+                currentState: { pinned: true },
+            };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(true);
+            }
+        });
+
+        test('pin.unpin availableWhen returns false when not pinned', () => {
+            const cap = capabilityRegistry.get('pin.unpin');
+            const device = {
+                clientInfo: { mode: 'screensaver' },
+                currentState: { pinned: false },
+            };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(false);
+            }
+        });
+
+        test('pin.unpin availableWhen returns false in cinema mode', () => {
+            const cap = capabilityRegistry.get('pin.unpin');
+            const device = {
+                clientInfo: { mode: 'cinema' },
+                currentState: { pinned: true },
+            };
+
+            if (cap.availableWhen) {
+                expect(cap.availableWhen(device)).toBe(false);
+            }
+        });
+    });
+
+    describe('Management Capabilities Coverage', () => {
+        test('mgmt.reload capability exists', () => {
+            const cap = capabilityRegistry.get('mgmt.reload');
+
+            expect(cap).toBeDefined();
+            expect(cap.name).toBe('Reload');
+        });
+
+        test('mgmt.reset capability exists', () => {
+            const cap = capabilityRegistry.get('mgmt.reset');
+
+            expect(cap).toBeDefined();
+            expect(cap.name).toBe('Reset');
+        });
+    });
+
+    describe('Config Fallback Coverage for Settings', () => {
+        test('transitionInterval falls back to config when override missing', () => {
+            const cap = capabilityRegistry.get('settings.transitionInterval');
+            const device = { settingsOverride: {} };
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+            expect(result).toBeGreaterThan(0);
+        });
+
+        test('effectPauseTime falls back to default 2', () => {
+            const cap = capabilityRegistry.get('settings.effectPauseTime');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe(2);
+        });
+
+        test('transitionEffect falls back to kenburns', () => {
+            const cap = capabilityRegistry.get('settings.transitionEffect');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe('kenburns');
+        });
+
+        test('clockFormat falls back when no override', () => {
+            const cap = capabilityRegistry.get('settings.clockFormat');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('string');
+        });
+
+        test('uiScaling.global falls back to 100', () => {
+            const cap = capabilityRegistry.get('settings.uiScaling.global');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(result).toBe(100);
+        });
+
+        test('uiScaling.content falls back to 100', () => {
+            const cap = capabilityRegistry.get('settings.uiScaling.content');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(result).toBe(100);
+        });
+
+        test('uiScaling.clearlogo falls back to 100', () => {
+            const cap = capabilityRegistry.get('settings.uiScaling.clearlogo');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(result).toBe(100);
+        });
+
+        test('uiScaling.clock falls back to 100', () => {
+            const cap = capabilityRegistry.get('settings.uiScaling.clock');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(result).toBe(100);
+        });
+
+        test('wallartMode.density falls back to medium', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.density');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe('medium');
+        });
+
+        test('wallartMode.posterRefreshRate falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.posterRefreshRate');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+
+        test('wallartMode.heroRotation falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.heroRotation');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+
+        test('wallartMode.timingRandomness falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.timingRandomness');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+
+        test('wallartMode.animationType falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.animationType');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('string');
+        });
+
+        test('wallartMode.ambiance falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.ambiance');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('string');
+        });
+
+        test('wallartMode.layout falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.layout');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('string');
+        });
+
+        test('wallartMode.heroSide falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.heroSide');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('string');
+        });
+    });
+
+    describe('Cinema Settings Config Fallback', () => {
+        test('cinema.orientation falls back to auto', () => {
+            const cap = capabilityRegistry.get('settings.cinema.orientation');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe('auto');
+        });
+
+        test('cinema.header.enabled falls back to true', () => {
+            const cap = capabilityRegistry.get('settings.cinema.header.enabled');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe(true);
+        });
+
+        test('cinema.header.text falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.cinema.header.text');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('string');
+        });
+
+        test('cinema.header.style falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.cinema.header.style');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('string');
+        });
+
+        test('cinema.ambilight.enabled falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.cinema.ambilight.enabled');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('boolean');
+        });
+
+        test('cinema.ambilight.strength falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.cinema.ambilight.strength');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('number');
+        });
+
+        test('cinema.footer.enabled falls back to true', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.enabled');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe(true);
+        });
+
+        test('cinema.footer.type falls back to specs', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.type');
+            const device = {};
+
+            expect(cap.stateGetter(device)).toBe('specs');
+        });
+
+        test('cinema.footer.marqueeText falls back to default', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.marqueeText');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('string');
+        });
+    });
+
     describe('Capability Registration', () => {
         test('get returns capability for existing id', () => {
             const cap = capabilityRegistry.get('playback.pause');
