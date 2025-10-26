@@ -14733,6 +14733,238 @@ select:focus-visible {
     #section-devices .pagination {
         justify-content: center;
     }
+
+    /* ========================================
+       OPERATIONS SECTION MOBILE
+       ======================================== */
+
+    /* Panel header */
+    #section-operations .panel-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: var(--space-sm) !important;
+    }
+
+    #section-operations .panel-actions {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    #section-operations .panel-actions .btn {
+        width: 100% !important;
+        justify-content: center;
+    }
+
+    /* Content grid - single column */
+    #section-operations .content-grid {
+        grid-template-columns: 1fr !important;
+        gap: var(--space-sm) !important;
+    }
+
+    #section-operations .ops-col {
+        width: 100% !important;
+    }
+
+    /* All perf-cards in operations */
+    #section-operations .perf-card {
+        padding: var(--space-sm) !important;
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    #section-operations .perf-card h3 {
+        font-size: 1rem !important;
+    }
+
+    /* Form groups and inputs - full width */
+    #section-operations .form-group {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    #section-operations input[type='text'],
+    #section-operations input[type='url'],
+    #section-operations input[type='number'],
+    #section-operations input[type='password'],
+    #section-operations input[type='time'],
+    #section-operations select {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* Specific width overrides */
+    #section-operations .w-90,
+    #section-operations .w-110,
+    #section-operations .w-160,
+    #section-operations .w-280 {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Inline fields - stack vertically */
+    #section-operations .inline-field {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    #section-operations .form-group.inline-field.nowrap {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+
+    #section-operations .inline-field label {
+        width: 100%;
+        padding-right: 0 !important;
+    }
+
+    #section-operations .inline-field .select-wrap {
+        width: 100% !important;
+    }
+
+    /* Metric rows - stack vertically */
+    #section-operations .metric-row {
+        flex-direction: column !important;
+        gap: var(--space-sm) !important;
+        align-items: flex-start !important;
+    }
+
+    /* Entry Route specific */
+    #section-operations .entry-row {
+        flex-direction: column !important;
+        gap: var(--space-sm) !important;
+    }
+
+    #section-operations .entry-col {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+
+    #section-operations .entry-col .select-wrap {
+        width: 100% !important;
+    }
+
+    /* Actions - stack vertically */
+    #section-operations .actions {
+        width: 100% !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    #section-operations .actions.main-actions,
+    #section-operations .actions.sub-actions {
+        flex-direction: column !important;
+    }
+
+    #section-operations .actions .btn {
+        width: 100% !important;
+        flex: none !important;
+        justify-content: center;
+    }
+
+    /* Input rows */
+    #section-operations .input-row {
+        width: 100%;
+        display: flex !important;
+        gap: 8px !important;
+    }
+
+    #section-operations .input-row .form-group {
+        flex: 1;
+    }
+
+    #section-operations .input-row .btn {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    /* MQTT settings grid */
+    #section-operations #mqtt-settings-group .metric-row {
+        flex-direction: column !important;
+    }
+
+    #section-operations #mqtt-settings-group .form-group {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+
+    #section-operations #mqtt-settings-group input {
+        width: 100% !important;
+    }
+
+    /* MQTT stats grid */
+    #section-operations #mqtt-stats-cards > div {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+    }
+
+    /* MQTT device summary */
+    #section-operations #mqtt-device-summary > div {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    /* Time input wrapper */
+    #section-operations .time-input {
+        width: 100% !important;
+        max-width: 100%;
+    }
+
+    #section-operations .time-input input {
+        width: 100% !important;
+    }
+
+    /* Checkbox groups */
+    #section-operations .checkbox-group {
+        width: 100%;
+    }
+
+    /* Server base URL copy button */
+    #section-operations #copy-current-url-base {
+        font-size: 0.75rem !important;
+        padding: 4px 6px !important;
+    }
+
+    #section-operations #copy-current-url-base span {
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Backup lists */
+    #section-operations .compact-backup-list {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Status displays */
+    #section-operations .status-display {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Card subtitle and subtle text */
+    #section-operations .card-subtext,
+    #section-operations .subtle {
+        font-size: 0.85rem !important;
+        word-wrap: break-word;
+    }
+
+    /* Fix grid layouts that might overflow */
+    #section-operations [style*='grid-template-columns'] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Specific overrides for inline styles */
+    #section-operations [style*='width:280px'],
+    #section-operations [style*='width:800px'] {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
 }
 
 /* Cache bust: 2025-10-26 */
