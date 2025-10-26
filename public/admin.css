@@ -14237,6 +14237,11 @@ select:focus-visible {
         padding: 6px 10px;
     }
 
+    #section-media-sources .multiselect .ms-chips {
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
     #section-media-sources .multiselect .ms-chips .chip {
         font-size: 0.75rem;
         padding: 4px 8px;
@@ -14244,6 +14249,39 @@ select:focus-visible {
 
     #section-media-sources .multiselect .ms-menu {
         max-height: 60vh;
+    }
+
+    #section-media-sources .multiselect .ms-search {
+        padding: 10px;
+    }
+
+    #section-media-sources .multiselect .ms-search input {
+        padding: 8px 10px 8px 32px;
+    }
+
+    #section-media-sources .multiselect .ms-actions {
+        padding: 8px 10px;
+    }
+
+    #section-media-sources .multiselect .ms-options {
+        padding: 0;
+    }
+
+    #section-media-sources .multiselect .ms-option {
+        padding: 10px 12px !important;
+        min-height: auto !important;
+    }
+
+    #section-media-sources .multiselect .ms-option-checkbox {
+        width: 24px !important;
+        height: 24px !important;
+        flex-shrink: 0;
+    }
+
+    #section-media-sources .multiselect .ms-option-label {
+        font-size: 0.9rem;
+        padding-left: 10px;
+        word-break: break-word;
     }
 
     /* Status cards grid */
