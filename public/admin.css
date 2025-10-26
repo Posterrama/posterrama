@@ -14022,13 +14022,17 @@ select:focus-visible {
         padding: var(--space-sm);
     }
 
-    /* Force all grids to single column on mobile */
+    /* Force all grids to single column on mobile - override masonry */
     #section-display .form-grid,
     #section-display .form-grid.masonry,
+    #section-display .masonry,
     #section-display #saver-cards,
     #section-display #wallart-cards,
     #section-display #cinema-cards {
+        display: grid !important; /* Override masonry column layout */
         grid-template-columns: 1fr !important;
+        column-width: auto !important; /* Disable masonry */
+        column-count: 1 !important;
         gap: var(--space-sm) !important;
     }
 
