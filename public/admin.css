@@ -13897,7 +13897,7 @@ select:focus-visible {
         box-shadow:
             -4px 0 20px rgba(0, 0, 0, 0.3),
             inset 0 0 20px rgba(255, 255, 255, 0.05) !important;
-        display: none !important; /* Hidden by default, shown by JS */
+        display: flex; /* No !important - allow JS to override */
         align-items: center !important;
         justify-content: center !important;
         color: rgba(255, 255, 255, 0.8) !important;
@@ -14086,6 +14086,119 @@ select:focus-visible {
 
     #section-display .card-title {
         font-size: 0.9rem;
+    }
+
+    /* ========================================
+       MEDIA SOURCES MOBILE OPTIMIZATION
+       ======================================== */
+
+    /* Panel header - stack vertically */
+    #panel-media-sources .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+    }
+
+    #panel-media-sources .panel-title {
+        width: 100%;
+    }
+
+    #panel-media-sources .panel-subtitle {
+        font-size: 0.85rem;
+    }
+
+    #panel-media-sources .panel-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* Actions home - wrap buttons */
+    #section-media-sources .actions-home {
+        flex-wrap: wrap;
+        gap: 8px !important;
+        padding: var(--space-sm) !important;
+    }
+
+    #section-media-sources .actions-home .btn {
+        font-size: 0.8rem;
+        padding: 8px 12px;
+    }
+
+    #section-media-sources .actions-home .status-pill {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+
+    /* Force all form grids to single column */
+    #section-media-sources .form-grid,
+    #section-media-sources .form-grid.plex-dense,
+    #section-media-sources .form-grid.jellyfin-dense,
+    #section-media-sources #plex-server-grid,
+    #section-media-sources #plex-filters-grid,
+    #section-media-sources #jellyfin-server-grid,
+    #section-media-sources #jellyfin-filters-grid {
+        grid-template-columns: 1fr !important;
+        gap: var(--space-sm) !important;
+    }
+
+    /* Form sections */
+    #section-media-sources .form-section {
+        padding: var(--space-sm);
+    }
+
+    #section-media-sources .section-title {
+        font-size: 0.9rem;
+        margin-bottom: var(--space-xs);
+    }
+
+    /* Form groups */
+    #section-media-sources .form-group {
+        margin-bottom: var(--space-sm);
+    }
+
+    #section-media-sources .form-group label {
+        font-size: 0.85rem;
+        margin-bottom: 6px;
+    }
+
+    #section-media-sources .form-help {
+        font-size: 0.75rem;
+    }
+
+    /* Input fields */
+    #section-media-sources input[type='text'],
+    #section-media-sources input[type='password'],
+    #section-media-sources input[type='number'],
+    #section-media-sources select {
+        font-size: 0.9rem;
+        padding: 10px 12px;
+    }
+
+    /* Multiselect compact */
+    #section-media-sources .multiselect .ms-control {
+        min-height: 42px;
+        padding: 6px 10px;
+    }
+
+    #section-media-sources .multiselect .ms-chips .chip {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+
+    #section-media-sources .multiselect .ms-menu {
+        max-height: 60vh;
+    }
+
+    /* Status cards grid */
+    #section-media-sources .source-grid {
+        grid-template-columns: 1fr !important;
+        gap: var(--space-sm) !important;
+    }
+
+    /* Compact buttons in multiselect */
+    #section-media-sources .ms-actions .btn {
+        font-size: 0.75rem;
+        padding: 6px 10px;
     }
 }
 
