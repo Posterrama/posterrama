@@ -14973,36 +14973,46 @@ select:focus-visible {
 
     #section-operations #api-key-display .input-row {
         display: flex;
-        gap: 6px;
-        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
     }
 
     #section-operations #api-key-display .input-row input {
-        flex: 1;
-        min-width: 0;
-        font-size: 0.8rem !important;
-        padding: 8px !important;
+        width: 100%;
+        font-size: 0.85rem !important;
+        padding: 10px !important;
     }
 
     #section-operations #api-key-display .input-row .actions {
         display: flex;
-        gap: 4px;
-        flex-shrink: 0;
+        gap: 8px;
+        width: 100%;
     }
 
     #section-operations #api-key-display .btn-icon {
-        width: 36px !important;
-        height: 36px !important;
-        padding: 0 !important;
+        flex: 1;
+        height: 40px !important;
+        padding: 8px !important;
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-shrink: 0;
+        gap: 6px;
     }
 
     #section-operations #api-key-display .btn-icon i {
-        font-size: 0.9rem !important;
+        font-size: 1rem !important;
         margin: 0 !important;
+    }
+
+    /* Add text labels to icon buttons */
+    #section-operations #toggle-api-key-visibility-button::after {
+        content: 'Show';
+        font-size: 0.85rem;
+    }
+
+    #section-operations #copy-api-key-button::after {
+        content: 'Copy';
+        font-size: 0.85rem;
     }
 
     /* API key buttons below */
