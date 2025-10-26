@@ -1565,6 +1565,205 @@ describe('CapabilityRegistry - 80% Coverage Push', () => {
         });
     });
 
+    describe('Deeply Nested Settings Coverage', () => {
+        test('cinema.footer.specs.showResolution with override', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.specs.showResolution');
+            const device = {
+                settingsOverride: {
+                    cinema: { footer: { specs: { showResolution: false } } },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe(false);
+        });
+
+        test('cinema.footer.specs.showResolution without override returns default', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.specs.showResolution');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('boolean');
+        });
+
+        test('cinema.footer.specs.showAudio with override', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.specs.showAudio');
+            const device = {
+                settingsOverride: {
+                    cinema: { footer: { specs: { showAudio: false } } },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe(false);
+        });
+
+        test('cinema.footer.specs.showAudio without override', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.specs.showAudio');
+            const device = {};
+
+            const result = cap.stateGetter(device);
+            expect(typeof result).toBe('boolean');
+        });
+
+        test('cinema.footer.specs.showAspectRatio with override', () => {
+            const cap = capabilityRegistry.get('settings.cinema.footer.specs.showAspectRatio');
+            const device = {
+                settingsOverride: {
+                    cinema: { footer: { specs: { showAspectRatio: false } } },
+                },
+            };
+
+            expect(cap.stateGetter(device)).toBe(false);
+        });
+
+        test('wallart layout supports both old and new format', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.layout');
+            const device1 = {
+                settingsOverride: { wallartMode: { layout: 'classic' } },
+            };
+            const device2 = {
+                settingsOverride: { wallartMode: { layoutVariant: 'heroGrid' } },
+            };
+
+            const result1 = cap.stateGetter(device1);
+            const result2 = cap.stateGetter(device2);
+
+            expect(typeof result1).toBe('string');
+            expect(typeof result2).toBe('string');
+        });
+
+        test('wallartMode.heroSide supports multiple paths', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.heroSide');
+            const device1 = {
+                settingsOverride: {
+                    wallartMode: {
+                        layoutSettings: { heroGrid: { heroSide: 'left' } },
+                    },
+                },
+            };
+            const device2 = {
+                settingsOverride: { wallartMode: { heroSide: 'right' } },
+            };
+
+            expect(cap.stateGetter(device1)).toBe('left');
+            expect(cap.stateGetter(device2)).toBe('right');
+        });
+
+        test('wallartMode.heroRotation supports multiple paths', () => {
+            const cap = capabilityRegistry.get('settings.wallartMode.heroRotation');
+            const device1 = {
+                settingsOverride: {
+                    wallartMode: {
+                        layoutSettings: { heroGrid: { heroRotationMinutes: 10 } },
+                    },
+                },
+            };
+            const device2 = {
+                settingsOverride: { wallartMode: { heroRotation: 15 } },
+            };
+
+            expect(cap.stateGetter(device1)).toBe(10);
+            expect(cap.stateGetter(device2)).toBe(15);
+        });
+
+        test('getDeviceMode with both clientInfo and currentState', () => {
+            const device1 = {
+                clientInfo: { mode: 'cinema' },
+                currentState: { mode: 'wallart' },
+            };
+            const device2 = {
+                currentState: { mode: 'screensaver' },
+            };
+            const device3 = {};
+
+            // clientInfo takes precedence
+            expect(capabilityRegistry.getDeviceMode(device1)).toBe('cinema');
+            // Falls back to currentState
+            expect(capabilityRegistry.getDeviceMode(device2)).toBe('screensaver');
+            // Falls back to default
+            expect(capabilityRegistry.getDeviceMode(device3)).toBe('screensaver');
+        });
+
+        test('getCinemaSetting with nested override path', () => {
+            const device = {
+                settingsOverride: {
+                    cinema: { footer: { ambilight: { strength: 0.8 } } },
+                },
+            };
+
+            const result = capabilityRegistry.getCinemaSetting(
+                device,
+                'footer.ambilight.strength',
+                0.5
+            );
+            expect(result).toBe(0.8);
+        });
+
+        test('getWallartSetting with nested override path', () => {
+            const device = {
+                settingsOverride: {
+                    wallart: { layoutSettings: { heroGrid: { heroSide: 'left' } } },
+                },
+            };
+
+            // Note: getWallartSetting internally uses mode='wallart', so path should be just the nested path
+            const result = capabilityRegistry.getWallartSetting(
+                device,
+                'layoutSettings.heroGrid.heroSide',
+                'right'
+            );
+            // Should find settingsOverride.wallart.layoutSettings.heroGrid.heroSide = 'left'
+            expect(result).toBe('left');
+        });
+
+        test('getModeSetting for cinema with nested path', () => {
+            const device = {
+                clientInfo: { mode: 'cinema' },
+                settingsOverride: {
+                    cinema: { header: { enabled: false } },
+                },
+            };
+
+            // getModeSetting needs 4 params: device, mode, path, default
+            const result = capabilityRegistry.getModeSetting(
+                device,
+                'cinema',
+                'header.enabled',
+                true
+            );
+            expect(result).toBe(false);
+        });
+
+        test('getModeSetting for wallart with nested path', () => {
+            const device = {
+                clientInfo: { mode: 'wallart' },
+                settingsOverride: {
+                    wallartMode: { layoutSettings: { heroGrid: { heroSide: 'right' } } },
+                },
+            };
+
+            const result = capabilityRegistry.getModeSetting(
+                device,
+                'wallartMode',
+                'layoutSettings.heroGrid.heroSide',
+                'left'
+            );
+            expect(result).toBe('right');
+        });
+
+        test('getScreensaverSetting with top-level override', () => {
+            const device = {
+                settingsOverride: { screensaver: { transitionInterval: 20 } },
+            };
+
+            const result = capabilityRegistry.getScreensaverSetting(
+                device,
+                'transitionInterval',
+                10
+            );
+            expect(result).toBe(20);
+        });
+    });
+
     describe('Capability Registration', () => {
         test('get returns capability for existing id', () => {
             const cap = capabilityRegistry.get('playback.pause');
