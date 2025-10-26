@@ -14176,22 +14176,24 @@ select:focus-visible {
 
     /* Server grid - keep as regular form groups, don't use grid override */
     #section-media-sources #plex-server-grid,
-    #section-media-sources #jellyfin-server-grid,
+    #section-media-sources #jf-server-grid,
     #section-media-sources #tmdb-server-grid {
         display: block !important;
         grid-template-columns: unset !important;
     }
 
     #section-media-sources #plex-server-grid .form-group,
-    #section-media-sources #jellyfin-server-grid .form-group,
+    #section-media-sources #jf-server-grid .form-group,
     #section-media-sources #tmdb-server-grid .form-group {
         margin-bottom: var(--space-md);
         display: block;
         width: 100%;
+        grid-column: unset !important;
+        grid-row: unset !important;
     }
 
     #section-media-sources #plex-server-grid .form-group label,
-    #section-media-sources #jellyfin-server-grid .form-group label,
+    #section-media-sources #jf-server-grid .form-group label,
     #section-media-sources #tmdb-server-grid .form-group label {
         display: block;
         margin-bottom: 6px;
@@ -14200,8 +14202,9 @@ select:focus-visible {
     }
 
     #section-media-sources #plex-server-grid .form-group input,
-    #section-media-sources #jellyfin-server-grid .form-group input,
-    #section-media-sources #tmdb-server-grid .form-group input {
+    #section-media-sources #jf-server-grid .form-group input,
+    #section-media-sources #tmdb-server-grid .form-group input,
+    #section-media-sources #jf-server-grid .form-group .checkbox {
         width: 100%;
         display: block;
     }
