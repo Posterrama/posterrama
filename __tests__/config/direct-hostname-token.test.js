@@ -14,7 +14,20 @@ describe('Direct mediaServers connection fields precedence', () => {
     beforeAll(() => {
         originalConfigContent = fs.readFileSync(configPath, 'utf8');
         const cfg = JSON.parse(originalConfigContent);
-        const plex = cfg.mediaServers.find(s => s.type === 'plex');
+        let plex = cfg.mediaServers.find(s => s.type === 'plex');
+
+        // Create Plex server if it doesn't exist
+        if (!plex) {
+            plex = {
+                name: 'Test Plex Server',
+                type: 'plex',
+                enabled: true,
+                movieLibraryNames: [],
+                showLibraryNames: [],
+            };
+            cfg.mediaServers.push(plex);
+        }
+
         // Ensure test values
         plex.hostname = '10.10.10.10';
         plex.port = 12345;
