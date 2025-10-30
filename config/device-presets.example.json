@@ -1,0 +1,106 @@
+[
+    {
+        "key": "4k-living-room",
+        "name": "4K Living Room TV",
+        "description": "Optimized for 4K TVs at living room distance with larger UI elements",
+        "overrides": {
+            "uiScaling": {
+                "content": 106,
+                "clearlogo": 110,
+                "clock": 120,
+                "global": 110
+            },
+            "wallartMode": {
+                "enabled": false
+            },
+            "cinemaMode": false
+        }
+    },
+    {
+        "key": "1440p-desktop",
+        "name": "1440p Desktop Monitor",
+        "description": "QHD monitor (27-32 inch) with balanced UI scaling",
+        "overrides": {
+            "uiScaling": {
+                "content": 100,
+                "clearlogo": 102,
+                "clock": 112,
+                "global": 104
+            },
+            "wallartMode": {
+                "enabled": false
+            },
+            "cinemaMode": false
+        }
+    },
+    {
+        "key": "1080p-desktop",
+        "name": "1080p Desktop Monitor",
+        "description": "Full HD monitor (24-27 inch) with slightly larger UI for readability",
+        "overrides": {
+            "uiScaling": {
+                "content": 102,
+                "clearlogo": 104,
+                "clock": 114,
+                "global": 106
+            },
+            "wallartMode": {
+                "enabled": false
+            },
+            "cinemaMode": false
+        }
+    },
+    {
+        "key": "ultrawide-21-9",
+        "name": "Ultrawide 21:9 Monitor",
+        "description": "Ultrawide displays with compact content and larger clock",
+        "overrides": {
+            "uiScaling": {
+                "content": 92,
+                "clearlogo": 96,
+                "clock": 118,
+                "global": 100
+            },
+            "wallartMode": {
+                "enabled": false
+            },
+            "cinemaMode": false
+        }
+    },
+    {
+        "key": "wallart-gallery",
+        "name": "Wallart Gallery Mode",
+        "description": "Wallart mode enabled with smooth transitions and variety",
+        "overrides": {
+            "wallartMode": {
+                "enabled": true,
+                "refreshRate": 6,
+                "randomness": 5
+            },
+            "cinemaMode": false,
+            "uiScaling": {
+                "content": 100,
+                "clearlogo": 100,
+                "clock": 112,
+                "global": 104
+            }
+        }
+    },
+    {
+        "key": "cinema-mode",
+        "name": "Cinema Mode",
+        "description": "Cinema mode enabled with wallart disabled",
+        "overrides": {
+            "cinemaMode": true,
+            "wallartMode": {
+                "enabled": false
+            },
+            "uiScaling": {
+                "content": 100,
+                "clearlogo": 100,
+                "clock": 110,
+                "global": 102
+            }
+        }
+    }
+]
