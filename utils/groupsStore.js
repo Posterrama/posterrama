@@ -32,7 +32,9 @@ async function readAll() {
     await ensureStore();
     const raw = await fsp.readFile(storePath, 'utf8');
     try {
-        cache = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        // Ensure we always return an array, even if the file contains an object
+        cache = Array.isArray(parsed) ? parsed : [];
     } catch (e) {
         cache = [];
     }
