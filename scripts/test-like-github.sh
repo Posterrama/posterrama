@@ -135,7 +135,7 @@ echo ""
 
 # 7. Config Validation
 echo "7. 🔍 Config validation..."
-if node -e "const Ajv=require('ajv');const fs=require('fs');const ajv=new Ajv({allErrors:true});const schema=JSON.parse(fs.readFileSync('../config.schema.json','utf8'));const data=JSON.parse(fs.readFileSync('../config.json','utf8'));const validate=ajv.compile(schema);if(!validate(data)){console.error('Config validation failed:',validate.errors);process.exit(1)}console.log('✅ Config validation passed')"; then
+if node -e "const Ajv=require('ajv');const fs=require('fs');const ajv=new Ajv({allErrors:true,strict:false,allowUnionTypes:true});const schema=JSON.parse(fs.readFileSync('../config.schema.json','utf8'));const data=JSON.parse(fs.readFileSync('../config.json','utf8'));const validate=ajv.compile(schema);if(!validate(data)){console.error('Config validation failed:',validate.errors);process.exit(1)}console.log('✅ Config validation passed')"; then
     echo "✅ Config: PASSED"
 else
     echo "❌ Config: FAILED"
