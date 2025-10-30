@@ -113,6 +113,11 @@ async function deleteGroup(id) {
     return true;
 }
 
+// Test helper: reset in-memory cache
+function resetCache() {
+    cache = null;
+}
+
 module.exports = {
     storePath,
     getAll,
@@ -120,4 +125,5 @@ module.exports = {
     createGroup,
     patchGroup,
     deleteGroup,
+    resetCache, // Expose for testing
 };
