@@ -431,6 +431,7 @@ class MqttBridge extends EventEmitter {
             await this.publish(stateTopic, JSON.stringify(state), { qos: 1, retain: false });
 
             this.deviceStates.set(device.id, stateKey);
+            this.stats.lastPublish = new Date().toISOString();
             logger.debug('📤 Published device state', { deviceId: device.id, topic: stateTopic });
         } catch (error) {
             logger.error('Error publishing device state:', error);

@@ -349,7 +349,7 @@ describe('MQTT Command Routing', () => {
                 'test-device-1',
                 expect.objectContaining({
                     type: 'settings.brightness',
-                    payload: expect.objectContaining({ value: 75 }),
+                    payload: 75,
                 })
             );
         });
@@ -376,7 +376,7 @@ describe('MQTT Command Routing', () => {
             expect(mockWsHub.sendCommand).toHaveBeenCalledWith(
                 'test-device-1',
                 expect.objectContaining({
-                    payload: expect.objectContaining({ value: true }),
+                    payload: true,
                 })
             );
         });
@@ -392,7 +392,7 @@ describe('MQTT Command Routing', () => {
             expect(mockWsHub.sendCommand).toHaveBeenCalledWith(
                 'test-device-1',
                 expect.objectContaining({
-                    payload: expect.objectContaining({ value: 120 }),
+                    payload: 120,
                 })
             );
         });
@@ -400,14 +400,29 @@ describe('MQTT Command Routing', () => {
 
     describe('Broadcast Commands', () => {
         test('routes broadcast command to all devices', async () => {
-            const topic = 'posterrama/broadcast/command/playback.pause';
-            const payload = {};
+            const topic = 'posterrama/broadcast/command/playback_pause';
+            const payload = '{}';
 
-            mockClient.simulateMessage(topic, JSON.stringify(payload));
+            // Mock deviceStore to return test devices
+            const deviceStore = require('../../utils/deviceStore');
+            deviceStore.getAll.mockResolvedValue([
+                { id: 'device1', name: 'Device 1' },
+                { id: 'device2', name: 'Device 2' },
+            ]);
 
-            await new Promise(resolve => setTimeout(resolve, 50));
+            mockClient.simulateMessage(topic, payload);
 
-            expect(mockWsHub.broadcast).toHaveBeenCalledWith(
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Should call sendCommand for each device
+            expect(mockWsHub.sendCommand).toHaveBeenCalledWith(
+                'device1',
+                expect.objectContaining({
+                    type: 'playback.pause',
+                })
+            );
+            expect(mockWsHub.sendCommand).toHaveBeenCalledWith(
+                'device2',
                 expect.objectContaining({
                     type: 'playback.pause',
                 })

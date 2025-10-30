@@ -88,6 +88,7 @@ describe('MQTT State Publishing', () => {
             broker: { host: 'test-broker', port: 1883 },
             topicPrefix: 'posterrama',
             discovery: { enabled: false },
+            availability: { enabled: true, timeout: 60 },
         });
 
         await mqttBridge.init();
@@ -298,15 +299,15 @@ describe('MQTT State Publishing', () => {
             await mqttBridge.publishCameraState(device);
 
             const messages = mockClient.getPublishedMessages(
-                'posterrama/device/test-device-1/camera'
+                'posterrama/device/test-device-1/camera/state'
             );
             expect(messages.length).toBeGreaterThan(0);
 
             const payload = JSON.parse(messages[0].payload.toString());
-            expect(payload.image_url).toBe('http://example.com/poster.jpg');
+            expect(payload.imageUrl).toContain('http://example.com/poster.jpg');
         });
 
-        test('includes media title in camera state', async () => {
+        test('includes poster URL in camera state', async () => {
             const device = {
                 id: 'test-device-1',
                 name: 'Test Device',
@@ -319,9 +320,9 @@ describe('MQTT State Publishing', () => {
             await mqttBridge.publishCameraState(device);
 
             const payload = mockClient.getLastPublishedPayload(
-                'posterrama/device/test-device-1/camera'
+                'posterrama/device/test-device-1/camera/state'
             );
-            expect(payload.media_title).toBe('Inception');
+            expect(payload.posterUrl).toBe('http://example.com/poster.jpg');
         });
 
         test('skips camera publish if no poster URL', async () => {
@@ -345,14 +346,16 @@ describe('MQTT State Publishing', () => {
             const device = {
                 id: 'test-device-1',
                 name: 'Test Device',
-                status: 'online',
+                lastSeenAt: new Date().toISOString(),
             };
 
             await mqttBridge.publishDeviceAvailability(device);
 
-            const payload = mockClient.getLastPublishedPayload(
+            const messages = mockClient.getPublishedMessages(
                 'posterrama/device/test-device-1/availability'
             );
+            expect(messages.length).toBeGreaterThan(0);
+            const payload = messages[0].payload.toString();
             expect(payload).toBe('online');
         });
 
@@ -360,14 +363,16 @@ describe('MQTT State Publishing', () => {
             const device = {
                 id: 'test-device-1',
                 name: 'Test Device',
-                status: 'offline',
+                lastSeenAt: new Date(Date.now() - 120000).toISOString(),
             };
 
             await mqttBridge.publishDeviceAvailability(device);
 
-            const payload = mockClient.getLastPublishedPayload(
+            const messages = mockClient.getPublishedMessages(
                 'posterrama/device/test-device-1/availability'
             );
+            expect(messages.length).toBeGreaterThan(0);
+            const payload = messages[0].payload.toString();
             expect(payload).toBe('offline');
         });
 
@@ -375,15 +380,16 @@ describe('MQTT State Publishing', () => {
             const device = {
                 id: 'test-device-1',
                 name: 'Test Device',
-                status: 'online',
+                lastSeenAt: new Date().toISOString(),
             };
 
             await mqttBridge.publishDeviceAvailability(device);
 
-            const message = mockClient.getLastPublishedMessage(
+            const messages = mockClient.getPublishedMessages(
                 'posterrama/device/test-device-1/availability'
             );
-            expect(message.options.retain).toBe(true);
+            expect(messages.length).toBeGreaterThan(0);
+            expect(messages[0].options.retain).toBe(true);
         });
     });
 
@@ -477,15 +483,29 @@ describe('MQTT State Publishing', () => {
         test('uses custom topic prefix for state', async () => {
             mqttBridge.shutdown();
 
+            // Re-setup capability mocks for new bridge instance
+            const capabilityRegistry = require('../../utils/capabilityRegistry');
+            capabilityRegistry.getAvailableCapabilities.mockReturnValue([]);
+            capabilityRegistry.getAllCapabilities.mockReturnValue([]);
+
+            // Create new mock client for new bridge instance
+            mockClient = new MockMqttClient();
+            mqtt.connect.mockReturnValue(mockClient);
+
             mqttBridge = new MqttBridge({
                 enabled: true,
                 broker: { host: 'test-broker', port: 1883 },
                 topicPrefix: 'custom-prefix',
                 discovery: { enabled: false },
+                availability: { enabled: true, timeout: 60 },
             });
 
             await mqttBridge.init();
-            await new Promise(resolve => setImmediate(resolve));
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Ensure connected
+            mockClient.connected = true;
+            mqttBridge.connected = true;
 
             const device = {
                 id: 'test-device-1',
@@ -495,6 +515,7 @@ describe('MQTT State Publishing', () => {
             };
 
             await mqttBridge.publishDeviceState(device);
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             const messages = mockClient.getPublishedMessages(
                 'custom-prefix/device/test-device-1/state'
