@@ -18,6 +18,12 @@ describe('Route Modules Integration Tests', () => {
         beforeAll(() => {
             testGroupsFile = path.join(__dirname, '../../groups.route-test.json');
 
+            // Set GROUPS_STORE_PATH BEFORE importing groupsStore
+            process.env.GROUPS_STORE_PATH = testGroupsFile;
+
+            // Clear require cache to force fresh load with new path
+            delete require.cache[require.resolve('../../utils/groupsStore')];
+
             // Import groupsStore
             groupsStore = require('../../utils/groupsStore');
 
@@ -38,9 +44,29 @@ describe('Route Modules Integration Tests', () => {
             app.use('/api/groups', groupsRouter);
         });
 
+        beforeEach(() => {
+            // Ensure test file exists with empty array before each test
+            if (!fs.existsSync(testGroupsFile)) {
+                fs.writeFileSync(testGroupsFile, '[]', 'utf8');
+            }
+
+            // Reset groupsStore cache to force fresh read
+            if (groupsStore && typeof groupsStore.resetCache === 'function') {
+                groupsStore.resetCache();
+            }
+        });
+
         afterEach(async () => {
-            // Clean up groups
+            // Clean up groups - force cache refresh
+            groupsStore.resetCache();
             const groups = await groupsStore.getAll();
+
+            // Verify groups is an array
+            if (!Array.isArray(groups)) {
+                console.error('groupsStore.getAll() did not return an array:', groups);
+                return;
+            }
+
             for (const group of groups) {
                 try {
                     await groupsStore.deleteGroup(group.id);
@@ -48,12 +74,18 @@ describe('Route Modules Integration Tests', () => {
                     // ignore
                 }
             }
+
+            // Reset cache again after cleanup
+            groupsStore.resetCache();
         });
 
         afterAll(() => {
             if (fs.existsSync(testGroupsFile)) {
                 fs.unlinkSync(testGroupsFile);
             }
+
+            // Clean up environment
+            delete process.env.GROUPS_STORE_PATH;
         });
 
         it('should create and retrieve a group', async () => {

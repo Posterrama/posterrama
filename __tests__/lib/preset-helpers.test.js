@@ -1,11 +1,7 @@
 /**
  * Tests for lib/preset-helpers.js
  *
- * NOTE: Fully isolated tests that use unique temp directories
- * TEMPORARILY SKIPPED in full suite due to test interference issue
- * Tests pass individually but fail when run with full suite
- * Root cause: Another test appears to write {mediaServers: []} to device-presets.json
- * TODO: Investigate which test is interfering
+ * Tests explicitly pass rootDir parameter to avoid process.cwd() contamination
  */
 
 const fs = require('fs').promises;
@@ -13,13 +9,12 @@ const path = require('path');
 const os = require('os');
 const { readPresets, writePresets } = require('../../lib/preset-helpers');
 
-describe.skip('Preset Helpers', () => {
+describe('Preset Helpers', () => {
     let testDir;
     let presetsFile;
 
     beforeEach(async () => {
         // Create a UNIQUE test directory for EACH test
-        // Using process.pid + timestamp + random string for maximum uniqueness
         const uniqueId = `preset-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
         testDir = await fs.mkdtemp(path.join(os.tmpdir(), uniqueId));
         presetsFile = path.join(testDir, 'device-presets.json');
