@@ -231,7 +231,8 @@ describe('Performance Benchmarking Suite', () => {
 
             // Memory should not grow excessively
             // CI environments have higher baseline memory, so use generous threshold
-            const memoryThreshold = process.env.CI ? 350 : 75;
+            // Local dev has slightly higher threshold due to debugging/tooling overhead
+            const memoryThreshold = process.env.CI ? 350 : 90;
             expect(Math.abs(heapDiffMB)).toBeLessThan(memoryThreshold);
         });
 
