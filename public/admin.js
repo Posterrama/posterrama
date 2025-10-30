@@ -4800,19 +4800,11 @@
 
         // Mobile preview toggle functionality
         (function initMobilePreview() {
-            console.log('[DEBUG] initMobilePreview called');
-            console.log('[DEBUG] window.innerWidth:', window.innerWidth);
-            console.log('[DEBUG] container:', container);
-            console.log('[DEBUG] container display style:', container.style.display);
-
             const isMobile = () => window.innerWidth <= 768;
 
             if (!isMobile()) {
-                console.log('[DEBUG] Not mobile, skipping preview tab creation');
                 return;
             }
-
-            console.log('[DEBUG] Mobile detected, proceeding with tab creation');
 
             // Remove any existing mobile-expanded class to start collapsed
             container.classList.remove('mobile-expanded');
@@ -15965,11 +15957,6 @@
                 const plexToken = localStorage.getItem('plex_token_temp');
                 if (plexToken && plexToken !== 'EXISTING_TOKEN') {
                     window.__tokenStore.plexToken = plexToken;
-                    console.log(
-                        '[Token Store] ✓ Loaded Plex token from localStorage:',
-                        plexToken.length,
-                        'chars'
-                    );
                 }
             } catch (e) {
                 console.warn('[Token Store] Failed to load Plex token:', e);
@@ -15979,11 +15966,6 @@
                 const jfApiKey = localStorage.getItem('jf_apikey_temp');
                 if (jfApiKey && jfApiKey !== 'EXISTING_TOKEN') {
                     window.__tokenStore.jfApiKey = jfApiKey;
-                    console.log(
-                        '[Token Store] ✓ Loaded Jellyfin API key from localStorage:',
-                        jfApiKey.length,
-                        'chars'
-                    );
                 }
             } catch (e) {
                 console.warn('[Token Store] Failed to load Jellyfin API key:', e);
@@ -16015,11 +15997,6 @@
                 // ALWAYS set dataset.actualToken from localStorage if available
                 if (savedToken && savedToken !== 'EXISTING_TOKEN') {
                     el.dataset.actualToken = savedToken;
-                    console.log(
-                        '[Token Init] ✓ Restored from localStorage:',
-                        savedToken.length,
-                        'chars'
-                    );
                 } else if (hasToken) {
                     el.dataset.actualToken = 'EXISTING_TOKEN';
                 } else {
@@ -16238,11 +16215,6 @@
                 // Priority: localStorage key > existing key marker > empty
                 if (savedKey && savedKey !== 'EXISTING_TOKEN') {
                     el.dataset.actualToken = savedKey;
-                    console.log(
-                        '[Jellyfin Init] ✓ Restored from localStorage:',
-                        savedKey.length,
-                        'chars'
-                    );
                 } else if (hasKey) {
                     el.dataset.actualToken = 'EXISTING_TOKEN';
                 } else {
@@ -19228,9 +19200,7 @@
                     return;
                 }
                 const data = await res.json().catch(() => ({}));
-                console.log('[loadPlexQualities] Received data:', data);
                 const arr = Array.isArray(data?.qualities) ? data.qualities : [];
-                console.log('[loadPlexQualities] Qualities array:', arr);
                 const names = arr
                     .map(q => q.quality || q)
                     .filter(Boolean)
@@ -19243,7 +19213,6 @@
                         if (bi !== -1) return 1;
                         return a.localeCompare(b);
                     });
-                console.log('[loadPlexQualities] Final names:', names);
                 if (names.length === 0) {
                     chips.innerHTML = '<div class="subtle">No qualities found</div>';
                     return;
