@@ -63,6 +63,39 @@
 
 ---
 
+### Integration Test Coverage 🟡 IN PROGRESS
+
+**Status**: 🟡 **PARTIALLY COMPLETE** (October 28, 2025)  
+**Result**: 8/16 integration tests passing (50% pass rate)
+
+**Completed**:
+
+- ✅ Groups module: 3/3 tests passing (CRUD operations, commands)
+- ✅ Config Backups module: 4/4 tests passing (list, create, schedule workflow)
+- ⚠️ Public API module: 1/3 tests passing (version endpoint only)
+
+**Foundation Established**:
+
+- Simplified mock-heavy integration testing pattern
+- Reusable approach for route module isolation
+- Clear path for future test expansion
+- 16 test scenarios across 6 route modules (318 lines)
+
+**Remaining Work** (est. 2-3 hours):
+
+- ❌ Profile Photo module: 0/2 tests (upload directory setup issues)
+- ❌ Health module: 0/2 tests (route configuration issues)
+- ❌ QR module: 0/2 tests (path mounting issues)
+- ⚠️ Public API module: 2/3 tests need fixes (config/ratings endpoints)
+
+**Decision Point**: Foundation is solid. Two critical modules (Groups, Config Backups) have full integration coverage. Remaining modules require additional dependency setup work.
+
+**Test Execution**: 0.697s, Coverage: 23.87% statements, 10.54% branches
+
+**Commit**: `e765933`
+
+---
+
 ## 🏗️ Architecture Debt
 
 ### Admin Utility Routes (Still in server.js)
@@ -113,11 +146,14 @@
 - **Approach**: Added missing JSDoc comments, comprehensive audit
 - **Result**: 39/40 endpoints documented, excellent Swagger UI coverage
 
-#### 3. Add Integration Tests (Priority: Low)
+#### 3. Add Integration Tests 🟡 **PARTIALLY COMPLETE**
 
-- **Effort**: 3-4 hours
-- **Value**: Better coverage of extracted modules
-- **Approach**: Test route modules in isolation
+- **Effort**: 3 hours (actual)
+- **Value**: Foundation established for route module testing ✅
+- **Approach**: Simplified mock-heavy pattern, isolated route tests
+- **Result**: 50% pass rate (8/16 tests), Groups and Config Backups fully covered
+- **Status**: Two critical modules complete, remaining modules need 2-3 hours additional work
+- **Commit**: `e765933`
 
 ### Low Value (Not Recommended)
 
@@ -182,7 +218,10 @@ Current state is production-ready and excellent quality.
 
 1. ~~**Sprint 1**: Fix device tests (4-6h) → 100% pass rate~~ ✅ **COMPLETED**
 2. ~~**Sprint 2**: Add Swagger docs (2-3h) → Complete API docs~~ ✅ **COMPLETED**
-3. **Sprint 3** (Not recommended): Extract admin utils (10-15h) → 75% reduction
+3. **Sprint 3**: Integration tests (3-6h total):
+    - ✅ Foundation established (3h) → Groups and Config Backups fully covered
+    - 🟡 Optional: Complete remaining modules (2-3h) → Profile Photo, Health, QR, Public API fixes
+4. **Sprint 4** (Not recommended): Extract admin utils (10-15h) → 75% reduction
 
 ### Bottom Line:
 
