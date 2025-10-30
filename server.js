@@ -23,7 +23,13 @@ const {
     getAvatarPath,
     isDeviceMgmtEnabled,
 } = require('./lib/utils-helpers');
-const { asyncHandler, createIsAuthenticated, testSessionShim } = require('./middleware');
+const {
+    asyncHandler,
+    createIsAuthenticated,
+    testSessionShim,
+    createAdminAuth,
+    createAdminAuthDevices,
+} = require('./middleware');
 const { readPresets, writePresets } = require('./lib/preset-helpers');
 const {
     createPlexClient,
@@ -113,6 +119,7 @@ const FIXED_LIMITS = Object.freeze({
 const TMDBSource = require('./sources/tmdb');
 const LocalDirectorySource = require('./sources/local');
 const { getPlaylistMedia } = require('./lib/media-aggregator');
+const { isSourceTypeEnabled: isSourceTypeEnabledUtil } = require('./lib/source-utils');
 // INTENTIONAL-TODO(new-source): If you add a new source adapter under sources/<name>.js, require it here
 // const MyNewSource = require('./sources/mynew');
 const deepMerge = require('./utils/deep-merge');
@@ -3253,70 +3260,8 @@ if (process.env.NODE_ENV === 'test') {
     });
 }
 // Admin guard alias (module-scope so routes outside feature blocks can use it)
-// In tests, relax adminAuth to accept any auth header for deterministic behavior
-const adminAuth = (req, res, next) => {
-    if (process.env.NODE_ENV === 'test') {
-        // Check both Express accessor and raw headers to avoid env-specific quirks
-        const authHeader = req.get('Authorization') || req.headers.authorization;
-        const xApiKey = req.get('x-api-key') || req.headers['x-api-key'];
-        const qApiKey = (req.query && (req.query.apiKey || req.query.apikey)) || '';
-        if (process.env.PRINT_AUTH_DEBUG === '1') {
-            try {
-                // Replaced raw console.log with logger.debug (pre-review enforcement)
-                logger.debug('[ADMIN AUTH DEBUG]', {
-                    env: process.env.NODE_ENV,
-                    path: req.path,
-                    authHeader,
-                    xApiKey,
-                    qApiKey,
-                });
-            } catch (_) {
-                /* noop */
-            }
-        }
-        if (
-            (authHeader && String(authHeader).trim()) ||
-            (xApiKey && String(xApiKey).trim()) ||
-            (qApiKey && String(qApiKey).trim())
-        ) {
-            req.user = { username: 'api_user', authMethod: 'apiKey' };
-            return next();
-        }
-        // Fall through to real auth to return proper 401 for missing auth tests
-    }
-    return isAuthenticated(req, res, next);
-};
-
-// Test-friendly wrapper for admin auth on device routes only
-// In NODE_ENV=test, bypass auth when any token header is present; otherwise defer to real auth
-const adminAuthDevices = (req, res, next) => {
-    if (process.env.NODE_ENV === 'test') {
-        const authHeader = req.get('Authorization') || req.headers.authorization;
-        const xApiKey = req.get('x-api-key') || req.headers['x-api-key'];
-        const qApiKey = (req.query && (req.query.apiKey || req.query.apikey)) || '';
-        const hasAnyAuth =
-            (authHeader && String(authHeader).trim()) ||
-            (xApiKey && String(xApiKey).trim()) ||
-            (qApiKey && String(qApiKey).trim());
-        if (process.env.PRINT_AUTH_DEBUG === '1') {
-            try {
-                // Replaced raw console.log with logger.debug (pre-review enforcement)
-                logger.debug('[ADMIN AUTH DEVICES BYPASS?]', req.method, req.path, {
-                    hasAnyAuth: Boolean(hasAnyAuth),
-                });
-            } catch (_) {
-                // best-effort debug logging
-            }
-        }
-        if (hasAnyAuth) {
-            req.user = { username: 'api_user', authMethod: 'test-bypass' };
-            return next();
-        }
-        // No token provided; use real adminAuth which will enforce 401 when appropriate
-        return adminAuth(req, res, next);
-    }
-    return adminAuth(req, res, next);
-};
+const adminAuth = createAdminAuth({ isAuthenticated, logger });
+const adminAuthDevices = createAdminAuthDevices({ adminAuth, logger });
 
 // --- Profile Photo (Avatar) Storage & Endpoints ---
 // Configure multer for small avatar uploads (PNG/JPEG/WebP; 2MB limit)
@@ -5919,19 +5864,8 @@ async function getJellyfinQualitiesWithCounts(serverConfig) {
     }
 }
 
-/**
- * Check if a source type is enabled in the current configuration
- * @param {string} sourceType - The source type to check (e.g., 'jellyfin', 'plex')
- * @returns {boolean} True if the source type is enabled
- */
-function isSourceTypeEnabled(sourceType) {
-    if (!config.mediaServers) {
-        return false;
-    }
-
-    const server = config.mediaServers.find(s => s.type === sourceType);
-    return server && server.enabled === true;
-}
+// isSourceTypeEnabled moved to lib/source-utils.js
+const isSourceTypeEnabled = sourceType => isSourceTypeEnabledUtil(config, sourceType);
 
 // Get available ratings for dropdown filters
 /**
