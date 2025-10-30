@@ -846,32 +846,21 @@ app.use((req, res, next) => {
     next();
 });
 
-// Lightweight route to serve the preview page (friendly URL)
-/**
- * @swagger
- * /preview:
- *   get:
- *     summary: Preview page
- *     description: Serves a lightweight preview HTML page for quick manual checks.
- *     tags: ['Frontend']
- *     responses:
- *       200:
- *         description: Preview HTML page
- *         content:
- *           text/html: {}
- */
-// Modern preview: direct iframe to actual display routes with ?preview=1
-// This ensures preview always matches production behavior exactly
-app.get('/preview', (req, res) => {
-    const mode = req.query.mode || 'screensaver';
-    let targetPath = '/screensaver';
-    if (mode === 'cinema') targetPath = '/cinema';
-    else if (mode === 'wallart') targetPath = '/wallart';
-
-    // Redirect to the actual display page with preview flag
-    // The display page will detect ?preview=1 and adjust behavior (no auto-exit, etc.)
-    res.redirect(`${targetPath}?preview=1`);
+// === FRONTEND PAGES ===
+// All HTML serving routes extracted to routes/frontend-pages.js
+const createFrontendPagesRouter = require('./routes/frontend-pages');
+const frontendPagesRouter = createFrontendPagesRouter({
+    isAdminSetup,
+    isAuthenticated,
+    getAssetVersions,
+    ASSET_VERSION,
+    logger,
+    publicDir: path.join(__dirname, 'public'),
 });
+app.use('/', frontendPagesRouter);
+
+// Lightweight route to serve the preview page (friendly URL)
+// EXTRACTED to routes/frontend-pages.js
 
 // Rate Limiting (Selective)
 // Rate limiters removed from general endpoints (/api/*, /get-media, /image) as they caused
@@ -880,125 +869,7 @@ app.get('/preview', (req, res) => {
 const { createRateLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 // Lightweight template injection for admin.html to stamp asset version
-/**
- * @swagger
- * /admin:
- *   get:
- *     summary: Serve admin panel HTML
- *     description: >
- *       Serves the admin panel HTML with asset version stamping for cache busting.
- *       Injects the ASSET_VERSION into the HTML template before serving.
- *     tags: ['Frontend']
- *     responses:
- *       200:
- *         description: Admin panel HTML
- *         content:
- *           text/html:
- *             schema:
- *               type: string
- * /admin.html:
- *   get:
- *     summary: Serve admin panel HTML (alternative route)
- *     description: Alternative route for admin panel HTML with asset version stamping
- *     tags: ['Frontend']
- *     responses:
- *       200:
- *         description: Admin panel HTML
- *         content:
- *           text/html:
- *             schema:
- *               type: string
- */
-app.get(['/admin', '/admin.html'], (req, res, next) => {
-    // Check for auto-register parameters from QR code
-    const autoRegister = req.query['auto-register'];
-    const deviceId = req.query['device-id'];
-    const deviceName = req.query['device-name'];
-
-    if (autoRegister === 'true' && deviceId) {
-        logger.info(
-            `[Auto-Register] QR code scan detected: device-id=${deviceId}, device-name=${deviceName}`
-        );
-
-        // Store auto-register parameters in session for after login
-        req.session.pendingAutoRegister = {
-            deviceId,
-            deviceName,
-            timestamp: Date.now(),
-        };
-
-        // If user is already authenticated, continue to serve admin panel with parameters
-        if (req.session.user) {
-            logger.info(
-                `[Auto-Register] User authenticated, serving admin panel with auto-register parameters`
-            );
-            // Continue to serve admin panel below, parameters will be available in URL for frontend
-        } else {
-            // If not authenticated, redirect to login (parameters are saved in session)
-            logger.info(`[Auto-Register] User not authenticated, redirecting to login`);
-            return res.redirect('/admin/login');
-        }
-    }
-
-    // Normal authentication check for non-auto-register requests
-    if (!autoRegister && !req.session.user) {
-        return res.redirect('/admin/login');
-    }
-
-    // Ensure the admin HTML itself gets a cache-busting query param to defeat proxy/SW caches
-    try {
-        const params = new URLSearchParams(req.query || {});
-        if (!params.has('v')) {
-            // Use timestamp as version for HTML files (not in getAssetVersions)
-            const v = Math.floor(Date.now() / 1000).toString(36);
-            params.set('v', v);
-            const qs = params.toString();
-            // Preserve the current route (/admin or /admin.html)
-            return res.redirect(`${req.path}?${qs}`);
-        }
-    } catch (_) {
-        // non-fatal; continue to serve admin normally
-    }
-
-    const filePath = path.join(__dirname, 'public', 'admin.html');
-    fs.readFile(filePath, 'utf8', (err, contents) => {
-        if (err) return next(err);
-
-        // Get current asset versions
-        const versions = getAssetVersions(__dirname);
-
-        // Replace asset version placeholders with individual file versions
-        const stamped = contents
-            .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
-            // Normalize any admin.js existing query string to just v=<version>
-            .replace(
-                /admin\.js\?v=[^"&\s]+/g,
-                `admin.js?v=${versions['admin.js'] || ASSET_VERSION}`
-            )
-            // Normalize any admin.css existing query string to just v=<version>
-            .replace(
-                /admin\.css\?v=[^"&\s]+/g,
-                `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
-            )
-            // Stamp cinema admin assets
-            .replace(
-                /cinema\/cinema-ui\.js\?v=[^"&\s]+/g,
-                `cinema/cinema-ui.js?v=${versions['cinema/cinema-ui.js'] || ASSET_VERSION}`
-            )
-            .replace(
-                /cinema\/cinema\.css\?v=[^"&\s]+/g,
-                `cinema/cinema.css?v=${versions['cinema/cinema.css'] || ASSET_VERSION}`
-            )
-            // Ensure service worker registration always fetches latest sw.js
-            .replace(/\/sw\.js(\?v=[^"'\s>]+)?/g, `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`);
-
-        // Always fetch latest HTML shell (and prevent intermediaries from caching)
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        res.send(stamped);
-    });
-});
+// EXTRACTED to routes/frontend-pages.js
 
 /**
  * @swagger
