@@ -858,7 +858,7 @@ module.exports = function createAdminLibrariesRouter({
     /**
      * @swagger
      * /api/admin/jellyfin-genres-all:
-     *   post:
+     *   get:
      *     summary: Get all genres from enabled Jellyfin servers
      *     description: |
      *       Retrieves all unique genres from all enabled Jellyfin servers. This serves as a lightweight
@@ -866,16 +866,6 @@ module.exports = function createAdminLibrariesRouter({
      *     tags: ['Admin']
      *     security:
      *       - bearerAuth: []
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         application/json:
-     *           schema:
-     *             type: object
-     *             properties:
-     *               apiKey:
-     *                 type: string
-     *                 description: Optional Jellyfin API key override
      *     responses:
      *       200:
      *         description: List of all unique genres
@@ -891,7 +881,7 @@ module.exports = function createAdminLibrariesRouter({
      *       500:
      *         description: Server error
      */
-    router.post(
+    router.get(
         '/api/admin/jellyfin-genres-all',
         isAuthenticated,
         asyncHandler(async (req, res) => {
@@ -908,7 +898,7 @@ module.exports = function createAdminLibrariesRouter({
                 const client = await createJellyfinClient({
                     hostname: jellyfinServerConfig.hostname.trim().replace(/^https?:\/\//, ''),
                     port: jellyfinServerConfig.port,
-                    apiKey: req.body.apiKey || process.env[jellyfinServerConfig.tokenEnvVar] || '',
+                    apiKey: process.env[jellyfinServerConfig.tokenEnvVar] || '',
                     timeout: 8000,
                     insecureHttps: process.env.JELLYFIN_INSECURE_HTTPS === 'true',
                     retryMaxRetries: 0,
