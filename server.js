@@ -1519,120 +1519,10 @@ app.post('/api/v1/admin/metrics/config', express.json(), (req, res) => {
     }
 });
 
-// Redirect /setup.html to /admin/setup for consistency (must be before static middleware)
+// Frontend legacy redirects and admin assets extracted to routes/frontend-pages.js
 
-// Redirect /setup.html to /admin/setup for consistency (must be before static middleware)
-/**
- * @swagger
- * /setup.html:
- *   get:
- *     summary: Redirect to admin setup
- *     description: Redirects legacy setup.html requests to the unified admin setup route
- *     tags: ['Frontend']
- *     responses:
- *       302:
- *         description: Redirect to /admin/setup
- */
-app.get('/setup.html', (req, res) => {
-    // Preserve any query string (e.g., ?complete=1) so the setup completion logic can run
-    const originalUrl = req.originalUrl || req.url || '/setup.html';
-    const queryIndex = originalUrl.indexOf('?');
-    const query = queryIndex !== -1 ? originalUrl.substring(queryIndex) : '';
-    res.redirect(`/admin/setup${query}`);
-});
-
-// Redirect /login.html to /admin/login for consistency (must be before static middleware)
-/**
- * @swagger
- * /login.html:
- *   get:
- *     summary: Redirect to admin login
- *     description: Redirects legacy login.html requests to the unified admin login route
- *     tags: ['Frontend']
- *     responses:
- *       302:
- *         description: Redirect to /admin/login
- */
-app.get('/login.html', (req, res) => {
-    res.redirect('/admin/login');
-});
-
-// Redirect /2fa-verify.html to /admin/login if not in 2FA flow (must be before static middleware)
-/**
- * @swagger
- * /2fa-verify.html:
- *   get:
- *     summary: Serve 2FA verification page or redirect
- *     description: >
- *       Serves the 2FA verification page if user is in an active 2FA flow,
- *       otherwise redirects to login page for security.
- *     tags: ['Frontend']
- *     responses:
- *       200:
- *         description: 2FA verification page HTML
- *         content:
- *           text/html:
- *             schema:
- *               type: string
- *       302:
- *         description: Redirect to /admin/login if not in 2FA flow
- */
-app.get('/2fa-verify.html', (req, res) => {
-    // Only allow access to 2FA page if user is in the middle of 2FA verification
-    if (req.session && req.session.tfa_required) {
-        res.sendFile(path.join(__dirname, 'public', '2fa-verify.html'));
-    } else {
-        res.redirect('/admin/login');
-    }
-});
-
-// Cache busting middleware for admin assets
-/**
- * @swagger
- * /admin.css:
- *   get:
- *     summary: Serve admin CSS with cache busting
- *     description: Serves the admin panel CSS file with no-cache headers to ensure latest version is always loaded
- *     tags: ['Frontend']
- *     responses:
- *       200:
- *         description: Admin CSS file
- *         content:
- *           text/css:
- *             schema:
- *               type: string
- */
-app.get('/admin.css', (req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.sendFile(path.join(__dirname, 'public', 'admin.css'));
-});
-
-/**
- * @swagger
- * /admin.js:
- *   get:
- *     summary: Serve admin JavaScript with cache busting
- *     description: Serves the admin panel JavaScript file with no-cache headers to ensure latest version is always loaded
- *     tags: ['Frontend']
- *     responses:
- *       200:
- *         description: Admin JavaScript file
- *         content:
- *           application/javascript:
- *             schema:
- *               type: string
- */
-app.get('/admin.js', (req, res) => {
-    // Aggressive cache-busting for admin.js to ensure users always get latest version
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('Last-Modified', new Date().toUTCString());
-    res.setHeader('ETag', `"${Date.now()}"`);
-    res.sendFile(path.join(__dirname, 'public', 'admin.js'));
-});
+// Redirect routes for legacy HTML paths (setup.html, login.html, 2fa-verify.html)
+// and cache-busted admin assets (admin.css, admin.js) extracted to routes/frontend-pages.js
 
 // Import optimized middleware
 const {
@@ -1651,11 +1541,7 @@ const {
     createValidationMiddleware: newValidationMiddleware,
 } = require('./middleware/validation');
 
-// Protect logs.html from public access - require authentication
-app.get('/logs.html', isAuthenticated, (req, res, _next) => {
-    // Redirect to admin/logs route instead
-    res.redirect('/admin/logs');
-});
+// logs.html redirect extracted to routes/frontend-pages.js
 
 // Disable ALL caching for admin files - they must ALWAYS be fresh
 app.use((req, res, next) => {
