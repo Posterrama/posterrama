@@ -297,4 +297,5 @@ module.exports = {
     asyncHandler: require('./asyncHandler'),
     createIsAuthenticated: require('./auth'),
     testSessionShim: require('./testSessionShim'),
+    ...require('./adminAuth'),
 };
