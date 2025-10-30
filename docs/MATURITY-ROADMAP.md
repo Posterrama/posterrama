@@ -417,7 +417,60 @@ Priority order based on impact:
 
 **Files modified**: `public/admin.css`, `public/admin.html`
 
-#### 6b. Device Presets Template [2h]
+#### 6b. Device Presets Template ✅ COMPLETED
+
+**Impact**: Out-of-box device preset experience  
+**Effort**: 2 hours → **Completed: October 27, 2025**
+
+**Problem**: New Posterrama installations lack device-presets.json, causing Admin UI preset dropdown to fail with API errors. Users must manually recreate all 6 presets from scratch.
+
+**Solution**: Auto-create device-presets.json from example template on first run (mirrors config.json pattern).
+
+**Implementation**:
+
+1. Created `config/device-presets.example.json` with 6 default presets:
+    - 4K Living Room TV (optimized for TV distance)
+    - 1440p Desktop Monitor (27-32" QHD)
+    - 1080p Desktop Monitor (24-27" Full HD)
+    - Ultrawide 21:9 Monitor (compact content, larger clock)
+    - Wallart Gallery Mode (enabled with transitions)
+    - Cinema Mode (cinema enabled, wallart disabled)
+
+2. Added auto-creation logic in `server.js` startup (after config.json initialization):
+
+    ```javascript
+    (function ensureDevicePresetsFile() {
+        const presetsPath = path.join(__dirname, 'device-presets.json');
+        const examplePresetsPath = path.join(__dirname, 'config', 'device-presets.example.json');
+
+        try {
+            fs.accessSync(presetsPath, fs.constants.R_OK);
+            logger.debug('device-presets.json exists and is readable.');
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                logger.info('device-presets.json not found. Creating from example...');
+                fs.copyFileSync(examplePresetsPath, presetsPath);
+                logger.info('device-presets.json created successfully from example.');
+            }
+        }
+    })();
+    ```
+
+3. Updated `.gitignore` to exclude user-specific device-presets.json
+
+4. Added device preset initialization to `install.sh` script
+
+**Results**:
+
+- ✅ New installations automatically get 6 working presets
+- ✅ Admin UI preset dropdown works immediately
+- ✅ Consistent with config.json auto-creation pattern
+- ✅ User modifications preserved (device-presets.json in .gitignore)
+- ✅ No breaking changes to existing installations
+
+**Files modified**: `config/device-presets.example.json` (new), `server.js`, `.gitignore`, `install.sh`
+
+#### 6c. MQTT Complete Testing [16h]
 
 ```javascript
 // server.js startup

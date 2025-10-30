@@ -577,6 +577,16 @@ install_posterrama() {
         fi
     fi
     
+    # Copy device presets file
+    if [[ ! -f "$POSTERRAMA_DIR/device-presets.json" ]]; then
+        print_status "Creating device presets configuration..."
+        if [[ -n "$SUDO" ]]; then
+            $SUDO -u $POSTERRAMA_USER cp config/device-presets.example.json device-presets.json
+        else
+            su - $POSTERRAMA_USER -c "cd $POSTERRAMA_DIR && cp config/device-presets.example.json device-presets.json"
+        fi
+    fi
+    
     # Set proper permissions
     $SUDO chown -R $POSTERRAMA_USER:$POSTERRAMA_USER $POSTERRAMA_DIR
     $SUDO chmod +x $POSTERRAMA_DIR/server.js

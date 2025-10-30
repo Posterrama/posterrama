@@ -314,6 +314,33 @@ const fsp = fs.promises;
     }
 })();
 
+// Auto-create device-presets.json from example if it doesn't exist
+(function ensureDevicePresetsFile() {
+    const presetsPath = path.join(__dirname, 'device-presets.json');
+    const examplePresetsPath = path.join(__dirname, 'config', 'device-presets.example.json');
+
+    try {
+        fs.accessSync(presetsPath, fs.constants.R_OK);
+        logger.debug('device-presets.json exists and is readable.');
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            logger.info('device-presets.json not found. Creating from example...');
+            try {
+                fs.copyFileSync(examplePresetsPath, presetsPath);
+                logger.info('device-presets.json created successfully from example.');
+            } catch (copyError) {
+                logger.warn(
+                    'Could not create device-presets.json from example:',
+                    copyError.message,
+                    '- Admin UI preset dropdown will be empty until presets are created manually.'
+                );
+            }
+        } else {
+            logger.warn('Error checking device-presets.json:', error.message);
+        }
+    }
+})();
+
 const config = require('./config.json');
 const swaggerUi = require('swagger-ui-express');
 // Defer internal/test routes mounting until after app is created and env inspected.
