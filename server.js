@@ -4,7 +4,6 @@ const path = require('path');
 const axios = require('axios');
 const AdmZip = require('adm-zip');
 const {
-    fatalExit,
     forceReloadEnv,
     initializeEnvironment,
     getAssetVersions,
@@ -929,7 +928,8 @@ app.get(['/admin', '/admin.html'], (req, res, next) => {
     try {
         const params = new URLSearchParams(req.query || {});
         if (!params.has('v')) {
-            const v = generateAssetVersion('admin.html');
+            // Use timestamp as version for HTML files (not in getAssetVersions)
+            const v = Math.floor(Date.now() / 1000).toString(36);
             params.set('v', v);
             const qs = params.toString();
             // Preserve the current route (/admin or /admin.html)
