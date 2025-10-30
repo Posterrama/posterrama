@@ -19218,8 +19218,19 @@
                 const res = await window.dedupJSON('/api/admin/plex-qualities-with-counts', {
                     credentials: 'include',
                 });
+                if (!res || !res.ok) {
+                    console.warn(
+                        '[loadPlexQualities] Response not OK:',
+                        res?.status,
+                        res?.statusText
+                    );
+                    chips.innerHTML = '<div class="subtle">Failed to load (check console)</div>';
+                    return;
+                }
                 const data = await res.json().catch(() => ({}));
+                console.log('[loadPlexQualities] Received data:', data);
                 const arr = Array.isArray(data?.qualities) ? data.qualities : [];
+                console.log('[loadPlexQualities] Qualities array:', arr);
                 const names = arr
                     .map(q => q.quality || q)
                     .filter(Boolean)
@@ -19232,6 +19243,11 @@
                         if (bi !== -1) return 1;
                         return a.localeCompare(b);
                     });
+                console.log('[loadPlexQualities] Final names:', names);
+                if (names.length === 0) {
+                    chips.innerHTML = '<div class="subtle">No qualities found</div>';
+                    return;
+                }
                 const selected = new Set(
                     String(currentCsv || '')
                         .split(',')
