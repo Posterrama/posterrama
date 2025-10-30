@@ -100,8 +100,6 @@ const FIXED_LIMITS = Object.freeze({
     TOTAL_CAP: 500, // Max total items in final playlist
 });
 
-const PlexSource = require('./sources/plex');
-const JellyfinSource = require('./sources/jellyfin');
 const TMDBSource = require('./sources/tmdb');
 const LocalDirectorySource = require('./sources/local');
 const { getPlaylistMedia } = require('./lib/media-aggregator');
