@@ -7178,6 +7178,10 @@ async function getPlexQualitiesWithCounts(serverConfig) {
         const allLibraries = await getPlexLibraries(serverConfig);
         const qualityCounts = new Map();
 
+        logger.info(
+            `[getPlexQualitiesWithCounts] Starting quality scan for ${allLibraries.size} libraries`
+        );
+
         for (const [libraryName, library] of allLibraries) {
             // Only get qualities from movie and show libraries
             if (library.type === 'movie' || library.type === 'show') {
@@ -7187,11 +7191,31 @@ async function getPlexQualitiesWithCounts(serverConfig) {
                         `/library/sections/${library.key}/all?limit=1000&includeGuids=1`
                     );
 
+                    const itemCount = content?.MediaContainer?.Metadata?.length || 0;
+                    logger.info(
+                        `[getPlexQualitiesWithCounts] Library "${libraryName}": ${itemCount} items`
+                    );
+
                     if (content?.MediaContainer?.Metadata) {
+                        let itemsWithMedia = 0;
+                        let itemsWithResolution = 0;
+                        let sampleLogged = false;
+
                         content.MediaContainer.Metadata.forEach(item => {
                             if (item.Media && Array.isArray(item.Media)) {
+                                itemsWithMedia++;
+
+                                // Log first item's Media structure for debugging
+                                if (!sampleLogged && item.Media.length > 0) {
+                                    sampleLogged = true;
+                                    logger.info(
+                                        `[getPlexQualitiesWithCounts] Sample Media from "${item.title}": ${JSON.stringify(item.Media[0])}`
+                                    );
+                                }
+
                                 item.Media.forEach(media => {
                                     if (media.videoResolution) {
+                                        itemsWithResolution++;
                                         let quality;
                                         const resolution = String(
                                             media.videoResolution
@@ -7229,6 +7253,10 @@ async function getPlexQualitiesWithCounts(serverConfig) {
                                 });
                             }
                         });
+
+                        logger.info(
+                            `[getPlexQualitiesWithCounts] Library "${libraryName}": ${itemsWithMedia} items with Media array, ${itemsWithResolution} with videoResolution`
+                        );
                     }
                 } catch (error) {
                     console.warn(
@@ -7237,6 +7265,10 @@ async function getPlexQualitiesWithCounts(serverConfig) {
                 }
             }
         }
+
+        logger.info(
+            `[getPlexQualitiesWithCounts] Found qualities: ${Array.from(qualityCounts.keys()).join(', ') || 'NONE'}`
+        );
 
         // Convert to array of objects and sort by quality preference (SD, 720p, 1080p, 4K, others)
         const qualityOrder = ['SD', '720p', '1080p', '4K'];

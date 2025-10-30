@@ -158,12 +158,27 @@ class PlexClientAdapter {
                             tagline: item.tagline,
                             // Media array (needed for quality detection)
                             Media:
-                                item.media?.map(m => ({
-                                    videoResolution: m.videoResolution,
-                                    videoCodec: m.videoCodec,
-                                    audioCodec: m.audioCodec,
-                                    audioChannels: m.audioChannels,
-                                })) || [],
+                                item.media?.map(m => {
+                                    // Derive videoResolution from height (like Plex does)
+                                    let videoResolution = null;
+                                    if (m.height) {
+                                        const h = Number(m.height);
+                                        if (h >= 2160) videoResolution = '4k';
+                                        else if (h >= 1080) videoResolution = '1080';
+                                        else if (h >= 720) videoResolution = '720';
+                                        else videoResolution = 'sd';
+                                    }
+
+                                    return {
+                                        videoResolution: videoResolution,
+                                        videoCodec: m.videoCodec,
+                                        audioCodec: m.audioCodec,
+                                        audioChannels: m.audioChannels,
+                                        width: m.width,
+                                        height: m.height,
+                                        bitrate: m.bitrate,
+                                    };
+                                }) || [],
                             // Genre mapping
                             Genre: item.genres?.map(g => ({ tag: g.tag })) || [],
                             // Director mapping
