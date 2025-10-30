@@ -264,7 +264,6 @@ const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const bcrypt = require('bcrypt');
 const { exec } = require('child_process');
-const PlexAPI = require('plex-api');
 const fetch = require('node-fetch');
 const multer = require('multer');
 const crypto = require('crypto');
@@ -5910,30 +5909,6 @@ if (isDebug) {
 // (relocated earlier) Session middleware is now registered before any API routes
 
 /**
- * Returns the standard options for a PlexAPI client instance to ensure consistent identification.
- * These options include application identifier, name, version and platform details for Plex server
- * identification and analytics.
- * @returns {object} An object containing the Plex client options with identifier and app metadata.
- */
-function getPlexClientOptions() {
-    // Default options ensure the app identifies itself correctly.
-    // These can be overridden by setting a "plexClientOptions" object in config.json.
-    const defaultOptions = {
-        identifier: 'c8a5f7d1-b8e9-4f0a-9c6d-3e1f2a5b6c7d', // Static UUID for this app instance
-        product: 'posterrama.app',
-        version: pkg.version,
-        deviceName: 'posterrama.app',
-        platform: 'Node.js',
-    };
-
-    const finalOptions = { ...defaultOptions, ...(config.plexClientOptions || {}) };
-
-    return {
-        // These options must be nested inside an 'options' object per plex-api documentation.
-        options: finalOptions,
-    };
-}
-/**
  * Fetches detailed metadata for a single Plex item and transforms it into the application's format.
  * Handles movies, TV shows, and their child items (seasons, episodes). For TV content,
  * fetches the parent show's metadata to ensure consistent background art.
@@ -6791,15 +6766,9 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
 
 // --- Client Management ---
 
-// Feature flag for Plex client migration
-const USE_MODERN_PLEX_CLIENT = process.env.USE_MODERN_PLEX_CLIENT === 'true';
-
 /**
- * Creates a new PlexAPI client instance with the given options.
- * Supports both legacy (plex-api) and modern (@ctrl/plex) clients via feature flag.
- *
- * Set USE_MODERN_PLEX_CLIENT=true to use @ctrl/plex (0 vulnerabilities).
- * Defaults to legacy plex-api for backward compatibility.
+ * Creates a new Plex client instance using @ctrl/plex.
+ * This modern client has zero known vulnerabilities and full TypeScript support.
  *
  * @param {object} options - The connection options.
  * @param {string} options.hostname - The Plex server hostname or IP. Will be sanitized to remove http/https prefixes.
@@ -6821,52 +6790,10 @@ async function createPlexClient({ hostname, port, token, timeout }) {
         throw new ApiError(500, 'Plex client creation failed: missing hostname, port, or token.');
     }
 
-    // Try modern client if feature flag is enabled
-    if (USE_MODERN_PLEX_CLIENT) {
-        logger.info('🚀 Using modern @ctrl/plex client (0 vulnerabilities)');
-        try {
-            const { createCompatiblePlexClient } = require('./utils/plex-client-ctrl');
-            // Await the modern client creation
-            return await createCompatiblePlexClient({ hostname, port, token, timeout });
-        } catch (error) {
-            logger.warn(
-                `Modern Plex client (@ctrl/plex) failed to load: ${error.message}. ` +
-                    `Falling back to legacy plex-api client.`
-            );
-            // Fall through to legacy client
-        }
-    }
-
-    // Legacy plex-api client
-    logger.info('⚠️  Using legacy plex-api client (10 vulnerabilities)');
-    // Sanitize hostname to prevent crashes if the user includes the protocol.
-    let sanitizedHostname = hostname.trim();
-    try {
-        // The URL constructor needs a protocol to work.
-        const fullUrl = sanitizedHostname.includes('://')
-            ? sanitizedHostname
-            : `http://${sanitizedHostname}`;
-        const url = new URL(fullUrl);
-        sanitizedHostname = url.hostname; // This extracts just the hostname/IP
-        if (isDebug) logger.debug(`[Plex Client] Sanitized hostname to: "${sanitizedHostname}"`);
-    } catch (e) {
-        // Fallback for invalid URL formats that might still be valid hostnames (though unlikely)
-        sanitizedHostname = sanitizedHostname.replace(/^https?:\/\//, '');
-        if (isDebug)
-            logger.debug(
-                `[Plex Client] Could not parse hostname as URL, falling back to simple sanitization: "${sanitizedHostname}"`
-            );
-    }
-
-    const clientOptions = {
-        hostname: sanitizedHostname,
-        port,
-        token,
-        ...getPlexClientOptions(),
-    };
-
-    if (timeout) clientOptions.timeout = timeout;
-    return new PlexAPI(clientOptions);
+    // Modern @ctrl/plex client (zero vulnerabilities)
+    logger.info('🚀 Using @ctrl/plex client');
+    const { createCompatiblePlexClient } = require('./utils/plex-client-ctrl');
+    return await createCompatiblePlexClient({ hostname, port, token, timeout });
 }
 
 /**
@@ -19249,13 +19176,6 @@ if (require.main === module) {
             logger.info(`posterrama.app is listening on http://localhost:${port}`);
             if (isDebug)
                 logger.debug(`Debug endpoint is available at http://localhost:${port}/admin/debug`);
-
-            // Log Plex client selection
-            if (USE_MODERN_PLEX_CLIENT) {
-                logger.info('Using modern @ctrl/plex client (0 vulnerabilities) 🎉');
-            } else {
-                logger.info('Using legacy plex-api client');
-            }
 
             logger.info('Server startup complete - media cache is ready');
 

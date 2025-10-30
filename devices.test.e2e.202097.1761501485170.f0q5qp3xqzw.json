@@ -1,0 +1,83 @@
+[
+  {
+    "id": "69853932-ff2c-41a9-a788-ab69bde83ac7",
+    "installId": "test-iid-yzbsxj6q9dt",
+    "hardwareId": "hw-test-123",
+    "secretHash": "sha256:86f8005dba5ce12143796a1151960a583602e1b29e2886fb00e76284561febea",
+    "name": "ip6-localhost",
+    "location": "",
+    "tags": [],
+    "groups": [],
+    "createdAt": "2025-10-26T17:58:05.725Z",
+    "updatedAt": "2025-10-26T17:58:05.786Z",
+    "lastSeenAt": "2025-10-26T17:58:05.786Z",
+    "status": "online",
+    "clientInfo": {
+      "userAgent": "jest",
+      "screen": {
+        "w": 1920,
+        "h": 1080,
+        "dpr": 1
+      },
+      "mode": "screensaver"
+    },
+    "settingsOverride": {},
+    "preset": "",
+    "currentState": {},
+    "pairing": {}
+  },
+  {
+    "id": "3b52650e-7623-4fe4-8115-d5300f7e1052",
+    "installId": "test-iid-to0zo33rm2",
+    "hardwareId": "hw-test-abc",
+    "secretHash": "sha256:ec37efc2aace38b075ed8e0c8357e5e343f52dc587f670afbc9426568d68ce89",
+    "name": "ip6-localhost",
+    "location": "",
+    "tags": [],
+    "groups": [],
+    "createdAt": "2025-10-26T17:58:05.912Z",
+    "updatedAt": "2025-10-26T17:58:06.033Z",
+    "lastSeenAt": "2025-10-26T17:58:06.033Z",
+    "status": "online",
+    "clientInfo": {
+      "userAgent": "jest",
+      "screen": {
+        "w": 1024,
+        "h": 768,
+        "dpr": 1
+      },
+      "mode": "screensaver"
+    },
+    "settingsOverride": {},
+    "preset": "",
+    "currentState": {},
+    "pairing": {}
+  },
+  {
+    "id": "ebc29d05-64e3-44b0-9b05-acab7a450092",
+    "installId": "test-iid-ifqeqalqjnb",
+    "hardwareId": "hw-test-queue",
+    "secretHash": "sha256:59856c2517bc408676dd9ffab6becd6b6a58caaf6945bb03ddb9f58323ce8a5a",
+    "name": "ip6-localhost",
+    "location": "",
+    "tags": [],
+    "groups": [],
+    "createdAt": "2025-10-26T17:58:06.145Z",
+    "updatedAt": "2025-10-26T17:58:06.269Z",
+    "lastSeenAt": "2025-10-26T17:58:06.269Z",
+    "status": "online",
+    "clientInfo": {
+      "userAgent": "jest",
+      "screen": {
+        "w": 800,
+        "h": 600,
+        "dpr": 1
+      },
+      "mode": "screensaver"
+    },
+    "settingsOverride": {},
+    "preset": "",
+    "currentState": {},
+    "pairing": {}
+  }
+]
