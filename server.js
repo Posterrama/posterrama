@@ -1143,7 +1143,7 @@ app.get('/preview', (req, res) => {
 // Rate limiters removed from general endpoints (/api/*, /get-media, /image) as they caused
 // 429 errors during normal usage. Posterrama is a private application with trusted clients.
 // Retained only for critical device management endpoints to prevent abuse.
-const { createRateLimiter } = require('./middleware/rateLimiter');
+const { createRateLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 // Lightweight template injection for admin.html to stamp asset version
 /**
@@ -12454,6 +12454,7 @@ app.get('/admin/logout', (req, res, next) => {
  */
 app.post(
     '/api/admin/2fa/generate',
+    authLimiter,
     isAuthenticated,
     asyncHandler(async (req, res) => {
         const secret = process.env.ADMIN_2FA_SECRET || '';
@@ -12508,6 +12509,7 @@ app.post(
  */
 app.post(
     '/api/admin/2fa/verify',
+    authLimiter,
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
@@ -12581,6 +12583,7 @@ app.post(
  */
 app.post(
     '/api/admin/2fa/disable',
+    authLimiter,
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
@@ -16275,6 +16278,7 @@ app.get(
  */
 app.post(
     '/api/admin/change-password',
+    authLimiter,
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
