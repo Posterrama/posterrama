@@ -17,6 +17,12 @@ const {
     writeConfig,
     isAdminSetup,
 } = require('./lib/config-helpers');
+const {
+    sseDbg,
+    getLocalIPAddress,
+    getAvatarPath,
+    isDeviceMgmtEnabled,
+} = require('./lib/utils-helpers');
 
 // Force reload environment on startup to prevent PM2 cache issues
 forceReloadEnv();
@@ -102,38 +108,9 @@ const { deviceBypassMiddleware } = require('./middleware/deviceBypass');
 const JobQueue = require('./utils/job-queue');
 const { createUploadMiddleware } = require('./middleware/fileUpload');
 
-// Dev debug helper for SSE/device events (enable with DEBUG_DEVICE_SSE=true)
-function sseDbg() {
-    try {
-        if (process.env.DEBUG_DEVICE_SSE !== 'true') return;
-        logger.debug.apply(logger, ['[SSE]', ...arguments]);
-    } catch (_) {
-        /* ignore */
-    }
-}
-
 // Use process.env with a fallback to config.json
 const port = process.env.SERVER_PORT || config.serverPort || 4000;
 const isDebug = process.env.DEBUG === 'true';
-
-// Helper function to get local IP address
-function getLocalIPAddress() {
-    const os = require('os');
-    const interfaces = os.networkInterfaces();
-
-    // Look for the first non-internal IPv4 address
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            // Skip over internal (i.e., 127.0.0.1) and IPv6 addresses
-            if (iface.family === 'IPv4' && !iface.internal) {
-                return iface.address;
-            }
-        }
-    }
-
-    // Fallback to localhost if no external IP found
-    return 'localhost';
-}
 
 // Cache the server IP address
 const serverIPAddress = getLocalIPAddress();
@@ -3353,16 +3330,6 @@ const avatarUpload = multer({
     },
 });
 
-function getAvatarPath(username) {
-    const base = (username || 'admin').replace(/[^a-z0-9_-]+/gi, '_');
-    const exts = ['.png', '.webp', '.jpg', '.jpeg'];
-    for (const ext of exts) {
-        const p = path.join(avatarDir, base + ext);
-        if (fs.existsSync(p)) return p;
-    }
-    return null;
-}
-
 /**
  * @swagger
  * /api/admin/profile/photo:
@@ -3377,7 +3344,7 @@ function getAvatarPath(username) {
  */
 app.get('/api/admin/profile/photo', adminAuth, (req, res) => {
     const username = req.session?.user?.username || 'admin';
-    const p = getAvatarPath(username);
+    const p = getAvatarPath(username, avatarDir);
     if (!p) return res.status(204).end();
     res.sendFile(p);
 });
@@ -3427,7 +3394,7 @@ app.post('/api/admin/profile/photo', adminAuth, (req, res, _next) => {
 app.delete('/api/admin/profile/photo', adminAuth, async (req, res) => {
     try {
         const username = req.session?.user?.username || 'admin';
-        const p = getAvatarPath(username);
+        const p = getAvatarPath(username, avatarDir);
         if (p) await fsp.unlink(p).catch(() => {});
         res.json({ success: true });
     } catch (e) {
@@ -3435,17 +3402,8 @@ app.delete('/api/admin/profile/photo', adminAuth, async (req, res) => {
     }
 });
 // --- Feature flag: device management ---
-function isDeviceMgmtEnabled() {
-    try {
-        const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
-        if (cfg && cfg.deviceMgmt && cfg.deviceMgmt.enabled) return true;
-    } catch (_) {
-        // ignore missing or invalid config.json
-    }
-    return process.env.DEVICE_MGMT_ENABLED === '1' || process.env.DEVICE_MGMT_ENABLED === 'true';
-}
 
-if (isDeviceMgmtEnabled()) {
+if (isDeviceMgmtEnabled(__dirname)) {
     // Device endpoint rate limiters (per IP)
     // - Register: up to 10 per minute (burst)
     // - Heartbeat: up to 120 per minute to allow multiple devices behind one IP
