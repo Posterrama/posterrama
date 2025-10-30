@@ -128,10 +128,5 @@
         console.log(
             '[DEBUG] Debug mode ENABLED. Use disableDebug() to turn off, debugLogView() to see all logs.'
         );
-    } else {
-        // Show how to enable debug mode when it's disabled
-        console.log(
-            '[Posterrama] To enable debug logs, add ?debug=true to the URL or run window.enableDebug()'
-        );
     }
 })();
