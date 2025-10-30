@@ -65,10 +65,10 @@ npm audit
 
 **Progress Update - October 27, 2025**:
 
-✅ **Phase 1 Started**: Successfully extracted 830 lines from server.js with zero breaking changes
+✅ **Phase 1 In Progress**: Successfully extracted 1,983 lines from server.js with zero breaking changes
 
-- `server.js`: 19,864 → 19,034 lines (4.2% reduction)
-- All 1974 tests passing (100%)
+- `server.js`: 19,864 → 17,886 lines (10.0% reduction)
+- All 2,002 tests passing (100%)
 - Coverage maintained at 92.32%
 
 **Completed Extractions**:
@@ -78,6 +78,15 @@ npm audit
 3. ✅ `lib/config-helpers.js` (364 lines) - Config/env file read/write operations
 4. ✅ `lib/utils-helpers.js` (89 lines) - Small utility functions (IP lookup, avatar paths, etc.)
 5. ✅ `lib/auth-helpers.js` (143 lines) - Authentication middleware
+6. ✅ `lib/preset-helpers.js` (45 lines) - Device preset read/write operations
+7. ✅ `lib/plex-helpers.js` (387 lines) - Plex client management, libraries, genres, qualities
+8. ✅ `lib/jellyfin-helpers.js` (851 lines) - Jellyfin client, libraries, comprehensive item processing
+
+**Test Coverage**:
+
+- ✅ `__tests__/lib/preset-helpers.test.js` (189 lines, 16 tests) - Preset operations
+- ✅ `__tests__/lib/utils-helpers.test.js` (273 lines, 28 tests) - Utility functions
+- Total new tests: 44 tests (all passing)
 
 **Commit History**:
 
@@ -87,26 +96,32 @@ npm audit
 - `df7ba1e` - Extract config helpers to lib/config-helpers.js
 - `79289e1` - Extract utility helpers to lib/utils-helpers.js
 - `cf78d96` - Extract authentication middleware to lib/auth-helpers.js
+- `8b07613` - Update MATURITY-ROADMAP with Phase 1 refactoring progress
+- `8870871` - Extract preset helpers to lib/preset-helpers.js
+- `9b13645` - Add comprehensive tests for lib/preset-helpers and lib/utils-helpers
+- `dd98782` - Extract Plex helpers to lib/plex-helpers.js
+- `edd2951` - Extract Jellyfin helpers to lib/jellyfin-helpers.js
+- `769201b` - Fix unused hashJellyfinConfig import and simplify cache clearing
 
 **Current state**:
 
-- `server.js`: 19,034 lines (routes, middleware, media aggregation)
+- `server.js`: 17,886 lines (routes, middleware, media aggregation)
 - `public/admin.js`: 24,196 lines (UI, API, modals, forms)
 
-**Phase 1: Split server.js** (40h → 8h spent, ~50% remaining)
+**Phase 1: Split server.js** (40h → 12h spent, ~70% remaining)
 
 **Target structure**:
 
 ```
-server.js (19034 lines → target: ~500 lines entry point)
+server.js (17886 lines → target: ~500 lines entry point)
 ├── lib/
 │   ├── init.js (268 lines) ✅ - Startup, env setup, asset versioning
 │   ├── config-helpers.js (364 lines) ✅ - Config/env file operations
 │   ├── utils-helpers.js (89 lines) ✅ - Utility functions
 │   ├── auth-helpers.js (143 lines) ✅ - Authentication middleware
-│   ├── preset-helpers.js (TODO) - Device preset operations
-│   ├── plex-helpers.js (TODO ~500 lines) - Plex client & operations
-│   ├── jellyfin-helpers.js (TODO ~400 lines) - Jellyfin client & operations
+│   ├── preset-helpers.js (45 lines) ✅ - Device preset operations
+│   ├── plex-helpers.js (387 lines) ✅ - Plex client & operations
+│   ├── jellyfin-helpers.js (851 lines) ✅ - Jellyfin client & operations
 │   └── media-aggregator.js (TODO ~600 lines) - Media playlist aggregation
 ├── routes/
 │   ├── health.js (93 lines) ✅ - Health check endpoints
@@ -122,8 +137,8 @@ server.js (19034 lines → target: ~500 lines entry point)
 
 **Next steps**:
 
-1. Extract preset helpers (readPresets/writePresets)
-2. Extract Plex/Jellyfin client creation and library functions
+1. ~~Extract preset helpers (readPresets/writePresets)~~ ✅ DONE
+2. ~~Extract Plex/Jellyfin client creation and library functions~~ ✅ DONE
 3. Extract media aggregation logic (getPlaylistMedia)
 4. Begin route extraction (devices, admin, media, groups, auth, config, static)
 
