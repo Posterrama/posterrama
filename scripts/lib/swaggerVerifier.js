@@ -155,6 +155,7 @@ function verifySwagger() {
         'groups.js': '/api/groups',
         'config-public.js': '/get-config',
         'auth.js': '/admin',
+        'devices.js': '/api/devices',
     };
 
     for (const { path: filePath, content } of routeFiles) {
