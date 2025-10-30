@@ -3,278 +3,20 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const AdmZip = require('adm-zip');
-
-// Test-safe wrapper for fatal exits: suppress actual process termination during Jest
-// so a single initialization failure doesn't abort the whole suite. In test mode we
-// just log the intent; in other modes we perform a real exit.
-function fatalExit(code) {
-    if (process.env.NODE_ENV === 'test') {
-        try {
-            logger.error(`[TestMode] Suppressed process.exit(${code})`);
-        } catch (_) {
-            /* noop */
-        }
-        return; // Do not throw; allow tests to continue to inspect state.
-    }
-    // In non-test environments, exit the process to surface fatal init errors
-    process.exit(code);
-}
-
-// Mitigate PM2 env caching issues by re-reading .env on boot (best-effort)
-function forceReloadEnv() {
-    try {
-        require('dotenv').config({ override: false });
-    } catch (error) {
-        try {
-            logger.debug('[Startup] forceReloadEnv skipped:', error.message);
-        } catch (_) {
-            /* noop */
-        }
-    }
-}
+const {
+    fatalExit,
+    forceReloadEnv,
+    initializeEnvironment,
+    getAssetVersions,
+    refreshAssetVersionsSync,
+} = require('./lib/init');
 
 // Force reload environment on startup to prevent PM2 cache issues
 forceReloadEnv();
 
-// --- Auto Cache Busting (Async) ---
-const cachedVersions = {};
-let lastVersionCheck = 0;
-const VERSION_CACHE_TTL = 1000; // Cache versions for 1 second to minimize stale assets during active development
+// Initialize environment (directories, .env, config.json)
+const { imageCacheDir, avatarDir } = initializeEnvironment(__dirname);
 
-async function generateAssetVersion(filePath) {
-    try {
-        const fullPath = path.join(__dirname, 'public', filePath);
-        const stats = await fs.promises.stat(fullPath);
-        // Use modification time as version
-        return Math.floor(stats.mtime.getTime() / 1000).toString(36);
-    } catch (error) {
-        // Fallback to current timestamp if file doesn't exist
-        return Math.floor(Date.now() / 1000).toString(36);
-    }
-}
-
-async function refreshAssetVersions() {
-    const criticalAssets = [
-        'core.js',
-        'admin.js',
-        'style.css',
-        'admin.css',
-        // Cinema/Admin & Preview assets
-        'cinema/cinema-ui.js',
-        'cinema/cinema.css',
-        // Cinema display assets (used on /cinema)
-        'cinema/cinema-display.js',
-        'cinema/cinema-display.css',
-        'cinema/cinema-bootstrap.js',
-        'preview-cinema.js',
-        'preview-cinema.css',
-        'logs.js',
-        'logs.css',
-        'sw.js',
-        'client-logger.js',
-        'manifest.json',
-        'device-mgmt.js',
-        'lazy-loading.js',
-        'notify.js',
-        // Screensaver assets
-        'screensaver/screensaver.js',
-        'screensaver/screensaver.css',
-        // Wallart assets
-        'wallart/wallart-display.js',
-        'wallart/wallart.css',
-        // 'theme-demo.css' has been renamed to admin.css for Admin v2 rollout
-    ];
-
-    // Generate versions in parallel for all assets
-    const versionPromises = criticalAssets.map(async asset => {
-        const version = await generateAssetVersion(asset);
-        return { asset, version };
-    });
-
-    const results = await Promise.all(versionPromises);
-    results.forEach(({ asset, version }) => {
-        cachedVersions[asset] = version;
-    });
-
-    lastVersionCheck = Date.now();
-    logger.debug('Asset versions refreshed:', cachedVersions);
-}
-
-function getAssetVersions() {
-    const now = Date.now();
-    if (now - lastVersionCheck > VERSION_CACHE_TTL) {
-        // Trigger async refresh but return cached versions immediately
-        // This prevents blocking the request while maintaining cache freshness
-        refreshAssetVersions().catch(err => {
-            logger.warn('[Asset Versioning] Failed to refresh versions:', err.message);
-        });
-        lastVersionCheck = now; // Update check time to prevent rapid retries
-    }
-
-    return cachedVersions;
-}
-
-// --- Auto-create .env if missing ---
-const envPath = path.join(__dirname, '.env');
-const exampleEnvPath = path.join(__dirname, 'config.example.env');
-if (!fs.existsSync(envPath)) {
-    if (fs.existsSync(exampleEnvPath)) {
-        fs.copyFileSync(exampleEnvPath, envPath);
-        logger.info('[Config] .env aangemaakt op basis van config.example.env');
-    } else {
-        console.error('[Config] config.example.env ontbreekt, kan geen .env aanmaken!');
-        fatalExit(1);
-    }
-}
-
-// --- Auto-create config.json if missing ---
-const configPath = path.join(__dirname, 'config.json');
-const exampleConfigPath = path.join(__dirname, 'config.example.json');
-if (!fs.existsSync(configPath)) {
-    if (fs.existsSync(exampleConfigPath)) {
-        fs.copyFileSync(exampleConfigPath, configPath);
-        logger.info('[Config] config.json aangemaakt op basis van config.example.json');
-    } else {
-        console.error('[Config] config.example.json ontbreekt, kan geen config.json aanmaken!');
-        fatalExit(1);
-    }
-}
-
-// Define paths early
-const imageCacheDir = path.join(__dirname, 'image_cache');
-const avatarDir = path.join(__dirname, 'sessions', 'avatars');
-
-// --- Environment Initialization ---
-// Automatically create and configure the .env file on first run.
-(function initializeEnvironment() {
-    const envPath = path.join(__dirname, '.env');
-    const exampleEnvPath = path.join(__dirname, 'config.example.env');
-    const sessionsPath = path.join(__dirname, 'sessions');
-    const cacheDir = path.join(__dirname, 'cache');
-    const logsDir = path.join(__dirname, 'logs');
-
-    try {
-        // Ensure all required directories exist before the application starts.
-        // Using sync methods here prevents race conditions with middleware initialization.
-        logger.info('Creating required directories...');
-
-        fs.mkdirSync(sessionsPath, { recursive: true });
-        fs.mkdirSync(imageCacheDir, { recursive: true });
-        fs.mkdirSync(cacheDir, { recursive: true });
-        fs.mkdirSync(logsDir, { recursive: true });
-        fs.mkdirSync(avatarDir, { recursive: true });
-
-        logger.info(
-            '✓ All required directories created/verified: sessions, image_cache, cache, logs'
-        );
-    } catch (error) {
-        console.error('FATAL ERROR: Could not create required directories.', error);
-        fatalExit(1);
-    }
-
-    try {
-        // Check if .env file exists
-        fs.accessSync(envPath);
-    } catch (error) {
-        // If .env doesn't exist, copy from config.example.env
-        if (error.code === 'ENOENT') {
-            logger.debug('.env file not found, creating from config.example.env...');
-            fs.copyFileSync(exampleEnvPath, envPath);
-            logger.debug('.env file created successfully.');
-            // Reload dotenv to pick up the new file
-            require('dotenv').config({ override: true });
-        } else {
-            console.error('Error checking .env file:', error);
-            fatalExit(1);
-        }
-    }
-
-    // Validate SESSION_SECRET
-    if (!process.env.SESSION_SECRET) {
-        logger.info('SESSION_SECRET is missing, generating a new one...');
-        const newSecret = require('crypto').randomBytes(32).toString('hex');
-        // Read the .env file
-        const envContent = fs.readFileSync(envPath, 'utf8');
-        // Append the new secret to the .env file
-        const newEnvContent = envContent + `\nSESSION_SECRET="${newSecret}"\n`;
-        // Write the updated content back to the .env file
-        fs.writeFileSync(envPath, newEnvContent, 'utf8');
-        logger.info('New SESSION_SECRET generated and saved to .env.');
-
-        // If running under PM2, trigger a restart. The current process will likely crash
-        // due to the missing session secret, and PM2 will restart it. The new process
-        // will then load the secret correctly from the .env file.
-        if (process.env.PM2_HOME) {
-            logger.debug(
-                'Running under PM2. Triggering a restart to apply the new SESSION_SECRET...'
-            );
-            const { exec } = require('child_process');
-            const ecosystemConfig = require('./ecosystem.config.js');
-            const appName = ecosystemConfig.apps[0].name || 'posterrama';
-
-            exec(`pm2 restart ${appName}`, error => {
-                if (error)
-                    console.error(`[Initial Setup] PM2 restart command failed: ${error.message}`);
-            });
-        } else {
-            console.warn(
-                'SESSION_SECRET was generated, but the app does not appear to be running under PM2. A manual restart is recommended.'
-            );
-            // If not under PM2, we can update the current process's env and continue.
-            process.env.SESSION_SECRET = newSecret;
-        }
-    }
-
-    // Validate and clean .env file (remove corrupt/malformed lines)
-    try {
-        const envContent = fs.readFileSync(envPath, 'utf8');
-        const lines = envContent.split('\n');
-        let hasInvalidLines = false;
-        const cleanedLines = lines.filter(line => {
-            const trimmed = line.trim();
-            // Keep empty lines and comments
-            if (trimmed === '' || trimmed.startsWith('#')) {
-                return true;
-            }
-            // Check if line has '=' sign (valid env var format)
-            if (!line.includes('=')) {
-                hasInvalidLines = true;
-                logger.warn(
-                    `[Startup] Removing invalid .env line (no '=' found): ${line.substring(0, 50)}...`,
-                    {
-                        action: 'startup_env_cleanup',
-                        invalidLine: line.substring(0, 100),
-                    }
-                );
-                return false;
-            }
-            // Keep valid lines
-            return true;
-        });
-
-        // If we found invalid lines, rewrite the .env file
-        if (hasInvalidLines) {
-            const cleanedContent = cleanedLines.join('\n');
-            fs.writeFileSync(envPath, cleanedContent, 'utf8');
-            logger.info('[Startup] .env file cleaned - removed invalid lines', {
-                action: 'startup_env_cleaned',
-                originalLines: lines.length,
-                cleanedLines: cleanedLines.length,
-                removedLines: lines.length - cleanedLines.length,
-            });
-            // Reload dotenv to pick up the cleaned file
-            require('dotenv').config({ override: true });
-        } else {
-            logger.debug('[Startup] .env file validation passed - no invalid lines found');
-        }
-    } catch (error) {
-        logger.error('[Startup] Failed to validate/clean .env file', {
-            error: error.message,
-            stack: error.stack,
-        });
-        // Non-fatal - continue startup
-    }
-})();
 const express = require('express');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
@@ -285,61 +27,6 @@ const multer = require('multer');
 const crypto = require('crypto');
 const { PassThrough } = require('stream');
 const fsp = fs.promises;
-
-// Check if config.json exists, if not copy from config.example.json
-(function ensureConfigExists() {
-    // Use absolute paths so tests changing CWD don't break initialization.
-    const configPath = path.join(__dirname, 'config.json');
-    const exampleConfigPath = path.join(__dirname, 'config.example.json');
-
-    try {
-        fs.accessSync(configPath);
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            logger.debug('config.json not found, creating from config.example.json...');
-            try {
-                fs.copyFileSync(exampleConfigPath, configPath);
-                logger.debug('config.json created successfully from example.');
-            } catch (copyError) {
-                console.error(
-                    'FATAL ERROR: Could not create config.json from config.example.json:',
-                    copyError
-                );
-                fatalExit(1);
-            }
-        } else {
-            console.error('Error checking config.json:', error);
-            fatalExit(1);
-        }
-    }
-})();
-
-// Auto-create device-presets.json from example if it doesn't exist
-(function ensureDevicePresetsFile() {
-    const presetsPath = path.join(__dirname, 'device-presets.json');
-    const examplePresetsPath = path.join(__dirname, 'config', 'device-presets.example.json');
-
-    try {
-        fs.accessSync(presetsPath, fs.constants.R_OK);
-        logger.debug('device-presets.json exists and is readable.');
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            logger.info('device-presets.json not found. Creating from example...');
-            try {
-                fs.copyFileSync(examplePresetsPath, presetsPath);
-                logger.info('device-presets.json created successfully from example.');
-            } catch (copyError) {
-                logger.warn(
-                    'Could not create device-presets.json from example:',
-                    copyError.message,
-                    '- Admin UI preset dropdown will be empty until presets are created manually.'
-                );
-            }
-        } else {
-            logger.warn('Error checking device-presets.json:', error.message);
-        }
-    }
-})();
 
 const config = require('./config.json');
 const swaggerUi = require('swagger-ui-express');
@@ -1257,7 +944,7 @@ app.get(['/admin', '/admin.html'], (req, res, next) => {
         if (err) return next(err);
 
         // Get current asset versions
-        const versions = getAssetVersions();
+        const versions = getAssetVersions(__dirname);
 
         // Replace asset version placeholders with individual file versions
         const stamped = contents
@@ -1414,7 +1101,7 @@ app.get(['/', '/index.html'], (req, res, next) => {
         if (err) return next(err);
 
         // Get current asset versions
-        const versions = getAssetVersions();
+        const versions = getAssetVersions(__dirname);
 
         // Replace asset version placeholders with individual file versions
         const stamped = contents
@@ -1511,7 +1198,7 @@ app.get(['/cinema', '/cinema.html'], (req, res, next) => {
         if (err) return next(err);
 
         // Get current asset versions
-        const versions = getAssetVersions();
+        const versions = getAssetVersions(__dirname);
 
         // Replace asset version placeholders with individual file versions
         let stamped = contents
@@ -1657,7 +1344,7 @@ app.get(['/wallart', '/wallart.html'], (req, res, next) => {
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) return next(err);
 
-        const versions = getAssetVersions();
+        const versions = getAssetVersions(__dirname);
         const stamped = contents
             .replace(
                 /style\.css\?v=[^"&\s]+/g,
@@ -1765,7 +1452,7 @@ app.get(['/screensaver', '/screensaver.html'], (req, res, next) => {
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) return next(err);
 
-        const versions = getAssetVersions();
+        const versions = getAssetVersions(__dirname);
         const stamped = contents
             .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION)
             .replace(
@@ -9454,7 +9141,7 @@ app.get('/admin/logs', isAuthenticated, (req, res) => {
         }
 
         // Get current asset versions
-        const versions = getAssetVersions();
+        const versions = getAssetVersions(__dirname);
 
         // Replace asset version placeholders with individual file versions
         let stamped = contents.replace(
@@ -11865,7 +11552,7 @@ app.get('/admin/setup', (req, res) => {
         }
 
         // Get current asset versions
-        const versions = getAssetVersions();
+        const versions = getAssetVersions(__dirname);
 
         // Replace asset version placeholders with individual file versions
         const stamped = contents.replace(
@@ -12037,7 +11724,7 @@ app.get('/admin/login', (req, res) => {
         }
 
         // Get current asset versions
-        const versions = getAssetVersions();
+        const versions = getAssetVersions(__dirname);
 
         // Replace asset version placeholders with individual file versions
         const stamped = contents.replace(
@@ -12233,7 +11920,7 @@ app.get('/admin/2fa-verify', (req, res) => {
         }
 
         // Get current asset versions
-        const versions = getAssetVersions();
+        const versions = getAssetVersions(__dirname);
 
         // Replace asset version placeholders with individual file versions
         const stamped = contents.replace(
@@ -19190,44 +18877,8 @@ if (require.main === module) {
     // Pre-load asset versions synchronously on startup to ensure they're available immediately
     logger.info('Pre-loading asset versions...');
     try {
-        // Initial synchronous load for immediate availability
-        const criticalAssets = [
-            'core.js',
-            'admin.js',
-            'style.css',
-            'admin.css',
-            'cinema/cinema-ui.js',
-            'cinema/cinema.css',
-            'cinema/cinema-display.js',
-            'cinema/cinema-display.css',
-            'cinema/cinema-bootstrap.js',
-            'preview-cinema.js',
-            'preview-cinema.css',
-            'logs.js',
-            'logs.css',
-            'sw.js',
-            'client-logger.js',
-            'manifest.json',
-            'device-mgmt.js',
-            'lazy-loading.js',
-            'notify.js',
-            'screensaver/screensaver.js',
-            'screensaver/screensaver.css',
-            'wallart/wallart-display.js',
-            'wallart/wallart.css',
-        ];
-
-        criticalAssets.forEach(asset => {
-            try {
-                const fullPath = path.join(__dirname, 'public', asset);
-                const stats = fs.statSync(fullPath);
-                cachedVersions[asset] = Math.floor(stats.mtime.getTime() / 1000).toString(36);
-            } catch (err) {
-                cachedVersions[asset] = Math.floor(Date.now() / 1000).toString(36);
-            }
-        });
-        lastVersionCheck = Date.now();
-        logger.info(`Asset versions pre-loaded: ${Object.keys(cachedVersions).length} assets`);
+        refreshAssetVersionsSync(__dirname);
+        logger.info(`Asset versions pre-loaded`);
     } catch (err) {
         logger.warn('Failed to pre-load asset versions:', err.message);
     }
