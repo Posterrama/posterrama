@@ -2,6 +2,7 @@
  * Tests for lib/preset-helpers.js
  *
  * Tests explicitly pass rootDir parameter to avoid process.cwd() contamination
+ * @jest-environment node
  */
 
 const fs = require('fs').promises;
@@ -10,14 +11,19 @@ const os = require('os');
 const { readPresets, writePresets } = require('../../lib/preset-helpers');
 
 describe('Preset Helpers', () => {
+    // Increase timeout for potentially slow temp file operations
+    jest.setTimeout(10000);
     let testDir;
     let presetsFile;
 
     beforeEach(async () => {
-        // Create a UNIQUE test directory for EACH test
+        // Create a UNIQUE test directory for EACH test with process ID to avoid collisions
         const uniqueId = `preset-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
         testDir = await fs.mkdtemp(path.join(os.tmpdir(), uniqueId));
         presetsFile = path.join(testDir, 'device-presets.json');
+
+        // Add small delay to ensure unique timestamps even in fast parallel runs
+        await new Promise(resolve => setTimeout(resolve, 5));
     });
 
     afterEach(async () => {
