@@ -6791,16 +6791,22 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
 
 // --- Client Management ---
 
+// Feature flag for Plex client migration
+const USE_MODERN_PLEX_CLIENT = process.env.USE_MODERN_PLEX_CLIENT === 'true';
+
 /**
  * Creates a new PlexAPI client instance with the given options.
- * Sanitizes and validates the input parameters before creating the client.
+ * Supports both legacy (plex-api) and modern (@ctrl/plex) clients via feature flag.
+ *
+ * Set USE_MODERN_PLEX_CLIENT=true to use @ctrl/plex (0 vulnerabilities).
+ * Defaults to legacy plex-api for backward compatibility.
  *
  * @param {object} options - The connection options.
  * @param {string} options.hostname - The Plex server hostname or IP. Will be sanitized to remove http/https prefixes.
  * @param {string|number} options.port - The Plex server port.
  * @param {string} options.token - The Plex authentication token (X-Plex-Token).
  * @param {number} [options.timeout] - Optional request timeout in milliseconds. Defaults to no timeout.
- * @returns {PlexAPI} A new PlexAPI client instance configured with the sanitized options.
+ * @returns {PlexAPI|Promise<PlexClientAdapter>} A Plex client instance (legacy or modern with compatibility layer).
  * @throws {ApiError} If required parameters are missing or if the hostname format is invalid.
  * @example
  * const plexClient = createPlexClient({
@@ -6815,6 +6821,22 @@ function createPlexClient({ hostname, port, token, timeout }) {
         throw new ApiError(500, 'Plex client creation failed: missing hostname, port, or token.');
     }
 
+    // Try modern client if feature flag is enabled
+    if (USE_MODERN_PLEX_CLIENT) {
+        try {
+            const { createCompatiblePlexClient } = require('./utils/plex-client-ctrl');
+            // Return promise - caller must await
+            return createCompatiblePlexClient({ hostname, port, token, timeout });
+        } catch (error) {
+            logger.warn(
+                `Modern Plex client (@ctrl/plex) failed to load: ${error.message}. ` +
+                    `Falling back to legacy plex-api client.`
+            );
+            // Fall through to legacy client
+        }
+    }
+
+    // Legacy plex-api client
     // Sanitize hostname to prevent crashes if the user includes the protocol.
     let sanitizedHostname = hostname.trim();
     try {
@@ -19225,6 +19247,13 @@ if (require.main === module) {
             logger.info(`posterrama.app is listening on http://localhost:${port}`);
             if (isDebug)
                 logger.debug(`Debug endpoint is available at http://localhost:${port}/admin/debug`);
+
+            // Log Plex client selection
+            if (USE_MODERN_PLEX_CLIENT) {
+                logger.info('Using modern @ctrl/plex client (0 vulnerabilities) 🎉');
+            } else {
+                logger.info('Using legacy plex-api client');
+            }
 
             logger.info('Server startup complete - media cache is ready');
 
