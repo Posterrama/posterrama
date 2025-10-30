@@ -76,7 +76,8 @@
             "properties": {
                 "enabled": {
                     "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "description": "Enable wallart mode display"
                 },
                 "density": {
                     "type": "string",
@@ -143,13 +144,15 @@
                                 "heroSide": {
                                     "type": "string",
                                     "enum": ["left", "right"],
-                                    "default": "left"
+                                    "default": "left",
+                                    "description": "Position of the hero poster - left or right side of the grid"
                                 },
                                 "heroRotationMinutes": {
                                     "type": "integer",
                                     "minimum": 1,
                                     "maximum": 60,
-                                    "default": 10
+                                    "default": 10,
+                                    "description": "How often (in minutes) to rotate the hero poster"
                                 },
                                 "biasAmbientToHero": {
                                     "type": "boolean",
@@ -203,16 +206,19 @@
                     "properties": {
                         "enabled": {
                             "type": "boolean",
-                            "default": true
+                            "default": true,
+                            "description": "Enable cinema header display"
                         },
                         "text": {
                             "type": "string",
-                            "default": "Now Playing"
+                            "default": "Now Playing",
+                            "description": "Text to display in cinema header"
                         },
                         "style": {
                             "type": "string",
                             "enum": ["classic", "neon", "minimal", "theatre"],
-                            "default": "classic"
+                            "default": "classic",
+                            "description": "Visual style for the header"
                         }
                     },
                     "additionalProperties": false,
@@ -227,50 +233,60 @@
                     "properties": {
                         "enabled": {
                             "type": "boolean",
-                            "default": true
+                            "default": true,
+                            "description": "Enable cinema footer display"
                         },
                         "type": {
                             "type": "string",
                             "enum": ["marquee", "specs"],
-                            "default": "specs"
+                            "default": "specs",
+                            "description": "Footer type - marquee scrolling text or technical specs"
                         },
                         "marqueeText": {
                             "type": "string",
-                            "default": "Feature Presentation"
+                            "default": "Feature Presentation",
+                            "description": "Text for marquee-style footer"
                         },
                         "marqueeStyle": {
                             "type": "string",
                             "enum": ["classic", "neon", "minimal", "theatre"],
-                            "default": "classic"
+                            "default": "classic",
+                            "description": "Visual style for the marquee"
                         },
                         "specs": {
                             "type": "object",
                             "properties": {
                                 "showResolution": {
                                     "type": "boolean",
-                                    "default": true
+                                    "default": true,
+                                    "description": "Display video resolution (e.g., 4K, 1080p)"
                                 },
                                 "showAudio": {
                                     "type": "boolean",
-                                    "default": true
+                                    "default": true,
+                                    "description": "Display audio format (e.g., Dolby Atmos, DTS)"
                                 },
                                 "showAspectRatio": {
                                     "type": "boolean",
-                                    "default": true
+                                    "default": true,
+                                    "description": "Display aspect ratio (e.g., 2.39:1)"
                                 },
                                 "showFlags": {
                                     "type": "boolean",
-                                    "default": false
+                                    "default": false,
+                                    "description": "Display content flags/badges"
                                 },
                                 "style": {
                                     "type": "string",
                                     "enum": ["subtle", "filled", "outline"],
-                                    "default": "subtle"
+                                    "default": "subtle",
+                                    "description": "Visual style for specs display"
                                 },
                                 "iconSet": {
                                     "type": "string",
                                     "enum": ["filled", "line"],
-                                    "default": "filled"
+                                    "default": "filled",
+                                    "description": "Icon style for specs - filled or line art"
                                 }
                             },
                             "additionalProperties": false,
@@ -349,13 +365,15 @@
                     "properties": {
                         "enabled": {
                             "type": "boolean",
-                            "default": true
+                            "default": true,
+                            "description": "Enable ambilight effect around poster"
                         },
                         "strength": {
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 100,
-                            "default": 60
+                            "default": 60,
+                            "description": "Ambilight intensity (0-100)"
                         }
                     },
                     "additionalProperties": false,
@@ -576,13 +594,15 @@
             "properties": {
                 "enabled": {
                     "type": "boolean",
-                    "default": true
+                    "default": true,
+                    "description": "Enable promotional site server on separate port"
                 },
                 "port": {
                     "type": "integer",
                     "minimum": 1024,
                     "maximum": 65535,
-                    "default": 4001
+                    "default": 4001,
+                    "description": "Port for promotional site (default 4001)"
                 }
             },
             "required": ["enabled", "port"]
@@ -593,7 +613,8 @@
             "properties": {
                 "enabled": {
                     "type": "boolean",
-                    "default": true
+                    "default": true,
+                    "description": "Enable device management features"
                 },
                 "bypass": {
                     "description": "Optional bypass configuration. When a client IP matches ipAllowList, the frontend will skip device management (no registration, no heartbeats, no websocket). Useful for kiosk screens or trusted internal dashboards.",
@@ -752,21 +773,25 @@
             "properties": {
                 "enabled": {
                     "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "description": "Enable TMDB as a media source"
                 },
                 "category": {
                     "type": "string",
-                    "default": "popular"
+                    "default": "popular",
+                    "description": "TMDB category to fetch (popular, top_rated, now_playing, upcoming)"
                 },
                 "minRating": {
                     "type": "number",
                     "minimum": 0,
                     "maximum": 10,
-                    "default": 0
+                    "default": 0,
+                    "description": "Minimum TMDB rating to include (0-10)"
                 },
                 "apiKey": {
                     "type": "string",
-                    "default": ""
+                    "default": "",
+                    "description": "TMDB API key"
                 },
                 "yearFilter": {
                     "type": ["integer", "string", "null"],
@@ -774,7 +799,8 @@
                 },
                 "genreFilter": {
                     "type": "string",
-                    "default": ""
+                    "default": "",
+                    "description": "Comma-separated genre IDs to filter by"
                 }
             }
         },
@@ -793,7 +819,8 @@
                 "maxSizeGB": {
                     "type": "number",
                     "minimum": 0,
-                    "default": 2
+                    "default": 2,
+                    "description": "Maximum cache size in gigabytes"
                 },
                 "minFreeDiskSpaceMB": {
                     "type": "integer",
@@ -908,11 +935,13 @@
         },
         "testKeyConfig": {
             "type": "string",
-            "default": "fromConfig"
+            "default": "fromConfig",
+            "description": "Test configuration key (for testing purposes only)"
         },
         "someInt": {
             "type": "number",
-            "default": 42
+            "default": 42,
+            "description": "Test integer value (for testing purposes only)"
         },
         "localDirectory": {
             "description": "Local directory support for managing poster collections and generating posterpacks.",
@@ -1152,7 +1181,8 @@
         },
         "previewOrientation": {
             "type": "string",
-            "default": "landscape"
+            "default": "landscape",
+            "description": "Default orientation for preview mode (landscape or portrait)"
         }
     },
     "required": [
