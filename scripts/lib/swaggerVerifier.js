@@ -158,6 +158,7 @@ function verifySwagger() {
         'devices.js': '/api/devices',
         'media.js': '/',
         'qr.js': '/',
+        'config-backups.js': '/api/admin',
     };
 
     for (const { path: filePath, content } of routeFiles) {
