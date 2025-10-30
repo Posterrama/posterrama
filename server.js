@@ -24,6 +24,7 @@ const {
     isDeviceMgmtEnabled,
 } = require('./lib/utils-helpers');
 const { isAuthenticated: isAuthenticatedBase } = require('./lib/auth-helpers');
+const { readPresets, writePresets } = require('./lib/preset-helpers');
 
 // Force reload environment on startup to prevent PM2 cache issues
 forceReloadEnv();
@@ -5237,23 +5238,6 @@ const cspReportJson = express.json({
 });
 
 // Device Presets storage (simple JSON file)
-const PRESETS_FILE = path.join(__dirname, 'device-presets.json');
-async function readPresets() {
-    try {
-        const raw = await fs.promises.readFile(PRESETS_FILE, 'utf8');
-        const data = JSON.parse(raw);
-        return Array.isArray(data) ? data : [];
-    } catch (e) {
-        return [];
-    }
-}
-async function writePresets(presets) {
-    const arr = Array.isArray(presets) ? presets : [];
-    const tmp = PRESETS_FILE + '.tmp';
-    await fs.promises.writeFile(tmp, JSON.stringify(arr, null, 2), 'utf8');
-    await fs.promises.rename(tmp, PRESETS_FILE);
-}
-
 /**
  * @swagger
  * /api/admin/device-presets:
@@ -5291,7 +5275,7 @@ async function writePresets(presets) {
 // Admin: get device presets (JSON)
 app.get('/api/admin/device-presets', adminAuth, async (req, res) => {
     try {
-        const list = await readPresets();
+        const list = await readPresets(__dirname);
         res.json(list);
     } catch (e) {
         res.status(500).json({ error: 'presets_read_failed' });
@@ -5355,7 +5339,7 @@ app.put(
             // Light validation: key must be string
             const ok = body.every(p => p && typeof p.key === 'string');
             if (!ok) return res.status(400).json({ error: 'invalid_entries' });
-            await writePresets(body);
+            await writePresets(body, __dirname);
             res.json({ ok: true, count: body.length });
         } catch (e) {
             res.status(500).json({ error: 'presets_write_failed' });
