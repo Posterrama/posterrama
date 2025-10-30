@@ -5,7 +5,7 @@ Open items and planned features for Posterrama (v2.8.8+).
 ## 📊 Current Status
 
 **Version**: 2.8.8  
-**Code Coverage**: 86.89% statements (2819/3244 lines)  
+**Code Coverage**: 86.89% statements | 76.41% branches  
 **Tests**: 2,124/2,124 passing (100%)  
 **Test Suites**: 178/178 passing (100%)  
 **Node.js**: v18+ required
@@ -182,9 +182,10 @@ Open items and planned features for Posterrama (v2.8.8+).
 
 ### Test Coverage Status
 
-- **Overall**: 86.89% statement coverage (76.36% branch coverage)
+- **Overall**: 86.89% statement coverage | 76.41% branch coverage
 - **Tests**: 2,124 passing (100%)
 - **Test Suites**: 178 passing (100%)
+- **Target**: 80% branch coverage (+3.59% = ~71 branches needed)
 
 ### Test Categories
 
@@ -201,7 +202,8 @@ Open items and planned features for Posterrama (v2.8.8+).
 
 ### Known Issues
 
-- [ ] Reach 80% branch coverage (currently 76.36% - need +3.64% = ~72 branches)
+- [ ] Reach 80% branch coverage (currently 76.41% - need +3.59% = ~71 branches)
+    - Main opportunities: capabilityRegistry.js (65.69%), groupsStore.js (72.09%), logger.js (32.32%)
 
 ## 📝 Documentation
 
