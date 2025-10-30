@@ -364,14 +364,6 @@
 
                     const layoutVariant = wallartConfig.layoutVariant || 'classic';
 
-                    console.log('[Wallart] Starting grid initialization with layout:', {
-                        layoutVariant,
-                        configLayoutVariant: wallartConfig.layoutVariant,
-                        density: wallartConfig.density,
-                        columns: layoutInfo.columns,
-                        rows: layoutInfo.rows,
-                    });
-
                     // Populate grid and compute initial state
                     window.debugLog && window.debugLog('WALLART_INIT_GRID_START', {});
                     const posterCount = Math.min(
@@ -1043,14 +1035,7 @@
                                 excludeId
                             );
 
-                        console.log('[Wallart] initializeGrid layoutVariant check:', {
-                            layoutVariant,
-                            isHeroGrid: layoutVariant === 'heroGrid',
-                            isClassic: layoutVariant !== 'heroGrid',
-                        });
-
                         if (layoutVariant === 'heroGrid') {
-                            console.log('[Wallart] Using HERO GRID layout');
                             // Determine hero settings
                             const heroCfg = (wallartConfig.layoutSettings || {}).heroGrid || {};
                             const rawHeroSideValue =
