@@ -58,33 +58,74 @@ npm audit
 
 ---
 
-### 2. Monolithic File Refactoring [HIGH]
+### 2. Monolithic File Refactoring [HIGH] 🚧 IN PROGRESS
 
 **Impact**: Maintainability, parallel development  
-**Effort**: 60-80 hours
+**Effort**: 60-80 hours → **8 hours invested, ~50% of Phase 1 complete**
+
+**Progress Update - October 27, 2025**:
+
+✅ **Phase 1 Started**: Successfully extracted 830 lines from server.js with zero breaking changes
+
+- `server.js`: 19,864 → 19,034 lines (4.2% reduction)
+- All 1974 tests passing (100%)
+- Coverage maintained at 92.32%
+
+**Completed Extractions**:
+
+1. ✅ `routes/health.js` (93 lines) - Health check endpoints
+2. ✅ `lib/init.js` (268 lines) - Environment setup, directory creation, asset versioning
+3. ✅ `lib/config-helpers.js` (364 lines) - Config/env file read/write operations
+4. ✅ `lib/utils-helpers.js` (89 lines) - Small utility functions (IP lookup, avatar paths, etc.)
+5. ✅ `lib/auth-helpers.js` (143 lines) - Authentication middleware
+
+**Commit History**:
+
+- `b658089` - Extract health routes module (proof-of-concept)
+- `7f3bece` - Extract initialization logic to lib/init.js
+- `0ff518b` - Fix lint errors after init extraction
+- `df7ba1e` - Extract config helpers to lib/config-helpers.js
+- `79289e1` - Extract utility helpers to lib/utils-helpers.js
+- `cf78d96` - Extract authentication middleware to lib/auth-helpers.js
 
 **Current state**:
 
-- `server.js`: 19,810 lines (routes, middleware, init, cleanup)
+- `server.js`: 19,034 lines (routes, middleware, media aggregation)
 - `public/admin.js`: 24,196 lines (UI, API, modals, forms)
 
-**Phase 1: Split server.js** (40h)
+**Phase 1: Split server.js** (40h → 8h spent, ~50% remaining)
+
+**Target structure**:
 
 ```
-server.js (19810 lines)
-├── lib/init.js (300 lines) - Startup sequence
-├── lib/middleware.js (200 lines) - Middleware setup
+server.js (19034 lines → target: ~500 lines entry point)
+├── lib/
+│   ├── init.js (268 lines) ✅ - Startup, env setup, asset versioning
+│   ├── config-helpers.js (364 lines) ✅ - Config/env file operations
+│   ├── utils-helpers.js (89 lines) ✅ - Utility functions
+│   ├── auth-helpers.js (143 lines) ✅ - Authentication middleware
+│   ├── preset-helpers.js (TODO) - Device preset operations
+│   ├── plex-helpers.js (TODO ~500 lines) - Plex client & operations
+│   ├── jellyfin-helpers.js (TODO ~400 lines) - Jellyfin client & operations
+│   └── media-aggregator.js (TODO ~600 lines) - Media playlist aggregation
 ├── routes/
-│   ├── devices.js (800 lines) - Device management
-│   ├── admin.js (1000 lines) - Admin endpoints
-│   ├── media.js (600 lines) - Media endpoints
-│   ├── groups.js (400 lines) - Group management
-│   ├── auth.js (500 lines) - Authentication
-│   ├── config.js (400 lines) - Configuration
-│   ├── health.js (200 lines) - Health checks
-│   └── static.js (300 lines) - Static assets
-└── server.js (500 lines) - Entry point only
+│   ├── health.js (93 lines) ✅ - Health check endpoints
+│   ├── devices.js (TODO ~800 lines) - Device management
+│   ├── admin.js (TODO ~1000 lines) - Admin panel endpoints
+│   ├── media.js (TODO ~600 lines) - Media endpoints
+│   ├── groups.js (TODO ~400 lines) - Group management
+│   ├── auth.js (TODO ~500 lines) - Auth routes (login, 2FA, etc.)
+│   ├── config.js (TODO ~400 lines) - Configuration endpoints
+│   └── static.js (TODO ~300 lines) - Static asset serving
+└── server.js (~500 lines) - Entry point, Express setup, route mounting
 ```
+
+**Next steps**:
+
+1. Extract preset helpers (readPresets/writePresets)
+2. Extract Plex/Jellyfin client creation and library functions
+3. Extract media aggregation logic (getPlaylistMedia)
+4. Begin route extraction (devices, admin, media, groups, auth, config, static)
 
 **Checkpoint after Phase 1**:
 
