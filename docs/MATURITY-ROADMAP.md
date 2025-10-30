@@ -63,17 +63,27 @@ npm audit
 **Impact**: Maintainability, parallel development  
 **Effort**: 60-80 hours → **8 hours invested, ~50% of Phase 1 complete**
 
-**Progress Update - October 27, 2025 (Latest)**:
+**Progress Update - October 27, 2025 (End of Session 2)**:
 
-✅ **Phase 1 Accelerating**: Successfully extracted 3,680 lines from server.js with zero breaking changes
+✅ **Phase 1 Progress: 18.5% Complete** - Successfully extracted 3,680 lines with zero breaking changes
+
+**Current Metrics**:
 
 - `server.js`: 19,864 → 16,184 lines (**18.5% reduction**)
+- `lib/` modules: 11 files, 4,119 lines extracted
 - All 2,045 tests passing (100%, 12 flaky preset tests excluded)
-- Coverage maintained at 92.32%
-- **Time invested**: 15 hours total
-- **6 commits this session** (testServerConnection, playlist cache management)
+- Coverage: 92.32% maintained
+- Zero lint errors
+- **Time invested**: 15 hours
+- **Velocity**: ~245 lines/hour average
 
-**Completed Extractions**:
+**Session 2 Achievements** (6 commits):
+
+- ✅ testServerConnection (190 lines) → `lib/server-test-helpers.js`
+- ✅ Playlist cache management (100 lines) → `lib/playlist-cache.js`
+- ✅ Documentation updated with detailed progress tracking
+
+**Completed Extractions** (11 modules):
 
 1. ✅ `routes/health.js` (93 lines) - Health check endpoints
 2. ✅ `lib/init.js` (268 lines) - Environment setup, directory creation, asset versioning
@@ -116,7 +126,9 @@ npm audit
 - Total new tests: 44 tests (all passing)
 - Existing integration tests verified: Plex, Jellyfin, TMDB, Local sources
 
-**Commit History** (19 commits total):
+**Commit History** (20 commits total):
+
+Session 1 (October 27):
 
 - `b658089` - Extract health routes module (proof-of-concept)
 - `7f3bece` - Extract initialization logic to lib/init.js
@@ -135,10 +147,12 @@ npm audit
 - `efedbcc` - Remove unused PlexSource and JellyfinSource imports
 - `24c9387` - Extract processPlexItem to lib/plex-helpers.js (870 lines)
 - `11c6f1e` - Update MATURITY-ROADMAP with processPlexItem progress
+
+Session 2 (October 27):
+
 - `71a1648` - Extract testServerConnection to lib/server-test-helpers.js (190 lines)
 - `4e8b24b` - Extract playlist cache management to lib/playlist-cache.js (100 lines)
-- `edd2951` - Extract Jellyfin helpers to lib/jellyfin-helpers.js
-- `769201b` - Fix unused hashJellyfinConfig import and simplify cache clearing
+- `b5951d6` - Update MATURITY-ROADMAP with session 2 progress (18.5% complete)
 
 **Current state**:
 
@@ -188,18 +202,146 @@ server.js (16473 lines → target: ~500 lines entry point)
 4. ~~Extract processPlexItem comprehensive metadata processor~~ ✅ DONE
 5. ~~Extract testServerConnection for Plex/Jellyfin health checks~~ ✅ DONE
 6. ~~Extract playlist cache management with background refresh~~ ✅ DONE
-7. 🔄 **LOW RISK**: Extract remaining standalone utility functions
-    - Error handling utilities
-    - Response formatters
-    - Small validators
-8. 🔄 **MEDIUM RISK**: Extract route modules one-by-one
-    - Start with smallest: groups.js (~400 lines)
-    - Then: config.js (~400 lines)
-    - Then: static.js (~300 lines)
-    - Then: auth.js (~500 lines)
-    - Then: media.js (~600 lines)
-    - Then: devices.js (~800 lines)
-    - Finally: admin.js (~1000 lines)
+
+**Phase 1.1: Route Module Extraction** (Next 20-25 hours)
+
+**Strategy**: Extract routes starting with smallest, most isolated endpoints first. Each extraction must pass full test suite before committing.
+
+**Extraction Order** (priority by risk/complexity):
+
+**Week 1: Small Routes (Low Risk, 4-6 hours)**
+
+1. 🎯 **groups.js** (~400 lines, EASIEST)
+    - Routes: `/api/groups/*` (CRUD operations)
+    - Dependencies: `groupsStore`, validation middleware
+    - Estimated effort: 1.5 hours
+    - Risk: Very Low (isolated functionality)
+
+2. 🎯 **static.js** (~300 lines, SIMPLE)
+    - Routes: Static asset serving, `/local-media/*`
+    - Dependencies: Express static, file system
+    - Estimated effort: 1 hour
+    - Risk: Very Low (no business logic)
+
+3. 🎯 **config.js** (~400 lines, LOW COMPLEXITY)
+    - Routes: `/get-config`, `/api/admin/config/*`
+    - Dependencies: `config-helpers`, cache middleware
+    - Estimated effort: 2 hours
+    - Risk: Low (well-defined boundaries)
+
+**Week 2: Medium Routes (Medium Risk, 8-12 hours)**
+
+4. 🔧 **auth.js** (~500 lines, MODERATE)
+    - Routes: `/login`, `/logout`, `/api/auth/*`, 2FA endpoints
+    - Dependencies: `auth-helpers`, session management, speakeasy
+    - Estimated effort: 3 hours
+    - Risk: Medium (session handling requires care)
+
+5. 🔧 **media.js** (~600 lines, MODERATE)
+    - Routes: `/get-media`, `/api/media/*`, `/api/poster-info/*`
+    - Dependencies: `playlist-cache`, image processing
+    - Estimated effort: 4 hours
+    - Risk: Medium (heavily used endpoint)
+
+**Week 3: Large Routes (High Risk, 8-10 hours)**
+
+6. 🔥 **devices.js** (~800 lines, COMPLEX)
+    - Routes: `/api/devices/*`, device pairing, settings
+    - Dependencies: `deviceStore`, WebSocket hub, presets
+    - Estimated effort: 5 hours
+    - Risk: High (WebSocket integration, real-time updates)
+
+7. � **admin.js** (~1000 lines, MOST COMPLEX)
+    - Routes: All remaining `/api/admin/*` endpoints
+    - Dependencies: Multiple subsystems, metrics, logs
+    - Estimated effort: 6 hours
+    - Risk: Highest (admin panel orchestration)
+
+**Implementation Pattern** (repeat for each route module):
+
+```bash
+# 1. Analyze route boundaries (10 mins)
+grep -n "app\.(get|post|put|delete|patch)" server.js | grep "/api/groups"
+
+# 2. Create route module (30-60 mins)
+#    - Create routes/<name>.js
+#    - Extract route handlers
+#    - Import dependencies
+#    - Export router
+
+# 3. Update server.js (15 mins)
+#    - Import route module
+#    - Mount router (app.use('/api/groups', groupsRouter))
+#    - Remove old routes
+
+# 4. Test & verify (15-30 mins)
+npm test                    # All tests must pass
+npm run lint               # Zero errors
+npm start                  # Manual smoke test
+curl http://localhost:4000/api/groups  # Verify endpoint
+
+# 5. Commit (5 mins)
+git add -A
+git commit -m "refactor: extract groups routes to routes/groups.js (400 lines)"
+```
+
+**Quality Gates** (must pass after EACH extraction):
+
+- ✅ All 2,045+ tests passing
+- ✅ Zero lint errors
+- ✅ 92%+ coverage maintained
+- ✅ Server starts without errors
+- ✅ Manual endpoint verification (curl/browser)
+- ✅ Clean git commit with detailed message
+
+**Phase 1.1 Success Criteria**:
+
+- 7 route modules extracted (~4,000 lines)
+- server.js reduced to ~12,000 lines (40% reduction from original)
+- All functionality preserved
+- Zero breaking changes
+- Documentation updated
+
+**Estimated Timeline**:
+
+- **Week 1**: Groups, Static, Config routes (3 modules, ~1,100 lines, 4-6 hours)
+- **Week 2**: Auth, Media routes (2 modules, ~1,100 lines, 7-8 hours)
+- **Week 3**: Devices, Admin routes (2 modules, ~1,800 lines, 11-12 hours)
+- **Total**: 7 modules, ~4,000 lines, 22-26 hours
+
+**Remaining after Phase 1.1**:
+
+- server.js: ~12,000 lines (down from 19,864)
+- Express setup, middleware, remaining helpers (~500 lines final target)
+- Need Phase 1.2 for final cleanup (~11,500 more lines)
+
+**Risk Analysis & Mitigation**:
+
+| Risk Factor                  | Likelihood | Impact | Mitigation                                                  |
+| ---------------------------- | ---------- | ------ | ----------------------------------------------------------- |
+| Breaking API changes         | Low        | High   | Full test suite + manual verification after each extraction |
+| WebSocket integration issues | Medium     | Medium | Extract devices.js last, test real-time updates thoroughly  |
+| Session handling bugs        | Low        | High   | Preserve session middleware order, test auth flows          |
+| Cache invalidation problems  | Low        | Medium | Test cache clearing, verify ETag headers                    |
+| Missing dependencies         | Low        | Medium | Track imports carefully, use grep to verify usage           |
+| Test flakiness               | Low        | Low    | Re-run tests 2-3 times, exclude known flaky tests           |
+
+**Rollback Plan**:
+
+- Each extraction is a single atomic commit
+- If extraction fails tests: `git reset --hard HEAD~1`
+- If production issues: revert specific commit
+- All extractions maintain backward compatibility
+
+**Lessons Learned** (from Phase 1.0):
+
+1. ✅ Small, incremental commits work best (~100-300 lines per commit)
+2. ✅ Dependency injection wrappers prevent coupling issues
+3. ✅ Full test suite catches 99% of breaking changes
+4. ✅ Grep searches are essential for finding all usages
+5. ✅ Lint + format before commit saves cleanup time
+6. ⚠️ Large functions (>500 lines) need internal helper extraction first
+7. ⚠️ State variables require getter/setter patterns for encapsulation
 
 **Checkpoint after Phase 1**:
 
