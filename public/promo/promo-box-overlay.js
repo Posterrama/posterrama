@@ -135,16 +135,16 @@
 
         // Mobile optimization
         if (window.innerWidth <= 1024) {
-            promoBox.style.width = 'calc(100vw - 20px)';
-            promoBox.style.maxWidth = 'none';
-            promoBox.style.padding = '30px 20px';
-            promoBox.style.minHeight = 'auto';
-            promoBox.style.boxSizing = 'border-box';
-            promoBox.style.margin = '0';
-            promoBox.style.position = 'fixed';
-            promoBox.style.left = '50%';
-            promoBox.style.top = '50%';
-            promoBox.style.transform = 'translate(-50%, -50%)';
+            promoBox.style.setProperty('width', 'calc(100vw - 40px)', 'important');
+            promoBox.style.setProperty('max-width', 'none', 'important');
+            promoBox.style.setProperty('padding', '30px 20px', 'important');
+            promoBox.style.setProperty('min-height', 'auto', 'important');
+            promoBox.style.setProperty('box-sizing', 'border-box', 'important');
+            promoBox.style.setProperty('margin', '0', 'important');
+            promoBox.style.setProperty('position', 'fixed', 'important');
+            promoBox.style.setProperty('left', '50%', 'important');
+            promoBox.style.setProperty('top', '50%', 'important');
+            promoBox.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
         }
     }
 
