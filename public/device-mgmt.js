@@ -600,8 +600,8 @@
             overlay.id = 'pr-welcome-overlay';
             overlay.innerHTML = `
 <style>
-#pr-welcome-overlay{position:fixed;inset:0;background:linear-gradient(135deg, rgba(0,0,0,.92) 0%, rgba(20,20,30,.95) 100%);color:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;padding:20px;box-sizing:border-box}
-#pr-welcome-card{width:min(85vw,680px);background:linear-gradient(145deg, rgba(25,25,35,.9) 0%, rgba(15,15,25,.95) 100%);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:0;box-shadow:0 25px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.05);overflow:hidden;position:relative}
+#pr-welcome-overlay{position:fixed;inset:0;background:linear-gradient(135deg, rgba(0,0,0,.92) 0%, rgba(20,20,30,.95) 100%);color:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;padding:20px;box-sizing:border-box;overflow-y:auto}
+#pr-welcome-card{width:min(95vw,680px);max-height:95vh;background:linear-gradient(145deg, rgba(25,25,35,.9) 0%, rgba(15,15,25,.95) 100%);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:0;box-shadow:0 25px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.05);overflow-y:auto;position:relative;margin:auto}
 .pr-header{background:linear-gradient(90deg, #1e293b 0%, #334155 100%);padding:24px 32px;border-bottom:1px solid rgba(255,255,255,.08);position:relative}
 .pr-header h2{margin:0;font-size:24px;font-weight:600;color:#ffffff;letter-spacing:-.2px}
 .pr-header .pr-subtitle{margin:6px 0 0;color:#94a3b8;font-size:14px;font-weight:400}
@@ -633,7 +633,20 @@
 #pr-do-pair, #pr-close, #pr-skip-setup {display: inline-block !important; visibility: visible !important; opacity: 1 !important;}
 button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block !important; visibility: visible !important; opacity: 1 !important;}
 .pr-btn#pr-do-pair, .pr-btn#pr-close, .pr-footer-btn#pr-skip-setup {display: inline-block !important; visibility: visible !important; opacity: 1 !important;}
-@media (max-width: 768px){.pr-body{grid-template-columns:1fr;gap:24px}.pr-qr-section{order:-1}.pr-header{padding:20px 24px}.pr-countdown{position:static;margin-top:12px;align-self:flex-start}.pr-body{padding:24px}}
+@media (max-width: 768px){
+#pr-welcome-card{width:100%;max-width:100vw;border-radius:0;max-height:100vh}
+#pr-welcome-overlay{padding:0;align-items:flex-start}
+.pr-body{grid-template-columns:1fr;gap:24px;padding:20px}
+.pr-qr-section{order:-1}
+.pr-header{padding:20px}
+.pr-header h2{font-size:20px}
+.pr-header .pr-subtitle{font-size:13px}
+.pr-countdown{position:static;margin-top:12px;font-size:11px;padding:6px 10px}
+.pr-code-input{width:100%;max-width:260px}
+.pr-primary-actions{width:100%;max-width:300px}
+.pr-qr-code{width:200px;height:200px}
+.pr-footer{padding:16px 20px}
+}
 </style>
 <div id="pr-welcome-card" role="dialog" aria-modal="true" aria-labelledby="pr-welcome-title">
   <div class="pr-header">
