@@ -36,7 +36,7 @@
                 <h1>Bring your media library to life.</h1>
                 <p>
                     This is <span class="promo-brand-name">Posterrama</span>, a stunning, self-hosted
-                    digital movie<span class="movie-extensions">+ music & games</span> poster app that
+                    digital <span class="movie-extensions">movie + music & games</span> poster app that
                     transforms your screens into personal cinemas and elegant screensavers.
                 </p>
 
