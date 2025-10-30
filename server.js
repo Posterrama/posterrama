@@ -68,7 +68,6 @@ const { exec } = require('child_process');
 const fetch = require('node-fetch');
 const multer = require('multer');
 const crypto = require('crypto');
-const { PassThrough } = require('stream');
 const fsp = fs.promises;
 
 const config = require('./config.json');
@@ -121,9 +120,6 @@ const deepMerge = require('./utils/deep-merge');
 const deviceStore = require('./utils/deviceStore');
 const groupsStore = require('./utils/groupsStore');
 const wsHub = require('./utils/wsHub');
-const qrcode = require('qrcode');
-// DNS reverse lookup (promise API)
-const dns = require('dns').promises;
 const app = express();
 const { ApiError, NotFoundError } = require('./utils/errors.js');
 const ratingCache = require('./utils/rating-cache.js');
