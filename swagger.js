@@ -1239,7 +1239,7 @@ function generateSwaggerSpec() {
                 },
             },
         },
-        apis: ['./server.js', './__tests__/routes/test-endpoints.js'], // Include test routes file for documentation
+        apis: ['./server.js', './routes/**/*.js', './__tests__/routes/test-endpoints.js'], // Include routes modules and test endpoints
     };
 
     const spec = swaggerJSDoc(options);
