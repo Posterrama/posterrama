@@ -3264,110 +3264,15 @@ if (process.env.NODE_ENV === 'test') {
 const adminAuth = createAdminAuth({ isAuthenticated, logger });
 const adminAuthDevices = createAdminAuthDevices({ adminAuth, logger });
 
-// --- Profile Photo (Avatar) Storage & Endpoints ---
-// Configure multer for small avatar uploads (PNG/JPEG/WebP; 2MB limit)
-const avatarStorage = multer.diskStorage({
-    destination: function (_req, _file, cb) {
-        try {
-            fs.mkdirSync(avatarDir, { recursive: true });
-        } catch (_) {
-            /* noop */
-        }
-        cb(null, avatarDir);
-    },
-    filename: function (req, file, cb) {
-        // Use a deterministic filename per user (session username) to keep one file
-        const username = (req.session?.user?.username || 'admin').replace(/[^a-z0-9_-]+/gi, '_');
-        const ext =
-            file.mimetype === 'image/png'
-                ? '.png'
-                : file.mimetype === 'image/webp'
-                  ? '.webp'
-                  : '.jpg';
-        cb(null, `${username}${ext}`);
-    },
+// --- Profile Photo (Avatar) Routes ---
+// Modularized profile photo upload/retrieval/deletion
+const createProfilePhotoRouter = require('./routes/profile-photo');
+const profilePhotoRouter = createProfilePhotoRouter({
+    adminAuth,
+    getAvatarPath,
+    avatarDir,
 });
-const avatarUpload = multer({
-    storage: avatarStorage,
-    limits: { fileSize: 2 * 1024 * 1024 },
-    fileFilter: function (_req, file, cb) {
-        const ok = ['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype);
-        if (!ok) return cb(new Error('Unsupported file type'));
-        cb(null, true);
-    },
-});
-
-/**
- * @swagger
- * /api/admin/profile/photo:
- *   get:
- *     summary: Get current user's profile photo
- *     tags: ['Admin']
- *     responses:
- *       200:
- *         description: Image file
- *       204:
- *         description: No avatar set
- */
-app.get('/api/admin/profile/photo', adminAuth, (req, res) => {
-    const username = req.session?.user?.username || 'admin';
-    const p = getAvatarPath(username, avatarDir);
-    if (!p) return res.status(204).end();
-    res.sendFile(p);
-});
-
-/**
- * @swagger
- * /api/admin/profile/photo:
- *   post:
- *     summary: Upload/update current user's profile photo
- *     tags: ['Admin']
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               avatar:
- *                 type: string
- *                 format: binary
- *     responses:
- *       200:
- *         description: Upload successful
- *       400:
- *         description: Invalid input
- */
-app.post('/api/admin/profile/photo', adminAuth, (req, res, _next) => {
-    avatarUpload.single('avatar')(req, res, err => {
-        if (err) {
-            return res.status(400).json({ error: err.message || 'Upload failed' });
-        }
-        // Success
-        res.json({ success: true });
-    });
-});
-
-/**
- * @swagger
- * /api/admin/profile/photo:
- *   delete:
- *     summary: Remove current user's profile photo
- *     tags: ['Admin']
- *     responses:
- *       200:
- *         description: Deleted
- */
-app.delete('/api/admin/profile/photo', adminAuth, async (req, res) => {
-    try {
-        const username = req.session?.user?.username || 'admin';
-        const p = getAvatarPath(username, avatarDir);
-        if (p) await fsp.unlink(p).catch(() => {});
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to delete avatar' });
-    }
-});
+app.use('/', profilePhotoRouter);
 
 // Minimal CSP violation report endpoint
 // Accepts both deprecated report-uri (application/csp-report) and modern report-to (application/reports+json)

@@ -160,6 +160,7 @@ function verifySwagger() {
         'qr.js': '/',
         'config-backups.js': '/api/admin',
         'admin-observable.js': '/api/admin',
+        'profile-photo.js': '/',
     };
 
     for (const { path: filePath, content } of routeFiles) {
