@@ -44,6 +44,15 @@ const {
     processJellyfinItem,
 } = require('./lib/jellyfin-helpers');
 const { testServerConnection } = require('./lib/server-test-helpers');
+const {
+    refreshPlaylistCache: refreshPlaylistCacheCore,
+    schedulePlaylistBackgroundRefresh: schedulePlaylistBackgroundRefreshCore,
+    getPlaylistCache,
+    isPlaylistRefreshing,
+    getRefreshStartTime,
+    resetRefreshState,
+    clearPlaylistCache,
+} = require('./lib/playlist-cache');
 
 // Force reload environment on startup to prevent PM2 cache issues
 forceReloadEnv();
@@ -2742,7 +2751,8 @@ app.get('/api/v1/metrics/dashboard', (req, res) => {
     const summary = metricsManager.getDashboardSummary();
 
     // Total playlist items currently in cache (for reference)
-    const playlistItems = Array.isArray(playlistCache) ? playlistCache.length : 0;
+    const { cache: cachedPlaylist } = getPlaylistCache();
+    const playlistItems = Array.isArray(cachedPlaylist) ? cachedPlaylist.length : 0;
     // Count enabled media servers as "sources"
     const sourcesCount = Array.isArray(config?.mediaServers)
         ? config.mediaServers.filter(s => s && s.enabled === true).length
@@ -5631,147 +5641,25 @@ async function getPlaylistMediaWrapper() {
     });
 }
 
-let playlistCache = null;
-let cacheTimestamp = 0;
-let isRefreshing = false; // Lock to prevent concurrent refreshes
-let refreshStartTime = null; // Track when refresh started for auto-recovery
-
 /**
- * Fetches media from all enabled servers and refreshes the in-memory cache.
- * Uses a locking mechanism to prevent concurrent refreshes.
- * Maintains the old cache in case of errors to prevent service interruption.
- * Logs performance metrics and memory usage.
- *
- * @returns {Promise<void>} Resolves when the refresh is complete.
- * @throws {Error} If media fetching fails. Errors are caught and logged but won't crash the server.
- * @example
- * await refreshPlaylistCache();
- * console.log(`Cache now contains ${playlistCache.length} items`);
+ * Wrapper for refreshPlaylistCache that injects dependencies.
  */
 async function refreshPlaylistCache() {
-    if (isRefreshing) {
-        // Check if the current refresh is stuck
-        if (refreshStartTime && Date.now() - refreshStartTime > 20000) {
-            logger.warn('Force-clearing stuck refresh state before starting new refresh', {
-                action: 'force_clear_stuck_refresh',
-                stuckDuration: `${Date.now() - refreshStartTime}ms`,
-            });
-            isRefreshing = false;
-            refreshStartTime = null;
-        } else {
-            logger.debug('Playlist refresh skipped - already in progress');
-            return;
-        }
-    }
-
-    const startTime = process.hrtime();
-    isRefreshing = true;
-    refreshStartTime = Date.now(); // Track when refresh started
-
-    // Add a safety timeout to prevent stuck refresh state
-    const refreshTimeout = setTimeout(() => {
-        logger.warn('Playlist refresh timeout - forcing reset of isRefreshing flag', {
-            action: 'playlist_refresh_timeout',
-            duration: '15000ms',
-        });
-        isRefreshing = false;
-        refreshStartTime = null;
-    }, 15000); // 15 second timeout (was 60)
-
-    logger.info('Starting playlist refresh', {
-        action: 'playlist_refresh_start',
-        timestamp: new Date().toISOString(),
+    return refreshPlaylistCacheCore({
+        getPlaylistMediaWrapper,
+        shuffleArray,
+        totalCap: FIXED_LIMITS.TOTAL_CAP,
     });
-
-    try {
-        // Track memory usage before fetch
-        const memBefore = process.memoryUsage();
-
-        let allMedia = await getPlaylistMediaWrapper();
-        // Apply global cap before shuffling to bound payload size
-        if (allMedia.length > FIXED_LIMITS.TOTAL_CAP) {
-            logger.debug(
-                `[Limits] Applying global cap: trimming ${allMedia.length} -> ${FIXED_LIMITS.TOTAL_CAP}`
-            );
-            allMedia = allMedia.slice(0, FIXED_LIMITS.TOTAL_CAP);
-        }
-        playlistCache = shuffleArray(allMedia);
-        cacheTimestamp = Date.now();
-
-        // Track memory usage after fetch
-        const memAfter = process.memoryUsage();
-        const [seconds, nanoseconds] = process.hrtime(startTime);
-        const duration = seconds * 1000 + nanoseconds / 1000000;
-
-        // Log success with performance metrics
-        logger.info('Playlist refresh completed', {
-            action: 'playlist_refresh_complete',
-            metrics: {
-                duration: `${duration.toFixed(2)}ms`,
-                itemCount: playlistCache.length,
-                memoryDelta: {
-                    heapUsed: `${Math.round((memAfter.heapUsed - memBefore.heapUsed) / 1024 / 1024)}MB`,
-                    rss: `${Math.round((memAfter.rss - memBefore.rss) / 1024 / 1024)}MB`,
-                },
-            },
-        });
-
-        // Log warning if refresh was slow
-        if (duration > 5000) {
-            // 5 seconds threshold
-            logger.warn('Slow playlist refresh detected', {
-                action: 'playlist_refresh_slow',
-                duration: `${duration.toFixed(2)}ms`,
-                itemCount: playlistCache.length,
-            });
-        }
-    } catch (error) {
-        logger.error('Playlist refresh failed', {
-            action: 'playlist_refresh_error',
-            error: error.message,
-            stack: error.stack,
-        });
-        // We keep the old cache in case of an error
-    } finally {
-        clearTimeout(refreshTimeout);
-        isRefreshing = false;
-        refreshStartTime = null;
-    }
 }
 
-// Helper: schedule or reschedule background playlist refresh based on current config
+/**
+ * Wrapper for schedulePlaylistBackgroundRefresh that injects dependencies.
+ */
 function schedulePlaylistBackgroundRefresh() {
-    try {
-        const minutes = Number(config.backgroundRefreshMinutes ?? 60);
-        const intervalMs = Math.max(0, Math.round(minutes)) * 60 * 1000;
-
-        // Clear any existing interval first
-        if (global.playlistRefreshInterval) {
-            try {
-                clearInterval(global.playlistRefreshInterval);
-            } catch (_) {
-                /* ignore */
-            }
-            global.playlistRefreshInterval = null;
-        }
-
-        if (intervalMs > 0) {
-            global.playlistRefreshInterval = setInterval(() => {
-                try {
-                    refreshPlaylistCache();
-                } catch (_) {
-                    /* fire-and-forget */
-                }
-            }, intervalMs);
-            logger.debug(
-                `Playlist background refresh scheduled every ${Math.round(minutes)} minutes.`
-            );
-        } else {
-            logger.info('Playlist background refresh disabled (interval set to 0).');
-        }
-    } catch (e) {
-        logger.warn('Failed to (re)schedule playlist background refresh', { error: e?.message });
-    }
+    return schedulePlaylistBackgroundRefreshCore({
+        intervalMinutes: config.backgroundRefreshMinutes,
+        refreshCallback: refreshPlaylistCache,
+    });
 }
 
 // --- Admin Panel Logic ---
@@ -7881,6 +7769,7 @@ app.get(
 
         // If the cache is not null, it means the initial fetch has completed (even if it found no items).
         // An empty array is a valid state if no servers are configured or no media is found.
+        const { cache: playlistCache } = getPlaylistCache();
         if (playlistCache !== null) {
             const itemCount = playlistCache.length;
             const userAgent = req.get('user-agent') || '';
@@ -7918,6 +7807,8 @@ app.get(
             return res.json(filtered);
         }
 
+        const isRefreshing = isPlaylistRefreshing();
+        const refreshStartTime = getRefreshStartTime();
         if (isRefreshing) {
             // Check if refresh has been stuck for too long (over 20 seconds)
             if (refreshStartTime && Date.now() - refreshStartTime > 20000) {
@@ -7925,8 +7816,7 @@ app.get(
                     action: 'stuck_refresh_reset',
                     stuckDuration: `${Date.now() - refreshStartTime}ms`,
                 });
-                isRefreshing = false;
-                refreshStartTime = null;
+                resetRefreshState();
 
                 // Start a new refresh
                 refreshPlaylistCache();
@@ -11185,7 +11075,7 @@ app.post(
         );
 
         // Clear caches to reflect changes without a full restart
-        playlistCache = null;
+        clearPlaylistCache();
         clearPlexClients();
         // Also clear Jellyfin clients so updated hostname/port/token/insecure flag take effect
         invalidateJellyfinClient();
@@ -13841,19 +13731,21 @@ app.post(
         logger.info('Media cache cleared before refresh', { cleared });
 
         // Force reset any stuck refresh state before starting
-        if (isRefreshing) {
+        if (isPlaylistRefreshing()) {
             logger.warn('Admin refresh: Force-clearing stuck refresh state', {
                 action: 'admin_force_clear_refresh',
-                stuckDuration: refreshStartTime ? `${Date.now() - refreshStartTime}ms` : 'unknown',
+                stuckDuration: getRefreshStartTime()
+                    ? `${Date.now() - getRefreshStartTime()}ms`
+                    : 'unknown',
             });
-            isRefreshing = false;
-            refreshStartTime = null;
+            resetRefreshState();
         }
 
         // The refreshPlaylistCache function already has a lock (isRefreshing)
         // so we can call it directly. We'll await it to give feedback to the user.
         await refreshPlaylistCache();
 
+        const { cache: playlistCache } = getPlaylistCache();
         const itemCount = playlistCache ? playlistCache.length : 0;
         const message = `Media playlist successfully refreshed. ${itemCount} items found. Cache cleared: ${cleared} entries.`;
         if (isDebug) logger.debug(`[Admin API] ${message}`);
@@ -14069,13 +13961,14 @@ app.post(
     asyncHandler(async (req, res) => {
         logger.info('Admin refresh reset requested', {
             action: 'admin_refresh_reset',
-            wasRefreshing: isRefreshing,
-            stuckDuration: refreshStartTime ? `${Date.now() - refreshStartTime}ms` : 'none',
+            wasRefreshing: isPlaylistRefreshing(),
+            stuckDuration: getRefreshStartTime()
+                ? `${Date.now() - getRefreshStartTime()}ms`
+                : 'none',
         });
 
         // Force reset the refresh state
-        isRefreshing = false;
-        refreshStartTime = null;
+        resetRefreshState();
 
         res.json({
             success: true,
@@ -14091,6 +13984,9 @@ app.post(
 app.get(
     '/reset-refresh',
     asyncHandler(async (req, res) => {
+        const isRefreshing = isPlaylistRefreshing();
+        const refreshStartTime = getRefreshStartTime();
+
         logger.info('User reset refresh requested via GET', {
             action: 'user_refresh_reset',
             wasRefreshing: isRefreshing,
@@ -14099,8 +13995,7 @@ app.get(
 
         // Force reset the refresh state
         const wasStuck = isRefreshing;
-        isRefreshing = false;
-        refreshStartTime = null;
+        resetRefreshState();
 
         // Return HTML response for browser users
         const html = `<!DOCTYPE html>
@@ -14151,6 +14046,9 @@ app.get(
     asyncHandler(async (req, res) => {
         const userAgent = req.get('user-agent') || '';
         const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+
+        const { cache: playlistCache, timestamp: cacheTimestamp } = getPlaylistCache();
+        const isRefreshing = isPlaylistRefreshing();
 
         res.json({
             cache: {
@@ -15631,6 +15529,7 @@ app.get(
         }
         // Use the existing cache to inspect the current state, which is more useful for debugging.
         // Calling getPlaylistMedia() would fetch new data every time, which is not what the note implies.
+        const { cache: playlistCache } = getPlaylistCache();
         const allMedia = playlistCache || [];
 
         res.json({
@@ -15669,6 +15568,7 @@ if (require.main === module) {
     ]);
 
     startupFetch.then(result => {
+        const { cache: playlistCache } = getPlaylistCache();
         if (result === 'ok') {
             if (playlistCache && playlistCache.length > 0) {
                 logger.info(
