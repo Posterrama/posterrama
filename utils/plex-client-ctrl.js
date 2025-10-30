@@ -136,6 +136,8 @@ class PlexClientAdapter {
                 // Convert to legacy format with MediaContainer wrapper
                 return {
                     MediaContainer: {
+                        size: items.length,
+                        totalSize: items.length, // Important: needed for library counts in admin
                         Metadata: items.map(item => ({
                             ratingKey: item.ratingKey,
                             key: item.key,
@@ -154,6 +156,14 @@ class PlexClientAdapter {
                             contentRating: item.contentRating,
                             studio: item.studio,
                             tagline: item.tagline,
+                            // Media array (needed for quality detection)
+                            Media:
+                                item.media?.map(m => ({
+                                    videoResolution: m.videoResolution,
+                                    videoCodec: m.videoCodec,
+                                    audioCodec: m.audioCodec,
+                                    audioChannels: m.audioChannels,
+                                })) || [],
                             // Genre mapping
                             Genre: item.genres?.map(g => ({ tag: g.tag })) || [],
                             // Director mapping
