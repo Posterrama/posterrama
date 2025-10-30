@@ -11,30 +11,26 @@
     "clockFormat": "24h",
     "wallartMode": {
         "enabled": false,
-        "density": "medium",
-        "refreshRate": 6,
-        "randomness": 3,
-        "animationType": "fade",
+        "density": "high",
+        "refreshRate": 4,
+        "randomness": 2,
+        "animationType": "flip",
         "layoutVariant": "heroGrid",
-        "itemsPerScreen": 30,
-        "columns": 6,
-        "transitionInterval": 30,
+        "ambientGradient": true,
         "layoutSettings": {
             "heroGrid": {
-                "heroSide": "left",
-                "heroRotationMinutes": 10,
+                "heroSide": "right",
+                "heroRotationMinutes": 8,
                 "biasAmbientToHero": true
             }
-        },
-        "ambientGradient": false,
-        "autoRefresh": true
+        }
     },
     "cinemaMode": false,
-    "cinemaOrientation": "auto",
+    "cinemaOrientation": "portrait-flipped",
     "cinema": {
         "header": {
             "enabled": true,
-            "text": "Now Playing",
+            "text": "Super Cool",
             "style": "classic"
         },
         "footer": {
@@ -46,50 +42,57 @@
                 "showResolution": true,
                 "showAudio": true,
                 "showAspectRatio": true,
-                "showFlags": false,
-                "style": "subtle",
+                "showFlags": true,
+                "style": "outline",
                 "iconSet": "filled"
             }
-        },
-        "presets": {
-            "headerTexts": ["Coming Soon", "Now Playing", "Home Cinema", "Feature Presentation"],
-            "footerTexts": ["Coming Soon", "Now Playing", "Home Cinema", "Feature Presentation"]
         },
         "ambilight": {
             "enabled": true,
             "strength": 60
+        },
+        "presets": {
+            "headerTexts": [
+                "Coming Soon",
+                "Now Playing",
+                "Home Cinema",
+                "Feature Presentation",
+                "Super Cool"
+            ],
+            "footerTexts": ["Coming Soon", "Now Playing", "Home Cinema", "Feature Presentation"]
         }
     },
     "transitionEffect": "kenburns",
     "effectPauseTime": 3,
     "uiScaling": {
+        "global": 100,
         "content": 100,
         "clearlogo": 100,
-        "clock": 100,
-        "global": 100
+        "clock": 100
     },
     "mediaServers": [
         {
             "name": "Plex Server",
             "type": "plex",
-            "enabled": false,
-            "hostname": "127.0.0.1",
+            "enabled": true,
+            "hostname": "your-server-address",
             "port": 32400,
             "tokenEnvVar": "PLEX_TOKEN",
-            "movieLibraryNames": [],
+            "movieLibraryNames": ["Certified Fresh"],
             "showLibraryNames": [],
             "recentlyAddedOnly": false,
             "recentlyAddedDays": 30,
             "ratingFilter": [],
             "genreFilter": "",
-            "qualityFilter": ""
+            "qualityFilter": "",
+            "libraries": ["Certified Fresh"]
         },
         {
             "name": "Jellyfin Server",
             "type": "jellyfin",
             "enabled": false,
-            "hostname": "127.0.0.1",
-            "port": 8096,
+            "hostname": "your-server-address",
+            "port": 443,
             "tokenEnvVar": "JELLYFIN_API_KEY",
             "movieLibraryNames": [],
             "showLibraryNames": [],
@@ -108,9 +111,8 @@
     "tmdbSource": {
         "enabled": false,
         "category": "popular",
-        "minRating": 0,
-        "apiKey": "",
-        "yearFilter": null,
+        "minRating": 8,
+        "apiKey": "your-api-key-here",
         "genreFilter": ""
     },
     "streamingSources": [],
@@ -121,38 +123,14 @@
     "deviceMgmt": {
         "enabled": true,
         "bypass": {
-            "ipAllowList": ["127.0.0.1", "::1", "192.168.0.0/16"]
-        }
-    },
-    "mqtt": {
-        "enabled": false,
-        "broker": {
-            "host": "localhost",
-            "port": 1883,
-            "username": "",
-            "passwordEnvVar": "MQTT_PASSWORD",
-            "tls": false
-        },
-        "discovery": {
-            "enabled": true,
-            "prefix": "homeassistant"
-        },
-        "topicPrefix": "posterrama",
-        "publishInterval": 30,
-        "availability": {
-            "enabled": true,
-            "timeout": 60
+            "ipAllowList": ["127.0.0.1", "10.255.0.0/16"]
         }
     },
     "cache": {
-        "maxSizeGB": 2,
-        "minFreeDiskSpaceMB": 750,
-        "autoCleanup": true,
-        "cleanupIntervalMinutes": 15,
-        "maxAgeHours": 168
+        "maxSizeGB": 5
     },
     "serverName": "Your Server Name",
-    "baseUrl": "http://localhost:4000",
+    "baseUrl": "your-server-address",
     "port": 4000,
     "syncEnabled": true,
     "syncAlignMaxDelayMs": 1200,
@@ -161,7 +139,14 @@
     "backups": {
         "enabled": true,
         "time": "03:30",
-        "retention": 10
+        "retention": 5
+    },
+    "testKeyConfig": "fromConfig",
+    "someInt": 42,
+    "localDirectory": {
+        "enabled": true,
+        "rootPath": "media",
+        "watchDirectories": []
     },
     "rootRoute": {
         "behavior": "landing",
@@ -169,64 +154,22 @@
         "statusCode": 302,
         "bypassParam": "landing"
     },
-    "testKeyConfig": "fromConfig",
-    "someInt": 42,
-    "localDirectory": {
-        "enabled": false,
-        "rootPath": "",
-        "watchDirectories": [],
-        "autoImportPosterpacks": false,
-        "scanInterval": 300,
-        "generateThumbnails": true,
-        "maxFileSize": 104857600,
-        "supportedFormats": [
-            "jpg",
-            "jpeg",
-            "png",
-            "webp",
-            "gif",
-            "bmp",
-            "mp4",
-            "webm",
-            "avi",
-            "zip"
-        ],
-        "posterpackGeneration": {
-            "generateThumbnail": true,
+    "previewOrientation": "landscape",
+    "mqtt": {
+        "enabled": true,
+        "broker": {
+            "host": "your-server-address",
+            "port": 1883,
+            "username": "mqtt",
+            "passwordEnvVar": "MQTT_PASSWORD"
+        },
+        "externalUrl": "your-server-address",
+        "discovery": {
+            "enabled": true
+        },
+        "availability": {
             "enabled": true,
-            "plex": {
-                "enabled": true,
-                "selectedLibraries": [],
-                "schedule": "manual",
-                "lastGenerated": null
-            },
-            "jellyfin": {
-                "enabled": true,
-                "selectedLibraries": [],
-                "schedule": "manual",
-                "lastGenerated": null
-            },
-            "includeAssets": {
-                "poster": true,
-                "background": true,
-                "clearart": true,
-                "fanart": true,
-                "discart": true,
-                "cast": true
-            },
-            "outputNaming": "{{title}} ({{year}})",
-            "concurrentJobs": 2
-        },
-        "security": {
-            "pathValidation": true,
-            "fileTypeValidation": true,
-            "maxConcurrentUploads": 5
-        },
-        "performance": {
-            "thumbnailSize": 300,
-            "indexCacheSize": 1000,
-            "watcherEnabled": true
+            "timeout": 60
         }
-    },
-    "previewOrientation": "landscape"
+    }
 }
