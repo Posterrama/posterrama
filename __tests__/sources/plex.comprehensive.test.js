@@ -52,7 +52,9 @@ describe('Plex Source', () => {
             expect(plexSource.shuffleArray).toBe(mockShuffleArray);
             expect(plexSource.rtMinScore).toBe(0);
             expect(plexSource.isDebug).toBe(false);
-            expect(mockGetPlexClient).toHaveBeenCalledWith(mockServerConfig);
+            // Lazy initialization: client is not created until first use
+            expect(plexSource.plexPromise).toBeNull();
+            expect(plexSource.plex).toBeNull();
         });
     });
 
