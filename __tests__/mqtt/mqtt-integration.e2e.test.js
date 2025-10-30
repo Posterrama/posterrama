@@ -60,7 +60,7 @@ describeIf('MQTT Integration E2E (Real Broker)', () => {
         });
 
         // Create MQTT bridge
-        const [protocol, rest] = MQTT_BROKER.split('://');
+        const [, rest] = MQTT_BROKER.split('://');
         const [host, port] = rest.split(':');
 
         mqttBridge = new MqttBridge({
@@ -131,12 +131,7 @@ describeIf('MQTT Integration E2E (Real Broker)', () => {
 
     describe('Command Routing', () => {
         test('receives and routes commands from real broker', async () => {
-            const device = {
-                id: 'e2e-test-device',
-                name: 'E2E Test Device',
-                status: 'online',
-                currentState: { mode: 'screensaver' },
-            };
+            // Test device: e2e-test-device
 
             // Publish a command
             testClient.publish(

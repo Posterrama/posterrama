@@ -282,7 +282,8 @@ describe('MQTT Home Assistant Discovery', () => {
 
             // First publish
             await mqttBridge.publishDiscovery(device);
-            const firstCount = mockClient.getPublishedMessages('homeassistant/').length;
+            const initialMessages = mockClient.getPublishedMessages('homeassistant/');
+            expect(initialMessages.length).toBeGreaterThan(0);
 
             // Clear and try again
             mockClient.clearPublished();

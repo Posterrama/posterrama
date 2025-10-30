@@ -372,9 +372,10 @@ describe('MQTT State Publishing', () => {
 
             // First publish
             await mqttBridge.publishDeviceState(device);
-            const firstCount = mockClient.getPublishedMessages(
+            const initialMessages = mockClient.getPublishedMessages(
                 'posterrama/device/test-device-1/state'
-            ).length;
+            );
+            expect(initialMessages.length).toBeGreaterThan(0);
 
             // Clear and publish again with same state
             mockClient.clearPublished();
