@@ -64,6 +64,7 @@ jest.mock('../../utils/capabilityRegistry', () => ({
 }));
 
 const mqtt = require('mqtt');
+const logger = require('../../utils/logger');
 const MqttBridge = require('../../utils/mqttBridge');
 
 describe('MQTT State Publishing', () => {
@@ -72,6 +73,11 @@ describe('MQTT State Publishing', () => {
 
     beforeEach(async () => {
         jest.clearAllMocks();
+
+        // Setup capabilityRegistry mock to return empty arrays
+        const capabilityRegistry = require('../../utils/capabilityRegistry');
+        capabilityRegistry.getAvailableCapabilities.mockReturnValue([]);
+        capabilityRegistry.getAllCapabilities.mockReturnValue([]);
 
         // Create mock client
         mockClient = new MockMqttClient();
@@ -87,8 +93,18 @@ describe('MQTT State Publishing', () => {
 
         await mqttBridge.init();
 
-        // Ensure client is connected
+        // Ensure client and bridge are marked as connected
         mockClient.connected = true;
+        mqttBridge.connected = true;
+
+        // Clear any cached state to avoid "no change" skips
+        if (mqttBridge.deviceStates) {
+            mqttBridge.deviceStates.clear();
+        }
+        if (mqttBridge.deviceModes) {
+            mqttBridge.deviceModes.clear();
+        }
+
         await new Promise(resolve => setTimeout(resolve, 100));
     });
 
