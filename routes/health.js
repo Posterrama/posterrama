@@ -55,25 +55,33 @@ router.get(
     })
 );
 
-module.exports = router;
-router.get(
-    '/health',
-    asyncHandler(async (req, res) => {
-        const detailed = req.query.detailed === 'true';
-
-        if (detailed) {
-            const health = await getDetailedHealth();
-            res.json(health);
-        } else {
-            const health = getBasicHealth();
-            res.json(health);
-        }
-    })
-);
-
 /**
- * Backward-compatible alias for /api/health
- * (documented in swagger but previously missing implementation)
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Health check endpoint (alias)
+ *     description: Backward-compatible alias for /health. Returns basic health status or detailed diagnostics.
+ *     tags: ['System']
+ *     parameters:
+ *       - in: query
+ *         name: detailed
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns detailed health information
+ *     responses:
+ *       200:
+ *         description: Health status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   enum: [ok, degraded, error]
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
  */
 router.get('/api/health', (req, res, next) => {
     // Re-use existing /health handler logic

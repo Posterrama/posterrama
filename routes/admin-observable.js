@@ -153,6 +153,45 @@ module.exports = function createAdminObservableRouter({
         }
     });
 
+    /**
+     * @swagger
+     * /api/admin/logs/level:
+     *   post:
+     *     summary: Update the server log level
+     *     description: Changes the Winston logger level dynamically (error, warn, info, http, verbose, debug, silly)
+     *     tags: ['Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [level]
+     *             properties:
+     *               level:
+     *                 type: string
+     *                 enum: [error, warn, info, http, verbose, debug, silly]
+     *     responses:
+     *       200:
+     *         description: Log level updated successfully
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                 oldLevel:
+     *                   type: string
+     *                 newLevel:
+     *                   type: string
+     *       400:
+     *         description: Invalid log level
+     *       500:
+     *         description: Failed to update log level
+     */
     router.post('/api/admin/logs/level', isAuthenticated, (req, res) => {
         try {
             const { level } = req.body;

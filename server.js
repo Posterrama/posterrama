@@ -2392,7 +2392,32 @@ const configBackupsRouter = createConfigBackupsRouter({
 });
 app.use('/', configBackupsRouter);
 
-// Backward-compatible alias for /api/health (documented in swagger but previously missing implementation)
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Health check endpoint (API alias)
+ *     description: Backward-compatible alias that forwards to /health. See /health documentation for full details.
+ *     tags: ['System']
+ *     parameters:
+ *       - in: query
+ *         name: detailed
+ *         schema:
+ *           type: boolean
+ *         description: Return detailed health information
+ *     responses:
+ *       200:
+ *         description: Health status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ */
 app.get('/api/health', (req, res, next) => {
     // Re-use existing /health handler logic by forwarding internally
     req.url = '/health' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
