@@ -1222,27 +1222,6 @@ body.screensaver-mode #poster-wrapper {
     height: 24px;
 }
 
-/* iOS-only: lock to clip behavior for screensaver view */
-@supports (-webkit-touch-callout: none) {
-    /* Use modern viewport units on iOS Safari */
-    /* Clip mode: stop above the visible toolbar area */
-    body.ios-bg-clip:not(.cinema-mode):not(.wallart-mode) .screensaver-layer {
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: auto !important;
-        /* Fallbacks: use 100vh, then prefer 100svh when supported */
-        height: 100vh !important; /* baseline: stops above address bar */
-        height: 100svh !important; /* preferred: small viewport height excludes the address bar */
-        background-attachment: scroll !important;
-    }
-    body.ios-bg-clip:not(.cinema-mode):not(.wallart-mode) #info-container {
-        padding-bottom: 50px !important; /* keep original spacing */
-    }
-    body.ios-bg-clip:not(.cinema-mode):not(.wallart-mode) #controls-container {
-        bottom: 70px !important; /* ensure controls do not cross the background edge */
-    }
-}
 /* Desktop-specific poster positioning (override mobile changes) */
 @media (min-width: 769px) {
     #poster-wrapper {
