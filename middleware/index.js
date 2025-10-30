@@ -293,4 +293,8 @@ module.exports = {
     requestLoggingMiddleware,
     errorHandlingMiddleware,
     healthCheckMiddleware,
+    // New modular middleware
+    asyncHandler: require('./asyncHandler'),
+    createIsAuthenticated: require('./auth'),
+    testSessionShim: require('./testSessionShim'),
 };

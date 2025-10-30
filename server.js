@@ -23,7 +23,7 @@ const {
     getAvatarPath,
     isDeviceMgmtEnabled,
 } = require('./lib/utils-helpers');
-const { isAuthenticated: isAuthenticatedBase } = require('./lib/auth-helpers');
+const { asyncHandler, createIsAuthenticated, testSessionShim } = require('./middleware');
 const { readPresets, writePresets } = require('./lib/preset-helpers');
 const {
     createPlexClient,
@@ -138,7 +138,7 @@ const port = process.env.SERVER_PORT || config.serverPort || 4000;
 const isDebug = process.env.DEBUG === 'true';
 
 // Wrapper for isAuthenticated that passes isDebug
-const isAuthenticated = (req, res, next) => isAuthenticatedBase(req, res, next, { isDebug });
+const isAuthenticated = createIsAuthenticated({ isDebug });
 
 // Cache the server IP address
 const serverIPAddress = getLocalIPAddress();
@@ -1535,11 +1535,7 @@ const {
     schemas,
 } = require('./middleware/validate');
 
-// Wrapper for async routes to catch errors and pass them to the error handler
-// Must be defined before any routes use it
-const asyncHandler = fn => (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-};
+// asyncHandler now imported from middleware/
 
 // Small in-memory cache for Admin filter preview results to avoid repeated work
 // TTL is short to keep UI responsive to recent changes.
@@ -4029,7 +4025,7 @@ app.use(
         getAssetVersions: () => getAssetVersions(__dirname),
         isDebug,
         ASSET_VERSION,
-        isAuthenticated: isAuthenticatedBase,
+        isAuthenticated,
         authLimiter,
         asyncHandler,
         ApiError,
@@ -4038,14 +4034,7 @@ app.use(
 
 // Device management routes (modularized, feature-flagged)
 if (isDeviceMgmtEnabled(__dirname)) {
-    // Test session shim for compatibility with test environments
-    const testSessionShim = (req, _res, next) => {
-        if (process.env.NODE_ENV === 'test') {
-            req.session = req.session || {};
-            req.session.user = req.session.user || { username: 'test-admin' };
-        }
-        next();
-    };
+    // Test session shim now imported from middleware/
 
     const deviceRegisterLimiter = createRateLimiter(
         60 * 1000,
