@@ -9542,50 +9542,8 @@ app.get('/admin/logs', isAuthenticated, (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/HealthCheckResponse'
  */
-// Import health check utilities
-const { getBasicHealth, getDetailedHealth } = require('./utils/healthCheck');
-
-/**
- * @swagger
- * /health:
- *   get:
- *     summary: Health Check Endpoint
- *     description: >
- *       Health check endpoint that returns basic service status by default.
- *       Use ?detailed=true query parameter for comprehensive health checks
- *       including configuration validation, filesystem access, and media server connectivity.
- *     tags: ['Public API']
- *     parameters:
- *       - in: query
- *         name: detailed
- *         schema:
- *           type: boolean
- *           default: false
- *         description: Whether to perform detailed health checks
- *     responses:
- *       200:
- *         description: Health check completed
- *         content:
- *           application/json:
- *             schema:
- *               oneOf:
- *                 - $ref: '#/components/schemas/BasicHealthResponse'
- *                 - $ref: '#/components/schemas/HealthCheckResponse'
- */
-app.get(
-    '/health',
-    asyncHandler(async (req, res) => {
-        const detailed = req.query.detailed === 'true';
-
-        if (detailed) {
-            const health = await getDetailedHealth();
-            res.json(health);
-        } else {
-            const health = getBasicHealth();
-            res.json(health);
-        }
-    })
-);
+// Health check routes (modularized)
+app.use('/', require('./routes/health'));
 
 // Backward-compatible alias for /api/health (documented in swagger but previously missing implementation)
 app.get('/api/health', (req, res, next) => {
