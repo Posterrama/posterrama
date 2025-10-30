@@ -27,7 +27,7 @@ class CacheManager {
         };
         this.config = {
             defaultTTL: options.defaultTTL || 300000, // 5 minutes default
-            maxSize: options.maxSize || 100, // Max cache entries
+            maxSize: options.maxSize || 500, // Max cache entries (increased from 100)
             persistPath: options.persistPath || path.resolve(__dirname, '../cache'),
             enablePersistence: options.enablePersistence || false,
             enableCompression: options.enableCompression || false,
@@ -122,20 +122,43 @@ class CacheManager {
     }
 
     /**
+     * Evict least recently used entry
+     * Uses sort-based LRU for O(n log n) eviction
+     */
+    evictLRU() {
+        if (this.cache.size === 0) return;
+
+        // Find least recently used entry
+        let lruKey = null;
+        let oldestAccess = Infinity;
+
+        for (const [key, entry] of this.cache.entries()) {
+            if (entry.lastAccessed < oldestAccess) {
+                oldestAccess = entry.lastAccessed;
+                lruKey = key;
+            }
+        }
+
+        if (lruKey) {
+            this.delete(lruKey);
+            logger.debug('LRU eviction: removed least recently used entry', {
+                key: lruKey,
+                lastAccessed: new Date(oldestAccess).toISOString(),
+                cacheSize: this.cache.size,
+            });
+        }
+    }
+
+    /**
      * Set cache entry with optional TTL
      */
     set(key, value, ttl) {
         try {
             this.stats.sets++;
 
-            // Check cache size limit
+            // Check cache size limit - use LRU eviction
             if (this.cache.size >= this.config.maxSize && !this.cache.has(key)) {
-                // Remove oldest entry (LRU-like)
-                const firstKey = this.cache.keys().next().value;
-                this.delete(firstKey);
-                logger.debug('Cache size limit reached, removed oldest entry', {
-                    removedKey: firstKey,
-                });
+                this.evictLRU();
             }
 
             // Clear existing timer if updating
@@ -146,14 +169,15 @@ class CacheManager {
             const ttlMs = typeof ttl === 'number' ? ttl : this.config.defaultTTL;
             const expiresAt = Date.now() + ttlMs;
             const etag = this.generateETag(value);
+            const now = Date.now();
 
             const entry = {
                 value,
                 etag,
-                createdAt: Date.now(),
+                createdAt: now,
                 expiresAt,
                 accessCount: 0,
-                lastAccessed: Date.now(),
+                lastAccessed: now, // Will be updated on first get()
             };
 
             this.cache.set(key, entry);
@@ -447,7 +471,7 @@ class CacheManager {
 // Create singleton instance
 const cacheManager = new CacheManager({
     defaultTTL: 300000, // 5 minutes
-    maxSize: 100,
+    maxSize: 500, // Increased from 100 for better caching
     enablePersistence: false, // Disable for now to avoid complexity
 });
 
