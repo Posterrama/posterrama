@@ -634,8 +634,8 @@
 button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block !important; visibility: visible !important; opacity: 1 !important;}
 .pr-btn#pr-do-pair, .pr-btn#pr-close, .pr-footer-btn#pr-skip-setup {display: inline-block !important; visibility: visible !important; opacity: 1 !important;}
 @media (max-width: 768px){
-#pr-welcome-card{width:100%;max-width:100vw;border-radius:0;max-height:100vh}
-#pr-welcome-overlay{padding:0;align-items:flex-start}
+#pr-welcome-card{width:90%;max-width:420px;border-radius:16px;max-height:95vh;margin:auto}
+#pr-welcome-overlay{padding:10px;align-items:center}
 .pr-body{grid-template-columns:1fr;gap:16px;padding:16px}
 .pr-qr-section{order:-1;padding:12px}
 .pr-header{padding:16px}
