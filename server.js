@@ -120,6 +120,7 @@ const TMDBSource = require('./sources/tmdb');
 const LocalDirectorySource = require('./sources/local');
 const { getPlaylistMedia } = require('./lib/media-aggregator');
 const { isSourceTypeEnabled: isSourceTypeEnabledUtil } = require('./lib/source-utils');
+const { getCacheConfig: getCacheConfigUtil } = require('./lib/cache-utils');
 // INTENTIONAL-TODO(new-source): If you add a new source adapter under sources/<name>.js, require it here
 // const MyNewSource = require('./sources/mynew');
 const deepMerge = require('./utils/deep-merge');
@@ -11052,63 +11053,10 @@ app.get(
 );
 
 /**
- * Get the effective cache configuration used by the running instance.
+ * getCacheConfig moved to lib/cache-utils.js
  * Prefer live values from CacheDiskManager; fall back to loaded config.json defaults.
  */
-function getCacheConfig() {
-    try {
-        // Read latest config from disk to support manual edits without restart
-        let diskCfg = null;
-        try {
-            const raw = fs.readFileSync('./config.json', 'utf-8');
-            diskCfg = JSON.parse(raw);
-        } catch (_) {
-            // ignore disk read errors; fall back to in-memory
-            diskCfg = null;
-        }
-
-        const diskMaxGB = Number(diskCfg?.cache?.maxSizeGB ?? config?.cache?.maxSizeGB ?? 2);
-        const diskMinMB = Number(
-            diskCfg?.cache?.minFreeDiskSpaceMB ?? config?.cache?.minFreeDiskSpaceMB ?? 500
-        );
-
-        // If CacheDiskManager is out of sync with on-disk config, update it live
-        const liveMaxGB = cacheDiskManager?.maxSizeBytes
-            ? cacheDiskManager.maxSizeBytes / (1024 * 1024 * 1024)
-            : null;
-        if (
-            liveMaxGB != null &&
-            Number.isFinite(diskMaxGB) &&
-            Math.abs(liveMaxGB - diskMaxGB) > 1e-9
-        ) {
-            try {
-                cacheDiskManager.updateConfig(diskCfg?.cache || config?.cache || {});
-            } catch (_) {
-                /* ignore update errors */
-            }
-        }
-
-        // Keep in-memory config close to disk to avoid stale reads
-        try {
-            if (diskCfg && typeof diskCfg === 'object') Object.assign(config, diskCfg);
-        } catch (_) {
-            /* ignore */
-        }
-
-        const maxSizeGB = cacheDiskManager?.maxSizeBytes
-            ? cacheDiskManager.maxSizeBytes / (1024 * 1024 * 1024)
-            : diskMaxGB;
-        const minFreeDiskSpaceMB = cacheDiskManager?.minFreeDiskSpaceBytes
-            ? Math.round(cacheDiskManager.minFreeDiskSpaceBytes / (1024 * 1024))
-            : diskMinMB;
-        return { maxSizeGB, minFreeDiskSpaceMB };
-    } catch (_) {
-        return {
-            maxSizeGB: Number(config?.cache?.maxSizeGB ?? 2),
-            minFreeDiskSpaceMB: Number(config?.cache?.minFreeDiskSpaceMB ?? 500),
-        };
-    }
-}
+const getCacheConfig = () => getCacheConfigUtil({ config, cacheDiskManager });
 
 /**
  * @swagger
