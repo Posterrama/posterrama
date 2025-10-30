@@ -105,7 +105,7 @@ describe('Admin Device Command wait=true (Isolated)', () => {
 
         // Override sendCommandAwait to simulate timeout
         const originalSendCommandAwait = context.mocks.wsHub.sendCommandAwait;
-        context.mocks.wsHub.sendCommandAwait = async (devId, command, options = {}) => {
+        context.mocks.wsHub.sendCommandAwait = async () => {
             throw new Error('ack_timeout');
         };
 

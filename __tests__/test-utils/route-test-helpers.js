@@ -263,15 +263,14 @@ function createMockWsHub() {
                 throw new Error('Device not connected');
             }
 
-            const ws = connections.get(deviceId);
-            if (ws && ws.send) {
-                ws.send(JSON.stringify(command));
+            const connection = connections.get(deviceId);
+            if (connection && connection.send) {
+                connection.send(JSON.stringify(command));
             }
 
             emitter.emit('command', { deviceId, command });
             return { sent: true, deviceId, command };
         },
-
         async sendCommandAwait(deviceId, command, options = {}) {
             const timeoutMs = options.timeoutMs || 5000;
 
@@ -303,7 +302,7 @@ function createMockWsHub() {
         async broadcast(command, filter = null) {
             const results = [];
 
-            for (const [deviceId, ws] of connections) {
+            for (const [deviceId] of connections) {
                 if (filter && !filter(deviceId)) continue;
 
                 try {
@@ -364,8 +363,8 @@ function createMockRateLimiter() {
  * @returns {Function} Wrapped handler
  */
 function createMockAsyncHandler(fn) {
-    return (req, res, next) => {
-        Promise.resolve(fn(req, res, next)).catch(next);
+    return (req, res, _next) => {
+        Promise.resolve(fn(req, res, _next)).catch(_next);
     };
 }
 
@@ -422,7 +421,7 @@ function setupTestApp(router, basePath = '/') {
     app.use(basePath, router);
 
     // Error handler
-    app.use((err, req, res, next) => {
+    app.use((err, req, res, _next) => {
         const statusCode = err.statusCode || 500;
         res.status(statusCode).json({
             error: err.message || 'Internal server error',
