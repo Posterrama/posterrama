@@ -140,7 +140,13 @@ class PlexSource {
                 try {
                     const content = await this.plex.query(`/library/sections/${library.key}/all`);
                     if (content?.MediaContainer?.Metadata) {
-                        allItems = allItems.concat(content.MediaContainer.Metadata);
+                        // Add library info to each item
+                        const itemsWithLibrary = content.MediaContainer.Metadata.map(item => ({
+                            ...item,
+                            librarySectionTitle: name,
+                            librarySectionID: library.key,
+                        }));
+                        allItems = allItems.concat(itemsWithLibrary);
                         if (this.isDebug) {
                             logger.debug(
                                 `[PlexSource:${this.server.name}] Library "${name}" provided ${content.MediaContainer.Metadata.length} items`

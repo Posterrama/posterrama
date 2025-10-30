@@ -6686,7 +6686,9 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
                 sourceItem.Genre && Array.isArray(sourceItem.Genre)
                     ? sourceItem.Genre.map(genre => genre.id)
                     : null,
+            quality: qualityLabel, // Add quality field for frontend compatibility
             qualityLabel: qualityLabel,
+            library: itemSummary.librarySectionTitle || null, // Add library field from itemSummary
             overview: sourceItem.summary || null,
             studios,
             cast,
