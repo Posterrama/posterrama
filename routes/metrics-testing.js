@@ -153,7 +153,7 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
      *         description: Real-time metrics retrieved successfully
      */
     router.get('/api/v1/metrics/realtime', (req, res) => {
-        const metrics = metricsManager.getRealtimeMetrics();
+        const metrics = metricsManager.getRealTimeMetrics();
         res.json(metrics);
     });
 
@@ -193,7 +193,7 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
      *         description: Dashboard metrics retrieved successfully
      */
     router.get('/api/v1/metrics/dashboard', (req, res) => {
-        const metrics = metricsManager.getDashboardMetrics();
+        const metrics = metricsManager.getDashboardSummary();
         res.json(metrics);
     });
 
