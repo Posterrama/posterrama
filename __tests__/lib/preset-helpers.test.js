@@ -10,33 +10,48 @@ const path = require('path');
 const os = require('os');
 const { readPresets, writePresets } = require('../../lib/preset-helpers');
 
+// Force serial execution for this test suite to avoid race conditions
+describe.serial = describe;
+
 describe('Preset Helpers', () => {
     // Increase timeout for potentially slow temp file operations
-    jest.setTimeout(10000);
+    jest.setTimeout(20000);
     let testDir;
     let presetsFile;
 
     beforeEach(async () => {
         // Create a UNIQUE test directory for EACH test with process ID to avoid collisions
-        const uniqueId = `preset-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+        const uniqueId = `preset-test-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
         testDir = await fs.mkdtemp(path.join(os.tmpdir(), uniqueId));
         presetsFile = path.join(testDir, 'device-presets.json');
 
-        // Add small delay to ensure unique timestamps even in fast parallel runs
-        await new Promise(resolve => setTimeout(resolve, 5));
+        // Ensure test directory is actually created and writable
+        await fs.access(testDir);
+
+        // Add delay to ensure filesystem operations complete
+        await new Promise(resolve => setTimeout(resolve, 50));
     });
 
     afterEach(async () => {
-        // Aggressive cleanup - remove test directory completely
-        try {
-            await fs.rm(testDir, { recursive: true, force: true });
-        } catch (err) {
-            // Ignore cleanup errors, but log for debugging
-            if (process.env.DEBUG_TESTS) {
-                console.warn(`Cleanup warning for ${testDir}:`, err.message);
+        // Ensure cleanup happens even if tests fail
+        if (testDir) {
+            try {
+                // Add delay before cleanup to ensure all file handles are closed
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await fs.rm(testDir, {
+                    recursive: true,
+                    force: true,
+                    maxRetries: 3,
+                    retryDelay: 100,
+                });
+            } catch (err) {
+                // Ignore cleanup errors, but log for debugging
+                if (process.env.DEBUG_TESTS) {
+                    console.warn(`Cleanup warning for ${testDir}:`, err.message);
+                }
             }
         }
-        // Ensure we're not holding any references
+        // Clear references
         testDir = null;
         presetsFile = null;
     });
