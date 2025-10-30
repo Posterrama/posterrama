@@ -312,7 +312,28 @@ app.post('/api/admin/change-password', authLimiter, isAuthenticated, ...);
 
 ---
 
-#### 5b. CSRF Protection
+#### 5b. CSRF Protection ⏸️ DEFERRED
+
+**Impact**: Prevents Cross-Site Request Forgery attacks on state-changing endpoints  
+**Effort**: 3-4 hours (csurf integration + admin UI updates + tests)
+
+**Decision**: ⏸️ **DEFERRED** - Low priority for private/internal deployments
+
+**Analysis** (October 26, 2025):
+
+- **Current state**: Session-based auth without CSRF tokens
+- **Threat model**: CSRF requires attacker site + logged-in victim + public access
+- **Deployment pattern**: Posterrama typically runs on private networks/VPN
+- **Breaking changes**: All POST/PUT/DELETE requests require token updates
+
+**When to implement**:
+
+- Public internet access with remote admin
+- Reverse proxy with public URL
+- Defense-in-depth strategy (recommended but not critical)
+- After higher-priority items (CSP, device presets)
+
+**Implementation sketch** (for future reference):
 
 ```bash
 npm install csurf
@@ -321,12 +342,18 @@ npm install csurf
 ```javascript
 // server.js
 const csrf = require('csurf');
-const csrfProtection = csrf({ cookie: true });
+const csrfProtection = csrf({ cookie: true, httpOnly: false });
 
 // Apply to state-changing routes
 app.post('/api/admin/*', csrfProtection, adminRoutes);
 app.put('/api/devices/*', csrfProtection, deviceRoutes);
+app.delete('/api/admin/*', csrfProtection, adminRoutes);
+
+// Admin UI needs to include CSRF token in all AJAX requests
+// <meta name="csrf-token" content="{{ csrfToken }}">
 ```
+
+**Alternative**: Focus on CSP (5c) first - provides XSS protection without breaking changes
 
 ---
 
