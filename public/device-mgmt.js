@@ -636,16 +636,22 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 @media (max-width: 768px){
 #pr-welcome-card{width:100%;max-width:100vw;border-radius:0;max-height:100vh}
 #pr-welcome-overlay{padding:0;align-items:flex-start}
-.pr-body{grid-template-columns:1fr;gap:24px;padding:20px}
-.pr-qr-section{order:-1}
-.pr-header{padding:20px}
-.pr-header h2{font-size:20px}
-.pr-header .pr-subtitle{font-size:13px}
-.pr-countdown{position:static;margin-top:12px;font-size:11px;padding:6px 10px}
-.pr-code-input{width:100%;max-width:260px}
-.pr-primary-actions{width:100%;max-width:300px}
-.pr-qr-code{width:200px;height:200px}
-.pr-footer{padding:16px 20px}
+.pr-body{grid-template-columns:1fr;gap:16px;padding:16px}
+.pr-qr-section{order:-1;padding:12px}
+.pr-header{padding:16px}
+.pr-header h2{font-size:18px}
+.pr-header .pr-subtitle{font-size:12px;margin:4px 0 0}
+.pr-countdown{position:static;margin-top:8px;font-size:10px;padding:4px 8px}
+.pr-field{gap:4px}
+.pr-field label{font-size:12px;margin-bottom:2px}
+.pr-code-input{width:100%;max-width:200px;padding:10px;font-size:16px;letter-spacing:4px}
+.pr-primary-actions{width:100%;max-width:240px;gap:8px}
+.pr-btn{padding:10px 6px;font-size:13px}
+.pr-qr-code{width:140px;height:140px;padding:8px}
+.pr-qr-caption{font-size:11px}
+.pr-msg{font-size:12px;padding:6px 0}
+.pr-footer{padding:12px 16px}
+.pr-footer-btn{padding:12px 16px;font-size:13px}
 }
 </style>
 <div id="pr-welcome-card" role="dialog" aria-modal="true" aria-labelledby="pr-welcome-title">
