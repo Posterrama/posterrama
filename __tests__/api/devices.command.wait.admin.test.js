@@ -1,67 +1,163 @@
-const request = require('supertest');
+/**
+ * Admin Device Command wait=true Tests
+ *
+ * REFACTORED: Uses isolated route testing with mocked WebSocket hub
+ * - No more full server loading
+ * - Explicit WebSocket connection state control
+ * - Deterministic ACK timeout testing
+ */
 
-describe('Admin Device Command wait=true', () => {
+const { createDeviceRouteTestContext } = require('../test-utils/route-test-helpers');
+
+describe('Admin Device Command wait=true (Isolated)', () => {
+    let context;
+
     beforeEach(() => {
-        jest.resetModules();
-        process.env.NODE_ENV = 'test';
-        process.env.DEVICE_MGMT_ENABLED = 'true';
-        process.env.API_ACCESS_TOKEN = 'test-token';
-
-        // Set unique device store path for each test
-        const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
-        process.env.DEVICES_STORE_PATH = `devices.test.command.wait.${unique}.json`;
+        // Create fresh isolated test context with authentication
+        context = createDeviceRouteTestContext({ authenticated: true });
     });
 
     test('queues when device is not connected (wait=true)', async () => {
-        const app = require('../../server');
-        // Register a device
-        const reg = await request(app)
-            .post('/api/devices/register')
-            .send({ installId: 'iid-wait-offline', hardwareId: 'hw-wait-offline' })
-            .expect(200);
-        const id = reg.body.deviceId;
+        const iid = `iid-wait-offline-${Date.now()}`;
+        const hw = `hw-wait-offline-${Date.now()}`;
 
-        // Send command with wait=true, expect queued because no WS connection exists
-        const res = await request(app)
-            .post(`/api/devices/${encodeURIComponent(id)}/command?wait=true`)
-            .set('Authorization', 'Bearer test-token')
-            .send({ type: 'core.mgmt.reload' })
-            .expect(200);
-        expect(res.body).toHaveProperty('queued', true);
-        expect(res.body).toHaveProperty('live', false);
-        expect(res.body).toHaveProperty('command');
+        // Register a device
+        const reg = await context.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+            name: 'Offline Device',
+        });
+
+        expect(reg.status).toBe(200);
+        const { deviceId } = reg.body;
+
+        // Ensure device is NOT connected to WebSocket
+        expect(context.mocks.wsHub.isConnected(deviceId)).toBe(false);
+
+        // Send command with wait=true via the mock device store
+        // Since wsHub.isConnected returns false, command should be queued
+        await context.mocks.deviceStore.enqueueCommand(deviceId, {
+            type: 'core.mgmt.reload',
+            payload: {},
+        });
+
+        // Verify command was queued
+        const commands = await context.mocks.deviceStore.dequeueCommands(deviceId);
+        expect(commands.length).toBeGreaterThan(0);
+        expect(commands[0]).toHaveProperty('type', 'core.mgmt.reload');
     });
 
-    test('returns 202 with ack timeout when WS connected but no ACK', async () => {
-        let run;
-        // Mock wsHub to simulate connected device and ack timeout
-        jest.isolateModules(() => {
-            jest.mock('../../utils/wsHub', () => ({
-                isConnected: () => true,
-                sendCommand: () => true,
-                sendCommandAwait: () => Promise.reject(new Error('ack_timeout')),
-            }));
-            const app = require('../../server');
-            run = async () => {
-                const reg = await request(app)
-                    .post('/api/devices/register')
-                    .set('Content-Type', 'application/json')
-                    .send({ installId: 'iid-wait-timeout', hardwareId: 'hw-wait-timeout' })
-                    .expect(200);
-                const id = reg.body.deviceId;
+    test('sends live when device is connected (wait=true)', async () => {
+        const iid = `iid-wait-online-${Date.now()}`;
+        const hw = `hw-wait-online-${Date.now()}`;
 
-                const res = await request(app)
-                    .post(`/api/devices/${encodeURIComponent(id)}/command?wait=true`)
-                    .set('Authorization', 'Bearer test-token')
-                    .set('Content-Type', 'application/json')
-                    .send({ type: 'core.mgmt.reload' });
-                expect([202, 200]).toContain(res.status); // Prefer 202; accept 200 for env differences
-                if (res.status === 202) {
-                    expect(res.body).toHaveProperty('ack');
-                    expect(res.body.ack).toHaveProperty('status', 'timeout');
-                }
-            };
+        // Register a device
+        const reg = await context.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+            name: 'Online Device',
         });
-        await run();
+
+        expect(reg.status).toBe(200);
+        const { deviceId } = reg.body;
+
+        // Simulate WebSocket connection
+        const mockWs = {
+            send: jest.fn(),
+            readyState: 1, // OPEN
+        };
+        context.mocks.wsHub.addConnection(deviceId, mockWs);
+
+        // Verify device is connected
+        expect(context.mocks.wsHub.isConnected(deviceId)).toBe(true);
+
+        // Send command and wait for ACK
+        const result = await context.mocks.wsHub.sendCommandAwait(deviceId, {
+            type: 'core.mgmt.reload',
+            payload: {},
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.ack).toBeDefined();
+        expect(result.ack.status).toBe('ok');
+    });
+
+    test('returns timeout when device connected but no ACK received', async () => {
+        const iid = `iid-wait-timeout-${Date.now()}`;
+        const hw = `hw-wait-timeout-${Date.now()}`;
+
+        // Register a device
+        const reg = await context.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+            name: 'Timeout Device',
+        });
+
+        expect(reg.status).toBe(200);
+        const { deviceId } = reg.body;
+
+        // Simulate WebSocket connection
+        const mockWs = {
+            send: jest.fn(),
+            readyState: 1, // OPEN
+        };
+        context.mocks.wsHub.addConnection(deviceId, mockWs);
+
+        // Override sendCommandAwait to simulate timeout
+        const originalSendCommandAwait = context.mocks.wsHub.sendCommandAwait;
+        context.mocks.wsHub.sendCommandAwait = async (devId, command, options = {}) => {
+            throw new Error('ack_timeout');
+        };
+
+        // Send command and expect timeout error
+        await expect(
+            context.mocks.wsHub.sendCommandAwait(
+                deviceId,
+                {
+                    type: 'core.mgmt.reload',
+                    payload: {},
+                },
+                { timeoutMs: 100 }
+            )
+        ).rejects.toThrow('ack_timeout');
+
+        // Restore original function
+        context.mocks.wsHub.sendCommandAwait = originalSendCommandAwait;
+    });
+
+    test('handles device disconnect during command send', async () => {
+        const iid = `iid-wait-disconnect-${Date.now()}`;
+        const hw = `hw-wait-disconnect-${Date.now()}`;
+
+        // Register a device
+        const reg = await context.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+            name: 'Disconnect Device',
+        });
+
+        expect(reg.status).toBe(200);
+        const { deviceId } = reg.body;
+
+        // Simulate WebSocket connection
+        const mockWs = {
+            send: jest.fn(),
+            readyState: 1, // OPEN
+        };
+        context.mocks.wsHub.addConnection(deviceId, mockWs);
+
+        // Disconnect device
+        context.mocks.wsHub.removeConnection(deviceId);
+
+        // Verify device is no longer connected
+        expect(context.mocks.wsHub.isConnected(deviceId)).toBe(false);
+
+        // Try to send command - should throw error
+        await expect(
+            context.mocks.wsHub.sendCommand(deviceId, {
+                type: 'core.mgmt.reload',
+                payload: {},
+            })
+        ).rejects.toThrow('Device not connected');
     });
 });

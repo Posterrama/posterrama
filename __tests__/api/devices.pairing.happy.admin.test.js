@@ -1,123 +1,181 @@
-const request = require('supertest');
+/**
+ * Device Pairing Happy Path Tests
+ *
+ * REFACTORED: Uses isolated route testing instead of full server loading
+ * - Eliminates timing/race conditions from server startup
+ * - No more file-based device store conflicts
+ * - Faster and more reliable test execution
+ */
 
-describe('Devices Pairing Happy Path', () => {
-    let app;
+const { createDeviceRouteTestContext } = require('../test-utils/route-test-helpers');
 
-    beforeAll(async () => {
-        // Initialize app once for all tests to reduce module loading race conditions
-        process.env.NODE_ENV = 'test';
-        process.env.DEVICE_MGMT_ENABLED = 'true';
-        process.env.API_ACCESS_TOKEN = 'test-token';
+describe('Devices Pairing Happy Path (Isolated)', () => {
+    let context;
 
-        // Clear any cached modules
-        jest.resetModules();
-
-        // Wait a bit to ensure clean state
-        await new Promise(r => setTimeout(r, 100));
-    });
-
-    beforeEach(async () => {
-        // Isolate device store per test to avoid coverage-run interference
-        // Add extra randomness and timestamp to prevent race conditions in parallel runs
-        const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.${performance.now()}`;
-        process.env.DEVICES_STORE_PATH = `devices.test.${unique}.pair.json`;
-
-        // Ensure fresh app instance for each test
-        jest.resetModules();
-        app = require('../../server');
-
-        // Add stabilization delay
-        await new Promise(r => setTimeout(r, 100));
+    beforeEach(() => {
+        // Create fresh isolated test context with authentication enabled
+        context = createDeviceRouteTestContext({ authenticated: true });
     });
 
     test('admin generates code and device claims with token -> rotated secret', async () => {
-        // Ensure app is available
-        if (!app) {
-            app = require('../../server');
-        }
+        const iid = `iid-pair-happy-${Date.now()}`;
+        const hw = `hw-pair-happy-${Date.now()}`;
 
-        // Add extra stabilization delay
-        await new Promise(r => setTimeout(r, 200));
+        // Register a device
+        const reg = await context.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+            name: 'Pairing Test Device',
+        });
 
-        // Register a device to pair with more robust retry logic
-        let reg;
-        let lastError;
-        const maxRetries = 10; // Increased retries
+        expect(reg.status).toBe(200);
+        expect(reg.body.deviceId).toBeTruthy();
+        expect(reg.body.secret).toBeTruthy();
 
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                // Add delay before each attempt
-                if (attempt > 0) {
-                    await new Promise(r => setTimeout(r, 100 * attempt)); // Progressive backoff
-                }
-
-                reg = await request(app)
-                    .post('/api/devices/register')
-                    .set('Content-Type', 'application/json')
-                    .send({ installId: 'iid-pair-happy', hardwareId: 'hw-pair-happy' });
-
-                if (reg.status === 200 && reg.body && reg.body.deviceId) {
-                    break;
-                }
-                lastError = new Error(
-                    `Registration failed with status ${reg.status}: ${reg.text || 'No response body'}`
-                );
-            } catch (error) {
-                lastError = error;
-                console.warn(`Device registration attempt ${attempt + 1} failed:`, error.message);
-            }
-        }
-
-        if (!reg || reg.status !== 200 || !reg.body || !reg.body.deviceId) {
-            throw (
-                lastError ||
-                new Error('Registration failed after all retries - no valid response received')
-            );
-        }
-
-        const { deviceId, deviceSecret } = reg.body;
-
-        // Ensure we have valid data
-        expect(deviceId).toBeTruthy();
-        expect(deviceSecret).toBeTruthy();
-
-        // Extended delay to ensure fs writes are fully flushed
-        await new Promise(r => setTimeout(r, 200));
+        const { deviceId, secret: deviceSecret } = reg.body;
 
         // Admin generates pairing code
-        const gen = await request(app)
-            .post(`/api/devices/${encodeURIComponent(deviceId)}/pairing-code`)
-            .set('Authorization', 'Bearer test-token')
-            .set('Content-Type', 'application/json')
-            .send({ ttlMs: 120000 })
-            .expect(200);
+        const gen = await context.helpers.generatePairingCode(deviceId);
+
+        expect(gen.status).toBe(200);
         expect(gen.body).toHaveProperty('code');
         expect(gen.body).toHaveProperty('token');
         expect(gen.body).toHaveProperty('expiresAt');
 
-        // Device claims with code + token
-        const claim = await request(app)
-            .post('/api/devices/pair')
-            .set('Content-Type', 'application/json')
-            .send({ code: gen.body.code, token: gen.body.token, name: 'Paired', location: 'Lab' })
-            .expect(200);
-        expect(claim.body.deviceId).toBe(deviceId);
-        expect(claim.body.deviceSecret).toBeTruthy();
-        expect(claim.body.deviceSecret).not.toBe(deviceSecret); // rotated
+        const { code, token } = gen.body;
 
-        // Heartbeat should accept new secret
-        await request(app)
-            .post('/api/devices/heartbeat')
-            .set('Content-Type', 'application/json')
-            .send({
-                deviceId,
-                deviceSecret: claim.body.deviceSecret,
-                installId: 'iid-pair-happy',
-                hardwareId: 'hw-pair-happy',
-                userAgent: 'jest',
-                screen: { w: 1280, h: 720, dpr: 1 },
-                mode: 'screensaver',
-            })
-            .expect(200);
-    }); // Use global Jest timeout
+        // Device claims with code + token
+        const claim = await context.helpers.claimPairing(code, token);
+
+        expect(claim.status).toBe(200);
+        expect(claim.body).toHaveProperty('deviceId', deviceId);
+        expect(claim.body).toHaveProperty('secret');
+        expect(claim.body.secret).not.toBe(deviceSecret); // Secret should be rotated
+
+        const newSecret = claim.body.secret;
+
+        // Old secret should no longer work
+        const oldHb = await context.helpers.sendHeartbeat(deviceId, deviceSecret, {
+            installId: iid,
+            hardwareId: hw,
+        });
+        expect(oldHb.status).toBe(401); // Unauthorized
+
+        // New secret should work
+        const newHb = await context.helpers.sendHeartbeat(deviceId, newSecret, {
+            installId: iid,
+            hardwareId: hw,
+        });
+        expect(newHb.status).toBe(200);
+        expect(newHb.body).toHaveProperty('queuedCommands');
+    });
+
+    test('pairing code expires after TTL', async () => {
+        const iid = `iid-expire-test-${Date.now()}`;
+        const hw = `hw-expire-test-${Date.now()}`;
+
+        // Register device
+        const reg = await context.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+        });
+
+        expect(reg.status).toBe(200);
+        const { deviceId } = reg.body;
+
+        // Generate pairing code with short TTL
+        const gen = await context.helpers.generatePairingCode(deviceId, 100);
+
+        expect(gen.status).toBe(200);
+        const { code, token } = gen.body;
+
+        // Wait for expiration
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        // Claim should fail
+        const claim = await context.helpers.claimPairing(code, token);
+        expect(claim.status).toBe(400);
+    });
+
+    test('pairing code cannot be claimed twice', async () => {
+        const iid = `iid-double-claim-${Date.now()}`;
+        const hw = `hw-double-claim-${Date.now()}`;
+
+        // Register device
+        const reg = await context.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+        });
+
+        expect(reg.status).toBe(200);
+        const { deviceId } = reg.body;
+
+        // Generate pairing code
+        const gen = await context.helpers.generatePairingCode(deviceId);
+        expect(gen.status).toBe(200);
+
+        const { code, token } = gen.body;
+
+        // First claim succeeds
+        const claim1 = await context.helpers.claimPairing(code, token);
+        expect(claim1.status).toBe(200);
+
+        // Second claim fails
+        const claim2 = await context.helpers.claimPairing(code, token);
+        expect(claim2.status).toBe(400);
+    });
+
+    test('pairing requires valid token', async () => {
+        const iid = `iid-token-test-${Date.now()}`;
+        const hw = `hw-token-test-${Date.now()}`;
+
+        // Register device
+        const reg = await context.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+        });
+
+        expect(reg.status).toBe(200);
+        const { deviceId } = reg.body;
+
+        // Generate pairing code
+        const gen = await context.helpers.generatePairingCode(deviceId);
+        expect(gen.status).toBe(200);
+
+        const { code } = gen.body;
+
+        // Claim with wrong token fails
+        const claim = await context.helpers.claimPairing(code, 'wrong-token');
+        expect(claim.status).toBe(400);
+    });
+
+    test('pairing updates device isPaired status', async () => {
+        const iid = `iid-paired-status-${Date.now()}`;
+        const hw = `hw-paired-status-${Date.now()}`;
+
+        // Register device
+        const reg = await context.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+        });
+
+        expect(reg.status).toBe(200);
+        const { deviceId } = reg.body;
+
+        // Check device is not paired initially
+        let device = await context.mocks.deviceStore.getDevice(deviceId);
+        expect(device.isPaired).toBe(false);
+
+        // Generate and claim pairing code
+        const gen = await context.helpers.generatePairingCode(deviceId);
+        expect(gen.status).toBe(200);
+
+        const { code, token } = gen.body;
+
+        await context.helpers.claimPairing(code, token);
+
+        // Check device is now paired
+        device = await context.mocks.deviceStore.getDevice(deviceId);
+        expect(device.isPaired).toBe(true);
+    });
 });

@@ -1,252 +1,171 @@
 /*
  End-to-end smoke tests for device management
  Covers: register, heartbeat, pairing claim, and command queue
+ 
+ REFACTORED: Uses isolated route testing instead of full server loading
+ - Eliminates timing/race conditions from server startup
+ - Faster test execution
+ - More reliable in parallel test runs
 */
 
-let app;
-let server;
-let baseUrl;
+const { createDeviceRouteTestContext } = require('../test-utils/route-test-helpers');
 
-async function startServer() {
-    jest.resetModules();
+describe('Devices E2E (Isolated Route Testing)', () => {
+    let context;
 
-    // Set up isolated test environment
-    process.env.NODE_ENV = 'test';
-    process.env.DEVICE_MGMT_ENABLED = 'true';
-    process.env.API_ACCESS_TOKEN = 'test-token-e2e';
-
-    // Use unique port to avoid conflicts
-    const uniquePort = 10000 + Math.floor(Math.random() * 10000);
-    process.env.SERVER_PORT = uniquePort.toString();
-
-    // Set unique device store path for this test
-    const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
-    process.env.DEVICES_STORE_PATH = `devices.test.e2e.${unique}.json`;
-
-    // Clear require cache to ensure fresh server instance
-    Object.keys(require.cache).forEach(key => {
-        if (key.includes('/server.js') || key.includes('/app.js')) {
-            delete require.cache[key];
-        }
-    });
-
-    try {
-        app = require('../../server');
-
-        // Wait for server to be ready
-        await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Server startup timeout')), 5000);
-
-            if (app && app.listen) {
-                server = app.listen(uniquePort, '127.0.0.1', () => {
-                    clearTimeout(timeout);
-                    resolve();
-                });
-            } else {
-                // Server might already be listening
-                server = { address: () => ({ port: uniquePort }) };
-                clearTimeout(timeout);
-                resolve();
-            }
-        });
-
-        baseUrl = `http://127.0.0.1:${uniquePort}`;
-    } catch (error) {
-        console.warn('E2E server setup issue:', error.message);
-        // Fallback to existing server if available
-        const fallbackPort = process.env.SERVER_PORT || 4000;
-        baseUrl = `http://127.0.0.1:${fallbackPort}`;
-        server = { close: () => {} }; // dummy for cleanup
-    }
-}
-
-async function stopServer() {
-    try {
-        if (server && server.close) {
-            await new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => resolve(), 1000); // timeout after 1 second
-                server.close(err => {
-                    clearTimeout(timeout);
-                    if (err) reject(err);
-                    else resolve();
-                });
-            });
-        }
-    } catch (error) {
-        console.warn('E2E server cleanup issue:', error.message);
-    }
-
-    // Clean up environment
-    delete process.env.SERVER_PORT;
-    delete process.env.API_ACCESS_TOKEN;
-}
-
-async function api(pathname, opts = {}, retries = 3) {
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            // Preserve Content-Type even when custom headers are provided
-            const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-            const rest = { ...opts };
-            delete rest.headers;
-
-            const res = await fetch(baseUrl + pathname, {
-                redirect: 'manual',
-                timeout: 5000, // 5 second timeout
-                ...rest,
-                headers,
-            });
-
-            const text = await res.text();
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch {
-                data = text;
-            }
-            return { res, data };
-        } catch (error) {
-            if (attempt === retries) {
-                throw new Error(`API call failed after ${retries} attempts: ${error.message}`);
-            }
-            // Wait before retry
-            await new Promise(resolve => setTimeout(resolve, 100 * attempt));
-        }
-    }
-}
-
-function newInstallId() {
-    return 'test-iid-' + Math.random().toString(36).slice(2);
-}
-
-describe('Devices E2E', () => {
-    beforeAll(async () => {
-        await startServer();
-    }, 30000);
-
-    afterAll(async () => {
-        await stopServer();
+    beforeEach(() => {
+        // Create fresh isolated test context for each test
+        context = createDeviceRouteTestContext({ authenticated: false });
     });
 
     test('register -> heartbeat -> list', async () => {
-        const iid = newInstallId();
+        const iid = `test-iid-${Date.now()}`;
+        const hw = 'hw-test-123';
 
-        // Add small delay to ensure server is ready
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Register device
+        const reg = await context
+            .request()
+            .post('/api/devices/register')
+            .set('X-Install-Id', iid)
+            .set('X-Hardware-Id', hw)
+            .send({ installId: iid, hardwareId: hw, name: 'Test Device' })
+            .expect(200);
 
-        const r1 = await api('/api/devices/register', {
-            method: 'POST',
-            body: JSON.stringify({ installId: iid, hardwareId: 'hw-test-123' }),
-            headers: { 'X-Install-Id': iid, 'X-Hardware-Id': 'hw-test-123' },
-        });
-        expect(r1.res.status).toBe(200);
-        expect(r1.data.deviceId).toBeTruthy();
-        expect(r1.data.deviceSecret).toBeTruthy();
+        expect(reg.body.deviceId).toBeTruthy();
+        expect(reg.body.secret).toBeTruthy();
 
-        // Small delay between operations
-        await new Promise(resolve => setTimeout(resolve, 50));
+        const { deviceId, secret: deviceSecret } = reg.body;
 
-        const hb = await api('/api/devices/heartbeat', {
-            method: 'POST',
-            body: JSON.stringify({
-                deviceId: r1.data.deviceId,
-                deviceSecret: r1.data.deviceSecret,
+        // Send heartbeat
+        const hb = await context
+            .request()
+            .post('/api/devices/heartbeat')
+            .send({
+                deviceId,
+                secret: deviceSecret,
                 installId: iid,
-                hardwareId: 'hw-test-123',
+                hardwareId: hw,
                 userAgent: 'jest',
                 screen: { w: 1920, h: 1080, dpr: 1 },
                 mode: 'screensaver',
-            }),
-            headers: { 'X-Install-Id': iid, 'X-Hardware-Id': 'hw-test-123' },
-        });
-        expect(hb.res.status).toBe(200);
+            })
+            .expect(200);
 
-        // Admin list requires auth; we expect 401 for unauthenticated request
-        const list = await api('/api/devices');
-        expect(list.res.status).toBe(401);
-    }, 10000); // Increase timeout to 10 seconds
+        expect(hb.body).toHaveProperty('queuedCommands');
+        expect(Array.isArray(hb.body.queuedCommands)).toBe(true);
+
+        // List devices without auth should fail
+        await context.request().get('/api/devices').expect(401);
+    });
 
     test('pairing claim rotates secret', async () => {
-        const iid = newInstallId();
+        const iid = `test-iid-${Date.now()}`;
+        const hw = 'hw-test-abc';
 
-        // Add small delay to ensure server is ready
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        const reg = await api('/api/devices/register', {
-            method: 'POST',
-            body: JSON.stringify({ installId: iid, hardwareId: 'hw-test-abc' }),
-            headers: { 'X-Install-Id': iid, 'X-Hardware-Id': 'hw-test-abc' },
+        // Register device
+        const reg = await context.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+            name: 'Pairing Test Device',
         });
-        // no-op: just ensure registration succeeded
 
-        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(reg.status).toBe(200);
+        const { deviceId, secret: deviceSecret } = reg.body;
 
-        // Pairing code generation requires admin auth; we cannot call it here
-        // Instead, simulate claimByPairingCode by directly calling the public endpoint with an invalid code
-        const badClaim = await api('/api/devices/pair', {
-            method: 'POST',
-            body: JSON.stringify({ code: '000000' }),
+        // Try to claim with invalid code (should fail)
+        await context
+            .request()
+            .post('/api/devices/pair')
+            .send({ code: '000000', token: 'invalid' })
+            .expect(400);
+
+        // Heartbeat should still work with original secret
+        const hb = await context.helpers.sendHeartbeat(deviceId, deviceSecret, {
+            installId: iid,
+            hardwareId: hw,
         });
-        expect([400, 500]).toContain(badClaim.res.status); // invalid or server error
 
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        // Heartbeat still works with original secret
-        const hb = await api('/api/devices/heartbeat', {
-            method: 'POST',
-            body: JSON.stringify({
-                deviceId: reg.data.deviceId,
-                deviceSecret: reg.data.deviceSecret,
-                installId: iid,
-                hardwareId: 'hw-test-abc',
-                userAgent: 'jest',
-                screen: { w: 1024, h: 768, dpr: 1 },
-                mode: 'screensaver',
-            }),
-            headers: { 'X-Install-Id': iid, 'X-Hardware-Id': 'hw-test-abc' },
-        });
-        expect(hb.res.status).toBe(200);
-    }, 10000);
+        expect(hb.status).toBe(200);
+        expect(hb.body).toHaveProperty('queuedCommands');
+    });
 
     test('command queue enqueues and returns on heartbeat', async () => {
-        const iid = newInstallId();
+        const iid = `test-iid-${Date.now()}`;
+        const hw = 'hw-test-queue';
 
-        // Add small delay to ensure server is ready
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        const reg = await api('/api/devices/register', {
-            method: 'POST',
-            body: JSON.stringify({ installId: iid, hardwareId: 'hw-test-queue' }),
-            headers: { 'X-Install-Id': iid, 'X-Hardware-Id': 'hw-test-queue' },
+        // Register device
+        const reg = await context.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+            name: 'Queue Test Device',
         });
 
-        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(reg.status).toBe(200);
+        const { deviceId, secret: deviceSecret } = reg.body;
 
-        // Queue command requires admin auth; expect 401
-        const queue = await api(`/api/devices/${encodeURIComponent(reg.data.deviceId)}/command`, {
-            method: 'POST',
-            body: JSON.stringify({ type: 'core.mgmt.reload' }),
+        // Try to queue command without auth (should fail with 401)
+        await context
+            .request()
+            .post('/api/devices/command')
+            .send({
+                deviceIds: [deviceId],
+                command: { type: 'core.mgmt.reload', payload: {} },
+            })
+            .expect(401);
+
+        // Heartbeat returns empty commands queue (since command wasn't queued due to 401)
+        const hb = await context.helpers.sendHeartbeat(deviceId, deviceSecret, {
+            installId: iid,
+            hardwareId: hw,
         });
-        expect([401, 500]).toContain(queue.res.status); // unauthorized or server error
 
-        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(hb.status).toBe(200);
+        expect(hb.body).toHaveProperty('queuedCommands');
+        expect(Array.isArray(hb.body.queuedCommands)).toBe(true);
+        expect(hb.body.queuedCommands.length).toBe(0);
+    });
 
-        // Heartbeat returns commandsQueued array (should be empty due to 401 earlier)
-        const hb = await api('/api/devices/heartbeat', {
-            method: 'POST',
-            body: JSON.stringify({
-                deviceId: reg.data.deviceId,
-                deviceSecret: reg.data.deviceSecret,
-                installId: iid,
-                hardwareId: 'hw-test-queue',
-                userAgent: 'jest',
-                screen: { w: 800, h: 600, dpr: 1 },
-                mode: 'screensaver',
-            }),
-            headers: { 'X-Install-Id': iid, 'X-Hardware-Id': 'hw-test-queue' },
+    test('authenticated admin can queue commands', async () => {
+        // Create context with authentication enabled
+        const authContext = createDeviceRouteTestContext({ authenticated: true });
+
+        const iid = `test-iid-${Date.now()}`;
+        const hw = 'hw-test-admin-queue';
+
+        // Register device
+        const reg = await authContext.helpers.registerDevice({
+            installId: iid,
+            hardwareId: hw,
+            name: 'Admin Queue Test',
         });
-        expect([200, 401]).toContain(hb.res.status); // success or auth issue
-        if (hb.res.status === 200) {
-            expect(hb.data).toHaveProperty('commandsQueued');
-        }
-    }, 10000);
+
+        expect(reg.status).toBe(200);
+        const { deviceId, secret: deviceSecret } = reg.body;
+
+        // Queue command via API (with auth)
+        const cmdRes = await authContext
+            .request()
+            .post('/api/devices/command')
+            .set('Authorization', 'Bearer test-token')
+            .send({
+                deviceIds: [deviceId],
+                command: { type: 'core.mgmt.reload', payload: {} },
+            });
+
+        // Should succeed since device is offline (queued)
+        expect(cmdRes.status).toBe(200);
+        expect(cmdRes.body.success).toBe(true);
+        expect(cmdRes.body.queued).toBe(1);
+        expect(cmdRes.body.sent).toBe(0);
+
+        // Heartbeat returns queued commands
+        const hb = await authContext.helpers.sendHeartbeat(deviceId, deviceSecret, {
+            installId: iid,
+            hardwareId: hw,
+        });
+
+        expect(hb.status).toBe(200);
+        expect(hb.body.queuedCommands.length).toBeGreaterThan(0);
+        expect(hb.body.queuedCommands[0]).toHaveProperty('type', 'core.mgmt.reload');
+    });
 });
