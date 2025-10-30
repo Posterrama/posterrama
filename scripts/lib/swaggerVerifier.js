@@ -156,6 +156,7 @@ function verifySwagger() {
         'config-public.js': '/get-config',
         'auth.js': '/admin',
         'devices.js': '/api/devices',
+        'media.js': '/',
     };
 
     for (const { path: filePath, content } of routeFiles) {
