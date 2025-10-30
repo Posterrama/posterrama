@@ -154,6 +154,7 @@ function verifySwagger() {
     const routeMountMap = {
         'groups.js': '/api/groups',
         'config-public.js': '/get-config',
+        'auth.js': '/admin',
     };
 
     for (const { path: filePath, content } of routeFiles) {
