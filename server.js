@@ -36,15 +36,15 @@ function forceReloadEnv() {
 // Force reload environment on startup to prevent PM2 cache issues
 forceReloadEnv();
 
-// --- Auto Cache Busting ---
+// --- Auto Cache Busting (Async) ---
 const cachedVersions = {};
 let lastVersionCheck = 0;
 const VERSION_CACHE_TTL = 1000; // Cache versions for 1 second to minimize stale assets during active development
 
-function generateAssetVersion(filePath) {
+async function generateAssetVersion(filePath) {
     try {
         const fullPath = path.join(__dirname, 'public', filePath);
-        const stats = fs.statSync(fullPath);
+        const stats = await fs.promises.stat(fullPath);
         // Use modification time as version
         return Math.floor(stats.mtime.getTime() / 1000).toString(36);
     } catch (error) {
@@ -53,46 +53,62 @@ function generateAssetVersion(filePath) {
     }
 }
 
+async function refreshAssetVersions() {
+    const criticalAssets = [
+        'core.js',
+        'admin.js',
+        'style.css',
+        'admin.css',
+        // Cinema/Admin & Preview assets
+        'cinema/cinema-ui.js',
+        'cinema/cinema.css',
+        // Cinema display assets (used on /cinema)
+        'cinema/cinema-display.js',
+        'cinema/cinema-display.css',
+        'cinema/cinema-bootstrap.js',
+        'preview-cinema.js',
+        'preview-cinema.css',
+        'logs.js',
+        'logs.css',
+        'sw.js',
+        'client-logger.js',
+        'manifest.json',
+        'device-mgmt.js',
+        'lazy-loading.js',
+        'notify.js',
+        // Screensaver assets
+        'screensaver/screensaver.js',
+        'screensaver/screensaver.css',
+        // Wallart assets
+        'wallart/wallart-display.js',
+        'wallart/wallart.css',
+        // 'theme-demo.css' has been renamed to admin.css for Admin v2 rollout
+    ];
+
+    // Generate versions in parallel for all assets
+    const versionPromises = criticalAssets.map(async asset => {
+        const version = await generateAssetVersion(asset);
+        return { asset, version };
+    });
+
+    const results = await Promise.all(versionPromises);
+    results.forEach(({ asset, version }) => {
+        cachedVersions[asset] = version;
+    });
+
+    lastVersionCheck = Date.now();
+    logger.debug('Asset versions refreshed:', cachedVersions);
+}
+
 function getAssetVersions() {
     const now = Date.now();
     if (now - lastVersionCheck > VERSION_CACHE_TTL) {
-        const criticalAssets = [
-            'core.js',
-            'admin.js',
-            'style.css',
-            'admin.css',
-            // Cinema/Admin & Preview assets
-            'cinema/cinema-ui.js',
-            'cinema/cinema.css',
-            // Cinema display assets (used on /cinema)
-            'cinema/cinema-display.js',
-            'cinema/cinema-display.css',
-            'cinema/cinema-bootstrap.js',
-            'preview-cinema.js',
-            'preview-cinema.css',
-            'logs.js',
-            'logs.css',
-            'sw.js',
-            'client-logger.js',
-            'manifest.json',
-            'device-mgmt.js',
-            'lazy-loading.js',
-            'notify.js',
-            // Screensaver assets
-            'screensaver/screensaver.js',
-            'screensaver/screensaver.css',
-            // Wallart assets
-            'wallart/wallart-display.js',
-            'wallart/wallart.css',
-            // 'theme-demo.css' has been renamed to admin.css for Admin v2 rollout
-        ];
-
-        criticalAssets.forEach(asset => {
-            cachedVersions[asset] = generateAssetVersion(asset);
+        // Trigger async refresh but return cached versions immediately
+        // This prevents blocking the request while maintaining cache freshness
+        refreshAssetVersions().catch(err => {
+            logger.warn('[Asset Versioning] Failed to refresh versions:', err.message);
         });
-
-        lastVersionCheck = now;
-        logger.debug('Asset versions refreshed:', cachedVersions);
+        lastVersionCheck = now; // Update check time to prevent rapid retries
     }
 
     return cachedVersions;
@@ -264,7 +280,6 @@ const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const bcrypt = require('bcrypt');
 const { exec } = require('child_process');
-const PlexAPI = require('plex-api');
 const fetch = require('node-fetch');
 const multer = require('multer');
 const crypto = require('crypto');
@@ -433,7 +448,7 @@ if (config.localDirectory && config.localDirectory.enabled) {
                     // Pick first configured Plex server (enabled or not) for generation
                     const serverConfig = (config.mediaServers || []).find(s => s.type === 'plex');
                     if (!serverConfig) return [];
-                    const plex = getPlexClient(serverConfig);
+                    const plex = await getPlexClient(serverConfig);
                     // Fetch all items from section by key
                     const resp = await plex.query(`/library/sections/${libraryId}/all`);
                     const items = resp?.MediaContainer?.Metadata || [];
@@ -1128,7 +1143,7 @@ app.get('/preview', (req, res) => {
 // Rate limiters removed from general endpoints (/api/*, /get-media, /image) as they caused
 // 429 errors during normal usage. Posterrama is a private application with trusted clients.
 // Retained only for critical device management endpoints to prevent abuse.
-const { createRateLimiter } = require('./middleware/rateLimiter');
+const { createRateLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 // Lightweight template injection for admin.html to stamp asset version
 /**
@@ -2321,7 +2336,7 @@ app.post(
                             s => s.enabled && s.type === 'plex'
                         );
                         if (!pServer) return 0;
-                        const plexClient = getPlexClient(pServer);
+                        const plexClient = await getPlexClient(pServer);
                         const _tLibsStart = Date.now();
                         const libsMap = await getPlexLibraries(pServer);
                         plexPerf.tGetLibs = Date.now() - _tLibsStart;
@@ -3054,7 +3069,7 @@ app.get('/api/v1/metrics/dashboard', (req, res) => {
                     const port = s.port;
                     const token = s.token || process.env[s.tokenEnvVar];
                     if (!hostname || !port || !token) continue;
-                    const client = createPlexClient({ hostname, port, token, timeout: 8000 });
+                    const client = await createPlexClient({ hostname, port, token, timeout: 8000 });
                     const sectionsResponse = await client.query('/library/sections');
                     const dirs = sectionsResponse?.MediaContainer?.Directory || [];
                     for (const dir of dirs) {
@@ -5910,30 +5925,6 @@ if (isDebug) {
 // (relocated earlier) Session middleware is now registered before any API routes
 
 /**
- * Returns the standard options for a PlexAPI client instance to ensure consistent identification.
- * These options include application identifier, name, version and platform details for Plex server
- * identification and analytics.
- * @returns {object} An object containing the Plex client options with identifier and app metadata.
- */
-function getPlexClientOptions() {
-    // Default options ensure the app identifies itself correctly.
-    // These can be overridden by setting a "plexClientOptions" object in config.json.
-    const defaultOptions = {
-        identifier: 'c8a5f7d1-b8e9-4f0a-9c6d-3e1f2a5b6c7d', // Static UUID for this app instance
-        product: 'posterrama.app',
-        version: pkg.version,
-        deviceName: 'posterrama.app',
-        platform: 'Node.js',
-    };
-
-    const finalOptions = { ...defaultOptions, ...(config.plexClientOptions || {}) };
-
-    return {
-        // These options must be nested inside an 'options' object per plex-api documentation.
-        options: finalOptions,
-    };
-}
-/**
  * Fetches detailed metadata for a single Plex item and transforms it into the application's format.
  * Handles movies, TV shows, and their child items (seasons, episodes). For TV content,
  * fetches the parent show's metadata to ensure consistent background art.
@@ -6711,7 +6702,9 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
                 sourceItem.Genre && Array.isArray(sourceItem.Genre)
                     ? sourceItem.Genre.map(genre => genre.id)
                     : null,
+            quality: qualityLabel, // Add quality field for frontend compatibility
             qualityLabel: qualityLabel,
+            library: itemSummary.librarySectionTitle || null, // Add library field from itemSummary
             overview: sourceItem.summary || null,
             studios,
             cast,
@@ -6792,15 +6785,15 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
 // --- Client Management ---
 
 /**
- * Creates a new PlexAPI client instance with the given options.
- * Sanitizes and validates the input parameters before creating the client.
+ * Creates a new Plex client instance using @ctrl/plex.
+ * This modern client has zero known vulnerabilities and full TypeScript support.
  *
  * @param {object} options - The connection options.
  * @param {string} options.hostname - The Plex server hostname or IP. Will be sanitized to remove http/https prefixes.
  * @param {string|number} options.port - The Plex server port.
  * @param {string} options.token - The Plex authentication token (X-Plex-Token).
  * @param {number} [options.timeout] - Optional request timeout in milliseconds. Defaults to no timeout.
- * @returns {PlexAPI} A new PlexAPI client instance configured with the sanitized options.
+ * @returns {PlexAPI|Promise<PlexClientAdapter>} A Plex client instance (legacy or modern with compatibility layer).
  * @throws {ApiError} If required parameters are missing or if the hostname format is invalid.
  * @example
  * const plexClient = createPlexClient({
@@ -6810,39 +6803,15 @@ async function processPlexItem(itemSummary, serverConfig, plex) {
  *   timeout: 5000
  * });
  */
-function createPlexClient({ hostname, port, token, timeout }) {
+async function createPlexClient({ hostname, port, token, timeout }) {
     if (!hostname || !port || !token) {
         throw new ApiError(500, 'Plex client creation failed: missing hostname, port, or token.');
     }
 
-    // Sanitize hostname to prevent crashes if the user includes the protocol.
-    let sanitizedHostname = hostname.trim();
-    try {
-        // The URL constructor needs a protocol to work.
-        const fullUrl = sanitizedHostname.includes('://')
-            ? sanitizedHostname
-            : `http://${sanitizedHostname}`;
-        const url = new URL(fullUrl);
-        sanitizedHostname = url.hostname; // This extracts just the hostname/IP
-        if (isDebug) logger.debug(`[Plex Client] Sanitized hostname to: "${sanitizedHostname}"`);
-    } catch (e) {
-        // Fallback for invalid URL formats that might still be valid hostnames (though unlikely)
-        sanitizedHostname = sanitizedHostname.replace(/^https?:\/\//, '');
-        if (isDebug)
-            logger.debug(
-                `[Plex Client] Could not parse hostname as URL, falling back to simple sanitization: "${sanitizedHostname}"`
-            );
-    }
-
-    const clientOptions = {
-        hostname: sanitizedHostname,
-        port,
-        token,
-        ...getPlexClientOptions(),
-    };
-
-    if (timeout) clientOptions.timeout = timeout;
-    return new PlexAPI(clientOptions);
+    // Modern @ctrl/plex client (zero vulnerabilities)
+    logger.info('🚀 Using @ctrl/plex client');
+    const { createCompatiblePlexClient } = require('./utils/plex-client-ctrl');
+    return await createCompatiblePlexClient({ hostname, port, token, timeout });
 }
 
 /**
@@ -6872,7 +6841,7 @@ async function testServerConnection(serverConfig) {
                 throw new Error('Missing required connection details (hostname, port, or token).');
             }
 
-            const testClient = createPlexClient({
+            const testClient = await createPlexClient({
                 hostname,
                 port,
                 token,
@@ -7046,7 +7015,7 @@ async function testServerConnection(serverConfig) {
  * @type {Object.<string, PlexAPI>}
  */
 const plexClients = {};
-function getPlexClient(serverConfig) {
+async function getPlexClient(serverConfig) {
     // If a direct client is provided (for testing), use that
     if (serverConfig._directClient) {
         return serverConfig._directClient;
@@ -7060,7 +7029,7 @@ function getPlexClient(serverConfig) {
 
         // The createPlexClient function will throw an error if details are missing.
         // This replaces the explicit token check that was here before.
-        plexClients[serverConfig.name] = createPlexClient({ hostname, port, token });
+        plexClients[serverConfig.name] = await createPlexClient({ hostname, port, token });
     }
     return plexClients[serverConfig.name];
 }
@@ -7077,7 +7046,7 @@ function getPlexClient(serverConfig) {
  * }
  */
 async function getPlexLibraries(serverConfig) {
-    const plex = getPlexClient(serverConfig);
+    const plex = await getPlexClient(serverConfig);
     const sectionsResponse = await plex.query('/library/sections');
     const allSections = sectionsResponse?.MediaContainer?.Directory || [];
     const libraries = new Map();
@@ -7087,7 +7056,7 @@ async function getPlexLibraries(serverConfig) {
 
 async function getPlexGenres(serverConfig) {
     try {
-        const plex = getPlexClient(serverConfig);
+        const plex = await getPlexClient(serverConfig);
         const allLibraries = await getPlexLibraries(serverConfig);
         const genres = new Set();
 
@@ -7148,7 +7117,7 @@ async function getPlexGenres(serverConfig) {
  */
 async function getPlexGenresWithCounts(serverConfig) {
     try {
-        const plex = getPlexClient(serverConfig);
+        const plex = await getPlexClient(serverConfig);
         const allLibraries = await getPlexLibraries(serverConfig);
         const genreCounts = new Map();
 
@@ -7221,9 +7190,13 @@ async function getPlexGenresWithCounts(serverConfig) {
  */
 async function getPlexQualitiesWithCounts(serverConfig) {
     try {
-        const plex = getPlexClient(serverConfig);
+        const plex = await getPlexClient(serverConfig);
         const allLibraries = await getPlexLibraries(serverConfig);
         const qualityCounts = new Map();
+
+        logger.info(
+            `[getPlexQualitiesWithCounts] Starting quality scan for ${allLibraries.size} libraries`
+        );
 
         for (const [libraryName, library] of allLibraries) {
             // Only get qualities from movie and show libraries
@@ -7234,13 +7207,35 @@ async function getPlexQualitiesWithCounts(serverConfig) {
                         `/library/sections/${library.key}/all?limit=1000&includeGuids=1`
                     );
 
+                    const itemCount = content?.MediaContainer?.Metadata?.length || 0;
+                    logger.info(
+                        `[getPlexQualitiesWithCounts] Library "${libraryName}": ${itemCount} items`
+                    );
+
                     if (content?.MediaContainer?.Metadata) {
+                        let itemsWithMedia = 0;
+                        let itemsWithResolution = 0;
+                        let sampleLogged = false;
+
                         content.MediaContainer.Metadata.forEach(item => {
                             if (item.Media && Array.isArray(item.Media)) {
+                                itemsWithMedia++;
+
+                                // Log first item's Media structure for debugging
+                                if (!sampleLogged && item.Media.length > 0) {
+                                    sampleLogged = true;
+                                    logger.info(
+                                        `[getPlexQualitiesWithCounts] Sample Media from "${item.title}": ${JSON.stringify(item.Media[0])}`
+                                    );
+                                }
+
                                 item.Media.forEach(media => {
                                     if (media.videoResolution) {
+                                        itemsWithResolution++;
                                         let quality;
-                                        const resolution = media.videoResolution;
+                                        const resolution = String(
+                                            media.videoResolution
+                                        ).toLowerCase();
 
                                         // Map Plex resolution values to standardized quality labels
                                         switch (resolution) {
@@ -7249,12 +7244,16 @@ async function getPlexQualitiesWithCounts(serverConfig) {
                                                 break;
                                             case '720':
                                             case 'hd':
+                                            case '720p':
                                                 quality = '720p';
                                                 break;
                                             case '1080':
+                                            case '1080p':
                                                 quality = '1080p';
                                                 break;
                                             case '4k':
+                                            case '2160':
+                                            case '2160p':
                                                 quality = '4K';
                                                 break;
                                             default:
@@ -7270,6 +7269,10 @@ async function getPlexQualitiesWithCounts(serverConfig) {
                                 });
                             }
                         });
+
+                        logger.info(
+                            `[getPlexQualitiesWithCounts] Library "${libraryName}": ${itemsWithMedia} items with Media array, ${itemsWithResolution} with videoResolution`
+                        );
                     }
                 } catch (error) {
                     console.warn(
@@ -7278,6 +7281,10 @@ async function getPlexQualitiesWithCounts(serverConfig) {
                 }
             }
         }
+
+        logger.info(
+            `[getPlexQualitiesWithCounts] Found qualities: ${Array.from(qualityCounts.keys()).join(', ') || 'NONE'}`
+        );
 
         // Convert to array of objects and sort by quality preference (SD, 720p, 1080p, 4K, others)
         const qualityOrder = ['SD', '720p', '1080p', '4K'];
@@ -10734,7 +10741,7 @@ app.post(
                 const serverConfig = (config.mediaServers || []).find(s => s.type === 'plex');
                 if (!serverConfig)
                     return res.status(400).json({ error: 'No Plex server configured' });
-                const plex = getPlexClient(serverConfig);
+                const plex = await getPlexClient(serverConfig);
                 // Build filter helpers
                 const parseCsv = v =>
                     String(v || '')
@@ -11554,7 +11561,7 @@ app.get(
 
         let mediaItem = null;
         if (type === 'plex') {
-            const plex = getPlexClient(serverConfig);
+            const plex = await getPlexClient(serverConfig);
             mediaItem = await processPlexItem(
                 { key: `/library/metadata/${originalKey}` },
                 serverConfig,
@@ -12447,6 +12454,7 @@ app.get('/admin/logout', (req, res, next) => {
  */
 app.post(
     '/api/admin/2fa/generate',
+    authLimiter,
     isAuthenticated,
     asyncHandler(async (req, res) => {
         const secret = process.env.ADMIN_2FA_SECRET || '';
@@ -12501,6 +12509,7 @@ app.post(
  */
 app.post(
     '/api/admin/2fa/verify',
+    authLimiter,
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
@@ -12574,6 +12583,7 @@ app.post(
  */
 app.post(
     '/api/admin/2fa/disable',
+    authLimiter,
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
@@ -12670,7 +12680,7 @@ async function fetchAllJellyfinRatings(serverConfig) {
 async function fetchAllPlexRatings(serverConfig) {
     try {
         const PlexHttpClient = require('./utils/plex-http-client');
-        const plexClient = getPlexClient(serverConfig);
+        const plexClient = await getPlexClient(serverConfig);
         const client = new PlexHttpClient(plexClient, serverConfig, isDebug);
 
         logger.info(`[fetchAllPlexRatings] Fetching ratings from ${serverConfig.name}`);
@@ -12809,7 +12819,7 @@ async function getRatingsWithCounts(sourceType) {
 
             case 'plex': {
                 const PlexHttpClient = require('./utils/plex-http-client');
-                const plexClient = getPlexClient(server);
+                const plexClient = await getPlexClient(server);
                 const plexHttpClient = new PlexHttpClient(plexClient, server, isDebug);
 
                 ratingsWithCounts = await plexHttpClient.getRatingsWithCounts();
@@ -13694,7 +13704,7 @@ app.post(
         }
 
         try {
-            const testClient = createPlexClient({
+            const testClient = await createPlexClient({
                 hostname,
                 port: portValue,
                 token,
@@ -13804,7 +13814,7 @@ app.post(
         }
 
         try {
-            const client = createPlexClient({
+            const client = await createPlexClient({
                 hostname,
                 port,
                 token,
@@ -13842,6 +13852,19 @@ app.post(
                     };
                 })
             );
+
+            if (isDebug) {
+                logger.debug(
+                    `[Plex Lib Fetch] Returning ${libraries.length} libraries with counts:`,
+                    {
+                        libraries: libraries.map(l => ({
+                            name: l.name,
+                            type: l.type,
+                            count: l.itemCount,
+                        })),
+                    }
+                );
+            }
 
             res.json({ success: true, libraries });
         } catch (error) {
@@ -15129,7 +15152,7 @@ app.post(
 
         try {
             // Create a direct client for testing without caching
-            const testClient = createPlexClient({
+            const testClient = await createPlexClient({
                 hostname,
                 port: parseInt(port),
                 token,
@@ -15222,7 +15245,7 @@ app.post(
 
         try {
             // Create a direct client for testing without caching
-            const testClient = createPlexClient({
+            const testClient = await createPlexClient({
                 hostname,
                 port: parseInt(port),
                 token,
@@ -16255,6 +16278,7 @@ app.get(
  */
 app.post(
     '/api/admin/change-password',
+    authLimiter,
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
@@ -19178,6 +19202,51 @@ app.get(
 // Start the server only if this script is run directly (e.g., `node server.js`)
 // and not when it's imported by another script (like our tests).
 if (require.main === module) {
+    // Pre-load asset versions synchronously on startup to ensure they're available immediately
+    logger.info('Pre-loading asset versions...');
+    try {
+        // Initial synchronous load for immediate availability
+        const criticalAssets = [
+            'core.js',
+            'admin.js',
+            'style.css',
+            'admin.css',
+            'cinema/cinema-ui.js',
+            'cinema/cinema.css',
+            'cinema/cinema-display.js',
+            'cinema/cinema-display.css',
+            'cinema/cinema-bootstrap.js',
+            'preview-cinema.js',
+            'preview-cinema.css',
+            'logs.js',
+            'logs.css',
+            'sw.js',
+            'client-logger.js',
+            'manifest.json',
+            'device-mgmt.js',
+            'lazy-loading.js',
+            'notify.js',
+            'screensaver/screensaver.js',
+            'screensaver/screensaver.css',
+            'wallart/wallart-display.js',
+            'wallart/wallart.css',
+        ];
+
+        criticalAssets.forEach(asset => {
+            try {
+                const fullPath = path.join(__dirname, 'public', asset);
+                const stats = fs.statSync(fullPath);
+                cachedVersions[asset] = Math.floor(stats.mtime.getTime() / 1000).toString(36);
+            } catch (err) {
+                cachedVersions[asset] = Math.floor(Date.now() / 1000).toString(36);
+            }
+        });
+        lastVersionCheck = Date.now();
+        logger.info(`Asset versions pre-loaded: ${Object.keys(cachedVersions).length} assets`);
+    } catch (err) {
+        logger.warn('Failed to pre-load asset versions:', err.message);
+    }
+
     // Pre-populate cache before starting the server to prevent race conditions
     logger.info('Performing initial playlist fetch before server startup...');
 

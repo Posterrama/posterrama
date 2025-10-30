@@ -18,6 +18,15 @@ const createRateLimiter = (windowMs, max, messageText) => {
     });
 };
 
+// Auth-specific rate limiter for sensitive authentication endpoints
+// Stricter than general API rate limiting to prevent brute-force attacks
+const authLimiter = createRateLimiter(
+    15 * 60 * 1000, // 15 minutes
+    5, // 5 attempts per window
+    'Too many authentication attempts from this IP. Please try again after 15 minutes.'
+);
+
 module.exports = {
     createRateLimiter,
+    authLimiter,
 };

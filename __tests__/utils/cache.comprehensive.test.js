@@ -51,7 +51,7 @@ describe('Cache Utils', () => {
         describe('Constructor and Initialization', () => {
             test('should initialize with default options', () => {
                 expect(cacheManager.config.defaultTTL).toBe(300000);
-                expect(cacheManager.config.maxSize).toBe(100);
+                expect(cacheManager.config.maxSize).toBe(500); // Updated from 100
                 expect(cacheManager.config.enablePersistence).toBe(false);
                 expect(cacheManager.cache.size).toBe(0);
             });
@@ -159,6 +159,45 @@ describe('Cache Utils', () => {
                 expect(smallCache.has('key3')).toBe(true);
 
                 smallCache.cleanup();
+            });
+
+            test('should use LRU eviction (remove least recently accessed)', () => {
+                const { CacheManager } = require('../../utils/cache');
+                const lruCache = new CacheManager({ maxSize: 3 });
+
+                // Mock Date.now to control timestamps
+                let mockTime = 1000;
+                const originalDateNow = Date.now;
+                Date.now = jest.fn(() => mockTime);
+
+                // Add 3 entries with increasing timestamps
+                lruCache.set('key1', 'value1');
+                mockTime += 10;
+                lruCache.set('key2', 'value2');
+                mockTime += 10;
+                lruCache.set('key3', 'value3');
+                mockTime += 10;
+                expect(lruCache.cache.size).toBe(3);
+
+                // Access key1 and key3 to update their lastAccessed
+                mockTime += 10;
+                lruCache.get('key1');
+                mockTime += 10;
+                lruCache.get('key3');
+                // key2 is now least recently used (lastAccessed = 1010, others are 1040 and 1050)
+
+                // Add 4th entry - should evict key2 (LRU)
+                mockTime += 10;
+                lruCache.set('key4', 'value4');
+                expect(lruCache.cache.size).toBe(3);
+                expect(lruCache.has('key2')).toBe(false); // LRU - should be removed
+                expect(lruCache.has('key1')).toBe(true); // Recently accessed - kept
+                expect(lruCache.has('key3')).toBe(true); // Recently accessed - kept
+                expect(lruCache.has('key4')).toBe(true); // New entry
+
+                // Restore Date.now
+                Date.now = originalDateNow;
+                lruCache.cleanup();
             });
         });
 

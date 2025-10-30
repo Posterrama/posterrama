@@ -21,7 +21,9 @@ class PlexSource {
         this.shuffleArray = shuffleArray;
         this.rtMinScore = rtMinScore;
         this.isDebug = isDebug;
-        this.plex = this.getPlexClient(this.server);
+        // Lazy initialization: plex client will be awaited on first use
+        this.plexPromise = null;
+        this.plex = null;
 
         // Performance metrics
         this.metrics = {
@@ -51,6 +53,20 @@ class PlexSource {
             ...this.metrics,
             filterEfficiency,
         };
+    }
+
+    /**
+     * Ensures the Plex client is initialized (lazy loading)
+     * @returns {Promise<void>}
+     * @private
+     */
+    async ensurePlexClient() {
+        if (!this.plex) {
+            if (!this.plexPromise) {
+                this.plexPromise = this.getPlexClient(this.server);
+            }
+            this.plex = await this.plexPromise;
+        }
     }
 
     // Get all unique content ratings from the media collection
@@ -95,6 +111,9 @@ class PlexSource {
             return [];
         }
 
+        // Ensure Plex client is initialized (lazy loading)
+        await this.ensurePlexClient();
+
         const reqStart = Date.now();
         this.metrics.requestCount++;
 
@@ -121,7 +140,13 @@ class PlexSource {
                 try {
                     const content = await this.plex.query(`/library/sections/${library.key}/all`);
                     if (content?.MediaContainer?.Metadata) {
-                        allItems = allItems.concat(content.MediaContainer.Metadata);
+                        // Add library info to each item
+                        const itemsWithLibrary = content.MediaContainer.Metadata.map(item => ({
+                            ...item,
+                            librarySectionTitle: name,
+                            librarySectionID: library.key,
+                        }));
+                        allItems = allItems.concat(itemsWithLibrary);
                         if (this.isDebug) {
                             logger.debug(
                                 `[PlexSource:${this.server.name}] Library "${name}" provided ${content.MediaContainer.Metadata.length} items`
