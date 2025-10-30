@@ -165,13 +165,16 @@ public/admin.js (24196 lines)
 
 ### 4. Performance Optimizations
 
-#### 4a. Async Asset Versioning
+#### 4a. Async Asset Versioning ✅ COMPLETED
 
-**Current**: `fs.statSync()` blocks event loop  
-**Fix**: Use `fs.promises.stat()` with cache
+**Impact**: Non-blocking startup, faster server boot  
+**Effort**: 1 hour → **Completed: October 26, 2025**
+
+**Before**: `fs.statSync()` blocked event loop during startup  
+**After**: `fs.promises.stat()` with parallel loading of 23 critical assets
 
 ```javascript
-// server.js:50-96
+// server.js:35-110
 async function generateAssetVersion(filePath) {
     try {
         const fullPath = path.join(__dirname, 'public', filePath);
@@ -181,57 +184,88 @@ async function generateAssetVersion(filePath) {
         return Math.floor(Date.now() / 1000).toString(36);
     }
 }
+
+// Pre-load all asset versions on startup
+await initializeAssetVersions();
 ```
 
-#### 4b. LRU Cache Implementation
+**Results**:
 
-**Current**: Unbounded memory cache  
-**Fix**: Add maxSize with LRU eviction
+- ✅ Non-blocking startup sequence
+- ✅ 23 assets versioned in parallel
+- ✅ Graceful fallback for missing files
+- ✅ All tests passing (1939/1939)
+
+---
+
+#### 4b. LRU Cache Implementation ✅ COMPLETED
+
+**Impact**: Prevent memory exhaustion, predictable cache behavior  
+**Effort**: 2 hours → **Completed: October 26, 2025**
+
+**Before**: Unbounded memory cache (OOM risk)  
+**After**: LRU cache with maxSize 500, sort-based eviction
 
 ```javascript
-// utils/cache.js - Add LRU
+// utils/cache.js
 class CacheManager {
     constructor(options = {}) {
-        this.maxSize = options.maxSize || 1000; // 1000 entries max
-        this.accessOrder = new Map(); // Track access order
+        this.maxSize = options.maxSize || 500; // 500 entries max
         // ... existing code
     }
 
-    set(key, value, ttl) {
-        if (this.cache.size >= this.maxSize) {
-            const oldestKey = this.accessOrder.keys().next().value;
-            this.cache.delete(oldestKey);
-            this.accessOrder.delete(oldestKey);
-        }
-        // ... rest of set logic
+    evictLRU() {
+        if (this.cache.size <= this.maxSize) return;
+
+        const entries = Array.from(this.cache.entries())
+            .map(([key, value]) => ({ key, lastAccessed: value.lastAccessed || 0 }))
+            .sort((a, b) => a.lastAccessed - b.lastAccessed);
+
+        const toEvict = entries.slice(0, entries.length - this.maxSize);
+        toEvict.forEach(({ key }) => this.cache.delete(key));
     }
 }
 ```
 
-#### 4c. Redis Session Store
+**Results**:
 
-**Current**: File-based sessions (slow, doesn't scale)  
-**Fix**: Redis for sessions
+- ✅ maxSize: 100 → 500 entries
+- ✅ LRU eviction with O(n) sort-based algorithm
+- ✅ lastAccessed tracking per cache entry
+- ✅ Memory-safe with predictable behavior
+- ✅ All tests passing (1939/1939)
 
-```bash
-npm install connect-redis redis
-```
+---
+
+#### 4c. Redis Session Store ⏸️ DEFERRED
+
+**Impact**: 5-10x faster session I/O (50ms → 5ms), multi-server ready  
+**Effort**: 4.5 hours (code + testing + deployment + Redis setup)
+
+**Decision**: ❌ **DEFERRED** - Low ROI for single-instance deployment
+
+**Analysis** (October 26, 2025):
+
+- **Current state**: FileStore with 188 sessions (~196 bytes each)
+- **Performance gain**: ~5-45ms per request (negligible vs. 100-500ms API calls)
+- **Complexity cost**: Redis server, monitoring, backups, network dependency
+- **Scaling need**: None (single Posterrama instance, no multi-server plan)
+
+**When to revisit**:
+
+- Multi-server horizontal scaling required
+- Session I/O becomes bottleneck (profiling shows >10% time in session reads)
+- Redis already deployed for other purposes (caching, queues)
+
+**Alternative** (if needed):
 
 ```javascript
-// server.js session config
-const RedisStore = require('connect-redis').default;
-const { createClient } = require('redis');
-
-const redisClient = createClient({ url: process.env.REDIS_URL });
-redisClient.connect();
-
-app.use(
-    session({
-        store: new RedisStore({ client: redisClient }),
-        // ... rest of config
-    })
-);
+// FileStore optimization (15 min effort)
+reapInterval: 86400 * 3,  // Reduce disk churn: 1 day → 3 days
+const cachedFileStore = new CachedSessionStore(__fileStore, { ttl: 300000 }); // In-memory cache
 ```
+
+**Files**: N/A (not implemented)
 
 ---
 
@@ -460,14 +494,14 @@ npm test
 - **Test Count**: **1939 tests** (+6)
 - **Test Suites**: **167 suites** (+1)
 - **Plex Client**: **Modern @ctrl/plex@3.10.0** ✅
+- **Asset Versioning**: **Async with parallel loading** ✅
+- **Cache**: **LRU with maxSize 500** ✅
+- **Sessions**: **FileStore (Redis deferred)** ✅
 - **Largest File**: 19,810 lines (refactoring pending)
-- **Test Duration**: ~97s (optimization pending)
+- **Test Duration**: ~97s (target: <60s)
 - **Maintainability**: Low → Medium (modularization pending)
 - **Security**: **Production-ready** ✅
 - **Stability**: **High confidence** ✅
-- **Test Duration**: ~97s (target: <60s)
-- **Maintainability**: Low → Medium (modularization pending)
-- **Security**: Production-ready ✅
 
 ### After Phase 2 (All Priorities)
 
@@ -524,11 +558,16 @@ npm test -- --coverage
     - 91.26% → 92.13% statements
     - Added errorHandler edge cases
     - 1939 tests passing
-3. ⏳ Add rate limiting to auth endpoints
-4. ⏳ Implement CSP headers
-5. ⏳ Add device-presets.json template
-6. ⏳ Async asset versioning
-7. ⏳ File size linting rules---
+3. ✅ Async asset versioning - **COMPLETED** (October 26, 2025)
+    - Non-blocking startup
+    - Parallel loading of 23 assets
+4. ✅ LRU Cache Implementation - **COMPLETED** (October 26, 2025)
+    - maxSize 500 with LRU eviction
+    - Memory-safe caching
+5. ⏳ Add rate limiting to auth endpoints (next priority)
+6. ⏳ Implement CSP headers
+7. ⏳ Add device-presets.json template
+8. ⏳ File size linting rules---
 
 ## 📝 NOTES
 
