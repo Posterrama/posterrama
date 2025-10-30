@@ -207,15 +207,7 @@ Open items and planned features for Posterrama (v2.8.8+).
 
 ## 📝 Documentation
 
-### Completed
-
 - [x] ~~API documentation~~ ✅ **DONE** - Swagger/OpenAPI at `/api-docs`
-- [x] ~~Module architecture~~ ✅ **DONE** - MODULE-ARCHITECTURE.md
-- [x] ~~Refactoring progress~~ ✅ **DONE** - REFACTORING-PROGRESS.md
-- [x] ~~Test documentation~~ ✅ **DONE** - TEST-REFACTORING-SUMMARY.md
-
-### Pending
-
 - [ ] User guide (installation, configuration)
 - [ ] Developer guide (contributing, architecture)
 - [ ] API client examples (Python, JavaScript)
