@@ -207,26 +207,59 @@ module.exports = function createDevicesRouter({
     router.post('/check', express.json(), async (req, res) => {
         try {
             const { deviceId, secret } = req.body || {};
-            if (!deviceId || !secret) {
-                return res.status(400).json({ error: 'missing_credentials' });
+            const hardwareId = req.headers['x-hardware-id'];
+            const installId = req.headers['x-install-id'];
+
+            // Allow check without secret for unregistered devices (returns device_not_found)
+            if (!deviceId && !hardwareId && !installId) {
+                return res.status(400).json({ error: 'missing_device_identifier' });
             }
 
-            const device = await deviceStore.getById(deviceId);
+            // Try to find device by deviceId, hardwareId, or installId
+            let device = null;
+            if (deviceId) {
+                device = await deviceStore.getById(deviceId);
+            }
+            if (!device && hardwareId) {
+                const allDevices = await deviceStore.getAll();
+                device = allDevices.find(d => d.hardwareId === hardwareId);
+            }
+            if (!device && installId) {
+                const allDevices = await deviceStore.getAll();
+                device = allDevices.find(d => d.installId === installId);
+            }
+
             if (!device) {
-                return res.status(401).json({ valid: false, error: 'device_not_found' });
+                // Not an error - just means device needs to register
+                return res.status(200).json({
+                    valid: false,
+                    isRegistered: false,
+                    reason: 'device_not_found',
+                });
             }
 
-            const isValid = await deviceStore.verifyDevice(deviceId, secret);
+            // If device exists but no secret provided, return registered status only
+            if (!secret) {
+                return res.status(200).json({
+                    valid: false,
+                    isRegistered: true,
+                    deviceId: device.id,
+                    reason: 'secret_required',
+                });
+            }
+
+            // Verify secret
+            const isValid = await deviceStore.verifyDevice(device.id, secret);
             if (!isValid) {
                 return res.status(401).json({ valid: false, error: 'invalid_secret' });
             }
 
             // Update last seen
-            await await deviceStore.patchDevice(device.id, {
+            await deviceStore.patchDevice(device.id, {
                 lastSeenAt: new Date().toISOString(),
             });
 
-            res.json({ valid: true, deviceId: device.id });
+            res.json({ valid: true, isRegistered: true, deviceId: device.id });
         } catch (e) {
             console.error('[Device Check] Unexpected error:', e);
             res.status(500).json({ error: 'check_failed' });
