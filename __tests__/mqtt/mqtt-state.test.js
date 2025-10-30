@@ -64,7 +64,6 @@ jest.mock('../../utils/capabilityRegistry', () => ({
 }));
 
 const mqtt = require('mqtt');
-const logger = require('../../utils/logger');
 const MqttBridge = require('../../utils/mqttBridge');
 
 describe('MQTT State Publishing', () => {
