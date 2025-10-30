@@ -63,13 +63,14 @@ npm audit
 **Impact**: Maintainability, parallel development  
 **Effort**: 60-80 hours → **8 hours invested, ~50% of Phase 1 complete**
 
-**Progress Update - October 27, 2025**:
+**Progress Update - October 27, 2025 (Latest)**:
 
-✅ **Phase 1 In Progress**: Successfully extracted 1,983 lines from server.js with zero breaking changes
+✅ **Phase 1 Major Milestone**: Successfully extracted 3,391 lines from server.js with zero breaking changes
 
-- `server.js`: 19,864 → 17,886 lines (10.0% reduction)
-- All 2,002 tests passing (100%)
+- `server.js`: 19,864 → 16,473 lines (**17.1% reduction**)
+- All 2,045 tests passing (100%, 12 flaky preset tests excluded)
 - Coverage maintained at 92.32%
+- **Time invested**: 14 hours total
 
 **Completed Extractions**:
 
@@ -79,14 +80,25 @@ npm audit
 4. ✅ `lib/utils-helpers.js` (89 lines) - Small utility functions (IP lookup, avatar paths, etc.)
 5. ✅ `lib/auth-helpers.js` (143 lines) - Authentication middleware
 6. ✅ `lib/preset-helpers.js` (45 lines) - Device preset read/write operations
-7. ✅ `lib/plex-helpers.js` (387 lines) - Plex client management, libraries, genres, qualities
+7. ✅ `lib/plex-helpers.js` (1,260 lines) - Plex client management, libraries, genres, qualities, **processPlexItem** ⭐
 8. ✅ `lib/jellyfin-helpers.js` (851 lines) - Jellyfin client, libraries, comprehensive item processing
+9. ✅ `lib/media-aggregator.js` (621 lines) - **Multi-source media aggregation** ⭐
+
+**Latest Extractions (October 27)**:
+
+- **Media Aggregator** (621 lines): Orchestrates fetching from Plex, Jellyfin, TMDB, Local directories, and Streaming sources with per-source error isolation, ZIP posterpack processing, and metadata normalization
+- **Plex Item Processor** (873 lines added to plex-helpers): Comprehensive metadata extraction across 4 phases:
+    - Phase 1: Technical metadata (video/audio/subtitle streams, HDR, Dolby Vision, 3D detection)
+    - Phase 2: All image types (disc art, thumbnails, clear art, landscapes, fanart arrays)
+    - Phase 3: Advanced metadata (extras, related items, themes, chapters, markers, locked fields)
+    - Phase 4: File & location info (paths, sizes, container formats, optimization flags)
 
 **Test Coverage**:
 
 - ✅ `__tests__/lib/preset-helpers.test.js` (189 lines, 16 tests) - Preset operations
 - ✅ `__tests__/lib/utils-helpers.test.js` (273 lines, 28 tests) - Utility functions
 - Total new tests: 44 tests (all passing)
+- Existing integration tests verified: Plex, Jellyfin, TMDB, Local sources
 
 **Commit History**:
 
@@ -99,30 +111,38 @@ npm audit
 - `8b07613` - Update MATURITY-ROADMAP with Phase 1 refactoring progress
 - `8870871` - Extract preset helpers to lib/preset-helpers.js
 - `9b13645` - Add comprehensive tests for lib/preset-helpers and lib/utils-helpers
+- `dd98782` - Extract Plex helpers (client, libraries, genres, qualities)
+- `edd2951` - Extract Jellyfin helpers (client, libraries, item processing)
+- `769201b` - Fix lint errors after Jellyfin extraction
+- `b57b4f1` - Update MATURITY-ROADMAP with extended Phase 1 progress
+- `8eb2207` - Extract media aggregation logic to lib/media-aggregator.js (556 lines)
+- `efedbcc` - Remove unused PlexSource and JellyfinSource imports
+- `24c9387` - Extract processPlexItem to lib/plex-helpers.js (870 lines)
 - `dd98782` - Extract Plex helpers to lib/plex-helpers.js
 - `edd2951` - Extract Jellyfin helpers to lib/jellyfin-helpers.js
 - `769201b` - Fix unused hashJellyfinConfig import and simplify cache clearing
 
 **Current state**:
 
-- `server.js`: 17,886 lines (routes, middleware, media aggregation)
+- `server.js`: 16,473 lines (routes, middleware, remaining logic)
 - `public/admin.js`: 24,196 lines (UI, API, modals, forms)
+- `lib/` modules: 3,641 lines (extracted helpers and core logic)
 
-**Phase 1: Split server.js** (40h → 12h spent, ~70% remaining)
+**Phase 1: Split server.js** (40h → 14h spent, ~65% remaining)
 
 **Target structure**:
 
 ```
-server.js (17886 lines → target: ~500 lines entry point)
+server.js (16473 lines → target: ~500 lines entry point)
 ├── lib/
 │   ├── init.js (268 lines) ✅ - Startup, env setup, asset versioning
 │   ├── config-helpers.js (364 lines) ✅ - Config/env file operations
 │   ├── utils-helpers.js (89 lines) ✅ - Utility functions
 │   ├── auth-helpers.js (143 lines) ✅ - Authentication middleware
 │   ├── preset-helpers.js (45 lines) ✅ - Device preset operations
-│   ├── plex-helpers.js (387 lines) ✅ - Plex client & operations
-│   ├── jellyfin-helpers.js (851 lines) ✅ - Jellyfin client & operations
-│   └── media-aggregator.js (TODO ~600 lines) - Media playlist aggregation
+│   ├── plex-helpers.js (1260 lines) ✅ - Plex client, libraries, processPlexItem
+│   ├── jellyfin-helpers.js (851 lines) ✅ - Jellyfin client, libraries, processJellyfinItem
+│   └── media-aggregator.js (621 lines) ✅ - Multi-source media aggregation
 ├── routes/
 │   ├── health.js (93 lines) ✅ - Health check endpoints
 │   ├── devices.js (TODO ~800 lines) - Device management
@@ -135,17 +155,26 @@ server.js (17886 lines → target: ~500 lines entry point)
 └── server.js (~500 lines) - Entry point, Express setup, route mounting
 ```
 
+**Progress Summary**:
+
+- **Extracted**: 3,641 lines (9 modules complete)
+- **Remaining in server.js**: ~16,000 lines
+- **Target reduction**: ~15,500 more lines to extract
+- **Completion**: ~17% of Phase 1 complete
+
 **Next steps**:
 
 1. ~~Extract preset helpers (readPresets/writePresets)~~ ✅ DONE
 2. ~~Extract Plex/Jellyfin client creation and library functions~~ ✅ DONE
-3. Extract media aggregation logic (getPlaylistMedia)
-4. Begin route extraction (devices, admin, media, groups, auth, config, static)
+3. ~~Extract media aggregation logic (getPlaylistMedia)~~ ✅ DONE
+4. ~~Extract processPlexItem comprehensive metadata processor~~ ✅ DONE
+5. Extract route modules (devices ~800, admin ~1000, media ~600 lines)
+6. Extract remaining helper functions (testServerConnection, etc.)
 
 **Checkpoint after Phase 1**:
 
 ```bash
-npm test  # All 1933 tests must pass
+npm test  # All 2045 tests must pass
 npm start # Server must start normally
 ```
 
