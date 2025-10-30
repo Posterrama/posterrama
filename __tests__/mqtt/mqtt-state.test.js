@@ -86,7 +86,10 @@ describe('MQTT State Publishing', () => {
         });
 
         await mqttBridge.init();
-        await new Promise(resolve => setImmediate(resolve));
+
+        // Ensure client is connected
+        mockClient.connected = true;
+        await new Promise(resolve => setTimeout(resolve, 100));
     });
 
     afterEach(() => {
@@ -112,6 +115,7 @@ describe('MQTT State Publishing', () => {
             };
 
             await mqttBridge.publishDeviceState(device);
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const messages = mockClient.getPublishedMessages(
                 'posterrama/device/test-device-1/state'
@@ -138,6 +142,7 @@ describe('MQTT State Publishing', () => {
             };
 
             await mqttBridge.publishDeviceState(device);
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const payload = mockClient.getLastPublishedPayload(
                 'posterrama/device/test-device-1/state'
@@ -154,6 +159,7 @@ describe('MQTT State Publishing', () => {
             };
 
             await mqttBridge.publishDeviceState(device);
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const payload = mockClient.getLastPublishedPayload(
                 'posterrama/device/test-device-1/state'
@@ -173,6 +179,7 @@ describe('MQTT State Publishing', () => {
             };
 
             await mqttBridge.publishDeviceState(device);
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const payload = mockClient.getLastPublishedPayload(
                 'posterrama/device/test-device-1/state'
@@ -189,6 +196,7 @@ describe('MQTT State Publishing', () => {
             };
 
             await mqttBridge.publishDeviceState(device);
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const message = mockClient.getLastPublishedMessage(
                 'posterrama/device/test-device-1/state'
@@ -205,6 +213,7 @@ describe('MQTT State Publishing', () => {
             };
 
             await mqttBridge.publishDeviceState(device);
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const message = mockClient.getLastPublishedMessage(
                 'posterrama/device/test-device-1/state'
@@ -223,6 +232,7 @@ describe('MQTT State Publishing', () => {
             };
 
             await mqttBridge.publishDeviceState(device);
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const messages = mockClient.getPublishedMessages(
                 'posterrama/device/test-device-1/state'
@@ -240,6 +250,7 @@ describe('MQTT State Publishing', () => {
 
             // First publish
             await mqttBridge.publishDeviceState(device);
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             // Change mode
             device.currentState.mode = 'wallart';
