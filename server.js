@@ -7193,7 +7193,9 @@ async function getPlexQualitiesWithCounts(serverConfig) {
                                 item.Media.forEach(media => {
                                     if (media.videoResolution) {
                                         let quality;
-                                        const resolution = media.videoResolution;
+                                        const resolution = String(
+                                            media.videoResolution
+                                        ).toLowerCase();
 
                                         // Map Plex resolution values to standardized quality labels
                                         switch (resolution) {
@@ -7202,12 +7204,16 @@ async function getPlexQualitiesWithCounts(serverConfig) {
                                                 break;
                                             case '720':
                                             case 'hd':
+                                            case '720p':
                                                 quality = '720p';
                                                 break;
                                             case '1080':
+                                            case '1080p':
                                                 quality = '1080p';
                                                 break;
                                             case '4k':
+                                            case '2160':
+                                            case '2160p':
                                                 quality = '4K';
                                                 break;
                                             default:
