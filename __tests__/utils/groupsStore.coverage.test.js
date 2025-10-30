@@ -132,4 +132,24 @@ describe('utils/groupsStore coverage', () => {
         expect(ok1).toBe(true);
         expect(ok2).toBe(false);
     });
+
+    test('getAll returns empty array when JSON contains an object instead of array', async () => {
+        // Simulate corrupt file with object instead of array
+        mockFs.data.set(tmpStore, JSON.stringify({ mediaServers: [] }));
+        groupsStore.resetCache(); // Clear cache to force re-read
+
+        const all = await groupsStore.getAll();
+        expect(Array.isArray(all)).toBe(true);
+        expect(all.length).toBe(0);
+    });
+
+    test('getAll returns empty array when JSON is invalid', async () => {
+        // Simulate corrupt file with invalid JSON
+        mockFs.data.set(tmpStore, 'not valid json{]');
+        groupsStore.resetCache(); // Clear cache to force re-read
+
+        const all = await groupsStore.getAll();
+        expect(Array.isArray(all)).toBe(true);
+        expect(all.length).toBe(0);
+    });
 });
