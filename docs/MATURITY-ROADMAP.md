@@ -65,12 +65,13 @@ npm audit
 
 **Progress Update - October 27, 2025 (Latest)**:
 
-✅ **Phase 1 Major Milestone**: Successfully extracted 3,391 lines from server.js with zero breaking changes
+✅ **Phase 1 Accelerating**: Successfully extracted 3,680 lines from server.js with zero breaking changes
 
-- `server.js`: 19,864 → 16,473 lines (**17.1% reduction**)
+- `server.js`: 19,864 → 16,184 lines (**18.5% reduction**)
 - All 2,045 tests passing (100%, 12 flaky preset tests excluded)
 - Coverage maintained at 92.32%
-- **Time invested**: 14 hours total
+- **Time invested**: 15 hours total
+- **6 commits this session** (testServerConnection, playlist cache management)
 
 **Completed Extractions**:
 
@@ -83,15 +84,30 @@ npm audit
 7. ✅ `lib/plex-helpers.js` (1,260 lines) - Plex client management, libraries, genres, qualities, **processPlexItem** ⭐
 8. ✅ `lib/jellyfin-helpers.js` (851 lines) - Jellyfin client, libraries, comprehensive item processing
 9. ✅ `lib/media-aggregator.js` (621 lines) - **Multi-source media aggregation** ⭐
+10. ✅ `lib/server-test-helpers.js` (231 lines) - **Server connection testing** (Plex + Jellyfin) ⭐
+11. ✅ `lib/playlist-cache.js` (247 lines) - **Playlist cache management with auto-refresh** ⭐
 
-**Latest Extractions (October 27)**:
+**Latest Extractions (October 27 - Session 2)**:
 
-- **Media Aggregator** (621 lines): Orchestrates fetching from Plex, Jellyfin, TMDB, Local directories, and Streaming sources with per-source error isolation, ZIP posterpack processing, and metadata normalization
-- **Plex Item Processor** (873 lines added to plex-helpers): Comprehensive metadata extraction across 4 phases:
-    - Phase 1: Technical metadata (video/audio/subtitle streams, HDR, Dolby Vision, 3D detection)
-    - Phase 2: All image types (disc art, thumbnails, clear art, landscapes, fanart arrays)
-    - Phase 3: Advanced metadata (extras, related items, themes, chapters, markers, locked fields)
-    - Phase 4: File & location info (paths, sizes, container formats, optimization flags)
+- **Server Connection Testing** (190 lines): Lightweight connection tests for Plex and Jellyfin with:
+    - Response time measurement (process.hrtime)
+    - Configurable log levels (PLEX_TEST_LOG_LEVEL, JELLYFIN_TEST_LOG_LEVEL)
+    - Slow connection warnings (PLEX_SLOW_WARN_MS, JELLYFIN_SLOW_WARN_MS)
+    - Comprehensive error handling (ECONNREFUSED, ETIMEDOUT, 401)
+    - 5-second timeout for health checks
+- **Playlist Cache Management** (100 lines extracted, 247 total): Manages in-memory caching with:
+    - Concurrency protection with lock mechanism
+    - Stuck state detection and auto-recovery (20s threshold)
+    - Performance monitoring (memory usage, duration tracking)
+    - Background refresh scheduling (configurable interval)
+    - Safety timeout (15s) to prevent permanently stuck state
+    - Getters for cache access (getPlaylistCache, isPlaylistRefreshing)
+    - Emergency recovery (resetRefreshState, clearPlaylistCache)
+
+**Previous Extractions (October 27 - Session 1)**:
+
+- **Media Aggregator** (621 lines): Orchestrates fetching from Plex, Jellyfin, TMDB, Local directories, and Streaming sources
+- **Plex Item Processor** (873 lines): Comprehensive metadata extraction across 4 phases
 
 **Test Coverage**:
 
@@ -100,7 +116,7 @@ npm audit
 - Total new tests: 44 tests (all passing)
 - Existing integration tests verified: Plex, Jellyfin, TMDB, Local sources
 
-**Commit History**:
+**Commit History** (19 commits total):
 
 - `b658089` - Extract health routes module (proof-of-concept)
 - `7f3bece` - Extract initialization logic to lib/init.js
@@ -115,10 +131,12 @@ npm audit
 - `edd2951` - Extract Jellyfin helpers (client, libraries, item processing)
 - `769201b` - Fix lint errors after Jellyfin extraction
 - `b57b4f1` - Update MATURITY-ROADMAP with extended Phase 1 progress
-- `8eb2207` - Extract media aggregation logic to lib/media-aggregator.js (556 lines)
+- `8eb2207` - Extract media aggregation logic to lib/media-aggregator.js
 - `efedbcc` - Remove unused PlexSource and JellyfinSource imports
 - `24c9387` - Extract processPlexItem to lib/plex-helpers.js (870 lines)
-- `dd98782` - Extract Plex helpers to lib/plex-helpers.js
+- `11c6f1e` - Update MATURITY-ROADMAP with processPlexItem progress
+- `71a1648` - Extract testServerConnection to lib/server-test-helpers.js (190 lines)
+- `4e8b24b` - Extract playlist cache management to lib/playlist-cache.js (100 lines)
 - `edd2951` - Extract Jellyfin helpers to lib/jellyfin-helpers.js
 - `769201b` - Fix unused hashJellyfinConfig import and simplify cache clearing
 
@@ -157,19 +175,31 @@ server.js (16473 lines → target: ~500 lines entry point)
 
 **Progress Summary**:
 
-- **Extracted**: 3,641 lines (9 modules complete)
+- **Extracted**: 4,119 lines (11 modules complete)
 - **Remaining in server.js**: ~16,000 lines
 - **Target reduction**: ~15,500 more lines to extract
-- **Completion**: ~17% of Phase 1 complete
+- **Completion**: ~18.5% of Phase 1 complete (accelerating!)
 
-**Next steps**:
+**Next steps (ordered by risk level - lowest first)**:
 
 1. ~~Extract preset helpers (readPresets/writePresets)~~ ✅ DONE
 2. ~~Extract Plex/Jellyfin client creation and library functions~~ ✅ DONE
 3. ~~Extract media aggregation logic (getPlaylistMedia)~~ ✅ DONE
 4. ~~Extract processPlexItem comprehensive metadata processor~~ ✅ DONE
-5. Extract route modules (devices ~800, admin ~1000, media ~600 lines)
-6. Extract remaining helper functions (testServerConnection, etc.)
+5. ~~Extract testServerConnection for Plex/Jellyfin health checks~~ ✅ DONE
+6. ~~Extract playlist cache management with background refresh~~ ✅ DONE
+7. 🔄 **LOW RISK**: Extract remaining standalone utility functions
+    - Error handling utilities
+    - Response formatters
+    - Small validators
+8. 🔄 **MEDIUM RISK**: Extract route modules one-by-one
+    - Start with smallest: groups.js (~400 lines)
+    - Then: config.js (~400 lines)
+    - Then: static.js (~300 lines)
+    - Then: auth.js (~500 lines)
+    - Then: media.js (~600 lines)
+    - Then: devices.js (~800 lines)
+    - Finally: admin.js (~1000 lines)
 
 **Checkpoint after Phase 1**:
 
