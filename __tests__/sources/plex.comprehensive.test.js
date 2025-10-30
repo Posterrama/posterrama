@@ -86,7 +86,29 @@ describe('Plex Source', () => {
             const result = await plexSource.fetchMedia(['Movies'], 'movie', 2);
             expect(mockGetPlexLibraries).toHaveBeenCalledWith(mockServerConfig);
             expect(mockPlexClient.query).toHaveBeenCalledWith('/library/sections/1/all');
-            expect(mockShuffleArray).toHaveBeenCalledWith(mockMediaItems);
+            expect(mockShuffleArray).toHaveBeenCalledWith([
+                {
+                    ratingKey: '1',
+                    title: 'Movie 1',
+                    type: 'movie',
+                    librarySectionID: '1',
+                    librarySectionTitle: 'Movies',
+                },
+                {
+                    ratingKey: '2',
+                    title: 'Movie 2',
+                    type: 'movie',
+                    librarySectionID: '1',
+                    librarySectionTitle: 'Movies',
+                },
+                {
+                    ratingKey: '3',
+                    title: 'Movie 3',
+                    type: 'movie',
+                    librarySectionID: '1',
+                    librarySectionTitle: 'Movies',
+                },
+            ]);
             expect(mockProcessPlexItem).toHaveBeenCalledTimes(2);
             expect(result).toHaveLength(2);
         });
