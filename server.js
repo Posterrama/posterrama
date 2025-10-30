@@ -1803,7 +1803,7 @@ const adminLibrariesRouter = createAdminLibrariesRouter({
     getPlexGenres,
     getPlexGenresWithCounts,
 });
-app.use('/api/admin', adminLibrariesRouter);
+app.use('/', adminLibrariesRouter);
 
 // Minimal CSP violation report endpoint
 // Accepts both deprecated report-uri (application/csp-report) and modern report-to (application/reports+json)
