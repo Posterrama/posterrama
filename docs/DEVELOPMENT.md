@@ -176,9 +176,6 @@ Open items and planned features for Posterrama (v2.8.8+).
     - Config fetch: <100ms target
     - Cache operations: <10ms read, <50ms write
     - Memory leak detection
-- [ ] Prometheus metrics export
-- [ ] Grafana dashboard templates
-- [ ] Alerting system integration
 - [ ] Automatic update notifications
 
 ## 🧪 Testing & Quality Assurance
