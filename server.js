@@ -13796,6 +13796,19 @@ app.post(
                 })
             );
 
+            if (isDebug) {
+                logger.debug(
+                    `[Plex Lib Fetch] Returning ${libraries.length} libraries with counts:`,
+                    {
+                        libraries: libraries.map(l => ({
+                            name: l.name,
+                            type: l.type,
+                            count: l.itemCount,
+                        })),
+                    }
+                );
+            }
+
             res.json({ success: true, libraries });
         } catch (error) {
             if (isDebug) console.error('[Plex Lib Fetch] Failed:', error.message);
