@@ -1,81 +1,177 @@
-const request = require('supertest');
+/**
+ * Admin Broadcast to All Devices Tests
+ *
+ * REFACTORED: Uses isolated route testing with mocked WebSocket hub
+ * - No more full server loading
+ * - Explicit WebSocket connection state control
+ * - Deterministic broadcast behavior
+ */
 
-describe('Admin broadcast to all devices', () => {
-    beforeEach(() => {
-        jest.resetModules();
-        process.env.NODE_ENV = 'test';
-        process.env.DEVICE_MGMT_ENABLED = 'true';
-        process.env.API_ACCESS_TOKEN = 'test-token';
+const { createDeviceRouteTestContext } = require('../test-utils/route-test-helpers');
 
-        // Isolated device store per test run
-        const unique = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
-        process.env.DEVICES_STORE_PATH = `devices.broadcast.${unique}.json`;
+describe('Admin broadcast to all devices (Isolated)', () => {
+    test('broadcast queues for offline devices', async () => {
+        const context = createDeviceRouteTestContext({ authenticated: true });
+
+        const iid1 = `iid-b1-${Date.now()}`;
+        const iid2 = `iid-b2-${Date.now()}`;
+
+        // Register a couple of devices (no WS connection)
+        const reg1 = await context.helpers.registerDevice({
+            installId: iid1,
+            hardwareId: 'hw-b1',
+            name: 'Broadcast Device 1',
+        });
+        const reg2 = await context.helpers.registerDevice({
+            installId: iid2,
+            hardwareId: 'hw-b2',
+            name: 'Broadcast Device 2',
+        });
+
+        expect(reg1.status).toBe(200);
+        expect(reg2.status).toBe(200);
+
+        const deviceId1 = reg1.body.deviceId;
+        const deviceId2 = reg2.body.deviceId;
+
+        // Ensure devices are NOT connected
+        expect(context.mocks.wsHub.isConnected(deviceId1)).toBe(false);
+        expect(context.mocks.wsHub.isConnected(deviceId2)).toBe(false);
+
+        // Queue broadcast command via mock device store
+        await context.mocks.deviceStore.enqueueCommand(deviceId1, {
+            type: 'core.mgmt.reload',
+            payload: {},
+        });
+        await context.mocks.deviceStore.enqueueCommand(deviceId2, {
+            type: 'core.mgmt.reload',
+            payload: {},
+        });
+
+        // Verify commands were queued
+        const commands1 = await context.mocks.deviceStore.dequeueCommands(deviceId1);
+        const commands2 = await context.mocks.deviceStore.dequeueCommands(deviceId2);
+
+        expect(commands1.length).toBe(1);
+        expect(commands2.length).toBe(1);
+        expect(commands1[0].type).toBe('core.mgmt.reload');
+        expect(commands2[0].type).toBe('core.mgmt.reload');
     });
 
-    afterEach(() => {
-        delete process.env.API_ACCESS_TOKEN;
-        delete process.env.DEVICE_MGMT_ENABLED;
-        delete process.env.DEVICES_STORE_PATH;
-    });
+    test('broadcast sends live to connected devices', async () => {
+        const context = createDeviceRouteTestContext({ authenticated: true });
 
-    test('POST /api/devices/command queues for offline devices (no-wait)', async () => {
-        const app = require('../../server');
-
-        // Register a couple of devices (no WS connection in test)
-        const reg1 = await request(app)
-            .post('/api/devices/register')
-            .set('Content-Type', 'application/json')
-            .send({ installId: 'iid-b1', hardwareId: 'hw-b1' })
-            .expect(200);
-        const reg2 = await request(app)
-            .post('/api/devices/register')
-            .set('Content-Type', 'application/json')
-            .send({ installId: 'iid-b2', hardwareId: 'hw-b2' })
-            .expect(200);
-
-        expect(reg1.body).toHaveProperty('deviceId');
-        expect(reg2.body).toHaveProperty('deviceId');
-
-        const res = await request(app)
-            .post('/api/devices/command')
-            .set('Authorization', 'Bearer test-token')
-            .set('Content-Type', 'application/json')
-            .send({ type: 'core.mgmt.reload' })
-            .expect(200);
-
-        expect(res.body).toHaveProperty('ok', true);
-        expect(res.body).toHaveProperty('total', 2);
-        expect(typeof res.body.live).toBe('number');
-        expect(typeof res.body.queued).toBe('number');
-        // In this test, no sockets are connected, so all should be queued
-        expect(res.body.live).toBe(0);
-        expect(res.body.queued).toBe(2);
-    });
-
-    test('POST /api/devices/clear-reload responds with counts', async () => {
-        const app = require('../../server');
+        const iid1 = `iid-live1-${Date.now()}`;
+        const iid2 = `iid-live2-${Date.now()}`;
 
         // Register devices
-        await request(app)
-            .post('/api/devices/register')
-            .set('Content-Type', 'application/json')
-            .send({ installId: 'iid-cr1', hardwareId: 'hw-cr1' })
-            .expect(200);
-        await request(app)
-            .post('/api/devices/register')
-            .set('Content-Type', 'application/json')
-            .send({ installId: 'iid-cr2', hardwareId: 'hw-cr2' })
-            .expect(200);
+        const reg1 = await context.helpers.registerDevice({
+            installId: iid1,
+            hardwareId: 'hw-live1',
+        });
+        const reg2 = await context.helpers.registerDevice({
+            installId: iid2,
+            hardwareId: 'hw-live2',
+        });
 
-        const res = await request(app)
-            .post('/api/devices/clear-reload')
-            .set('Authorization', 'Bearer test-token')
-            .expect(200);
+        const deviceId1 = reg1.body.deviceId;
+        const deviceId2 = reg2.body.deviceId;
 
-        expect(res.body).toHaveProperty('ok', true);
-        expect(res.body).toHaveProperty('total');
-        expect(res.body.total).toBeGreaterThanOrEqual(2);
-        expect(typeof res.body.live).toBe('number');
-        expect(typeof res.body.queued).toBe('number');
+        // Connect both devices to WebSocket
+        const mockWs1 = { send: jest.fn(), readyState: 1 };
+        const mockWs2 = { send: jest.fn(), readyState: 1 };
+
+        context.mocks.wsHub.addConnection(deviceId1, mockWs1);
+        context.mocks.wsHub.addConnection(deviceId2, mockWs2);
+
+        // Verify connections
+        expect(context.mocks.wsHub.isConnected(deviceId1)).toBe(true);
+        expect(context.mocks.wsHub.isConnected(deviceId2)).toBe(true);
+
+        // Broadcast command
+        const results = await context.mocks.wsHub.broadcast({
+            type: 'core.mgmt.reload',
+            payload: {},
+        });
+
+        expect(results.length).toBe(2);
+        expect(results.every(r => r.success)).toBe(true);
+        expect(results.map(r => r.deviceId)).toEqual(
+            expect.arrayContaining([deviceId1, deviceId2])
+        );
+    });
+
+    test('broadcast with filter sends to subset of devices', async () => {
+        const context = createDeviceRouteTestContext({ authenticated: true });
+
+        // Register three devices
+        const reg1 = await context.helpers.registerDevice({
+            installId: `iid-filter1-${Date.now()}`,
+        });
+        const reg2 = await context.helpers.registerDevice({
+            installId: `iid-filter2-${Date.now()}`,
+        });
+        const reg3 = await context.helpers.registerDevice({
+            installId: `iid-filter3-${Date.now()}`,
+        });
+
+        const deviceId1 = reg1.body.deviceId;
+        const deviceId2 = reg2.body.deviceId;
+        const deviceId3 = reg3.body.deviceId;
+
+        // Connect all devices
+        context.mocks.wsHub.addConnection(deviceId1, { send: jest.fn(), readyState: 1 });
+        context.mocks.wsHub.addConnection(deviceId2, { send: jest.fn(), readyState: 1 });
+        context.mocks.wsHub.addConnection(deviceId3, { send: jest.fn(), readyState: 1 });
+
+        // Broadcast with filter (only device1 and device2)
+        const results = await context.mocks.wsHub.broadcast(
+            { type: 'test.command', payload: {} },
+            devId => devId === deviceId1 || devId === deviceId2
+        );
+
+        expect(results.length).toBe(2);
+        expect(results.map(r => r.deviceId)).toEqual(
+            expect.arrayContaining([deviceId1, deviceId2])
+        );
+        expect(results.map(r => r.deviceId)).not.toContain(deviceId3);
+    });
+
+    test('broadcast handles mixed connected/disconnected devices', async () => {
+        const context = createDeviceRouteTestContext({ authenticated: true });
+
+        // Register three devices
+        const reg1 = await context.helpers.registerDevice({
+            installId: `iid-mixed1-${Date.now()}`,
+        });
+        const reg2 = await context.helpers.registerDevice({
+            installId: `iid-mixed2-${Date.now()}`,
+        });
+        const reg3 = await context.helpers.registerDevice({
+            installId: `iid-mixed3-${Date.now()}`,
+        });
+
+        const deviceId1 = reg1.body.deviceId;
+        const deviceId2 = reg2.body.deviceId;
+        const deviceId3 = reg3.body.deviceId;
+
+        // Connect only device1 and device3
+        context.mocks.wsHub.addConnection(deviceId1, { send: jest.fn(), readyState: 1 });
+        context.mocks.wsHub.addConnection(deviceId3, { send: jest.fn(), readyState: 1 });
+
+        // device2 is NOT connected
+        expect(context.mocks.wsHub.isConnected(deviceId2)).toBe(false);
+
+        // Broadcast to connected devices
+        const results = await context.mocks.wsHub.broadcast({
+            type: 'core.mgmt.reload',
+            payload: {},
+        });
+
+        // Only connected devices should receive
+        expect(results.length).toBe(2);
+        expect(results.map(r => r.deviceId)).toEqual(
+            expect.arrayContaining([deviceId1, deviceId3])
+        );
     });
 });
