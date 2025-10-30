@@ -72,7 +72,6 @@ const FileStore = require('session-file-store')(session);
 const bcrypt = require('bcrypt');
 const { exec } = require('child_process');
 const fetch = require('node-fetch');
-const multer = require('multer');
 const crypto = require('crypto');
 const fsp = fs.promises;
 
