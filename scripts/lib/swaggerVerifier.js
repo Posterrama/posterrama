@@ -157,6 +157,7 @@ function verifySwagger() {
         'auth.js': '/admin',
         'devices.js': '/api/devices',
         'media.js': '/',
+        'qr.js': '/',
     };
 
     for (const { path: filePath, content } of routeFiles) {
