@@ -272,8 +272,9 @@ img.lazy-error {
 
 html,
 body {
-    /* Use standard viewport height so content stops above mobile browser address bar */
+    /* Use dynamic viewport height to adapt to browser UI visibility */
     height: 100vh;
+    height: 100dvh;
     /* Keep layout consistent across browsers */
     width: 100%;
     margin: 0;
@@ -828,6 +829,7 @@ body.promo-site #promo-box.is-hidden {
     right: 0;
     width: 100%;
     height: 100vh;
+    height: 100dvh; /* Dynamic viewport height - adapts to browser UI visibility */
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
