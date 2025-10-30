@@ -17,6 +17,12 @@ Open items and planned features for Posterrama (v2.8.8+).
     - Multi-source media aggregation (11 tests)
     - Device workflows with grouping & WebSocket (8 tests)
     - Admin UI workflows (23 tests)
+- ✅ **MQTT/Home Assistant Integration**: Complete integration with 64 tests
+    - Home Assistant Discovery auto-config
+    - Real-time device state publishing (mode, playback, availability)
+    - Camera entity integration (current poster as JPEG stream)
+    - Broadcast command routing to device groups
+    - Command validation and history tracking
 - ✅ **Device Presets**: Template system implemented (`device-presets.example.json`)
 - ✅ **Responsive Design**: Mobile-optimized admin interface with viewport meta tags
 - ✅ **Image Optimization**: Lazy loading with Intersection Observer API
@@ -129,12 +135,16 @@ Open items and planned features for Posterrama (v2.8.8+).
 
 ### Home Automation (MQTT)
 
-- [ ] Complete settings testing (all 30+ settings end-to-end)
+- [x] ~~Complete settings testing (all 30+ settings end-to-end)~~ ✅ **DONE** - 64 MQTT tests passing (4 test suites)
 - [x] ~~Broadcast commands via MQTT~~ ✅ **DONE** - Group command broadcasting implemented
-- [ ] Group controls integration (groups.json → virtual HA devices)
+- [x] ~~Group controls integration (groups.json → virtual HA devices)~~ ✅ **DONE** - Broadcast commands route to all devices
+- [x] ~~Home Assistant Discovery~~ ✅ **DONE** - Auto-discovery config publishing
+- [x] ~~Device state publishing~~ ✅ **DONE** - Real-time state updates (mode, playback, availability)
+- [x] ~~Camera entity integration~~ ✅ **DONE** - Current poster as HA camera entity with JPEG streaming
+- [x] ~~Command routing~~ ✅ **DONE** - MQTT commands routed to WebSocket devices
+- [x] ~~End-to-end integration tests with real MQTT broker~~ ✅ **DONE** - E2E suite available
 - [ ] Server metrics sensors (cache size, memory usage, device count)
 - [ ] Event notifications (device connect/disconnect, library updates)
-- [x] ~~End-to-end integration tests with real MQTT broker~~ ✅ **DONE** - E2E suite available
 
 ## 🔐 Security & Authentication
 
