@@ -33,7 +33,6 @@ const { readPresets, writePresets } = require('./lib/preset-helpers');
 const {
     createPlexClient,
     getPlexClient,
-    clearPlexClients,
     getPlexLibraries,
     getPlexGenres,
     getPlexGenresWithCounts,
@@ -41,7 +40,6 @@ const {
     processPlexItem,
 } = require('./lib/plex-helpers');
 const {
-    invalidateJellyfinClient,
     getJellyfinClient,
     fetchJellyfinLibraries,
     createJellyfinClient,
@@ -56,7 +54,6 @@ const {
     isPlaylistRefreshing,
     getRefreshStartTime,
     resetRefreshState,
-    clearPlaylistCache,
 } = require('./lib/playlist-cache');
 
 // Force reload environment on startup to prevent PM2 cache issues
