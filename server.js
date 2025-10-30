@@ -36,15 +36,15 @@ function forceReloadEnv() {
 // Force reload environment on startup to prevent PM2 cache issues
 forceReloadEnv();
 
-// --- Auto Cache Busting ---
+// --- Auto Cache Busting (Async) ---
 const cachedVersions = {};
 let lastVersionCheck = 0;
 const VERSION_CACHE_TTL = 1000; // Cache versions for 1 second to minimize stale assets during active development
 
-function generateAssetVersion(filePath) {
+async function generateAssetVersion(filePath) {
     try {
         const fullPath = path.join(__dirname, 'public', filePath);
-        const stats = fs.statSync(fullPath);
+        const stats = await fs.promises.stat(fullPath);
         // Use modification time as version
         return Math.floor(stats.mtime.getTime() / 1000).toString(36);
     } catch (error) {
@@ -53,46 +53,62 @@ function generateAssetVersion(filePath) {
     }
 }
 
+async function refreshAssetVersions() {
+    const criticalAssets = [
+        'core.js',
+        'admin.js',
+        'style.css',
+        'admin.css',
+        // Cinema/Admin & Preview assets
+        'cinema/cinema-ui.js',
+        'cinema/cinema.css',
+        // Cinema display assets (used on /cinema)
+        'cinema/cinema-display.js',
+        'cinema/cinema-display.css',
+        'cinema/cinema-bootstrap.js',
+        'preview-cinema.js',
+        'preview-cinema.css',
+        'logs.js',
+        'logs.css',
+        'sw.js',
+        'client-logger.js',
+        'manifest.json',
+        'device-mgmt.js',
+        'lazy-loading.js',
+        'notify.js',
+        // Screensaver assets
+        'screensaver/screensaver.js',
+        'screensaver/screensaver.css',
+        // Wallart assets
+        'wallart/wallart-display.js',
+        'wallart/wallart.css',
+        // 'theme-demo.css' has been renamed to admin.css for Admin v2 rollout
+    ];
+
+    // Generate versions in parallel for all assets
+    const versionPromises = criticalAssets.map(async asset => {
+        const version = await generateAssetVersion(asset);
+        return { asset, version };
+    });
+
+    const results = await Promise.all(versionPromises);
+    results.forEach(({ asset, version }) => {
+        cachedVersions[asset] = version;
+    });
+
+    lastVersionCheck = Date.now();
+    logger.debug('Asset versions refreshed:', cachedVersions);
+}
+
 function getAssetVersions() {
     const now = Date.now();
     if (now - lastVersionCheck > VERSION_CACHE_TTL) {
-        const criticalAssets = [
-            'core.js',
-            'admin.js',
-            'style.css',
-            'admin.css',
-            // Cinema/Admin & Preview assets
-            'cinema/cinema-ui.js',
-            'cinema/cinema.css',
-            // Cinema display assets (used on /cinema)
-            'cinema/cinema-display.js',
-            'cinema/cinema-display.css',
-            'cinema/cinema-bootstrap.js',
-            'preview-cinema.js',
-            'preview-cinema.css',
-            'logs.js',
-            'logs.css',
-            'sw.js',
-            'client-logger.js',
-            'manifest.json',
-            'device-mgmt.js',
-            'lazy-loading.js',
-            'notify.js',
-            // Screensaver assets
-            'screensaver/screensaver.js',
-            'screensaver/screensaver.css',
-            // Wallart assets
-            'wallart/wallart-display.js',
-            'wallart/wallart.css',
-            // 'theme-demo.css' has been renamed to admin.css for Admin v2 rollout
-        ];
-
-        criticalAssets.forEach(asset => {
-            cachedVersions[asset] = generateAssetVersion(asset);
+        // Trigger async refresh but return cached versions immediately
+        // This prevents blocking the request while maintaining cache freshness
+        refreshAssetVersions().catch(err => {
+            logger.warn('[Asset Versioning] Failed to refresh versions:', err.message);
         });
-
-        lastVersionCheck = now;
-        logger.debug('Asset versions refreshed:', cachedVersions);
+        lastVersionCheck = now; // Update check time to prevent rapid retries
     }
 
     return cachedVersions;
@@ -19182,6 +19198,51 @@ app.get(
 // Start the server only if this script is run directly (e.g., `node server.js`)
 // and not when it's imported by another script (like our tests).
 if (require.main === module) {
+    // Pre-load asset versions synchronously on startup to ensure they're available immediately
+    logger.info('Pre-loading asset versions...');
+    try {
+        // Initial synchronous load for immediate availability
+        const criticalAssets = [
+            'core.js',
+            'admin.js',
+            'style.css',
+            'admin.css',
+            'cinema/cinema-ui.js',
+            'cinema/cinema.css',
+            'cinema/cinema-display.js',
+            'cinema/cinema-display.css',
+            'cinema/cinema-bootstrap.js',
+            'preview-cinema.js',
+            'preview-cinema.css',
+            'logs.js',
+            'logs.css',
+            'sw.js',
+            'client-logger.js',
+            'manifest.json',
+            'device-mgmt.js',
+            'lazy-loading.js',
+            'notify.js',
+            'screensaver/screensaver.js',
+            'screensaver/screensaver.css',
+            'wallart/wallart-display.js',
+            'wallart/wallart.css',
+        ];
+
+        criticalAssets.forEach(asset => {
+            try {
+                const fullPath = path.join(__dirname, 'public', asset);
+                const stats = fs.statSync(fullPath);
+                cachedVersions[asset] = Math.floor(stats.mtime.getTime() / 1000).toString(36);
+            } catch (err) {
+                cachedVersions[asset] = Math.floor(Date.now() / 1000).toString(36);
+            }
+        });
+        lastVersionCheck = Date.now();
+        logger.info(`Asset versions pre-loaded: ${Object.keys(cachedVersions).length} assets`);
+    } catch (err) {
+        logger.warn('Failed to pre-load asset versions:', err.message);
+    }
+
     // Pre-populate cache before starting the server to prevent race conditions
     logger.info('Performing initial playlist fetch before server startup...');
 
