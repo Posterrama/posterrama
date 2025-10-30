@@ -159,6 +159,7 @@ function verifySwagger() {
         'media.js': '/',
         'qr.js': '/',
         'config-backups.js': '/api/admin',
+        'admin-observable.js': '/api/admin',
     };
 
     for (const { path: filePath, content } of routeFiles) {
