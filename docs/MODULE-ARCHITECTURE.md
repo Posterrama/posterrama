@@ -120,21 +120,78 @@ module.exports = function createXRouter({
 
 ## 🔗 Dependency Graph
 
+### Visual Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                          server.js (5,919)                       │
+│  Core: Initialization, Express setup, Module mounting           │
+└────────┬────────────────────────────────────┬───────────────────┘
+         │                                     │
+         ├─────────────┐                       │
+         ▼             ▼                       ▼
+    ┌─────────┐  ┌─────────┐          ┌──────────────┐
+    │ Routes  │  │   Lib   │          │  Middleware  │
+    │ (8,360) │  │ (4,479) │          │   (various)  │
+    └────┬────┘  └────┬────┘          └──────┬───────┘
+         │            │                      │
+         ├────────────┼──────────────────────┘
+         │            │
+         ▼            ▼
+    ┌────────────────────────────┐
+    │      Utils & Sources       │
+    │   logger, cache, errors    │
+    │  plex, jellyfin, tmdb      │
+    └────────────────────────────┘
+```
+
 ### High-Level Dependencies
 
 ```
-server.js
-  ├─> routes/* (all route modules)
-  │     ├─> lib/* (business logic)
-  │     ├─> middleware/* (request processing)
-  │     └─> utils/* (utilities)
+server.js (Core Application)
   │
-  ├─> lib/* (initialization & helpers)
-  │     ├─> utils/* (logging, caching, errors)
-  │     └─> sources/* (plex, jellyfin, tmdb, local)
+  ├─> routes/* (17 modules - HTTP endpoints)
+  │   │
+  │   ├─> admin-config.js → lib/config-helpers, lib/preset-helpers
+  │   ├─> admin-libraries.js → lib/plex-helpers, lib/jellyfin-helpers
+  │   ├─> auth-admin.js → middleware/rateLimiter, lib/session-helpers
+  │   ├─> devices.js → lib/preset-helpers, lib/websocket-handlers
+  │   ├─> frontend-pages.js → lib/init (asset versioning)
+  │   ├─> groups.js → utils/groupsStore
+  │   ├─> local-directory.js → lib/local-directory-init, sources/local
+  │   ├─> media.js → lib/media-aggregator, lib/playlist-cache
+  │   ├─> profile-photo.js → lib/utils-helpers
+  │   └─> [other routes] → [various lib dependencies]
   │
-  └─> middleware/* (request pipeline)
-        └─> utils/* (shared utilities)
+  ├─> lib/* (14 modules - Business logic)
+  │   │
+  │   ├─> cache-utils.js → utils/cache
+  │   ├─> config-helpers.js → utils/configBackup
+  │   ├─> init.js → utils/logger, fs operations
+  │   ├─> jellyfin-helpers.js → utils/cache, utils/jellyfin-http-client
+  │   ├─> local-directory-init.js → sources/local
+  │   ├─> media-aggregator.js → sources/*, lib/playlist-cache
+  │   ├─> plex-helpers.js → utils/cache, utils/plex-http-client
+  │   ├─> playlist-cache.js → lib/cache-utils, lib/media-aggregator
+  │   └─> [other lib modules] → [various util dependencies]
+  │
+  ├─> middleware/* (Request processing pipeline)
+  │   │
+  │   ├─> cache.js → utils/cache
+  │   ├─> errorHandler.js → utils/logger, utils/errors
+  │   ├─> metrics.js → utils/metrics
+  │   ├─> rateLimiter.js → express-rate-limit
+  │   └─> validate.js → validation schemas
+  │
+  └─> utils/* & sources/* (Shared utilities & data sources)
+      │
+      ├─> utils/logger.js (Winston logging)
+      ├─> utils/cache.js (Multi-tier caching)
+      ├─> utils/errors.js (Custom error classes)
+      ├─> sources/plex.js (Plex adapter)
+      ├─> sources/jellyfin.js (Jellyfin adapter)
+      ├─> sources/tmdb.js (TMDB adapter)
+      └─> sources/local.js (Local directory adapter)
 ```
 
 ### Key Module Dependencies
