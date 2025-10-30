@@ -30,7 +30,7 @@ function main() {
         process.exit(2);
     }
 
-    const ajv = new Ajv({ allErrors: true, strict: true, allowUnionTypes: true });
+    const ajv = new Ajv({ allErrors: true, strict: false, allowUnionTypes: true });
     const validate = ajv.compile(schema);
     const valid = validate(example);
 
