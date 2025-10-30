@@ -73,7 +73,7 @@ module.exports = function createAdminLibrariesRouter({
      *         description: Could not fetch libraries (e.g., incorrect credentials).
      */
     router.post(
-        '/jellyfin-libraries',
+        '/api/admin/jellyfin-libraries',
         isAuthenticated,
         asyncHandler(async (req, res) => {
             if (isDebug) logger.debug('[Admin API] Received request to fetch Jellyfin libraries.');
@@ -256,7 +256,7 @@ module.exports = function createAdminLibrariesRouter({
      *         description: Niet geautoriseerd.
      */
     router.get(
-        '/plex-genres',
+        '/api/admin/plex-genres',
         isAuthenticated,
         asyncHandler(async (req, res) => {
             if (isDebug) logger.debug('[Admin API] Request received for /api/admin/plex-genres.');
@@ -321,7 +321,7 @@ module.exports = function createAdminLibrariesRouter({
      *         description: Niet geautoriseerd.
      */
     router.get(
-        '/plex-genres-with-counts',
+        '/api/admin/plex-genres-with-counts',
         isAuthenticated,
         asyncHandler(async (req, res) => {
             if (isDebug)
@@ -411,7 +411,7 @@ module.exports = function createAdminLibrariesRouter({
      *         description: Server error
      */
     router.post(
-        '/plex-genres-test',
+        '/api/admin/plex-genres-test',
         isAuthenticated,
         asyncHandler(async (req, res) => {
             if (isDebug)
@@ -513,7 +513,7 @@ module.exports = function createAdminLibrariesRouter({
      *         description: Server error
      */
     router.post(
-        '/plex-genres-with-counts-test',
+        '/api/admin/plex-genres-with-counts-test',
         isAuthenticated,
         asyncHandler(async (req, res) => {
             if (isDebug)
@@ -627,7 +627,7 @@ module.exports = function createAdminLibrariesRouter({
      *         description: Server error
      */
     router.post(
-        '/jellyfin-genres',
+        '/api/admin/jellyfin-genres',
         isAuthenticated,
         asyncHandler(async (req, res) => {
             if (isDebug)
@@ -767,7 +767,7 @@ module.exports = function createAdminLibrariesRouter({
      *         description: Server error
      */
     router.post(
-        '/jellyfin-genres-with-counts',
+        '/api/admin/jellyfin-genres-with-counts',
         isAuthenticated,
         asyncHandler(async (req, res) => {
             if (isDebug)
@@ -892,7 +892,7 @@ module.exports = function createAdminLibrariesRouter({
      *         description: Server error
      */
     router.post(
-        '/jellyfin-genres-all',
+        '/api/admin/jellyfin-genres-all',
         isAuthenticated,
         asyncHandler(async (req, res) => {
             try {
