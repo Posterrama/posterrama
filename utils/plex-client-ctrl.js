@@ -107,19 +107,21 @@ class PlexClientAdapter {
                 const library = await this.plex.library();
                 const sections = await library.sections();
 
-                // Convert to legacy format
+                // Convert to legacy format with MediaContainer wrapper
                 return {
-                    Directory: sections.map(section => ({
-                        key: section.key,
-                        title: section.title,
-                        type: section.type,
-                        agent: section.agent,
-                        scanner: section.scanner,
-                        language: section.language,
-                        uuid: section.uuid,
-                        updatedAt: section.updatedAt,
-                        scannedAt: section.scannedAt,
-                    })),
+                    MediaContainer: {
+                        Directory: sections.map(section => ({
+                            key: section.key,
+                            title: section.title,
+                            type: section.type,
+                            agent: section.agent,
+                            scanner: section.scanner,
+                            language: section.language,
+                            uuid: section.uuid,
+                            updatedAt: section.updatedAt,
+                            scannedAt: section.scannedAt,
+                        })),
+                    },
                 };
             }
 
@@ -131,37 +133,39 @@ class PlexClientAdapter {
                 const section = await library.sectionByID(sectionId);
                 const items = await section.all();
 
-                // Convert to legacy format
+                // Convert to legacy format with MediaContainer wrapper
                 return {
-                    Metadata: items.map(item => ({
-                        ratingKey: item.ratingKey,
-                        key: item.key,
-                        guid: item.guid,
-                        type: item.type,
-                        title: item.title,
-                        titleSort: item.titleSort,
-                        summary: item.summary,
-                        rating: item.rating,
-                        year: item.year,
-                        thumb: item.thumb,
-                        art: item.art,
-                        duration: item.duration,
-                        addedAt: item.addedAt,
-                        updatedAt: item.updatedAt,
-                        contentRating: item.contentRating,
-                        studio: item.studio,
-                        tagline: item.tagline,
-                        // Genre mapping
-                        Genre: item.genres?.map(g => ({ tag: g.tag })) || [],
-                        // Director mapping
-                        Director: item.directors?.map(d => ({ tag: d.tag })) || [],
-                        // Writer mapping
-                        Writer: item.writers?.map(w => ({ tag: w.tag })) || [],
-                        // Role/Actor mapping
-                        Role: item.roles?.map(r => ({ tag: r.tag })) || [],
-                        // Country mapping
-                        Country: item.countries?.map(c => ({ tag: c.tag })) || [],
-                    })),
+                    MediaContainer: {
+                        Metadata: items.map(item => ({
+                            ratingKey: item.ratingKey,
+                            key: item.key,
+                            guid: item.guid,
+                            type: item.type,
+                            title: item.title,
+                            titleSort: item.titleSort,
+                            summary: item.summary,
+                            rating: item.rating,
+                            year: item.year,
+                            thumb: item.thumb,
+                            art: item.art,
+                            duration: item.duration,
+                            addedAt: item.addedAt,
+                            updatedAt: item.updatedAt,
+                            contentRating: item.contentRating,
+                            studio: item.studio,
+                            tagline: item.tagline,
+                            // Genre mapping
+                            Genre: item.genres?.map(g => ({ tag: g.tag })) || [],
+                            // Director mapping
+                            Director: item.directors?.map(d => ({ tag: d.tag })) || [],
+                            // Writer mapping
+                            Writer: item.writers?.map(w => ({ tag: w.tag })) || [],
+                            // Role/Actor mapping
+                            Role: item.roles?.map(r => ({ tag: r.tag })) || [],
+                            // Country mapping
+                            Country: item.countries?.map(c => ({ tag: c.tag })) || [],
+                        })),
+                    },
                 };
             }
 

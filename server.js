@@ -433,7 +433,7 @@ if (config.localDirectory && config.localDirectory.enabled) {
                     // Pick first configured Plex server (enabled or not) for generation
                     const serverConfig = (config.mediaServers || []).find(s => s.type === 'plex');
                     if (!serverConfig) return [];
-                    const plex = getPlexClient(serverConfig);
+                    const plex = await getPlexClient(serverConfig);
                     // Fetch all items from section by key
                     const resp = await plex.query(`/library/sections/${libraryId}/all`);
                     const items = resp?.MediaContainer?.Metadata || [];
@@ -2321,7 +2321,7 @@ app.post(
                             s => s.enabled && s.type === 'plex'
                         );
                         if (!pServer) return 0;
-                        const plexClient = getPlexClient(pServer);
+                        const plexClient = await getPlexClient(pServer);
                         const _tLibsStart = Date.now();
                         const libsMap = await getPlexLibraries(pServer);
                         plexPerf.tGetLibs = Date.now() - _tLibsStart;
@@ -3054,7 +3054,7 @@ app.get('/api/v1/metrics/dashboard', (req, res) => {
                     const port = s.port;
                     const token = s.token || process.env[s.tokenEnvVar];
                     if (!hostname || !port || !token) continue;
-                    const client = createPlexClient({ hostname, port, token, timeout: 8000 });
+                    const client = await createPlexClient({ hostname, port, token, timeout: 8000 });
                     const sectionsResponse = await client.query('/library/sections');
                     const dirs = sectionsResponse?.MediaContainer?.Directory || [];
                     for (const dir of dirs) {
@@ -6816,17 +6816,18 @@ const USE_MODERN_PLEX_CLIENT = process.env.USE_MODERN_PLEX_CLIENT === 'true';
  *   timeout: 5000
  * });
  */
-function createPlexClient({ hostname, port, token, timeout }) {
+async function createPlexClient({ hostname, port, token, timeout }) {
     if (!hostname || !port || !token) {
         throw new ApiError(500, 'Plex client creation failed: missing hostname, port, or token.');
     }
 
     // Try modern client if feature flag is enabled
     if (USE_MODERN_PLEX_CLIENT) {
+        logger.info('🚀 Using modern @ctrl/plex client (0 vulnerabilities)');
         try {
             const { createCompatiblePlexClient } = require('./utils/plex-client-ctrl');
-            // Return promise - caller must await
-            return createCompatiblePlexClient({ hostname, port, token, timeout });
+            // Await the modern client creation
+            return await createCompatiblePlexClient({ hostname, port, token, timeout });
         } catch (error) {
             logger.warn(
                 `Modern Plex client (@ctrl/plex) failed to load: ${error.message}. ` +
@@ -6837,6 +6838,7 @@ function createPlexClient({ hostname, port, token, timeout }) {
     }
 
     // Legacy plex-api client
+    logger.info('⚠️  Using legacy plex-api client (10 vulnerabilities)');
     // Sanitize hostname to prevent crashes if the user includes the protocol.
     let sanitizedHostname = hostname.trim();
     try {
@@ -6894,7 +6896,7 @@ async function testServerConnection(serverConfig) {
                 throw new Error('Missing required connection details (hostname, port, or token).');
             }
 
-            const testClient = createPlexClient({
+            const testClient = await createPlexClient({
                 hostname,
                 port,
                 token,
@@ -7068,7 +7070,7 @@ async function testServerConnection(serverConfig) {
  * @type {Object.<string, PlexAPI>}
  */
 const plexClients = {};
-function getPlexClient(serverConfig) {
+async function getPlexClient(serverConfig) {
     // If a direct client is provided (for testing), use that
     if (serverConfig._directClient) {
         return serverConfig._directClient;
@@ -7082,7 +7084,7 @@ function getPlexClient(serverConfig) {
 
         // The createPlexClient function will throw an error if details are missing.
         // This replaces the explicit token check that was here before.
-        plexClients[serverConfig.name] = createPlexClient({ hostname, port, token });
+        plexClients[serverConfig.name] = await createPlexClient({ hostname, port, token });
     }
     return plexClients[serverConfig.name];
 }
@@ -7099,7 +7101,7 @@ function getPlexClient(serverConfig) {
  * }
  */
 async function getPlexLibraries(serverConfig) {
-    const plex = getPlexClient(serverConfig);
+    const plex = await getPlexClient(serverConfig);
     const sectionsResponse = await plex.query('/library/sections');
     const allSections = sectionsResponse?.MediaContainer?.Directory || [];
     const libraries = new Map();
@@ -7109,7 +7111,7 @@ async function getPlexLibraries(serverConfig) {
 
 async function getPlexGenres(serverConfig) {
     try {
-        const plex = getPlexClient(serverConfig);
+        const plex = await getPlexClient(serverConfig);
         const allLibraries = await getPlexLibraries(serverConfig);
         const genres = new Set();
 
@@ -7170,7 +7172,7 @@ async function getPlexGenres(serverConfig) {
  */
 async function getPlexGenresWithCounts(serverConfig) {
     try {
-        const plex = getPlexClient(serverConfig);
+        const plex = await getPlexClient(serverConfig);
         const allLibraries = await getPlexLibraries(serverConfig);
         const genreCounts = new Map();
 
@@ -7243,7 +7245,7 @@ async function getPlexGenresWithCounts(serverConfig) {
  */
 async function getPlexQualitiesWithCounts(serverConfig) {
     try {
-        const plex = getPlexClient(serverConfig);
+        const plex = await getPlexClient(serverConfig);
         const allLibraries = await getPlexLibraries(serverConfig);
         const qualityCounts = new Map();
 
@@ -10756,7 +10758,7 @@ app.post(
                 const serverConfig = (config.mediaServers || []).find(s => s.type === 'plex');
                 if (!serverConfig)
                     return res.status(400).json({ error: 'No Plex server configured' });
-                const plex = getPlexClient(serverConfig);
+                const plex = await getPlexClient(serverConfig);
                 // Build filter helpers
                 const parseCsv = v =>
                     String(v || '')
@@ -11576,7 +11578,7 @@ app.get(
 
         let mediaItem = null;
         if (type === 'plex') {
-            const plex = getPlexClient(serverConfig);
+            const plex = await getPlexClient(serverConfig);
             mediaItem = await processPlexItem(
                 { key: `/library/metadata/${originalKey}` },
                 serverConfig,
@@ -12692,7 +12694,7 @@ async function fetchAllJellyfinRatings(serverConfig) {
 async function fetchAllPlexRatings(serverConfig) {
     try {
         const PlexHttpClient = require('./utils/plex-http-client');
-        const plexClient = getPlexClient(serverConfig);
+        const plexClient = await getPlexClient(serverConfig);
         const client = new PlexHttpClient(plexClient, serverConfig, isDebug);
 
         logger.info(`[fetchAllPlexRatings] Fetching ratings from ${serverConfig.name}`);
@@ -12831,7 +12833,7 @@ async function getRatingsWithCounts(sourceType) {
 
             case 'plex': {
                 const PlexHttpClient = require('./utils/plex-http-client');
-                const plexClient = getPlexClient(server);
+                const plexClient = await getPlexClient(server);
                 const plexHttpClient = new PlexHttpClient(plexClient, server, isDebug);
 
                 ratingsWithCounts = await plexHttpClient.getRatingsWithCounts();
@@ -13716,7 +13718,7 @@ app.post(
         }
 
         try {
-            const testClient = createPlexClient({
+            const testClient = await createPlexClient({
                 hostname,
                 port: portValue,
                 token,
@@ -13826,7 +13828,7 @@ app.post(
         }
 
         try {
-            const client = createPlexClient({
+            const client = await createPlexClient({
                 hostname,
                 port,
                 token,
@@ -15151,7 +15153,7 @@ app.post(
 
         try {
             // Create a direct client for testing without caching
-            const testClient = createPlexClient({
+            const testClient = await createPlexClient({
                 hostname,
                 port: parseInt(port),
                 token,
@@ -15244,7 +15246,7 @@ app.post(
 
         try {
             // Create a direct client for testing without caching
-            const testClient = createPlexClient({
+            const testClient = await createPlexClient({
                 hostname,
                 port: parseInt(port),
                 token,

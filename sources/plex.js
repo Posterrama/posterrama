@@ -21,7 +21,9 @@ class PlexSource {
         this.shuffleArray = shuffleArray;
         this.rtMinScore = rtMinScore;
         this.isDebug = isDebug;
-        this.plex = this.getPlexClient(this.server);
+        // Lazy initialization: plex client will be awaited on first use
+        this.plexPromise = null;
+        this.plex = null;
 
         // Performance metrics
         this.metrics = {
@@ -51,6 +53,20 @@ class PlexSource {
             ...this.metrics,
             filterEfficiency,
         };
+    }
+
+    /**
+     * Ensures the Plex client is initialized (lazy loading)
+     * @returns {Promise<void>}
+     * @private
+     */
+    async ensurePlexClient() {
+        if (!this.plex) {
+            if (!this.plexPromise) {
+                this.plexPromise = this.getPlexClient(this.server);
+            }
+            this.plex = await this.plexPromise;
+        }
     }
 
     // Get all unique content ratings from the media collection
@@ -94,6 +110,9 @@ class PlexSource {
         if (!libraryNames || libraryNames.length === 0 || count === 0) {
             return [];
         }
+
+        // Ensure Plex client is initialized (lazy loading)
+        await this.ensurePlexClient();
 
         const reqStart = Date.now();
         this.metrics.requestCount++;
