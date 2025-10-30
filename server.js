@@ -35,7 +35,6 @@ const {
     getPlexQualitiesWithCounts,
 } = require('./lib/plex-helpers');
 const {
-    hashJellyfinConfig,
     invalidateJellyfinClient,
     getJellyfinClient,
     fetchJellyfinLibraries,
@@ -12790,14 +12789,7 @@ app.post(
         playlistCache = null;
         clearPlexClients();
         // Also clear Jellyfin clients so updated hostname/port/token/insecure flag take effect
-        if (typeof invalidateJellyfinClient === 'function') {
-            invalidateJellyfinClient();
-        } else {
-            // Fallback in case function is not available in certain builds
-            if (typeof jellyfinClients === 'object') {
-                Object.keys(jellyfinClients).forEach(key => delete jellyfinClients[key]);
-            }
-        }
+        invalidateJellyfinClient();
 
         // Clear the /get-config cache so changes are immediately visible
         cacheManager.delete('GET:/get-config');
