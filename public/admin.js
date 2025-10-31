@@ -6221,11 +6221,9 @@
                             }
                             // Force bypass TTL when the user explicitly opens the panel
                             // Resilient open: ensure panel opens even if refreshBadge fails
-                            let rbErr = null;
                             try {
                                 await refreshBadge(true);
                             } catch (err) {
-                                rbErr = err;
                                 console.warn(
                                     'refreshBadge(true) failed (continuing to open panel)',
                                     err
