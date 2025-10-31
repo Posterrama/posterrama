@@ -127,7 +127,7 @@
         }
     },
     "cache": {
-        "maxSizeGB": 5
+        "maxSizeGB": 2
     },
     "serverName": "Your Server Name",
     "baseUrl": "your-server-address",
