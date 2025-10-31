@@ -168,8 +168,18 @@ module.exports = function createDevicesRouter({
      * @swagger
      * /api/devices/check:
      *   post:
-     *     summary: Check device authentication
-     *     description: Verify device credentials. Used by clients to confirm their stored ID/secret are valid.
+     *     summary: Check device authentication and registration status
+     *     description: |
+     *       Verify device credentials and registration status. Used by clients to confirm their stored ID/secret are valid.
+     *
+     *       **Flexible Authentication**: This endpoint accepts checks with only deviceId, hardwareId, or installId (without secret)
+     *       to determine if a device is registered. When a secret is provided, it validates the credentials.
+     *
+     *       **Response behavior**:
+     *       - Device not found: Returns `{valid: false, isRegistered: false, reason: 'device_not_found'}`
+     *       - Device exists, no secret: Returns `{valid: false, isRegistered: true, deviceId, reason: 'secret_required'}`
+     *       - Invalid secret: Returns 401 `{valid: false, error: 'invalid_secret'}`
+     *       - Valid credentials: Returns `{valid: true, isRegistered: true, deviceId}`
      *     tags: ['Devices']
      *     requestBody:
      *       required: true
@@ -177,19 +187,16 @@ module.exports = function createDevicesRouter({
      *         application/json:
      *           schema:
      *             type: object
-     *             required:
-     *               - deviceId
-     *               - secret
      *             properties:
      *               deviceId:
      *                 type: string
-     *                 description: Device ID
+     *                 description: Device ID (optional if hardwareId or installId provided)
      *               secret:
      *                 type: string
-     *                 description: Device secret
+     *                 description: Device secret (optional for registration check)
      *     responses:
      *       200:
-     *         description: Device authenticated successfully
+     *         description: Device check completed (see response body for valid/isRegistered status)
      *         content:
      *           application/json:
      *             schema:
@@ -197,12 +204,27 @@ module.exports = function createDevicesRouter({
      *               properties:
      *                 valid:
      *                   type: boolean
+     *                   description: Whether the provided credentials are valid
+     *                 isRegistered:
+     *                   type: boolean
+     *                   description: Whether the device is registered in the system
      *                 deviceId:
      *                   type: string
+     *                   description: Device ID (when device is found)
+     *                 reason:
+     *                   type: string
+     *                   description: Reason code (device_not_found, secret_required, etc.)
+     *               examples:
+     *                 not_found:
+     *                   value: {valid: false, isRegistered: false, reason: 'device_not_found'}
+     *                 registered_no_secret:
+     *                   value: {valid: false, isRegistered: true, deviceId: 'dev_abc123', reason: 'secret_required'}
+     *                 valid_credentials:
+     *                   value: {valid: true, isRegistered: true, deviceId: 'dev_abc123'}
      *       400:
-     *         description: Missing deviceId or secret
+     *         description: Missing device identifier (no deviceId, hardwareId, or installId)
      *       401:
-     *         description: Invalid credentials
+     *         description: Invalid secret provided
      */
     router.post('/check', express.json(), async (req, res) => {
         try {
