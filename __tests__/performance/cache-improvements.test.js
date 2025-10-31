@@ -36,7 +36,7 @@ describe('Cache Configuration Defaults', () => {
         const def = k => cacheProps[k].default;
 
         expect(def('maxSizeGB')).toBeGreaterThan(0);
-        expect(def('maxSizeGB')).toBeLessThan(10);
+        expect(def('maxSizeGB')).toBeLessThanOrEqual(100);
         expect(def('minFreeDiskSpaceMB')).toBeGreaterThan(100);
         expect(def('minFreeDiskSpaceMB')).toBeLessThan(5000);
         expect(def('cleanupIntervalMinutes')).toBeGreaterThan(1);

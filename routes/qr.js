@@ -68,6 +68,8 @@ module.exports = function createQRRouter({ isAuthenticated }) {
                 const text = (req.query && req.query.text) || '';
                 if (!text || typeof text !== 'string')
                     return res.status(400).json({ error: 'text_required' });
+                // Limit text length to prevent QR generation errors (2953 bytes is QR code max for alphanumeric)
+                if (text.length > 2953) return res.status(400).json({ error: 'text_too_long' });
                 const format = String((req.query && req.query.format) || 'svg').toLowerCase();
                 let QRCode;
                 try {
