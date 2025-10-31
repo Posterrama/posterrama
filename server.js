@@ -2277,21 +2277,21 @@ app.use(
 
 // Authentication routes (modularized)
 const createAuthRouter = require('./routes/auth');
-app.use(
-    '/admin',
-    createAuthRouter({
-        isAdminSetup,
-        writeEnvFile,
-        restartPM2ForEnvUpdate,
-        getAssetVersions: () => getAssetVersions(__dirname),
-        isDebug,
-        ASSET_VERSION,
-        isAuthenticated,
-        authLimiter,
-        asyncHandler,
-        ApiError,
-    })
-);
+const authRouter = createAuthRouter({
+    isAdminSetup,
+    writeEnvFile,
+    restartPM2ForEnvUpdate,
+    getAssetVersions: () => getAssetVersions(__dirname),
+    isDebug,
+    ASSET_VERSION,
+    isAuthenticated,
+    authLimiter,
+    asyncHandler,
+    ApiError,
+});
+// Mount auth pages under /admin and API routes at root
+app.use('/admin', authRouter);
+app.use('/', authRouter);
 
 // Device management routes (modularized, feature-flagged)
 if (isDeviceMgmtEnabled(__dirname)) {

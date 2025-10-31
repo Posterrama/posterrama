@@ -665,7 +665,7 @@ module.exports = function createAuthRouter({
      *         description: Unauthorized.
      */
     router.post(
-        '/api/2fa/generate',
+        '/api/admin/2fa/generate',
         authLimiter,
         isAuthenticated,
         asyncHandler(async (req, res) => {
@@ -720,7 +720,7 @@ module.exports = function createAuthRouter({
      *         description: Niet geautoriseerd.
      */
     router.post(
-        '/api/2fa/verify',
+        '/api/admin/2fa/verify',
         authLimiter,
         isAuthenticated,
         express.json(),
@@ -794,7 +794,7 @@ module.exports = function createAuthRouter({
      *         description: Invalid password or unauthorized.
      */
     router.post(
-        '/api/2fa/disable',
+        '/api/admin/2fa/disable',
         authLimiter,
         isAuthenticated,
         express.json(),

@@ -265,6 +265,9 @@ class JobQueue extends EventEmitter {
                 allItems.push(...items);
 
                 job.logs.push(`Found ${items.length} items in library ${libraryId}`);
+                logger.debug(
+                    `JobQueue: Fetched ${items.length} items from library ${libraryId}, total now: ${allItems.length}`
+                );
                 if (job.exportLogger)
                     await job.exportLogger.info('Fetched library', {
                         libraryId,
@@ -280,6 +283,8 @@ class JobQueue extends EventEmitter {
                     });
             }
         }
+
+        logger.debug(`JobQueue: Total items fetched from all libraries: ${allItems.length}`);
 
         // Apply optional filtering based on options (mirrors Admin filter logic)
         const parseCsv = v =>
@@ -1001,7 +1006,7 @@ class JobQueue extends EventEmitter {
 
     /**
      * Download asset from source
-     * @param {string} assetUrl - Asset URL
+     * @param {string} assetUrl - Asset URL (can be full URL or path)
      * @param {string} sourceType - Source type
      * @returns {Buffer} Asset data
      */
@@ -1024,11 +1029,37 @@ class JobQueue extends EventEmitter {
             return null;
         }
 
+        // Convert asset URL to image proxy format if it's a relative path
+        let downloadUrl = assetUrl;
+
+        // Debug: log incoming URL
+        logger.debug(
+            `JobQueue: downloadAsset called with URL: ${assetUrl}, sourceType: ${sourceType}`
+        );
+
+        // Check if already an image proxy URL or absolute URL
+        const isAlreadyProxied =
+            assetUrl && (assetUrl.startsWith('/image?') || assetUrl.includes('/image?'));
+        const isAbsoluteUrl = assetUrl && assetUrl.startsWith('http');
+
+        if (assetUrl && !isAbsoluteUrl && !isAlreadyProxied) {
+            // Get server name from config
+            const serverConfig = (this.config.mediaServers || []).find(s => s.type === sourceType);
+            const serverName =
+                serverConfig?.name || (sourceType === 'plex' ? 'Plex Server' : 'Jellyfin');
+
+            // Use image proxy endpoint
+            downloadUrl = `/image?server=${encodeURIComponent(serverName)}&path=${encodeURIComponent(assetUrl)}`;
+            logger.debug(`JobQueue: Converted to proxy URL: ${downloadUrl}`);
+        } else {
+            logger.debug(`JobQueue: Using URL as-is (already proxied or absolute): ${downloadUrl}`);
+        }
+
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
-                const response = await httpClient.get(assetUrl, { responseType: 'arraybuffer' });
+                const response = await httpClient.get(downloadUrl, { responseType: 'arraybuffer' });
                 if (response.status === 200 && response.data) {
                     return Buffer.from(response.data);
                 }
@@ -1036,7 +1067,7 @@ class JobQueue extends EventEmitter {
                 const retriable = status === 429 || (status >= 500 && status < 600);
                 if (!retriable || attempt === maxRetries) {
                     logger.warn(
-                        `JobQueue: Failed to download asset: ${assetUrl} (status: ${status})`
+                        `JobQueue: Failed to download asset: ${downloadUrl} (status: ${status})`
                     );
                     return null;
                 }
@@ -1053,12 +1084,12 @@ class JobQueue extends EventEmitter {
                 const retriable =
                     retriableCodes.has(code) || status === 429 || (status >= 500 && status < 600);
                 if (!retriable || attempt === maxRetries) {
-                    logger.error(`JobQueue: Asset download error for ${assetUrl}:`, error);
+                    logger.error(`JobQueue: Asset download error for ${downloadUrl}:`, error);
                     return null;
                 }
                 if (exportLogger) {
                     await exportLogger.info('Download retry', {
-                        url: assetUrl,
+                        url: downloadUrl,
                         attempt: attempt + 1,
                         remaining: Math.max(0, maxRetries - attempt),
                         status: status || null,
