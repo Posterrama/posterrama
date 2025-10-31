@@ -74,7 +74,6 @@
                             // Once we have a healthy rect after user interaction we can retire the watchdog
                             clearInterval(window.__notifPortalWatch);
                             window.__notifPortalWatch = null;
-                            console.info('[NotifDebug] portal watchdog retired (healthy)');
                         }
                     } catch (e) {
                         console.warn('[NotifDebug] portal watchdog error', e);
@@ -96,7 +95,6 @@
             earlyNotifBtn.__earlyBound = true;
             earlyNotifBtn.addEventListener('click', ev => {
                 // If main delegation later also handles it, this simply adds extra debug once.
-                console.debug('[EarlyNotifBinding] click captured');
                 // Mark the event for downstream logic
                 ev.__fromNotifBtn = true;
             });
@@ -6223,7 +6221,6 @@
                             }
                             // Force bypass TTL when the user explicitly opens the panel
                             // Resilient open: ensure panel opens even if refreshBadge fails
-                            console.debug('NOTIFY_OPEN_ATTEMPT');
                             let rbErr = null;
                             try {
                                 await refreshBadge(true);
@@ -6236,9 +6233,6 @@
                             } finally {
                                 try {
                                     openPanel();
-                                    console.debug('NOTIFY_PANEL_OPEN_CALLED', {
-                                        hadRefreshError: !!rbErr,
-                                    });
                                 } catch (openErr) {
                                     console.error('openPanel() threw', openErr);
                                 }
@@ -6279,8 +6273,6 @@
                                         panel.style.pointerEvents = 'auto';
                                         panel.style.zIndex = '13000';
                                         panel.style.transform = 'translateY(0)';
-                                    } else {
-                                        console.debug('NOTIFY_PANEL_CONFIRMED_OPEN');
                                     }
                                 } catch (confirmErr) {
                                     console.error('Post-open confirm logic failed', confirmErr);
@@ -13726,11 +13718,14 @@
                 window.notify?.toast({
                     type: 'success',
                     title: 'API key generated',
-                    message: 'Copy and store this key securely.',
-                    duration: 5000,
+                    message:
+                        'Server is restarting to apply changes. Page will reload in 3 seconds...',
+                    duration: 3000,
                 });
-                await refreshSecurity();
-                await refreshApiKeyStatus(); // Also refresh in Operations section
+                // Server is restarting - reload page after delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -13738,7 +13733,6 @@
                     message: e?.message || 'Unable to generate key',
                     duration: 5000,
                 });
-            } finally {
                 btnApiGenerate.classList.remove('btn-loading');
             }
         });
@@ -13756,12 +13750,14 @@
                 window.notify?.toast({
                     type: 'success',
                     title: 'API key revoked',
-                    message: 'Key has been removed.',
-                    duration: 3500,
+                    message: 'Server is restarting. Page will reload in 3 seconds...',
+                    duration: 3000,
                 });
                 closeModal('modal-revoke-api-key');
-                await refreshSecurity();
-                await refreshApiKeyStatus(); // Also refresh in Operations section
+                // Server is restarting - reload page after delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -13769,7 +13765,6 @@
                     message: e?.message || 'Unable to revoke key',
                     duration: 5000,
                 });
-            } finally {
                 btnApiRevokeConfirm.classList.remove('btn-loading');
             }
         });
@@ -15775,7 +15770,7 @@
                             })
                             .catch(err => updateHealth('Error', err?.message || 'network'))
                             .finally(() => {
-                                window.__plexHealthTimer = setTimeout(doCheck, 60000); // every 60s
+                                window.__plexHealthTimer = setTimeout(doCheck, 300000); // every 5 minutes
                             });
                     };
                     doCheck();
