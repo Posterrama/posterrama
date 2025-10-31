@@ -19,11 +19,12 @@ module.exports = function createQRRouter({ isAuthenticated }) {
      * /api/qr:
      *   get:
      *     summary: Generate a QR code
-     *     description: Generates a QR code from a provided text. Returns SVG by default, or PNG if format=png.
+     *     description: |
+     *       Generates a QR code from a provided text. Returns SVG by default, or PNG if format=png.
+     *
+     *       **Authentication**: This endpoint allows unauthenticated access for device setup flows (e.g., pairing modal QR codes).
+     *       Admin users can also access it when authenticated.
      *     tags: ['Admin']
-     *     security:
-     *       - sessionAuth: []
-     *       - bearerAuth: []
      *     parameters:
      *       - in: query
      *         name: text
