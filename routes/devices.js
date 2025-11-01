@@ -858,6 +858,14 @@ module.exports = function createDevicesRouter({
      *               name:
      *                 type: string
      *                 description: Device name
+     *               location:
+     *                 type: string
+     *                 description: Device location
+     *               groups:
+     *                 type: array
+     *                 items:
+     *                   type: string
+     *                 description: Array of group IDs this device belongs to
      *               preset:
      *                 type: string
      *                 description: Preset name to apply to device
@@ -886,6 +894,16 @@ module.exports = function createDevicesRouter({
             // Handle name update
             if (req.body.name !== undefined) {
                 updates.name = req.body.name;
+            }
+
+            // Handle location assignment
+            if (req.body.location !== undefined) {
+                updates.location = req.body.location;
+            }
+
+            // Handle groups assignment
+            if (req.body.groups !== undefined) {
+                updates.groups = req.body.groups;
             }
 
             // Handle preset assignment
