@@ -5,9 +5,11 @@
  * @jest-environment node
  */
 
-// CRITICAL: Get the ACTUAL fs module, bypassing any mocks completely
-const fsActual = jest.requireActual('fs');
-const fs = fsActual.promises;
+// CRITICAL: Disable fs mocking BEFORE any imports
+jest.mock('fs', () => jest.requireActual('fs'));
+jest.mock('fs/promises', () => jest.requireActual('fs').promises);
+
+const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 
