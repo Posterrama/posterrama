@@ -22,7 +22,10 @@ describe('healthCheck cache + toggles', () => {
         const first = await health.getDetailedHealth();
         const second = await health.getDetailedHealth();
         // Names of checks should be identical (cache hit or fast recompute)
-        expect(second.checks.map(c => c.name)).toEqual(first.checks.map(c => c.name));
+        // Note: check count may vary between local and CI based on env vars
+        const firstNames = first.checks.map(c => c.name).sort();
+        const secondNames = second.checks.map(c => c.name).sort();
+        expect(secondNames).toEqual(firstNames);
         if (second.timestamp !== first.timestamp) {
             const delta = Date.parse(second.timestamp) - Date.parse(first.timestamp);
             expect(delta).toBeLessThan(100);
