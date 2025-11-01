@@ -99,6 +99,18 @@ describe('Preset Helpers', () => {
             ];
             await fs.writeFile(presetsFile, JSON.stringify(testData), 'utf8');
 
+            // DEBUG: List all files in temp directory
+            if (process.env.CI) {
+                const dirContents = await fs.readdir(testDir);
+                console.log('[DEBUG] Temp dir contents:', dirContents);
+                console.log('[DEBUG] Expected file:', presetsFile);
+                for (const file of dirContents) {
+                    const fullPath = path.join(testDir, file);
+                    const content = await fs.readFile(fullPath, 'utf8');
+                    console.log(`[DEBUG] File ${file}: ${content.slice(0, 100)}`);
+                }
+            }
+
             // Verify file was written correctly
             const writtenContent = await fs.readFile(presetsFile, 'utf8');
             const writtenData = JSON.parse(writtenContent);
