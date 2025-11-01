@@ -945,6 +945,105 @@ module.exports = function createDevicesRouter({
 
     /**
      * @swagger
+     * /api/devices/{id}/merge:
+     *   post:
+     *     summary: Merge source devices into target device
+     *     description: Merge one or more source devices into a target device, combining their properties, groups, settings, and state
+     *     tags: ['Devices']
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Target device ID (device to merge into)
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required:
+     *               - sourceIds
+     *             properties:
+     *               sourceIds:
+     *                 type: array
+     *                 items:
+     *                   type: string
+     *                 description: Array of source device IDs to merge into target
+     *     responses:
+     *       200:
+     *         description: Devices merged successfully
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 ok:
+     *                   type: boolean
+     *                 merged:
+     *                   type: integer
+     *                   description: Number of devices merged
+     *       400:
+     *         description: Invalid request
+     *       404:
+     *         description: Target device not found
+     *       401:
+     *         description: Unauthorized
+     */
+    router.post(
+        '/:id/merge',
+        testSessionShim,
+        adminAuthDevices,
+        express.json(),
+        async (req, res) => {
+            try {
+                const targetId = req.params.id;
+                const { sourceIds } = req.body;
+
+                if (!Array.isArray(sourceIds) || sourceIds.length === 0) {
+                    return res.status(400).json({ error: 'sourceIds array required' });
+                }
+
+                // Verify target device exists
+                const target = await deviceStore.getById(targetId);
+                if (!target) {
+                    return res.status(404).json({ error: 'target_device_not_found' });
+                }
+
+                // Perform merge
+                const result = await deviceStore.mergeDevices(targetId, sourceIds);
+
+                if (result.ok) {
+                    if (isDebug) {
+                        logger.debug(
+                            `[Device Merge] Merged ${result.merged} device(s) into ${targetId}`
+                        );
+                    }
+
+                    res.json({
+                        ok: true,
+                        merged: result.merged,
+                        message: `Merged ${result.merged} device(s)`,
+                    });
+                } else {
+                    res.status(400).json({
+                        ok: false,
+                        merged: 0,
+                        error: 'merge_failed',
+                    });
+                }
+            } catch (e) {
+                console.error('[Device Merge] Unexpected error:', e);
+                res.status(500).json({ error: 'merge_failed', message: e.message });
+            }
+        }
+    );
+
+    /**
+     * @swagger
      * /api/devices/command:
      *   post:
      *     summary: Send command to device(s)
