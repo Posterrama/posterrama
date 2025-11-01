@@ -2142,6 +2142,18 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                     console.log('  - Server response:', res.data);
                     if (!res.data.isRegistered) {
                         console.log('  → Device not registered on server, clearing local identity');
+                        // Mark this hardware ID as deleted to prevent auto-recovery
+                        try {
+                            const hwId = state.hardwareId || getHardwareId();
+                            if (hwId) {
+                                localStorage.setItem(`posterrama-device-deleted-${hwId}`, 'true');
+                                console.log(
+                                    '  → Marked hardware ID as deleted, auto-recovery blocked'
+                                );
+                            }
+                        } catch (_) {
+                            /* ignore localStorage errors */
+                        }
                         clearIdentity();
                         state.deviceId = null;
                         state.deviceSecret = null;
@@ -2170,10 +2182,21 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             // Allow disabling auto-recovery for testing via localStorage flag
             let autoRecoveryDisabled = false;
             try {
+                const hardwareId = getHardwareId();
+
+                // Check if auto-recovery is manually disabled (testing)
                 autoRecoveryDisabled =
                     localStorage.getItem('posterrama-disable-auto-recovery') === 'true';
+
+                // Check if this hardware ID was previously deleted (permanent block)
+                const wasDeleted =
+                    localStorage.getItem(`posterrama-device-deleted-${hardwareId}`) === 'true';
+
                 if (autoRecoveryDisabled) {
                     console.log('  ⚠️  Auto-recovery DISABLED via localStorage flag');
+                } else if (wasDeleted) {
+                    console.log('  ⚠️  This device was previously deleted, auto-recovery blocked');
+                    autoRecoveryDisabled = true;
                 }
             } catch (_) {
                 /* ignore localStorage errors */
