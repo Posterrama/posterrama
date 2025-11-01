@@ -2036,9 +2036,9 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                     if (res.ok) {
                         const data = await res.json();
                         // Save new identity and reload
-                        saveIdentity(data.deviceId, data.deviceSecret);
+                        saveIdentity(data.deviceId, data.secret);
                         state.deviceId = data.deviceId;
-                        state.deviceSecret = data.deviceSecret;
+                        state.deviceSecret = data.secret;
                         // Clean the URL to avoid repeating
                         try {
                             const url = new URL(window.location.href);
