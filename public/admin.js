@@ -2468,6 +2468,7 @@
 
         // Cinema
         setIf('cinemaOrientation', c.cinemaOrientation || 'auto');
+        setIf('cinemaRotationInterval', c.cinema?.rotationIntervalMinutes || 0);
 
         // Wire radio changes after hydration to update UI states
         const radios = document.querySelectorAll('input[name="display.mode"]');

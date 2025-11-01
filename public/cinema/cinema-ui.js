@@ -683,6 +683,10 @@
             enabled: $('#cin-a-enabled')?.checked || false,
             strength: parseInt($('#cin-a-strength')?.value || '60', 10),
         };
+        // Orientation from top-level select
+        const orientation = $('#cinemaOrientation')?.value || 'auto';
+        // Rotation interval from new field
+        const rotationIntervalMinutes = parseFloat($('#cinemaRotationInterval')?.value || '0');
         // Presets reflect local working state
         const presets = {
             headerTexts:
@@ -694,7 +698,7 @@
                     ? [...footerPresets]
                     : cfg.cinema?.presets?.footerTexts || [],
         };
-        return { header, footer, ambilight, presets };
+        return { orientation, header, footer, ambilight, rotationIntervalMinutes, presets };
     }
 
     async function init() {

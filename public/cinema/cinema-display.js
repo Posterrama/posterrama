@@ -16,6 +16,7 @@
     // ===== Cinema Mode Configuration =====
     const cinemaConfig = {
         orientation: 'auto', // auto, portrait, portrait-flipped
+        rotationIntervalMinutes: 0, // 0 = disabled (single poster)
         header: {
             enabled: true,
             text: 'Now Playing',
@@ -45,6 +46,8 @@
     let currentMedia = null; // Track current media for live updates
     let isPinned = false; // Track if current poster is pinned
     let pinnedMediaId = null; // Store pinned media ID
+    let rotationTimer = null; // Timer for automatic poster rotation
+    let mediaQueue = []; // Queue of media items for rotation
 
     // ===== DOM Element References =====
     let headerEl = null;
@@ -281,6 +284,9 @@
             if (config.orientation) {
                 cinemaConfig.orientation = config.orientation;
             }
+            if (config.rotationIntervalMinutes !== undefined) {
+                cinemaConfig.rotationIntervalMinutes = config.rotationIntervalMinutes;
+            }
             if (config.header) {
                 cinemaConfig.header = { ...cinemaConfig.header, ...config.header };
             }
@@ -306,6 +312,16 @@
         // Create cinema UI elements
         createHeader();
         createAmbilight();
+
+        // Initialize rotation if enabled
+        if (cinemaConfig.rotationIntervalMinutes > 0) {
+            (async () => {
+                mediaQueue = await fetchMediaQueue();
+                if (mediaQueue.length > 0) {
+                    startRotation();
+                }
+            })();
+        }
 
         log('Cinema mode initialized successfully');
     }
@@ -520,6 +536,19 @@
                     ...newConfig.cinema.ambilight,
                 };
             }
+            if (newConfig.cinema.rotationIntervalMinutes !== undefined) {
+                const oldInterval = cinemaConfig.rotationIntervalMinutes;
+                cinemaConfig.rotationIntervalMinutes = newConfig.cinema.rotationIntervalMinutes;
+
+                // If rotation interval changed, restart rotation
+                if (oldInterval !== newConfig.cinema.rotationIntervalMinutes) {
+                    log('Rotation interval changed, restarting rotation', {
+                        old: oldInterval,
+                        new: newConfig.cinema.rotationIntervalMinutes,
+                    });
+                    startRotation();
+                }
+            }
 
             // Apply orientation if changed
             if (newConfig.cinema.orientation && newConfig.cinema.orientation !== oldOrientation) {
@@ -605,12 +634,134 @@
             }
         },
         next: () => {
-            log('Cinema mode does not support next command (single poster display)');
+            try {
+                if (isPinned) {
+                    isPinned = false;
+                    pinnedMediaId = null;
+                    window.__posterramaPaused = false;
+                }
+                showNextPoster();
+            } catch (e) {
+                error('Failed to show next poster', e);
+            }
         },
         prev: () => {
-            log('Cinema mode does not support prev command (single poster display)');
+            try {
+                if (isPinned) {
+                    isPinned = false;
+                    pinnedMediaId = null;
+                    window.__posterramaPaused = false;
+                }
+                showPreviousPoster();
+            } catch (e) {
+                error('Failed to show previous poster', e);
+            }
         },
     };
+
+    // ===== Poster Rotation Functions =====
+    let currentMediaIndex = 0;
+
+    function startRotation() {
+        try {
+            // Clear existing timer
+            if (rotationTimer) {
+                clearInterval(rotationTimer);
+                rotationTimer = null;
+            }
+
+            const intervalMinutes = cinemaConfig.rotationIntervalMinutes || 0;
+
+            // If interval is 0, rotation is disabled
+            if (intervalMinutes <= 0) {
+                log('Rotation disabled (interval = 0)');
+                return;
+            }
+
+            const intervalMs = intervalMinutes * 60 * 1000;
+            log('Starting poster rotation', { intervalMinutes, intervalMs });
+
+            rotationTimer = setInterval(() => {
+                if (!isPinned) {
+                    showNextPoster();
+                }
+            }, intervalMs);
+        } catch (e) {
+            error('Failed to start rotation', e);
+        }
+    }
+
+    function stopRotation() {
+        if (rotationTimer) {
+            clearInterval(rotationTimer);
+            rotationTimer = null;
+            log('Rotation stopped');
+        }
+    }
+
+    async function fetchMediaQueue() {
+        try {
+            const cfg = window.appConfig || {};
+            const type = (cfg && cfg.type) || 'movies';
+            const url = `/get-media?count=50&type=${encodeURIComponent(type)}`;
+            const res = await fetch(url, {
+                cache: 'no-cache',
+                headers: { 'Cache-Control': 'no-cache' },
+            });
+            if (!res.ok) return [];
+            const data = await res.json();
+            const items = Array.isArray(data)
+                ? data
+                : Array.isArray(data?.results)
+                  ? data.results
+                  : [];
+            log('Fetched media queue', { count: items.length });
+            return items;
+        } catch (e) {
+            error('Failed to fetch media queue', e);
+            return [];
+        }
+    }
+
+    function showNextPoster() {
+        try {
+            if (mediaQueue.length === 0) {
+                log('No media in queue for rotation');
+                return;
+            }
+
+            currentMediaIndex = (currentMediaIndex + 1) % mediaQueue.length;
+            const nextMedia = mediaQueue[currentMediaIndex];
+
+            log('Showing next poster', { index: currentMediaIndex, title: nextMedia?.title });
+            updateCinemaDisplay(nextMedia);
+
+            // Dispatch mediaUpdated event for consistency
+            window.dispatchEvent(new CustomEvent('mediaUpdated', { detail: { media: nextMedia } }));
+        } catch (e) {
+            error('Failed to show next poster', e);
+        }
+    }
+
+    function showPreviousPoster() {
+        try {
+            if (mediaQueue.length === 0) {
+                log('No media in queue for rotation');
+                return;
+            }
+
+            currentMediaIndex = (currentMediaIndex - 1 + mediaQueue.length) % mediaQueue.length;
+            const prevMedia = mediaQueue[currentMediaIndex];
+
+            log('Showing previous poster', { index: currentMediaIndex, title: prevMedia?.title });
+            updateCinemaDisplay(prevMedia);
+
+            // Dispatch mediaUpdated event for consistency
+            window.dispatchEvent(new CustomEvent('mediaUpdated', { detail: { media: prevMedia } }));
+        } catch (e) {
+            error('Failed to show previous poster', e);
+        }
+    }
 
     // ===== Public API =====
     window.cinemaDisplay = {
@@ -620,6 +771,8 @@
         getConfig: () => ({ ...cinemaConfig }),
         isPinned: () => isPinned,
         getPinnedMediaId: () => pinnedMediaId,
+        startRotation,
+        stopRotation,
         // No debug APIs exported
     };
 

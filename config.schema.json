@@ -381,6 +381,12 @@
                         "enabled": true,
                         "strength": 60
                     }
+                },
+                "rotationIntervalMinutes": {
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 0,
+                    "description": "Poster rotation interval in minutes (0 = disabled, shows single random poster)"
                 }
             },
             "additionalProperties": false,

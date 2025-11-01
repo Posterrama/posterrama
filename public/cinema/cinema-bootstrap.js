@@ -27,7 +27,12 @@
         try {
             const cfg = window.appConfig || (await ensureConfig()) || {};
             const type = (cfg && cfg.type) || 'movies';
-            const url = `/get-media?count=1&type=${encodeURIComponent(type)}`;
+
+            // Check if rotation is enabled - if so, fetch more media
+            const rotationEnabled = cfg.cinema?.rotationIntervalMinutes > 0;
+            const count = rotationEnabled ? 50 : 1;
+
+            const url = `/get-media?count=${count}&type=${encodeURIComponent(type)}`;
             const res = await fetch(url, {
                 cache: 'no-cache',
                 headers: { 'Cache-Control': 'no-cache' },
@@ -39,7 +44,9 @@
                 : Array.isArray(data?.results)
                   ? data.results
                   : [];
-            return items[0] || null;
+
+            // If rotation enabled, return all items; otherwise return first one
+            return rotationEnabled ? items : items[0] || null;
         } catch (_) {
             return null;
         }
@@ -59,18 +66,26 @@
             const media = await fetchOneMedia();
             if (media) {
                 try {
+                    // If media is an array, store it; otherwise wrap in array
+                    const mediaArray = Array.isArray(media) ? media : [media];
+
                     if (!Object.getOwnPropertyDescriptor(window, 'mediaQueue')) {
                         Object.defineProperty(window, 'mediaQueue', {
-                            value: [media],
+                            value: mediaArray,
                             writable: true,
                         });
                     } else {
-                        window.mediaQueue = [media];
+                        window.mediaQueue = mediaArray;
                     }
                 } catch (_) {
-                    window.mediaQueue = [media];
+                    window.mediaQueue = Array.isArray(media) ? media : [media];
                 }
-                window.dispatchEvent(new CustomEvent('mediaUpdated', { detail: { media } }));
+
+                // Dispatch event with first media item
+                const firstMedia = Array.isArray(media) ? media[0] : media;
+                window.dispatchEvent(
+                    new CustomEvent('mediaUpdated', { detail: { media: firstMedia } })
+                );
             } else {
                 // Show a minimal message when no media found, and hide loader to avoid spinner lock
                 try {
