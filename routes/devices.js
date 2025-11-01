@@ -356,10 +356,11 @@ module.exports = function createDevicesRouter({
             // Retrieve and clear any queued commands (popCommands clears automatically)
             const queuedCommands = deviceStore.popCommands(deviceId);
 
-            // Extract clientInfo from payload (userAgent at root, screen in status)
+            // Extract clientInfo from payload (userAgent at root, screen and mode in status)
             const clientInfo = {};
             if (userAgent) clientInfo.userAgent = userAgent;
             if (status?.screen) clientInfo.screen = status.screen;
+            if (status?.mode) clientInfo.mode = status.mode;
 
             // Use updateHeartbeat which properly handles clientInfo and currentState
             await deviceStore.updateHeartbeat(deviceId, {
