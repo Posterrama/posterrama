@@ -834,6 +834,99 @@ module.exports = function createDevicesRouter({
 
     /**
      * @swagger
+     * /api/devices/{id}:
+     *   patch:
+     *     summary: Update device settings
+     *     description: Update device properties like name, preset, or settings overrides
+     *     tags: ['Devices']
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Device ID
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               name:
+     *                 type: string
+     *                 description: Device name
+     *               preset:
+     *                 type: string
+     *                 description: Preset name to apply to device
+     *               settingsOverride:
+     *                 type: object
+     *                 description: Device-specific settings overrides
+     *     responses:
+     *       200:
+     *         description: Device updated successfully
+     *       404:
+     *         description: Device not found
+     *       401:
+     *         description: Unauthorized
+     */
+    router.patch('/:id', testSessionShim, adminAuthDevices, express.json(), async (req, res) => {
+        try {
+            const deviceId = req.params.id;
+            const device = await deviceStore.getById(deviceId);
+
+            if (!device) {
+                return res.status(404).json({ error: 'device_not_found' });
+            }
+
+            const updates = {};
+
+            // Handle name update
+            if (req.body.name !== undefined) {
+                updates.name = req.body.name;
+            }
+
+            // Handle preset assignment
+            if (req.body.preset !== undefined) {
+                updates.preset = req.body.preset;
+
+                if (isDebug) {
+                    logger.debug(
+                        `[Device PATCH] Applying preset '${req.body.preset}' to device ${deviceId}`
+                    );
+                }
+            }
+
+            // Handle settings override
+            if (req.body.settingsOverride !== undefined) {
+                updates.settingsOverride = req.body.settingsOverride;
+            }
+
+            // Update device in store
+            await deviceStore.patchDevice(deviceId, updates);
+
+            // Get updated device
+            const updatedDevice = await deviceStore.getById(deviceId);
+
+            res.json({
+                success: true,
+                message: 'Device updated',
+                device: updatedDevice,
+            });
+
+            if (isDebug) {
+                logger.debug(`[Device PATCH] Device ${deviceId} updated:`, updates);
+            }
+        } catch (e) {
+            console.error('[Device PATCH] Unexpected error:', e);
+            res.status(500).json({ error: 'update_failed', message: e.message });
+        }
+    });
+
+    /**
+     * @swagger
      * /api/devices/command:
      *   post:
      *     summary: Send command to device(s)
