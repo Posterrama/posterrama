@@ -646,7 +646,8 @@ module.exports = function createDevicesRouter({
                 const isConnected = wsHub.isConnected(d.id);
                 return {
                     ...d,
-                    connected: isConnected,
+                    wsConnected: isConnected,
+                    connected: isConnected, // Keep both for backward compatibility
                     secret: undefined, // Don't expose secrets in list view
                 };
             });
@@ -697,7 +698,8 @@ module.exports = function createDevicesRouter({
 
             res.json({
                 ...device,
-                connected: isConnected,
+                wsConnected: isConnected,
+                connected: isConnected, // Keep both for backward compatibility
             });
         } catch (e) {
             console.error('[Device Get] Unexpected error:', e);
