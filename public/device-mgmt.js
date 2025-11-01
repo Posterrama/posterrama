@@ -497,7 +497,7 @@
         }
         const payload = {
             deviceId: state.deviceId,
-            deviceSecret: state.deviceSecret,
+            secret: state.deviceSecret,
             hardwareId: state.hardwareId || getHardwareId(),
             userAgent: navigator.userAgent,
             screen: collectClientInfo().screen,
@@ -1237,7 +1237,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         JSON.stringify({
                             kind: 'hello',
                             deviceId: state.deviceId,
-                            deviceSecret: state.deviceSecret,
+                            secret: state.deviceSecret,
                         })
                     );
                     liveDbg('[Live] WS hello sent', { deviceId: state.deviceId });
