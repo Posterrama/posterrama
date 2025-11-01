@@ -9587,6 +9587,7 @@
                                 title: 'Renamed',
                                 message: 'Device name updated',
                             });
+                            await loadDevices();
                         } catch (e) {
                             window.notify?.toast({
                                 type: 'error',
