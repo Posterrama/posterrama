@@ -5,6 +5,10 @@
  * @jest-environment node
  */
 
+// CRITICAL: Unmock fs before any imports to prevent mock leakage from other tests
+jest.unmock('fs');
+jest.unmock('fs/promises');
+
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
@@ -20,21 +24,26 @@ describe('Preset Helpers', () => {
     let presetsFile;
 
     beforeEach(async () => {
-        // Clear all module caches to ensure clean state in CI
+        // Clear all module caches AND fs mocks to ensure clean state in CI
         jest.resetModules();
+        jest.unmock('fs');
+        jest.unmock('fs/promises');
+
+        // Re-require fs after unmocking to get the real implementation
+        const fsReal = require('fs').promises;
 
         // Create a UNIQUE test directory for EACH test with process ID to avoid collisions
         const uniqueId = `preset-test-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-        testDir = await fs.mkdtemp(path.join(os.tmpdir(), uniqueId));
+        testDir = await fsReal.mkdtemp(path.join(os.tmpdir(), uniqueId));
         presetsFile = path.join(testDir, 'device-presets.json');
 
         // Ensure test directory is actually created and writable
-        await fs.access(testDir);
+        await fsReal.access(testDir);
 
         // Clean any potential leftover files in the temp directory
-        const files = await fs.readdir(testDir);
+        const files = await fsReal.readdir(testDir);
         for (const file of files) {
-            await fs.unlink(path.join(testDir, file)).catch(() => {});
+            await fsReal.unlink(path.join(testDir, file)).catch(() => {});
         }
 
         // Add delay to ensure filesystem operations complete
