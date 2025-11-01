@@ -2116,6 +2116,12 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         state.deviceId = null;
                         state.deviceSecret = null;
                         needsSetup = true;
+                    } else if (res.data.reason === 'secret_required') {
+                        console.log('  → Device registered but secret missing, forcing setup');
+                        clearIdentity();
+                        state.deviceId = null;
+                        state.deviceSecret = null;
+                        needsSetup = true;
                     } else {
                         console.log('  → Device is registered on server, skipping setup');
                     }
