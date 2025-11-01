@@ -387,6 +387,12 @@
                     "minimum": 0,
                     "default": 0,
                     "description": "Poster rotation interval in minutes (0 = disabled, shows single random poster)"
+                },
+                "orientation": {
+                    "type": "string",
+                    "enum": ["auto", "portrait", "landscape"],
+                    "default": "auto",
+                    "description": "Cinema mode orientation override (auto = follow device, portrait/landscape = force orientation)"
                 }
             },
             "additionalProperties": false,
@@ -427,7 +433,9 @@
                 "ambilight": {
                     "enabled": true,
                     "strength": 60
-                }
+                },
+                "rotationIntervalMinutes": 0,
+                "orientation": "auto"
             }
         },
         "transitionEffect": {
@@ -676,6 +684,11 @@
                             "default": "MQTT_PASSWORD",
                             "description": "Environment variable containing MQTT password"
                         },
+                        "password": {
+                            "type": "string",
+                            "default": "",
+                            "description": "MQTT password (direct, less secure than passwordEnvVar)"
+                        },
                         "tls": {
                             "type": "boolean",
                             "default": false,
@@ -689,6 +702,7 @@
                         "port": 1883,
                         "username": "",
                         "passwordEnvVar": "MQTT_PASSWORD",
+                        "password": "",
                         "tls": false
                     }
                 },
