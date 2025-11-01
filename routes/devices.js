@@ -880,6 +880,100 @@ module.exports = function createDevicesRouter({
      *       401:
      *         description: Unauthorized
      */
+
+    /**
+     * @swagger
+     * /api/devices/{id}/command:
+     *   post:
+     *     summary: Send command to a specific device
+     *     description: Send a management command to a device. Supports both WebSocket (live) and queued delivery.
+     *     tags: ['Devices']
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Device ID
+     *       - in: query
+     *         name: wait
+     *         schema:
+     *           type: boolean
+     *         description: Wait for ACK from device (timeout after 3s)
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               type:
+     *                 type: string
+     *                 description: Command type (e.g., core.mgmt.reload)
+     *               payload:
+     *                 type: object
+     *                 description: Command payload
+     *     responses:
+     *       200:
+     *         description: Command sent/queued
+     *       404:
+     *         description: Device not found
+     *       500:
+     *         description: Send failed
+     */
+    router.post('/:id/command', adminAuth, express.json(), async (req, res) => {
+        try {
+            const { type, payload } = req.body || {};
+            if (!type) return res.status(400).json({ error: 'type_required' });
+
+            const device = await deviceStore.getById(req.params.id);
+            if (!device) return res.status(404).json({ error: 'not_found' });
+
+            // Try live first via WS; fall back to queue if offline
+            const wait = String(req.query.wait || '').toLowerCase() === 'true';
+
+            if (wait) {
+                try {
+                    const result = await wsHub.sendCommandAwait(req.params.id, {
+                        type,
+                        payload,
+                        timeoutMs: 3000,
+                    });
+                    return res.json({
+                        queued: false,
+                        live: true,
+                        ack: result || { status: 'ok' },
+                    });
+                } catch (e) {
+                    const msg = String(e && e.message ? e.message : e);
+                    if (msg === 'not_connected') {
+                        const cmd = deviceStore.queueCommand(req.params.id, { type, payload });
+                        return res.json({ queued: true, live: false, command: cmd });
+                    }
+                    if (msg === 'ack_timeout') {
+                        return res.status(202).json({
+                            queued: false,
+                            live: true,
+                            ack: { status: 'timeout' },
+                        });
+                    }
+                    return res.status(500).json({ error: 'send_failed', detail: msg });
+                }
+            }
+
+            const liveSent = wsHub.sendCommand(req.params.id, { type, payload });
+            if (liveSent) return res.json({ queued: false, live: true });
+
+            const cmd = deviceStore.queueCommand(req.params.id, { type, payload });
+            res.json({ queued: true, live: false, command: cmd });
+        } catch (e) {
+            console.error('[Device Command] Unexpected error:', e);
+            res.status(500).json({ error: 'queue_failed' });
+        }
+    });
+
     router.post('/command', adminAuth, express.json(), async (req, res) => {
         try {
             const { deviceIds, command } = req.body || {};
