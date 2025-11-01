@@ -492,6 +492,93 @@ module.exports = function createDevicesRouter({
 
     /**
      * @swagger
+     * /api/devices/{id}/pairing-code:
+     *   post:
+     *     summary: Generate pairing code for device
+     *     description: Generates a new pairing code for a specific device. Admin only.
+     *     tags: ['Devices']
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Device ID
+     *     requestBody:
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               ttlMs:
+     *                 type: number
+     *                 description: Time-to-live in milliseconds
+     *                 default: 600000
+     *               requireToken:
+     *                 type: boolean
+     *                 description: Whether token is required for pairing
+     *                 default: false
+     *     responses:
+     *       200:
+     *         description: Pairing code generated
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 code:
+     *                   type: string
+     *                 deviceId:
+     *                   type: string
+     *                 expiresAt:
+     *                   type: string
+     *                 expiresInMs:
+     *                   type: number
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Device not found
+     */
+    router.post('/:id/pairing-code', adminAuth, async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { ttlMs = 600000, requireToken = false } = req.body || {};
+
+            // Verify device exists
+            const device = await deviceStore.getById(id);
+            if (!device) {
+                return res.status(404).json({ error: 'device_not_found' });
+            }
+
+            // Generate pairing code
+            const result = await deviceStore.generatePairingCode(id, {
+                ttlMs: Number(ttlMs),
+                requireToken: Boolean(requireToken),
+            });
+
+            if (!result) {
+                return res.status(500).json({ error: 'generation_failed' });
+            }
+
+            const expiresAt = result.expiresAt;
+            const expiresInMs = Number(ttlMs);
+
+            res.json({
+                code: result.code,
+                deviceId: id,
+                expiresAt,
+                expiresInMs,
+            });
+        } catch (e) {
+            console.error('[Device Pairing Code] Unexpected error:', e);
+            res.status(500).json({ error: 'generation_failed', message: e.message });
+        }
+    });
+
+    /**
+     * @swagger
      * /api/devices/pairing-codes/active:
      *   get:
      *     summary: List active pairing codes

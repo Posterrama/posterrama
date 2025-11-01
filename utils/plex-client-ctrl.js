@@ -214,8 +214,8 @@ class PlexClientAdapter {
                 };
             }
 
-            // For unmapped paths, log warning
-            logger.warn(`Unmapped Plex query path: ${path}. Using raw query fallback.`);
+            // For unmapped paths, use debug level (these are common and non-critical)
+            logger.debug(`Unmapped Plex query path: ${path}. Using raw query fallback.`);
 
             // Fallback: use raw query method if available
             if (typeof this.plex.query === 'function') {
