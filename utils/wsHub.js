@@ -214,7 +214,7 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
                 const msg = JSON.parse(data.toString());
                 if (!authed) {
                     if (msg && msg.kind === 'hello') {
-                        const { deviceId: id, deviceSecret: secret } = msg;
+                        const { deviceId: id, secret } = msg;
                         if (!id || !secret) return closeSocket(ws, 1008, 'Missing credentials');
                         try {
                             const ok = await verifyDevice(id, secret);
