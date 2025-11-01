@@ -43,6 +43,8 @@
 
     // ===== State =====
     let currentMedia = null; // Track current media for live updates
+    let isPinned = false; // Track if current poster is pinned
+    let pinnedMediaId = null; // Store pinned media ID
 
     // ===== DOM Element References =====
     let headerEl = null;
@@ -550,12 +552,74 @@
         }
     }
 
+    // ===== Playback Control API =====
+    window.__posterramaPlayback = {
+        pinPoster: payload => {
+            try {
+                isPinned = true;
+                pinnedMediaId = payload?.mediaId || window.__posterramaCurrentMediaId || null;
+                window.__posterramaPaused = true;
+
+                log('Poster pinned', { mediaId: pinnedMediaId });
+
+                // Trigger heartbeat to update admin UI
+                try {
+                    const dev = window.PosterramaDevice;
+                    if (dev && typeof dev.beat === 'function') {
+                        dev.beat();
+                    }
+                } catch (_) {
+                    /* ignore heartbeat */
+                }
+            } catch (e) {
+                error('Failed to pin poster', e);
+            }
+        },
+        resume: () => {
+            try {
+                isPinned = false;
+                pinnedMediaId = null;
+                window.__posterramaPaused = false;
+
+                log('Poster unpinned, rotation resumed');
+
+                // Trigger heartbeat to update admin UI
+                try {
+                    const dev = window.PosterramaDevice;
+                    if (dev && typeof dev.beat === 'function') {
+                        dev.beat();
+                    }
+                } catch (_) {
+                    /* ignore heartbeat */
+                }
+            } catch (e) {
+                error('Failed to resume rotation', e);
+            }
+        },
+        pause: () => {
+            try {
+                window.__posterramaPaused = true;
+                log('Playback paused');
+            } catch (_) {
+                /* ignore */
+            }
+        },
+        next: () => {
+            log('Cinema mode does not support next command (single poster display)');
+        },
+        prev: () => {
+            log('Cinema mode does not support prev command (single poster display)');
+        },
+    };
+
     // ===== Public API =====
     window.cinemaDisplay = {
         init: initCinemaMode,
         update: updateCinemaDisplay,
         updateConfig: handleConfigUpdate,
         getConfig: () => ({ ...cinemaConfig }),
+        isPinned: () => isPinned,
+        getPinnedMediaId: () => pinnedMediaId,
         // No debug APIs exported
     };
 

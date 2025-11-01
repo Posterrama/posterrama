@@ -433,9 +433,10 @@
                             window.debugLog &&
                                 window.debugLog('WALLART_REFRESH_TICK_PAUSED_CHECK', {
                                     paused: !!_state.paused,
+                                    isPinned: !!_state.isPinned,
                                 });
-                            // Respect paused state (used by remote controls)
-                            if (_state.paused) {
+                            // Respect paused state or pinned state (used by remote controls)
+                            if (_state.paused || _state.isPinned) {
                                 _state.refreshTimeout = setTimeout(refreshTick, 2000);
                                 return;
                             }
@@ -891,6 +892,8 @@
                             next: () => {
                                 try {
                                     _state.paused = false;
+                                    _state.isPinned = false;
+                                    _state.pinnedMediaId = null;
                                     _state.refreshNow && _state.refreshNow();
                                 } catch (_) {
                                     /* ignore playback next */
@@ -899,6 +902,8 @@
                             prev: () => {
                                 try {
                                     _state.paused = false;
+                                    _state.isPinned = false;
+                                    _state.pinnedMediaId = null;
                                     _state.refreshNow && _state.refreshNow();
                                 } catch (_) {
                                     /* ignore playback prev */
@@ -919,6 +924,8 @@
                             },
                             resume: () => {
                                 _state.paused = false;
+                                _state.isPinned = false;
+                                _state.pinnedMediaId = null;
                                 try {
                                     window.__posterramaPaused = false;
                                 } catch (_) {
@@ -933,6 +940,30 @@
                                     _state.refreshNow && _state.refreshNow();
                                 } catch (_) {
                                     /* ignore refresh */
+                                }
+                            },
+                            pinPoster: payload => {
+                                try {
+                                    _state.isPinned = true;
+                                    _state.paused = true;
+                                    _state.pinnedMediaId =
+                                        payload?.mediaId ||
+                                        window.__posterramaCurrentMediaId ||
+                                        null;
+                                    window.__posterramaPaused = true;
+
+                                    window.debugLog &&
+                                        window.debugLog('WALLART_POSTER_PINNED', {
+                                            mediaId: _state.pinnedMediaId,
+                                        });
+
+                                    try {
+                                        triggerLiveBeat();
+                                    } catch (_) {
+                                        /* noop */
+                                    }
+                                } catch (_) {
+                                    /* ignore pin poster */
                                 }
                             },
                         };
