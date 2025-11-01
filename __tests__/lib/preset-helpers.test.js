@@ -20,6 +20,9 @@ describe('Preset Helpers', () => {
     let presetsFile;
 
     beforeEach(async () => {
+        // Clear all module caches to ensure clean state in CI
+        jest.resetModules();
+
         // Create a UNIQUE test directory for EACH test with process ID to avoid collisions
         const uniqueId = `preset-test-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
         testDir = await fs.mkdtemp(path.join(os.tmpdir(), uniqueId));
@@ -92,6 +95,11 @@ describe('Preset Helpers', () => {
                 { name: 'Preset 2', mode: 'wallart' },
             ];
             await fs.writeFile(presetsFile, JSON.stringify(testData), 'utf8');
+
+            // Verify file was written correctly
+            const writtenContent = await fs.readFile(presetsFile, 'utf8');
+            const writtenData = JSON.parse(writtenContent);
+            expect(writtenData).toEqual(testData);
 
             const result = await readPresets(testDir);
             expect(result).toEqual(testData);
