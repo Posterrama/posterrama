@@ -43,6 +43,7 @@ const healthCheck = require('../../utils/healthCheck');
 describe('HealthCheck Module', () => {
     afterEach(() => {
         jest.clearAllMocks();
+        jest.restoreAllMocks();
         // Clear the cache
         healthCheck.clearCache?.();
     });

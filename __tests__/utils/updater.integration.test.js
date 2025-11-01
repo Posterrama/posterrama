@@ -54,6 +54,7 @@ describe('AutoUpdater - Full Workflow & Edge Cases', () => {
     });
 
     afterEach(() => {
+        jest.restoreAllMocks();
         if (AutoUpdater && AutoUpdater.updateInProgress) {
             AutoUpdater.updateInProgress = false;
         }

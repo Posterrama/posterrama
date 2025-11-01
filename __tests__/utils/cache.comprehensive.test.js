@@ -44,6 +44,7 @@ describe('Cache Utils', () => {
 
     afterEach(() => {
         jest.useRealTimers();
+        jest.restoreAllMocks();
         cacheManager.cleanup();
     });
 

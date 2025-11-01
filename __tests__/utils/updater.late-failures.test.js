@@ -95,6 +95,10 @@ describe('updater late-stage failures', () => {
         freshUpdater();
     });
 
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
     test('dependency installation failure triggers rollback', async () => {
         const spy = {
             check: jest

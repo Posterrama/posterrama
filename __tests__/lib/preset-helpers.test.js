@@ -5,25 +5,9 @@
  * @jest-environment node
  */
 
-// CRITICAL: Completely bypass Jest's module system for fs
-// Do NOT use jest.mock or require - use direct Node.js API
-const Module = require('module');
-const originalRequire = Module.prototype.require;
-
-// Force fs to ALWAYS return the real implementation
-Module.prototype.require = function (id) {
-    if (id === 'fs' || id === 'fs/promises') {
-        return originalRequire.call(this, 'fs');
-    }
-    return originalRequire.call(this, id);
-};
-
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
-
-// Restore original require after getting fs
-Module.prototype.require = originalRequire;
 
 // Import after fs is secured
 const { readPresets, writePresets } = require('../../lib/preset-helpers');

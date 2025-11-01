@@ -53,6 +53,7 @@ describe('AutoUpdater - Filesystem Operations', () => {
     });
 
     afterEach(() => {
+        jest.restoreAllMocks();
         if (AutoUpdater && AutoUpdater.updateInProgress) {
             AutoUpdater.updateInProgress = false;
         }

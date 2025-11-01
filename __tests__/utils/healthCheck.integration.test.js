@@ -52,6 +52,9 @@ describe('HealthCheck - Plex and Integration', () => {
     });
 
     afterEach(() => {
+        // CRITICAL: Restore all mocks to prevent leakage to other test files
+        jest.restoreAllMocks();
+
         jest.dontMock('../../utils/logger');
         jest.dontMock('../../package.json');
 
