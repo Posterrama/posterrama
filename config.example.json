@@ -51,6 +51,7 @@
             "enabled": true,
             "strength": 60
         },
+        "rotationIntervalMinutes": 0,
         "presets": {
             "headerTexts": [
                 "Coming Soon",
