@@ -373,7 +373,7 @@ async function updateHeartbeat(id, { clientInfo, currentState, installId, hardwa
 async function deleteDevice(id) {
     const all = await readAll();
     const device = all.find(d => d.id === id);
-    
+
     // Before deleting, clear hardwareId to prevent auto-recovery via registerDevice
     if (device && device.hardwareId) {
         const idx = all.findIndex(d => d.id === id);
@@ -382,7 +382,7 @@ async function deleteDevice(id) {
             await writeAll(all);
         }
     }
-    
+
     const next = all.filter(d => d.id !== id);
     const removed = next.length !== all.length;
     if (removed) {
