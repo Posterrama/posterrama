@@ -2005,10 +2005,24 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             /* ignore localStorage errors */
         }
 
-        // If we just navigated, send immediate heartbeat (after brief delay for media to load)
-        const firstIn = justNavigated ? 500 : 3000 + Math.floor(Math.random() * 2000);
+        // Detect if we're in cinema mode (needs more time for media fetch)
+        const isCinemaMode =
+            document.body && document.body.dataset && document.body.dataset.mode === 'cinema';
+
+        // If we just navigated to cinema, give more time for media to load
+        // Otherwise use shorter delay for screensaver/wallart
+        const firstIn = justNavigated
+            ? isCinemaMode
+                ? 1500
+                : 500
+            : 3000 + Math.floor(Math.random() * 2000);
+
         window.debugLog &&
-            window.debugLog('DEVICE_MGMT_HEARTBEAT_START', { firstIn, justNavigated });
+            window.debugLog('DEVICE_MGMT_HEARTBEAT_START', {
+                firstIn,
+                justNavigated,
+                isCinemaMode,
+            });
         state.heartbeatTimer = setTimeout(() => {
             sendHeartbeat();
             state.heartbeatTimer = setInterval(sendHeartbeat, 20000);
