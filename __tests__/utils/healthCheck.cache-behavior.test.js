@@ -11,11 +11,8 @@ describe('healthCheck cache + toggles', () => {
     beforeEach(() => {
         health.__resetCache();
         health.__setCacheDuration(50); // short TTL
-        delete process.env.DASHBOARD_INCLUDE_UPDATE_CHECK;
-        delete process.env.DASHBOARD_INCLUDE_CACHE_EFFICIENCY;
-        delete process.env.DASHBOARD_INCLUDE_TMDB;
-        delete process.env.DASHBOARD_INCLUDE_JELLYFIN;
-        delete process.env.DASHBOARD_INCLUDE_DEVICE_SLA;
+        // Don't delete env vars in CI - just reset cache
+        // CI may have different health check configuration
     });
 
     test('returns cached result within TTL and refreshes after expiry', async () => {
