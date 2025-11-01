@@ -823,9 +823,14 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         return;
                     }
                     const data = await res.json();
+                    console.log('📥 Pairing response:', {
+                        deviceId: data.deviceId,
+                        secretLength: data.secret?.length,
+                    });
                     await saveIdentity(data.deviceId, data.secret);
                     state.deviceId = data.deviceId;
                     state.deviceSecret = data.secret;
+                    console.log('✅ State updated after pairing');
                     setMsg('Paired! Loading...', true);
                     setTimeout(() => {
                         try {
@@ -835,7 +840,8 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         }
                         resolve(true);
                     }, 200);
-                } catch (_) {
+                } catch (err) {
+                    console.error('❌ Pairing failed:', err);
                     setMsg('Pairing failed. Please try again.', false);
                 }
             }
