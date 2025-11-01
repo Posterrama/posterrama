@@ -335,7 +335,7 @@ module.exports = function createDevicesRouter({
      */
     router.post('/heartbeat', express.json(), async (req, res) => {
         try {
-            const { deviceId, secret, status = null } = req.body || {};
+            const { deviceId, secret, status = null, userAgent, hardwareId } = req.body || {};
             if (!deviceId || !secret) {
                 return res.status(401).json({ error: 'missing_credentials' });
             }
@@ -356,19 +356,22 @@ module.exports = function createDevicesRouter({
             // Retrieve and clear any queued commands (popCommands clears automatically)
             const queuedCommands = deviceStore.popCommands(deviceId);
 
-            // Update device with last seen, status, and clear reload flag
-            const patchData = {
-                lastSeenAt: new Date().toISOString(),
-                status: 'online',
-            };
-            if (status && typeof status === 'object') {
-                patchData.currentState = status;
-            }
-            if (shouldReload) {
-                patchData.reload = false;
-            }
+            // Extract clientInfo from payload (userAgent at root, screen in status)
+            const clientInfo = {};
+            if (userAgent) clientInfo.userAgent = userAgent;
+            if (status?.screen) clientInfo.screen = status.screen;
 
-            await await deviceStore.patchDevice(device.id, patchData);
+            // Use updateHeartbeat which properly handles clientInfo and currentState
+            await deviceStore.updateHeartbeat(deviceId, {
+                clientInfo,
+                currentState: status,
+                hardwareId,
+            });
+
+            // Clear reload flag if needed
+            if (shouldReload) {
+                await deviceStore.patchDevice(device.id, { reload: false });
+            }
 
             res.json({
                 ok: true,
