@@ -395,7 +395,7 @@
     }
 
     // Centralized helper to call /api/devices/check politely with 429 backoff
-    async function checkRegistrationStatus(deviceId) {
+    async function checkRegistrationStatus(deviceId, secret = null) {
         const now = Date.now();
         if (state.checkCooldownUntil && now < state.checkCooldownUntil) {
             return { skipped: true, cooldownMs: state.checkCooldownUntil - now };
@@ -405,6 +405,9 @@
         }
         state.checkInFlight = true;
         try {
+            const payload = { deviceId };
+            if (secret) payload.secret = secret;
+
             const res = await fetch('/api/devices/check', {
                 method: 'POST',
                 headers: {
@@ -412,7 +415,7 @@
                     'X-Install-Id': state.installId || getInstallId() || '',
                     'X-Hardware-Id': state.hardwareId || getHardwareId() || '',
                 },
-                body: JSON.stringify({ deviceId }),
+                body: JSON.stringify(payload),
             });
             if (res.status === 429) {
                 // Back off progressively between 10s-30s
@@ -2117,8 +2120,12 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         if (hasIdentity) {
             console.log('🔍 [DEBUG] Checking if device is still registered on server');
             console.log('  - deviceId from localStorage:', state.deviceId);
+            console.log(
+                '  - secret from localStorage:',
+                state.deviceSecret ? 'present' : 'MISSING'
+            );
             try {
-                const res = await checkRegistrationStatus(state.deviceId);
+                const res = await checkRegistrationStatus(state.deviceId, state.deviceSecret);
                 if (res.skipped) {
                     console.log('  → Skipping device check due to cooldown/in-flight');
                 } else if (res.rateLimited) {
