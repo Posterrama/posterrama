@@ -5425,17 +5425,18 @@ if (require.main === module) {
                     /* optional logging only */
                 }
             }, 5000);
+
+            // Initialize WebSocket hub once server is listening
+            try {
+                wsHub.init(httpServer, {
+                    path: '/ws/devices',
+                    verifyDevice: deviceStore.verifyDevice,
+                });
+            } catch (e2) {
+                logger.warn('[WS] init failed', e2);
+            }
         });
         // SSE route is registered earlier (before 404 handler)
-        // Initialize WebSocket hub once server is listening
-        try {
-            wsHub.init(httpServer, {
-                path: '/ws/devices',
-                verifyDevice: deviceStore.verifyDevice,
-            });
-        } catch (e2) {
-            logger.warn('[WS] init failed', e2);
-        }
 
         // Initialize MQTT bridge if enabled
         (async () => {
