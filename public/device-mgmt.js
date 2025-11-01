@@ -369,7 +369,8 @@
                 return false;
             }
             const data = await res.json();
-            state.deviceSecret = data.deviceSecret;
+            state.deviceId = data.deviceId;
+            state.deviceSecret = data.secret;
             await saveIdentity(state.deviceId, state.deviceSecret);
             return true;
         } catch (e) {
@@ -2164,12 +2165,9 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                 console.log('  → Automatic recovery successful:', recoveryData);
 
                                 // Save the recovered identity
-                                await saveIdentity(
-                                    recoveryData.deviceId,
-                                    recoveryData.deviceSecret
-                                );
+                                await saveIdentity(recoveryData.deviceId, recoveryData.secret);
                                 state.deviceId = recoveryData.deviceId;
-                                state.deviceSecret = recoveryData.deviceSecret;
+                                state.deviceSecret = recoveryData.secret;
 
                                 console.log('  → Local identity restored, skipping setup');
 
