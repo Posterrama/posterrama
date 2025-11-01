@@ -12388,6 +12388,76 @@
                                     );
                                 }
                             }
+
+                            // Update mode pill
+                            const modePill = card.querySelector(
+                                '.device-badges .sp-screensaver, .device-badges .sp-wallart, .device-badges .sp-cinema, .device-badges .sp-mode'
+                            );
+                            const currentMode = d?.clientInfo?.mode || d?.mode || '';
+                            const modeText = modeLabel(currentMode);
+                            if (modePill && modeText) {
+                                // Update classes based on current mode
+                                const m = String(currentMode || '').toLowerCase();
+                                const mClass =
+                                    m === 'screensaver'
+                                        ? 'sp-screensaver'
+                                        : m === 'wallart'
+                                          ? 'sp-wallart'
+                                          : m === 'cinema' || m === 'cinema mode'
+                                            ? 'sp-cinema'
+                                            : 'sp-mode';
+                                modePill.className = `status-pill ${mClass}`;
+                                modePill.innerHTML = `<i class="${iconForMode(currentMode)}"></i> ${escapeHtml(modeText)}`;
+                            } else if (!modePill && modeText) {
+                                // Create mode pill if it doesn't exist
+                                const badges = card.querySelector('.device-badges');
+                                if (badges) {
+                                    const m = String(currentMode || '').toLowerCase();
+                                    const mClass =
+                                        m === 'screensaver'
+                                            ? 'sp-screensaver'
+                                            : m === 'wallart'
+                                              ? 'sp-wallart'
+                                              : m === 'cinema' || m === 'cinema mode'
+                                                ? 'sp-cinema'
+                                                : 'sp-mode';
+                                    const newModePill = document.createElement('span');
+                                    newModePill.className = `status-pill ${mClass}`;
+                                    newModePill.innerHTML = `<i class="${iconForMode(currentMode)}"></i> ${escapeHtml(modeText)}`;
+                                    badges.appendChild(newModePill);
+                                }
+                            } else if (modePill && !modeText) {
+                                // Remove mode pill if mode is no longer set
+                                modePill.remove();
+                            }
+
+                            // Update meta-pills (location, preset, groups)
+                            const metaPills = card.querySelector('.meta-pills');
+                            if (metaPills) {
+                                const location = d.location || 'Unassigned';
+                                const presetName =
+                                    d.preset && state.presets
+                                        ? state.presets.find(p => p.key === d.preset)?.name ||
+                                          d.preset
+                                        : '';
+                                const groupNames =
+                                    Array.isArray(d.groups) && Array.isArray(state.groups)
+                                        ? d.groups
+                                              .map(
+                                                  gid =>
+                                                      state.groups.find(g => g.id === gid)?.name ||
+                                                      gid
+                                              )
+                                              .filter(Boolean)
+                                        : [];
+
+                                metaPills.innerHTML = `
+                                    <span class="status-pill" title="Location"><i class="fas fa-location-dot"></i> ${escapeHtml(location)}</span>
+                                    ${presetName ? `<span class="status-pill" title="Preset"><i class="fas fa-star"></i> ${escapeHtml(presetName)}</span>` : ''}
+                                    ${groupNames.length ? `<span class="status-pill" title="Groups"><i class="fas fa-layer-group"></i> ${escapeHtml(groupNames.join(', '))}</span>` : ''}
+                                `;
+                            }
+
                             // Synced dot visibility
                             const corner = card.querySelector('.device-corner .synced-dot');
                             const shouldShowDot = !!d.wsConnected && state.syncEnabled !== false;
