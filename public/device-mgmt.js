@@ -229,19 +229,29 @@
         }
     }
     async function loadIdentityAsync() {
+        console.log('🔓 [DEBUG] loadIdentityAsync called');
         // Prefer IndexedDB; migrate from localStorage if present there only
         const fromIdb = await idbGetIdentity();
         if (fromIdb && fromIdb.id && fromIdb.secret) {
+            console.log('  ✅ Loaded from IndexedDB', {
+                id: fromIdb.id,
+                secretLength: fromIdb.secret?.length,
+            });
             return { id: fromIdb.id, secret: fromIdb.secret };
         }
         const store = getStorage();
-        if (!store) return { id: null, secret: null };
+        if (!store) {
+            console.warn('  ⚠️  localStorage unavailable');
+            return { id: null, secret: null };
+        }
         const id = store.getItem(STORAGE_KEYS.id);
         const secret = store.getItem(STORAGE_KEYS.secret);
+        console.log('  📦 localStorage values', { id, secretLength: secret?.length });
         if (id && secret) {
             // Migrate to IDB (best-effort)
             try {
                 await idbSaveIdentity(id, secret);
+                console.log('  ✅ Migrated to IndexedDB');
             } catch (_) {
                 /* noop: ignore migration errors */
             }
@@ -249,16 +259,21 @@
         return { id, secret };
     }
     async function saveIdentity(id, secret) {
+        console.log('🔒 [DEBUG] saveIdentity called', { id, secretLength: secret?.length });
         const store = getStorage();
         if (store) {
             try {
                 if (id) store.setItem(STORAGE_KEYS.id, id);
                 if (secret) store.setItem(STORAGE_KEYS.secret, secret);
-            } catch (_) {
-                // ignore localStorage errors
+                console.log('  ✅ localStorage save success');
+            } catch (e) {
+                console.error('  ❌ localStorage save failed:', e);
             }
+        } else {
+            console.warn('  ⚠️  localStorage unavailable');
         }
         await idbSaveIdentity(id, secret);
+        console.log('  ✅ IndexedDB save completed');
     }
     function clearIdentity() {
         const store = getStorage();
