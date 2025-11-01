@@ -366,6 +366,20 @@
 
     async function registerIfNeeded() {
         if (state.deviceId && state.deviceSecret) return true;
+        
+        // Check if this hardware ID was previously deleted (permanent block)
+        try {
+            const hardwareId = getHardwareId();
+            const wasDeleted = localStorage.getItem(`posterrama-device-deleted-${hardwareId}`) === 'true';
+            if (wasDeleted) {
+                console.log('[registerIfNeeded] Device was previously deleted, blocking registration');
+                state.enabled = false;
+                return false;
+            }
+        } catch (_) {
+            /* ignore localStorage errors */
+        }
+        
         try {
             state.installId = state.installId || getInstallId();
             state.hardwareId = state.hardwareId || getHardwareId();
@@ -569,10 +583,23 @@
             if (!res.ok) {
                 // If the server says unauthorized or not found, our device was likely deleted.
                 if (res.status === 401 || res.status === 404) {
-                    // Drop local identity and attempt seamless re-registration once.
+                    // Mark this hardware ID as deleted to prevent auto-recovery
+                    try {
+                        const hwId = state.hardwareId || getHardwareId();
+                        if (hwId) {
+                            localStorage.setItem(`posterrama-device-deleted-${hwId}`, 'true');
+                            console.log('[Heartbeat] Device deleted on server, marked hardware ID as deleted');
+                        }
+                    } catch (_) {
+                        /* ignore localStorage errors */
+                    }
+                    
+                    // Drop local identity
                     clearIdentity();
                     state.deviceId = null;
                     state.deviceSecret = null;
+                    
+                    // registerIfNeeded will now check the deleted flag and refuse to register
                     const registered = await registerIfNeeded();
                     if (registered) {
                         // Push a fresh heartbeat with the new identity.
