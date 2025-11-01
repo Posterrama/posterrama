@@ -28,6 +28,12 @@ describe('Preset Helpers', () => {
         // Ensure test directory is actually created and writable
         await fs.access(testDir);
 
+        // Clean any potential leftover files in the temp directory
+        const files = await fs.readdir(testDir);
+        for (const file of files) {
+            await fs.unlink(path.join(testDir, file)).catch(() => {});
+        }
+
         // Add delay to ensure filesystem operations complete
         await new Promise(resolve => setTimeout(resolve, 50));
     });
