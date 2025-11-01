@@ -229,11 +229,11 @@
         }
     }
     async function loadIdentityAsync() {
-        console.log('🔓 [DEBUG] loadIdentityAsync called');
+        liveDbg('🔓 [DEBUG] loadIdentityAsync called');
         // Prefer IndexedDB; migrate from localStorage if present there only
         const fromIdb = await idbGetIdentity();
         if (fromIdb && fromIdb.id && fromIdb.secret) {
-            console.log('  ✅ Loaded from IndexedDB', {
+            liveDbg('  ✅ Loaded from IndexedDB', {
                 id: fromIdb.id,
                 secretLength: fromIdb.secret?.length,
             });
@@ -251,7 +251,7 @@
             // Migrate to IDB (best-effort)
             try {
                 await idbSaveIdentity(id, secret);
-                console.log('  ✅ Migrated to IndexedDB');
+                liveDbg('  ✅ Migrated to IndexedDB');
             } catch (_) {
                 /* noop: ignore migration errors */
             }
@@ -259,13 +259,13 @@
         return { id, secret };
     }
     async function saveIdentity(id, secret) {
-        console.log('🔒 [DEBUG] saveIdentity called', { id, secretLength: secret?.length });
+        liveDbg('🔒 [DEBUG] saveIdentity called', { id, secretLength: secret?.length });
         const store = getStorage();
         if (store) {
             try {
                 if (id) store.setItem(STORAGE_KEYS.id, id);
                 if (secret) store.setItem(STORAGE_KEYS.secret, secret);
-                console.log('  ✅ localStorage save success');
+                liveDbg('  ✅ localStorage save success');
             } catch (e) {
                 console.error('  ❌ localStorage save failed:', e);
             }
@@ -273,7 +273,7 @@
             console.warn('  ⚠️  localStorage unavailable');
         }
         await idbSaveIdentity(id, secret);
-        console.log('  ✅ IndexedDB save completed');
+        liveDbg('  ✅ IndexedDB save completed');
     }
     function clearIdentity() {
         const store = getStorage();
@@ -858,14 +858,14 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         return;
                     }
                     const data = await res.json();
-                    console.log('📥 Pairing response:', {
+                    liveDbg('📥 Pairing response:', {
                         deviceId: data.deviceId,
                         secretLength: data.secret?.length,
                     });
                     await saveIdentity(data.deviceId, data.secret);
                     state.deviceId = data.deviceId;
                     state.deviceSecret = data.secret;
-                    console.log('✅ State updated after pairing');
+                    liveDbg('✅ State updated after pairing');
                     setMsg('Paired! Loading...', true);
                     setTimeout(() => {
                         try {
