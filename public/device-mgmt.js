@@ -804,7 +804,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         return;
                     }
                     const data = await res.json();
-                    await saveIdentity(data.deviceId, data.deviceSecret);
+                    await saveIdentity(data.deviceId, data.secret);
                     setMsg('Paired! Loading...', true);
                     setTimeout(() => {
                         try {
