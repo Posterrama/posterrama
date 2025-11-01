@@ -33,6 +33,36 @@ module.exports = function createAdminConfigRouter({
 }) {
     const router = express.Router();
 
+    /**
+     * @swagger
+     * /api/admin/config-schema:
+     *   get:
+     *     summary: Get configuration schema
+     *     description: Returns JSON schema for configuration validation and autocomplete
+     *     tags: ['Admin']
+     *     security:
+     *       - bearerAuth: []
+     *     responses:
+     *       200:
+     *         description: Configuration schema
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *       401:
+     *         description: Unauthorized
+     */
+    router.get('/api/admin/config-schema', isAuthenticated, (req, res) => {
+        try {
+            const schemaPath = path.join(__dirname, '..', 'config.schema.json');
+            const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+            res.json(schema);
+        } catch (e) {
+            logger.error('[Admin Config] Failed to read config schema:', e);
+            res.status(500).json({ error: 'failed_to_read_schema' });
+        }
+    });
+
     router.get(
         '/api/admin/config',
         isAuthenticated,
