@@ -335,7 +335,15 @@ module.exports = function createDevicesRouter({
      */
     router.post('/heartbeat', express.json(), async (req, res) => {
         try {
-            const { deviceId, secret, status = null, userAgent, hardwareId } = req.body || {};
+            const {
+                deviceId,
+                secret,
+                status = null,
+                userAgent,
+                hardwareId,
+                screen,
+                mode,
+            } = req.body || {};
             if (!deviceId || !secret) {
                 return res.status(401).json({ error: 'missing_credentials' });
             }
@@ -356,11 +364,12 @@ module.exports = function createDevicesRouter({
             // Retrieve and clear any queued commands (popCommands clears automatically)
             const queuedCommands = deviceStore.popCommands(deviceId);
 
-            // Extract clientInfo from payload (userAgent at root, screen and mode in status)
+            // Extract clientInfo from payload
+            // Support both formats: top-level screen/mode AND status.screen/status.mode
             const clientInfo = {};
             if (userAgent) clientInfo.userAgent = userAgent;
-            if (status?.screen) clientInfo.screen = status.screen;
-            if (status?.mode) clientInfo.mode = status.mode;
+            if (status?.screen || screen) clientInfo.screen = status?.screen || screen;
+            if (status?.mode || mode) clientInfo.mode = status?.mode || mode;
 
             // Use updateHeartbeat which properly handles clientInfo and currentState
             await deviceStore.updateHeartbeat(deviceId, {

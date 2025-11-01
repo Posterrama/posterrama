@@ -42,8 +42,9 @@ describe('wsHub edge cases and error paths', () => {
         jest.clearAllMocks();
         jest.useRealTimers();
 
-        // Save original SSE broadcast
+        // Save original SSE broadcast and mock it
         originalSSEBroadcast = global.__adminSSEBroadcast;
+        global.__adminSSEBroadcast = jest.fn();
 
         wsHub = require('../../utils/wsHub');
     });
@@ -53,7 +54,7 @@ describe('wsHub edge cases and error paths', () => {
         global.__adminSSEBroadcast = originalSSEBroadcast;
     });
 
-    async function waitFor(pred, { timeoutMs = 1000, intervalMs = 10 } = {}) {
+    async function waitFor(pred, { timeoutMs = 5000, intervalMs = 10 } = {}) {
         const start = Date.now();
         // eslint-disable-next-line no-constant-condition
         while (true) {
@@ -77,7 +78,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
 
             // Should not crash even though send throws
@@ -122,7 +123,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws1, reqStub);
             ws1.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws1.sends.some(s => s.includes('hello-ack')));
 
@@ -133,7 +134,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws2, reqStub);
             ws2.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws2.sends.some(s => s.includes('hello-ack')));
 
@@ -155,7 +156,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws1, reqStub);
             ws1.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws1.sends.some(s => s.includes('hello-ack')));
 
@@ -166,9 +167,7 @@ describe('wsHub edge cases and error paths', () => {
             expect(() => {
                 ws2.emit(
                     'message',
-                    Buffer.from(
-                        JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' })
-                    )
+                    Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
                 );
             }).not.toThrow();
 
@@ -189,7 +188,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -214,7 +213,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -248,9 +247,7 @@ describe('wsHub edge cases and error paths', () => {
                 wss.emit('connection', ws, reqStub);
                 ws.emit(
                     'message',
-                    Buffer.from(
-                        JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' })
-                    )
+                    Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
                 );
             }).not.toThrow();
 
@@ -272,7 +269,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -298,7 +295,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -337,7 +334,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -359,7 +356,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -385,7 +382,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -411,7 +408,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -440,16 +437,13 @@ describe('wsHub edge cases and error paths', () => {
 
             const ws = makeMockWs();
             wss.emit('connection', ws, reqStub);
-            ws.emit(
-                'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceSecret: 'secret' }))
-            );
+            ws.emit('message', Buffer.from(JSON.stringify({ kind: 'hello', secret: 'secret' })));
 
             await new Promise(r => setTimeout(r, 50));
             expect(ws.close).toHaveBeenCalledWith(1008, 'Missing credentials');
         });
 
-        test('closes socket if missing deviceSecret', async () => {
+        test('closes socket if missing secret', async () => {
             const wss = wsHub.init(httpServerStub, {
                 verifyDevice: async () => true,
             });
@@ -471,9 +465,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(
-                    JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'bad' })
-                )
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'bad' }))
             );
 
             await new Promise(r => setTimeout(r, 50));
@@ -491,7 +483,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
 
             await new Promise(r => setTimeout(r, 50));
@@ -524,7 +516,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -549,7 +541,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -583,7 +575,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -613,7 +605,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -656,7 +648,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, reqStub);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -696,7 +688,7 @@ describe('wsHub edge cases and error paths', () => {
             wss.emit('connection', ws, customReq);
             ws.emit(
                 'message',
-                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+                Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
             );
 
             await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));

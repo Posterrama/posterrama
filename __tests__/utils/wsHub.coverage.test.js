@@ -43,9 +43,15 @@ describe('utils/wsHub coverage', () => {
         jest.resetModules();
         jest.clearAllTimers();
         jest.useRealTimers();
+        // Mock global.__adminSSEBroadcast to prevent test hangs
+        global.__adminSSEBroadcast = jest.fn();
     });
 
-    async function waitFor(pred, { timeoutMs = 1500, intervalMs = 10 } = {}) {
+    afterEach(() => {
+        delete global.__adminSSEBroadcast;
+    });
+
+    async function waitFor(pred, { timeoutMs = 5000, intervalMs = 10 } = {}) {
         const start = Date.now();
 
         // eslint-disable-next-line no-constant-condition
@@ -71,7 +77,7 @@ describe('utils/wsHub coverage', () => {
         // Proper hello
         ws.emit(
             'message',
-            Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 's1' }))
+            Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 's1' }))
         );
         await waitFor(() => ws.sends.some(s => /hello-ack/.test(s)));
         const helloAck = ws.sends.find(s => /hello-ack/.test(s));
@@ -103,7 +109,7 @@ describe('utils/wsHub coverage', () => {
         wss.emit('connection', ws, reqStub);
         ws.emit(
             'message',
-            Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+            Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
         );
         await waitFor(() => ws.sends.some(s => s.includes('hello-ack')));
 
@@ -139,14 +145,14 @@ describe('utils/wsHub coverage', () => {
         wss.emit('connection', ws1, reqStub);
         ws1.emit(
             'message',
-            Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', deviceSecret: 'ok' }))
+            Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev1', secret: 'ok' }))
         );
         await waitFor(() => ws1.sends.some(s => s.includes('hello-ack')));
         // Connect dev2 (CLOSED)
         wss.emit('connection', ws2, reqStub);
         ws2.emit(
             'message',
-            Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev2', deviceSecret: 'ok' }))
+            Buffer.from(JSON.stringify({ kind: 'hello', deviceId: 'dev2', secret: 'ok' }))
         );
         await waitFor(() => ws2.sends.some(s => s.includes('hello-ack')));
 

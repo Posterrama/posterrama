@@ -74,6 +74,25 @@ function createMockDeviceStore() {
             return device;
         },
 
+        async updateHeartbeat(deviceId, { clientInfo, currentState, installId, hardwareId } = {}) {
+            const device = devices.get(deviceId);
+            if (!device) throw new Error('Device not found');
+
+            // Update clientInfo and currentState
+            if (clientInfo) {
+                device.clientInfo = { ...device.clientInfo, ...clientInfo };
+            }
+            if (currentState) {
+                device.currentState = { ...device.currentState, ...currentState };
+            }
+            if (installId) device.installId = installId;
+            if (hardwareId) device.hardwareId = hardwareId;
+
+            device.lastSeenAt = new Date().toISOString();
+            devices.set(deviceId, device);
+            return device;
+        },
+
         async patchDevice(deviceId, updates) {
             const device = devices.get(deviceId);
             if (!device) throw new Error('Device not found');
