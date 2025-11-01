@@ -366,20 +366,23 @@
 
     async function registerIfNeeded() {
         if (state.deviceId && state.deviceSecret) return true;
-        
+
         // Check if this hardware ID was previously deleted (permanent block)
         try {
             const hardwareId = getHardwareId();
-            const wasDeleted = localStorage.getItem(`posterrama-device-deleted-${hardwareId}`) === 'true';
+            const wasDeleted =
+                localStorage.getItem(`posterrama-device-deleted-${hardwareId}`) === 'true';
             if (wasDeleted) {
-                console.log('[registerIfNeeded] Device was previously deleted, blocking registration');
+                console.log(
+                    '[registerIfNeeded] Device was previously deleted, blocking registration'
+                );
                 state.enabled = false;
                 return false;
             }
         } catch (_) {
             /* ignore localStorage errors */
         }
-        
+
         try {
             state.installId = state.installId || getInstallId();
             state.hardwareId = state.hardwareId || getHardwareId();
@@ -533,30 +536,33 @@
             secret: state.deviceSecret,
             hardwareId: state.hardwareId || getHardwareId(),
             userAgent: navigator.userAgent,
-            screen: collectClientInfo().screen,
-            mode: currentMode(),
-            // Include playback paused state if the main app exposes it
-            paused:
-                typeof window !== 'undefined' && window.__posterramaPaused != null
-                    ? !!window.__posterramaPaused
-                    : undefined,
-            mediaId,
-            pinned,
-            // When unpinned, force pinMediaId to '' so the server clears lingering values
-            pinMediaId: pinned === false ? '' : pinMediaId,
-            poweredOff,
-            // Optional media context (used by admin device list for tiny preview)
-            title: curr && curr.title,
-            year: curr && curr.year,
-            rating: curr && curr.rating,
-            posterUrl: curr && curr.posterUrl,
-            backgroundUrl: curr && curr.backgroundUrl,
-            thumbnailUrl: curr && curr.thumbnailUrl,
-            runtime: curr && curr.runtime,
-            genres: curr && curr.genres,
-            overview: curr && curr.overview,
-            tagline: curr && curr.tagline,
-            contentRating: curr && curr.contentRating,
+            // Wrap all state data in 'status' object for server
+            status: {
+                screen: collectClientInfo().screen,
+                mode: currentMode(),
+                // Include playback paused state if the main app exposes it
+                paused:
+                    typeof window !== 'undefined' && window.__posterramaPaused != null
+                        ? !!window.__posterramaPaused
+                        : undefined,
+                mediaId,
+                pinned,
+                // When unpinned, force pinMediaId to '' so the server clears lingering values
+                pinMediaId: pinned === false ? '' : pinMediaId,
+                poweredOff,
+                // Optional media context (used by admin device list for tiny preview)
+                title: curr && curr.title,
+                year: curr && curr.year,
+                rating: curr && curr.rating,
+                posterUrl: curr && curr.posterUrl,
+                backgroundUrl: curr && curr.backgroundUrl,
+                thumbnailUrl: curr && curr.thumbnailUrl,
+                runtime: curr && curr.runtime,
+                genres: curr && curr.genres,
+                overview: curr && curr.overview,
+                tagline: curr && curr.tagline,
+                contentRating: curr && curr.contentRating,
+            },
         };
         try {
             // Lightweight debug to help diagnose admin-device sync issues
@@ -588,17 +594,19 @@
                         const hwId = state.hardwareId || getHardwareId();
                         if (hwId) {
                             localStorage.setItem(`posterrama-device-deleted-${hwId}`, 'true');
-                            console.log('[Heartbeat] Device deleted on server, marked hardware ID as deleted');
+                            console.log(
+                                '[Heartbeat] Device deleted on server, marked hardware ID as deleted'
+                            );
                         }
                     } catch (_) {
                         /* ignore localStorage errors */
                     }
-                    
+
                     // Drop local identity
                     clearIdentity();
                     state.deviceId = null;
                     state.deviceSecret = null;
-                    
+
                     // registerIfNeeded will now check the deleted flag and refuse to register
                     const registered = await registerIfNeeded();
                     if (registered) {
