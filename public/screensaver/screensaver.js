@@ -9,6 +9,8 @@
             idx: -1,
             paused: false,
             order: null,
+            isPinned: false,
+            pinnedMediaId: null,
         };
         // Small helpers for DOM access
         const $ = sel => document.getElementById(sel);
@@ -463,6 +465,8 @@
                             next: () => {
                                 try {
                                     _state.paused = false;
+                                    _state.isPinned = false;
+                                    _state.pinnedMediaId = null;
                                     api.showNextBackground({ forceNext: true });
                                 } catch (_) {
                                     /* noop */
@@ -471,6 +475,8 @@
                             prev: () => {
                                 try {
                                     _state.paused = false;
+                                    _state.isPinned = false;
+                                    _state.pinnedMediaId = null;
                                     const items = Array.isArray(window.mediaQueue)
                                         ? window.mediaQueue
                                         : [];
@@ -497,6 +503,8 @@
                             },
                             resume: () => {
                                 _state.paused = false;
+                                _state.isPinned = false;
+                                _state.pinnedMediaId = null;
                                 try {
                                     window.__posterramaPaused = false;
                                 } catch (_) {
@@ -504,6 +512,31 @@
                                 }
                                 // Note: triggerLiveBeat() removed - showNextBackground sends it
                                 api.showNextBackground({ forceNext: true });
+                            },
+                            pinPoster: payload => {
+                                try {
+                                    _state.isPinned = true;
+                                    _state.paused = true;
+                                    _state.pinnedMediaId =
+                                        payload?.mediaId ||
+                                        window.__posterramaCurrentMediaId ||
+                                        null;
+                                    window.__posterramaPaused = true;
+
+                                    // Stop rotation timer
+                                    if (_state.cycleTimer) {
+                                        clearInterval(_state.cycleTimer);
+                                        _state.cycleTimer = null;
+                                    }
+
+                                    try {
+                                        triggerLiveBeat();
+                                    } catch (_) {
+                                        /* noop */
+                                    }
+                                } catch (_) {
+                                    /* noop */
+                                }
                             },
                         };
                     } catch (_) {
@@ -543,7 +576,7 @@
                     );
                     _state.cycleTimer = setInterval(() => {
                         try {
-                            if (_state.paused) return;
+                            if (_state.paused || _state.isPinned) return;
                             api.showNextBackground();
                         } catch (_) {
                             /* noop */
@@ -579,6 +612,11 @@
             // Advance to next media item and transition layers
             showNextBackground(opts = {}) {
                 try {
+                    // Don't rotate if poster is pinned
+                    if (_state.isPinned && !opts.forceNext) {
+                        return;
+                    }
+
                     const la = document.getElementById('layer-a');
                     const lb = document.getElementById('layer-b');
                     if (!la || !lb) return;
