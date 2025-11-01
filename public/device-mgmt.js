@@ -2139,84 +2139,103 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 '🔍 [DEBUG] No local identity found, checking if device exists on server with hardware ID'
             );
 
-            // Try to recover identity by checking if our hardware ID is registered
+            // Allow disabling auto-recovery for testing via localStorage flag
+            let autoRecoveryDisabled = false;
             try {
-                const hardwareId = getHardwareId();
-                console.log('  - Generated hardware ID:', hardwareId);
+                autoRecoveryDisabled =
+                    localStorage.getItem('posterrama-disable-auto-recovery') === 'true';
+                if (autoRecoveryDisabled) {
+                    console.log('  ⚠️  Auto-recovery DISABLED via localStorage flag');
+                }
+            } catch (_) {
+                /* ignore localStorage errors */
+            }
 
-                const res = await checkRegistrationStatus(hardwareId);
+            // Try to recover identity by checking if our hardware ID is registered
+            if (!autoRecoveryDisabled) {
+                try {
+                    const hardwareId = getHardwareId();
+                    console.log('  - Generated hardware ID:', hardwareId);
 
-                if (res.ok && res.data) {
-                    const result = res.data;
-                    console.log('  - Server response for hardware ID:', result);
+                    const res = await checkRegistrationStatus(hardwareId);
 
-                    if (result.isRegistered) {
-                        console.log(
-                            '  → Device found on server with hardware ID, attempting automatic recovery'
-                        );
+                    if (res.ok && res.data) {
+                        const result = res.data;
+                        console.log('  - Server response for hardware ID:', result);
 
-                        // Try to automatically re-adopt this device since it's already registered with our hardware ID
-                        try {
-                            const recoveryResponse = await fetch('/api/devices/register', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    name:
-                                        result.deviceName || `Screen ${hardwareId.substring(0, 9)}`,
-                                    hardwareId: hardwareId,
-                                    location: '', // Keep location empty
-                                }),
-                            });
+                        if (result.isRegistered) {
+                            console.log(
+                                '  → Device found on server with hardware ID, attempting automatic recovery'
+                            );
 
-                            if (recoveryResponse.ok) {
-                                const recoveryData = await recoveryResponse.json();
-                                console.log('  → Automatic recovery successful:', recoveryData);
+                            // Try to automatically re-adopt this device since it's already registered with our hardware ID
+                            try {
+                                const recoveryResponse = await fetch('/api/devices/register', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        name:
+                                            result.deviceName ||
+                                            `Screen ${hardwareId.substring(0, 9)}`,
+                                        hardwareId: hardwareId,
+                                        location: '', // Keep location empty
+                                    }),
+                                });
 
-                                // Save the recovered identity
-                                await saveIdentity(recoveryData.deviceId, recoveryData.secret);
-                                state.deviceId = recoveryData.deviceId;
-                                state.deviceSecret = recoveryData.secret;
+                                if (recoveryResponse.ok) {
+                                    const recoveryData = await recoveryResponse.json();
+                                    console.log('  → Automatic recovery successful:', recoveryData);
 
-                                console.log('  → Local identity restored, skipping setup');
+                                    // Save the recovered identity
+                                    await saveIdentity(recoveryData.deviceId, recoveryData.secret);
+                                    state.deviceId = recoveryData.deviceId;
+                                    state.deviceSecret = recoveryData.secret;
 
-                                // Enable device management and start heartbeat immediately
-                                state.enabled = true;
+                                    console.log('  → Local identity restored, skipping setup');
 
-                                // Start heartbeat (will send early beat when media detected)
-                                try {
-                                    console.log('  → Starting heartbeat system');
-                                    startHeartbeat();
-                                } catch (heartbeatError) {
-                                    console.log(
-                                        '  → Heartbeat start failed:',
-                                        heartbeatError.message
-                                    );
+                                    // Enable device management and start heartbeat immediately
+                                    state.enabled = true;
+
+                                    // Start heartbeat (will send early beat when media detected)
+                                    try {
+                                        console.log('  → Starting heartbeat system');
+                                        startHeartbeat();
+                                    } catch (heartbeatError) {
+                                        console.log(
+                                            '  → Heartbeat start failed:',
+                                            heartbeatError.message
+                                        );
+                                    }
+
+                                    needsSetup = false;
+                                } else {
+                                    console.log('  → Automatic recovery failed, will show setup');
+                                    needsSetup = true;
                                 }
-
-                                needsSetup = false;
-                            } else {
-                                console.log('  → Automatic recovery failed, will show setup');
+                            } catch (recoveryError) {
+                                console.log('  → Recovery error:', recoveryError.message);
                                 needsSetup = true;
                             }
-                        } catch (recoveryError) {
-                            console.log('  → Recovery error:', recoveryError.message);
+                        } else {
+                            console.log('  → Hardware ID not found on server, setup required');
                             needsSetup = true;
                         }
+                    } else if (res.rateLimited || res.skipped) {
+                        console.log(
+                            '  → Rate-limited or skipped hardware ID check; deferring setup prompt'
+                        );
+                        needsSetup = true;
                     } else {
-                        console.log('  → Hardware ID not found on server, setup required');
+                        console.log('  → Server check failed, will show setup');
                         needsSetup = true;
                     }
-                } else if (res.rateLimited || res.skipped) {
-                    console.log(
-                        '  → Rate-limited or skipped hardware ID check; deferring setup prompt'
-                    );
-                    needsSetup = true;
-                } else {
-                    console.log('  → Server check failed, will show setup');
+                } catch (error) {
+                    console.log('  → Network error checking hardware ID:', error.message);
                     needsSetup = true;
                 }
-            } catch (error) {
-                console.log('  → Network error checking hardware ID:', error.message);
+            } else {
+                // Auto-recovery disabled, always show setup
+                console.log('  → Skipping auto-recovery, will show setup');
                 needsSetup = true;
             }
         }
