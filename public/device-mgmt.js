@@ -1869,6 +1869,12 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                     const Core = typeof window !== 'undefined' ? window.PosterramaCore : null;
                     if (Core && typeof Core.navigateToMode === 'function') {
                         liveDbg('[Live] invoking Core.navigateToMode', { target });
+                        // Set flag so we send immediate heartbeat after page reload
+                        try {
+                            localStorage.setItem('pr_just_navigated_mode', Date.now().toString());
+                        } catch (_) {
+                            /* ignore localStorage errors */
+                        }
                         Core.navigateToMode(String(target || 'screensaver'));
                         return;
                     }
@@ -1978,9 +1984,31 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 
     function startHeartbeat() {
         stopHeartbeat();
-        // Stagger first beat a bit to avoid thundering herd on reloads
-        const firstIn = 3000 + Math.floor(Math.random() * 2000);
-        window.debugLog && window.debugLog('DEVICE_MGMT_HEARTBEAT_START', { firstIn });
+
+        // Check if we just navigated from mode.navigate command
+        let justNavigated = false;
+        try {
+            const navTs = localStorage.getItem('pr_just_navigated_mode');
+            if (navTs) {
+                const elapsed = Date.now() - Number(navTs);
+                // If navigation happened in last 10 seconds, it's recent enough
+                if (elapsed < 10000) {
+                    justNavigated = true;
+                    liveDbg(
+                        '[Live] Detected recent mode navigation, will send immediate heartbeat'
+                    );
+                }
+                // Clear the flag
+                localStorage.removeItem('pr_just_navigated_mode');
+            }
+        } catch (_) {
+            /* ignore localStorage errors */
+        }
+
+        // If we just navigated, send immediate heartbeat (after brief delay for media to load)
+        const firstIn = justNavigated ? 500 : 3000 + Math.floor(Math.random() * 2000);
+        window.debugLog &&
+            window.debugLog('DEVICE_MGMT_HEARTBEAT_START', { firstIn, justNavigated });
         state.heartbeatTimer = setTimeout(() => {
             sendHeartbeat();
             state.heartbeatTimer = setInterval(sendHeartbeat, 20000);
