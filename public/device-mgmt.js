@@ -946,7 +946,6 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                             target.id &&
                             ['pr-do-pair', 'pr-close', 'pr-skip-setup'].includes(target.id)
                         ) {
-                            console.log(`Button ${target.id} style changed, forcing visibility`);
                             ensureButtonsVisible();
                         }
                     }
