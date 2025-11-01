@@ -321,6 +321,16 @@
                 title: media.title,
                 mediaId: media.key,
                 type: media.type || 'movie',
+                year: media.year,
+                rating: media.rating || media.contentRating,
+                posterUrl: media.posterUrl,
+                backgroundUrl: media.backgroundUrl,
+                thumbnailUrl: media.thumbnailUrl || media.posterUrl, // Fallback to posterUrl if no thumbnail
+                runtime: media.runtime,
+                genres: media.genres,
+                overview: media.overview,
+                tagline: media.tagline,
+                contentRating: media.contentRating,
             };
         }
 
