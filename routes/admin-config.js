@@ -19,6 +19,10 @@ module.exports = function createAdminConfigRouter({
     FIXED_LIMITS,
     readConfig,
     readEnvFile,
+    writeConfig,
+    writeEnvFile,
+    restartPM2ForEnvUpdate,
+    wsHub,
     ApiError,
     asyncHandler,
     isAuthenticated,
@@ -147,6 +151,164 @@ module.exports = function createAdminConfigRouter({
                 env: envVarsToExpose,
                 security: { is2FAEnabled: !!(process.env.ADMIN_2FA_SECRET || '').trim() },
                 server: { ipAddress: serverIPAddress },
+            });
+        })
+    );
+
+    /**
+     * @swagger
+     * /api/admin/config:
+     *   post:
+     *     summary: Save configuration changes
+     *     description: Updates config.json and .env with provided changes. Detects mode changes and broadcasts navigation commands to connected devices.
+     *     tags: ['Admin']
+     *     security:
+     *       - bearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               config:
+     *                 type: object
+     *                 description: Partial configuration object to merge
+     *               env:
+     *                 type: object
+     *                 description: Environment variables to update
+     *     responses:
+     *       200:
+     *         description: Configuration saved successfully
+     *       400:
+     *         description: Invalid request body
+     *       401:
+     *         description: Unauthorized
+     */
+    router.post(
+        '/api/admin/config',
+        isAuthenticated,
+        express.json(),
+        asyncHandler(async (req, res) => {
+            const { config: newConfig, env: newEnv } = req.body || {};
+
+            if (!newConfig || !newEnv) {
+                throw new ApiError(
+                    400,
+                    'Invalid request body. "config" and "env" properties are required.'
+                );
+            }
+
+            // Read existing config for merging and mode change detection
+            const existingConfig = await readConfig();
+            const mergedConfig = { ...existingConfig, ...newConfig };
+
+            // Detect mode changes for broadcast to devices
+            let broadcastModeChange = null;
+            try {
+                // Check Display Settings mode changes (cinemaMode, wallartMode.enabled)
+                const oldCinema = !!existingConfig.cinemaMode;
+                const newCinema = !!mergedConfig.cinemaMode;
+                const oldWallart = !!(
+                    existingConfig.wallartMode && existingConfig.wallartMode.enabled
+                );
+                const newWallart = !!(mergedConfig.wallartMode && mergedConfig.wallartMode.enabled);
+
+                const oldMode = oldCinema ? 'cinema' : oldWallart ? 'wallart' : 'screensaver';
+                const newMode = newCinema ? 'cinema' : newWallart ? 'wallart' : 'screensaver';
+
+                if (oldMode !== newMode) {
+                    broadcastModeChange = newMode;
+                    logger.info('[Admin API] Display mode changed, will broadcast navigation', {
+                        from: oldMode,
+                        to: newMode,
+                    });
+                }
+
+                // Also check rootRoute.defaultMode changes (Entry Route setting)
+                const oldDefaultMode = existingConfig.rootRoute?.defaultMode || '';
+                const newDefaultMode = mergedConfig.rootRoute?.defaultMode || '';
+                const behavior = mergedConfig.rootRoute?.behavior || 'landing';
+
+                if (
+                    behavior === 'redirect' &&
+                    oldDefaultMode &&
+                    newDefaultMode &&
+                    oldDefaultMode !== newDefaultMode &&
+                    ['screensaver', 'wallart', 'cinema'].includes(newDefaultMode)
+                ) {
+                    broadcastModeChange = newDefaultMode;
+                    logger.info(
+                        '[Admin API] Entry Route defaultMode changed, will broadcast navigation',
+                        {
+                            from: oldDefaultMode,
+                            to: newDefaultMode,
+                        }
+                    );
+                }
+            } catch (e) {
+                logger.warn('[Admin API] Mode change detection failed:', e?.message || e);
+            }
+
+            // Write config.json
+            await writeConfig(mergedConfig, config);
+            logger.info('[Admin API] Successfully wrote config.json');
+
+            // Prepare env variables for writing (sanitize and validate)
+            const sanitizedEnv = {};
+            Object.entries(newEnv).forEach(([key, value]) => {
+                if (key === 'NODE_ENV') {
+                    logger.warn('[Admin API] Skipping NODE_ENV write (managed by PM2)');
+                    return;
+                }
+                if (
+                    typeof value === 'string' ||
+                    typeof value === 'number' ||
+                    typeof value === 'boolean'
+                ) {
+                    sanitizedEnv[key] = String(value);
+                } else if (value === null || value === undefined) {
+                    // Skip null/undefined values (don't write to .env)
+                    logger.debug(`[Admin API] Skipping null/undefined env value for ${key}`);
+                }
+            });
+
+            // Write .env if there are changes
+            if (Object.keys(sanitizedEnv).length > 0) {
+                await writeEnvFile(sanitizedEnv);
+                logger.info('[Admin API] Successfully wrote .env file', {
+                    keys: Object.keys(sanitizedEnv),
+                });
+            }
+
+            // Broadcast mode.navigate command to all connected devices
+            if (broadcastModeChange && wsHub) {
+                try {
+                    const mode = broadcastModeChange;
+                    const ok = wsHub.broadcast({
+                        kind: 'command',
+                        type: 'mode.navigate',
+                        payload: { mode },
+                    });
+                    logger.info('[WS] Broadcast mode.navigate to devices', { mode, success: ok });
+                } catch (e) {
+                    logger.warn('[WS] mode.navigate broadcast failed:', e?.message || e);
+                }
+            }
+
+            // Update in-memory config so routes see latest values
+            Object.assign(config, mergedConfig);
+
+            // Restart PM2 if environment variables changed (for tokens/secrets)
+            if (Object.keys(sanitizedEnv).length > 0) {
+                restartPM2ForEnvUpdate('configuration saved');
+            }
+
+            res.json({
+                success: true,
+                message: 'Configuration saved successfully',
+                modeChanged: !!broadcastModeChange,
+                targetMode: broadcastModeChange || undefined,
             });
         })
     );
