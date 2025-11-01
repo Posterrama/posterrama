@@ -148,6 +148,8 @@ module.exports = function createConfigPublicRouter({
                     : 1200,
                 cinemaMode: config.cinemaMode || false,
                 cinemaOrientation: config.cinemaOrientation || 'auto',
+                // Include full cinema configuration object
+                cinema: config.cinema || {},
                 wallartMode: { ...wallartDefaults, ...(config.wallartMode || {}) },
                 transitionIntervalSeconds: config.transitionIntervalSeconds || 15,
                 backgroundRefreshMinutes: Number.isFinite(Number(config.backgroundRefreshMinutes))
