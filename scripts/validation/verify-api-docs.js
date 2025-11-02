@@ -31,8 +31,12 @@ function extractRoutes(content) {
 // Extract JSDoc/Swagger comments
 function extractSwaggerDocs(content) {
     const docs = [];
+    // Updated regex to handle:
+    // 1. Multi-block comments (swagger block + additional comment block before route)
+    // 2. Optional whitespace and comments between swagger doc and route definition
+    // 3. More flexible matching for various code formatting styles
     const swaggerRegex =
-        /\/\*\*[\s\S]*?@swagger[\s\S]*?\*\/[\s]*app\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/g;
+        /\/\*\*[\s\S]*?@swagger[\s\S]*?\*\/[\s\S]*?app\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/g;
     let match;
 
     while ((match = swaggerRegex.exec(content)) !== null) {
