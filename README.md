@@ -90,6 +90,7 @@ Perfect for vertical screens or digital signage. Show a rotating selection of po
 - Optimized for portrait/vertical screens
 - Smooth poster transitions
 - Optional info overlays and ratings
+- Now Playing mode — automatically displays posters from active Plex sessions. Perfect for showing what's currently being watched in real-time, with automatic fallback to rotation when playback stops
 
 ### Dashboard
 
@@ -201,9 +202,7 @@ A quick peek at what's next. We're actively building these high‑impact upgrade
 
 **Cinema & visual experience**
 
-- [ ] Cinema mode: major expansion planned with many new features
 - [ ] Motion posters with AI
-- [ ] Now playing mode (cinema)
 - [ ] Trailer support
 
 **Customization & design**
@@ -221,8 +220,6 @@ A quick peek at what's next. We're actively building these high‑impact upgrade
 **Content & curation**
 
 - [ ] Online art galleries — browse and feature curated artwork streams alongside your library
-
-And that's just the beginning — much more is on the way.
 
 ## System requirements
 
