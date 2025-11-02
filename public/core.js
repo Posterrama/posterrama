@@ -359,24 +359,12 @@
                     caller: new Error().stack.split('\n')[2]?.trim(),
                 });
 
-            console.log('[applySettings] Received settings update', {
-                keys: Object.keys(newSettings),
-                wallartMode: newSettings.wallartMode,
-                cinemaMode: newSettings.cinemaMode,
-                clockWidget: newSettings.clockWidget,
-                showMetadata: newSettings.showMetadata,
-            });
-
             // Merge new settings into existing appConfig using deep merge
             if (typeof window.appConfig === 'object' && window.appConfig !== null) {
                 window.appConfig = deepMerge(window.appConfig, newSettings);
             } else {
                 window.appConfig = newSettings;
             }
-
-            console.log(
-                '[applySettings] Updated window.appConfig, dispatching settingsUpdated event'
-            );
 
             window.debugLog &&
                 window.debugLog('APPLY_SETTINGS_DISPATCH_EVENT', {

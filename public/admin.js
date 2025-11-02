@@ -5321,7 +5321,6 @@
             tab.addEventListener('click', e => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Tab clicked, toggling preview');
                 container.classList.toggle('mobile-expanded');
 
                 // Show/hide container
@@ -5330,8 +5329,6 @@
                 } else {
                     container.style.display = 'none';
                 }
-
-                console.log('Preview expanded:', container.classList.contains('mobile-expanded'));
             });
 
             // Close preview when clicking outside on mobile
@@ -5342,7 +5339,6 @@
                     container.classList.contains('mobile-expanded') &&
                     isMobile()
                 ) {
-                    console.log('Clicked outside, closing preview');
                     container.classList.remove('mobile-expanded');
                     container.style.display = 'none';
                 }
@@ -21154,7 +21150,6 @@
     let haDashboardYAML = '';
 
     async function openHADashboardModal() {
-        console.log('[HA Dashboard] openHADashboardModal called');
         console.log('[HA Dashboard] fetchJSON type:', typeof fetchJSON);
         console.log('[HA Dashboard] fetchJSON defined?', typeof fetchJSON !== 'undefined');
 
@@ -21178,12 +21173,9 @@
         try {
             console.log('[HA Dashboard] Fetching devices from /api/devices');
             const data = await fetchJSON('/api/devices');
-            console.log('[HA Dashboard] Fetch successful, data:', data);
 
             // API returns array directly, not {devices: [...]}
             haDashboardDevices = Array.isArray(data) ? data : data.devices || [];
-
-            console.log('[HA Dashboard] Loaded devices for dashboard:', haDashboardDevices.length);
 
             renderDashboardDeviceList();
         } catch (error) {
@@ -21212,8 +21204,6 @@
             console.error('Device list container not found');
             return;
         }
-
-        console.log('Rendering device list:', haDashboardDevices.length, 'devices');
 
         if (haDashboardDevices.length === 0) {
             container.innerHTML =
@@ -21246,8 +21236,6 @@
             `;
             })
             .join('');
-
-        console.log('Device list rendered successfully');
 
         // Auto-generate on initial load
         generateHADashboard();
