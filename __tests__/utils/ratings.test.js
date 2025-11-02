@@ -29,7 +29,13 @@ describe('Media Source Ratings Utilities', () => {
                 getRatings: jest.fn().mockResolvedValue(['TV-14', 'TV-MA', 'PG']),
             };
 
+            const mockLibraries = new Map([
+                ['Movies', { id: 'lib1', name: 'Movies' }],
+                ['TV Shows', { id: 'lib2', name: 'TV Shows' }],
+            ]);
+
             const getJellyfinClient = jest.fn().mockResolvedValue(mockClient);
+            const getJellyfinLibraries = jest.fn().mockResolvedValue(mockLibraries);
 
             const serverConfig = {
                 name: 'Test Jellyfin',
@@ -40,15 +46,19 @@ describe('Media Source Ratings Utilities', () => {
             const ratings = await fetchAllJellyfinRatings({
                 serverConfig,
                 getJellyfinClient,
+                getJellyfinLibraries,
                 logger: mockLogger,
             });
 
             expect(ratings).toEqual(['TV-14', 'TV-MA', 'PG']);
+            expect(mockClient.getRatings).toHaveBeenCalledWith(['lib1', 'lib2']);
             expect(mockLogger.info).toHaveBeenCalled();
         });
 
         it('should return empty array when no libraries configured', async () => {
+            const mockLibraries = new Map();
             const getJellyfinClient = jest.fn();
+            const getJellyfinLibraries = jest.fn().mockResolvedValue(mockLibraries);
 
             const serverConfig = {
                 name: 'Test Jellyfin',
@@ -59,6 +69,7 @@ describe('Media Source Ratings Utilities', () => {
             const ratings = await fetchAllJellyfinRatings({
                 serverConfig,
                 getJellyfinClient,
+                getJellyfinLibraries,
                 logger: mockLogger,
             });
 
@@ -69,7 +80,9 @@ describe('Media Source Ratings Utilities', () => {
         });
 
         it('should handle client errors gracefully', async () => {
+            const mockLibraries = new Map([['Movies', { id: 'lib1' }]]);
             const getJellyfinClient = jest.fn().mockRejectedValue(new Error('Connection failed'));
+            const getJellyfinLibraries = jest.fn().mockResolvedValue(mockLibraries);
 
             const serverConfig = {
                 name: 'Test Jellyfin',
@@ -79,6 +92,7 @@ describe('Media Source Ratings Utilities', () => {
             const ratings = await fetchAllJellyfinRatings({
                 serverConfig,
                 getJellyfinClient,
+                getJellyfinLibraries,
                 logger: mockLogger,
             });
 
@@ -91,62 +105,37 @@ describe('Media Source Ratings Utilities', () => {
     });
 
     describe('fetchAllPlexRatings', () => {
-        it('should fetch and deduplicate ratings from Plex libraries', async () => {
-            const mockClient = {
-                query: jest
-                    .fn()
-                    .mockResolvedValueOnce({
-                        MediaContainer: {
-                            Metadata: [{ contentRating: 'PG' }, { contentRating: 'PG-13' }],
-                        },
-                    })
-                    .mockResolvedValueOnce({
-                        MediaContainer: {
-                            Metadata: [
-                                { contentRating: 'R' },
-                                { contentRating: 'PG' }, // Duplicate
-                            ],
-                        },
-                    }),
+        let mockPlexHttpClient;
+
+        beforeEach(() => {
+            // Mock the PlexHttpClient module
+            mockPlexHttpClient = {
+                getRatings: jest.fn(),
             };
-
-            const getPlexClient = jest.fn().mockResolvedValue(mockClient);
-
-            const serverConfig = {
-                name: 'Test Plex',
-                movieLibraryNames: ['Movies', 'Kids Movies'],
-            };
-
-            const ratings = await fetchAllPlexRatings({
-                serverConfig,
-                getPlexClient,
-                logger: mockLogger,
+            jest.mock('../../utils/plex-http-client', () => {
+                return jest.fn().mockImplementation(() => mockPlexHttpClient);
             });
-
-            // Should be deduplicated and sorted
-            expect(ratings).toEqual(['PG', 'PG-13', 'R']);
-            expect(mockClient.query).toHaveBeenCalledTimes(2);
         });
 
-        it('should return empty array when no libraries configured', async () => {
-            const getPlexClient = jest.fn();
+        it('should fetch ratings using PlexHttpClient', async () => {
+            mockPlexHttpClient.getRatings.mockResolvedValue(['PG', 'PG-13', 'R']);
+
+            const mockPlex = { query: jest.fn() };
+            const getPlexClient = jest.fn().mockResolvedValue(mockPlex);
 
             const serverConfig = {
                 name: 'Test Plex',
-                movieLibraryNames: [],
-                showLibraryNames: [],
             };
 
             const ratings = await fetchAllPlexRatings({
                 serverConfig,
                 getPlexClient,
+                isDebug: false,
                 logger: mockLogger,
             });
 
-            expect(ratings).toEqual([]);
-            expect(mockLogger.warn).toHaveBeenCalledWith(
-                expect.stringContaining('No configured libraries found')
-            );
+            expect(ratings).toEqual(['PG', 'PG-13', 'R']);
+            expect(mockLogger.info).toHaveBeenCalled();
         });
 
         it('should handle client errors gracefully', async () => {
@@ -154,12 +143,12 @@ describe('Media Source Ratings Utilities', () => {
 
             const serverConfig = {
                 name: 'Test Plex',
-                movieLibraryNames: ['Movies'],
             };
 
             const ratings = await fetchAllPlexRatings({
                 serverConfig,
                 getPlexClient,
+                isDebug: false,
                 logger: mockLogger,
             });
 
@@ -170,167 +159,235 @@ describe('Media Source Ratings Utilities', () => {
             );
         });
 
-        it('should filter out empty ratings', async () => {
-            const mockClient = {
-                query: jest.fn().mockResolvedValue({
-                    MediaContainer: {
-                        Metadata: [
-                            { contentRating: 'PG' },
-                            { contentRating: '' },
-                            { contentRating: null },
-                            {},
-                        ],
-                    },
-                }),
-            };
+        it('should handle PlexHttpClient errors', async () => {
+            mockPlexHttpClient.getRatings.mockRejectedValue(new Error('API error'));
 
-            const getPlexClient = jest.fn().mockResolvedValue(mockClient);
+            const mockPlex = { query: jest.fn() };
+            const getPlexClient = jest.fn().mockResolvedValue(mockPlex);
 
             const serverConfig = {
                 name: 'Test Plex',
-                movieLibraryNames: ['Movies'],
             };
 
             const ratings = await fetchAllPlexRatings({
                 serverConfig,
                 getPlexClient,
+                isDebug: false,
                 logger: mockLogger,
             });
 
-            expect(ratings).toEqual(['PG']);
+            expect(ratings).toEqual([]);
         });
     });
 
     describe('getAllSourceRatings', () => {
-        it('should fetch ratings from all configured media servers', async () => {
-            const mockJellyfinClient = {
-                getRatings: jest.fn().mockResolvedValue(['TV-14', 'TV-MA']),
+        let mockRatingCache;
+
+        beforeEach(() => {
+            mockRatingCache = {
+                getRatings: jest.fn().mockReturnValue([]),
+                setRatings: jest.fn(),
             };
-
-            const mockPlexClient = {
-                query: jest.fn().mockResolvedValue({
-                    MediaContainer: {
-                        Metadata: [{ contentRating: 'PG' }],
-                    },
-                }),
-            };
-
-            const getJellyfinClient = jest.fn().mockResolvedValue(mockJellyfinClient);
-            const getPlexClient = jest.fn().mockResolvedValue(mockPlexClient);
-
-            const config = {
-                mediaServers: [
-                    {
-                        type: 'jellyfin',
-                        name: 'Test Jellyfin',
-                        enabled: true,
-                        movieLibraryNames: ['Movies'],
-                    },
-                    {
-                        type: 'plex',
-                        name: 'Test Plex',
-                        enabled: true,
-                        movieLibraryNames: ['Movies'],
-                    },
-                ],
-            };
-
-            const ratings = await getAllSourceRatings({
-                config,
-                getJellyfinClient,
-                getPlexClient,
-                logger: mockLogger,
-            });
-
-            expect(ratings).toEqual(['PG', 'TV-14', 'TV-MA']);
         });
 
-        it('should skip disabled servers', async () => {
-            const config = {
-                mediaServers: [
-                    {
-                        type: 'plex',
-                        name: 'Disabled Plex',
-                        enabled: false,
-                        movieLibraryNames: ['Movies'],
-                    },
-                ],
-            };
+        it('should return cached ratings when available', async () => {
+            mockRatingCache.getRatings.mockReturnValue(['PG', 'PG-13', 'R']);
 
             const ratings = await getAllSourceRatings({
-                config,
-                getJellyfinClient: jest.fn(),
-                getPlexClient: jest.fn(),
+                sourceType: 'plex',
+                config: { mediaServers: [] },
+                ratingCache: mockRatingCache,
                 logger: mockLogger,
+                fetchJellyfinRatings: jest.fn(),
+                fetchPlexRatings: jest.fn(),
             });
 
-            expect(ratings).toEqual([]);
+            expect(ratings).toEqual(['PG', 'PG-13', 'R']);
+            expect(mockLogger.debug).toHaveBeenCalledWith(
+                expect.stringContaining('Using cached ratings')
+            );
         });
 
-        it('should handle unknown server types', async () => {
+        it('should fetch from enabled Jellyfin servers when cache is empty', async () => {
+            const fetchJellyfinRatings = jest
+                .fn()
+                .mockResolvedValueOnce(['TV-14'])
+                .mockResolvedValueOnce(['TV-MA']);
+
             const config = {
                 mediaServers: [
-                    {
-                        type: 'unknown',
-                        name: 'Unknown Server',
-                        enabled: true,
-                    },
+                    { type: 'jellyfin', name: 'Server1', enabled: true },
+                    { type: 'jellyfin', name: 'Server2', enabled: true },
+                    { type: 'jellyfin', name: 'Server3', enabled: false }, // disabled
                 ],
             };
 
             const ratings = await getAllSourceRatings({
+                sourceType: 'jellyfin',
                 config,
-                getJellyfinClient: jest.fn(),
-                getPlexClient: jest.fn(),
+                ratingCache: mockRatingCache,
                 logger: mockLogger,
+                fetchJellyfinRatings,
+                fetchPlexRatings: jest.fn(),
+            });
+
+            expect(fetchJellyfinRatings).toHaveBeenCalledTimes(2); // Only enabled servers
+            expect(ratings).toContain('TV-14');
+            expect(ratings).toContain('TV-MA');
+        });
+
+        it('should return empty array when no enabled servers found', async () => {
+            const config = {
+                mediaServers: [{ type: 'plex', name: 'Server1', enabled: false }],
+            };
+
+            const ratings = await getAllSourceRatings({
+                sourceType: 'plex',
+                config,
+                ratingCache: mockRatingCache,
+                logger: mockLogger,
+                fetchJellyfinRatings: jest.fn(),
+                fetchPlexRatings: jest.fn(),
             });
 
             expect(ratings).toEqual([]);
             expect(mockLogger.warn).toHaveBeenCalledWith(
-                expect.stringContaining('Unknown server type')
+                expect.stringContaining('No enabled servers found')
             );
         });
     });
 
     describe('getRatingsWithCounts', () => {
-        it('should count ratings for configured libraries', async () => {
+        it('should get Jellyfin ratings with counts', async () => {
             const mockClient = {
                 getRatingsWithCounts: jest.fn().mockResolvedValue([
-                    { rating: 'PG', count: 10 },
-                    { rating: 'PG-13', count: 25 },
+                    { rating: 'TV-14', count: 10 },
+                    { rating: 'TV-MA', count: 5 },
                 ]),
             };
 
-            const getJellyfinClient = jest.fn().mockResolvedValue(mockClient);
+            const mockLibraries = new Map([['Movies', { id: 'lib1', name: 'Movies' }]]);
 
-            const serverConfig = {
-                name: 'Test Jellyfin',
-                movieLibraryNames: ['Movies'],
+            const config = {
+                mediaServers: [
+                    {
+                        type: 'jellyfin',
+                        name: 'Test',
+                        enabled: true,
+                        movieLibraryNames: ['Movies'],
+                        showLibraryNames: [],
+                    },
+                ],
             };
 
             const result = await getRatingsWithCounts({
-                serverConfig,
-                getJellyfinClient,
+                sourceType: 'jellyfin',
+                config,
+                getJellyfinClient: jest.fn().mockResolvedValue(mockClient),
+                getJellyfinLibraries: jest.fn().mockResolvedValue(mockLibraries),
+                getPlexClient: jest.fn(),
+                isDebug: false,
                 logger: mockLogger,
             });
 
             expect(result).toEqual([
-                { rating: 'PG', count: 10 },
-                { rating: 'PG-13', count: 25 },
+                { rating: 'TV-14', count: 10 },
+                { rating: 'TV-MA', count: 5 },
             ]);
         });
 
-        it('should handle errors gracefully', async () => {
-            const getJellyfinClient = jest.fn().mockRejectedValue(new Error('Failed'));
-
-            const serverConfig = {
-                name: 'Test Jellyfin',
-                movieLibraryNames: ['Movies'],
+        it('should throw error for no enabled server', async () => {
+            const config = {
+                mediaServers: [{ type: 'plex', name: 'Test', enabled: false }],
             };
 
-            const result = await getRatingsWithCounts({
+            await expect(
+                getRatingsWithCounts({
+                    sourceType: 'plex',
+                    config,
+                    getJellyfinClient: jest.fn(),
+                    getJellyfinLibraries: jest.fn(),
+                    getPlexClient: jest.fn(),
+                    isDebug: false,
+                    logger: mockLogger,
+                })
+            ).rejects.toThrow('No enabled plex server found');
+        });
+
+        it('should throw error for unsupported source type', async () => {
+            await expect(
+                getRatingsWithCounts({
+                    sourceType: 'unknown',
+                    config: { mediaServers: [] },
+                    getJellyfinClient: jest.fn(),
+                    getJellyfinLibraries: jest.fn(),
+                    getPlexClient: jest.fn(),
+                    isDebug: false,
+                    logger: mockLogger,
+                })
+            ).rejects.toThrow('Rating counts not supported');
+        });
+    });
+
+    describe('getJellyfinQualitiesWithCounts', () => {
+        it('should get quality counts from Jellyfin', async () => {
+            const mockClient = {
+                getQualitiesWithCounts: jest.fn().mockResolvedValue([
+                    { quality: '1080p', count: 100 },
+                    { quality: '4K', count: 50 },
+                ]),
+            };
+
+            const mockLibraries = new Map([
+                ['Movies', { id: 'lib1', name: 'Movies', type: 'movies' }],
+                ['TV', { id: 'lib2', name: 'TV', type: 'tvshows' }],
+            ]);
+
+            const serverConfig = { name: 'Test Jellyfin' };
+
+            const result = await getJellyfinQualitiesWithCounts({
+                serverConfig,
+                getJellyfinClient: jest.fn().mockResolvedValue(mockClient),
+                getJellyfinLibraries: jest.fn().mockResolvedValue(mockLibraries),
+                isDebug: false,
+                logger: mockLogger,
+            });
+
+            expect(result).toEqual([
+                { quality: '1080p', count: 100 },
+                { quality: '4K', count: 50 },
+            ]);
+            expect(mockClient.getQualitiesWithCounts).toHaveBeenCalledWith(['lib1', 'lib2']);
+        });
+
+        it('should return empty array when no movie/TV libraries found', async () => {
+            const mockLibraries = new Map([
+                ['Music', { id: 'lib1', name: 'Music', type: 'music' }],
+            ]);
+
+            const serverConfig = { name: 'Test Jellyfin' };
+
+            const result = await getJellyfinQualitiesWithCounts({
+                serverConfig,
+                getJellyfinClient: jest.fn(),
+                getJellyfinLibraries: jest.fn().mockResolvedValue(mockLibraries),
+                isDebug: false,
+                logger: mockLogger,
+            });
+
+            expect(result).toEqual([]);
+        });
+
+        it('should handle errors gracefully', async () => {
+            const getJellyfinClient = jest.fn().mockRejectedValue(new Error('Connection failed'));
+
+            const serverConfig = { name: 'Test Jellyfin' };
+
+            const result = await getJellyfinQualitiesWithCounts({
                 serverConfig,
                 getJellyfinClient,
+                getJellyfinLibraries: jest.fn(),
+                isDebug: false,
                 logger: mockLogger,
             });
 
@@ -339,44 +396,46 @@ describe('Media Source Ratings Utilities', () => {
     });
 
     describe('getJellyfinQualitiesWithCounts', () => {
-        it('should fetch quality counts from Jellyfin', async () => {
+        it('should get quality counts from Jellyfin', async () => {
             const mockClient = {
                 getQualitiesWithCounts: jest.fn().mockResolvedValue([
-                    { quality: '1080p', count: 50 },
-                    { quality: '4K', count: 15 },
+                    { quality: '1080p', count: 100 },
+                    { quality: '4K', count: 50 },
                 ]),
             };
 
-            const getJellyfinClient = jest.fn().mockResolvedValue(mockClient);
+            const mockLibraries = new Map([
+                ['Movies', { id: 'lib1', name: 'Movies', type: 'movies' }],
+                ['TV', { id: 'lib2', name: 'TV', type: 'tvshows' }],
+            ]);
 
-            const serverConfig = {
-                name: 'Test Jellyfin',
-                movieLibraryNames: ['Movies'],
-            };
+            const serverConfig = { name: 'Test Jellyfin' };
 
             const result = await getJellyfinQualitiesWithCounts({
                 serverConfig,
-                getJellyfinClient,
+                getJellyfinClient: jest.fn().mockResolvedValue(mockClient),
+                getJellyfinLibraries: jest.fn().mockResolvedValue(mockLibraries),
+                isDebug: false,
                 logger: mockLogger,
             });
 
             expect(result).toEqual([
-                { quality: '1080p', count: 50 },
-                { quality: '4K', count: 15 },
+                { quality: '1080p', count: 100 },
+                { quality: '4K', count: 50 },
             ]);
+            expect(mockClient.getQualitiesWithCounts).toHaveBeenCalledWith(['lib1', 'lib2']);
         });
 
         it('should handle errors gracefully', async () => {
-            const getJellyfinClient = jest.fn().mockRejectedValue(new Error('Failed'));
+            const getJellyfinClient = jest.fn().mockRejectedValue(new Error('Connection failed'));
 
-            const serverConfig = {
-                name: 'Test Jellyfin',
-                movieLibraryNames: ['Movies'],
-            };
+            const serverConfig = { name: 'Test Jellyfin' };
 
             const result = await getJellyfinQualitiesWithCounts({
                 serverConfig,
                 getJellyfinClient,
+                getJellyfinLibraries: jest.fn(),
+                isDebug: false,
                 logger: mockLogger,
             });
 
