@@ -1,0 +1,24 @@
+# Motion Poster Demo - Python Dependencies
+
+# Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+timm>=0.9.0
+
+# Image/Video Processing
+opencv-python-headless>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# Installation instructions:
+# 
+# CPU only (recommended for testing):
+#   pip install -r motion-demo-requirements.txt
+#
+# GPU (CUDA 11.8):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+#   pip install -r motion-demo-requirements.txt
+#
+# GPU (CUDA 12.1):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#   pip install -r motion-demo-requirements.txt
