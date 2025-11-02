@@ -874,44 +874,6 @@ app.head(
 
 /**
  * @swagger
- * /api/v1/admin/config/validate:
- *   post:
- *     summary: Validate configuration data
- *     description: Validates configuration object against schema and returns sanitized data
- *     tags: ['Validation']
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             description: Configuration object to validate
- *     responses:
- *       200:
- *         description: Configuration is valid
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Configuration is valid"
- *                 sanitized:
- *                   type: object
- *                   description: Sanitized configuration data
- *       400:
- *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/StandardErrorResponse'
- */
-/**
- * @swagger
  * /api/admin/filter-preview:
  *   post:
  *     summary: Preview filter results for admin configuration
@@ -1455,6 +1417,45 @@ app.post(
         }
     })
 );
+
+/**
+ * @swagger
+ * /api/v1/admin/config/validate:
+ *   post:
+ *     summary: Validate configuration data
+ *     description: Validates configuration object against schema and returns sanitized data
+ *     tags: ['Validation']
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: Configuration object to validate
+ *     responses:
+ *       200:
+ *         description: Configuration is valid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Configuration is valid"
+ *                 sanitized:
+ *                   type: object
+ *                   description: Sanitized configuration data
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardErrorResponse'
+ */
 app.post(
     '/api/v1/admin/config/validate',
     express.json(),
