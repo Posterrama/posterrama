@@ -34,6 +34,7 @@ class MqttBridge extends EventEmitter {
         this.deviceStates = new Map();
         this.discoveryPublished = new Set();
         this.deviceModes = new Map(); // Track device modes to detect changes
+        this.lastCameraPoster = new Map(); // Track camera poster URLs to avoid duplicate publishes
         this.commandHistory = []; // Last 50 commands
         this.maxCommandHistory = 50;
         this.startTime = Date.now();
@@ -422,8 +423,14 @@ class MqttBridge extends EventEmitter {
             }
 
             // Check if state changed (avoid unnecessary publishes)
-            const stateKey = JSON.stringify(state);
+            // Exclude last_seen from comparison since it updates every heartbeat
+            const stateForComparison = { ...state };
+            delete stateForComparison.last_seen;
+            const stateKey = JSON.stringify(stateForComparison);
             if (this.deviceStates.get(device.id) === stateKey) {
+                logger.debug('📊 Device state unchanged (excluding last_seen), skipping publish', {
+                    deviceId: device.id,
+                });
                 return; // No change, skip publish
             }
 
@@ -485,6 +492,16 @@ class MqttBridge extends EventEmitter {
                 logger.debug('No poster URL available for camera state', { deviceId: device.id });
                 return;
             }
+
+            // Check if poster URL changed (avoid unnecessary publishes)
+            const lastPoster = this.lastCameraPoster.get(device.id);
+            if (lastPoster === posterUrl) {
+                logger.debug('📷 Camera state unchanged, skipping publish', {
+                    deviceId: device.id,
+                });
+                return; // No change, skip publish
+            }
+            this.lastCameraPoster.set(device.id, posterUrl);
 
             // Build full image URL
             const config = require('../config');
@@ -901,8 +918,9 @@ class MqttBridge extends EventEmitter {
      * Start periodic state publishing
      */
     startStatePublishing() {
-        // Reduce interval from 30s to 5s for more responsive state updates
-        const interval = (this.config.publishInterval || 5) * 1000;
+        // Periodic publishing as backup - event-driven updates are already real-time
+        // Default 30s is fine since device:updated/patched events trigger immediate publishes
+        const interval = (this.config.publishInterval || 30) * 1000;
 
         this.publishTimer = setInterval(async () => {
             await this.publishAllDeviceStates();
