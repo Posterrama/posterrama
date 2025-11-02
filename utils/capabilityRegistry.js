@@ -1635,8 +1635,6 @@ class CapabilityRegistry {
             const wsHub = require('./wsHub');
 
             try {
-                console.log('[applyAndPersistSettings] Starting...', { deviceId, settings });
-
                 // Get all devices and find ours
                 const allDevices = await deviceStore.getAll();
                 const device = allDevices.find(d => d.id === deviceId);
@@ -1646,33 +1644,21 @@ class CapabilityRegistry {
                     throw new Error(`Device ${deviceId} not found`);
                 }
 
-                console.log(
-                    '[applyAndPersistSettings] Device found, current override:',
-                    device.settingsOverride
-                );
-
                 // Deep merge settings into device override
                 const currentOverride = device.settingsOverride || {};
                 const updatedOverride = deepMerge(currentOverride, settings);
-
-                console.log('[applyAndPersistSettings] Merged override:', updatedOverride);
 
                 // Persist to devices.json using patchDevice
                 await deviceStore.patchDevice(deviceId, {
                     settingsOverride: updatedOverride,
                 });
 
-                console.log('[applyAndPersistSettings] Persisted to devices.json');
-
                 // Then send WebSocket message to apply immediately
                 await wsHub.sendApplySettings(deviceId, settings);
-
-                console.log('[applyAndPersistSettings] Sent WebSocket message');
 
                 // Small delay to ensure state is fully persisted before HA queries it
                 await new Promise(resolve => setTimeout(resolve, 100));
 
-                console.log('[applyAndPersistSettings] Completed successfully');
                 return true;
             } catch (error) {
                 console.error('[applyAndPersistSettings] Error:', error);
@@ -1688,11 +1674,10 @@ class CapabilityRegistry {
             icon: 'mdi:clock-outline',
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: async (deviceId, value) => {
-                console.log('[ShowClock] Command received:', { deviceId, value });
                 const result = await applyAndPersistSettings(deviceId, {
                     clockWidget: value === 'ON',
                 });
-                console.log('[ShowClock] Settings persisted:', { clockWidget: value === 'ON' });
+
                 return result;
             },
             stateGetter: device => {

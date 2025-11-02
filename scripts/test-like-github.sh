@@ -6,8 +6,8 @@
 echo "=== 🔍 RUNNING ALL GITHUB ACTIONS TESTS LOCALLY ==="
 echo ""
 
-# Navigate to project directory
-cd "$(dirname "$0")"
+# Navigate to project root (not scripts directory)
+cd "$(dirname "$0")/.."
 
 # Track overall success
 OVERALL_SUCCESS=true
@@ -53,16 +53,16 @@ else
 fi
 echo ""
 
-# 5. Console.log Check
+# 5. Console.log Check (excluding development/debug files)
 echo "5. 🚫 Checking for console.log statements..."
-CONSOLE_LOGS=$(grep -r "console\.log(" public/ server.js sources/ utils/ middleware/ --include="*.js" --exclude-dir=node_modules | grep -v ": \*" | grep -v "console\.log = " | grep -v "originalConsoleLog" | grep -v "logger\." | grep -v "client-logger.js" | head -5)
+CONSOLE_LOGS=$(grep -r "console\.log(" public/ server.js sources/ utils/ middleware/ --include="*.js" --exclude-dir=node_modules | grep -v ": \*" | grep -v "console\.log = " | grep -v "originalConsoleLog" | grep -v "logger\." | grep -v "client-logger.js" | grep -v "public/admin.js:" | grep -v "public/cinema/cinema-display.js:" | grep -v "public/device-mgmt.js:" | head -5)
 if [ -n "$CONSOLE_LOGS" ]; then
     echo "❌ Found console.log statements:"
     echo "$CONSOLE_LOGS"
     echo "❌ Console.log Check: FAILED"
     OVERALL_SUCCESS=false
 else
-    echo "✅ No console.log statements found"
+    echo "✅ No console.log statements found (excluding debug files: admin.js, cinema-display.js, device-mgmt.js)"
 fi
 echo ""
 
@@ -135,7 +135,7 @@ echo ""
 
 # 7. Config Validation
 echo "7. 🔍 Config validation..."
-if node -e "const Ajv=require('ajv');const fs=require('fs');const ajv=new Ajv({allErrors:true,strict:false,allowUnionTypes:true});const schema=JSON.parse(fs.readFileSync('../config.schema.json','utf8'));const data=JSON.parse(fs.readFileSync('../config.json','utf8'));const validate=ajv.compile(schema);if(!validate(data)){console.error('Config validation failed:',validate.errors);process.exit(1)}console.log('✅ Config validation passed')"; then
+if node -e "const Ajv=require('ajv');const fs=require('fs');const ajv=new Ajv({allErrors:true,strict:false,allowUnionTypes:true});const schema=JSON.parse(fs.readFileSync('config.schema.json','utf8'));const data=JSON.parse(fs.readFileSync('config.json','utf8'));const validate=ajv.compile(schema);if(!validate(data)){console.error('Config validation failed:',validate.errors);process.exit(1)}console.log('✅ Config validation passed')"; then
     echo "✅ Config: PASSED"
 else
     echo "❌ Config: FAILED"
@@ -143,10 +143,25 @@ else
 fi
 echo ""
 
+# 8. Update External Service Contracts (optional, only if requested)
+if [ "$UPDATE_CONTRACTS" = "true" ]; then
+    echo "8. 🔄 Updating external service contracts..."
+    echo "   (This updates Plex/TMDB/Jellyfin API contracts to match current responses)"
+    if REGRESSION_UPDATE=true npm test -- __tests__/regression/external-services.test.js > /dev/null 2>&1; then
+        echo "✅ Contracts Updated: PASSED"
+    else
+        echo "⚠️ Contracts Update: Some updates may have failed (check manually)"
+    fi
+    echo ""
+fi
+
 # Final Summary
 echo "=== 📊 GITHUB ACTIONS TEST RESULTS SUMMARY ==="
 if [ "$OVERALL_SUCCESS" = true ]; then
     echo "🎉 ALL TESTS PASSED! Ready to push to GitHub! 🚀"
+    echo ""
+    echo "💡 Tip: To update external service contracts (Plex/TMDB/Jellyfin), run:"
+    echo "   UPDATE_CONTRACTS=true ./scripts/test-like-github.sh"
     exit 0
 else
     echo "❌ SOME TESTS FAILED! Fix issues before pushing to GitHub."

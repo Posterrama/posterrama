@@ -891,14 +891,12 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             $('#pr-do-pair').addEventListener('click', async e => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Connect button clicked');
                 await tryPair();
             });
 
             $('#pr-close').addEventListener('click', e => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Close button clicked');
                 doClose();
             });
 
@@ -2201,7 +2199,6 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 
         if (hasIdentity) {
             console.log('🔍 [DEBUG] Checking if device is still registered on server');
-            console.log('  - deviceId from localStorage:', state.deviceId);
             console.log(
                 '  - secret from localStorage:',
                 state.deviceSecret ? 'present' : 'MISSING'

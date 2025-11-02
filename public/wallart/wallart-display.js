@@ -1332,7 +1332,6 @@
                                 }
                             }
                         } else {
-                            console.log('[Wallart] Using CLASSIC layout');
                             // Classic layout
                             wallartGrid.dataset.layoutVariant = 'classic';
                             const pack = (
@@ -1682,17 +1681,6 @@
                             ...newWallartConfig,
                         };
 
-                        console.log('[Wallart] settingsUpdated comparison:', {
-                            oldLayoutVariant: oldConfig.layoutVariant,
-                            newLayoutVariant: mergedWallartConfig.layoutVariant,
-                            deltaLayoutVariant: newWallartConfig.layoutVariant,
-                            oldDensity: oldConfig.density,
-                            newDensity: mergedWallartConfig.density,
-                            deltaDensity: newWallartConfig.density,
-                            deltaKeys: Object.keys(newWallartConfig),
-                            mergedKeys: Object.keys(mergedWallartConfig),
-                        });
-
                         // Separate layout changes (require restart) from config-only changes
                         const layoutKeys = ['density', 'layoutVariant'];
                         const configKeys = [
@@ -1710,10 +1698,6 @@
                                 key in mergedWallartConfig &&
                                 mergedWallartConfig[key] !== oldConfig[key]
                             ) {
-                                console.log('[Wallart] Layout rebuild triggered by:', key, {
-                                    old: oldConfig[key],
-                                    new: mergedWallartConfig[key],
-                                });
                                 needsLayoutRebuild = true;
                                 break;
                             }
@@ -1756,13 +1740,6 @@
                         }
 
                         if (needsLayoutRebuild) {
-                            console.log('[Wallart] Layout change detected, rebuilding grid...', {
-                                oldLayoutVariant: oldConfig.layoutVariant,
-                                newLayoutVariant: mergedWallartConfig.layoutVariant,
-                                oldDensity: oldConfig.density,
-                                newDensity: mergedWallartConfig.density,
-                            });
-
                             // Stop current cycle to avoid conflicts
                             api.stop();
 
@@ -1780,10 +1757,6 @@
                             // Small delay to ensure DOM cleanup is complete
                             setTimeout(() => {
                                 try {
-                                    console.log('[Wallart] Starting rebuild with config:', {
-                                        layoutVariant: mergedWallartConfig.layoutVariant,
-                                        density: mergedWallartConfig.density,
-                                    });
                                     api.start(mergedWallartConfig);
                                 } catch (e) {
                                     console.error('[Wallart] Layout rebuild failed:', e);
@@ -1833,13 +1806,8 @@
                             }
 
                             // Config updates (tempo, animation) will be picked up by existing cycle
-                            console.log(
-                                '[Wallart] Config updated, existing grid continues with new settings'
-                            );
                         } else {
-                            console.log(
-                                '[Wallart] No visual changes detected, keeping current grid'
-                            );
+                            // No visual changes detected, keeping current grid
                         }
                     } catch (e) {
                         console.error('[Wallart] Failed to handle settingsUpdated:', e);
