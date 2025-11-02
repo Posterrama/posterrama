@@ -92,7 +92,8 @@
 /* Place the enable toggle (pill switch) in the card title */
 #cinema-header-card .card-title,
 #cinema-footer-card .card-title,
-#cinema-ambilight-card .card-title {
+#cinema-ambilight-card .card-title,
+#cinema-now-playing-card .card-title {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -100,7 +101,8 @@
 }
 #cinema-header-card .card-title .header-toggle,
 #cinema-footer-card .card-title .header-toggle,
-#cinema-ambilight-card .card-title .header-toggle {
+#cinema-ambilight-card .card-title .header-toggle,
+#cinema-now-playing-card .card-title .header-toggle {
     margin-left: auto;
 }
 
@@ -292,7 +294,8 @@
 /* Apply this consistent switch to Header, Footer, and Ambilight in Cinema */
 #cinema-header-card .header-toggle .ht-switch,
 #cinema-footer-card .header-toggle .ht-switch,
-#cinema-ambilight-card .header-toggle .ht-switch {
+#cinema-ambilight-card .header-toggle .ht-switch,
+#cinema-now-playing-card .header-toggle .ht-switch {
     width: 64px;
     height: 28px;
     border-radius: 20px;
@@ -306,7 +309,8 @@
 }
 #cinema-header-card .header-toggle .ht-switch::after,
 #cinema-footer-card .header-toggle .ht-switch::after,
-#cinema-ambilight-card .header-toggle .ht-switch::after {
+#cinema-ambilight-card .header-toggle .ht-switch::after,
+#cinema-now-playing-card .header-toggle .ht-switch::after {
     width: 24px;
     height: 24px;
     top: 2px;
@@ -320,19 +324,22 @@
 }
 #cinema-header-card .header-toggle input:checked + .ht-switch,
 #cinema-footer-card .header-toggle input:checked + .ht-switch,
-#cinema-ambilight-card .header-toggle input:checked + .ht-switch {
+#cinema-ambilight-card .header-toggle input:checked + .ht-switch,
+#cinema-now-playing-card .header-toggle input:checked + .ht-switch {
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.08));
 }
 #cinema-header-card .header-toggle input:checked + .ht-switch::after,
 #cinema-footer-card .header-toggle input:checked + .ht-switch::after,
-#cinema-ambilight-card .header-toggle input:checked + .ht-switch::after {
+#cinema-ambilight-card .header-toggle input:checked + .ht-switch::after,
+#cinema-now-playing-card .header-toggle input:checked + .ht-switch::after {
     transform: translateX(36px); /* move only; keep base knob appearance */
 }
 
 /* Place OFF/ON text inside the track for all Cinema switches */
 #cinema-header-card .header-toggle .ht-switch::before,
 #cinema-footer-card .header-toggle .ht-switch::before,
-#cinema-ambilight-card .header-toggle .ht-switch::before {
+#cinema-ambilight-card .header-toggle .ht-switch::before,
+#cinema-now-playing-card .header-toggle .ht-switch::before {
     content: 'OFF';
     position: absolute;
     right: 8px;
@@ -348,7 +355,8 @@
 }
 #cinema-header-card .header-toggle input:checked + .ht-switch::before,
 #cinema-footer-card .header-toggle input:checked + .ht-switch::before,
-#cinema-ambilight-card .header-toggle input:checked + .ht-switch::before {
+#cinema-ambilight-card .header-toggle input:checked + .ht-switch::before,
+#cinema-now-playing-card .header-toggle input:checked + .ht-switch::before {
     content: 'ON';
     left: 10px;
     right: auto;
@@ -359,7 +367,8 @@
 /* Hide the external text labels next to the switch inside card titles for Cinema */
 #cinema-header-card .card-title .header-toggle .ht-text,
 #cinema-footer-card .card-title .header-toggle .ht-text,
-#cinema-ambilight-card .card-title .header-toggle .ht-text {
+#cinema-ambilight-card .card-title .header-toggle .ht-text,
+#cinema-now-playing-card .card-title .header-toggle .ht-text {
     display: none;
 }
 

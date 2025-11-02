@@ -620,6 +620,37 @@
         // Buttons removed; management via dropdown special options
     }
 
+    function mountNowPlaying(cfg) {
+        const c = cfg.cinema || {};
+        const np = c.nowPlaying || { enabled: false };
+        // Mount toggle in card title
+        try {
+            const card = document.getElementById('cinema-now-playing-card');
+            const title = card?.querySelector('.card-title');
+            if (title && !document.getElementById('cinemaNowPlayingEnabled')) {
+                const toggle = el(
+                    'label',
+                    { class: 'header-toggle', for: 'cinemaNowPlayingEnabled' },
+                    [
+                        el('input', {
+                            type: 'checkbox',
+                            id: 'cinemaNowPlayingEnabled',
+                            checked: np.enabled ? 'checked' : null,
+                        }),
+                        el('span', { class: 'ht-switch', 'aria-hidden': 'true' }),
+                        el('span', { class: 'ht-text' }, 'Show active sessions'),
+                    ]
+                );
+                title.appendChild(toggle);
+            } else {
+                const existing = document.getElementById('cinemaNowPlayingEnabled');
+                if (existing) existing.checked = !!np.enabled;
+            }
+        } catch (_) {
+            // toggle mount failure ignored
+        }
+    }
+
     function mountAmbilight(container, cfg) {
         const c = cfg.cinema || {};
         const a = c.ambilight || { enabled: true, strength: 60 };
@@ -708,6 +739,7 @@
         mountHeader($('#cinema-header-mount'), cfg);
         mountFooter($('#cinema-footer-mount'), cfg);
         mountAmbilight($('#cinema-ambilight-mount'), cfg);
+        mountNowPlaying(cfg);
         // Mount presets card
         try {
             const slot = document.getElementById('cinema-presets-mount');

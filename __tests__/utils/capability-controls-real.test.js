@@ -322,8 +322,8 @@ describe('CapabilityRegistry - Real Control Capabilities', () => {
                 'orientation',
                 'vertical'
             );
-            // Cinema orientation has global default 'auto' in config.json (but test passes 'vertical' as fallback)
-            expect(setting).toBe('vertical');
+            // Cinema orientation has global default 'auto' in config.json, which takes precedence over fallback
+            expect(setting).toBe('auto');
         });
 
         test('getModeSetting handles nested paths', () => {

@@ -881,6 +881,10 @@ module.exports = function createDevicesRouter({
      *               settingsOverride:
      *                 type: object
      *                 description: Device-specific settings overrides
+     *               plexUsername:
+     *                 type: string
+     *                 nullable: true
+     *                 description: Plex username for Cinema Now Playing integration (null to clear)
      *     responses:
      *       200:
      *         description: Device updated successfully
@@ -929,6 +933,11 @@ module.exports = function createDevicesRouter({
             // Handle settings override
             if (req.body.settingsOverride !== undefined) {
                 updates.settingsOverride = req.body.settingsOverride;
+            }
+
+            // Handle Plex username (for Cinema Now Playing integration)
+            if (req.body.plexUsername !== undefined) {
+                updates.plexUsername = req.body.plexUsername;
             }
 
             // Update device in store

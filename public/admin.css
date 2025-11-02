@@ -913,6 +913,10 @@
     --color-info-dark: #5a6acf;
     --color-info-light: #a8b5f0;
 
+    --color-teal: #14b8a6;
+    --color-teal-dark: #0d9488;
+    --color-teal-light: #2dd4bf;
+
     /* Nav/submenu indicators */
     --color-submenu-indicator: #a3aed0; /* default muted blue-grey */
     --color-submenu-accent: #667eea; /* submenu highlight (blue), distinct from primary green */
@@ -12613,6 +12617,116 @@ body.page-logs {
 #modal-2fa #btn-2fa-verify:active > span:not(.spinner) {
     color: color-mix(in srgb, var(--color-success-dark) 85%, var(--color-text-secondary));
 }
+
+/* =============================================================== */
+/* Configure Dashboard Cards modal — Match 2FA button styling       */
+/* =============================================================== */
+#modal-configure-cards .modal-footer .btn[data-close-modal] {
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+}
+#modal-configure-cards .modal-footer .btn[data-close-modal]:hover,
+#modal-configure-cards .modal-footer .btn[data-close-modal]:focus,
+#modal-configure-cards .modal-footer .btn[data-close-modal]:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-primary) !important;
+}
+#modal-configure-cards .modal-footer .btn[data-close-modal]:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+    color: var(--color-text-primary) !important;
+}
+
+/* Save Configuration button: neutral surface + success/teal accent on icon/label */
+#modal-configure-cards .modal-footer .btn#btn-save-card-config {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+}
+#modal-configure-cards .modal-footer .btn#btn-save-card-config:hover,
+#modal-configure-cards .modal-footer .btn#btn-save-card-config:focus,
+#modal-configure-cards .modal-footer .btn#btn-save-card-config:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+}
+#modal-configure-cards .modal-footer .btn#btn-save-card-config:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+
+/* Teal/success-tint on Save button icon + label */
+#modal-configure-cards #btn-save-card-config i,
+#modal-configure-cards #btn-save-card-config .fas {
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary));
+}
+#modal-configure-cards #btn-save-card-config:hover i,
+#modal-configure-cards #btn-save-card-config:focus i,
+#modal-configure-cards #btn-save-card-config:focus-visible i,
+#modal-configure-cards #btn-save-card-config:hover .fas,
+#modal-configure-cards #btn-save-card-config:focus .fas,
+#modal-configure-cards #btn-save-card-config:focus-visible .fas {
+    color: color-mix(in srgb, var(--color-teal) 92%, var(--color-text-secondary));
+}
+#modal-configure-cards #btn-save-card-config:active i,
+#modal-configure-cards #btn-save-card-config:active .fas {
+    color: color-mix(in srgb, var(--color-teal-dark) 85%, var(--color-text-secondary));
+}
+#modal-configure-cards #btn-save-card-config > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary));
+}
+#modal-configure-cards #btn-save-card-config:hover > span:not(.spinner),
+#modal-configure-cards #btn-save-card-config:focus > span:not(.spinner),
+#modal-configure-cards #btn-save-card-config:focus-visible > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-teal) 92%, var(--color-text-secondary));
+}
+#modal-configure-cards #btn-save-card-config:active > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-teal-dark) 85%, var(--color-text-secondary));
+}
+
 /* -------------------------------------------------- */
 /* Global native select minimal theming (subtle, calm) */
 /* Align dropdowns with dark theme without custom arrow */
@@ -15145,4 +15259,67 @@ select:focus-visible {
     }
 }
 
-/* Cache bust: 2025-10-26 */
+/* ===================================================================
+   Dashboard Cards Configuration
+   =================================================================== */
+.card-selection-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition:
+        all 0.2s ease,
+        box-shadow 0.2s ease;
+    user-select: none;
+}
+
+.card-selection-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(20, 184, 166, 0.2);
+}
+
+.card-selection-item:active {
+    cursor: grabbing !important;
+}
+
+.card-selection-item[draggable='true'] {
+    cursor: move;
+}
+
+.card-selection-checkbox {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1;
+}
+
+.card-selection-checkbox input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--color-teal);
+}
+
+.card-selection-checkbox label {
+    display: none;
+}
+
+.card-selection-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Configure Cards Icon Button */
+#btn-configure-cards:hover {
+    color: var(--color-accent) !important;
+    transform: translateY(-1px);
+}
+
+#btn-configure-cards:active {
+    transform: translateY(0);
+}
+
+/* Cache bust: 2025-11-02-2 */

@@ -48,6 +48,9 @@
     let pinnedMediaId = null; // Store pinned media ID
     let rotationTimer = null; // Timer for automatic poster rotation
     let mediaQueue = []; // Queue of media items for rotation
+    let nowPlayingTimer = null; // Timer for Now Playing session polling
+    let lastSessionId = null; // Track last active session to detect changes
+    let nowPlayingActive = false; // Track if currently showing Now Playing poster
 
     // ===== DOM Element References =====
     let headerEl = null;
@@ -302,6 +305,9 @@
             if (config.ambilight) {
                 cinemaConfig.ambilight = { ...cinemaConfig.ambilight, ...config.ambilight };
             }
+            if (config.nowPlaying) {
+                cinemaConfig.nowPlaying = { ...cinemaConfig.nowPlaying, ...config.nowPlaying };
+            }
         }
 
         // Apply cinema orientation and initial layout sizing
@@ -313,14 +319,29 @@
         createHeader();
         createAmbilight();
 
-        // Initialize rotation if enabled
-        if (cinemaConfig.rotationIntervalMinutes > 0) {
-            (async () => {
-                mediaQueue = await fetchMediaQueue();
-                if (mediaQueue.length > 0) {
-                    startRotation();
-                }
-            })();
+        // Always fetch media queue for fallback scenarios
+        // Even when Now Playing is enabled, we need the queue for when sessions end
+        (async () => {
+            mediaQueue = await fetchMediaQueue();
+            if (mediaQueue.length > 0) {
+                log('Media queue loaded', { count: mediaQueue.length });
+            }
+        })();
+
+        // Initialize Now Playing if enabled (takes priority over rotation)
+        if (cinemaConfig.nowPlaying?.enabled) {
+            startNowPlaying();
+        } else {
+            // Start rotation if enabled and Now Playing is disabled
+            if (cinemaConfig.rotationIntervalMinutes > 0) {
+                // Wait for queue to load before starting rotation
+                (async () => {
+                    await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure queue is loaded
+                    if (mediaQueue.length > 0) {
+                        startRotation();
+                    }
+                })();
+            }
         }
 
         log('Cinema mode initialized successfully');
@@ -536,12 +557,47 @@
                     ...newConfig.cinema.ambilight,
                 };
             }
+            if (newConfig.cinema.nowPlaying) {
+                const oldNowPlaying = cinemaConfig.nowPlaying;
+                cinemaConfig.nowPlaying = {
+                    ...cinemaConfig.nowPlaying,
+                    ...newConfig.cinema.nowPlaying,
+                };
+
+                // If Now Playing settings changed, restart
+                const enabledChanged =
+                    oldNowPlaying?.enabled !== newConfig.cinema.nowPlaying.enabled;
+                const intervalChanged =
+                    oldNowPlaying?.updateIntervalSeconds !==
+                    newConfig.cinema.nowPlaying.updateIntervalSeconds;
+
+                if (enabledChanged || intervalChanged) {
+                    log('Now Playing config changed, restarting', {
+                        enabled: newConfig.cinema.nowPlaying.enabled,
+                        interval: newConfig.cinema.nowPlaying.updateIntervalSeconds,
+                    });
+
+                    // Stop both Now Playing and rotation
+                    stopNowPlaying();
+                    stopRotation();
+
+                    // Start appropriate mode
+                    if (newConfig.cinema.nowPlaying.enabled) {
+                        startNowPlaying();
+                    } else if (cinemaConfig.rotationIntervalMinutes > 0) {
+                        startRotation();
+                    }
+                }
+            }
             if (newConfig.cinema.rotationIntervalMinutes !== undefined) {
                 const oldInterval = cinemaConfig.rotationIntervalMinutes;
                 cinemaConfig.rotationIntervalMinutes = newConfig.cinema.rotationIntervalMinutes;
 
-                // If rotation interval changed, restart rotation
-                if (oldInterval !== newConfig.cinema.rotationIntervalMinutes) {
+                // If rotation interval changed and Now Playing is disabled, restart rotation
+                if (
+                    oldInterval !== newConfig.cinema.rotationIntervalMinutes &&
+                    !cinemaConfig.nowPlaying?.enabled
+                ) {
                     log('Rotation interval changed, restarting rotation', {
                         old: oldInterval,
                         new: newConfig.cinema.rotationIntervalMinutes,
@@ -664,6 +720,12 @@
 
     function startRotation() {
         try {
+            // Don't start rotation if Now Playing is active with a session
+            if (nowPlayingActive) {
+                log('Rotation blocked: Now Playing is active');
+                return;
+            }
+
             // Clear existing timer
             if (rotationTimer) {
                 clearInterval(rotationTimer);
@@ -682,7 +744,7 @@
             log('Starting poster rotation', { intervalMinutes, intervalMs });
 
             rotationTimer = setInterval(() => {
-                if (!isPinned) {
+                if (!isPinned && !nowPlayingActive) {
                     showNextPoster();
                 }
             }, intervalMs);
@@ -725,6 +787,12 @@
 
     function showNextPoster() {
         try {
+            // Don't rotate if Now Playing is active
+            if (nowPlayingActive) {
+                log('Rotation skipped: Now Playing is active');
+                return;
+            }
+
             if (mediaQueue.length === 0) {
                 log('No media in queue for rotation');
                 return;
@@ -763,6 +831,223 @@
         }
     }
 
+    // ===== Now Playing Integration =====
+    async function initNowPlayingDeviceData() {
+        try {
+            const deviceState = window.PosterramaDevice?.getState?.();
+            if (!deviceState?.deviceId) return;
+
+            const res = await fetch(`/api/devices/${deviceState.deviceId}`, {
+                credentials: 'include',
+                headers: { 'Cache-Control': 'no-cache' },
+            });
+            if (!res.ok) return;
+
+            const data = await res.json();
+            window.__devicePlexUsername = data?.plexUsername || null;
+            log('Loaded device Plex username', { username: window.__devicePlexUsername });
+        } catch (e) {
+            error('Failed to load device Plex username', e);
+        }
+    }
+
+    async function fetchPlexSessions() {
+        try {
+            const res = await fetch('/api/plex/sessions', {
+                cache: 'no-cache',
+                headers: { 'Cache-Control': 'no-cache' },
+                credentials: 'include',
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return data?.sessions || [];
+        } catch (e) {
+            error('Failed to fetch Plex sessions', e);
+            return null;
+        }
+    }
+
+    function getDevicePlexUsername() {
+        try {
+            // Return cached value if available
+            if (window.__devicePlexUsername !== undefined) {
+                return window.__devicePlexUsername;
+            }
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function selectSession(sessions) {
+        if (!sessions || sessions.length === 0) return null;
+
+        const priority = cinemaConfig.nowPlaying?.priority || 'first';
+        const deviceUsername = getDevicePlexUsername();
+
+        // If device has plexUsername configured, filter by that username
+        if (deviceUsername) {
+            const userSessions = sessions.filter(s => s.username === deviceUsername);
+            if (userSessions.length > 0) {
+                sessions = userSessions;
+                log('Filtered sessions by device username', {
+                    username: deviceUsername,
+                    count: sessions.length,
+                });
+            }
+        }
+
+        // Select based on priority
+        if (priority === 'random') {
+            return sessions[Math.floor(Math.random() * sessions.length)];
+        }
+        // Default: first session
+        return sessions[0];
+    }
+
+    function convertSessionToMedia(session) {
+        try {
+            // Determine which thumb to use (movie vs episode)
+            let thumbPath = session.thumb;
+            if (session.type === 'episode' && session.grandparentThumb) {
+                // For TV episodes, prefer show poster
+                thumbPath = session.grandparentThumb;
+            }
+
+            // Build display title
+            let displayTitle = session.title || 'Unknown';
+            if (session.type === 'episode') {
+                if (session.grandparentTitle) {
+                    displayTitle = session.grandparentTitle; // Show name
+                }
+                if (session.parentTitle && session.title) {
+                    displayTitle += ` - ${session.parentTitle}`; // Season
+                }
+            }
+
+            // Convert Plex thumb URL to use our image proxy
+            // Plex Server name should match the mediaServer config name
+            const serverName = 'Plex Server'; // TODO: make this dynamic from config
+            const posterUrl = thumbPath
+                ? `/image?server=${encodeURIComponent(serverName)}&path=${encodeURIComponent(thumbPath)}`
+                : null;
+            const backdropUrl = session.art
+                ? `/image?server=${encodeURIComponent(serverName)}&path=${encodeURIComponent(session.art)}`
+                : null;
+
+            return {
+                id: session.ratingKey || session.key || `session-${Date.now()}`,
+                key: `plex-session-${session.ratingKey || session.key}`,
+                title: displayTitle,
+                year: session.year || null,
+                rating: session.contentRating || null,
+                overview: session.summary || null,
+                posterUrl: posterUrl, // Use posterUrl not poster_path for Cinema compatibility
+                backgroundUrl: backdropUrl,
+                thumbnailUrl: posterUrl,
+                genres: [],
+                runtime: session.duration ? Math.round(session.duration / 60000) : null,
+                type: session.type === 'episode' ? 'tv' : 'movie',
+                source: 'plex-session',
+            };
+        } catch (e) {
+            error('Failed to convert session to media', e);
+            return null;
+        }
+    }
+
+    async function checkNowPlaying() {
+        try {
+            const nowPlayingConfig = cinemaConfig.nowPlaying;
+            if (!nowPlayingConfig?.enabled) return;
+
+            const sessions = await fetchPlexSessions();
+            const selectedSession = selectSession(sessions);
+
+            if (selectedSession) {
+                const sessionId = selectedSession.ratingKey || selectedSession.key;
+
+                // Stop rotation when we have an active session
+                if (!nowPlayingActive) {
+                    stopRotation();
+                }
+
+                // Only update if session changed
+                if (sessionId !== lastSessionId) {
+                    log('New active session detected', { sessionId, title: selectedSession.title });
+                    lastSessionId = sessionId;
+                    nowPlayingActive = true;
+
+                    const media = convertSessionToMedia(selectedSession);
+                    if (media) {
+                        updateCinemaDisplay(media);
+                    }
+                }
+            } else {
+                // No active sessions
+                if (nowPlayingActive) {
+                    log('No active sessions, applying fallback behavior');
+                    lastSessionId = null;
+                    nowPlayingActive = false;
+
+                    // Apply fallback behavior - restart rotation
+                    if (nowPlayingConfig.fallbackToRotation) {
+                        // Return to rotation mode
+                        startRotation();
+                        if (mediaQueue.length > 0) {
+                            showNextPoster();
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            error('Failed to check Now Playing', e);
+        }
+    }
+
+    function startNowPlaying() {
+        try {
+            if (nowPlayingTimer) {
+                clearInterval(nowPlayingTimer);
+                nowPlayingTimer = null;
+            }
+
+            const nowPlayingConfig = cinemaConfig.nowPlaying;
+            if (!nowPlayingConfig?.enabled) {
+                log('Now Playing disabled');
+                return;
+            }
+
+            const intervalSeconds = nowPlayingConfig.updateIntervalSeconds || 15;
+            const intervalMs = intervalSeconds * 1000;
+
+            log('Starting Now Playing polling', { intervalSeconds });
+
+            // Initialize device data first, then start checking
+            initNowPlayingDeviceData().then(() => {
+                // Initial check
+                checkNowPlaying();
+
+                // Set up polling interval
+                nowPlayingTimer = setInterval(() => {
+                    checkNowPlaying();
+                }, intervalMs);
+            });
+        } catch (e) {
+            error('Failed to start Now Playing', e);
+        }
+    }
+
+    function stopNowPlaying() {
+        if (nowPlayingTimer) {
+            clearInterval(nowPlayingTimer);
+            nowPlayingTimer = null;
+            lastSessionId = null;
+            nowPlayingActive = false;
+            log('Now Playing stopped');
+        }
+    }
+
     // ===== Public API =====
     window.cinemaDisplay = {
         init: initCinemaMode,
@@ -773,6 +1058,9 @@
         getPinnedMediaId: () => pinnedMediaId,
         startRotation,
         stopRotation,
+        startNowPlaying,
+        stopNowPlaying,
+        checkNowPlaying,
         // No debug APIs exported
     };
 
@@ -797,6 +1085,12 @@
     // ===== Listen for Media Changes =====
     // Hook into the global media update event if available
     window.addEventListener('mediaUpdated', event => {
+        // Don't process mediaUpdated events when Now Playing is active
+        if (nowPlayingActive) {
+            log('mediaUpdated event blocked: Now Playing is active');
+            return;
+        }
+
         if (event.detail && event.detail.media) {
             updateCinemaDisplay(event.detail.media);
         }
