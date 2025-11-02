@@ -21852,59 +21852,45 @@ if (!document.__niwDelegatedFallback) {
 
     // Bulk selection functions
     function updateBulkToolbar() {
-        const browserContent = document.getElementById('local-browser-content');
-        if (!browserContent) return;
-
-        let toolbar = document.getElementById('bulk-actions-toolbar');
+        const actionsContainer = document.querySelector('.browser-actions');
+        if (!actionsContainer) return;
 
         if (selectedFiles.size === 0) {
-            // Remove toolbar if no selection
-            if (toolbar) toolbar.remove();
+            // Clear actions when no selection
+            actionsContainer.innerHTML = '';
             return;
         }
 
-        // Create or update toolbar
-        if (!toolbar) {
-            toolbar = document.createElement('div');
-            toolbar.id = 'bulk-actions-toolbar';
-            toolbar.className = 'bulk-actions-toolbar';
-            browserContent.parentElement.insertBefore(toolbar, browserContent);
-        }
-
         const count = selectedFiles.size;
-        toolbar.innerHTML = `
-            <div class="bulk-actions-info">
-                <i class="fas fa-check-square"></i>
-                <span><strong>${count}</strong> ${count === 1 ? 'item' : 'items'} selected</span>
-            </div>
-            <div class="bulk-actions-buttons">
-                <button class="btn btn-secondary btn-sm" id="btn-select-all">
-                    <i class="fas fa-square-check"></i><span>Select All</span>
-                </button>
-                <button class="btn btn-secondary btn-sm" id="btn-deselect-all">
-                    <i class="fas fa-square"></i><span>Deselect All</span>
-                </button>
-                <button class="btn btn-secondary btn-sm" id="btn-bulk-download">
-                    <span class="spinner"></span><i class="fas fa-download"></i><span>Download</span>
-                </button>
-                <button class="btn btn-error btn-sm" id="btn-bulk-delete">
-                    <span class="spinner"></span><i class="fas fa-trash"></i><span>Delete</span>
-                </button>
-            </div>
+        actionsContainer.innerHTML = `
+            <span class="bulk-info">
+                <i class="fas fa-check-square"></i> ${count} selected
+            </span>
+            <button class="btn btn-secondary btn-sm" id="btn-select-all" title="Select all files">
+                <i class="fas fa-square-check"></i><span class="hide-on-xs">Select All</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-deselect-all" title="Clear selection">
+                <i class="fas fa-square"></i><span class="hide-on-xs">Clear</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-bulk-download" title="Download selected files as ZIP">
+                <span class="spinner"></span><i class="fas fa-download"></i><span class="hide-on-xs">Download</span>
+            </button>
+            <button class="btn btn-error btn-sm" id="btn-bulk-delete" title="Delete selected files">
+                <span class="spinner"></span><i class="fas fa-trash"></i><span class="hide-on-xs">Delete</span>
+            </button>
         `;
 
         // Attach handlers
-        const selectAllBtn = toolbar.querySelector('#btn-select-all');
-        const deselectAllBtn = toolbar.querySelector('#btn-deselect-all');
-        const bulkDownloadBtn = toolbar.querySelector('#btn-bulk-download');
-        const bulkDeleteBtn = toolbar.querySelector('#btn-bulk-delete');
+        const selectAllBtn = actionsContainer.querySelector('#btn-select-all');
+        const deselectAllBtn = actionsContainer.querySelector('#btn-deselect-all');
+        const bulkDownloadBtn = actionsContainer.querySelector('#btn-bulk-download');
+        const bulkDeleteBtn = actionsContainer.querySelector('#btn-bulk-delete');
 
         if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllItems);
         if (deselectAllBtn) deselectAllBtn.addEventListener('click', deselectAllItems);
         if (bulkDownloadBtn) bulkDownloadBtn.addEventListener('click', bulkDownloadFiles);
         if (bulkDeleteBtn) bulkDeleteBtn.addEventListener('click', bulkDeleteFiles);
     }
-
     function toggleFileSelection(itemEl, path) {
         if (selectedFiles.has(path)) {
             selectedFiles.delete(path);
