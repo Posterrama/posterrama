@@ -122,6 +122,8 @@ const deepMerge = require('./utils/deep-merge');
 const deviceStore = require('./utils/deviceStore');
 const groupsStore = require('./utils/groupsStore');
 const wsHub = require('./utils/wsHub');
+// Plex Sessions Poller
+const PlexSessionsPoller = require('./services/plexSessionsPoller');
 const app = express();
 const { ApiError, NotFoundError } = require('./utils/errors.js');
 const ratingCache = require('./utils/rating-cache.js');
@@ -4857,6 +4859,20 @@ app.post(
             const merged = deepMerge({}, current, incoming);
             await writeConfig(merged, config);
 
+            // Invalidate /get-config cache so changes are immediately visible
+            try {
+                if (
+                    typeof apiCache !== 'undefined' &&
+                    apiCache &&
+                    typeof apiCache.clearPattern === 'function'
+                ) {
+                    apiCache.clearPattern('/get-config');
+                    logger.debug('Cleared /get-config cache after config update');
+                }
+            } catch (e2) {
+                logger.warn('Cache invalidation failed', { error: e2?.message });
+            }
+
             // If cache section changed, update CacheDiskManager live
             if (incoming && Object.prototype.hasOwnProperty.call(incoming, 'cache')) {
                 try {
@@ -5255,6 +5271,98 @@ app.post(
 
 /**
  * @swagger
+ * /api/plex/sessions:
+ *   get:
+ *     summary: Get current Plex playback sessions
+ *     description: >
+ *       Returns cached Plex session data showing what is currently being played.
+ *       Updated every 10 seconds via background polling.
+ *     tags: ['Admin', 'Plex']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current Plex sessions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 sessions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       sessionKey:
+ *                         type: string
+ *                       ratingKey:
+ *                         type: string
+ *                       type:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       year:
+ *                         type: number
+ *                       thumb:
+ *                         type: string
+ *                       art:
+ *                         type: string
+ *                       viewOffset:
+ *                         type: number
+ *                       duration:
+ *                         type: number
+ *                       User:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           title:
+ *                             type: string
+ *                           thumb:
+ *                             type: string
+ *                       Player:
+ *                         type: object
+ *                         properties:
+ *                           state:
+ *                             type: string
+ *                           device:
+ *                             type: string
+ *                           platform:
+ *                             type: string
+ *                           product:
+ *                             type: string
+ *                           title:
+ *                             type: string
+ *                 lastUpdate:
+ *                   type: number
+ *                   description: Timestamp of last poll (milliseconds)
+ *                 isActive:
+ *                   type: boolean
+ *                   description: Whether poller is currently running
+ *       503:
+ *         description: Sessions poller not initialized
+ */
+app.get(
+    '/api/plex/sessions',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const poller = global.__posterramaSessionsPoller;
+        if (!poller) {
+            return res.status(503).json({
+                error: 'Plex sessions poller not initialized',
+                sessions: [],
+                lastUpdate: null,
+                isActive: false,
+            });
+        }
+
+        const data = poller.getSessions();
+        res.json(data);
+    })
+);
+
+/**
+ * @swagger
  * /admin/debug:
  *   get:
  *     summary: Retrieve debug information
@@ -5495,6 +5603,37 @@ if (require.main === module) {
                 }
             } else {
                 logger.debug('MQTT integration disabled in configuration');
+            }
+        })();
+
+        // Initialize Plex Sessions Poller
+        (async () => {
+            try {
+                logger.info('🎬 Initializing Plex sessions poller...');
+                const sessionsPoller = new PlexSessionsPoller({
+                    getPlexClient,
+                    config,
+                    pollInterval: 10000, // 10 seconds
+                });
+
+                // Store globally for access in routes
+                global.__posterramaSessionsPoller = sessionsPoller;
+
+                // Broadcast sessions updates via WebSocket
+                sessionsPoller.on('sessions', sessions => {
+                    wsHub.broadcastAdmin({
+                        kind: 'plex-sessions',
+                        payload: { sessions, timestamp: Date.now() },
+                    });
+                });
+
+                // Start polling
+                sessionsPoller.start();
+
+                logger.info('✅ Plex sessions poller initialized successfully');
+            } catch (error) {
+                logger.error('❌ Failed to initialize Plex sessions poller:', error);
+                // Don't crash the server if poller fails
             }
         })();
 

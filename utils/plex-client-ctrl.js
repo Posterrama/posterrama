@@ -214,6 +214,22 @@ class PlexClientAdapter {
                 };
             }
 
+            // Now Playing sessions query: /status/sessions
+            if (path === '/status/sessions' || path.startsWith('/status/sessions')) {
+                const data = await this.plex.query('/status/sessions');
+
+                // data already contains MediaContainer from Plex API
+                // Extract and normalize the sessions
+                const sessions = data?.MediaContainer?.Metadata || [];
+
+                return {
+                    MediaContainer: {
+                        size: sessions?.length || 0,
+                        Metadata: sessions,
+                    },
+                };
+            }
+
             // For unmapped paths, use debug level (these are common and non-critical)
             logger.debug(`Unmapped Plex query path: ${path}. Using raw query fallback.`);
 

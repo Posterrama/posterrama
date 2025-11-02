@@ -284,6 +284,18 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
     return wss;
 }
 
+/**
+ * Broadcast message to admin clients via SSE
+ * @param {object} message - Message with kind and payload
+ */
+function broadcastAdmin(message) {
+    if (typeof global.__adminSSEBroadcast === 'function') {
+        global.__adminSSEBroadcast(message.kind, message.payload || {});
+        return true;
+    }
+    return false;
+}
+
 module.exports = {
     init,
     isConnected,
@@ -292,4 +304,5 @@ module.exports = {
     sendCommandAwait,
     sendApplySettings,
     broadcast,
+    broadcastAdmin,
 };

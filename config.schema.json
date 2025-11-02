@@ -382,6 +382,42 @@
                         "strength": 60
                     }
                 },
+                "nowPlaying": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Enable Now Playing integration - show posters from active Plex sessions"
+                        },
+                        "priority": {
+                            "type": "string",
+                            "enum": ["first", "random"],
+                            "default": "first",
+                            "description": "Session selection priority (first = first active session, random = random active session)"
+                        },
+                        "fallbackToRotation": {
+                            "type": "boolean",
+                            "default": true,
+                            "const": true,
+                            "description": "Always fall back to normal rotation when no active sessions (fixed behavior)"
+                        },
+                        "updateIntervalSeconds": {
+                            "type": "integer",
+                            "minimum": 5,
+                            "maximum": 300,
+                            "default": 15,
+                            "description": "How often to check for session updates (5-300 seconds)"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "enabled": false,
+                        "priority": "first",
+                        "fallbackToRotation": true,
+                        "updateIntervalSeconds": 15
+                    }
+                },
                 "rotationIntervalMinutes": {
                     "type": "number",
                     "minimum": 0,

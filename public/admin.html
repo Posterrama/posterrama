@@ -184,6 +184,9 @@
   
       </div>
       <div class="page-actions">
+        <button id="btn-configure-cards" class="btn-icon" title="Configure Dashboard Cards" style="background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: 8px; margin-right: 8px; transition: all 0.2s ease;">
+          <i class="fas fa-sliders-h" style="font-size: 1.1rem;"></i>
+        </button>
         <span class="header-pill" id="perf-activity" title="Overall system activity (CPU and memory)">
           <i class="fas fa-wave-square"></i>
           <span class="label">Activity</span>
@@ -229,9 +232,6 @@
         </div>
       </div>
     </section>
-
-    
-    
 
   <section class="content-grid" style="margin-top: 16px;">
       <!-- Unified System Performance Dashboard -->
@@ -768,6 +768,32 @@
                           <span class="help-text">Minutes between poster changes (0 = disabled)</span>
                         </label>
                         <div class="number-input-wrapper"><input type="number" min="0" step="1" id="cinemaRotationInterval" placeholder="0" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Now Playing Integration -->
+                  <div class="mode-card" data-card-key="cinema-now-playing" id="cinema-now-playing-card" style="padding:12px; grid-column: 1;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-play-circle"></i> Now Playing</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label for="cinemaNowPlayingPriority">
+                          Session Priority
+                          <span class="help-text">Which session to show when multiple are active</span>
+                        </label>
+                        <div class="select-wrap has-caret">
+                          <select id="cinemaNowPlayingPriority">
+                            <option value="first">First active session</option>
+                            <option value="random">Random active session</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <label for="cinemaNowPlayingInterval">
+                          Update Interval
+                          <span class="help-text">Seconds between session checks (5-300)</span>
+                        </label>
+                        <div class="number-input-wrapper"><input type="number" min="5" max="300" step="5" id="cinemaNowPlayingInterval" placeholder="15" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
                       </div>
                     </div>
                   </div>
@@ -2864,8 +2890,22 @@
       </div>
       <div class="modal-body">
   <p class="override-intro">Override display settings (JSON).</p>
+        
+        <!-- Plex Username Field (for Now Playing Cinema mode) -->
+        <div class="form-group" style="margin-bottom: 16px;" id="override-plex-username-group">
+          <label for="override-plex-username" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <i class="fas fa-user" style="color: var(--color-teal);"></i>
+            <span>Plex Username</span>
+            <span style="font-size: 0.85rem; color: var(--color-text-secondary); font-weight: normal;">(optional, for Cinema Now Playing)</span>
+          </label>
+          <input type="text" id="override-plex-username" placeholder="Enter Plex username for this device" style="width: 100%;" />
+          <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin: 6px 0 0 0; line-height: 1.4;">
+            <i class="fas fa-info-circle"></i> When set, Cinema mode will show posters from this user's active Plex sessions
+          </p>
+        </div>
+        
         <div class="override-helper override-layout">
-          <div class="override-row">
+          <div class="override-row"
             <div class="mode-segment" id="mode-segment" role="radiogroup" aria-label="Display mode">
               <span class="seg-indicator" aria-hidden="true"></span>
               <button type="button" role="radio" aria-checked="false" data-mode="general" class="seg-btn">Screensaver</button>
@@ -3480,6 +3520,32 @@
             <i class="fas fa-upload"></i><span>Upload</span>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Cards Configuration Modal -->
+  <div class="modal-overlay" id="modal-configure-cards">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-configure-cards-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-configure-cards-title">
+          <i class="fas fa-sliders-h"></i> Configure Dashboard Cards
+        </div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 16px; color: var(--color-text-secondary);">
+          Select exactly 4 cards and drag to reorder. Your selection order determines the dashboard layout.
+        </p>
+        <div id="cards-selection-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+          <!-- Cards will be dynamically added here -->
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 24px;">
+        <button type="button" class="btn" data-close-modal style="min-width: 80px;">Cancel</button>
+        <button type="button" id="btn-save-card-config" class="btn" style="min-width: 140px;">
+          <i class="fas fa-check-circle"></i><span>Save Configuration</span>
+        </button>
       </div>
     </div>
   </div>

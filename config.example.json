@@ -51,6 +51,12 @@
             "enabled": true,
             "strength": 60
         },
+        "nowPlaying": {
+            "enabled": false,
+            "priority": "first",
+            "fallbackToRotation": true,
+            "updateIntervalSeconds": 15
+        },
         "rotationIntervalMinutes": 0,
         "presets": {
             "headerTexts": [

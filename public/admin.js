@@ -758,6 +758,403 @@
         }
     }
 
+    /**
+     * Format seconds to human-readable duration (e.g., "1h 23m")
+     */
+    // ===================================================================
+    // Dashboard Cards Configuration
+    // ===================================================================
+
+    const AVAILABLE_CARDS = [
+        {
+            id: 'active-devices',
+            name: 'Active Devices',
+            icon: 'fa-check-circle',
+            color: 'status-success',
+            description: 'Devices that are Online or Live',
+            enabled: true,
+            render: container => {
+                container.innerHTML = `
+                    <div class="status-card status-success" title="Devices that are Online or Live">
+                        <div class="card-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="card-content">
+                            <h3>Active Devices</h3>
+                            <span class="metric" id="metric-active-devices">—</span>
+                            <span class="trend" id="metric-active-trend"></span>
+                        </div>
+                    </div>
+                `;
+            },
+        },
+        {
+            id: 'media-items',
+            name: 'Media Items',
+            icon: 'fa-photo-film',
+            color: 'status-info',
+            description: 'Total media items across connected sources',
+            enabled: true,
+            render: container => {
+                container.innerHTML = `
+                    <div class="status-card status-info" title="Total media items across connected sources">
+                        <div class="card-icon"><i class="fas fa-photo-film"></i></div>
+                        <div class="card-content">
+                            <h3>Media Items</h3>
+                            <span class="metric" id="metric-media-items">—</span>
+                            <span class="trend" id="metric-media-sub">from sources</span>
+                        </div>
+                    </div>
+                `;
+            },
+        },
+        {
+            id: 'active-mode',
+            name: 'Active Mode',
+            icon: 'fa-image',
+            color: 'status-warning',
+            description: 'Current display mode and key settings',
+            enabled: true,
+            render: container => {
+                container.innerHTML = `
+                    <div class="status-card status-warning" id="mode-card" title="Current display mode and key settings">
+                        <div class="card-icon"><i id="metric-mode-icon" class="fas fa-image"></i></div>
+                        <div class="card-content">
+                            <h3>Active Mode</h3>
+                            <span class="metric" id="metric-mode">—</span>
+                            <span class="trend" id="metric-mode-sub"></span>
+                        </div>
+                    </div>
+                `;
+            },
+        },
+        {
+            id: 'offline-devices',
+            name: 'Offline Devices',
+            icon: 'fa-times-circle',
+            color: 'status-error',
+            description: 'Devices currently Offline',
+            enabled: true,
+            render: container => {
+                container.innerHTML = `
+                    <div class="status-card status-error" title="Devices currently Offline">
+                        <div class="card-icon"><i class="fas fa-times-circle"></i></div>
+                        <div class="card-content">
+                            <h3>Offline Devices</h3>
+                            <span class="metric" id="metric-offline-devices">—</span>
+                            <span class="trend negative" id="metric-offline-sub">needs attention</span>
+                        </div>
+                    </div>
+                `;
+            },
+        },
+        {
+            id: 'now-playing',
+            name: 'Now Playing',
+            icon: 'fa-play-circle',
+            color: 'status-info',
+            description: 'Currently playing on Plex',
+            enabled: false,
+            render: container => {
+                container.innerHTML = `
+                    <div class="status-card status-info" id="card-now-playing" title="Currently playing on Plex">
+                        <div class="card-icon"><i class="fas fa-play-circle"></i></div>
+                        <div class="card-content">
+                            <h3>Now Playing</h3>
+                            <span class="metric" id="metric-now-playing-count">—</span>
+                            <span class="trend" id="metric-now-playing-sub">active sessions</span>
+                        </div>
+                    </div>
+                `;
+            },
+        },
+    ];
+
+    // Load saved card configuration from localStorage
+    function loadCardConfig() {
+        try {
+            const saved = localStorage.getItem('dashboardCards');
+            if (saved) {
+                const config = JSON.parse(saved);
+                return config;
+            }
+        } catch (e) {
+            console.warn('Failed to load card config:', e);
+        }
+        // Default: first 4 cards
+        return AVAILABLE_CARDS.slice(0, 4).map(c => c.id);
+    }
+
+    // Save card configuration to localStorage
+    function saveCardConfig(selectedIds) {
+        try {
+            localStorage.setItem('dashboardCards', JSON.stringify(selectedIds));
+        } catch (e) {
+            console.error('Failed to save card config:', e);
+        }
+    }
+
+    // Render dashboard cards based on configuration
+    function renderDashboardCards() {
+        const container = document.getElementById('kpi-cards');
+        if (!container) return;
+
+        const selectedIds = loadCardConfig();
+        container.innerHTML = '';
+
+        selectedIds.forEach(id => {
+            const card = AVAILABLE_CARDS.find(c => c.id === id);
+            if (card) {
+                const wrapper = document.createElement('div');
+                card.render(wrapper);
+                container.appendChild(wrapper.firstElementChild);
+            }
+        });
+
+        // Update card data
+        updateDashboardCardsData();
+    }
+
+    // Update data for currently displayed cards
+    async function updateDashboardCardsData() {
+        const selectedIds = loadCardConfig();
+
+        // Update Now Playing card if it's displayed
+        if (selectedIds.includes('now-playing')) {
+            try {
+                const data = await fetchJSON('/api/plex/sessions').catch(() => null);
+                const sessions = data?.sessions || [];
+
+                const countEl = document.getElementById('metric-now-playing-count');
+                const subEl = document.getElementById('metric-now-playing-sub');
+
+                if (countEl) {
+                    countEl.textContent = sessions.length;
+                }
+                if (subEl) {
+                    if (sessions.length === 0) {
+                        subEl.textContent = 'nobody watching';
+                    } else if (sessions.length === 1) {
+                        subEl.textContent = '1 active session';
+                    } else {
+                        subEl.textContent = `${sessions.length} active sessions`;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to update Now Playing card:', e);
+            }
+        }
+    }
+
+    // Open card configuration modal
+    function openCardConfigModal() {
+        const modal = document.getElementById('modal-configure-cards');
+        const grid = document.getElementById('cards-selection-grid');
+
+        if (!modal || !grid) return;
+
+        const selectedIds = loadCardConfig();
+        let draggedElement = null;
+
+        // Render card selection options
+        grid.innerHTML = '';
+        AVAILABLE_CARDS.forEach(card => {
+            const isSelected = selectedIds.includes(card.id);
+            const orderIndex = selectedIds.indexOf(card.id);
+            const cardEl = document.createElement('div');
+            cardEl.className = 'card-selection-item';
+            cardEl.dataset.cardId = card.id;
+            cardEl.draggable = true;
+
+            cardEl.innerHTML = `
+                <div class="card-selection-order" style="position: absolute; top: 8px; left: 8px; width: 24px; height: 24px; border-radius: 50%; background: var(--color-teal); color: white; display: ${isSelected ? 'flex' : 'none'}; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; z-index: 1;">${orderIndex + 1}</div>
+                <div class="card-selection-checkbox">
+                    <input type="checkbox" id="card-check-${card.id}" ${isSelected ? 'checked' : ''}>
+                    <label for="card-check-${card.id}"></label>
+                </div>
+                <div class="card-selection-content">
+                    <i class="fas ${card.icon}" style="font-size: 1.5rem; color: var(--color-teal); margin-bottom: 8px;"></i>
+                    <h4 style="margin: 0 0 4px 0; font-size: 0.9rem; font-weight: 600;">${card.name}</h4>
+                    <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.3;">${card.description}</p>
+                </div>
+            `;
+
+            cardEl.style.cssText = `
+                position: relative;
+                padding: 16px;
+                border: 2px solid ${isSelected ? 'var(--color-teal)' : 'var(--color-border)'};
+                border-radius: 8px;
+                background: ${isSelected ? 'rgba(20, 184, 166, 0.1)' : 'var(--color-bg-secondary)'};
+                cursor: ${isSelected ? 'move' : 'pointer'};
+                transition: all 0.2s ease;
+            `;
+
+            // Click to select/deselect
+            cardEl.addEventListener('click', e => {
+                if (e.target.closest('.card-selection-checkbox')) return;
+                const checkbox = cardEl.querySelector('input');
+                checkbox.checked = !checkbox.checked;
+                updateCardSelectionUI();
+            });
+
+            // Drag and drop handlers
+            cardEl.addEventListener('dragstart', () => {
+                if (!cardEl.querySelector('input').checked) return;
+                draggedElement = cardEl;
+                cardEl.style.opacity = '0.5';
+            });
+
+            cardEl.addEventListener('dragend', () => {
+                if (draggedElement) {
+                    draggedElement.style.opacity = '1';
+                    draggedElement = null;
+                }
+            });
+
+            cardEl.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (!draggedElement || draggedElement === cardEl) return;
+                if (!cardEl.querySelector('input').checked) return;
+
+                const rect = cardEl.getBoundingClientRect();
+                const midpoint = rect.left + rect.width / 2;
+
+                if (e.clientX < midpoint) {
+                    cardEl.parentNode.insertBefore(draggedElement, cardEl);
+                } else {
+                    cardEl.parentNode.insertBefore(draggedElement, cardEl.nextSibling);
+                }
+
+                updateCardSelectionUI();
+            });
+
+            grid.appendChild(cardEl);
+        });
+
+        // Show modal using the standard modal system
+        if (typeof window.openModal === 'function') {
+            window.openModal('modal-configure-cards');
+        } else {
+            modal.removeAttribute('hidden');
+            modal.classList.add('open');
+        }
+    }
+
+    // Update card selection UI based on checkboxes
+    function updateCardSelectionUI() {
+        const cards = Array.from(
+            document.querySelectorAll('#cards-selection-grid .card-selection-item')
+        );
+        const checkedCards = cards.filter(
+            card => card.querySelector('input[type="checkbox"]').checked
+        );
+
+        cards.forEach(cardEl => {
+            const checkbox = cardEl.querySelector('input[type="checkbox"]');
+            const orderBadge = cardEl.querySelector('.card-selection-order');
+            const isChecked = checkbox.checked;
+
+            if (isChecked) {
+                const orderIndex = checkedCards.indexOf(cardEl);
+                cardEl.style.border = '2px solid var(--color-teal)';
+                cardEl.style.background = 'rgba(20, 184, 166, 0.1)';
+                cardEl.style.cursor = 'move';
+                if (orderBadge) {
+                    orderBadge.style.display = 'flex';
+                    orderBadge.textContent = orderIndex + 1;
+                }
+            } else {
+                cardEl.style.border = '2px solid var(--color-border)';
+                cardEl.style.background = 'var(--color-bg-secondary)';
+                cardEl.style.cursor = 'pointer';
+                if (orderBadge) {
+                    orderBadge.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    // Save card configuration from modal
+    function saveCardConfigFromModal() {
+        const cards = Array.from(
+            document.querySelectorAll('#cards-selection-grid .card-selection-item')
+        );
+        let selected = [];
+
+        // Get selected cards in their current display order
+        cards.forEach(cardEl => {
+            const checkbox = cardEl.querySelector('input[type="checkbox"]');
+            if (checkbox.checked) {
+                const cardId = cardEl.dataset.cardId;
+                selected.push(cardId);
+            }
+        });
+
+        // Ensure exactly 4 cards (auto-fill if needed)
+        if (selected.length < 4) {
+            AVAILABLE_CARDS.forEach(card => {
+                if (!selected.includes(card.id) && selected.length < 4) {
+                    selected.push(card.id);
+                }
+            });
+        } else if (selected.length > 4) {
+            selected = selected.slice(0, 4);
+        }
+
+        saveCardConfig(selected);
+        renderDashboardCards();
+
+        // Close modal
+        if (typeof window.closeModal === 'function') {
+            window.closeModal('modal-configure-cards');
+        } else {
+            const modal = document.getElementById('modal-configure-cards');
+            if (modal) {
+                modal.classList.remove('open');
+                modal.setAttribute('hidden', '');
+            }
+        }
+
+        if (typeof window.notify !== 'undefined' && window.notify.success) {
+            window.notify.success('Dashboard cards updated successfully');
+        }
+    }
+
+    // Initialize dashboard cards on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDashboardCards);
+    } else {
+        // DOM already loaded
+        initDashboardCards();
+    }
+
+    function initDashboardCards() {
+        try {
+            // Initialize dashboard cards
+            renderDashboardCards();
+
+            // Wire up configure cards button
+            const btnConfigureCards = document.getElementById('btn-configure-cards');
+            if (btnConfigureCards) {
+                btnConfigureCards.addEventListener('click', openCardConfigModal);
+            }
+
+            // Wire up save button in modal
+            const btnSaveCardConfig = document.getElementById('btn-save-card-config');
+            if (btnSaveCardConfig) {
+                btnSaveCardConfig.addEventListener('click', saveCardConfigFromModal);
+            }
+
+            // Update Now Playing card data every 10 seconds if it's displayed
+            setInterval(() => {
+                const selectedIds = loadCardConfig();
+                if (selectedIds.includes('now-playing')) {
+                    updateDashboardCardsData();
+                }
+            }, 10000);
+        } catch (e) {
+            console.error('Failed to initialize dashboard cards:', e);
+        }
+    }
+
     async function refreshDashboardMetrics() {
         // Populate media totals and Active Mode for the top dashboard cards
         // Apply client-side dedupe and 429 backoff to avoid hammering the server
@@ -960,6 +1357,8 @@
             if (now - dashLastRun < DASH_MIN_INTERVAL - 50) return scheduleNextDashboardTick();
             dashLastRun = now;
             await refreshDashboardMetrics();
+            // Update card data (including Now Playing if displayed)
+            await updateDashboardCardsData();
         } catch (_) {
             /* ignore errors */
         } finally {
@@ -2470,6 +2869,11 @@
         setIf('cinemaOrientation', c.cinemaOrientation || 'auto');
         setIf('cinemaRotationInterval', c.cinema?.rotationIntervalMinutes || 0);
 
+        // Cinema Now Playing
+        setIf('cinemaNowPlayingEnabled', c.cinema?.nowPlaying?.enabled || false, 'checkbox');
+        setIf('cinemaNowPlayingPriority', c.cinema?.nowPlaying?.priority || 'first');
+        setIf('cinemaNowPlayingInterval', c.cinema?.nowPlaying?.updateIntervalSeconds || 15);
+
         // Wire radio changes after hydration to update UI states
         const radios = document.querySelectorAll('input[name="display.mode"]');
         radios.forEach(r =>
@@ -3715,6 +4119,34 @@
         }
     }
 
+    // Helper to collect cinema configuration from form
+    function collectCinemaConfig(val, existingCinemaFromUI) {
+        // Start with existing cinema config from UI if available
+        const cinemaUpdate =
+            existingCinemaFromUI && typeof existingCinemaFromUI === 'object'
+                ? { ...existingCinemaFromUI }
+                : {};
+
+        // Collect rotation interval if element exists
+        const rotationEl = document.getElementById('cinemaRotationInterval');
+        if (rotationEl !== null) {
+            cinemaUpdate.rotationIntervalMinutes = val('cinemaRotationInterval');
+        }
+
+        // Collect Now Playing settings if elements exist
+        const nowPlayingEnabledEl = document.getElementById('cinemaNowPlayingEnabled');
+        if (nowPlayingEnabledEl !== null) {
+            cinemaUpdate.nowPlaying = {
+                enabled: val('cinemaNowPlayingEnabled'),
+                priority: val('cinemaNowPlayingPriority') || 'first',
+                fallbackToRotation: true, // Always enabled
+                updateIntervalSeconds: val('cinemaNowPlayingInterval') || 15,
+            };
+        }
+
+        return Object.keys(cinemaUpdate).length > 0 ? cinemaUpdate : undefined;
+    }
+
     function collectDisplayFormPatch() {
         const val = id => {
             const el = getVal(id);
@@ -3782,15 +4214,21 @@
             },
             // Cinema configuration collected from the modular UI
             cinema: (function () {
+                let cinemaFromUI = undefined;
                 try {
                     if (typeof window.__collectCinemaConfig === 'function') {
-                        const cc = window.__collectCinemaConfig();
-                        if (cc && typeof cc === 'object') return cc;
+                        cinemaFromUI = window.__collectCinemaConfig();
+                        if (cinemaFromUI && typeof cinemaFromUI === 'object') {
+                            // Merge with our additions (nowPlaying)
+                            return collectCinemaConfig(val, cinemaFromUI);
+                        }
                     }
                 } catch (_) {
-                    /* number wrapper width bucket classification failed (defaults) */
+                    /* collectCinemaConfig failed (non-fatal) */
                 }
-                return undefined; // let server merge preserve existing if UI not loaded
+
+                // Fallback: use helper function to collect cinema config
+                return collectCinemaConfig(val, cinemaFromUI);
             })(),
             // Screensaver specific: none (backgroundRefreshMinutes managed in Operations)
         };
@@ -5347,6 +5785,14 @@
                         src.addEventListener('config-updated', async () => {
                             try {
                                 await refreshCacheStatsV2();
+                            } catch (_) {
+                                /* ignore */
+                            }
+                        });
+                        // When Plex sessions change, update Now Playing card if displayed
+                        src.addEventListener('plex-sessions', async () => {
+                            try {
+                                await updateDashboardCardsData();
                             } catch (_) {
                                 /* ignore */
                             }
@@ -10233,12 +10679,46 @@
                 }
                 // Load overrides for all selected devices
                 let mode = 'general';
+                const plexUsernames = []; // Track plexUsername per device
                 if (textarea) {
                     const all = await loadOverrides(ids);
                     originalPerDevice = {};
                     all.forEach((o, i) => {
                         originalPerDevice[ids[i]] = JSON.parse(JSON.stringify(o || {}));
                     });
+
+                    // Load plexUsername from each device
+                    for (const id of ids) {
+                        try {
+                            const devRes = await fetchJSON(
+                                `/api/devices/${encodeURIComponent(id)}`
+                            );
+                            if (devRes && devRes.plexUsername) {
+                                plexUsernames.push(devRes.plexUsername);
+                            }
+                        } catch (e) {
+                            // Device not found or error, skip
+                        }
+                    }
+
+                    // Set plexUsername field value
+                    const plexUsernameInput = document.getElementById('override-plex-username');
+                    if (plexUsernameInput) {
+                        // If all devices have same username, show it; otherwise show placeholder
+                        if (
+                            plexUsernames.length === ids.length &&
+                            new Set(plexUsernames).size === 1
+                        ) {
+                            plexUsernameInput.value = plexUsernames[0] || '';
+                        } else if (plexUsernames.length > 0) {
+                            plexUsernameInput.value = '';
+                            plexUsernameInput.placeholder = '(multiple values)';
+                        } else {
+                            plexUsernameInput.value = '';
+                            plexUsernameInput.placeholder = 'Enter Plex username for this device';
+                        }
+                    }
+
                     if (all.length === 1) {
                         const obj = all[0];
                         normalizeLegacy(obj);
@@ -10993,14 +11473,27 @@
                             return;
                         }
                         const payload = parsed || {};
+                        const plexUsernameInput = document.getElementById('override-plex-username');
+                        const plexUsername = plexUsernameInput
+                            ? plexUsernameInput.value.trim()
+                            : '';
+
                         let ok = 0,
                             fail = 0;
                         for (const id of ids) {
                             try {
+                                const patchData = { settingsOverride: payload };
+                                // Add plexUsername if provided (or null to clear)
+                                if (plexUsername) {
+                                    patchData.plexUsername = plexUsername;
+                                } else if (plexUsernameInput && plexUsernameInput.value === '') {
+                                    // Empty string = clear the field
+                                    patchData.plexUsername = null;
+                                }
                                 await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
                                     method: 'PATCH',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ settingsOverride: payload }),
+                                    body: JSON.stringify(patchData),
                                 });
                                 ok++;
                             } catch (_) {
