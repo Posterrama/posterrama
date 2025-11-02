@@ -13347,9 +13347,11 @@ select:focus-visible {
 
 .browser-actions {
     display: flex;
+    align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
     order: 3;
+    flex-wrap: wrap;
 }
 
 .browser-content {
@@ -13419,44 +13421,23 @@ select:focus-visible {
     accent-color: var(--color-accent);
 }
 
-/* Bulk action toolbar */
-.bulk-actions-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    background: color-mix(in srgb, var(--color-accent) 15%, var(--surface-layer-2));
-    border-bottom: 1px solid var(--color-accent);
-    gap: 1rem;
-    animation: slideDown 0.2s ease;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.bulk-actions-info {
-    display: flex;
+/* Bulk selection info in toolbar */
+.bulk-info {
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     font-size: 0.875rem;
     color: var(--color-text);
+    padding: 0.5rem 0.75rem;
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    border-radius: 6px;
+    margin-right: 0.5rem;
+    white-space: nowrap;
 }
 
-.bulk-actions-info i {
+.bulk-info i {
     color: var(--color-accent);
-}
-
-.bulk-actions-buttons {
-    display: flex;
-    gap: 0.5rem;
+    font-size: 0.875rem;
 }
 
 .browser-item-icon {
