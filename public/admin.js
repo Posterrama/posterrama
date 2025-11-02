@@ -21850,6 +21850,190 @@ if (!document.__niwDelegatedFallback) {
         }
     }
 
+    // Bulk selection functions
+    function updateBulkToolbar() {
+        const browserContent = document.getElementById('local-browser-content');
+        if (!browserContent) return;
+
+        let toolbar = document.getElementById('bulk-actions-toolbar');
+
+        if (selectedFiles.size === 0) {
+            // Remove toolbar if no selection
+            if (toolbar) toolbar.remove();
+            return;
+        }
+
+        // Create or update toolbar
+        if (!toolbar) {
+            toolbar = document.createElement('div');
+            toolbar.id = 'bulk-actions-toolbar';
+            toolbar.className = 'bulk-actions-toolbar';
+            browserContent.parentElement.insertBefore(toolbar, browserContent);
+        }
+
+        const count = selectedFiles.size;
+        toolbar.innerHTML = `
+            <div class="bulk-actions-info">
+                <i class="fas fa-check-square"></i>
+                <span><strong>${count}</strong> ${count === 1 ? 'item' : 'items'} selected</span>
+            </div>
+            <div class="bulk-actions-buttons">
+                <button class="btn btn-secondary btn-sm" id="btn-select-all">
+                    <i class="fas fa-square-check"></i><span>Select All</span>
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btn-deselect-all">
+                    <i class="fas fa-square"></i><span>Deselect All</span>
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btn-bulk-download">
+                    <span class="spinner"></span><i class="fas fa-download"></i><span>Download</span>
+                </button>
+                <button class="btn btn-error btn-sm" id="btn-bulk-delete">
+                    <span class="spinner"></span><i class="fas fa-trash"></i><span>Delete</span>
+                </button>
+            </div>
+        `;
+
+        // Attach handlers
+        const selectAllBtn = toolbar.querySelector('#btn-select-all');
+        const deselectAllBtn = toolbar.querySelector('#btn-deselect-all');
+        const bulkDownloadBtn = toolbar.querySelector('#btn-bulk-download');
+        const bulkDeleteBtn = toolbar.querySelector('#btn-bulk-delete');
+
+        if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllItems);
+        if (deselectAllBtn) deselectAllBtn.addEventListener('click', deselectAllItems);
+        if (bulkDownloadBtn) bulkDownloadBtn.addEventListener('click', bulkDownloadFiles);
+        if (bulkDeleteBtn) bulkDeleteBtn.addEventListener('click', bulkDeleteFiles);
+    }
+
+    function toggleFileSelection(itemEl, path) {
+        if (selectedFiles.has(path)) {
+            selectedFiles.delete(path);
+            itemEl.classList.remove('selected');
+            const checkbox = itemEl.querySelector('input[type="checkbox"]');
+            if (checkbox) checkbox.checked = false;
+        } else {
+            selectedFiles.add(path);
+            itemEl.classList.add('selected');
+            const checkbox = itemEl.querySelector('input[type="checkbox"]');
+            if (checkbox) checkbox.checked = true;
+        }
+        updateBulkToolbar();
+    }
+
+    function selectAllItems() {
+        const items = document.querySelectorAll('.browser-item');
+        items.forEach(item => {
+            const path = item.dataset.path;
+            const type = item.dataset.type;
+            // Only select files, not directories
+            if (type === 'file' && path) {
+                selectedFiles.add(path);
+                item.classList.add('selected');
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                if (checkbox) checkbox.checked = true;
+            }
+        });
+        updateBulkToolbar();
+    }
+
+    function deselectAllItems() {
+        const items = document.querySelectorAll('.browser-item.selected');
+        items.forEach(item => {
+            item.classList.remove('selected');
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            if (checkbox) checkbox.checked = false;
+        });
+        selectedFiles.clear();
+        updateBulkToolbar();
+    }
+
+    async function bulkDownloadFiles() {
+        if (selectedFiles.size === 0) return;
+
+        const paths = Array.from(selectedFiles);
+
+        // Show loading state
+        const btn = document.getElementById('btn-bulk-download');
+        if (btn) btn.classList.add('loading');
+
+        try {
+            const response = await fetch('/api/local/bulk-download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paths }),
+            });
+
+            if (response.ok) {
+                // Trigger download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `posterrama-files-${Date.now()}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                showNotification(`Downloaded ${paths.length} file(s)`, 'success');
+            } else {
+                const result = await response.json();
+                showNotification(result.error || 'Download failed', 'error');
+            }
+        } catch (error) {
+            console.error('Bulk download error:', error);
+            showNotification('Download failed', 'error');
+        } finally {
+            if (btn) btn.classList.remove('loading');
+        }
+    }
+
+    async function bulkDeleteFiles() {
+        if (selectedFiles.size === 0) return;
+
+        const paths = Array.from(selectedFiles);
+        const count = paths.length;
+
+        const ok = await (
+            window.confirmAction || (() => Promise.resolve(confirm('Are you sure?')))
+        )({
+            title: 'Delete multiple files',
+            message: `This will permanently delete <strong>${count}</strong> ${count === 1 ? 'file' : 'files'}.<br><br>This action cannot be undone.`,
+            okText: 'Delete All',
+            okClass: 'btn-error',
+            okIcon: 'trash',
+        });
+
+        if (!ok) return;
+
+        const btn = document.getElementById('btn-bulk-delete');
+        if (btn) btn.classList.add('loading');
+
+        try {
+            const response = await fetch('/api/local/bulk-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paths }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showNotification(`Deleted ${result.deleted || count} file(s)`, 'success');
+                selectedFiles.clear();
+                updateBulkToolbar();
+                refreshDirectorySafe(true);
+            } else {
+                showNotification(result.error || 'Delete failed', 'error');
+            }
+        } catch (error) {
+            console.error('Bulk delete error:', error);
+            showNotification('Delete failed', 'error');
+        } finally {
+            if (btn) btn.classList.remove('loading');
+        }
+    }
+
     function renderSearchResults(results, query) {
         const browserContent = document.getElementById('local-browser-content');
         if (!browserContent) return;
@@ -21907,8 +22091,12 @@ if (!document.__niwDelegatedFallback) {
                         ? item.name.replace(/\.zip$/i, '')
                         : item.name;
 
+                const isSelected = selectedFiles.has(item.path);
                 return `
-            <div class="browser-item" data-path="${item.path}" data-type="${item.type}">
+            <div class="browser-item ${isSelected ? 'selected' : ''}" data-path="${item.path}" data-type="${item.type}">
+                <div class="browser-item-checkbox">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} data-path="${item.path}" />
+                </div>
                 ${iconHtml}
                 <div class="browser-item-name">
                     <span class="name-text">${displayName}</span>
@@ -22073,8 +22261,12 @@ if (!document.__niwDelegatedFallback) {
                     item.type === 'file' && /\.zip$/i.test(item.name)
                         ? item.name.replace(/\.zip$/i, '')
                         : item.name;
+                const isSelected = selectedFiles.has(item.path);
                 return `
-            <div class="browser-item" data-path="${item.path}" data-type="${item.type}">
+            <div class="browser-item ${isSelected ? 'selected' : ''}" data-path="${item.path}" data-type="${item.type}">
+                <div class="browser-item-checkbox">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} data-path="${item.path}" />
+                </div>
                 ${iconHtml}
                 <div class="browser-item-name">
                     <span class="name-text">${displayName}</span>
@@ -22183,9 +22375,24 @@ if (!document.__niwDelegatedFallback) {
         if (!browserContent.__handlersAttached) {
             browserContent.__handlersAttached = true;
             browserContent.addEventListener('click', e => {
-                // Handle item click (navigation/select) when not clicking on actions
+                // Handle checkbox clicks
+                const checkbox = e.target.closest('input[type="checkbox"]');
+                if (checkbox) {
+                    const itemEl = checkbox.closest('.browser-item');
+                    const p = checkbox.dataset.path;
+                    if (itemEl && p) {
+                        toggleFileSelection(itemEl, p);
+                    }
+                    return;
+                }
+
+                // Handle item click (navigation/select) when not clicking on actions or checkbox
                 const itemEl = e.target.closest('.browser-item');
-                if (itemEl && !e.target.closest('.browser-item-actions')) {
+                if (
+                    itemEl &&
+                    !e.target.closest('.browser-item-actions') &&
+                    !e.target.closest('.browser-item-checkbox')
+                ) {
                     const p = itemEl.dataset.path;
                     const t = itemEl.dataset.type;
                     if (t === 'directory') loadDirectoryContents(p);
@@ -22336,25 +22543,6 @@ if (!document.__niwDelegatedFallback) {
                     if (path) loadDirectoryContents(path);
                 }
             });
-        }
-    }
-
-    function toggleFileSelection(element, path) {
-        if (selectedFiles.has(path)) {
-            selectedFiles.delete(path);
-            element.classList.remove('selected');
-        } else {
-            selectedFiles.add(path);
-            element.classList.add('selected');
-        }
-
-        // No global delete-selected button in maintenance mode
-        // Update Posterpack filters visibility when local file selection changes
-        try {
-            const sourceSelect = document.getElementById('posterpack.source');
-            if (sourceSelect) handleSourceSelection({ target: sourceSelect });
-        } catch (_) {
-            /* posterpack visibility update is optional; ignore */
         }
     }
 

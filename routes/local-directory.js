@@ -399,6 +399,199 @@ module.exports = function createLocalDirectoryRouter({
 
     /**
      * @swagger
+     * /api/local/bulk-download:
+     *   post:
+     *     summary: Download multiple files as a single ZIP
+     *     description: Creates a ZIP archive containing selected files and streams it to the client
+     *     tags: ['Local Directory']
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [paths]
+     *             properties:
+     *               paths:
+     *                 type: array
+     *                 items:
+     *                   type: string
+     *                 description: Array of file paths to include in the ZIP
+     *     responses:
+     *       200:
+     *         description: ZIP stream
+     *       400:
+     *         description: Invalid request
+     *       404:
+     *         description: File(s) not found
+     */
+    router.post(
+        '/api/local/bulk-download',
+        isAuthenticated,
+        express.json(),
+        asyncHandler(async (req, res) => {
+            const { paths = [] } = req.body;
+
+            if (!Array.isArray(paths) || paths.length === 0) {
+                return res.status(400).json({ error: 'No paths provided' });
+            }
+
+            try {
+                const base = path.resolve(config.localDirectory.rootPath);
+                const JSZip = require('jszip');
+                const zip = new JSZip();
+                let addedCount = 0;
+
+                for (const requestedPath of paths) {
+                    try {
+                        const trimmedPath = String(requestedPath).trim();
+                        if (!trimmedPath) continue;
+
+                        let fullPath;
+                        if (path.isAbsolute(trimmedPath)) {
+                            const abs = path.resolve(trimmedPath);
+                            fullPath = abs.startsWith(base)
+                                ? abs
+                                : path.resolve(base, trimmedPath.replace(/^\/+/, ''));
+                        } else {
+                            fullPath = path.resolve(base, trimmedPath);
+                        }
+
+                        // Ensure within base
+                        const within =
+                            fullPath === base || (fullPath + path.sep).startsWith(base + path.sep);
+                        if (!within) {
+                            logger.warn('Bulk download: skipping invalid path', {
+                                path: requestedPath,
+                            });
+                            continue;
+                        }
+
+                        const st = await fs.promises.stat(fullPath).catch(() => null);
+                        if (!st || !st.isFile()) {
+                            logger.warn('Bulk download: file not found or not a file', {
+                                path: requestedPath,
+                            });
+                            continue;
+                        }
+
+                        // Add file to ZIP with relative path
+                        const relativePath = path.relative(base, fullPath);
+                        const content = await fs.promises.readFile(fullPath);
+                        zip.file(relativePath, content);
+                        addedCount++;
+                    } catch (error) {
+                        logger.error('Bulk download: error adding file to ZIP', {
+                            path: requestedPath,
+                            error,
+                        });
+                    }
+                }
+
+                if (addedCount === 0) {
+                    return res.status(404).json({ error: 'No valid files found' });
+                }
+
+                // Generate ZIP and stream
+                const zipBuffer = await zip.generateAsync({
+                    type: 'nodebuffer',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 },
+                });
+
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+                const filename = `posterrama-files-${timestamp}.zip`;
+
+                res.setHeader('Content-Type', 'application/zip');
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                res.setHeader('Content-Length', zipBuffer.length);
+                res.send(zipBuffer);
+            } catch (error) {
+                logger.error('Bulk download error:', error);
+                res.status(500).json({ error: 'Download failed' });
+            }
+        })
+    );
+
+    /**
+     * @swagger
+     * /api/local/bulk-delete:
+     *   post:
+     *     summary: Delete multiple files
+     *     description: Deletes multiple files using the cleanup endpoint
+     *     tags: ['Local Directory']
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [paths]
+     *             properties:
+     *               paths:
+     *                 type: array
+     *                 items:
+     *                   type: string
+     *                 description: Array of file paths to delete
+     *     responses:
+     *       200:
+     *         description: Files deleted
+     *       400:
+     *         description: Invalid request
+     */
+    router.post(
+        '/api/local/bulk-delete',
+        isAuthenticated,
+        express.json(),
+        asyncHandler(async (req, res) => {
+            if (!localDirectorySource) {
+                return res.status(404).json({ error: 'Local directory support not enabled' });
+            }
+
+            const { paths = [] } = req.body;
+
+            if (!Array.isArray(paths) || paths.length === 0) {
+                return res.status(400).json({ error: 'No paths provided' });
+            }
+
+            try {
+                const operations = paths.map(p => ({ type: 'delete', path: p }));
+                const results = await localDirectorySource.cleanupDirectory(operations, false);
+
+                // After destructive operations, refresh playlist/media cache
+                try {
+                    if (cacheManager && typeof cacheManager.clear === 'function') {
+                        cacheManager.clear('media');
+                    }
+                    Promise.resolve(refreshPlaylistCache()).catch(err => {
+                        logger.debug(
+                            'refreshPlaylistCache after bulk delete failed (ignored):',
+                            err?.message || err
+                        );
+                    });
+                } catch (e) {
+                    logger.debug('Post-bulk-delete cache nudge failed (ignored):', e?.message || e);
+                }
+
+                // Count successful deletions
+                const deleted =
+                    results.operations?.filter(op => op.status === 'deleted').length ||
+                    paths.length;
+
+                res.json({
+                    success: true,
+                    deleted,
+                    results,
+                });
+            } catch (error) {
+                logger.error('Bulk delete error:', error);
+                res.status(500).json({ error: error.message || 'Delete failed' });
+            }
+        })
+    );
+
+    /**
+     * @swagger
      * /api/local/import-posterpacks:
      *   post:
      *     summary: Manage posterpack ZIPs (ZIP-only)
