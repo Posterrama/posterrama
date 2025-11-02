@@ -553,6 +553,42 @@ app.get('/api/_internal/health-debug', (req, res) => {
     res.json({ ok: true, ts: Date.now(), pid: process.pid });
 });
 
+/**
+ * @swagger
+ * /local-media/{path}:
+ *   get:
+ *     summary: Serve local media files
+ *     description: |
+ *       Serves images and videos from configured local directories.
+ *       This endpoint is disabled by default for security.
+ *       Local media can be accessed via /local-posterpack for ZIP contents.
+ *     tags: ['Local Media']
+ *     parameters:
+ *       - name: path
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Relative path to media file (e.g., posters/Movie.jpg)
+ *     responses:
+ *       200:
+ *         description: Media file content
+ *         content:
+ *           image/jpeg:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           image/png:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           video/mp4:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Local directory support not enabled or direct serving disabled
+ */
 // Serve Local Directory media (images/videos) securely from configured roots
 // Example URL shape produced by LocalDirectorySource: /local-media/posters/My%20Movie.jpg
 app.get(
@@ -567,6 +603,50 @@ app.get(
     })
 );
 
+/**
+ * @swagger
+ * /local-posterpack:
+ *   get:
+ *     summary: Stream assets from posterpack ZIP files
+ *     description: |
+ *       Streams poster, background, clearlogo, thumbnail, or banner directly from a posterpack ZIP
+ *       without extraction. Used for serving local media from compressed archives.
+ *     tags: ['Local Media']
+ *     parameters:
+ *       - name: zip
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Relative path to ZIP file (e.g., complete/manual/Movie (2024).zip)
+ *         example: complete/manual/Movie (2024).zip
+ *       - name: entry
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [poster, background, clearlogo, thumbnail, banner]
+ *         description: Type of asset to extract from ZIP
+ *         example: poster
+ *     responses:
+ *       200:
+ *         description: Image content from ZIP
+ *         content:
+ *           image/jpeg:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           image/png:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Missing parameters or invalid zip path/entry type
+ *       404:
+ *         description: Local directory support not enabled or file not found
+ *       500:
+ *         description: Error reading ZIP file
+ */
 // Stream poster/background/clearlogo directly from a posterpack ZIP without extraction
 // Example: /local-posterpack?zip=complete/manual/Movie%20(2024).zip&entry=poster
 app.get(
@@ -4519,6 +4599,32 @@ app.post(
     })
 );
 
+/**
+ * @swagger
+ * /reset-refresh:
+ *   get:
+ *     summary: Reset stuck playlist refresh state
+ *     description: |
+ *       User-friendly endpoint to reset stuck refresh state.
+ *       Returns an HTML page with reset confirmation.
+ *       Can be accessed directly in a browser.
+ *     tags: ['Utilities']
+ *     responses:
+ *       200:
+ *         description: HTML page confirming refresh state reset
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ *               example: |
+ *                 <!DOCTYPE html>
+ *                 <html>
+ *                 <body>
+ *                   <h1>🔄 Refresh Reset</h1>
+ *                   <p>✅ Playlist refresh state has been reset successfully!</p>
+ *                 </body>
+ *                 </html>
+ */
 /**
  * User-friendly endpoint to reset stuck refresh state
  * Can be accessed directly in browser: /reset-refresh
