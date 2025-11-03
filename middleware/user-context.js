@@ -44,7 +44,8 @@ const userContextMiddleware = (req, res, next) => {
                     req.path.startsWith('/api/v1/metrics') ||
                     req.path.startsWith('/api/admin/metrics') ||
                     req.path.startsWith('/api/admin/logs') ||
-                    req.path.startsWith('/api/admin/status'));
+                    req.path.startsWith('/api/admin/status') ||
+                    req.path.startsWith('/api/plex/sessions'));
 
             if (!isNoisyEndpoint) {
                 logger.debug('🔌 API access', {

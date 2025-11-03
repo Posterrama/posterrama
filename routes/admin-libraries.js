@@ -175,11 +175,12 @@ module.exports = function createAdminLibrariesRouter({
                 const formattedLibraries = await Promise.all(
                     userViews.map(async view => {
                         let itemCount = 0;
+                        // Map Jellyfin CollectionType to frontend-expected format (movie/show, not movies/series)
                         const libType =
                             view.CollectionType === 'movies'
-                                ? 'movies'
+                                ? 'movie'
                                 : view.CollectionType === 'tvshows'
-                                  ? 'series'
+                                  ? 'show'
                                   : 'unknown';
 
                         try {
@@ -188,7 +189,7 @@ module.exports = function createAdminLibrariesRouter({
                                 params: {
                                     ParentId: view.Id,
                                     Recursive: true,
-                                    IncludeItemTypes: libType === 'movies' ? 'Movie' : 'Series',
+                                    IncludeItemTypes: libType === 'movie' ? 'Movie' : 'Series',
                                     Fields: 'Id',
                                     Limit: 1, // We only need the count
                                 },
@@ -206,7 +207,7 @@ module.exports = function createAdminLibrariesRouter({
                         return {
                             id: view.Id,
                             name: view.Name,
-                            count: itemCount,
+                            itemCount: itemCount, // Use itemCount for consistency with Plex
                             type: libType,
                         };
                     })

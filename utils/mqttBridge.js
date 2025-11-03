@@ -619,12 +619,13 @@ class MqttBridge extends EventEmitter {
                     retain: true,
                 });
 
-                logger.debug('📡 Published discovery config', {
-                    deviceId: device.id,
-                    capability: cap.id,
-                    category: cap.category,
-                    topic: discoveryTopic,
-                });
+                // Commented out to reduce log noise - summary is logged below
+                // logger.debug('📡 Published discovery config', {
+                //     deviceId: device.id,
+                //     capability: cap.id,
+                //     category: cap.category,
+                //     topic: discoveryTopic,
+                // });
             }
 
             // Explicitly unpublish unavailable capabilities to ensure they're removed from HA
@@ -639,11 +640,12 @@ class MqttBridge extends EventEmitter {
                         retain: true,
                     });
 
-                    logger.debug('� Unpublished unavailable capability', {
-                        deviceId: device.id,
-                        capability: cap.id,
-                        reason: 'availableWhen check failed',
-                    });
+                    // Commented out to reduce log noise - summary is logged below
+                    // logger.debug('� Unpublished unavailable capability', {
+                    //     deviceId: device.id,
+                    //     capability: cap.id,
+                    //     reason: 'availableWhen check failed',
+                    // });
                 }
             }
 

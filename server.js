@@ -2093,7 +2093,8 @@ if (isDebug) {
             req.originalUrl.startsWith('/api/admin/mqtt/status') ||
             req.originalUrl.startsWith('/api/admin/logs') ||
             req.originalUrl.startsWith('/api/admin/metrics') ||
-            req.originalUrl.startsWith('/api/v1/metrics');
+            req.originalUrl.startsWith('/api/v1/metrics') ||
+            req.originalUrl.startsWith('/api/plex/sessions');
 
         if (!isPollingEndpoint) {
             logger.debug(`[Request Logger] Received: ${req.method} ${req.originalUrl}`);

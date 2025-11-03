@@ -231,7 +231,8 @@ class PlexClientAdapter {
             }
 
             // For unmapped paths, use debug level (these are common and non-critical)
-            logger.debug(`Unmapped Plex query path: ${path}. Using raw query fallback.`);
+            // Commented out to reduce log noise - unmapped paths use raw query fallback automatically
+            // logger.debug(`Unmapped Plex query path: ${path}. Using raw query fallback.`);
 
             // Fallback: use raw query method if available
             if (typeof this.plex.query === 'function') {

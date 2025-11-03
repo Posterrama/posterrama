@@ -518,6 +518,16 @@
     // Resilient late-binding: ensure known multiselects are wired even if earlier init missed
     function __ensureMsWired(idBase, selectId) {
         try {
+            // Skip auto-wiring for Plex/Jellyfin library multiselects
+            // They will be wired when the dropdown is opened and libraries are fetched
+            if (
+                selectId === 'plex.movies' ||
+                selectId === 'plex.shows' ||
+                selectId === 'jf.movies' ||
+                selectId === 'jf.shows'
+            ) {
+                return;
+            }
             const root = document.getElementById(idBase);
             const sel = document.getElementById(selectId);
             if (!root || !sel) return;
@@ -8261,13 +8271,28 @@
             // When switching panels, ensure multiselect UIs for the target panel are refreshed so that
             // any programmatic auto-selection (first-load) is reflected with chips. This covers cases
             // where the panel was never opened before (UI not wired yet) or options changed while hidden.
+            // SKIP rebuild if libraries are being fetched - they will rebuild after fetch completes
             try {
                 if (panelId === 'panel-plex') {
-                    rebuildMsForSelect('plex-ms-movies', 'plex.movies');
-                    rebuildMsForSelect('plex-ms-shows', 'plex.shows');
+                    // Only rebuild if not currently fetching libraries (would rebuild without counts)
+                    // AND only if multiselects are already wired (otherwise wait for fetch to initialize them)
+                    if (
+                        !window.__plexLibsInFlight &&
+                        document.getElementById('plex-ms-movies')?.dataset?.msWired === 'true'
+                    ) {
+                        rebuildMsForSelect('plex-ms-movies', 'plex.movies');
+                        rebuildMsForSelect('plex-ms-shows', 'plex.shows');
+                    }
                 } else if (panelId === 'panel-jellyfin') {
-                    rebuildMsForSelect('jf-ms-movies', 'jf.movies');
-                    rebuildMsForSelect('jf-ms-shows', 'jf.shows');
+                    // Only rebuild if not currently fetching libraries (would rebuild without counts)
+                    // AND only if multiselects are already wired (otherwise wait for fetch to initialize them)
+                    if (
+                        !window.__jfLibsInFlight &&
+                        document.getElementById('jf-ms-movies')?.dataset?.msWired === 'true'
+                    ) {
+                        rebuildMsForSelect('jf-ms-movies', 'jf.movies');
+                        rebuildMsForSelect('jf-ms-shows', 'jf.shows');
+                    }
                 }
             } catch (_) {
                 /* multiselect rebuild failed (UI will fallback to raw selects) */
@@ -16730,13 +16755,7 @@
                             preShows.map(n => ({ value: n, label: n })),
                             preShows
                         );
-                        // Ensure theme-demo multiselect UI shows chips immediately if already wired
-                        try {
-                            rebuildMsForSelect('plex-ms-movies', 'plex.movies');
-                            rebuildMsForSelect('plex-ms-shows', 'plex.shows');
-                        } catch (_) {
-                            /* inner wrapper flatten (B) failed (layout unaffected) */
-                        }
+                        // Don't rebuild here - libraries will be fetched with counts when panel opens
                     }
                 }
             } catch (_) {
@@ -16752,11 +16771,18 @@
                 (plex.showLibraryNames || []).map(n => ({ value: n, label: n })),
                 plex.showLibraryNames || []
             );
-            // Initialize theme-demo multiselects for Plex libraries
-            initMsForSelect('plex-ms-movies', 'plex.movies');
-            initMsForSelect('plex-ms-shows', 'plex.shows');
+            // Store the config-based selection so fetchPlexLibraries can use it as source of truth
+            window.__plexConfigSelection = {
+                movies: plex.movieLibraryNames || [],
+                shows: plex.showLibraryNames || [],
+            };
+            // Mark that Plex config is loaded so auto-fetch can use it
+            window.__plexConfigReady = true;
+            // Don't initialize multiselects here - they will be wired when libraries are fetched
             // Populate Plex genres with counts and apply selected values from config
             await loadPlexGenres(plex.genreFilter || '');
+            // Mark that loadMediaSources is complete so auto-fetch can proceed
+            window.__loadMediaSourcesComplete = true;
             // Defer fetching Plex libraries until the Plex panel is opened
             // Jellyfin
             const jfEnabled = !!jf.enabled;
@@ -16915,6 +16941,13 @@
                 (jf.showLibraryNames || []).map(n => ({ value: n, label: n })),
                 jf.showLibraryNames || []
             );
+            // Store the config-based selection so fetchJellyfinLibraries can use it as source of truth
+            window.__jfConfigSelection = {
+                movies: jf.movieLibraryNames || [],
+                shows: jf.showLibraryNames || [],
+            };
+            // Mark that Jellyfin config is loaded so auto-fetch can use it
+            window.__jfConfigReady = true;
             // Initialize theme-demo multiselects for Jellyfin libraries
             initMsForSelect('jf-ms-movies', 'jf.movies');
             initMsForSelect('jf-ms-shows', 'jf.shows');
@@ -17196,8 +17229,7 @@
             updateOverviewCards(cfg, env);
             // Then fetch and paint last sync times
             refreshOverviewLastSync();
-            // And compute current playlist counts per source
-            refreshOverviewCounts();
+            // Don't call refreshOverviewCounts() here - it will be called after libraries are fetched
             // Wire live listeners once per page load
             wireLiveMediaSourcePreview();
             // Enforce explicit click to edit sensitive fields and suppress auto-focus
@@ -17244,16 +17276,13 @@
                         jf: false,
                     };
 
-                    // Mark that libraries need to be fetched on first multiselect open
-                    window.__plexLibsFetchNeeded = true;
-
-                    // Check if Plex is enabled
+                    // Check if Plex is enabled and not already fetched
                     const plexEnabled = !!getInput('plex.enabled')?.checked;
 
                     if (plexEnabled && !window.__autoFetchedLibs.plex) {
                         window.__autoFetchedLibs.plex = true;
 
-                        // Auto-test connection silently to populate filters (ratings/genres)
+                        // Auto-fetch libraries when panel opens (fetchPlexLibraries will wait for config)
                         try {
                             const hostname = getInput('plex.hostname')?.value || '';
                             const port = getInput('plex.port')?.value || '';
@@ -17261,24 +17290,16 @@
                             const token =
                                 tokenInput?.dataset?.actualToken || tokenInput?.value || '';
 
-                            if (hostname && port) {
-                                // Test connection silently
-                                await fetch('/api/admin/test-plex', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    credentials: 'include',
-                                    body: JSON.stringify({
-                                        hostname,
-                                        port,
-                                        token: token || undefined,
-                                    }),
-                                });
-                                // Don't fetch libraries here - let the user click on the multiselect to trigger that
+                            if (
+                                hostname &&
+                                port &&
+                                typeof window.__fetchPlexLibraries === 'function'
+                            ) {
+                                await window.__fetchPlexLibraries(true, true);
                             }
                         } catch (e) {
-                            // Silently fail - user can manually test if needed
                             if (window.__debugOn)
-                                console.debug('[Plex] Auto-test failed:', e.message);
+                                console.debug('[Plex] Auto-fetch libraries failed:', e.message);
                         }
                     }
                 })();
@@ -17295,46 +17316,31 @@
                         jf: false,
                     };
 
-                    // Mark that libraries need to be fetched on first multiselect open
-                    window.__jfLibsFetchNeeded = true;
-
-                    // Check if Jellyfin is enabled
+                    // Check if Jellyfin is enabled and not already fetched
                     const jfEnabled = !!getInput('jf.enabled')?.checked;
 
                     if (jfEnabled && !window.__autoFetchedLibs.jf) {
                         window.__autoFetchedLibs.jf = true;
 
-                        // Auto-test connection silently to populate filters (ratings/genres)
+                        // Auto-fetch libraries when panel opens (fetchJellyfinLibraries will wait for config)
                         try {
                             const hostname = getInput('jf.hostname')?.value || '';
                             const port = getInput('jf.port')?.value || '';
                             const apiKeyInput = getInput('jf.apikey');
                             const apiKey =
                                 apiKeyInput?.dataset?.actualToken || apiKeyInput?.value || '';
-                            const insecureHttps = !!(
-                                document.getElementById('jf.insecureHttps')?.checked ||
-                                document.getElementById('jf.insecureHttpsHeader')?.checked
-                            );
 
-                            if (hostname && port) {
-                                // Test connection silently
-                                await fetch('/api/admin/test-jellyfin', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    credentials: 'include',
-                                    body: JSON.stringify({
-                                        hostname,
-                                        port,
-                                        apiKey: apiKey || undefined,
-                                        insecureHttps,
-                                    }),
-                                });
-                                // Don't fetch libraries here - let the user click on the multiselect to trigger that
+                            if (
+                                hostname &&
+                                port &&
+                                typeof window.__fetchJellyfinLibraries === 'function'
+                            ) {
+                                await window.__fetchJellyfinLibraries(true, true);
                             }
                         } catch (e) {
-                            // Silently fail - user can manually test if needed
+                            // Silently fail - user can manually fetch if needed
                             if (window.__debugOn)
-                                console.debug('[Jellyfin] Auto-test failed:', e.message);
+                                console.debug('[Jellyfin] Auto-fetch libraries failed:', e.message);
                         }
                     }
                 })();
@@ -17501,6 +17507,16 @@
 
         // Fetch libraries
         async function fetchPlexLibraries(refreshFilters = false, silent = false) {
+            // Wait for config to be loaded before proceeding
+            if (!window.__plexConfigReady) {
+                let waited = 0;
+                const maxWait = 10000;
+                while (!window.__plexConfigReady && waited < maxWait) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    waited += 100;
+                }
+            }
+
             // If any caller requests dependent refresh, mark it globally for this flight
             if (refreshFilters) window.__plexLibsRefreshRequested = true;
             // Deduplicate concurrent calls so only one request + toast occurs
@@ -17561,50 +17577,28 @@
                         .filter(l => l.type === 'show')
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
 
-                    const prevMovies = new Set(getMultiSelectValues('plex.movies'));
-                    const prevShows = new Set(getMultiSelectValues('plex.shows'));
-                    // Auto-select all Plex libraries on very first successful load if user has none selected yet
-                    let appliedAutoSelect = false;
-                    if (
-                        !window.__plexAutoSelected &&
-                        prevMovies.size === 0 &&
-                        prevShows.size === 0
-                    ) {
-                        const allMovieValues = movies.map(m => m.value);
-                        const allShowValues = shows.map(s => s.value);
-                        setMultiSelect('plex.movies', movies, allMovieValues);
-                        setMultiSelect('plex.shows', shows, allShowValues);
-                        window.__plexAutoSelected = true;
-                        appliedAutoSelect = true;
-                    } else if (
-                        window.__plexAutoSelected &&
-                        prevMovies.size === 0 &&
-                        prevShows.size === 0
-                    ) {
-                        // We previously auto-selected but current selects appear empty (panel switch race). Reapply full selection.
-                        const allMovieValues = movies.map(m => m.value);
-                        const allShowValues = shows.map(s => s.value);
-                        setMultiSelect('plex.movies', movies, allMovieValues);
-                        setMultiSelect('plex.shows', shows, allShowValues);
-                        appliedAutoSelect = true;
+                    // Use config-based selection as source of truth, fall back to DOM if not available
+                    const configMovies = window.__plexConfigSelection?.movies || [];
+                    const configShows = window.__plexConfigSelection?.shows || [];
+
+                    // Try DOM first (if already populated), then config, then empty
+                    const domMovies = getMultiSelectValues('plex.movies');
+                    const domShows = getMultiSelectValues('plex.shows');
+                    const prevMovies = new Set(domMovies.length > 0 ? domMovies : configMovies);
+                    const prevShows = new Set(domShows.length > 0 ? domShows : configShows);
+
+                    // Always respect the config/current selection - no auto-select all
+                    setMultiSelect('plex.movies', movies, Array.from(prevMovies));
+                    setMultiSelect('plex.shows', shows, Array.from(prevShows));
+
+                    // Ensure multiselects are wired and rebuild with counts
+                    if (document.getElementById('plex-ms-movies')?.dataset?.msWired !== 'true') {
+                        initMsForSelect('plex-ms-movies', 'plex.movies');
                     }
-                    if (!appliedAutoSelect) {
-                        setMultiSelect('plex.movies', movies, Array.from(prevMovies));
-                        setMultiSelect('plex.shows', shows, Array.from(prevShows));
+                    if (document.getElementById('plex-ms-shows')?.dataset?.msWired !== 'true') {
+                        initMsForSelect('plex-ms-shows', 'plex.shows');
                     }
-                    // If we just auto-selected everything, schedule a deferred rebuild to catch cases
-                    // where the multiselect UI root wasn't wired yet at the exact moment of selection.
-                    if (appliedAutoSelect) {
-                        setTimeout(() => {
-                            try {
-                                rebuildMsForSelect('plex-ms-movies', 'plex.movies');
-                                rebuildMsForSelect('plex-ms-shows', 'plex.shows');
-                            } catch (_) {
-                                /* delegated increment stopPropagation failed */
-                            }
-                        }, 0);
-                    }
-                    // Rebuild multiselect options
+                    // Rebuild multiselect options with counts
                     rebuildMsForSelect('plex-ms-movies', 'plex.movies');
                     rebuildMsForSelect('plex-ms-shows', 'plex.shows');
                     // If Posterpack source is currently Plex, immediately sync Posterpack lists
@@ -17656,12 +17650,8 @@
                     window.__plexLibsInFlight = null;
                     // Reset refresh request flag after one settled cycle
                     window.__plexLibsRefreshRequested = false;
-                    // Post-fetch integrity safeguard
-                    try {
-                        ensureLibrarySelectionIntegrity('plex');
-                    } catch (_) {
-                        /* integrity post-check failed (selections remain as-is) */
-                    }
+                    // Don't run integrity check here - it would rebuild multiselects again
+                    // The rebuild already happened above after setMultiSelect
                 }
             })();
             return window.__plexLibsInFlight;
@@ -18029,6 +18019,16 @@
             }
         }
         async function fetchJellyfinLibraries(refreshFilters = false, silent = false) {
+            // Wait for config to be loaded before proceeding
+            if (!window.__jfConfigReady) {
+                let waited = 0;
+                const maxWait = 10000;
+                while (!window.__jfConfigReady && waited < maxWait) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    waited += 100;
+                }
+            }
+
             // If any caller requests dependent refresh, mark it globally for this flight
             if (refreshFilters) window.__jfLibsRefreshRequested = true;
             // Deduplicate concurrent calls so only one request + toast occurs
@@ -18141,47 +18141,28 @@
                     const shows = libs
                         .filter(l => l.type === 'show')
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
-                    const prevMovies = new Set(getMultiSelectValues('jf.movies'));
-                    const prevShows = new Set(getMultiSelectValues('jf.shows'));
-                    // Auto-select all Jellyfin libraries on very first successful load if user has none selected yet
-                    let appliedAutoSelect = false;
-                    if (!window.__jfAutoSelected && prevMovies.size === 0 && prevShows.size === 0) {
-                        const allMovieValues = movies.map(m => m.value);
-                        const allShowValues = shows.map(s => s.value);
-                        setMultiSelect('jf.movies', movies, allMovieValues);
-                        setMultiSelect('jf.shows', shows, allShowValues);
-                        window.__jfAutoSelected = true;
-                        appliedAutoSelect = true;
-                    } else if (
-                        window.__jfAutoSelected &&
-                        prevMovies.size === 0 &&
-                        prevShows.size === 0
-                    ) {
-                        // We previously auto-selected, but current selects came back empty (likely due to hidden panel rebuild timing).
-                        // Preserve full selection instead of clearing.
-                        const allMovieValues = movies.map(m => m.value);
-                        const allShowValues = shows.map(s => s.value);
-                        setMultiSelect('jf.movies', movies, allMovieValues);
-                        setMultiSelect('jf.shows', shows, allShowValues);
-                        appliedAutoSelect = true;
+                    // Use config-based selection as source of truth, fall back to DOM if not available
+                    const configMovies = window.__jfConfigSelection?.movies || [];
+                    const configShows = window.__jfConfigSelection?.shows || [];
+
+                    // Try DOM first (if already populated), then config, then empty
+                    const domMovies = getMultiSelectValues('jf.movies');
+                    const domShows = getMultiSelectValues('jf.shows');
+                    const prevMovies = new Set(domMovies.length > 0 ? domMovies : configMovies);
+                    const prevShows = new Set(domShows.length > 0 ? domShows : configShows);
+
+                    // Always respect the config/current selection - no auto-select all
+                    setMultiSelect('jf.movies', movies, Array.from(prevMovies));
+                    setMultiSelect('jf.shows', shows, Array.from(prevShows));
+
+                    // Ensure multiselects are wired and rebuild with counts
+                    if (document.getElementById('jf-ms-movies')?.dataset?.msWired !== 'true') {
+                        initMsForSelect('jf-ms-movies', 'jf.movies');
                     }
-                    if (!appliedAutoSelect) {
-                        setMultiSelect('jf.movies', movies, Array.from(prevMovies));
-                        setMultiSelect('jf.shows', shows, Array.from(prevShows));
+                    if (document.getElementById('jf-ms-shows')?.dataset?.msWired !== 'true') {
+                        initMsForSelect('jf-ms-shows', 'jf.shows');
                     }
-                    // If we just auto-selected everything, schedule a deferred rebuild to ensure chips render
-                    // even if the multiselect wasn't wired at the initial moment.
-                    if (appliedAutoSelect) {
-                        setTimeout(() => {
-                            try {
-                                rebuildMsForSelect('jf-ms-movies', 'jf.movies');
-                                rebuildMsForSelect('jf-ms-shows', 'jf.shows');
-                            } catch (_) {
-                                /* refreshBadge(true) on open failed (panel still opens) */
-                            }
-                        }, 0);
-                    }
-                    // Rebuild multiselect options
+                    // Rebuild multiselect options with counts
                     rebuildMsForSelect('jf-ms-movies', 'jf.movies');
                     rebuildMsForSelect('jf-ms-shows', 'jf.shows');
                     // If Posterpack source is currently Jellyfin, immediately sync Posterpack lists
@@ -18239,13 +18220,8 @@
                     window.__jfLibsInFlight = null;
                     // Reset refresh request flag after one settled cycle
                     window.__jfLibsRefreshRequested = false;
-                    // debug removed: Jellyfin fetch end
-                    // Post-fetch integrity safeguard
-                    try {
-                        ensureLibrarySelectionIntegrity('jellyfin');
-                    } catch (_) {
-                        /* integrity post-check failed (selections remain as-is) */
-                    }
+                    // Don't run integrity check here - it would rebuild multiselects again
+                    // The rebuild already happened above after setMultiSelect
                 }
             })();
             return window.__jfLibsInFlight;
@@ -19214,11 +19190,16 @@
                     );
                 }
                 // If empty or masked, key is intentionally omitted so backend preserves existing value
-                envPatch.JELLYFIN_INSECURE_HTTPS =
+                // Only add JELLYFIN_INSECURE_HTTPS to envPatch if it changed (to avoid unnecessary restart)
+                const newInsecureHttps =
                     document.getElementById('jf.insecureHttpsHeader')?.checked ||
                     document.getElementById('jf.insecureHttps')?.checked
                         ? 'true'
                         : 'false';
+                const currentInsecureHttps = base?.env?.JELLYFIN_INSECURE_HTTPS || 'false';
+                if (newInsecureHttps !== currentInsecureHttps) {
+                    envPatch.JELLYFIN_INSECURE_HTTPS = newInsecureHttps;
+                }
                 jf.hostname = getInput('jf.hostname')?.value?.trim() || jf.hostname;
                 const jfPortRaw = getInput('jf.port')?.value?.trim();
                 if (jfPortRaw && !Number.isNaN(Number(jfPortRaw))) jf.port = Number(jfPortRaw);
