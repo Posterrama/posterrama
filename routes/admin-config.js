@@ -797,7 +797,7 @@ module.exports = function createAdminConfigRouter({
                             `[Jellyfin Test] Found config with tokenEnvVar: ${jellyfinServerConfig.tokenEnvVar}`
                         );
                         logger.debug(
-                            `[Jellyfin Test] process.env value exists: ${!!apiKey}, length: ${apiKey ? apiKey.length : 0}`
+                            `[Jellyfin Test] process.env value exists: ${!!apiKey}, length: ${apiKey ? apiKey.length : 0}, masked: ${maskSensitive(apiKey)}`
                         );
                         if (!apiKey) {
                             logger.debug(
@@ -825,7 +825,7 @@ module.exports = function createAdminConfigRouter({
                                 process.env[jellyfinServerConfig.tokenEnvVar] = apiKey;
                                 if (isDebug)
                                     logger.debug(
-                                        `[Jellyfin Test] Successfully loaded ${jellyfinServerConfig.tokenEnvVar} from .env (len=${apiKey.length}).`
+                                        `[Jellyfin Test] Successfully loaded ${jellyfinServerConfig.tokenEnvVar} from .env (len=${apiKey.length}, masked=${maskSensitive(apiKey)}).`
                                     );
                             } else {
                                 if (isDebug) {
@@ -857,7 +857,7 @@ module.exports = function createAdminConfigRouter({
                                             .trim();
                                         process.env[jellyfinServerConfig.tokenEnvVar] = apiKey;
                                         logger.debug(
-                                            `[Jellyfin Test] Used flexible parsing, got key (len=${apiKey.length})`
+                                            `[Jellyfin Test] Used flexible parsing, got key (len=${apiKey.length}, masked=${maskSensitive(apiKey)})`
                                         );
                                     }
                                 }
@@ -891,7 +891,9 @@ module.exports = function createAdminConfigRouter({
                     logger.debug(`[Jellyfin Test] About to create client with:`);
                     logger.debug(`[Jellyfin Test] - hostname: ${hostname}`);
                     logger.debug(`[Jellyfin Test] - port: ${port}`);
-                    logger.debug(`[Jellyfin Test] - apiKey length: ${apiKey ? apiKey.length : 0}`);
+                    logger.debug(
+                        `[Jellyfin Test] - apiKey length: ${apiKey ? apiKey.length : 0}, masked: ${maskSensitive(apiKey)}`
+                    );
                     logger.debug(
                         `[Jellyfin Test] - insecureHttps: ${typeof insecureHttps !== 'undefined' ? !!insecureHttps : process.env.JELLYFIN_INSECURE_HTTPS === 'true'}`
                     );

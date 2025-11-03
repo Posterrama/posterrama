@@ -22,12 +22,18 @@ function createAdminAuth({ isAuthenticated, logger }) {
 
             if (process.env.PRINT_AUTH_DEBUG === '1') {
                 try {
+                    const maskKey = k =>
+                        k
+                            ? k.length > 8
+                                ? k.substring(0, 4) + '...' + k.substring(k.length - 4)
+                                : '***'
+                            : k;
                     logger.debug('[ADMIN AUTH DEBUG]', {
                         env: process.env.NODE_ENV,
                         path: req.path,
-                        authHeader,
-                        xApiKey,
-                        qApiKey,
+                        authHeader: maskKey(authHeader),
+                        xApiKey: maskKey(xApiKey),
+                        qApiKey: maskKey(qApiKey),
                     });
                 } catch (_) {
                     /* noop */
