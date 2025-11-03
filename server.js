@@ -73,6 +73,37 @@ const fsp = fs.promises;
 
 const config = require('./config.json');
 
+// Migrate config: ensure all mediaServers have a 'name' field
+if (Array.isArray(config.mediaServers)) {
+    let needsSave = false;
+    config.mediaServers.forEach((server, index) => {
+        if (!server.name) {
+            // Auto-generate name based on type
+            const typeName =
+                server.type === 'plex'
+                    ? 'Plex Server'
+                    : server.type === 'jellyfin'
+                      ? 'Jellyfin Server'
+                      : server.type === 'tmdb'
+                        ? 'TMDB'
+                        : server.type === 'local'
+                          ? 'Local Media'
+                          : 'Media Server';
+            server.name = `${typeName}${index > 0 ? ` ${index + 1}` : ''}`;
+            needsSave = true;
+        }
+    });
+    if (needsSave) {
+        try {
+            const configPath = path.join(__dirname, 'config.json');
+            fs.writeFileSync(configPath, JSON.stringify(config, null, 4), 'utf8');
+            logger.info('[Config Migration] Added missing "name" fields to mediaServers');
+        } catch (e) {
+            logger.warn('[Config Migration] Could not save updated config:', e.message);
+        }
+    }
+}
+
 // Make writeConfig available globally for MQTT capability handlers
 // Wrapper function that passes the config object automatically
 global.writeConfig = newConfig => writeConfig(newConfig, config);
