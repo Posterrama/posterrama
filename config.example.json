@@ -28,6 +28,7 @@
     "cinemaMode": false,
     "cinemaOrientation": "portrait-flipped",
     "cinema": {
+        "orientation": "auto",
         "header": {
             "enabled": true,
             "text": "Super Cool",
