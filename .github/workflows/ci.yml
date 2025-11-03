@@ -102,6 +102,9 @@ jobs:
                         "showLibraryNames": []
                       }
                     ],
+                    "cinema": {
+                      "orientation": "auto"
+                    },
                     "cache": {
                       "maxSizeGB": 1.5,
                       "minFreeDiskSpaceMB": 750,
