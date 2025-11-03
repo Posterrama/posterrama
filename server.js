@@ -711,8 +711,16 @@ app.get(
                 return res.status(400).send('Invalid zip path');
             }
 
-            // Allow only known entry types
-            const allowed = new Set(['poster', 'background', 'clearlogo', 'thumbnail', 'banner']);
+            // Allow only known entry types (including trailer and theme)
+            const allowed = new Set([
+                'poster',
+                'background',
+                'clearlogo',
+                'thumbnail',
+                'banner',
+                'trailer',
+                'theme',
+            ]);
             if (!allowed.has(entryKey)) return res.status(400).send('Invalid entry type');
 
             const bases = Array.isArray(localDirectorySource.rootPaths)
@@ -759,8 +767,15 @@ app.get(
                 return res.status(404).send('Entry not found in ZIP');
             }
 
-            // Preferred extensions order
-            const exts = ['jpg', 'jpeg', 'png', 'webp'];
+            // Preferred extensions order based on entry type
+            let exts;
+            if (entryKey === 'trailer') {
+                exts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'];
+            } else if (entryKey === 'theme') {
+                exts = ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac'];
+            } else {
+                exts = ['jpg', 'jpeg', 'png', 'webp'];
+            }
             let target = null;
             for (const ext of exts) {
                 const re = new RegExp(
@@ -839,7 +854,15 @@ app.head(
                 return res.sendStatus(400);
             }
 
-            const allowed = new Set(['poster', 'background', 'clearlogo', 'thumbnail', 'banner']);
+            const allowed = new Set([
+                'poster',
+                'background',
+                'clearlogo',
+                'thumbnail',
+                'banner',
+                'trailer',
+                'theme',
+            ]);
             if (!allowed.has(entryKey)) return res.sendStatus(400);
 
             const bases = Array.isArray(localDirectorySource.rootPaths)
@@ -880,7 +903,15 @@ app.head(
                 return res.sendStatus(404);
             }
 
-            const exts = ['jpg', 'jpeg', 'png', 'webp'];
+            // Check extensions based on entry type
+            let exts;
+            if (entryKey === 'trailer') {
+                exts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'];
+            } else if (entryKey === 'theme') {
+                exts = ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac'];
+            } else {
+                exts = ['jpg', 'jpeg', 'png', 'webp'];
+            }
             let found = false;
             for (const ext of exts) {
                 const re = new RegExp(

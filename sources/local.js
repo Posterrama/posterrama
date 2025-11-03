@@ -361,6 +361,8 @@ class LocalDirectorySource {
                             background: false,
                             thumbnail: false,
                             clearlogo: false,
+                            trailer: false,
+                            theme: false,
                         };
                         for (const ext of exts) {
                             const rePoster = new RegExp(`(^|/)poster\\.${ext}$`, 'i');
@@ -373,6 +375,24 @@ class LocalDirectorySource {
                                 has.thumbnail = true;
                             if (zipEntries.some(e => reClearLogo.test(e.entryName)))
                                 has.clearlogo = true;
+                        }
+                        // Check for trailer (video files)
+                        const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'];
+                        for (const ext of videoExts) {
+                            const reTrailer = new RegExp(`(^|/)trailer\\.${ext}$`, 'i');
+                            if (zipEntries.some(e => reTrailer.test(e.entryName))) {
+                                has.trailer = true;
+                                break;
+                            }
+                        }
+                        // Check for theme music (audio files)
+                        const audioExts = ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac'];
+                        for (const ext of audioExts) {
+                            const reTheme = new RegExp(`(^|/)theme\\.${ext}$`, 'i');
+                            if (zipEntries.some(e => reTheme.test(e.entryName))) {
+                                has.theme = true;
+                                break;
+                            }
                         }
                         found = has[want];
                         if (!found) continue;
@@ -886,13 +906,15 @@ class LocalDirectorySource {
         let backgroundUrl = metadata.backgroundPath || null;
         let thumbnailUrl = metadata.thumbnailPath || null;
         let bannerUrl = null;
+        let trailerUrl = null;
+        let themeUrl = null;
         if (isZip) {
             const entry = file.type === 'background' ? 'background' : 'poster';
             const encoded = encodeURIComponent(relUrlPath);
             mediaUrl = `/local-posterpack?zip=${encoded}&entry=${entry}`;
             // Provide clearlogo path if available; client normalizer may pick this up
             clearlogoPath = `/local-posterpack?zip=${encoded}&entry=clearlogo`;
-            // If ZIP contains background/thumbnail/banner, expose streaming URLs
+            // If ZIP contains background/thumbnail/banner/trailer/theme, expose streaming URLs
             try {
                 if (file.zipHas && file.zipHas.background) {
                     backgroundUrl = `/local-posterpack?zip=${encoded}&entry=background`;
@@ -903,6 +925,14 @@ class LocalDirectorySource {
                 // Check if banner exists in ZIP
                 if (enrichedMeta.images && enrichedMeta.images.banner) {
                     bannerUrl = `/local-posterpack?zip=${encoded}&entry=banner`;
+                }
+                // Check if trailer exists in ZIP
+                if (file.zipHas && file.zipHas.trailer) {
+                    trailerUrl = `/local-posterpack?zip=${encoded}&entry=trailer`;
+                }
+                // Check if theme music exists in ZIP
+                if (file.zipHas && file.zipHas.theme) {
+                    themeUrl = `/local-posterpack?zip=${encoded}&entry=theme`;
                 }
             } catch (_) {
                 /* ignore */
@@ -921,6 +951,8 @@ class LocalDirectorySource {
             clearLogoUrl: clearlogoPath || metadata.clearlogoPath || null,
             thumbnailUrl: thumbnailUrl,
             bannerUrl: bannerUrl,
+            trailerUrl: trailerUrl || enrichedMeta.trailer?.thumb || null,
+            themeUrl: themeUrl || enrichedMeta.themeMusic || enrichedMeta.themeUrl || null,
             metadata: {
                 genre: enrichedMeta.genres || metadata.genre || [],
                 rating: enrichedMeta.rating || metadata.rating || null,

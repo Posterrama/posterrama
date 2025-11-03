@@ -920,6 +920,12 @@ class JobQueue extends EventEmitter {
             related: item.related || null,
             themeUrl: item.themeUrl || null,
             lockedFields: item.lockedFields || null,
+            // Trailer and theme music support
+            trailer:
+                item.extras?.find(
+                    e => e.type === 'trailer' || e.type?.toLowerCase() === 'trailer'
+                ) || null,
+            themeMusic: item.themeUrl || null,
             // Enriched metadata fields (phase 6: File & Location Info)
             filePaths: item.filePaths || null,
             fileDetails: item.fileDetails || null,
