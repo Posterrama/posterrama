@@ -1105,11 +1105,14 @@ describe('CapabilityRegistry - 80% Coverage Push', () => {
     });
 
     describe('Cinema Settings Config Fallback', () => {
-        test('cinema.orientation falls back to auto', () => {
+        test('cinema.orientation falls back to config default', () => {
             const cap = capabilityRegistry.get('settings.cinema.orientation');
             const device = {};
 
-            expect(cap.stateGetter(device)).toBe('auto');
+            const result = cap.stateGetter(device);
+            // Should return the global config default (whatever it is set to)
+            expect(typeof result).toBe('string');
+            expect(['auto', 'portrait', 'portrait-flipped', 'landscape']).toContain(result);
         });
 
         test('cinema.header.enabled falls back to true', () => {

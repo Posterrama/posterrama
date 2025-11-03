@@ -2087,6 +2087,23 @@
               </div>
       </section>
 
+            <!-- Client Debug Viewer -->
+            <section class="perf-card" aria-label="Client Debug Viewer">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <h3 style="margin: 0;"><i class="fas fa-bug"></i> Client Debug Viewer</h3>
+                <label class="header-toggle" for="clientDebugViewer.enabled">
+                  <input type="checkbox" id="clientDebugViewer.enabled" />
+                  <span class="ht-switch" aria-hidden="true"></span>
+                </label>
+              </div>
+              <div class="card-subtext">Enable semi-transparent debug log overlay on display devices for troubleshooting.</div>
+              <div class="subtle mt-6" style="font-size: 0.85rem; color: rgba(255,255,255,0.6);">
+                <i class="fas fa-info-circle" style="color: var(--color-info);"></i>
+                When enabled, screensaver, wallart, and cinema modes will show a semi-transparent debug log viewer.
+                Useful for troubleshooting WebSocket connections, device registration, and media loading issues on remote displays.
+              </div>
+            </section>
+
             <!-- Entry Route (moved here to left column) -->
             <section class="perf-card" aria-label="Entry Route">
               <h3><i class="fas fa-signs-post"></i> Entry Route</h3>

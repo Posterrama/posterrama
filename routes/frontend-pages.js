@@ -16,6 +16,7 @@ const path = require('path');
  * @param {string} deps.ASSET_VERSION - Fallback version string
  * @param {Object} deps.logger - Logger instance
  * @param {string} deps.publicDir - Public directory path
+ * @param {Function} deps.getConfig - Get current server config
  * @returns {express.Router} Configured router
  */
 module.exports = function createFrontendPagesRouter({
@@ -25,8 +26,27 @@ module.exports = function createFrontendPagesRouter({
     ASSET_VERSION,
     logger,
     publicDir,
+    getConfig,
 }) {
     const router = express.Router();
+
+    /**
+     * Helper: Inject debug viewer script if enabled in config
+     * @param {string} html - HTML content
+     * @param {Object} config - Server config
+     * @returns {string} HTML with debug viewer injected (if enabled)
+     */
+    function injectDebugViewer(html, config) {
+        if (!config || !config.clientDebugViewer || !config.clientDebugViewer.enabled) {
+            return html;
+        }
+
+        const versions = getAssetVersions(path.dirname(publicDir));
+        const debugViewerScript = `\n    <script src="/debug-viewer.js?v=${versions['debug-viewer.js'] || ASSET_VERSION}"></script>`;
+
+        // Inject before closing </head> tag
+        return html.replace('</head>', `${debugViewerScript}\n</head>`);
+    }
 
     /**
      * @swagger
@@ -427,12 +447,12 @@ module.exports = function createFrontendPagesRouter({
             const versions = getAssetVersions(path.dirname(publicDir));
             const stamped = contents
                 .replace(
-                    /cinema\.css\?v=[^"&\s]+/g,
-                    `cinema.css?v=${versions['cinema.css'] || ASSET_VERSION}`
+                    /style\.css\?v=[^"&\s]+/g,
+                    `style.css?v=${versions['style.css'] || ASSET_VERSION}`
                 )
                 .replace(
-                    /cinema\.js\?v=[^"&\s]+/g,
-                    `cinema.js?v=${versions['cinema.js'] || ASSET_VERSION}`
+                    /script\.js\?v=[^"&\s]+/g,
+                    `script.js?v=${versions['script.js'] || ASSET_VERSION}`
                 )
                 .replace(
                     /device-mgmt\.js\?v=[^"&\s]+/g,
@@ -455,8 +475,11 @@ module.exports = function createFrontendPagesRouter({
                     `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`
                 );
 
+            // Inject debug viewer if enabled
+            const finalHtml = injectDebugViewer(stamped, getConfig ? getConfig() : null);
+
             res.setHeader('Cache-Control', 'no-cache');
-            res.send(stamped);
+            res.send(finalHtml);
         });
     });
 
@@ -494,12 +517,12 @@ module.exports = function createFrontendPagesRouter({
             const versions = getAssetVersions(path.dirname(publicDir));
             const stamped = contents
                 .replace(
-                    /wallart\.css\?v=[^"&\s]+/g,
-                    `wallart.css?v=${versions['wallart.css'] || ASSET_VERSION}`
+                    /style\.css\?v=[^"&\s]+/g,
+                    `style.css?v=${versions['style.css'] || ASSET_VERSION}`
                 )
                 .replace(
-                    /wallart\.js\?v=[^"&\s]+/g,
-                    `wallart.js?v=${versions['wallart.js'] || ASSET_VERSION}`
+                    /\/wallart\/wallart\.css(\?v=[^"'\s>]+)?/g,
+                    `/wallart/wallart.css?v=${versions['wallart/wallart.css'] || ASSET_VERSION}`
                 )
                 .replace(
                     /device-mgmt\.js\?v=[^"&\s]+/g,
@@ -522,8 +545,11 @@ module.exports = function createFrontendPagesRouter({
                     `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`
                 );
 
+            // Inject debug viewer if enabled
+            const finalHtml = injectDebugViewer(stamped, getConfig ? getConfig() : null);
+
             res.setHeader('Cache-Control', 'no-cache');
-            res.send(stamped);
+            res.send(finalHtml);
         });
     });
 
@@ -574,8 +600,11 @@ module.exports = function createFrontendPagesRouter({
                     `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`
                 );
 
+            // Inject debug viewer if enabled
+            const finalHtml = injectDebugViewer(stamped, getConfig ? getConfig() : null);
+
             res.setHeader('Cache-Control', 'no-cache');
-            res.send(stamped);
+            res.send(finalHtml);
         });
     });
 

@@ -33,6 +33,14 @@ module.exports = function createAdminConfigRouter({
 }) {
     const router = express.Router();
 
+    // Helper to mask sensitive values in logs
+    const maskSensitive = value => {
+        if (!value) return value;
+        const str = String(value);
+        if (str.length <= 8) return '***';
+        return str.substring(0, 4) + '...' + str.substring(str.length - 4);
+    };
+
     /**
      * @swagger
      * /api/admin/config-schema:

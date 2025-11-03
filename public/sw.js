@@ -1,7 +1,7 @@
 // Posterrama PWA Service Worker
-// Version 2.2.2 - Ensure logs assets are always fetched fresh (network-first/no-store)
+// Version 2.2.6 - Debug viewer UI improvements
 
-const CACHE_NAME = 'posterrama-pwa-v2.2.2';
+const CACHE_NAME = 'posterrama-pwa-v2.2.6';
 const MEDIA_CACHE_NAME = 'posterrama-media-v1.1.0';
 
 // Cache limits to avoid QuotaExceededError
@@ -78,7 +78,19 @@ self.addEventListener('message', event => {
 // Fetch event - enhanced caching strategy
 self.addEventListener('fetch', event => {
     const { request } = event;
+
+    // CRITICAL: Skip WebSocket upgrade requests FIRST (before parsing URL)
+    // Safari iOS is very strict about WebSocket handling
+    if (request.headers.get('upgrade') === 'websocket') {
+        return;
+    }
+
     const url = new URL(request.url);
+
+    // Skip WebSocket paths (e.g., /ws/devices) - critical for device management
+    if (url.pathname.startsWith('/ws/')) {
+        return;
+    }
 
     // Only handle GET requests
     if (request.method !== 'GET') {
@@ -92,6 +104,16 @@ self.addEventListener('fetch', event => {
 
     // Skip API requests (let them go to network)
     if (url.pathname.startsWith('/api/')) {
+        return;
+    }
+
+    // Skip /get-media and /get-config - always fetch fresh from network (no SW interference)
+    // These endpoints return dynamic JSON that should never be cached by SW
+    if (
+        url.pathname === '/get-media' ||
+        url.pathname === '/get-config' ||
+        url.pathname.startsWith('/get-media-by-key/')
+    ) {
         return;
     }
 

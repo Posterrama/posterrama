@@ -20187,6 +20187,12 @@
                     Math.min(1440, Math.round(backgroundRefreshMinutes))
                 );
                 if (brmInput) brmInput.value = String(backgroundRefreshMinutes);
+
+                // Collect Client Debug Viewer
+                const clientDebugViewerEnabled = !!document.getElementById(
+                    'clientDebugViewer.enabled'
+                )?.checked;
+
                 if (!btn.querySelector('.spinner')) {
                     const sp = document.createElement('span');
                     sp.className = 'spinner';
@@ -20254,6 +20260,9 @@
                         serverPort: serverPort,
                         backgroundRefreshMinutes,
                         baseUrl,
+                        clientDebugViewer: {
+                            enabled: clientDebugViewerEnabled,
+                        },
                         mqtt: {
                             enabled: mqttEnabled,
                             broker: {
@@ -20423,6 +20432,13 @@
                 const v = Number(cfg?.backgroundRefreshMinutes ?? 60);
                 brmEl.value = Number.isFinite(v) && v > 0 ? String(v) : '60';
             }
+
+            // Client Debug Viewer
+            const debugViewerEl = document.getElementById('clientDebugViewer.enabled');
+            if (debugViewerEl) {
+                debugViewerEl.checked = !!cfg?.clientDebugViewer?.enabled;
+            }
+
             // Promobox
             const site = cfg.siteServer || {};
             const enabledEl = document.getElementById('siteServer.enabled');

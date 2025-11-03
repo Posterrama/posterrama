@@ -58,7 +58,8 @@
         }
     };
 
-    // Log function - only logs to console if debug is enabled
+    // Log function - always persists to localStorage for debug-view.html
+    // Only shows in console if debug is explicitly enabled
     window.debugLog = function (message, data) {
         const timestamp = new Date().toISOString();
         const entry = {
@@ -68,15 +69,20 @@
             url: window.location.href,
         };
 
-        // Only log to console if debug is enabled
+        // Log to console only if debug mode is explicitly enabled
         if (isDebugEnabled()) {
             console.log(`[DEBUG ${timestamp}]`, message, data || '');
         }
 
-        // Always persist to localStorage (for later viewing with debugLogView)
-        const logs = getLogs();
-        logs.push(entry);
-        saveLogs(logs);
+        // ALWAYS persist to localStorage (even without ?debug=true)
+        // This allows viewing logs retroactively via debug-view.html
+        try {
+            const logs = getLogs();
+            logs.push(entry);
+            saveLogs(logs);
+        } catch (_) {
+            // Silently fail if localStorage is unavailable
+        }
     };
 
     // View all logs

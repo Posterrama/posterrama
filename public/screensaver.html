@@ -112,8 +112,21 @@
                     if (Array.isArray(window.mediaQueue) && window.mediaQueue.length > 0) return true;
                     const count = 12; // fetch multiple items so screensaver can rotate
                     const type = (window.appConfig && window.appConfig.type) || 'movies';
-                    const url = `/get-media?count=${count}&type=${encodeURIComponent(type)}`;
-                    const res = await fetch(url, { cache: 'no-cache', headers: { 'Cache-Control': 'no-cache' } });
+                    
+                    // Build absolute URL for better Safari/iOS compatibility
+                    const baseUrl = window.location.origin;
+                    const url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+                    
+                    const res = await fetch(url, { 
+                        method: 'GET',
+                        cache: 'no-cache', 
+                        headers: { 
+                            'Cache-Control': 'no-cache',
+                            'Accept': 'application/json'
+                        },
+                        credentials: 'same-origin',
+                        mode: 'cors'
+                    });
                     if (!res.ok) return false;
                     const data = await res.json();
                     const items = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
@@ -126,10 +139,16 @@
                         }
                     } catch (_) { window.mediaQueue = items; }
                     return true;
-                } catch (_) { return false; }
+                } catch (err) { 
+                    console.error('[Screensaver] Fetch media failed:', err.message, err.name);
+                    return false; 
+                }
             }
             async function startScreensaver() {
                 try {
+                    // Force SW update first
+                    await forceServiceWorkerUpdate();
+                    
                     await ensureConfig();
                     try { window.PosterramaDevice && window.PosterramaDevice.init && window.PosterramaDevice.init(window.appConfig || {}); } catch(_) { /* optional */ }
                     await ensureMediaQueue();

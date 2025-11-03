@@ -309,6 +309,27 @@
     <script>
         (function () {
             // Minimal, page-local bootstrap to populate media and start wallart without legacy script.js
+            // Force service worker update if available
+            async function forceServiceWorkerUpdate() {
+                try {
+                    if ('serviceWorker' in navigator) {
+                        const registration = await navigator.serviceWorker.getRegistration();
+                        if (registration) {
+                            await registration.update();
+                            window.debugLog && window.debugLog('SW_UPDATE_REQUESTED', { scope: registration.scope });
+                            
+                            // If there's a new SW waiting, activate it immediately
+                            if (registration.waiting) {
+                                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                                window.debugLog && window.debugLog('SW_SKIP_WAITING_SENT', {});
+                            }
+                        }
+                    }
+                } catch (e) {
+                    window.debugLog && window.debugLog('SW_UPDATE_ERROR', { error: e.message });
+                }
+            }
+            
             async function ensureConfig() {
                 window.debugLog && window.debugLog('WALLART_ENSURE_CONFIG_START', {});
                 try {
@@ -355,14 +376,50 @@
                     }
                     const count = Math.max(60, Math.min(400, Math.floor((window.innerWidth * window.innerHeight) / 8000)));
                     const type = (window.appConfig && window.appConfig.type) || 'movies';
-                    const url = `/get-media?count=${count}&type=${encodeURIComponent(type)}`;
-                    window.debugLog && window.debugLog('WALLART_FETCH_MEDIA', { url });
-                    const res = await fetch(url, { cache: 'no-cache', headers: { 'Cache-Control': 'no-cache' } });
+                    
+                    // Build absolute URL for better Safari/iOS compatibility
+                    const baseUrl = window.location.origin;
+                    const url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+                    
+                    window.debugLog && window.debugLog('WALLART_FETCH_MEDIA', { url, userAgent: navigator.userAgent });
+                    
+                    // Safari-compatible fetch with explicit credentials and mode
+                    const res = await fetch(url, { 
+                        method: 'GET',
+                        cache: 'no-cache', 
+                        headers: { 
+                            'Cache-Control': 'no-cache',
+                            'Accept': 'application/json'
+                        },
+                        credentials: 'same-origin',
+                        mode: 'cors'
+                    });
+                    
+                    window.debugLog && window.debugLog('WALLART_MEDIA_FETCH_SUCCESS', { 
+                        status: res.status, 
+                        ok: res.ok,
+                        contentType: res.headers.get('content-type'),
+                        bodyUsed: res.bodyUsed
+                    });
+                    
                     if (!res.ok) {
-                        window.debugLog && window.debugLog('WALLART_MEDIA_FETCH_FAIL', { status: res.status });
+                        window.debugLog && window.debugLog('WALLART_MEDIA_FETCH_FAIL', { status: res.status, statusText: res.statusText });
                         return false;
                     }
-                    const data = await res.json();
+                    
+                    // Clone response before reading to avoid Safari bodyUsed issues
+                    const resClone = res.clone();
+                    let data;
+                    try {
+                        const text = await resClone.text();
+                        window.debugLog && window.debugLog('WALLART_MEDIA_TEXT_LENGTH', { length: text.length, preview: text.substring(0, 100) });
+                        data = JSON.parse(text);
+                        window.debugLog && window.debugLog('WALLART_MEDIA_JSON_PARSED', { isArray: Array.isArray(data), length: data?.length || 0 });
+                    } catch (jsonErr) {
+                        window.debugLog && window.debugLog('WALLART_MEDIA_JSON_PARSE_ERROR', { error: jsonErr.message, errorName: jsonErr.name });
+                        throw jsonErr;
+                    }
+                    
                     const items = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
                     if (!items.length) {
                         window.debugLog && window.debugLog('WALLART_MEDIA_EMPTY', {});
@@ -381,13 +438,21 @@
                     window.debugLog && window.debugLog('WALLART_ENSURE_MEDIA_SUCCESS', { count: items.length });
                     return true;
                 } catch (e) {
-                    window.debugLog && window.debugLog('WALLART_ENSURE_MEDIA_FAIL', { error: e.message });
+                    window.debugLog && window.debugLog('WALLART_ENSURE_MEDIA_FAIL', { 
+                        error: e.message, 
+                        errorName: e.name,
+                        errorStack: e.stack?.substring(0, 200),
+                        isSafari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+                    });
                     return false;
                 }
             }
             async function startWallartOnceReady() {
                 window.debugLog && window.debugLog('WALLART_START_ONCE_READY', {});
                 try {
+                    // Force SW update first to ensure latest version
+                    await forceServiceWorkerUpdate();
+                    
                     await ensureConfig();
                     try { window.logger && window.logger.debug && window.logger.debug('[WALLART] bootstrap: config loaded', { hasWallartConfig: !!window.wallartConfig }); } catch(_) {}
                     // Initialize device management to enable heartbeats and live WS logs

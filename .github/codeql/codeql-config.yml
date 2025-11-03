@@ -1,22 +1,22 @@
-name: "CodeQL Config"
+name: 'CodeQL Config'
 
 queries:
-  - uses: security-and-quality
+    - uses: security-and-quality
 
 # Suppress false positives and accepted risks
 query-filters:
-  - exclude:
-      id: js/missing-rate-limiting
-      reason: "Posterrama is a private application with trusted clients. Rate limiting was intentionally removed to prevent 429 errors during normal usage."
-  - exclude:
-      id: js/insecure-randomness  
-      reason: "Math.random() used only for non-security purposes (random session selection for display)"
-  - exclude:
-      id: js/insufficient-password-hash
-      reason: "SHA256 used for cache key generation, not password hashing"
-  - exclude:
-      id: js/sensitive-get-query
-      reason: "API key in GET query parameters only used in test environment"
-  - exclude:
-      id: js/incomplete-sanitization
-      reason: "Test support code only"
+    - exclude:
+          id: js/missing-rate-limiting
+          reason: 'Posterrama is a private application with trusted clients. Rate limiting was intentionally removed to prevent 429 errors during normal usage.'
+    - exclude:
+          id: js/insecure-randomness
+          reason: 'Math.random() used only for non-security purposes (random session selection for display)'
+    - exclude:
+          id: js/insufficient-password-hash
+          reason: 'SHA256 used for cache key generation, not password hashing'
+    - exclude:
+          id: js/sensitive-get-query
+          reason: 'API key in GET query parameters only used in test environment'
+    - exclude:
+          id: js/incomplete-sanitization
+          reason: 'Test support code only'

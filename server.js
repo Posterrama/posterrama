@@ -500,6 +500,7 @@ const frontendPagesRouter = createFrontendPagesRouter({
     ASSET_VERSION,
     logger,
     publicDir: path.join(__dirname, 'public'),
+    getConfig: () => config,
 });
 app.use('/', frontendPagesRouter);
 

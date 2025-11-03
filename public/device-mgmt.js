@@ -576,6 +576,14 @@
             } catch (_) {
                 /* debug logging unavailable */
             }
+
+            window.debugLog &&
+                window.debugLog('DEVICE_MGMT_HEARTBEAT_SENDING', {
+                    hasDeviceId: !!state.deviceId,
+                    hasSecret: !!state.deviceSecret,
+                    payloadKeys: Object.keys(payload),
+                });
+
             const res = await fetch('/api/devices/heartbeat', {
                 method: 'POST',
                 headers: {
@@ -622,6 +630,13 @@
             if (typeof window !== 'undefined') {
                 window.__posterramaLastHeartbeatTime = Date.now();
             }
+
+            window.debugLog &&
+                window.debugLog('DEVICE_MGMT_HEARTBEAT_SUCCESS', {
+                    status: res.status,
+                    hasCommands:
+                        Array.isArray(data.commandsQueued) && data.commandsQueued.length > 0,
+                });
 
             if (Array.isArray(data.commandsQueued) && data.commandsQueued.length) {
                 try {
@@ -1284,13 +1299,24 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         }
         const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
         const url = `${proto}://${window.location.host}/ws/devices`;
-        window.debugLog && window.debugLog('DEVICE_MGMT_WS_CONNECT', { url });
+        window.debugLog &&
+            window.debugLog('DEVICE_MGMT_WS_CONNECT_ATTEMPT', {
+                url,
+                proto,
+                host: window.location.host,
+                hasDeviceId: !!state.deviceId,
+                hasSecret: !!state.deviceSecret,
+                enabled: state.enabled,
+            });
         try {
             const ws = new WebSocket(url);
             state.ws = ws;
+            window.debugLog &&
+                window.debugLog('DEVICE_MGMT_WS_CREATED', { readyState: ws.readyState });
             ws.onopen = () => {
                 liveDbg('[Live] WS open', { url });
-                window.debugLog && window.debugLog('DEVICE_MGMT_WS_OPEN', { url });
+                window.debugLog &&
+                    window.debugLog('DEVICE_MGMT_WS_OPEN', { url, readyState: ws.readyState });
                 try {
                     ws.send(
                         JSON.stringify({
@@ -1540,6 +1566,12 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             };
             ws.onclose = ev => {
                 state.ws = null;
+                window.debugLog &&
+                    window.debugLog('DEVICE_MGMT_WS_CLOSE', {
+                        code: ev?.code,
+                        reason: ev?.reason,
+                        wasClean: ev?.wasClean,
+                    });
                 try {
                     liveDbg('[Live] WS close', { code: ev?.code, reason: ev?.reason });
                 } catch (_) {
@@ -1548,6 +1580,12 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 scheduleReconnect();
             };
             ws.onerror = err => {
+                window.debugLog &&
+                    window.debugLog('DEVICE_MGMT_WS_ERROR', {
+                        error: err?.message || 'WebSocket error',
+                        type: err?.type,
+                        readyState: ws?.readyState,
+                    });
                 try {
                     liveDbg('[Live] WS error', err);
                 } catch (_) {
@@ -1559,7 +1597,12 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                     /* ignore ws close errors */
                 }
             };
-        } catch (_) {
+        } catch (err) {
+            window.debugLog &&
+                window.debugLog('DEVICE_MGMT_WS_CONNECT_EXCEPTION', {
+                    error: err?.message,
+                    stack: err?.stack,
+                });
             liveDbg('[Live] WS connect exception, scheduling reconnect');
             scheduleReconnect();
         }

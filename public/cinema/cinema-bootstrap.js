@@ -1,5 +1,26 @@
 'use strict';
 (function () {
+    // Force service worker update if available
+    async function forceServiceWorkerUpdate() {
+        try {
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    await registration.update();
+                    console.log('[Cinema Bootstrap] SW update requested');
+
+                    // If there's a new SW waiting, activate it immediately
+                    if (registration.waiting) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        console.log('[Cinema Bootstrap] SW skip waiting sent');
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[Cinema Bootstrap] SW update error:', e.message);
+        }
+    }
+
     async function ensureConfig() {
         try {
             if (window.appConfig) return window.appConfig;
@@ -32,10 +53,19 @@
             const rotationEnabled = cfg.cinema?.rotationIntervalMinutes > 0;
             const count = rotationEnabled ? 50 : 1;
 
-            const url = `/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+            // Build absolute URL for better Safari/iOS compatibility
+            const baseUrl = window.location.origin;
+            const url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+
             const res = await fetch(url, {
+                method: 'GET',
                 cache: 'no-cache',
-                headers: { 'Cache-Control': 'no-cache' },
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    Accept: 'application/json',
+                },
+                credentials: 'same-origin',
+                mode: 'cors',
             });
             if (!res.ok) return null;
             const data = await res.json();
@@ -47,13 +77,17 @@
 
             // If rotation enabled, return all items; otherwise return first one
             return rotationEnabled ? items : items[0] || null;
-        } catch (_) {
+        } catch (err) {
+            console.error('[Cinema Bootstrap] Fetch media failed:', err.message, err.name);
             return null;
         }
     }
 
     async function start() {
         try {
+            // Force SW update first
+            await forceServiceWorkerUpdate();
+
             await ensureConfig();
             // Initialize device management (WebSocket, heartbeat, etc.)
             try {

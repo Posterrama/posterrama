@@ -686,6 +686,21 @@
                 }
             }
         },
+        "clientDebugViewer": {
+            "description": "Client-side debug viewer for live troubleshooting on display devices",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable semi-transparent debug log viewer overlay on screensaver, wallart, and cinema modes"
+                }
+            },
+            "additionalProperties": false,
+            "default": {
+                "enabled": false
+            }
+        },
         "mqtt": {
             "description": "MQTT integration for Home Assistant and other automation platforms",
             "type": "object",
