@@ -231,7 +231,9 @@ module.exports = function createFrontendPagesRouter({
                 const v = Math.floor(Date.now() / 1000).toString(36);
                 params.set('v', v);
                 const qs = params.toString();
-                return res.redirect(`${req.path}?${qs}`);
+                // Sanitize path to prevent open redirects - only allow relative paths
+                const safePath = req.path.startsWith('/') ? req.path : '/' + req.path;
+                return res.redirect(`${safePath}?${qs}`);
             }
         } catch (_) {
             /* non-fatal */
