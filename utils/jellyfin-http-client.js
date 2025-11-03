@@ -577,6 +577,24 @@ class JellyfinHttpClient {
     }
 
     /**
+     * Get special features (trailers, behind the scenes, etc.) for an item
+     * @param {string} itemId - The Jellyfin item ID
+     * @returns {Promise<Array>} Array of special feature objects
+     */
+    async getSpecialFeatures(itemId) {
+        try {
+            const response = await this.http.get(`/Items/${itemId}/SpecialFeatures`);
+            return response.data.Items || [];
+        } catch (error) {
+            // Silently return empty array if endpoint fails (not all items have special features)
+            this.debug(
+                `[JellyfinHttpClient] No special features for item ${itemId}: ${error.message}`
+            );
+            return [];
+        }
+    }
+
+    /**
      * Get all unique quality/resolution values with counts from specified libraries
      */
     async getQualitiesWithCounts(libraryIds) {
