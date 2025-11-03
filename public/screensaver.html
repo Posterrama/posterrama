@@ -90,6 +90,21 @@
         // Hint for SW stamping: server stamps this path in routed responses
         try { window.__swUrl = '/sw.js?v={{ASSET_VERSION}}'; } catch (e) {}
         (function () {
+            // Force service worker update if available
+            async function forceServiceWorkerUpdate() {
+                try {
+                    if ('serviceWorker' in navigator) {
+                        const registration = await navigator.serviceWorker.getRegistration();
+                        if (registration) {
+                            await registration.update();
+                            console.log('[Screensaver] SW update requested');
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[Screensaver] SW update error:', e.message);
+                }
+            }
+
             async function ensureConfig() {
                 try {
                     if (window.appConfig) return true;

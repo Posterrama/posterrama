@@ -784,6 +784,19 @@
                           <select id="cinemaNowPlayingPriority">
                             <option value="first">First active session</option>
                             <option value="random">Random active session</option>
+                            <option value="user">Specific user</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                      </div>
+                      <div class="form-row" id="cinemaNowPlayingFilterUserRow" style="display:none;">
+                        <label for="cinemaNowPlayingFilterUser">
+                          Plex Username
+                          <span class="help-text">Show only sessions from this user</span>
+                        </label>
+                        <div class="select-wrap has-caret">
+                          <select id="cinemaNowPlayingFilterUser">
+                            <option value="">Loading users...</option>
                           </select>
                           <span class="select-caret" aria-hidden="true">▾</span>
                         </div>

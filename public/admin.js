@@ -929,11 +929,27 @@
                 if (countEl) {
                     countEl.textContent = sessions.length;
                 }
+
                 if (subEl) {
                     if (sessions.length === 0) {
                         subEl.textContent = 'nobody watching';
                     } else if (sessions.length === 1) {
-                        subEl.textContent = '1 active session';
+                        const session = sessions[0];
+                        // For TV shows, use grandparentTitle (series name) instead of title (episode name)
+                        const title =
+                            session.type === 'episode'
+                                ? session.grandparentTitle || session.title
+                                : session.title;
+                        const user = session.User?.title || '';
+                        let text = '1 active session';
+                        if (title && user) {
+                            text += ` — ${escapeHtml(title)} (${escapeHtml(user)})`;
+                        } else if (title) {
+                            text += ` — ${escapeHtml(title)}`;
+                        } else if (user) {
+                            text += ` (${escapeHtml(user)})`;
+                        }
+                        subEl.textContent = text;
                     } else {
                         subEl.textContent = `${sessions.length} active sessions`;
                     }
@@ -2874,6 +2890,46 @@
         setIf('cinemaNowPlayingPriority', c.cinema?.nowPlaying?.priority || 'first');
         setIf('cinemaNowPlayingInterval', c.cinema?.nowPlaying?.updateIntervalSeconds || 15);
 
+        // Load Plex users for filterUser dropdown
+        const filterUserSelect = document.getElementById('cinemaNowPlayingFilterUser');
+        if (filterUserSelect) {
+            // Load users from Plex
+            fetchJSON('/api/plex/users')
+                .then(data => {
+                    const users = data?.users || [];
+                    const savedUser = c.cinema?.nowPlaying?.filterUser || '';
+
+                    filterUserSelect.innerHTML = '<option value="">Select a user</option>';
+                    users.forEach(user => {
+                        const username = user.username || user.title;
+                        if (username) {
+                            const opt = document.createElement('option');
+                            opt.value = username;
+                            opt.textContent = username;
+                            if (username === savedUser) opt.selected = true;
+                            filterUserSelect.appendChild(opt);
+                        }
+                    });
+                })
+                .catch(err => {
+                    console.warn('Failed to load Plex users:', err);
+                    filterUserSelect.innerHTML = '<option value="">Failed to load users</option>';
+                });
+        }
+
+        // Show/hide filterUser field based on priority selection
+        const prioritySelect = document.getElementById('cinemaNowPlayingPriority');
+        const filterUserRow = document.getElementById('cinemaNowPlayingFilterUserRow');
+        const toggleFilterUserField = () => {
+            if (filterUserRow) {
+                filterUserRow.style.display = prioritySelect?.value === 'user' ? '' : 'none';
+            }
+        };
+        if (prioritySelect) {
+            prioritySelect.addEventListener('change', toggleFilterUserField);
+            toggleFilterUserField(); // Initial state
+        }
+
         // Wire radio changes after hydration to update UI states
         const radios = document.querySelectorAll('input[name="display.mode"]');
         radios.forEach(r =>
@@ -4139,6 +4195,7 @@
             cinemaUpdate.nowPlaying = {
                 enabled: val('cinemaNowPlayingEnabled'),
                 priority: val('cinemaNowPlayingPriority') || 'first',
+                filterUser: val('cinemaNowPlayingFilterUser') || '',
                 fallbackToRotation: true, // Always enabled
                 updateIntervalSeconds: val('cinemaNowPlayingInterval') || 15,
             };
@@ -9474,7 +9531,7 @@
                 // Show thumbnail only if URL exists AND device is not offline
                 const hasNowplay = !!thumbSrc && status !== 'offline';
                 const thumbRightHtml = hasNowplay
-                    ? `<div class="nowplay-thumb nowplay-thumb-right js-media-hover"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="48" height="72" onerror="this.parentElement.remove();this.closest('.device-card').classList.remove('has-nowplay');"></div>`
+                    ? `<div class="nowplay-thumb nowplay-thumb-right js-media-hover" data-device-id="${d.id}"><img src="${thumbSrc}" alt="${thumbAlt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="48" height="72" onerror="this.parentElement.remove();this.closest('.device-card').classList.remove('has-nowplay');"></div>`
                     : '';
                 // Title rendering handled via live reconcile; no separate inline row here
                 return `
@@ -12122,6 +12179,11 @@
             }
             function bindHover(selector, card) {
                 document.querySelectorAll(selector).forEach(tr => {
+                    // Skip if already bound to prevent duplicate listeners
+                    const boundKey = `__hoverBound_${card.id}`;
+                    if (tr[boundKey]) return;
+                    tr[boundKey] = true;
+
                     let hideTimer;
                     const clearHide = () => {
                         if (hideTimer) {
@@ -12134,8 +12196,13 @@
                         // If status or media hovercard, rebuild from the device referenced by trigger
                         try {
                             if (card && (card.id === 'hc-status' || card.id === 'hc-media')) {
-                                const cardEl = tr.closest('.device-card');
-                                const id = cardEl?.getAttribute('data-id');
+                                // Try to get device ID from the trigger element itself first (for thumbnails)
+                                let id = tr.getAttribute('data-device-id');
+                                // Fall back to closest card's data-id if not found
+                                if (!id) {
+                                    const cardEl = tr.closest('.device-card');
+                                    id = cardEl?.getAttribute('data-id');
+                                }
                                 const d = (state.all || []).find(x => x.id === id);
                                 if (d) {
                                     if (card.id === 'hc-status') {
@@ -13105,6 +13172,7 @@
                                         const wrap = document.createElement('div');
                                         wrap.className =
                                             'nowplay-thumb nowplay-thumb-right js-media-hover';
+                                        wrap.setAttribute('data-device-id', d.id);
                                         const img = document.createElement('img');
                                         img.setAttribute('src', src);
                                         img.setAttribute(

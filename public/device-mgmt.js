@@ -557,7 +557,7 @@
                 posterUrl: curr && curr.posterUrl,
                 backgroundUrl: curr && curr.backgroundUrl,
                 thumbnailUrl: curr && curr.thumbnailUrl,
-                runtime: curr && curr.runtime,
+                runtime: curr && (curr.runtime || curr.runtimeMs),
                 genres: curr && curr.genres,
                 overview: curr && curr.overview,
                 tagline: curr && curr.tagline,

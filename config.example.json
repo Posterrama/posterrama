@@ -55,6 +55,7 @@
         "nowPlaying": {
             "enabled": false,
             "priority": "first",
+            "filterUser": "",
             "fallbackToRotation": true,
             "updateIntervalSeconds": 15
         },

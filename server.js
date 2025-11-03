@@ -5502,6 +5502,143 @@ app.get(
 
 /**
  * @swagger
+ * /api/plex/users:
+ *   get:
+ *     summary: Get Plex users with access to this server
+ *     description: >
+ *       Returns a list of all Plex users (including owner and shared users) who have access to the server.
+ *       Useful for filtering Now Playing sessions by specific users.
+ *     tags: ['Admin', 'Plex']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of Plex users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       username:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       thumb:
+ *                         type: string
+ *       404:
+ *         description: No Plex server configured
+ *       500:
+ *         description: Failed to fetch users from Plex
+ */
+app.get(
+    '/api/plex/users',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const mediaServers = config.mediaServers || [];
+        const plexServer = mediaServers.find(s => s.type === 'plex' && s.enabled);
+
+        if (!plexServer) {
+            return res.status(404).json({ error: 'No Plex server configured', users: [] });
+        }
+
+        try {
+            const plex = await getPlexClient(plexServer);
+            if (!plex) {
+                return res.status(500).json({ error: 'Failed to connect to Plex', users: [] });
+            }
+
+            const users = [];
+
+            // Method 1: Get users from recent sessions
+            const poller = global.__posterramaSessionsPoller;
+            if (poller) {
+                const sessionData = poller.getSessions();
+                const sessions = sessionData?.sessions || [];
+                const seenUsers = new Set();
+
+                sessions.forEach(session => {
+                    const username = session.User?.title || session.username;
+                    if (username && !seenUsers.has(username)) {
+                        seenUsers.add(username);
+                        users.push({
+                            id: session.User?.id,
+                            username: username,
+                            title: username,
+                            thumb: session.User?.thumb,
+                        });
+                    }
+                });
+            }
+
+            // Method 2: Try to get account owner info
+            try {
+                const identity = await plex.query('/identity');
+                const ownerName =
+                    identity?.MediaContainer?.friendlyName ||
+                    identity?.MediaContainer?.machineIdentifier;
+                if (ownerName && !users.find(u => u.username === ownerName)) {
+                    users.unshift({
+                        id: 'owner',
+                        username: ownerName,
+                        title: ownerName,
+                    });
+                }
+            } catch (e) {
+                logger.debug('Could not fetch owner info:', e.message);
+            }
+
+            // Method 3: Query accounts endpoint (admin only)
+            try {
+                const accounts = await plex.query('/accounts');
+                if (accounts?.MediaContainer?.Account) {
+                    const accountList = Array.isArray(accounts.MediaContainer.Account)
+                        ? accounts.MediaContainer.Account
+                        : [accounts.MediaContainer.Account];
+
+                    accountList.forEach(account => {
+                        const username = account.name || account.title;
+                        if (username && !users.find(u => u.username === username)) {
+                            users.push({
+                                id: account.id,
+                                username: username,
+                                title: username,
+                                thumb: account.thumb,
+                            });
+                        }
+                    });
+                }
+            } catch (e) {
+                logger.debug('Could not fetch accounts (may require admin):', e.message);
+            }
+
+            // Fallback: If no users found, add a placeholder
+            if (users.length === 0) {
+                users.push({
+                    id: 'owner',
+                    username: 'Owner',
+                    title: 'Owner (Server Owner)',
+                });
+            }
+
+            res.json({ users });
+        } catch (error) {
+            logger.error('Failed to fetch Plex users:', error);
+            res.status(500).json({ error: 'Failed to fetch users from Plex', users: [] });
+        }
+    })
+);
+
+/**
+ * @swagger
  * /admin/debug:
  *   get:
  *     summary: Retrieve debug information

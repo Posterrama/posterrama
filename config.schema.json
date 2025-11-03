@@ -392,9 +392,14 @@
                         },
                         "priority": {
                             "type": "string",
-                            "enum": ["first", "random"],
+                            "enum": ["first", "random", "user"],
                             "default": "first",
-                            "description": "Session selection priority (first = first active session, random = random active session)"
+                            "description": "Session selection priority (first = first active session, random = random active session, user = specific user)"
+                        },
+                        "filterUser": {
+                            "type": "string",
+                            "default": "",
+                            "description": "When priority is 'user', only show sessions from this Plex username"
                         },
                         "fallbackToRotation": {
                             "type": "boolean",
@@ -414,6 +419,7 @@
                     "default": {
                         "enabled": false,
                         "priority": "first",
+                        "filterUser": "",
                         "fallbackToRotation": true,
                         "updateIntervalSeconds": 15
                     }

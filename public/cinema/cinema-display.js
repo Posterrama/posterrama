@@ -883,9 +883,26 @@
         if (!sessions || sessions.length === 0) return null;
 
         const priority = cinemaConfig.nowPlaying?.priority || 'first';
+        const filterUser = cinemaConfig.nowPlaying?.filterUser || '';
         const deviceUsername = getDevicePlexUsername();
 
-        // If device has plexUsername configured, filter by that username
+        // Priority 1: If priority is 'user' and filterUser is set, filter by that username
+        if (priority === 'user' && filterUser) {
+            const userSessions = sessions.filter(s => s.username === filterUser);
+            if (userSessions.length > 0) {
+                log('Filtered sessions by configured filterUser', {
+                    username: filterUser,
+                    count: userSessions.length,
+                });
+                // Return first session for this user (user filter always takes first)
+                return userSessions[0];
+            }
+            // No sessions for filterUser, return null (will trigger fallback)
+            log('No sessions found for filterUser', { username: filterUser });
+            return null;
+        }
+
+        // Priority 2: If device has plexUsername configured, filter by that username
         if (deviceUsername) {
             const userSessions = sessions.filter(s => s.username === deviceUsername);
             if (userSessions.length > 0) {
