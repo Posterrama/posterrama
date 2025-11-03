@@ -9,6 +9,105 @@ const path = require('path');
 const fs = require('fs');
 const { PassThrough } = require('stream');
 
+// Import enrichment functions for extras support
+const { enrichPlexItemWithExtras } = require('../lib/plex-helpers');
+const { enrichJellyfinItemWithExtras } = require('../lib/jellyfin-helpers');
+
+/**
+ * Enrich media items with extras (trailers, theme music) on-demand.
+ * Only enriches Plex and Jellyfin items.
+ *
+ * @param {Array} items - Media items from playlist cache
+ * @param {Object} config - Application configuration
+ * @param {Object} logger - Logger instance
+ * @param {boolean} isDebug - Debug mode flag
+ * @returns {Promise<Array>} Enriched items
+ */
+async function enrichItemsWithExtras(items, config, logger, isDebug) {
+    if (!Array.isArray(items) || items.length === 0) {
+        return items;
+    }
+
+    // Group items by server to batch API calls efficiently
+    const plexItems = [];
+    const jellyfinItems = [];
+    const otherItems = [];
+
+    items.forEach(item => {
+        const source = (item.source || item.serverType || '').toString().toLowerCase();
+        const key = (item.key || '').toString().toLowerCase();
+
+        if (source === 'plex' || key.startsWith('plex-')) {
+            plexItems.push(item);
+        } else if (source === 'jellyfin' || key.startsWith('jellyfin_')) {
+            jellyfinItems.push(item);
+        } else {
+            // TMDB, local, and other sources don't have extras
+            otherItems.push(item);
+        }
+    });
+
+    // Enrich Plex items in parallel (with reasonable concurrency)
+    const enrichedPlex = await Promise.all(
+        plexItems.map(async item => {
+            try {
+                // Extract server name from key (format: plex-ServerName-12345)
+                const keyParts = item.key.split('-');
+                if (keyParts.length < 3) return item;
+
+                const serverName = keyParts.slice(1, -1).join('-');
+                const serverConfig = config.mediaServers?.find(
+                    s => s.name === serverName && s.type === 'plex' && s.enabled
+                );
+
+                if (!serverConfig) return item;
+
+                return await enrichPlexItemWithExtras(item, serverConfig, null, isDebug);
+            } catch (err) {
+                if (isDebug)
+                    logger.debug(
+                        `[enrichItemsWithExtras] Error enriching Plex item: ${err.message}`
+                    );
+                return item;
+            }
+        })
+    );
+
+    // Enrich Jellyfin items in parallel
+    const enrichedJellyfin = await Promise.all(
+        jellyfinItems.map(async item => {
+            try {
+                // Extract server name from key (format: jellyfin_ServerName_abc123)
+                const keyParts = item.key.split('_');
+                if (keyParts.length < 3) return item;
+
+                const serverName = keyParts.slice(1, -1).join('_');
+                const serverConfig = config.mediaServers?.find(
+                    s => s.name === serverName && s.type === 'jellyfin' && s.enabled
+                );
+
+                if (!serverConfig) return item;
+
+                return await enrichJellyfinItemWithExtras(item, serverConfig, null);
+            } catch (err) {
+                if (isDebug)
+                    logger.debug(
+                        `[enrichItemsWithExtras] Error enriching Jellyfin item: ${err.message}`
+                    );
+                return item;
+            }
+        })
+    );
+
+    // Combine all enriched items (maintaining original order)
+    const enrichedMap = new Map();
+    [...enrichedPlex, ...enrichedJellyfin].forEach(item => {
+        enrichedMap.set(item.key, item);
+    });
+
+    return items.map(item => enrichedMap.get(item.key) || item);
+}
+
 /**
  * Create media router with dependency injection
  * @param {Object} deps - Dependencies
@@ -67,7 +166,7 @@ module.exports = function createMediaRouter({
      * /get-media:
      *   get:
      *     summary: Retrieve media playlist
-     *     description: Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). Cached for performance.
+     *     description: Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true.
      *     tags: ['Public API']
      *     parameters:
      *       - in: query
@@ -82,9 +181,14 @@ module.exports = function createMediaRouter({
      *           type: string
      *           enum: ['1']
      *         description: Set to '1' to bypass cache (admin use)
+     *       - in: query
+     *         name: includeExtras
+     *         schema:
+     *           type: boolean
+     *         description: When true, enriches items with trailers and theme music URLs (Plex/Jellyfin only). Note that this adds latency to the request as it fetches additional metadata per item.
      *     responses:
      *       200:
-     *         description: Playlist of media items.
+     *         description: Playlist of media items. When includeExtras=true, items include extras array with trailers, trailer object (first trailer for convenience), theme path, and themeUrl for streaming.
      *         content:
      *           application/json:
      *             schema:
@@ -179,7 +283,13 @@ module.exports = function createMediaRouter({
                 }
 
                 // Apply optional filtering by source
-                const filtered = applySourceFilter(playlistCache, req.query?.source);
+                let filtered = applySourceFilter(playlistCache, req.query?.source);
+
+                // Enrich items with extras if requested
+                if (req.query?.includeExtras === true) {
+                    filtered = await enrichItemsWithExtras(filtered, config, logger, isDebug);
+                }
+
                 return res.json(filtered);
             }
 

@@ -568,6 +568,14 @@ class JobQueue extends EventEmitter {
      * @returns {Object} Generation result
      */
     async generatePosterpackForItem(item, sourceType, options, exportLogger = null) {
+        // Debug: Log item structure
+        logger.info(`JobQueue: generatePosterpackForItem called`, {
+            title: item.title,
+            hasExtras: !!item.extras,
+            extrasCount: item.extras?.length || 0,
+            sourceType,
+        });
+
         // Generate output filename
         const outputFilename = this.generatePosterpackFilename(item, options);
         const outputDir = path.join(
@@ -768,6 +776,288 @@ class JobQueue extends EventEmitter {
             }
         }
 
+        // Download trailer video if available
+        if (item.extras && Array.isArray(item.extras)) {
+            logger.info(`JobQueue: Checking trailer for ${item.title}`, {
+                extrasCount: item.extras.length,
+                sourceType,
+            });
+
+            const trailer = item.extras.find(
+                e =>
+                    e.type === 'trailer' || e.type?.toLowerCase() === 'trailer' || e.type === 'clip'
+            );
+
+            if (trailer) {
+                logger.info(`JobQueue: Found trailer for ${item.title}`, {
+                    trailerTitle: trailer.title,
+                    trailerType: trailer.type,
+                    trailerKey: trailer.key,
+                    sourceType,
+                });
+            }
+
+            if (trailer && trailer.key && sourceType === 'plex') {
+                logger.info(`JobQueue: Attempting trailer download for ${item.title}`);
+                try {
+                    logger.info(`JobQueue: Looking for Plex server config`, {
+                        hasConfig: !!this.config,
+                        hasMediaServers: !!this.config?.mediaServers,
+                        mediaServersCount: this.config?.mediaServers?.length || 0,
+                    });
+
+                    // For Plex, we need to fetch the trailer metadata to get the actual video file URL
+                    const serverConfig = (this.config.mediaServers || []).find(
+                        s => s.type === 'plex'
+                    );
+
+                    // Build URL and get token from environment
+                    const plexUrl =
+                        serverConfig?.url ||
+                        (serverConfig?.hostname
+                            ? `http://${serverConfig.hostname}:${serverConfig.port || 32400}`
+                            : null);
+                    const plexToken =
+                        serverConfig?.token ||
+                        (serverConfig?.tokenEnvVar ? process.env[serverConfig.tokenEnvVar] : null);
+
+                    logger.info(`JobQueue: Server config check`, {
+                        hasServerConfig: !!serverConfig,
+                        hasUrl: !!plexUrl,
+                        hasToken: !!plexToken,
+                    });
+
+                    if (!serverConfig) {
+                        logger.warn(`JobQueue: No Plex server config found for trailer download`);
+                    } else if (!plexUrl || !plexToken) {
+                        logger.warn(`JobQueue: Plex server config missing URL or token`, {
+                            hasUrl: !!plexUrl,
+                            hasToken: !!plexToken,
+                        });
+                    } else {
+                        logger.info(`JobQueue: Fetching trailer details from ${trailer.key}`);
+
+                        // Fetch trailer metadata directly from Plex using axios
+                        const axios = require('axios');
+                        const trailerMetadataUrl = `${plexUrl}${trailer.key}?X-Plex-Token=${plexToken}`;
+                        const trailerResp = await axios.get(trailerMetadataUrl, {
+                            timeout: 30000,
+                            validateStatus: status => status === 200,
+                        });
+                        const trailerItem = trailerResp?.data?.MediaContainer?.Metadata?.[0];
+
+                        logger.info(`JobQueue: Trailer response received`, {
+                            hasData: !!trailerResp?.data,
+                            hasMetadata: !!trailerItem,
+                            hasMedia: !!trailerItem?.Media,
+                        });
+
+                        if (trailerItem?.Media?.[0]?.Part?.[0]?.key) {
+                            const videoKey = trailerItem.Media[0].Part[0].key;
+                            // Construct full URL with token (use & if videoKey already has query params)
+                            const separator = videoKey.includes('?') ? '&' : '?';
+                            const videoUrl = `${plexUrl}${videoKey}${separator}X-Plex-Token=${plexToken}`;
+
+                            logger.info(`JobQueue: Downloading trailer video`, {
+                                title: item.title,
+                                videoKey,
+                                videoUrl: videoUrl.replace(plexToken, 'TOKEN_HIDDEN'),
+                            });
+
+                            if (exportLogger) {
+                                await exportLogger.info('Downloading trailer', {
+                                    title: item.title,
+                                    trailerTitle: trailer.title,
+                                });
+                            }
+
+                            // Download the video file directly using axios with streaming
+                            const axios = require('axios');
+                            const response = await axios.get(videoUrl, {
+                                responseType: 'arraybuffer',
+                                timeout: 120000, // 2 minutes for large videos
+                                maxContentLength: 500 * 1024 * 1024, // 500MB max
+                            });
+
+                            if (response.status === 200 && response.data) {
+                                const trailerData = Buffer.from(response.data);
+                                if (trailerData.length > 10240) {
+                                    // Detect container from video key (e.g., .mp4, .mkv, .mov)
+                                    const ext =
+                                        videoKey.match(/\.([a-z0-9]+)(?:\?|$)/i)?.[1] || 'mp4';
+                                    zip.file(`trailer.${ext}`, trailerData);
+                                    assets.trailer = true;
+                                    if (exportLogger) {
+                                        await exportLogger.info('Trailer downloaded', {
+                                            title: item.title,
+                                            size: `${(trailerData.length / 1024 / 1024).toFixed(2)} MB`,
+                                        });
+                                    }
+                                }
+                            }
+                        } else {
+                            logger.warn(`JobQueue: Trailer metadata structure invalid`, {
+                                title: item.title,
+                                hasTrailerItem: !!trailerItem,
+                                hasMedia: !!trailerItem?.Media,
+                                mediaParts: trailerItem?.Media?.[0]?.Part?.length || 0,
+                            });
+                        }
+                    }
+                } catch (err) {
+                    if (exportLogger) {
+                        await exportLogger.warn('Trailer download error', {
+                            title: item.title,
+                            error: err.message,
+                        });
+                    }
+                    logger.warn(
+                        `JobQueue: Trailer download failed for ${item.title}:`,
+                        err.message
+                    );
+                }
+            }
+        }
+
+        // Download theme music if available (for Plex, download directly)
+        // Check for raw theme path or extract from themeUrl
+        let themeKey = item.theme;
+        if (!themeKey && item.themeUrl && sourceType === 'plex') {
+            // Extract path from proxy URL: /proxy/plex?server=...&path=%2Flibrary%2F...
+            const match = item.themeUrl.match(/[&?]path=([^&]+)/);
+            if (match) {
+                themeKey = decodeURIComponent(match[1]);
+            }
+        }
+
+        const theme =
+            item.extras?.find(e => e.type === 'theme') || (themeKey ? { key: themeKey } : null);
+
+        logger.info(`JobQueue: Theme check for ${item.title}`, {
+            hasTheme: !!theme,
+            themeKey: theme?.key,
+            itemTheme: item.theme,
+            itemThemeUrl: item.themeUrl,
+            extractedKey: themeKey,
+            sourceType,
+        });
+
+        if (theme && theme.key && sourceType === 'plex') {
+            logger.info(`JobQueue: Attempting theme music download for ${item.title}`, {
+                themeKey: theme.key,
+            });
+            try {
+                // Get Plex config
+                const serverConfig = (this.config.mediaServers || []).find(s => s.type === 'plex');
+                const plexUrl =
+                    serverConfig?.url ||
+                    (serverConfig?.hostname
+                        ? `http://${serverConfig.hostname}:${serverConfig.port || 32400}`
+                        : null);
+                const plexToken =
+                    serverConfig?.token ||
+                    (serverConfig?.tokenEnvVar ? process.env[serverConfig.tokenEnvVar] : null);
+
+                if (plexUrl && plexToken) {
+                    // Theme key is directly downloadable (e.g., /library/metadata/{id}/theme/{timestamp})
+                    const axios = require('axios');
+                    const separator = theme.key.includes('?') ? '&' : '?';
+                    const themeUrl = `${plexUrl}${theme.key}${separator}X-Plex-Token=${plexToken}`;
+
+                    logger.info(`JobQueue: Downloading theme music from ${theme.key}`);
+
+                    const response = await axios.get(themeUrl, {
+                        responseType: 'arraybuffer',
+                        timeout: 60000,
+                        maxContentLength: 50 * 1024 * 1024, // 50MB max for audio
+                    });
+
+                    if (response.status === 200 && response.data) {
+                        const themeData = Buffer.from(response.data);
+                        if (themeData.length > 10240) {
+                            // At least 10KB for real audio
+                            // Detect format from theme.key or response headers
+                            const ext = theme.key.match(/\.([a-z0-9]+)(?:\?|$)/i)?.[1] || 'mp3';
+                            zip.file(`theme.${ext}`, themeData);
+                            assets.theme = true;
+                            logger.info(`JobQueue: Theme music downloaded`, {
+                                title: item.title,
+                                size: `${(themeData.length / 1024).toFixed(2)} KB`,
+                            });
+                            if (exportLogger) {
+                                await exportLogger.info('Theme music downloaded', {
+                                    title: item.title,
+                                    size: `${(themeData.length / 1024).toFixed(2)} KB`,
+                                });
+                            }
+                        } else {
+                            logger.warn(`JobQueue: Theme music too small for ${item.title}`, {
+                                size: themeData.length,
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                logger.warn(
+                    `JobQueue: Theme music download failed for ${item.title}:`,
+                    err.message
+                );
+                if (exportLogger) {
+                    await exportLogger.warn('Theme music download error', {
+                        title: item.title,
+                        error: err.message,
+                    });
+                }
+            }
+        } else if (item.themeUrl && sourceType !== 'plex') {
+            logger.info(`JobQueue: Attempting theme music download for ${item.title}`, {
+                themeUrl: item.themeUrl,
+            });
+            try {
+                const themeData = await this._withInflightLimit(() =>
+                    this.downloadAsset(item.themeUrl, sourceType, exportLogger)
+                );
+
+                if (themeData && themeData.length > 1024) {
+                    // At least 1KB
+                    // Detect format from data or default to mp3
+                    const ext = 'mp3'; // Plex theme is usually mp3
+                    zip.file(`theme.${ext}`, themeData);
+                    assets.theme = true;
+                    logger.info(`JobQueue: Theme music downloaded for ${item.title}`, {
+                        size: `${(themeData.length / 1024).toFixed(2)} KB`,
+                    });
+                    if (exportLogger) {
+                        await exportLogger.info('Theme music downloaded', {
+                            title: item.title,
+                            size: `${(themeData.length / 1024).toFixed(2)} KB`,
+                        });
+                    }
+                } else {
+                    logger.warn(`JobQueue: Theme music too small for ${item.title}`, {
+                        size: themeData?.length || 0,
+                    });
+                    if (exportLogger) {
+                        await exportLogger.warn('Theme music download failed or too small', {
+                            title: item.title,
+                            url: item.themeUrl,
+                        });
+                    }
+                }
+            } catch (err) {
+                logger.warn(
+                    `JobQueue: Theme music download failed for ${item.title}:`,
+                    err.message
+                );
+                if (exportLogger) {
+                    await exportLogger.warn('Theme music download error', {
+                        title: item.title,
+                        error: err.message,
+                    });
+                }
+            }
+        }
+
         // Prepare people images: download thumbs and map to local files
         const peopleImages = [];
         const addPeopleImages = async list => {
@@ -923,7 +1213,10 @@ class JobQueue extends EventEmitter {
             // Trailer and theme music support
             trailer:
                 item.extras?.find(
-                    e => e.type === 'trailer' || e.type?.toLowerCase() === 'trailer'
+                    e =>
+                        e.type === 'trailer' ||
+                        e.type?.toLowerCase() === 'trailer' ||
+                        e.type === 'clip'
                 ) || null,
             themeMusic: item.themeUrl || null,
             // Enriched metadata fields (phase 6: File & Location Info)
@@ -937,6 +1230,8 @@ class JobQueue extends EventEmitter {
                 fanartCount: assets.fanart || 0,
                 discart: !!assets.discart,
                 banner: !!assets.banner,
+                trailer: !!assets.trailer,
+                theme: !!assets.theme,
             },
             source: sourceType,
             sourceId: item.id,

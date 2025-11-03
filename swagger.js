@@ -710,6 +710,84 @@ function generateSwaggerSpec() {
                                     },
                                 },
                             },
+                            extras: {
+                                type: 'array',
+                                nullable: true,
+                                description:
+                                    'Array of extras (trailers, behind the scenes, deleted scenes, etc.). Only populated when includeExtras=true. Available for Plex and Jellyfin sources.',
+                                items: {
+                                    type: 'object',
+                                    properties: {
+                                        type: {
+                                            type: 'string',
+                                            description:
+                                                'Type of extra (clip, behindTheScenes, deletedScene, etc.)',
+                                        },
+                                        title: {
+                                            type: 'string',
+                                            description: 'Title of the extra',
+                                        },
+                                        thumb: {
+                                            type: 'string',
+                                            format: 'uri',
+                                            nullable: true,
+                                            description: 'Thumbnail image URL for the extra',
+                                        },
+                                        key: {
+                                            type: 'string',
+                                            description:
+                                                'Server-specific key/ID for the extra (used to construct streaming URLs)',
+                                        },
+                                        duration: {
+                                            type: 'integer',
+                                            nullable: true,
+                                            description: 'Duration in milliseconds',
+                                        },
+                                        year: {
+                                            type: 'integer',
+                                            nullable: true,
+                                        },
+                                        addedAt: {
+                                            type: 'integer',
+                                            nullable: true,
+                                            description:
+                                                'Timestamp when extra was added (milliseconds since epoch)',
+                                        },
+                                    },
+                                },
+                            },
+                            trailer: {
+                                type: 'object',
+                                nullable: true,
+                                description:
+                                    'First trailer from the extras array for convenience. Only populated when includeExtras=true.',
+                                properties: {
+                                    type: { type: 'string', example: 'clip' },
+                                    title: { type: 'string' },
+                                    thumb: { type: 'string', format: 'uri', nullable: true },
+                                    key: {
+                                        type: 'string',
+                                        description:
+                                            'Key to fetch full trailer metadata and construct streaming URL',
+                                    },
+                                    duration: { type: 'integer', nullable: true },
+                                    year: { type: 'integer', nullable: true },
+                                    addedAt: { type: 'integer', nullable: true },
+                                },
+                            },
+                            theme: {
+                                type: 'string',
+                                nullable: true,
+                                description:
+                                    'Raw theme music path from Plex (e.g., /library/metadata/12345/theme/1234567890). Only populated when includeExtras=true for Plex sources.',
+                            },
+                            themeUrl: {
+                                type: 'string',
+                                format: 'uri',
+                                nullable: true,
+                                description:
+                                    'Proxied theme music URL for streaming (e.g., /proxy/plex?server=...&path=...). Only populated when includeExtras=true for Plex sources. Note: /proxy/plex endpoint not yet implemented.',
+                            },
                             _raw: {
                                 type: 'object',
                                 description:

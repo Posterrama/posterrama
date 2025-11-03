@@ -138,7 +138,9 @@ class PlexSource {
                 }
 
                 try {
-                    const content = await this.plex.query(`/library/sections/${library.key}/all`);
+                    const content = await this.plex.query(
+                        `/library/sections/${library.key}/all?includeExtras=1`
+                    );
                     if (content?.MediaContainer?.Metadata) {
                         // Add library info to each item
                         const itemsWithLibrary = content.MediaContainer.Metadata.map(item => ({
@@ -199,8 +201,52 @@ class PlexSource {
             const shuffledItems = this.shuffleArray(filteredItems);
             const selectedItems = count > 0 ? shuffledItems.slice(0, count) : shuffledItems;
 
-            const processedItems = await Promise.all(
+            // Enrich items with extras data before processing
+            const enrichedItems = await Promise.all(
                 selectedItems.map(async item => {
+                    try {
+                        // Fetch full metadata including extras
+                        const ratingKey = item.ratingKey || item.key;
+                        if (!ratingKey) {
+                            if (this.isDebug) {
+                                logger.warn(
+                                    `[PlexSource:${this.server.name}] Item ${item.title} has no ratingKey or key`
+                                );
+                            }
+                            return item;
+                        }
+
+                        const fullMetadata = await this.plex.query(
+                            `/library/metadata/${ratingKey}`
+                        );
+                        if (fullMetadata?.MediaContainer?.Metadata?.[0]) {
+                            const metadata = fullMetadata.MediaContainer.Metadata[0];
+                            if (this.isDebug) {
+                                logger.debug(
+                                    `[PlexSource:${this.server.name}] Fetched extras for ${item.title}: ${metadata.Extras?.Metadata?.length || 0} extras`
+                                );
+                            }
+                            // Merge extras into the item
+                            return {
+                                ...item,
+                                Extras: metadata.Extras,
+                                Related: metadata.Related,
+                            };
+                        }
+                        return item;
+                    } catch (e) {
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[PlexSource:${this.server.name}] Could not fetch extras for ${item.title}: ${e.message}`
+                            );
+                        }
+                        return item;
+                    }
+                })
+            );
+
+            const processedItems = await Promise.all(
+                enrichedItems.map(async item => {
                     try {
                         return await this.processPlexItem(item, this.server, this.plex);
                     } catch (e) {

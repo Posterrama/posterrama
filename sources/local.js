@@ -995,7 +995,28 @@ class LocalDirectorySource {
                 parentalGuidance: enrichedMeta.parentalGuidance || null,
                 chapters: enrichedMeta.chapters || null,
                 markers: enrichedMeta.markers || null,
+                // Enriched metadata (phase 3: Advanced Metadata)
+                extras: enrichedMeta.extras || null,
+                related: enrichedMeta.related || null,
+                lockedFields: enrichedMeta.lockedFields || null,
+                // Technical metadata
+                audioTracks: enrichedMeta.audioTracks || null,
+                subtitles: enrichedMeta.subtitles || null,
+                videoStreams: enrichedMeta.videoStreams || null,
+                hasHDR: enrichedMeta.hasHDR || null,
+                hasDolbyVision: enrichedMeta.hasDolbyVision || null,
+                is3D: enrichedMeta.is3D || null,
+                containerFormat: enrichedMeta.containerFormat || null,
+                totalFileSize: enrichedMeta.totalFileSize || null,
+                totalBitrate: enrichedMeta.totalBitrate || null,
+                optimizedForStreaming: enrichedMeta.optimizedForStreaming || null,
+                // File & location info
+                filePaths: enrichedMeta.filePaths || null,
+                fileDetails: enrichedMeta.fileDetails || null,
             },
+            // Add extras and related at top level for posterpack generation
+            extras: enrichedMeta.extras || null,
+            related: enrichedMeta.related || null,
             source: 'local',
             sourceId: enrichedMeta.sourceId || metadata.cleanTitle,
             originalFilename: metadata.originalFilename,
