@@ -1,8 +1,8 @@
 /**
- * Swagger/OpenAPI configuration for posterrama.app
- * This file uses swagger-jsdoc to generate an OpenAPI specification from JSDoc comments
- * in the source code. This specification is then used by swagger-ui-express to render
- * the interactive API documentation at the /api-docs endpoint.
+ * OpenAPI/Swagger specification for Posterrama API
+ * This specification is generated dynamically from JSDoc comments in route definitions
+ * in the source code. This specification is then used by ReDoc to render
+ * interactive API documentation at /api-docs.
  */
 
 const swaggerJSDoc = require('swagger-jsdoc');
@@ -19,11 +19,64 @@ function generateSwaggerSpec() {
             info: {
                 title: 'Posterrama API',
                 version: pkg.version,
-                description:
-                    'API documentation for the posterrama.app screensaver application. This documents the public API used by the frontend to retrieve media and configuration.',
+                description: `# Posterrama API Documentation
+
+**Posterrama** transforms any screen into a dynamic movie poster gallery by aggregating media from multiple sources including Plex, Jellyfin, and TMDB.
+
+## Overview
+
+This API provides comprehensive access to:
+- **Media Management**: Retrieve and display movie/TV show posters with metadata
+- **Device Control**: Manage display devices, groups, and real-time playback
+- **Configuration**: Complete system and per-device settings management
+- **Admin Panel**: Full administrative control and monitoring
+
+## Key Features
+
+### Multi-Source Aggregation
+Posterrama seamlessly combines content from:
+- **Plex Media Server**: Direct integration with your local media library
+- **Jellyfin**: Open-source media server support
+- **TMDB**: The Movie Database for trending content
+- **Local Posterpacks**: Offline ZIP-based media packages
+
+### Display Modes
+Three distinct viewing experiences:
+- **Screensaver**: Rotating poster display with customizable transitions
+- **Cinema**: Coming attractions style with trailers and theme music
+- **Wallart**: Gallery-style continuous display
+
+### Real-time Control
+- WebSocket-based device management
+- Live settings updates without page reload
+- Group broadcasting for multi-device setups
+- Remote command execution (pause, play, reload, etc.)
+
+## Authentication
+
+The API uses session-based authentication with cookies for admin endpoints. Public endpoints (like \`/get-media\`) are accessible without authentication.
+
+**Security Note**: Always use HTTPS in production to protect session cookies.
+
+## Rate Limiting
+
+Some endpoints have rate limiting to prevent abuse:
+- Media endpoints: Cached responses with configurable TTL
+- Admin operations: Standard rate limits apply
+- WebSocket connections: Maximum 1 active connection per device
+
+## Getting Started
+
+1. Access the admin panel at \`/admin\` to configure your media sources
+2. Use \`/get-media\` to retrieve the aggregated playlist
+3. Implement the display frontend using \`/screensaver\`, \`/cinema\`, or \`/wallart\` modes
+4. Register devices via \`/api/devices/register\` for remote control
+
+For more information, visit the [GitHub repository](https://github.com/Posterrama/posterrama).`,
                 contact: {
-                    name: 'Posterrama',
+                    name: 'Posterrama Project',
                     url: 'https://github.com/Posterrama/posterrama',
+                    email: 'support@posterrama.app',
                 },
                 license: {
                     name: 'GPL-3.0-or-later',
@@ -31,74 +84,324 @@ function generateSwaggerSpec() {
                 },
             },
             tags: [
+                // === 1. CORE API (meest gebruikt) ===
                 {
                     name: 'Public API',
-                    description:
-                        'Endpoints available to the frontend client without authentication.',
-                },
-                {
-                    name: 'Admin',
-                    description:
-                        'Secured endpoints for admin panel, setup, and configuration. Requires an active admin session where applicable.',
-                },
-                {
-                    name: 'Devices',
-                    description:
-                        'Device management endpoints for registration, heartbeat, pairing, commands, and admin device operations.',
-                },
-                {
-                    name: 'Groups',
-                    description:
-                        'Admin endpoints for managing device groups and broadcasting commands.',
-                },
-                {
-                    name: 'Authentication',
-                    description: 'General authentication and authorization endpoints.',
-                },
-                // Consolidated under 'Admin' tag
-                {
-                    name: 'Configuration',
-                    description: 'Application configuration management endpoints.',
-                },
-                {
-                    name: 'Validation',
-                    description: 'Configuration and data validation endpoints.',
-                },
-                {
-                    name: 'Testing',
-                    description: 'Development and testing endpoints.',
-                },
-                {
-                    name: 'Metrics',
-                    description: 'Performance monitoring and metrics endpoints.',
+                    description: `Public endpoints accessible without authentication. These are the core endpoints used by display devices to retrieve media content, images, and configuration.
+                    
+**Key Endpoints:**
+- \`/get-media\`: Primary media playlist endpoint
+- \`/proxy\`: Image proxy for secure media delivery
+- \`/get-config\`: Public configuration retrieval`,
                 },
                 {
                     name: 'Frontend',
-                    description: 'Frontend asset serving, templates and static pages.',
+                    description: `Frontend asset serving and template rendering. Serves the HTML/CSS/JS for the display modes and admin interface.
+                    
+**Available Pages:**
+- \`/screensaver\`: Rotating poster display
+- \`/cinema\`: Movie theater experience
+- \`/wallart\`: Gallery-style display
+- \`/admin\`: Administrative control panel
+- \`/admin-analytics\`: Analytics dashboard
+
+**Static Assets:**
+- Versioned CSS/JS with cache busting
+- Favicon and branding assets
+- Font files and icons`,
                 },
+
+                // === 2. AUTHENTICATION & SECURITY ===
                 {
-                    name: 'Cache',
-                    description: 'Cache management and configuration endpoints.',
-                },
-                {
-                    name: 'GitHub Integration',
-                    description: 'GitHub API integration for releases and updates.',
-                },
-                {
-                    name: 'Auto-Update',
-                    description: 'Automatic application update management endpoints.',
-                },
-                {
-                    name: 'Documentation',
-                    description: 'API documentation and specification endpoints.',
+                    name: 'Authentication',
+                    description: `Authentication and authorization system. Posterrama uses session-based authentication with optional 2FA support.
+                    
+**Security Features:**
+- Session management with secure cookies
+- Password hashing (bcrypt)
+- Two-factor authentication (TOTP)
+- API key support for programmatic access
+- Rate limiting on auth endpoints
+
+**Session Lifecycle:**
+- Login creates session cookie (connect.sid)
+- Session persists across requests
+- Logout invalidates session`,
                 },
                 {
                     name: 'Security',
-                    description: 'Security monitoring and violation reporting endpoints.',
+                    description: `Security monitoring and violation reporting. Tracks authentication failures, rate limit violations, and suspicious activity.
+                    
+**Security Features:**
+- Failed login tracking
+- Rate limit enforcement
+- Session hijacking protection
+- CSRF protection
+- Security headers (CSP, HSTS)
+- IP-based blocking
+
+**Monitoring:**
+- Real-time security event log
+- Violation statistics
+- IP reputation tracking
+- Alert notifications for security events`,
+                },
+
+                // === 3. ADMIN & CONFIGURATION ===
+                {
+                    name: 'Admin',
+                    description: `Administrative endpoints for system configuration and management. These endpoints require an active admin session.
+                    
+**Capabilities:**
+- Complete configuration management
+- System monitoring and performance metrics
+- User authentication and session management
+- Backup and restore operations
+- Source connection testing
+
+**Authentication Required**: Session-based (cookie: connect.sid)`,
+                },
+                {
+                    name: 'Configuration',
+                    description: `Application configuration management. Configuration is stored in \`config.json\` with automatic validation and hot-reloading support.
+                    
+**Configuration Sections:**
+- Media sources (Plex, Jellyfin, TMDB, Local)
+- Display mode settings (Screensaver, Cinema, Wallart)
+- Server settings (port, cache, logging)
+- Device management
+- Security settings
+
+**Best Practices:**
+- Always validate before saving
+- Create backups before major changes
+- Test source connections after updates`,
+                },
+                {
+                    name: 'Validation',
+                    description: `Configuration and data validation endpoints. These endpoints validate configuration changes before applying them, preventing invalid configurations.
+                    
+**Validation Types:**
+- Server connectivity (Plex, Jellyfin)
+- API key validity
+- Configuration schema compliance
+- Port availability
+- File path accessibility`,
+                },
+
+                // === 4. DEVICE MANAGEMENT ===
+                // === 4. DEVICE MANAGEMENT ===
+                {
+                    name: 'Devices',
+                    description: `Device management system for controlling display clients. Posterrama supports registering unlimited devices and organizing them into groups.
+                    
+**Features:**
+- Device registration with pairing codes
+- Real-time status monitoring
+- Per-device settings overrides
+- Heartbeat tracking
+- WebSocket command channel
+
+**Device Lifecycle:**
+1. Register via \`/api/devices/register\`
+2. Pair with code via \`/api/devices/pair\`
+3. Send heartbeats via \`/api/devices/heartbeat\`
+4. Receive commands via WebSocket at \`/ws/devices\``,
+                },
+                {
+                    name: 'Groups',
+                    description: `Organize devices into logical groups for coordinated control. Groups enable broadcasting commands to multiple devices simultaneously.
+                    
+**Use Cases:**
+- Floor/room organization
+- Synchronized displays
+- Bulk configuration updates
+- Targeted content delivery
+
+**Operations:**
+- Create and manage groups
+- Assign devices to groups
+- Broadcast commands to all group members`,
+                },
+
+                // === 5. MEDIA SOURCES ===
+                {
+                    name: 'Local Directory',
+                    description: `Local media source management for posterpack archives and directory-based media. Supports offline media delivery and custom collections.
+                    
+**Features:**
+- Posterpack generation from Plex/Jellyfin
+- ZIP archive management
+- Directory browsing
+- File upload/download
+- Metadata management
+- Asset extraction (posters, backgrounds, trailers, themes)
+
+**Posterpack Format:**
+A posterpack is a self-contained ZIP archive containing:
+- \`metadata.json\`: Complete media information
+- \`poster.jpg\`: Movie/show poster
+- \`background.jpg\`: Backdrop image
+- \`thumbnail.jpg\`: Small preview image
+- \`trailer.mp4\`: Optional trailer video
+- \`theme.mp3\`: Optional theme music
+- \`clearlogo.png\`: Optional logo overlay
+- \`people/\`: Cast/crew photos
+
+**Use Cases:**
+- Offline display setups
+- Custom media collections
+- Pre-packaged content distribution
+- Backup media libraries`,
+                },
+
+                // === 6. SYSTEM MONITORING ===
+                {
+                    name: 'Cache',
+                    description: `Multi-tier caching system for optimal performance. Posterrama uses memory and disk caching with intelligent invalidation.
+                    
+**Cache Types:**
+- **Memory Cache**: Fast in-memory storage for API responses
+- **Disk Cache**: Persistent image cache
+- **HTTP Cache**: ETags and conditional requests
+- **Browser Cache**: Client-side caching with versioning
+
+**Operations:**
+- View cache statistics
+- Clear specific cache entries
+- Invalidate on configuration changes
+- Configure TTL per endpoint`,
+                },
+                {
+                    name: 'Metrics',
+                    description: `Performance monitoring and metrics collection. Real-time system health, source performance, and cache statistics.
+                    
+**Metrics Categories:**
+- System resources (CPU, memory, uptime)
+- Source performance (response times, error rates)
+- Cache efficiency (hit rate, size, TTL)
+- Request statistics (throughput, latency)
+- Device activity (connections, commands)
+
+**Use Cases:**
+- Performance optimization
+- Troubleshooting slow responses
+- Capacity planning
+- Source reliability monitoring`,
+                },
+
+                // === 7. UPDATES & INTEGRATIONS ===
+                {
+                    name: 'Auto-Update',
+                    description: `Automatic application update system powered by PM2 ecosystem. Safely updates Posterrama to the latest version with rollback support.
+                    
+**Update Process:**
+1. Backup current configuration
+2. Pull latest code from GitHub
+3. Install npm dependencies
+4. Run database migrations (if any)
+5. Restart application gracefully
+6. Verify health post-update
+
+**Safety Features:**
+- Automatic configuration backups
+- Health check verification
+- Rollback on failure
+- Update status tracking
+- Manual control override
+
+**Requirements:**
+- PM2 process manager
+- Git repository access
+- Write permissions to install directory`,
+                },
+                {
+                    name: 'GitHub Integration',
+                    description: `Integration with GitHub API for release information and automatic updates.
+                    
+**Features:**
+- Check for latest releases
+- Download release assets
+- Version comparison
+- Changelog retrieval
+- Release notes display
+
+**Update Process:**
+1. Check \`/api/admin/github/latest-release\`
+2. Compare with current version
+3. Notify admin of available updates
+4. Optional: Auto-update via updater service`,
+                },
+
+                // === 8. UTILITIES & MISC ===
+                {
+                    name: 'Documentation',
+                    description: `API documentation and specification endpoints. Provides access to this interactive documentation and the raw OpenAPI specification.
+                    
+**Endpoints:**
+- \`/api-docs\`: Interactive ReDoc documentation (this page)
+- \`/api-docs/swagger.json\`: Raw OpenAPI 3.0 specification
+
+**OpenAPI Spec:**
+The OpenAPI specification is dynamically generated from JSDoc comments in the source code, ensuring documentation stays synchronized with implementation.`,
+                },
+                {
+                    name: 'Testing',
+                    description: `Development and testing utilities. These endpoints help developers test functionality and troubleshoot issues.
+                    
+**Available Tests:**
+- Notification system testing
+- Source connection verification
+- Cache behavior inspection
+- WebSocket connectivity
+- Performance benchmarking`,
                 },
                 {
                     name: 'Site Server',
-                    description: 'Public-facing site server endpoints and routes.',
+                    description: `Public-facing site server for marketing and information pages. Serves static content about Posterrama.
+                    
+**Content:**
+- Project information
+- Installation guides
+- Feature showcase
+- Support resources
+- Community links
+
+**Note:** These endpoints are separate from the application API and do not require authentication.`,
+                },
+            ],
+            'x-tagGroups': [
+                {
+                    name: 'Core API',
+                    tags: ['Public API', 'Frontend'],
+                },
+                {
+                    name: 'Authentication & Security',
+                    tags: ['Authentication', 'Security'],
+                },
+                {
+                    name: 'Admin & Configuration',
+                    tags: ['Admin', 'Configuration', 'Validation'],
+                },
+                {
+                    name: 'Device Management',
+                    tags: ['Devices', 'Groups'],
+                },
+                {
+                    name: 'Media Sources',
+                    tags: ['Local Directory'],
+                },
+                {
+                    name: 'System Monitoring',
+                    tags: ['Cache', 'Metrics'],
+                },
+                {
+                    name: 'Updates & Integrations',
+                    tags: ['Auto-Update', 'GitHub Integration'],
+                },
+                {
+                    name: 'Utilities',
+                    tags: ['Documentation', 'Site Server'],
                 },
             ],
             servers: [
@@ -109,6 +412,12 @@ function generateSwaggerSpec() {
             ],
             components: {
                 securitySchemes: {
+                    isAuthenticated: {
+                        type: 'apiKey',
+                        in: 'cookie',
+                        name: 'connect.sid',
+                        description: 'Session-based authentication (alias for sessionAuth)',
+                    },
                     sessionAuth: {
                         type: 'apiKey',
                         in: 'cookie',
@@ -121,6 +430,24 @@ function generateSwaggerSpec() {
                         bearerFormat: 'JWT',
                         description:
                             'Bearer token authentication. The application accepts API keys as Bearer tokens.',
+                    },
+                    BearerAuth: {
+                        type: 'http',
+                        scheme: 'bearer',
+                        bearerFormat: 'JWT',
+                        description: 'Bearer token authentication (alias for bearerAuth).',
+                    },
+                    SessionAuth: {
+                        type: 'apiKey',
+                        in: 'cookie',
+                        name: 'connect.sid',
+                        description: 'Session-based authentication (alias for sessionAuth)',
+                    },
+                    ApiKeyAuth: {
+                        type: 'http',
+                        scheme: 'bearer',
+                        bearerFormat: 'API-Key',
+                        description: 'API Key authentication using Bearer scheme',
                     },
                 },
                 schemas: {
@@ -646,67 +973,101 @@ function generateSwaggerSpec() {
                     },
                     MediaItem: {
                         type: 'object',
+                        description:
+                            'A media item from any source (Plex, Jellyfin, TMDB, or Local). Contains all metadata needed to display the poster and additional information.',
                         properties: {
                             key: {
                                 type: 'string',
                                 description:
-                                    'A unique identifier for the media item, composed of server type, name and item key.',
+                                    'A unique identifier for the media item, composed of source type, server name, and item ID (e.g., "plex-MyServer-12345", "jellyfin-Home-67890", "tmdb-movie-550").',
+                                example: 'plex-MyPlexServer-12345',
                             },
-                            title: { type: 'string' },
+                            title: {
+                                type: 'string',
+                                description: 'Title of the movie or TV show',
+                                example: 'Blade Runner 2049',
+                            },
                             backgroundUrl: {
                                 type: 'string',
                                 format: 'uri',
                                 description:
-                                    'URL to the background image, proxied through the app.',
+                                    'URL to the background/backdrop image, proxied through /proxy endpoint to hide server details.',
+                                example:
+                                    '/proxy?server=MyPlexServer&path=/library/metadata/12345/art/1234567890',
                             },
                             posterUrl: {
                                 type: 'string',
                                 format: 'uri',
-                                description: 'URL to the poster image, proxied through the app.',
+                                description:
+                                    'URL to the poster image, proxied through /proxy endpoint.',
+                                example:
+                                    '/proxy?server=MyPlexServer&path=/library/metadata/12345/thumb/1234567890',
                             },
                             thumbnailUrl: {
                                 type: 'string',
                                 format: 'uri',
                                 nullable: true,
                                 description:
-                                    'URL to the thumbnail image when available (e.g., from Local posterpacks).',
+                                    'URL to a smaller thumbnail image when available (primarily from Local posterpacks). Useful for gallery views.',
+                                example:
+                                    '/local-posterpack?zip=complete/plex-export/Blade%20Runner%202049%20(2017).zip&entry=thumbnail',
                             },
                             clearLogoUrl: {
                                 type: 'string',
                                 format: 'uri',
                                 nullable: true,
-                                description: 'URL to the ClearLogo image, proxied through the app.',
+                                description:
+                                    'URL to the ClearLogo image (transparent logo), proxied through the app. Great for overlays.',
+                                example:
+                                    '/proxy?server=MyPlexServer&path=/library/metadata/12345/clearlogo',
                             },
-                            tagline: { type: 'string', nullable: true },
+                            tagline: {
+                                type: 'string',
+                                nullable: true,
+                                description: 'Movie tagline or short description',
+                                example: 'The key to the future is finally unearthed.',
+                            },
                             rating: {
                                 type: 'number',
                                 nullable: true,
-                                description: 'The general audience rating (e.g., 7.8).',
+                                description:
+                                    'The general audience rating on a scale (typically 0-10).',
+                                example: 8.0,
                             },
-                            year: { type: 'integer', nullable: true },
+                            year: {
+                                type: 'integer',
+                                nullable: true,
+                                description: 'Release year',
+                                example: 2017,
+                            },
                             imdbUrl: {
                                 type: 'string',
                                 format: 'uri',
                                 nullable: true,
                                 description: 'Direct link to the IMDb page for this item.',
+                                example: 'https://www.imdb.com/title/tt1856101/',
                             },
                             rottenTomatoes: {
                                 type: 'object',
                                 nullable: true,
+                                description: 'Rotten Tomatoes score information when available',
                                 properties: {
                                     score: {
                                         type: 'integer',
                                         description: 'The Rotten Tomatoes score (0-100).',
+                                        example: 88,
                                     },
                                     icon: {
                                         type: 'string',
                                         enum: ['fresh', 'rotten', 'certified-fresh'],
-                                        description: 'The corresponding RT icon.',
+                                        description: 'The corresponding RT freshness icon.',
+                                        example: 'certified-fresh',
                                     },
                                     originalScore: {
                                         type: 'number',
                                         description:
-                                            'The original score from the source (e.g., scale 0-10).',
+                                            'The original score from the source before conversion to 0-100 scale.',
+                                        example: 8.8,
                                     },
                                 },
                             },
@@ -714,85 +1075,187 @@ function generateSwaggerSpec() {
                                 type: 'array',
                                 nullable: true,
                                 description:
-                                    'Array of extras (trailers, behind the scenes, deleted scenes, etc.). Only populated when includeExtras=true. Available for Plex and Jellyfin sources.',
+                                    'Array of extras (trailers, behind the scenes, deleted scenes, interviews, etc.). Only populated when includeExtras=true query parameter is set. Available for Plex and Jellyfin sources only.',
                                 items: {
                                     type: 'object',
                                     properties: {
                                         type: {
                                             type: 'string',
-                                            description:
-                                                'Type of extra (clip, behindTheScenes, deletedScene, etc.)',
+                                            description: 'Type of extra content',
+                                            example: 'clip',
+                                            enum: [
+                                                'clip',
+                                                'behindTheScenes',
+                                                'deletedScene',
+                                                'interview',
+                                                'sceneOrSample',
+                                                'featurette',
+                                                'short',
+                                            ],
                                         },
                                         title: {
                                             type: 'string',
                                             description: 'Title of the extra',
+                                            example: 'Official Trailer',
                                         },
                                         thumb: {
                                             type: 'string',
                                             format: 'uri',
                                             nullable: true,
                                             description: 'Thumbnail image URL for the extra',
+                                            example:
+                                                '/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb',
                                         },
                                         key: {
                                             type: 'string',
                                             description:
                                                 'Server-specific key/ID for the extra (used to construct streaming URLs)',
+                                            example: '/library/metadata/12346',
                                         },
                                         duration: {
                                             type: 'integer',
                                             nullable: true,
                                             description: 'Duration in milliseconds',
+                                            example: 155000,
                                         },
                                         year: {
                                             type: 'integer',
                                             nullable: true,
+                                            example: 2017,
                                         },
                                         addedAt: {
                                             type: 'integer',
                                             nullable: true,
                                             description:
-                                                'Timestamp when extra was added (milliseconds since epoch)',
+                                                'Timestamp when extra was added (Unix timestamp in seconds)',
+                                            example: 1635724800,
                                         },
                                     },
                                 },
+                                example: [
+                                    {
+                                        type: 'clip',
+                                        title: 'Official Trailer',
+                                        thumb: '/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb',
+                                        key: '/library/metadata/12346',
+                                        duration: 155000,
+                                        year: 2017,
+                                        addedAt: 1635724800,
+                                    },
+                                    {
+                                        type: 'behindTheScenes',
+                                        title: 'Making Of',
+                                        thumb: '/proxy?server=MyPlexServer&path=/library/metadata/12347/thumb',
+                                        key: '/library/metadata/12347',
+                                        duration: 892000,
+                                        year: 2017,
+                                        addedAt: 1635724800,
+                                    },
+                                ],
                             },
                             trailer: {
                                 type: 'object',
                                 nullable: true,
                                 description:
-                                    'First trailer from the extras array for convenience. Only populated when includeExtras=true.',
+                                    'First trailer from the extras array for convenience. Only populated when includeExtras=true. Provides quick access to the main trailer without filtering the extras array.',
                                 properties: {
                                     type: { type: 'string', example: 'clip' },
-                                    title: { type: 'string' },
-                                    thumb: { type: 'string', format: 'uri', nullable: true },
+                                    title: { type: 'string', example: 'Official Trailer' },
+                                    thumb: {
+                                        type: 'string',
+                                        format: 'uri',
+                                        nullable: true,
+                                        example:
+                                            '/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb',
+                                    },
                                     key: {
                                         type: 'string',
                                         description:
                                             'Key to fetch full trailer metadata and construct streaming URL',
+                                        example: '/library/metadata/12346',
                                     },
-                                    duration: { type: 'integer', nullable: true },
-                                    year: { type: 'integer', nullable: true },
-                                    addedAt: { type: 'integer', nullable: true },
+                                    duration: { type: 'integer', nullable: true, example: 155000 },
+                                    year: { type: 'integer', nullable: true, example: 2017 },
+                                    addedAt: {
+                                        type: 'integer',
+                                        nullable: true,
+                                        example: 1635724800,
+                                    },
+                                },
+                                example: {
+                                    type: 'clip',
+                                    title: 'Official Trailer',
+                                    thumb: '/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb',
+                                    key: '/library/metadata/12346',
+                                    duration: 155000,
+                                    year: 2017,
+                                    addedAt: 1635724800,
                                 },
                             },
                             theme: {
                                 type: 'string',
                                 nullable: true,
                                 description:
-                                    'Raw theme music path from Plex (e.g., /library/metadata/12345/theme/1234567890). Only populated when includeExtras=true for Plex sources.',
+                                    'Raw theme music path from Plex (e.g., /library/metadata/12345/theme/1234567890). Only populated when includeExtras=true for Plex sources with theme music.',
+                                example: '/library/metadata/12345/theme/1730000000',
                             },
                             themeUrl: {
                                 type: 'string',
                                 format: 'uri',
                                 nullable: true,
                                 description:
-                                    'Proxied theme music URL for streaming (e.g., /proxy/plex?server=...&path=...). Only populated when includeExtras=true for Plex sources. Note: /proxy/plex endpoint not yet implemented.',
+                                    'Proxied theme music URL for streaming (e.g., /proxy/plex?server=...&path=...). Only populated when includeExtras=true for Plex sources with theme music. Note: Direct streaming via /proxy/plex endpoint is planned but not yet implemented. For now, use /get-media?includeExtras=true and construct URLs manually.',
+                                example:
+                                    '/proxy?server=MyPlexServer&path=/library/metadata/12345/theme/1730000000',
                             },
                             _raw: {
                                 type: 'object',
                                 description:
-                                    'Raw metadata from the media server (only included in debug mode).',
+                                    'Raw metadata from the media server (only included when debug mode is enabled in config). Useful for development and troubleshooting.',
                             },
+                        },
+                        example: {
+                            key: 'plex-MyPlexServer-12345',
+                            title: 'Blade Runner 2049',
+                            backgroundUrl:
+                                '/proxy?server=MyPlexServer&path=/library/metadata/12345/art/1234567890',
+                            posterUrl:
+                                '/proxy?server=MyPlexServer&path=/library/metadata/12345/thumb/1234567890',
+                            thumbnailUrl: null,
+                            clearLogoUrl:
+                                '/proxy?server=MyPlexServer&path=/library/metadata/12345/clearlogo',
+                            tagline: 'The key to the future is finally unearthed.',
+                            rating: 8.0,
+                            year: 2017,
+                            imdbUrl: 'https://www.imdb.com/title/tt1856101/',
+                            rottenTomatoes: {
+                                score: 88,
+                                icon: 'certified-fresh',
+                                originalScore: 8.8,
+                            },
+                            extras: [
+                                {
+                                    type: 'clip',
+                                    title: 'Official Trailer',
+                                    thumb: '/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb',
+                                    key: '/library/metadata/12346',
+                                    duration: 155000,
+                                    year: 2017,
+                                    addedAt: 1635724800,
+                                },
+                            ],
+                            trailer: {
+                                type: 'clip',
+                                title: 'Official Trailer',
+                                thumb: '/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb',
+                                key: '/library/metadata/12346',
+                                duration: 155000,
+                                year: 2017,
+                                addedAt: 1635724800,
+                            },
+                            theme: '/library/metadata/12345/theme/1730000000',
+                            themeUrl:
+                                '/proxy?server=MyPlexServer&path=/library/metadata/12345/theme/1730000000',
                         },
                     },
                     ApiMessage: {

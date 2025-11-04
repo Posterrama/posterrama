@@ -671,6 +671,10 @@ class LocalDirectorySource {
                                                 zipPills.push('metadata');
                                             if (has(/(^|\/)cd\.(jpg|jpeg|png|webp|svg)$/i))
                                                 zipPills.push('cd');
+                                            if (has(/(^|\/)trailer\.(mp4|mkv|avi|mov|webm|m4v)$/i))
+                                                zipPills.push('trailer');
+                                            if (has(/(^|\/)theme\.(mp3|flac|wav|ogg|m4a|aac)$/i))
+                                                zipPills.push('theme');
                                         } catch (e) {
                                             logger.debug(
                                                 `LocalDirectorySource: ZIP summary failed for ${fullZip}: ${e?.message}`

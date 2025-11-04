@@ -108,7 +108,7 @@ if (Array.isArray(config.mediaServers)) {
 // Wrapper function that passes the config object automatically
 global.writeConfig = newConfig => writeConfig(newConfig, config);
 
-const swaggerUi = require('swagger-ui-express');
+const redoc = require('redoc-express');
 // Defer internal/test routes mounting until after app is created and env inspected.
 // They are only mounted automatically when EXPOSE_INTERNAL_ENDPOINTS === 'true'.
 let testRoutes; // will be conditionally required later (after app initialization) to avoid side effects
@@ -2079,40 +2079,66 @@ app.get('/api-docs/swagger.json', (req, res) => {
     res.json(freshSwaggerSpecs);
 });
 
-// Swagger API documentation with cache busting
-app.use(
-    '/api-docs',
-    (req, res, next) => {
-        // Prevent caching of API documentation
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        res.setHeader('ETag', Math.random().toString()); // Force unique response
-        next();
-    },
-    swaggerUi.serve,
-    (req, res, next) => {
-        // Generate fresh swagger spec on each request to avoid version caching
-        delete require.cache[require.resolve('./swagger.js')];
-        const freshSwaggerSpecs = require('./swagger.js');
+// ReDoc API documentation with dynamic cache busting
+app.get('/api-docs', (req, res) => {
+    // Prevent caching
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
-        swaggerUi.setup(freshSwaggerSpecs, {
-            // Force Swagger UI to use our custom endpoint with cache busting
-            swaggerOptions: {
-                url: `/api-docs/swagger.json?t=${Date.now()}`,
-                persistAuthorization: true,
-                // Disable all caching in Swagger UI
-                requestInterceptor: function (request) {
-                    request.headers['Cache-Control'] = 'no-cache';
-                    return request;
+    const pkg = require('./package.json');
+    const timestamp = Date.now();
+
+    // Generate HTML with dynamic timestamp in specUrl
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Posterrama API v${pkg.version}</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="redoc-container"></div>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+    <script>
+        Redoc.init(
+            '/api-docs/swagger.json?v=${pkg.version}&t=${timestamp}',
+            {
+                theme: {
+                    colors: {
+                        primary: { main: '#3b82f6' }
+                    },
+                    typography: {
+                        fontSize: '15px',
+                        fontFamily: 'system-ui, -apple-system, sans-serif'
+                    }
                 },
+                hideDownloadButton: false,
+                expandResponses: '200,201',
+                jsonSampleExpandLevel: 2,
+                sortPropsAlphabetically: true,
+                sortTagsAlphabetically: false,
+                pathInMiddlePanel: true,
+                requiredPropsFirst: true,
+                noAutoAuth: false,
+                hideHostname: false
             },
-            // Add custom HTML to override any cached content
-            customSiteTitle: `Posterrama API v${require('./package.json').version}`,
-            customfavIcon: '/favicon.ico',
-        })(req, res, next);
-    }
-);
+            document.getElementById('redoc-container')
+        );
+    </script>
+</body>
+</html>
+    `;
+
+    res.send(html);
+});
 
 // General request logger for debugging
 if (isDebug) {

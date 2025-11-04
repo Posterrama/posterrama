@@ -5514,11 +5514,6 @@ select:not([multiple]) {
 
 /* Search box adaptation within override keys head */
 #modal-override .override-keys-panel .search-box {
-    .status-pill.sp-size.sp-zip {
-        opacity: 0.85;
-        background: rgba(120, 120, 120, 0.12);
-        border-color: rgba(120, 120, 120, 0.28);
-    }
     height: 30px;
     padding: 0 6px 0 8px;
     background: var(--color-bg-tertiary);
@@ -13665,6 +13660,81 @@ select:focus-visible {
     background: rgba(255, 255, 255, 0.04); /* lighter contrast */
     border-color: rgba(255, 255, 255, 0.08); /* soften border */
     font-size: var(--font-size-xs); /* smaller than regular pills */
+}
+
+/* Posterpack asset pills */
+.status-pill.sp-size.sp-zip {
+    opacity: 0.85;
+    background: rgba(120, 120, 120, 0.12);
+    border-color: rgba(120, 120, 120, 0.28);
+}
+
+/* Posterpack asset pill colors - subtle differentiation */
+.status-pill.sp-zip[data-pill='poster'] {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.3);
+    color: rgba(196, 181, 253, 0.95);
+}
+
+.status-pill.sp-zip[data-pill='background'] {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: rgba(147, 197, 253, 0.95);
+}
+
+.status-pill.sp-zip[data-pill='thumbnail'] {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: rgba(134, 239, 172, 0.95);
+}
+
+.status-pill.sp-zip[data-pill='clearlogo'] {
+    background: rgba(168, 85, 247, 0.15);
+    border-color: rgba(168, 85, 247, 0.3);
+    color: rgba(216, 180, 254, 0.95);
+}
+
+.status-pill.sp-zip[data-pill='banner'] {
+    background: rgba(14, 165, 233, 0.15);
+    border-color: rgba(14, 165, 233, 0.3);
+    color: rgba(125, 211, 252, 0.95);
+}
+
+.status-pill.sp-zip[data-pill='fanart'] {
+    background: rgba(236, 72, 153, 0.15);
+    border-color: rgba(236, 72, 153, 0.3);
+    color: rgba(251, 207, 232, 0.95);
+}
+
+.status-pill.sp-zip[data-pill='disc'],
+.status-pill.sp-zip[data-pill='cd'] {
+    background: rgba(148, 163, 184, 0.15);
+    border-color: rgba(148, 163, 184, 0.3);
+    color: rgba(203, 213, 225, 0.95);
+}
+
+.status-pill.sp-zip[data-pill='cast'] {
+    background: rgba(251, 146, 60, 0.15);
+    border-color: rgba(251, 146, 60, 0.3);
+    color: rgba(254, 215, 170, 0.95);
+}
+
+.status-pill.sp-zip[data-pill='metadata'] {
+    background: rgba(100, 116, 139, 0.15);
+    border-color: rgba(100, 116, 139, 0.3);
+    color: rgba(148, 163, 184, 0.95);
+}
+
+.status-pill.sp-zip[data-pill='trailer'] {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: rgba(252, 165, 165, 0.95);
+}
+
+.status-pill.sp-zip[data-pill='theme'] {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: rgba(253, 230, 138, 0.95);
 }
 
 .browser-item-actions {

@@ -595,6 +595,34 @@ class JellyfinHttpClient {
     }
 
     /**
+     * Get local trailers for an item
+     */
+    async getLocalTrailers(itemId) {
+        try {
+            const response = await this.http.get(`/Items/${itemId}/LocalTrailers`);
+            return response.data || [];
+        } catch (error) {
+            this.debug(
+                `[JellyfinHttpClient] No local trailers for item ${itemId}: ${error.message}`
+            );
+            return [];
+        }
+    }
+
+    /**
+     * Get theme songs for an item
+     */
+    async getThemeSongs(itemId) {
+        try {
+            const response = await this.http.get(`/Items/${itemId}/ThemeSongs`);
+            return response.data?.Items || [];
+        } catch (error) {
+            this.debug(`[JellyfinHttpClient] No theme songs for item ${itemId}: ${error.message}`);
+            return [];
+        }
+    }
+
+    /**
      * Get all unique quality/resolution values with counts from specified libraries
      */
     async getQualitiesWithCounts(libraryIds) {

@@ -485,23 +485,73 @@ class JobQueue extends EventEmitter {
         await runWithLimit(itemsToProcess, itemConcurrency, async item => {
             const itemStart = Date.now();
             try {
+                // Enrich item with extras (trailers, theme music) before generating posterpack
+                let enrichedItem = item;
+                if (sourceType === 'plex' || sourceType === 'jellyfin') {
+                    try {
+                        const { enrichPlexItemWithExtras } = require('../lib/plex-helpers');
+                        const { enrichJellyfinItemWithExtras } = require('../lib/jellyfin-helpers');
+
+                        // Find server config (don't require enabled=true, since we're already processing items from it)
+                        const serverConfig = (this.config.mediaServers || []).find(
+                            s => s.type === sourceType
+                        );
+
+                        if (serverConfig) {
+                            logger.info(`JobQueue: Enriching ${item.title} with extras...`, {
+                                sourceType,
+                                itemId: item.id || item.sourceId,
+                            });
+
+                            if (sourceType === 'plex') {
+                                enrichedItem = await enrichPlexItemWithExtras(
+                                    item,
+                                    serverConfig,
+                                    null
+                                );
+                            } else if (sourceType === 'jellyfin') {
+                                enrichedItem = await enrichJellyfinItemWithExtras(
+                                    item,
+                                    serverConfig,
+                                    null
+                                );
+                            }
+                            logger.info(`JobQueue: Enriched ${item.title} with extras`, {
+                                hasExtras: !!enrichedItem.extras,
+                                extrasCount: enrichedItem.extras?.length || 0,
+                            });
+                        } else {
+                            logger.warn(`JobQueue: No server config found for ${sourceType}`);
+                        }
+                    } catch (enrichErr) {
+                        logger.warn(
+                            `JobQueue: Failed to enrich item ${item.title}: ${enrichErr.message}`
+                        );
+                        // Continue with original item
+                    }
+                }
+
                 const result = await this.generatePosterpackForItem(
-                    item,
+                    enrichedItem,
                     sourceType,
                     options,
                     job.exportLogger || null
                 );
                 results.push({
-                    item: { title: item.title, year: item.year, id: item.id },
+                    item: {
+                        title: enrichedItem.title,
+                        year: enrichedItem.year,
+                        id: enrichedItem.id,
+                    },
                     success: true,
                     outputPath: result.outputPath,
                     size: result.size,
                     assets: result.assets,
                 });
-                job.logs.push(`✅ Generated: ${item.title}`);
+                job.logs.push(`✅ Generated: ${enrichedItem.title}`);
                 if (job.exportLogger)
                     await job.exportLogger.info('Generated posterpack', {
-                        title: item.title,
+                        title: enrichedItem.title,
                         outputPath: result.outputPath,
                         size: result.size,
                         assets: Object.keys(result.assets || {}),
@@ -797,6 +847,7 @@ class JobQueue extends EventEmitter {
                 });
             }
 
+            // Plex trailer download
             if (trailer && trailer.key && sourceType === 'plex') {
                 logger.info(`JobQueue: Attempting trailer download for ${item.title}`);
                 try {
@@ -917,9 +968,91 @@ class JobQueue extends EventEmitter {
                     );
                 }
             }
+
+            // Jellyfin trailer download
+            if (trailer && trailer.key && sourceType === 'jellyfin') {
+                logger.info(`JobQueue: Attempting Jellyfin trailer download for ${item.title}`);
+                try {
+                    // Find Jellyfin server config (don't require enabled, we're already processing its items)
+                    const serverConfig = (this.config.mediaServers || []).find(
+                        s => s.type === 'jellyfin'
+                    );
+
+                    if (!serverConfig) {
+                        logger.warn(
+                            `JobQueue: No Jellyfin server config found for trailer download`
+                        );
+                    } else {
+                        const { hostname, port = 8096, apiKey } = serverConfig;
+                        const protocol = port === 8920 || port === 443 ? 'https' : 'http';
+                        const jellyfinUrl = `${protocol}://${hostname}:${port}`;
+
+                        logger.info(`JobQueue: Downloading Jellyfin trailer`, {
+                            title: item.title,
+                            itemId: trailer.key,
+                            jellyfinUrl,
+                        });
+
+                        if (exportLogger) {
+                            await exportLogger.info('Downloading trailer', {
+                                title: item.title,
+                                trailerTitle: trailer.title,
+                            });
+                        }
+
+                        // Jellyfin Download API: /Items/{ItemId}/Download
+                        const axios = require('axios');
+                        const downloadUrl = `${jellyfinUrl}/Items/${trailer.key}/Download?api_key=${apiKey}`;
+
+                        const response = await axios.get(downloadUrl, {
+                            responseType: 'arraybuffer',
+                            timeout: 120000, // 2 minutes for large videos
+                            maxContentLength: 500 * 1024 * 1024, // 500MB max
+                            headers: {
+                                'X-Emby-Token': apiKey,
+                            },
+                        });
+
+                        if (response.status === 200 && response.data) {
+                            const trailerData = Buffer.from(response.data);
+                            if (trailerData.length > 10240) {
+                                // Detect extension from content-disposition or default to mp4
+                                let ext = 'mp4';
+                                const contentDisposition = response.headers['content-disposition'];
+                                if (contentDisposition) {
+                                    const match = contentDisposition.match(
+                                        /filename="?.*\.([a-z0-9]+)"?/i
+                                    );
+                                    if (match) ext = match[1];
+                                }
+
+                                zip.file(`trailer.${ext}`, trailerData);
+                                assets.trailer = true;
+                                if (exportLogger) {
+                                    await exportLogger.info('Trailer downloaded', {
+                                        title: item.title,
+                                        size: `${(trailerData.length / 1024 / 1024).toFixed(2)} MB`,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    if (exportLogger) {
+                        await exportLogger.warn('Trailer download error', {
+                            title: item.title,
+                            error: err.message,
+                        });
+                    }
+                    logger.warn(
+                        `JobQueue: Jellyfin trailer download failed for ${item.title}:`,
+                        err.message
+                    );
+                }
+            }
         }
 
-        // Download theme music if available (for Plex, download directly)
+        // Download theme music if available
         // Check for raw theme path or extract from themeUrl
         let themeKey = item.theme;
         if (!themeKey && item.themeUrl && sourceType === 'plex') {
@@ -1007,6 +1140,107 @@ class JobQueue extends EventEmitter {
                         title: item.title,
                         error: err.message,
                     });
+                }
+            }
+        }
+
+        // Jellyfin theme music download
+        // Use themeSongs array if available (from enrichment)
+        if (sourceType === 'jellyfin' && (item.themeSongs || item.sourceId)) {
+            logger.info(`JobQueue: Checking for Jellyfin theme music for ${item.title}`);
+            try {
+                let themeSongId = null;
+
+                // If we have themeSongs from enrichment, use the first one
+                if (item.themeSongs && item.themeSongs.length > 0) {
+                    themeSongId = item.themeSongs[0].Id;
+                    logger.info(`JobQueue: Using theme song from enrichment`, {
+                        title: item.title,
+                        themeId: themeSongId,
+                    });
+                }
+
+                if (themeSongId) {
+                    // Find Jellyfin server config (don't require enabled, we're already processing its items)
+                    const serverConfig = (this.config.mediaServers || []).find(
+                        s => s.type === 'jellyfin'
+                    );
+
+                    if (serverConfig) {
+                        const { hostname, port = 8096, apiKey } = serverConfig;
+                        const protocol = port === 8920 || port === 443 ? 'https' : 'http';
+                        const jellyfinUrl = `${protocol}://${hostname}:${port}`;
+
+                        logger.info(`JobQueue: Downloading Jellyfin theme music`, {
+                            title: item.title,
+                            themeId: themeSongId,
+                        });
+
+                        // Download theme music using /Items/{ItemId}/Download
+                        const axios = require('axios');
+                        const downloadUrl = `${jellyfinUrl}/Items/${themeSongId}/Download?api_key=${apiKey}`;
+
+                        const response = await axios.get(downloadUrl, {
+                            responseType: 'arraybuffer',
+                            timeout: 60000,
+                            maxContentLength: 50 * 1024 * 1024, // 50MB max for audio
+                            headers: {
+                                'X-Emby-Token': apiKey,
+                            },
+                            validateStatus: status => status === 200,
+                        });
+
+                        if (response.status === 200 && response.data) {
+                            const themeData = Buffer.from(response.data);
+                            if (themeData.length > 10240) {
+                                // At least 10KB for real audio
+                                // Detect format from content-type or default to mp3
+                                let ext = 'mp3';
+                                const contentType = response.headers['content-type'];
+                                if (contentType) {
+                                    if (contentType.includes('flac')) ext = 'flac';
+                                    else if (contentType.includes('ogg')) ext = 'ogg';
+                                    else if (contentType.includes('wav')) ext = 'wav';
+                                    else if (
+                                        contentType.includes('m4a') ||
+                                        contentType.includes('mp4a')
+                                    )
+                                        ext = 'm4a';
+                                }
+
+                                zip.file(`theme.${ext}`, themeData);
+                                assets.theme = true;
+                                logger.info(`JobQueue: Jellyfin theme music downloaded`, {
+                                    title: item.title,
+                                    size: `${(themeData.length / 1024).toFixed(2)} KB`,
+                                });
+                                if (exportLogger) {
+                                    await exportLogger.info('Theme music downloaded', {
+                                        title: item.title,
+                                        size: `${(themeData.length / 1024).toFixed(2)} KB`,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                // Theme music is optional, so only log at debug level if not found
+                if (err.response?.status === 404) {
+                    logger.debug(
+                        `JobQueue: No theme music available for ${item.title} (404 - normal)`
+                    );
+                } else {
+                    logger.warn(
+                        `JobQueue: Jellyfin theme music download failed for ${item.title}:`,
+                        err.message
+                    );
+                    if (exportLogger) {
+                        await exportLogger.warn('Theme music download error', {
+                            title: item.title,
+                            error: err.message,
+                        });
+                    }
                 }
             }
         } else if (item.themeUrl && sourceType !== 'plex') {

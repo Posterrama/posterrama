@@ -22757,6 +22757,8 @@ if (!document.__niwDelegatedFallback) {
                 cast: 'Cast',
                 metadata: 'Metadata',
                 cd: 'CD',
+                trailer: 'Trailer',
+                theme: 'Theme',
             })[k] || k;
 
         const listHTML = items
@@ -22817,7 +22819,7 @@ if (!document.__niwDelegatedFallback) {
                             ? item.zipPills
                                   .map(
                                       k =>
-                                          `<span class="status-pill sp-size sp-zip">${pillLabel(k)}</span>`
+                                          `<span class="status-pill sp-size sp-zip" data-pill="${k}">${pillLabel(k)}</span>`
                                   )
                                   .join(' ')
                             : ''
