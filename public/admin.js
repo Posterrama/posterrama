@@ -577,60 +577,6 @@
         /* initial admin bootstrap cosmetic hook failed */
     }
 
-    function ensureLibrarySelectionIntegrity(source) {
-        try {
-            if (source === 'plex') {
-                if (!window.__plexAutoSelected) return;
-                if (window.__plexUserModifiedSelection) return; // don't override user edits
-                const mSel = document.getElementById('plex.movies');
-                const sSel = document.getElementById('plex.shows');
-                if (!mSel || !sSel) return;
-                const hasAny = mSel.selectedOptions.length > 0 || sSel.selectedOptions.length > 0;
-                if (!hasAny) {
-                    const allMovies = Array.from(mSel.options).map(o => o.value);
-                    const allShows = Array.from(sSel.options).map(o => o.value);
-                    allMovies.forEach(v => {
-                        const opt = Array.from(mSel.options).find(o => o.value === v);
-                        if (opt) opt.selected = true;
-                    });
-                    allShows.forEach(v => {
-                        const opt = Array.from(sSel.options).find(o => o.value === v);
-                        if (opt) opt.selected = true;
-                    });
-                    mSel.dispatchEvent(new Event('change', { bubbles: true }));
-                    sSel.dispatchEvent(new Event('change', { bubbles: true }));
-                    rebuildMsForSelect('plex-ms-movies', 'plex.movies');
-                    rebuildMsForSelect('plex-ms-shows', 'plex.shows');
-                }
-            } else if (source === 'jellyfin') {
-                if (!window.__jfAutoSelected) return;
-                if (window.__jfUserModifiedSelection) return;
-                const mSel = document.getElementById('jf.movies');
-                const sSel = document.getElementById('jf.shows');
-                if (!mSel || !sSel) return;
-                const hasAny = mSel.selectedOptions.length > 0 || sSel.selectedOptions.length > 0;
-                if (!hasAny) {
-                    const allMovies = Array.from(mSel.options).map(o => o.value);
-                    const allShows = Array.from(sSel.options).map(o => o.value);
-                    allMovies.forEach(v => {
-                        const opt = Array.from(mSel.options).find(o => o.value === v);
-                        if (opt) opt.selected = true;
-                    });
-                    allShows.forEach(v => {
-                        const opt = Array.from(sSel.options).find(o => o.value === v);
-                        if (opt) opt.selected = true;
-                    });
-                    mSel.dispatchEvent(new Event('change', { bubbles: true }));
-                    sSel.dispatchEvent(new Event('change', { bubbles: true }));
-                    rebuildMsForSelect('jf-ms-movies', 'jf.movies');
-                    rebuildMsForSelect('jf-ms-shows', 'jf.shows');
-                }
-            }
-        } catch (_) {
-            /* ensureLibrarySelectionIntegrity: auto-selection logic failed; user can still select manually */
-        }
-    }
-
     // Minimal fallbacks so the page can load even if these panels are not needed
     async function refreshDevices() {
         // Fetch devices list and compute counts for Active/Offline tiles
@@ -17587,9 +17533,6 @@
                         try {
                             const hostname = getInput('plex.hostname')?.value || '';
                             const port = getInput('plex.port')?.value || '';
-                            const tokenInput = getInput('plex.token');
-                            const token =
-                                tokenInput?.dataset?.actualToken || tokenInput?.value || '';
 
                             if (
                                 hostname &&
@@ -17627,9 +17570,6 @@
                         try {
                             const hostname = getInput('jf.hostname')?.value || '';
                             const port = getInput('jf.port')?.value || '';
-                            const apiKeyInput = getInput('jf.apikey');
-                            const apiKey =
-                                apiKeyInput?.dataset?.actualToken || apiKeyInput?.value || '';
 
                             if (
                                 hostname &&

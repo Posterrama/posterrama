@@ -321,7 +321,7 @@ class RommSource {
                     platformsFetched++;
                     if (this.isDebug && platformRomCount > 0) {
                         logger.debug(
-                            `[RommSource:${this.server.name}] Fetched ${platformRomCount} ROMs from platform ${platformId}`
+                            `[RommSource:${this.server.name}] Fetched ${platformRomCount} ROMs from platform ${platformId} (${platformsFetched}/${platformsToFetch.length})`
                         );
                     }
                 } catch (error) {

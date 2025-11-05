@@ -108,7 +108,6 @@ if (Array.isArray(config.mediaServers)) {
 // Wrapper function that passes the config object automatically
 global.writeConfig = newConfig => writeConfig(newConfig, config);
 
-const redoc = require('redoc-express');
 // Defer internal/test routes mounting until after app is created and env inspected.
 // They are only mounted automatically when EXPOSE_INTERNAL_ENDPOINTS === 'true'.
 let testRoutes; // will be conditionally required later (after app initialization) to avoid side effects
