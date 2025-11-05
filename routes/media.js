@@ -166,14 +166,14 @@ module.exports = function createMediaRouter({
      * /get-media:
      *   get:
      *     summary: Retrieve media playlist
-     *     description: Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true.
+     *     description: Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB, RomM). Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true.
      *     tags: ['Public API']
      *     parameters:
      *       - in: query
      *         name: source
      *         schema:
      *           type: string
-     *           enum: [plex, jellyfin, tmdb, local]
+     *           enum: [plex, jellyfin, tmdb, local, romm]
      *         description: Optional source filter to return only items from a specific provider
      *       - in: query
      *         name: nocache
@@ -231,6 +231,7 @@ module.exports = function createMediaRouter({
                     const key = (it.key || '').toString().toLowerCase();
                     if (norm === 'plex') return s === 'plex' || key.startsWith('plex-');
                     if (norm === 'jellyfin') return s === 'jellyfin' || key.startsWith('jellyfin_');
+                    if (norm === 'romm') return s === 'romm' || key.startsWith('romm_');
                     if (norm === 'tmdb') {
                         // Include classic TMDB plus streaming-provider items fetched via TMDB
                         return s === 'tmdb' || key.startsWith('tmdb-') || !!it.tmdbId;

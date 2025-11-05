@@ -375,13 +375,21 @@
                         return true;
                     }
                     const count = Math.max(60, Math.min(400, Math.floor((window.innerWidth * window.innerHeight) / 8000)));
-                    const type = (window.appConfig && window.appConfig.type) || 'movies';
+                    
+                    // Check if games-only mode is enabled
+                    const gamesOnly = window.appConfig?.wallartMode?.gamesOnly === true;
+                    const type = gamesOnly ? 'game' : ((window.appConfig && window.appConfig.type) || 'movie');
                     
                     // Build absolute URL for better Safari/iOS compatibility
                     const baseUrl = window.location.origin;
-                    const url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+                    let url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
                     
-                    window.debugLog && window.debugLog('WALLART_FETCH_MEDIA', { url, userAgent: navigator.userAgent });
+                    // If games-only mode, add source=romm filter
+                    if (gamesOnly) {
+                        url += '&source=romm';
+                    }
+                    
+                    window.debugLog && window.debugLog('WALLART_FETCH_MEDIA', { url, gamesOnly, userAgent: navigator.userAgent });
                     
                     // Safari-compatible fetch with explicit credentials and mode
                     const res = await fetch(url, { 

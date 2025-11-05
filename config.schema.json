@@ -183,6 +183,11 @@
                     "maximum": 300,
                     "default": 30,
                     "description": "Seconds between grid updates (replacing old posters with new ones)"
+                },
+                "gamesOnly": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Show only game covers from RomM sources (requires RomM to be enabled and configured)"
                 }
             }
         },

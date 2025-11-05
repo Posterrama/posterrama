@@ -2817,11 +2817,40 @@
         setIf('wallartMode_animationType', w.animationType || 'fade');
         setIf('wallartMode_layoutVariant', w.layoutVariant || 'heroGrid');
         setIf('wallartMode_ambientGradient', w.ambientGradient === true);
+        setIf('wallartMode_gamesOnly', w.gamesOnly === true);
         // Columns / Items per screen / Grid transition removed in Admin v2; Density controls layout.
         const hg = (w.layoutSettings && w.layoutSettings.heroGrid) || {};
         setIf('wallartMode_heroSide', hg.heroSide || 'left');
         setIf('wallartMode_heroRotationMinutes', hg.heroRotationMinutes ?? 10);
         setIf('wallartMode_biasAmbientToHero', hg.biasAmbientToHero !== false);
+
+        // Wallart: enable/disable gamesOnly based on RomM availability
+        try {
+            const gamesOnlyCheckbox = document.getElementById('wallartMode_gamesOnly');
+            const gamesOnlyHelp = document.getElementById('wallart-games-only-help');
+            const mediaServers = cfg.mediaServers || [];
+            const rommServer = mediaServers.find(s => s.type === 'romm');
+            const rommEnabled = rommServer?.enabled && rommServer?.url;
+
+            if (gamesOnlyCheckbox) {
+                gamesOnlyCheckbox.disabled = !rommEnabled;
+                if (!rommEnabled && gamesOnlyCheckbox.checked) {
+                    gamesOnlyCheckbox.checked = false;
+                }
+            }
+            if (gamesOnlyHelp) {
+                if (rommEnabled) {
+                    gamesOnlyHelp.textContent = 'Show only game covers from RomM';
+                    gamesOnlyHelp.style.color = '';
+                } else {
+                    gamesOnlyHelp.textContent =
+                        'RomM must be enabled and configured to use this feature';
+                    gamesOnlyHelp.style.color = 'var(--color-warning)';
+                }
+            }
+        } catch (_) {
+            /* games-only UI state failed */
+        }
 
         // Wallart: show hero settings only for heroGrid layout
         try {
@@ -4231,6 +4260,7 @@
                 animationType: val('wallartMode_animationType'),
                 layoutVariant: val('wallartMode_layoutVariant'),
                 ambientGradient: val('wallartMode_ambientGradient'),
+                gamesOnly: val('wallartMode_gamesOnly'),
                 layoutSettings: {
                     heroGrid: {
                         heroSide: val('wallartMode_heroSide'),
@@ -4337,6 +4367,42 @@
                 try {
                     saveBtn.classList.add('btn-loading');
                     const patch = collectDisplayFormPatch();
+
+                    // Validate games-only mode requires RomM
+                    if (patch?.wallartMode?.gamesOnly) {
+                        const cfg = await (async () => {
+                            try {
+                                const r = await fetch('/api/admin/config', {
+                                    credentials: 'include',
+                                });
+                                if (!r.ok) return null;
+                                const j = await r.json();
+                                return j?.config || j || {};
+                            } catch (_) {
+                                return null;
+                            }
+                        })();
+
+                        const mediaServers = cfg?.mediaServers || [];
+                        const rommServer = mediaServers.find(s => s.type === 'romm');
+                        const rommEnabled = rommServer?.enabled && rommServer?.url;
+
+                        if (!rommEnabled) {
+                            window.notify?.toast({
+                                type: 'warning',
+                                title: 'Games-only mode disabled',
+                                message:
+                                    'RomM must be enabled and configured to use games-only mode. The setting has been disabled.',
+                                duration: 4000,
+                            });
+                            // Disable the setting
+                            patch.wallartMode.gamesOnly = false;
+                            const gamesOnlyCheckbox =
+                                document.getElementById('wallartMode_gamesOnly');
+                            if (gamesOnlyCheckbox) gamesOnlyCheckbox.checked = false;
+                        }
+                    }
+
                     await (typeof saveConfigPatch === 'function'
                         ? saveConfigPatch(patch, {})
                         : (async () => {
