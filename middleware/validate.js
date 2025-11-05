@@ -90,6 +90,11 @@ const getMediaQuerySchema = Joi.object({
     // Optional flag to include extras (trailers, theme music) in the response
     // When true, fetches additional metadata from Plex/Jellyfin
     includeExtras: Joi.boolean().optional(),
+    // Optional flag to exclude games from results (for screensaver/cinema modes)
+    // Accepts boolean or string values: true, "true", "1", 1
+    excludeGames: Joi.alternatives()
+        .try(Joi.boolean(), Joi.string().valid('1', 'true', 'false', '0'), Joi.number().valid(0, 1))
+        .optional(),
 });
 
 const imageQuerySchema = Joi.object({

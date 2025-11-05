@@ -286,6 +286,20 @@ module.exports = function createMediaRouter({
                 // Apply optional filtering by source
                 let filtered = applySourceFilter(playlistCache, req.query?.source);
 
+                // Exclude games if requested (for screensaver/cinema modes)
+                if (
+                    req.query?.excludeGames === '1' ||
+                    req.query?.excludeGames === 'true' ||
+                    req.query?.excludeGames === true
+                ) {
+                    filtered = filtered.filter(item => {
+                        const itemType = (item.type || '').toLowerCase();
+                        const source = (item.source || item.serverType || '').toLowerCase();
+                        // Filter out games (type=game or source=romm)
+                        return itemType !== 'game' && source !== 'romm';
+                    });
+                }
+
                 // Enrich items with extras if requested
                 if (req.query?.includeExtras === true) {
                     filtered = await enrichItemsWithExtras(filtered, config, logger, isDebug);

@@ -130,7 +130,7 @@
                     
                     // Build absolute URL for better Safari/iOS compatibility
                     const baseUrl = window.location.origin;
-                    const url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+                    const url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}&excludeGames=1`;
                     
                     const res = await fetch(url, { 
                         method: 'GET',
