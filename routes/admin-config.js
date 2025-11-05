@@ -960,5 +960,260 @@ module.exports = function createAdminConfigRouter({
         })
     );
 
+    /**
+     * @swagger
+     * /api/admin/test-romm:
+     *   post:
+     *     summary: Test RomM connection
+     *     description: Validates RomM server credentials and connectivity
+     *     tags: ['Admin']
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required:
+     *               - url
+     *               - username
+     *               - password
+     *             properties:
+     *               url:
+     *                 type: string
+     *               username:
+     *                 type: string
+     *               password:
+     *                 type: string
+     *               insecureHttps:
+     *                 type: boolean
+     *     responses:
+     *       200:
+     *         description: RomM connection successful
+     *       400:
+     *         description: Connection failed
+     */
+    router.post(
+        '/api/admin/test-romm',
+        isAuthenticated,
+        asyncHandler(async (req, res) => {
+            const { url, username, password, insecureHttps } = req.body;
+
+            logger.info('[RomM Test] Request received:', {
+                url,
+                username: username ? '***' : undefined,
+                hasPassword: !!password,
+                insecureHttps,
+            });
+
+            if (!url || !username || !password) {
+                logger.warn('[RomM Test] Missing required fields');
+                throw new ApiError(400, 'URL, username, and password are required');
+            }
+
+            try {
+                const RommHttpClient = require('../utils/romm-http-client');
+                logger.debug('[RomM Test] RommHttpClient loaded');
+
+                // Parse URL to extract hostname and port
+                const urlObj = new URL(url);
+                const hostname = urlObj.hostname;
+                const port = urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80);
+                const basePath = urlObj.pathname !== '/' ? urlObj.pathname : '';
+
+                logger.debug('[RomM Test] Parsed URL:', {
+                    hostname,
+                    port,
+                    basePath,
+                    protocol: urlObj.protocol,
+                });
+
+                const client = new RommHttpClient({
+                    hostname,
+                    port: parseInt(port, 10),
+                    username,
+                    password,
+                    basePath,
+                    insecureHttps: !!insecureHttps,
+                    timeout: 15000,
+                });
+                logger.debug('[RomM Test] Client created, attempting authentication...');
+
+                // Test connection by authenticating
+                await client.authenticate();
+                logger.debug('[RomM Test] Authentication successful');
+
+                // Fetch a small sample to verify access
+                const platforms = await client.getPlatforms();
+                logger.debug(`[RomM Test] Fetched ${platforms?.length || 0} platforms`);
+
+                res.json({
+                    success: true,
+                    message: 'RomM connection successful',
+                });
+            } catch (error) {
+                logger.error('[RomM Test] Failed:', {
+                    message: error.message,
+                    stack: error.stack,
+                    code: error.code,
+                });
+
+                let userMessage = 'Could not connect to RomM. Please check the connection details.';
+                if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                    userMessage = 'Authentication failed. Check username and password.';
+                } else if (error.message.includes('ECONNREFUSED')) {
+                    userMessage = 'Connection refused. Is the URL correct?';
+                } else if (error.message.includes('timeout')) {
+                    userMessage = 'Connection timeout. Is the server reachable?';
+                } else if (
+                    error.message.includes('certificate') ||
+                    error.message.includes('CERT')
+                ) {
+                    userMessage =
+                        'TLS certificate error. Enable "Allow self-signed certificates" if using HTTPS with a self-signed cert.';
+                } else {
+                    // Include actual error message for debugging
+                    userMessage = `Connection failed: ${error.message}`;
+                }
+
+                throw new ApiError(400, userMessage);
+            }
+        })
+    );
+
+    /**
+     * @swagger
+     * /api/admin/romm-platforms:
+     *   post:
+     *     summary: Fetch available platforms from RomM
+     *     description: Returns list of gaming platforms available in RomM server
+     *     tags: ['Admin']
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required:
+     *               - url
+     *               - username
+     *               - password
+     *             properties:
+     *               url:
+     *                 type: string
+     *               username:
+     *                 type: string
+     *               password:
+     *                 type: string
+     *               insecureHttps:
+     *                 type: boolean
+     *     responses:
+     *       200:
+     *         description: Platform list fetched successfully
+     *       400:
+     *         description: Failed to fetch platforms
+     */
+    router.post(
+        '/api/admin/romm-platforms',
+        isAuthenticated,
+        asyncHandler(async (req, res) => {
+            const { url, username, password, insecureHttps } = req.body;
+
+            logger.info('[RomM Platforms] Request received:', {
+                url,
+                username: username ? '***' : undefined,
+                hasPassword: !!password,
+                insecureHttps,
+            });
+
+            if (!url || !username || !password) {
+                logger.warn('[RomM Platforms] Missing required fields');
+                throw new ApiError(400, 'URL, username, and password are required');
+            }
+
+            try {
+                const RommHttpClient = require('../utils/romm-http-client');
+                logger.debug('[RomM Platforms] RommHttpClient loaded');
+
+                // Parse URL to extract hostname and port
+                const urlObj = new URL(url);
+                const hostname = urlObj.hostname;
+                const port = urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80);
+                const basePath = urlObj.pathname !== '/' ? urlObj.pathname : '';
+
+                logger.debug('[RomM Platforms] Parsed URL:', {
+                    hostname,
+                    port,
+                    basePath,
+                    protocol: urlObj.protocol,
+                });
+
+                const client = new RommHttpClient({
+                    hostname,
+                    port: parseInt(port, 10),
+                    username,
+                    password,
+                    basePath,
+                    insecureHttps: !!insecureHttps,
+                    timeout: 15000,
+                });
+                logger.debug('[RomM Platforms] Client created, attempting authentication...');
+
+                // Authenticate first
+                await client.authenticate();
+                logger.debug('[RomM Platforms] Authentication successful');
+
+                // Fetch platforms
+                const platforms = await client.getPlatforms();
+                logger.debug(`[RomM Platforms] Fetched ${platforms?.length || 0} platforms`);
+
+                // Fetch ROM count for each platform (in parallel for performance)
+                const platformsWithCounts = await Promise.all(
+                    platforms.map(async p => {
+                        try {
+                            // Fetch just the count by getting first page with limit 1
+                            const romsResponse = await client.getRoms({
+                                platform_id: p.id,
+                                limit: 1,
+                            });
+                            const count = romsResponse?.total || 0;
+                            return {
+                                value: p.slug,
+                                label: `${p.name} (${count} games)`,
+                                count,
+                            };
+                        } catch (error) {
+                            // If count fails, still include platform without count
+                            logger.warn(
+                                `[RomM Platforms] Failed to get count for ${p.name}:`,
+                                error.message
+                            );
+                            return {
+                                value: p.slug,
+                                label: p.name,
+                                count: 0,
+                            };
+                        }
+                    })
+                );
+
+                // Sort by game count descending (most games first)
+                platformsWithCounts.sort((a, b) => b.count - a.count);
+
+                res.json({
+                    success: true,
+                    platforms: platformsWithCounts,
+                    count: platformsWithCounts.length,
+                });
+            } catch (error) {
+                logger.error('[RomM Platforms] Failed:', {
+                    message: error.message,
+                    stack: error.stack,
+                    code: error.code,
+                });
+                throw new ApiError(400, `Failed to fetch platforms: ${error.message}`);
+            }
+        })
+    );
+
     return router;
 };

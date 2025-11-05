@@ -865,7 +865,10 @@
               <input type="radio" name="sources.active" id="src-local" value="local" />
               <i class="fas fa-folder"></i> Local
             </label>
-            
+            <label class="seg" id="seg-romm" role="tab" aria-controls="panel-romm" aria-checked="false">
+              <input type="radio" name="sources.active" id="src-romm" value="romm" />
+              <i class="fas fa-gamepad"></i> RomM
+            </label>
           </div>
           <div class="source-actions-right"></div>
         </div>
@@ -1255,6 +1258,94 @@
             <div class="form-group">
               <label for="jf.recentDays">Recently added days</label>
               <input type="number" id="jf.recentDays" min="1" max="365" placeholder="30">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RomM Panel -->
+      <section class="panel" id="panel-romm" hidden>
+        <div class="actions-home" id="romm-actions-home" hidden>
+          <span class="status-pill" id="romm-status-pill-header" title="RomM configuration status">Not configured</span>
+          <span class="status-pill" id="romm-count-pill" title="Number of games in playlist">Games: —</span>
+          <button class="btn btn-icon btn-sm" id="btn-romm-test" title="Test connection"><i class="fas fa-vial"></i></button>
+          <button class="btn btn-icon btn-sm" id="btn-romm-platforms" title="Fetch platforms"><i class="fas fa-list"></i></button>
+          <label class="header-toggle" for="romm.enabled" title="Enable RomM source">
+            <input type="checkbox" id="romm.enabled" />
+            <span class="ht-switch" aria-hidden="true"></span>
+            <span class="ht-text">Enabled</span>
+          </label>
+          <button class="btn btn-primary btn-sm" id="btn-save-romm" title="Save RomM settings" data-restart-required="false"><i class="fas fa-save"></i><span>Save Settings</span></button>
+        </div>
+        <div class="panel-content">
+          <div class="loading-overlay" aria-hidden="true">
+            <div class="glass"></div>
+            <div class="loader"><span class="spinner"></span></div>
+          </div>
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-server"></i> Server
+              <div class="section-actions">
+                <span class="ht-text" id="romm-insecure-note">Allow self‑signed certificates</span>
+                <label class="header-toggle" for="romm.insecureHttpsHeader" title="Allow self‑signed/invalid HTTPS (RomM)">
+                  <input type="checkbox" id="romm.insecureHttpsHeader" />
+                  <span class="ht-switch" aria-hidden="true"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="form-grid plex-dense" id="romm-server-grid">
+            <div class="form-group">
+              <label for="romm.url">Server URL</label>
+              <input type="text" id="romm.url" placeholder="http://romm-server:8080" autocomplete="off" autocapitalize="off" spellcheck="false">
+              <small class="form-help">Full URL including http:// or https://</small>
+            </div>
+            <div class="form-group">
+              <label for="romm.username">Username</label>
+              <input type="text" id="romm.username" placeholder="admin" autocomplete="off" autocapitalize="off" spellcheck="false">
+            </div>
+            <div class="form-group">
+              <label for="romm.password">Password</label>
+              <input type="password" id="romm.password" placeholder="Password" autocomplete="new-password">
+            </div>
+          </div>
+          <!-- Hidden sync checkbox for insecureHttps (actual toggle is in section header) -->
+          <div hidden>
+            <input type="checkbox" id="romm.insecureHttps" />
+          </div>
+          
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-gamepad"></i> Platforms</div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="romm.platforms">Selected Platforms</label>
+              <select id="romm.platforms" multiple style="display:none"></select>
+              <div class="multiselect" id="romm-ms-platforms">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="romm-ms-platforms-chips"></div>
+                  <button class="ms-clear" id="romm-ms-platforms-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="romm-ms-platforms-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="romm-ms-platforms-search" type="text" placeholder="Search platforms…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="romm-ms-platforms-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="romm-ms-platforms-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="romm-ms-platforms-options"></div>
+                </div>
+              </div>
+              <small class="form-help">Select one or more gaming platforms. Populated from RomM.</small>
+            </div>
+          </div>
+          
+          <div class="info-box info-box-info">
+            <i class="fas fa-info-circle"></i>
+            <div>
+              <p><strong>Note:</strong> Only games with poster artwork are included in the playlist.</p>
             </div>
           </div>
         </div>

@@ -541,7 +541,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": ["plex", "jellyfin"],
+                        "enum": ["plex", "jellyfin", "romm"],
                         "description": "The type of the media server."
                     },
                     "enabled": {
@@ -639,9 +639,37 @@
                                 "default": 0
                             }
                         }
+                    },
+                    "url": {
+                        "type": "string",
+                        "description": "Full URL for RomM server (for type=romm only). Example: http://romm-server:8080",
+                        "minLength": 1
+                    },
+                    "username": {
+                        "type": "string",
+                        "description": "Username for RomM authentication (for type=romm only).",
+                        "minLength": 1
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "Password for RomM authentication (for type=romm only).",
+                        "minLength": 1
+                    },
+                    "selectedPlatforms": {
+                        "type": "array",
+                        "description": "List of platform slugs to include (for type=romm only). Empty = all platforms.",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+
+                    "insecureHttps": {
+                        "type": "boolean",
+                        "description": "Allow self-signed or invalid HTTPS certificates (for type=romm only).",
+                        "default": false
                     }
                 },
-                "required": ["name", "type", "enabled", "hostname", "port", "tokenEnvVar"]
+                "required": ["name", "type", "enabled"]
             }
         },
         "siteServer": {

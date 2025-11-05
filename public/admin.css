@@ -13014,7 +13014,8 @@ select:focus-visible {
 /* Media Sources — Save Settings button matches Operations style    */
 /* Includes Plex, Jellyfin, TMDB, and Local                        */
 /* =============================================================== */
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local) {
+#section-media-sources
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local, #btn-save-romm) {
     border: none !important;
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
@@ -13033,27 +13034,41 @@ select:focus-visible {
     gap: 6px;
     cursor: pointer;
 }
-#section-media-sources :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local) i,
 #section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local)
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local, #btn-save-romm)
+    i,
+#section-media-sources
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local, #btn-save-romm)
     .fas,
 #section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local)
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local, #btn-save-romm)
     > span:not(.spinner) {
     color: color-mix(in srgb, var(--color-primary) 85%, var(--color-text-secondary));
 }
 #section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local):hover,
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local, #btn-save-romm):hover,
 #section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local):focus,
+    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local, #btn-save-romm):focus,
 #section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local):focus-visible {
+    :is(
+        #btn-save-plex,
+        #btn-save-jellyfin,
+        #btn-save-tmdb,
+        #btn-save-local,
+        #btn-save-romm
+    ):focus-visible {
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
         linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
 }
 #section-media-sources
-    :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local):active {
+    :is(
+        #btn-save-plex,
+        #btn-save-jellyfin,
+        #btn-save-tmdb,
+        #btn-save-local,
+        #btn-save-romm
+    ):active {
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
         linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;

@@ -447,6 +447,8 @@
             setSelected(selected);
             syncOptions();
             renderChips();
+            // Trigger change event for listeners (e.g., RomM platform count update)
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
         });
         // Initial paint
         buildOptions();
@@ -731,6 +733,16 @@
                 if (jfCount > 0) {
                     total += jfCount;
                     breakdown.push(`Jellyfin: ${formatNumber(jfCount)}`);
+                }
+            }
+
+            // RomM: filtered count from playlist
+            const romm = mediaServers.find(s => s.type === 'romm');
+            if (romm?.enabled) {
+                const rommCount = window.__lastRommCount || 0;
+                if (rommCount > 0) {
+                    total += rommCount;
+                    breakdown.push(`RomM: ${formatNumber(rommCount)}`);
                 }
             }
 
@@ -1237,9 +1249,11 @@
                 const mediaServers = config.mediaServers || [];
                 const plex = mediaServers.find(s => s.type === 'plex');
                 const jf = mediaServers.find(s => s.type === 'jellyfin');
+                const romm = mediaServers.find(s => s.type === 'romm');
 
                 if (plex?.enabled) enabledSources++;
                 if (jf?.enabled) enabledSources++;
+                if (romm?.enabled) enabledSources++;
                 if (config.tmdbSource?.enabled) enabledSources++;
                 if (config.localDirectory?.enabled) enabledSources++;
 
@@ -8418,6 +8432,7 @@
                     },
                     { id: 'seg-tmdb', val: 'tmdb', panel: 'panel-tmdb', hash: '#tmdb' },
                     { id: 'seg-local', val: 'local', panel: 'panel-local', hash: '#local' },
+                    { id: 'seg-romm', val: 'romm', panel: 'panel-romm', hash: '#romm' },
                 ];
 
                 // Forward declaration so early calls can use a no-op until real impl assigned
@@ -8561,6 +8576,8 @@
                                 window.admin2?.maybeFetchStreamingProvidersOnOpen?.();
                             } else if (s.panel === 'panel-local') {
                                 window.admin2?.maybeInitLocalDirectoryOnOpen?.();
+                            } else if (s.panel === 'panel-romm') {
+                                window.admin2?.maybeFetchRommOnOpen?.();
                             }
                         } catch (_) {
                             /* wrapper dataset wiring failed (diagnostic only) */
@@ -8577,6 +8594,7 @@
                     if (h === '#jellyfin') setActive('jellyfin');
                     else if (h === '#tmdb') setActive('tmdb');
                     else if (h === '#local') setActive('local');
+                    else if (h === '#romm') setActive('romm');
                     else setActive('plex');
                 };
                 // Run on enter to sources and on hash changes
@@ -8873,6 +8891,11 @@
                     window.admin2?.maybeInitLocalDirectoryOnOpen?.();
                     return;
                 }
+                if (h === '#romm') {
+                    showSourcePanel('panel-romm', 'RomM');
+                    window.admin2?.maybeFetchRommOnOpen?.();
+                    return;
+                }
                 if (h === '#media-sources' || h === '#media-sources/overview') {
                     // Default Media Sources to Plex tab
                     showSection('section-media-sources');
@@ -8918,6 +8941,7 @@
         // --- Admin fetch de-dupe + short-lived caching to avoid rate limiter bursts ---
         const inflight = new Map();
         const miniCache = new Map(); // key -> { ts, data, status }
+        window.__miniCache = miniCache; // Expose for cache clearing
         const MINI_TTL = 10 * 1000; // 10s
         window.dedupJSON = async function (url, opts = {}) {
             const key = `${url}|${opts.method || 'GET'}`;
@@ -15079,6 +15103,55 @@
                 /* jf insecure header toggle enhancement failed (basic checkbox still works) */
             }
         }
+
+        // Sync insecure HTTPS toggles for RomM (header and form)
+        const rommInsecureForm = document.getElementById('romm.insecureHttps');
+        const rommInsecureHeader = document.getElementById('romm.insecureHttpsHeader');
+        if (rommInsecureForm && rommInsecureHeader) {
+            const syncPair = (src, dest) => {
+                if (dest && dest.checked !== src.checked) dest.checked = src.checked;
+            };
+            rommInsecureForm.addEventListener('change', () =>
+                syncPair(rommInsecureForm, rommInsecureHeader)
+            );
+            rommInsecureHeader.addEventListener('change', () =>
+                syncPair(rommInsecureHeader, rommInsecureForm)
+            );
+            // Ensure the header toggle is interactable even if label-default is blocked
+            try {
+                const lbl = document.querySelector(
+                    'label.header-toggle[for="romm.insecureHttpsHeader"]'
+                );
+                if (lbl) {
+                    const updateLabelState = () => {
+                        lbl.classList.toggle('is-on', !!rommInsecureHeader.checked);
+                    };
+                    lbl.tabIndex = 0;
+                    const toggle = () => {
+                        rommInsecureHeader.checked = !rommInsecureHeader.checked;
+                        rommInsecureHeader.dispatchEvent(new Event('change', { bubbles: true }));
+                        updateLabelState();
+                    };
+                    // Initialize visual state
+                    updateLabelState();
+                    lbl.addEventListener('click', e => {
+                        e.preventDefault();
+                        toggle();
+                    });
+                    lbl.addEventListener('keydown', e => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                            e.preventDefault();
+                            toggle();
+                        }
+                    });
+                    // Also reflect changes coming from form checkbox
+                    rommInsecureHeader.addEventListener('change', updateLabelState);
+                }
+            } catch (_) {
+                /* romm insecure header toggle enhancement failed (basic checkbox still works) */
+            }
+        }
+
         const portInput = document.getElementById('SERVER_PORT');
         // Sync Recently header toggles with hidden form checkboxes (Plex/Jellyfin)
         try {
@@ -16093,6 +16166,53 @@
                 } catch (_) {
                     // ignore; leave as-is if items not available
                 }
+
+                // RomM header pill — show total games from selected platforms
+                try {
+                    const filteredRomm = items.filter(it => {
+                        const type = (it.type || '').toString().toLowerCase();
+                        const source = inferSource(it);
+                        return type === 'game' || source === 'romm';
+                    }).length;
+
+                    // Get total count from selected platforms
+                    let totalCount = 0;
+                    if (window.__rommPlatforms && window.__lastRommConfig?.selectedPlatforms) {
+                        const selected = window.__lastRommConfig.selectedPlatforms;
+                        const selectedPlatforms = window.__rommPlatforms.filter(p =>
+                            selected.includes(p.value)
+                        );
+                        totalCount = selectedPlatforms.reduce((sum, p) => {
+                            const match = (p.label || '').match(/\((\d+)\s+games?\)/i);
+                            return sum + (match ? parseInt(match[1], 10) : 0);
+                        }, 0);
+                    }
+
+                    // Store TOTAL count (from platforms) for dashboard Media Items card
+                    window.__lastRommCount = totalCount || filteredRomm;
+
+                    // Show total from platforms, with playlist count in title
+                    const pillEl = document.getElementById('romm-count-pill');
+                    if (pillEl) {
+                        if (totalCount > 0) {
+                            pillEl.textContent = `Games: ${fmt(totalCount)}`;
+                            if (filteredRomm > 0) {
+                                pillEl.title = `Total games: ${fmt(totalCount)} (${fmt(filteredRomm)} with posters in playlist)`;
+                            } else {
+                                pillEl.title = `Total games from selected platforms (only games with posters are included)`;
+                            }
+                        } else if (filteredRomm > 0) {
+                            // Fallback to playlist count if no platform data
+                            pillEl.textContent = `Games: ${fmt(filteredRomm)}`;
+                            pillEl.title = `Games with posters in playlist: ${fmt(filteredRomm)}`;
+                        } else {
+                            pillEl.textContent = 'Games: —';
+                            pillEl.title = 'Select platforms to see game count';
+                        }
+                    }
+                } catch (_) {
+                    // ignore; leave as-is if items not available
+                }
             } catch (_) {
                 // ignore
             }
@@ -16201,6 +16321,32 @@
                 onLibChange('plex.shows');
                 onLibChange('jf.movies');
                 onLibChange('jf.shows');
+
+                // RomM platforms multiselect change listener (special handler to update config cache)
+                const rommPlatformsEl = document.getElementById('romm.platforms');
+                if (rommPlatformsEl && !rommPlatformsEl.dataset.countWired) {
+                    rommPlatformsEl.addEventListener('change', () => {
+                        // Update __lastRommConfig with current selection so estimated count works
+                        try {
+                            const selected = Array.from(
+                                rommPlatformsEl.querySelectorAll('option:checked') || []
+                            ).map(opt => opt.value);
+                            if (!window.__lastRommConfig) window.__lastRommConfig = {};
+                            window.__lastRommConfig.selectedPlatforms = selected;
+                            console.log(
+                                '[RomM] Platforms changed - updating count:',
+                                selected.length,
+                                'platforms'
+                            );
+                        } catch (e) {
+                            console.warn('[RomM] Failed to update platform selection:', e);
+                        }
+                        refreshOverviewCounts();
+                    });
+                    rommPlatformsEl.dataset.countWired = 'true';
+                    console.log('[RomM] Platform change listener attached');
+                }
+
                 // Initial sync
                 updateLibsMeta();
                 document.body.dataset.msPreviewWired = 'true';
@@ -16270,7 +16416,11 @@
             const env = j?.env || {}; // used by updateOverviewCards and subsequent helpers
             const cfg = j?.config || j || {};
             // Initialize once-per-session auto-fetch guards
-            window.__autoFetchedLibs = window.__autoFetchedLibs || { plex: false, jf: false };
+            window.__autoFetchedLibs = window.__autoFetchedLibs || {
+                plex: false,
+                jf: false,
+                romm: false,
+            };
             // Plex/Jellyfin server entries
             const plex = (cfg.mediaServers || []).find(s => s.type === 'plex') || {};
             const jf = (cfg.mediaServers || []).find(s => s.type === 'jellyfin') || {};
@@ -17223,6 +17373,157 @@
                 setBool('streamingSources.newReleases', streaming.newReleases);
             } catch (_) {
                 // ignore (streaming UI init optional)
+            }
+
+            // RomM
+            try {
+                const romm = (cfg.mediaServers || []).find(s => s.type === 'romm') || {};
+
+                // Store config globally for reference during auto-fetch
+                window.__lastRommConfig = { ...romm };
+
+                // Enabled toggle
+                if (getInput('romm.enabled')) {
+                    getInput('romm.enabled').checked = !!romm.enabled;
+                    getInput('romm.enabled').dataset.originalEnabled = romm.enabled
+                        ? 'true'
+                        : 'false';
+                }
+
+                // Update header pill
+                const rommPill = document.getElementById('romm-status-pill-header');
+                if (rommPill) {
+                    rommPill.classList.remove(
+                        'status-success',
+                        'status-error',
+                        'is-configured',
+                        'is-not-configured'
+                    );
+                    if (!romm.enabled) {
+                        rommPill.textContent = 'Disabled';
+                        rommPill.classList.add('is-not-configured');
+                    } else if (romm.url && romm.username) {
+                        rommPill.textContent = 'Configured';
+                        rommPill.classList.add('is-configured');
+                    } else {
+                        rommPill.textContent = 'Not configured';
+                        rommPill.classList.add('is-not-configured');
+                    }
+                }
+
+                // Server settings
+                if (getInput('romm.url')) getInput('romm.url').value = romm.url || '';
+                if (getInput('romm.username'))
+                    getInput('romm.username').value = romm.username || '';
+                if (getInput('romm.insecureHttps'))
+                    getInput('romm.insecureHttps').checked = !!romm.insecureHttps;
+                if (getInput('romm.insecureHttpsHeader'))
+                    getInput('romm.insecureHttpsHeader').checked = !!romm.insecureHttps;
+
+                // Password masking (similar to Plex/Jellyfin)
+                const pwdEl = getInput('romm.password');
+                if (pwdEl) {
+                    const savedPwd = localStorage.getItem('romm_password_temp');
+                    if (savedPwd && savedPwd !== 'EXISTING_PASSWORD') {
+                        pwdEl.dataset.actualToken = savedPwd;
+                    } else if (romm.password || romm.url) {
+                        pwdEl.dataset.actualToken = 'EXISTING_PASSWORD';
+                    } else {
+                        pwdEl.dataset.actualToken = '';
+                    }
+
+                    if (romm.password || (romm.url && romm.username)) {
+                        pwdEl.value = '••••••••••••';
+                        pwdEl.setAttribute('placeholder', 'Password already set');
+                        pwdEl.classList.add('token-masked');
+                    } else {
+                        pwdEl.value = '';
+                        pwdEl.setAttribute('placeholder', 'Password');
+                        pwdEl.classList.remove('token-masked');
+                    }
+
+                    pwdEl.addEventListener(
+                        'input',
+                        e => {
+                            const val = e.target.value.trim();
+                            if (val && !/^[•]+$/.test(val)) {
+                                pwdEl.dataset.actualToken = val;
+                                localStorage.setItem('romm_password_temp', val);
+                            }
+                        },
+                        { once: false }
+                    );
+                }
+
+                // Platform selection (multiselect)
+                const selectedPlatforms = Array.isArray(romm.selectedPlatforms)
+                    ? romm.selectedPlatforms
+                    : [];
+                console.log('[RomM Load] Selected platforms from config:', selectedPlatforms);
+                console.log('[RomM Load] Cached platforms:', window.__rommPlatforms?.length || 0);
+
+                // Build platform options from cached platforms
+                if (window.__rommPlatforms && window.__rommPlatforms.length > 0) {
+                    // Use cached platforms with full details
+                    console.log('[RomM Load] Using cached platforms');
+                    setMultiSelect('romm.platforms', window.__rommPlatforms, selectedPlatforms);
+                    initMsForSelect('romm-ms-platforms', 'romm.platforms');
+                } else {
+                    // Don't show placeholders if we're about to auto-fetch
+                    const willAutoFetch = romm.enabled && romm.url && romm.username;
+                    if (!willAutoFetch && selectedPlatforms.length > 0) {
+                        // Only show placeholders if we won't auto-fetch
+                        console.log('[RomM Load] Using placeholder platforms from selection');
+                        const placeholderOptions = selectedPlatforms.map(p => ({
+                            value: p,
+                            label: p,
+                        }));
+                        setMultiSelect('romm.platforms', placeholderOptions, selectedPlatforms);
+                        initMsForSelect('romm-ms-platforms', 'romm.platforms');
+                    } else {
+                        console.log('[RomM Load] Waiting for auto-fetch to populate platforms');
+                    }
+                }
+
+                // Filters
+                const filters = romm.filters || {};
+                if (getInput('romm.favouritesOnly'))
+                    getInput('romm.favouritesOnly').checked = !!filters.favouritesOnly;
+                if (getInput('romm.playableOnly'))
+                    getInput('romm.playableOnly').checked = !!filters.playableOnly;
+                if (getInput('romm.excludeUnidentified'))
+                    getInput('romm.excludeUnidentified').checked = !!filters.excludeUnidentified;
+
+                // RetroAchievements toggle
+                if (getInput('romm.retroAchievementsEnabled')) {
+                    getInput('romm.retroAchievementsEnabled').checked =
+                        !!romm.retroAchievementsEnabled;
+                }
+
+                // Auto-fetch platforms if configured and enabled
+                // Always fetch if no cached platforms exist, even if we have selected platforms saved
+                if (romm.enabled && romm.url && romm.username && !forceFresh) {
+                    const needsFetch =
+                        !window.__rommPlatforms || window.__rommPlatforms.length === 0;
+
+                    // Only auto-fetch once per page load (not on every panel switch)
+                    if (needsFetch && !window.__rommAutoFetchTriggered) {
+                        window.__rommAutoFetchTriggered = true;
+                        console.log('[RomM] Auto-fetching platforms (first load)');
+                        // Delay slightly to let UI render first
+                        setTimeout(() => {
+                            window.admin2?.maybeFetchRommOnOpen?.();
+                        }, 500);
+                    } else if (!needsFetch) {
+                        console.log(
+                            '[RomM] Skipping auto-fetch: platforms already loaded (' +
+                                (window.__rommPlatforms?.length || 0) +
+                                ' platforms)'
+                        );
+                    }
+                }
+            } catch (e) {
+                console.warn('RomM UI init failed:', e);
             }
 
             // Finally, paint overview cards (status + toggles + meta)
@@ -18868,6 +19169,208 @@
                 stopBtnSpinner(btn);
             }
         }
+
+        // Auto-fetch RomM platforms on panel open (once per session)
+        window.admin2 = window.admin2 || {};
+        window.admin2.maybeFetchRommOnOpen = function () {
+            // Check if we really need to fetch
+            const needsFetch = !window.__rommPlatforms || window.__rommPlatforms.length === 0;
+
+            // If we already have platforms cached, skip (don't need session flag check)
+            if (!needsFetch) {
+                console.log(
+                    '[RomM] Skipping auto-fetch: platforms already cached (' +
+                        window.__rommPlatforms.length +
+                        ' platforms)'
+                );
+                return;
+            }
+
+            const url = getInput('romm.url')?.value?.trim();
+            const username = getInput('romm.username')?.value?.trim();
+            const passwordEl = getInput('romm.password');
+            let password = passwordEl?.dataset?.actualToken || passwordEl?.value?.trim();
+
+            // If password is placeholder, try to get from localStorage (like Plex token)
+            if (password === 'EXISTING_PASSWORD') {
+                const savedPassword = localStorage.getItem('romm_password_temp');
+                if (savedPassword && savedPassword !== 'EXISTING_PASSWORD') {
+                    password = savedPassword;
+                    console.log('[RomM] Using password from localStorage for auto-fetch');
+                } else {
+                    console.log(
+                        '[RomM] Skipping auto-fetch: password not available (click "Fetch Platforms" to load)'
+                    );
+                    return;
+                }
+            }
+
+            // Only auto-fetch if credentials are configured
+            if (url && username && password) {
+                console.log('[RomM] Auto-fetching platforms...');
+                fetchRommPlatforms().catch(() => {
+                    // Silent fail on auto-fetch
+                    console.log('[RomM] Auto-fetch failed silently');
+                });
+            } else {
+                console.log('[RomM] Auto-fetch skipped: missing credentials');
+            }
+        };
+
+        async function testRomM() {
+            const btn = document.getElementById('btn-romm-test');
+            startBtnSpinner(btn);
+            try {
+                const url = getInput('romm.url')?.value?.trim() || '';
+                const username = getInput('romm.username')?.value?.trim() || '';
+                const passwordEl = getInput('romm.password');
+                const password =
+                    passwordEl?.dataset?.actualToken || passwordEl?.value?.trim() || '';
+                const insecureHttps = !!getInput('romm.insecureHttps')?.checked;
+
+                if (!url || !username || !password) {
+                    throw new Error('URL, username, and password are required');
+                }
+
+                const res = await fetch('/api/admin/test-romm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ url, username, password, insecureHttps }),
+                });
+
+                const j = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(j?.error || 'Connection failed');
+
+                // Success! Save password to dataset and localStorage
+                if (password && passwordEl) {
+                    passwordEl.dataset.actualToken = password;
+                    localStorage.setItem('romm_password_temp', password);
+                }
+
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'RomM',
+                    message: 'Connection successful',
+                    duration: 2200,
+                });
+
+                const pill = document.getElementById('romm-status-pill-header');
+                if (pill) {
+                    pill.textContent = 'Connected';
+                    pill.classList.remove('status-error', 'is-not-configured');
+                    pill.classList.add('status-success', 'is-configured');
+                }
+
+                // Auto-fetch platforms after successful test
+                fetchRommPlatforms();
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'RomM',
+                    message: e?.message || 'Connection failed',
+                    duration: 4200,
+                });
+                const pill = document.getElementById('romm-status-pill-header');
+                if (pill) {
+                    pill.textContent = 'Connection failed';
+                    pill.classList.remove('status-success', 'is-configured');
+                    pill.classList.add('status-error', 'is-not-configured');
+                }
+            } finally {
+                stopBtnSpinner(btn);
+            }
+        }
+
+        async function fetchRommPlatforms() {
+            const btn = document.getElementById('btn-romm-platforms');
+            startBtnSpinner(btn);
+            try {
+                const url = getInput('romm.url')?.value?.trim() || '';
+                const username = getInput('romm.username')?.value?.trim() || '';
+                const passwordEl = getInput('romm.password');
+                const password =
+                    passwordEl?.dataset?.actualToken || passwordEl?.value?.trim() || '';
+                const insecureHttps = !!getInput('romm.insecureHttps')?.checked;
+
+                if (!url || !username || !password) {
+                    throw new Error('URL, username, and password are required');
+                }
+
+                const res = await fetch('/api/admin/romm-platforms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ url, username, password, insecureHttps }),
+                });
+
+                const j = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(j?.error || 'Failed to fetch platforms');
+
+                const platforms = Array.isArray(j.platforms) ? j.platforms : [];
+
+                // Store globally for re-use
+                window.__rommPlatforms = platforms;
+
+                // Get currently selected platforms from config (not from UI which might be empty)
+                let selected = getMultiSelectValues('romm.platforms');
+
+                // If UI selection is empty, try to get from last saved config
+                if (selected.length === 0 && window.__lastRommConfig?.selectedPlatforms) {
+                    selected = window.__lastRommConfig.selectedPlatforms;
+                    console.log('[RomM] Restoring selection from config:', selected);
+                }
+
+                // Clear and rebuild multiselect with new platform options, preserving valid selections
+                const selectEl = getInput('romm.platforms');
+                if (selectEl) {
+                    // Clear existing options first to force refresh
+                    selectEl.innerHTML = '';
+                }
+                setMultiSelect('romm.platforms', platforms, selected);
+
+                // Update __lastRommConfig BEFORE reinitializing UI so count calculation works
+                if (!window.__lastRommConfig) window.__lastRommConfig = {};
+                window.__lastRommConfig.selectedPlatforms = selected;
+                console.log(
+                    '[RomM] Updated config cache with selection:',
+                    selected.length,
+                    'platforms'
+                );
+
+                // Rebuild the multiselect UI to show new platforms while preserving selection
+                // rebuildMsForSelect will handle both first-time init and subsequent rebuilds
+                rebuildMsForSelect('romm-ms-platforms', 'romm.platforms');
+
+                // Log platform details for debugging
+                console.log('[RomM] Fetched platforms:', platforms.length, 'platforms');
+                console.log('[RomM] Restored selection:', selected.length, 'platforms');
+
+                // Refresh overview counts to update the game count pill
+                try {
+                    refreshOverviewCounts();
+                } catch (e) {
+                    console.error('[RomM] Failed to refresh overview counts:', e);
+                }
+
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'RomM',
+                    message: `Found ${platforms.length} platforms`,
+                    duration: 2200,
+                });
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'RomM',
+                    message: e?.message || 'Failed to fetch platforms',
+                    duration: 4200,
+                });
+            } finally {
+                stopBtnSpinner(btn);
+            }
+        }
+
         // Test Streaming (TMDB providers)
         async function testStreaming() {
             const btn = document.getElementById('test-streaming-button');
@@ -19351,6 +19854,135 @@
                         }
                     })
                     .catch(() => {});
+            }
+        }
+
+        async function saveRomM() {
+            const btn = document.getElementById('btn-save-romm');
+            btn?.classList.add('btn-loading');
+            try {
+                const cfgRes = await window.dedupJSON('/api/admin/config', {
+                    credentials: 'include',
+                });
+                const base = cfgRes.ok ? await cfgRes.json() : {};
+                const currentCfg = base?.config || base || {};
+
+                const servers = Array.isArray(currentCfg.mediaServers)
+                    ? [...currentCfg.mediaServers]
+                    : [];
+                const rommIdx = servers.findIndex(s => s.type === 'romm');
+                const romm =
+                    rommIdx >= 0 ? { ...servers[rommIdx] } : { type: 'romm', name: 'RomM' };
+
+                // Update RomM fields
+                romm.enabled = !!getInput('romm.enabled')?.checked;
+                romm.url = getInput('romm.url')?.value?.trim() || '';
+                romm.username = getInput('romm.username')?.value?.trim() || '';
+                romm.insecureHttps = !!getInput('romm.insecureHttps')?.checked;
+
+                // Platform selection
+                romm.selectedPlatforms = getMultiSelectValues('romm.platforms');
+
+                // Handle password (only update if provided and not masked)
+                const passwordEl = getInput('romm.password');
+                const passwordVal =
+                    passwordEl?.dataset?.actualToken || passwordEl?.value?.trim() || '';
+                const isMasked =
+                    passwordVal &&
+                    (/^[•]+$/.test(passwordVal) || passwordVal === 'EXISTING_PASSWORD');
+
+                if (passwordVal && !isMasked) {
+                    romm.password = passwordVal;
+                    localStorage.setItem('romm_password_temp', passwordVal);
+                }
+
+                if (rommIdx >= 0) servers[rommIdx] = romm;
+                else servers.push(romm);
+
+                await saveConfigPatch({ mediaServers: servers });
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Saved',
+                    message: 'RomM settings updated',
+                    duration: 2500,
+                });
+
+                // Trigger restart only if enabled state changed (like Plex/Jellyfin)
+                try {
+                    const rommToggle = document.getElementById('romm.enabled');
+                    const originalEnabled = rommToggle?.dataset?.originalEnabled === 'true';
+                    const enabledChanged = originalEnabled !== !!romm.enabled;
+
+                    if (enabledChanged) {
+                        await window.triggerRestartAndPoll();
+                    } else if (romm.enabled) {
+                        // Just refresh playlist without full restart for platform/filter changes
+                        try {
+                            // Update __lastRommConfig with new platform selection before refresh
+                            if (!window.__lastRommConfig) window.__lastRommConfig = {};
+                            window.__lastRommConfig.selectedPlatforms = romm.selectedPlatforms;
+
+                            window.notify?.toast({
+                                type: 'info',
+                                title: 'Refreshing',
+                                message: 'Rebuilding playlist with new settings...',
+                                duration: 3000,
+                            });
+
+                            const refreshRes = await fetch('/api/admin/refresh-media', {
+                                method: 'POST',
+                                credentials: 'include',
+                            });
+
+                            if (refreshRes.ok) {
+                                const data = await refreshRes.json().catch(() => ({}));
+                                console.log('[RomM] Playlist refresh complete:', data);
+
+                                // Wait a moment then update counts
+                                setTimeout(() => {
+                                    refreshOverviewCounts();
+                                }, 500);
+
+                                window.notify?.toast({
+                                    type: 'success',
+                                    title: 'Refreshed',
+                                    message: `Playlist updated with ${data.itemCount || 0} items`,
+                                    duration: 2500,
+                                });
+                            }
+                        } catch (e) {
+                            console.error('Playlist refresh failed:', e);
+                            window.notify?.toast({
+                                type: 'error',
+                                title: 'Refresh failed',
+                                message: e?.message || 'Failed to refresh playlist',
+                                duration: 3000,
+                            });
+                        }
+                    }
+
+                    // Update original state after save
+                    if (rommToggle) {
+                        rommToggle.dataset.originalEnabled = romm.enabled ? 'true' : 'false';
+                    }
+                } catch (e) {
+                    console.error('RomM restart check error:', e);
+                }
+
+                // Reload to reflect changes
+                loadMediaSources(true).catch(() => {});
+            } catch (e) {
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Save failed',
+                    message: e?.message || 'Unable to save RomM',
+                    duration: 4500,
+                });
+            } finally {
+                btn?.classList.remove('btn-loading');
+                // Allow one auto-fetch after save on next load
+                if (window.__autoFetchedLibs) window.__autoFetchedLibs.romm = false;
+                window.__rommAutoRefreshed = false;
             }
         }
 
@@ -19880,6 +20512,10 @@
         });
         document.getElementById('btn-plex-test')?.addEventListener('click', testPlex);
         document.getElementById('btn-jf-test')?.addEventListener('click', testJellyfin);
+        document.getElementById('btn-romm-test')?.addEventListener('click', testRomM);
+        document
+            .getElementById('btn-romm-platforms')
+            ?.addEventListener('click', fetchRommPlatforms);
         document.getElementById('btn-tmdb-test')?.addEventListener('click', testTMDB);
         document.getElementById('test-streaming-button')?.addEventListener('click', testStreaming);
         // (deduped) listener already set above near other source listeners
@@ -20089,6 +20725,7 @@
         document.getElementById('btn-save-plex')?.addEventListener('click', savePlex);
         document.getElementById('btn-save-jellyfin')?.addEventListener('click', saveJellyfin);
         document.getElementById('btn-save-tmdb')?.addEventListener('click', saveTMDB);
+        document.getElementById('btn-save-romm')?.addEventListener('click', saveRomM);
         // No extra handlers needed here; dependent refresh is driven by fetchPlexLibraries(true)
 
         // Initial population

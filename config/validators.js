@@ -4,13 +4,16 @@ const schemas = {
     mediaItem: Joi.object({
         key: Joi.string().required(),
         title: Joi.string().required(),
-        type: Joi.string().valid('movie', 'show', 'episode').required(),
+        type: Joi.string().valid('movie', 'show', 'episode', 'game').required(),
         posterUrl: Joi.string().uri(),
         backdropUrl: Joi.string().uri(),
         year: Joi.number().integer().min(1900).max(2100),
         rating: Joi.number().min(0).max(10),
         source: Joi.string().required(),
         rottenTomatoesScore: Joi.number().integer().min(0).max(100).allow(null),
+        // Game-specific fields
+        platform: Joi.string().when('type', { is: 'game', then: Joi.optional() }),
+        platformId: Joi.number().when('type', { is: 'game', then: Joi.optional() }),
     }),
 
     config: Joi.object({
@@ -29,15 +32,46 @@ const schemas = {
         mediaServers: Joi.array().items(
             Joi.object({
                 name: Joi.string().required(),
-                type: Joi.string().valid('plex', 'jellyfin').required(),
+                type: Joi.string().valid('plex', 'jellyfin', 'romm').required(),
                 enabled: Joi.boolean(),
-                hostname: Joi.string().when('enabled', { is: true, then: Joi.required() }),
+                // Plex/Jellyfin fields
+                hostname: Joi.string().when('type', {
+                    is: Joi.valid('plex', 'jellyfin'),
+                    then: Joi.when('enabled', { is: true, then: Joi.required() }),
+                }),
                 port: Joi.number()
                     .integer()
                     .min(1)
-                    .when('enabled', { is: true, then: Joi.required() }),
-                tokenEnvVar: Joi.string().required(),
+                    .when('type', {
+                        is: Joi.valid('plex', 'jellyfin'),
+                        then: Joi.when('enabled', { is: true, then: Joi.required() }),
+                    }),
+                tokenEnvVar: Joi.string().when('type', {
+                    is: Joi.valid('plex', 'jellyfin'),
+                    then: Joi.required(),
+                }),
                 token: Joi.string().optional(),
+                // RomM-specific fields
+                url: Joi.string()
+                    .uri()
+                    .when('type', {
+                        is: 'romm',
+                        then: Joi.when('enabled', { is: true, then: Joi.required() }),
+                    }),
+                username: Joi.string().when('type', {
+                    is: 'romm',
+                    then: Joi.when('enabled', { is: true, then: Joi.required() }),
+                }),
+                password: Joi.string().when('type', {
+                    is: 'romm',
+                    then: Joi.when('enabled', { is: true, then: Joi.required() }),
+                }),
+                selectedPlatforms: Joi.array().items(Joi.string()).optional(),
+                filters: Joi.object({
+                    favouritesOnly: Joi.boolean().default(false),
+                    playableOnly: Joi.boolean().default(false),
+                    excludeUnidentified: Joi.boolean().default(true),
+                }).optional(),
                 // Reject legacy fields explicitly
                 hostnameEnvVar: Joi.any().forbidden().messages({
                     'any.unknown': 'hostnameEnvVar is no longer supported. Use hostname instead.',

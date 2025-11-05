@@ -139,7 +139,7 @@ const FIXED_LIMITS = Object.freeze({
     TMDB_TV: 50,
     STREAMING_MOVIES_PER_PROVIDER: 10,
     STREAMING_TV_PER_PROVIDER: 10,
-    TOTAL_CAP: 500, // Max total items in final playlist
+    TOTAL_CAP: 5000, // Max total items in final playlist (increased for large game collections)
 });
 
 const TMDBSource = require('./sources/tmdb');
