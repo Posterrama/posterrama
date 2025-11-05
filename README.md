@@ -34,6 +34,7 @@ Transform any screen into a cinematic, always-fresh movie poster display.
 - A digital movie wall for your living room, home theater, or office
 - A smart, always-fresh screensaver with posters from your own collection
 - A stylish showcase for your Plex or Jellyfin library
+- A gaming gallery — display your retro and modern game covers from RomM with dedicated games-only mode in Wallart
 - A conversation starter or party display
 
 ---
@@ -81,6 +82,12 @@ Display a beautiful grid of posters, updating dynamically with new content. Choo
   
 </figure>
 
+<figure>
+  <img src="./screenshots/romm.png" alt="Games Only Mode" width="740">
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>Games-only mode: showcase your retro and modern game collection from RomM</em></figcaption>
+  
+</figure>
+
 ### Cinema mode
 
 Perfect for vertical screens or digital signage. Show a rotating selection of posters in portrait orientation, with smooth transitions and optional info overlays. Ideal for hallway displays, kiosks, or a true cinema entrance feel.
@@ -112,17 +119,18 @@ Get a clear overview of your setup the moment you sign in. The Dashboard highlig
   
 </figure>
 
-Connect your Plex or Jellyfin server, or add popular sources like TMDB. Your collection is always up to date.
+Connect your Plex or Jellyfin server, add popular sources like TMDB, or showcase your game collection from RomM. Your collection is always up to date.
 
 Local library: Add your own artwork with a simple upload—posters, cinematic backgrounds, motion posters, or complete posterpacks. You can also create shareable posterpacks directly from your Plex or Jellyfin libraries. New packs are picked up automatically—no unzipping or manual steps—and are instantly available in Screensaver, Wallart, and Cinema.
 
 <!-- Content source features heading and intro removed per request; keep the actionable bullets below -->
  <!-- Content source features heading and intro removed per request; keep the actionable bullets below -->
 
-- Enable/disable each source (Plex, Jellyfin, TMDB)
+- Enable/disable each source (Plex, Jellyfin, TMDB, RomM)
 - Set server address and authentication (token, username/password)
 - Choose which libraries or collections to include
 - Filter by genre, rating, or quality
+- Games-only mode for RomM: display only game covers in Wallart
 
 ---
 
@@ -214,8 +222,6 @@ A quick peek at what's next. We're actively building these high‑impact upgrade
 - [ ] Emby integration
 - [ ] Additional poster services
 - [ ] Music library support
-- [ ] Radarr/Sonarr/Lidarr integration
-- [ ] Steam and ROMM gaming libraries and collections
 
 **Content & curation**
 

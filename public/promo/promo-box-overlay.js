@@ -22,16 +22,11 @@
         const promoHTML = `
             <main id="promo-box" class="promo-overlay">
                 <header class="promo-logo">
-                    <svg
+                    <img
+                        src="/logo.png"
+                        alt="Posterrama Digital Movie Poster App Logo"
                         role="img"
-                        aria-label="Posterrama Digital Movie Poster App Logo"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                    >
-                        <path d="M6 2H16L14 22H4L6 2Z" />
-                        <path d="M10 2H20L18 22H8L10 2Z" style="mix-blend-mode: screen; opacity: 0.6" />
-                    </svg>
+                    />
                 </header>
                 <h1>Bring your media library to life.</h1>
                 <p>

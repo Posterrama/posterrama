@@ -2937,6 +2937,16 @@
                 if (value) {
                     setRadioGroupActive(value);
                     updateModeBadges(value);
+
+                    // Disable games-only mode when switching away from wallart
+                    try {
+                        const gamesOnlyCheckbox = document.getElementById('wallartMode_gamesOnly');
+                        if (gamesOnlyCheckbox && value !== 'wallart') {
+                            gamesOnlyCheckbox.checked = false;
+                        }
+                    } catch (_) {
+                        /* games-only mode reset failed */
+                    }
                 }
             })
         );

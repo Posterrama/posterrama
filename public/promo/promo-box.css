@@ -43,6 +43,12 @@
     height: 100%;
 }
 
+.promo-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
 #promo-box.promo-overlay h1 {
     font-size: 2.2em;
     font-weight: 800;
