@@ -2828,7 +2828,7 @@
         try {
             const gamesOnlyCheckbox = document.getElementById('wallartMode_gamesOnly');
             const gamesOnlyHelp = document.getElementById('wallart-games-only-help');
-            const mediaServers = cfg.mediaServers || [];
+            const mediaServers = c.mediaServers || [];
             const rommServer = mediaServers.find(s => s.type === 'romm');
             const rommEnabled = rommServer?.enabled && rommServer?.url;
 
