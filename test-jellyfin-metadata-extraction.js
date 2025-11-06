@@ -9,6 +9,7 @@
 
 const axios = require('axios');
 const fs = require('fs');
+require('dotenv').config();
 const { processJellyfinItem } = require('./lib/jellyfin-helpers');
 const config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
 
@@ -19,25 +20,46 @@ async function getJellyfinRawData(itemId) {
         throw new Error('No enabled Jellyfin server found in config');
     }
 
-    const { hostname, port = 8096, apiKey } = jellyfinServer;
+    const hostname = jellyfinServer.hostname;
+    const port = jellyfinServer.port || 8096;
+    const apiKey =
+        jellyfinServer.apiKey ||
+        jellyfinServer.token ||
+        (jellyfinServer.tokenEnvVar ? process.env[jellyfinServer.tokenEnvVar] : null);
     const protocol = port === 8920 || port === 443 ? 'https' : 'http';
     const baseUrl = `${protocol}://${hostname}:${port}`;
 
     console.log(`\n🔍 Fetching raw Jellyfin data from: ${baseUrl}`);
     console.log(`📦 Item ID: ${itemId}\n`);
 
-    // Fetch item details
-    const response = await axios.get(
-        `${baseUrl}/Users/${jellyfinServer.userId || 'me'}/Items/${itemId}`,
-        {
-            headers: {
-                'X-Emby-Token': apiKey,
-            },
-            params: {
-                Fields: 'People,Overview,Genres,Tags,Studios,ProviderIds,MediaSources,MediaStreams,Path,UserData,PrimaryImageAspectRatio,CommunityRating,CriticRating,OfficialRating,Taglines,ProductionLocations',
-            },
+    // Get user ID if not configured
+    const userIdEnvVar = jellyfinServer.userIdEnvVar;
+    let effectiveUserId =
+        jellyfinServer.userId || (userIdEnvVar ? process.env[userIdEnvVar] : null);
+    if (!effectiveUserId) {
+        try {
+            const userResponse = await axios.get(`${baseUrl}/Users`, {
+                headers: {
+                    'X-Emby-Token': apiKey,
+                },
+            });
+            if (userResponse.data && userResponse.data.length > 0) {
+                effectiveUserId = userResponse.data[0].Id;
+            }
+        } catch (err) {
+            throw new Error(`Failed to fetch users: ${err.message}`);
         }
-    );
+    }
+
+    // Fetch item details
+    const response = await axios.get(`${baseUrl}/Users/${effectiveUserId}/Items/${itemId}`, {
+        headers: {
+            'X-Emby-Token': apiKey,
+        },
+        params: {
+            Fields: 'People,Overview,Genres,Tags,Studios,ProviderIds,MediaSources,MediaStreams,Path,UserData,PrimaryImageAspectRatio,CommunityRating,CriticRating,OfficialRating,Taglines,ProductionLocations',
+        },
+    });
 
     return response.data;
 }
@@ -48,7 +70,12 @@ async function getPosterramaExtraction(rawItem) {
     // Create mock Jellyfin client
     const mockClient = {
         getImageUrl: (itemId, imageType, imageIndex = 0) => {
-            const { hostname, port = 8096, apiKey } = jellyfinServer;
+            const hostname = jellyfinServer.hostname;
+            const port = jellyfinServer.port || 8096;
+            const apiKey =
+                jellyfinServer.apiKey ||
+                jellyfinServer.token ||
+                (jellyfinServer.tokenEnvVar ? process.env[jellyfinServer.tokenEnvVar] : null);
             const protocol = port === 8920 || port === 443 ? 'https' : 'http';
             const baseUrl = `${protocol}://${hostname}:${port}`;
             return `${baseUrl}/Items/${itemId}/Images/${imageType}/${imageIndex}?api_key=${apiKey}`;

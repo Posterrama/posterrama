@@ -6,6 +6,7 @@
 
 const axios = require('axios');
 const fs = require('fs');
+require('dotenv').config();
 const config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
 
 async function listJellyfinItems() {
@@ -16,15 +17,44 @@ async function listJellyfinItems() {
         process.exit(1);
     }
 
-    const { hostname, port = 8096, apiKey, userId } = jellyfinServer;
+    const hostname = jellyfinServer.hostname;
+    const port = jellyfinServer.port || 8096;
+    const apiKey =
+        jellyfinServer.apiKey ||
+        jellyfinServer.token ||
+        (jellyfinServer.tokenEnvVar ? process.env[jellyfinServer.tokenEnvVar] : null);
+    const userId =
+        jellyfinServer.userId ||
+        (jellyfinServer.userIdEnvVar ? process.env[jellyfinServer.userIdEnvVar] : null);
     const protocol = port === 8920 || port === 443 ? 'https' : 'http';
     const baseUrl = `${protocol}://${hostname}:${port}`;
 
     console.log(`\n🔍 Fetching Jellyfin items from: ${baseUrl}\n`);
 
+    // Get user ID if not configured
+    let effectiveUserId = userId;
+    if (!effectiveUserId) {
+        try {
+            const userResponse = await axios.get(`${baseUrl}/Users`, {
+                headers: {
+                    'X-Emby-Token': apiKey,
+                },
+            });
+            if (userResponse.data && userResponse.data.length > 0) {
+                effectiveUserId = userResponse.data[0].Id;
+                console.log(
+                    `📋 Using first user: ${userResponse.data[0].Name} (${effectiveUserId})\n`
+                );
+            }
+        } catch (err) {
+            console.error('❌ Failed to fetch users:', err.message);
+            process.exit(1);
+        }
+    }
+
     try {
         // Get all movies
-        const response = await axios.get(`${baseUrl}/Users/${userId || 'me'}/Items`, {
+        const response = await axios.get(`${baseUrl}/Users/${effectiveUserId}/Items`, {
             headers: {
                 'X-Emby-Token': apiKey,
             },
