@@ -783,6 +783,54 @@ class JobQueue extends EventEmitter {
             }
         }
 
+        // Download hero image if available (wide promotional image)
+        if (item.heroUrl) {
+            const heroData = await this._withInflightLimit(() =>
+                this.downloadAsset(item.heroUrl, sourceType, exportLogger)
+            );
+            if (heroData) {
+                zip.file('hero.jpg', heroData);
+                assets.hero = true;
+            } else if (exportLogger) {
+                await exportLogger.warn('Hero image download failed', {
+                    title: item.title,
+                    url: item.heroUrl,
+                });
+            }
+        }
+
+        // Download composite image if available (collection/series composite)
+        if (item.compositeUrl) {
+            const compositeData = await this._withInflightLimit(() =>
+                this.downloadAsset(item.compositeUrl, sourceType, exportLogger)
+            );
+            if (compositeData) {
+                zip.file('composite.jpg', compositeData);
+                assets.composite = true;
+            } else if (exportLogger) {
+                await exportLogger.warn('Composite image download failed', {
+                    title: item.title,
+                    url: item.compositeUrl,
+                });
+            }
+        }
+
+        // Download square background if available (1:1 aspect ratio background)
+        if (item.backgroundSquareUrl) {
+            const squareData = await this._withInflightLimit(() =>
+                this.downloadAsset(item.backgroundSquareUrl, sourceType, exportLogger)
+            );
+            if (squareData) {
+                zip.file('background-square.jpg', squareData);
+                assets.backgroundSquare = true;
+            } else if (exportLogger) {
+                await exportLogger.warn('Square background download failed', {
+                    title: item.title,
+                    url: item.backgroundSquareUrl,
+                });
+            }
+        }
+
         if (includeAssets?.fanart && item.fanart) {
             const fan = item.fanart.slice(0, 5);
             let idxFan = 0;
@@ -1494,6 +1542,9 @@ class JobQueue extends EventEmitter {
                 fanartCount: assets.fanart || 0,
                 discart: !!assets.discart,
                 banner: !!assets.banner,
+                hero: !!assets.hero,
+                composite: !!assets.composite,
+                backgroundSquare: !!assets.backgroundSquare,
                 trailer: !!assets.trailer,
                 theme: !!assets.theme,
             },
