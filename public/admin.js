@@ -22857,6 +22857,9 @@ if (!document.__niwDelegatedFallback) {
             /* multiselect init is cosmetic; ignore failures */
         }
 
+        // Restore active jobs on page load
+        restoreActiveJobs();
+
         // Clear completed jobs
         const clearJobsBtn = document.getElementById('btn-clear-completed-jobs');
         if (clearJobsBtn) clearJobsBtn.addEventListener('click', clearCompletedJobs);
@@ -25177,7 +25180,15 @@ if (!document.__niwDelegatedFallback) {
         window.__ppSrvFiltersInFlight = null;
     }
 
+    // Track active polling intervals to prevent duplicates
+    const activePollingIntervals = new Map();
+
     function startJobPolling(jobId) {
+        // Stop existing polling for this job if any
+        if (activePollingIntervals.has(jobId)) {
+            clearInterval(activePollingIntervals.get(jobId));
+        }
+
         let progressToast = null;
         const interval = setInterval(() => {
             fetch(`/api/local/jobs/${jobId}`)
@@ -25215,6 +25226,7 @@ if (!document.__niwDelegatedFallback) {
 
                     if (job.status === 'completed' || job.status === 'failed') {
                         clearInterval(interval);
+                        activePollingIntervals.delete(jobId);
                         stopRealtimeDirectoryRefresh();
                         // One last refresh so sizes reflect final state (force bypass cache)
                         refreshDirectorySafe(true);
@@ -25247,9 +25259,83 @@ if (!document.__niwDelegatedFallback) {
                 .catch(error => {
                     console.error('Job status error:', error);
                     clearInterval(interval);
+                    activePollingIntervals.delete(jobId);
                     if (progressToast?.dismiss) progressToast.dismiss();
                 });
         }, 1000);
+
+        // Store interval for cleanup
+        activePollingIntervals.set(jobId, interval);
+    }
+
+    async function restoreActiveJobs() {
+        try {
+            const response = await fetch('/api/local/jobs');
+            if (!response.ok) return;
+
+            const data = await response.json();
+            const jobs = data.jobs || [];
+
+            // Display all jobs and restart polling for running/queued ones
+            jobs.forEach(job => {
+                updateJobDisplay(job);
+                if (job.status === 'running' || job.status === 'queued') {
+                    startJobPolling(job.id);
+                }
+            });
+
+            console.log(`[Jobs] Restored ${jobs.length} jobs from server`);
+        } catch (error) {
+            console.error('[Jobs] Failed to restore jobs:', error);
+        }
+    }
+
+    async function cancelJob(jobId) {
+        try {
+            const response = await fetch(`/api/local/jobs/${jobId}/cancel`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+
+            if (response.ok) {
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Job cancelled',
+                    message: 'The job has been cancelled successfully',
+                    duration: 2500,
+                });
+
+                // Stop polling and refresh job display
+                if (activePollingIntervals.has(jobId)) {
+                    clearInterval(activePollingIntervals.get(jobId));
+                    activePollingIntervals.delete(jobId);
+                }
+
+                // Fetch updated job status
+                const statusResponse = await fetch(`/api/local/jobs/${jobId}`);
+                if (statusResponse.ok) {
+                    const result = await statusResponse.json();
+                    const job = result?.job || result;
+                    updateJobDisplay(job);
+                }
+            } else {
+                const error = await response.json().catch(() => ({}));
+                window.notify?.toast({
+                    type: 'error',
+                    title: 'Cancel failed',
+                    message: error.error || 'Could not cancel job',
+                    duration: 3000,
+                });
+            }
+        } catch (error) {
+            console.error('[Jobs] Cancel failed:', error);
+            window.notify?.toast({
+                type: 'error',
+                title: 'Cancel failed',
+                message: 'An error occurred while cancelling the job',
+                duration: 3000,
+            });
+        }
     }
     // Generated Packs UI removed; downloads are available directly in the Directory browser
 
@@ -25277,10 +25363,17 @@ if (!document.__niwDelegatedFallback) {
             }
         })();
 
+        const canCancel = job.status === 'running' || job.status === 'queued';
+
         jobElement.innerHTML = `
             <div class="job-header">
                 <div class="job-title">${job.type || 'Unknown Job'}</div>
                 <div class="job-status ${job.status}">${job.status.toUpperCase()}</div>
+                ${
+                    canCancel
+                        ? `<button class="btn-cancel-job" data-job-id="${job.id}" title="Cancel job"><i class="fas fa-times"></i></button>`
+                        : ''
+                }
             </div>
             ${
                 job.progress !== undefined
@@ -25307,6 +25400,16 @@ if (!document.__niwDelegatedFallback) {
                 ${job.downloadUrl ? `<a href="${job.downloadUrl}" class="btn btn-outline btn-sm" style="margin-left: 10px;"><i class="fas fa-download"></i> Download</a>` : ''}
             </div>
         `;
+
+        // Wire cancel button
+        const cancelBtn = jobElement.querySelector('.btn-cancel-job');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to cancel this job?')) {
+                    cancelJob(job.id);
+                }
+            });
+        }
 
         // Show jobs section if hidden
         const jobsSection = document.getElementById('local-jobs-section');
