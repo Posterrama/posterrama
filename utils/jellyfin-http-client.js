@@ -354,6 +354,11 @@ class JellyfinHttpClient {
     getImageUrl(itemId, imageType = 'Primary', options = {}) {
         const params = new URLSearchParams();
 
+        // Add API key for authentication (required for image access)
+        if (this.apiKey) {
+            params.append('api_key', this.apiKey);
+        }
+
         // Add optional parameters
         if (options.maxHeight) params.append('maxHeight', options.maxHeight);
         if (options.maxWidth) params.append('maxWidth', options.maxWidth);
