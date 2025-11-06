@@ -226,11 +226,12 @@ class PlexSource {
                                     `[PlexSource:${this.server.name}] Fetched extras for ${item.title}: ${metadata.Extras?.Metadata?.length || 0} extras`
                                 );
                             }
-                            // Merge extras into the item
+                            // Merge extras and images into the item
                             return {
                                 ...item,
                                 Extras: metadata.Extras,
                                 Related: metadata.Related,
+                                Image: metadata.Image || item.Image,
                             };
                         }
                         return item;
