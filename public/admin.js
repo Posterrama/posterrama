@@ -19915,7 +19915,31 @@
                 if (rommIdx >= 0) servers[rommIdx] = romm;
                 else servers.push(romm);
 
-                await saveConfigPatch({ mediaServers: servers });
+                // If RomM is being disabled, also disable games-only mode
+                const patch = { mediaServers: servers };
+                if (!romm.enabled) {
+                    // Check if games-only mode is currently enabled
+                    const currentConfig = await (async () => {
+                        try {
+                            const r = await fetch('/api/admin/config', { credentials: 'include' });
+                            if (!r.ok) return null;
+                            const j = await r.json();
+                            return j?.config || j || {};
+                        } catch (_) {
+                            return null;
+                        }
+                    })();
+
+                    if (currentConfig?.wallartMode?.gamesOnly === true) {
+                        console.log('[RomM] Disabling games-only mode because RomM was disabled');
+                        patch.wallartMode = {
+                            ...(currentConfig.wallartMode || {}),
+                            gamesOnly: false,
+                        };
+                    }
+                }
+
+                await saveConfigPatch(patch);
                 window.notify?.toast({
                     type: 'success',
                     title: 'Saved',

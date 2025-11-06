@@ -207,6 +207,68 @@
             });
         }
 
+        // Poll for mode changes on promo site (since BroadcastChannel doesn't work cross-origin)
+        let lastKnownMode = null;
+        const checkModeChange = async () => {
+            try {
+                const resp = await fetch('/get-config?_t=' + Date.now(), { cache: 'no-cache' });
+                if (!resp.ok) return;
+                const cfg = await resp.json();
+
+                const currentMode = cfg.cinemaMode
+                    ? 'cinema'
+                    : cfg.wallartMode?.enabled
+                      ? 'wallart'
+                      : 'screensaver';
+
+                // Detect current page mode
+                const pathname = window.location.pathname;
+                const pageMode = pathname.includes('/cinema')
+                    ? 'cinema'
+                    : pathname.includes('/wallart')
+                      ? 'wallart'
+                      : 'screensaver';
+
+                // If this is the first check, just store the mode
+                if (lastKnownMode === null) {
+                    lastKnownMode = currentMode;
+                    return;
+                }
+
+                // If config mode changed and doesn't match page, navigate
+                if (currentMode !== lastKnownMode && currentMode !== pageMode) {
+                    console.log(
+                        `[Promo] Mode changed from ${lastKnownMode} to ${currentMode}, navigating...`
+                    );
+                    lastKnownMode = currentMode;
+
+                    // Use Core.navigateToMode if available, otherwise manual redirect
+                    if (
+                        window.PosterramaCore &&
+                        typeof window.PosterramaCore.navigateToMode === 'function'
+                    ) {
+                        window.PosterramaCore.navigateToMode(currentMode);
+                    } else {
+                        const modeUrls = {
+                            cinema: '/cinema.html',
+                            wallart: '/wallart.html',
+                            screensaver: '/screensaver.html',
+                        };
+                        window.location.href = modeUrls[currentMode] || '/';
+                    }
+                }
+
+                lastKnownMode = currentMode;
+            } catch (e) {
+                console.warn('[Promo] Mode check failed:', e);
+            }
+        };
+
+        // Check every 2 seconds for mode changes
+        setInterval(checkModeChange, 2000);
+        // Initial check after short delay to let config load
+        setTimeout(checkModeChange, 500);
+
         console.debug('[Promo Overlay] Initialization complete');
     }
 
