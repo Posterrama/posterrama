@@ -322,7 +322,6 @@ class RommSource {
                 null,
 
             // RetroAchievements
-            raId: rom.ra_id || null,
             hasRetroAchievements: Boolean(rom.ra_id),
             retroAchievements: retroAchievementsData,
             achievementCount: retroAchievementsData?.totalAchievements || 0,
