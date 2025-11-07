@@ -5,22 +5,17 @@
  * @jest-environment node
  */
 
+const path = require('path');
+const os = require('os');
+
 // Force real fs module to avoid mock contamination from other tests
+// Must be done BEFORE requiring any modules that use fs
 jest.unmock('fs');
 jest.unmock('fs-extra');
 jest.unmock('fs/promises');
 
-// Reset modules to ensure clean state
-jest.resetModules();
-
-const path = require('path');
-const os = require('os');
-
-// Import after fs is secured
-const { readPresets, writePresets } = require('../../lib/preset-helpers');
-
-// Import fs-extra AFTER unmocking and importing helpers
 const fs = require('fs-extra');
+const { readPresets, writePresets } = require('../../lib/preset-helpers');
 
 // Force serial execution for this test suite to avoid race conditions
 describe.serial = describe;

@@ -84,6 +84,8 @@ Display a beautiful grid of posters, updating dynamically with new content. Choo
   
 </figure>
 
+<br>
+
 <figure>
   <img src="./screenshots/romm.png" alt="Games Only Mode" width="740">
   <figcaption style="text-align:left; color:#6a6a6a;"><em>Games-only mode: showcase your retro and modern game collection from RomM</em></figcaption>
