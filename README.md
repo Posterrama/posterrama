@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="./public/logo.png" alt="Posterrama Logo" width="120">
+</div>
+
 # Posterrama - Bring your media library to life.
 
 ---
