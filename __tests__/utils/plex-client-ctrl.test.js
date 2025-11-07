@@ -223,11 +223,9 @@ describe('PlexClientAdapter - Legacy Query Interface', () => {
         });
 
         it('should log debug message for unmapped paths', async () => {
-            const logger = require('../../utils/logger');
             mockPlexServer.query.mockResolvedValue({});
 
             await adapter.query('/unmapped/path');
-            // Logger may or may not be called depending on implementation
             // Just ensure query completes without error
             expect(mockPlexServer.query).toHaveBeenCalledWith('/unmapped/path');
         });
