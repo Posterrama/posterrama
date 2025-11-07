@@ -149,6 +149,82 @@ class RommSource {
         // Build composite key
         const sourceId = `romm_${serverName}_${rom.id}`;
 
+        // Extract all provider IDs
+        const providerIds = {
+            igdb: rom.igdb_id || null,
+            sgdb: rom.sgdb_id || null,
+            moby: rom.moby_id || null,
+            screenscraper: rom.ss_id || null,
+            retroachievements: rom.ra_id || null,
+            launchbox: rom.launchbox_id || null,
+            hasheous: rom.hasheous_id || null,
+            tgdb: rom.tgdb_id || null,
+        };
+
+        // Process IGDB metadata if available
+        let igdbData = null;
+        if (rom.igdb_metadata) {
+            igdbData = {
+                totalRating: rom.igdb_metadata.total_rating || null,
+                aggregatedRating: rom.igdb_metadata.aggregated_rating || null,
+                firstReleaseDate: rom.igdb_metadata.first_release_date || null,
+                youtubeVideoId: rom.igdb_metadata.youtube_video_id || null,
+                genres: rom.igdb_metadata.genres || [],
+                franchises: rom.igdb_metadata.franchises || [],
+                alternativeNames: rom.igdb_metadata.alternative_names || [],
+                collections: rom.igdb_metadata.collections || [],
+                companies: rom.igdb_metadata.companies || [],
+                gameModes: rom.igdb_metadata.game_modes || [],
+                ageRatings: rom.igdb_metadata.age_ratings || [],
+                platforms: rom.igdb_metadata.platforms || [],
+                expansions: rom.igdb_metadata.expansions || [],
+                dlcs: rom.igdb_metadata.dlcs || [],
+                remasters: rom.igdb_metadata.remasters || [],
+                remakes: rom.igdb_metadata.remakes || [],
+                expandedGames: rom.igdb_metadata.expanded_games || [],
+                ports: rom.igdb_metadata.ports || [],
+                similarGames: rom.igdb_metadata.similar_games || [],
+            };
+        }
+
+        // Process Moby metadata if available
+        let mobyData = null;
+        if (rom.moby_metadata) {
+            mobyData = {
+                mobyScore: rom.moby_metadata.moby_score || null,
+                genres: rom.moby_metadata.genres || [],
+                alternateTitles: rom.moby_metadata.alternate_titles || [],
+                platforms: rom.moby_metadata.platforms || [],
+            };
+        }
+
+        // Process LaunchBox metadata if available
+        let launchboxData = null;
+        if (rom.launchbox_metadata) {
+            launchboxData = {
+                firstReleaseDate: rom.launchbox_metadata.first_release_date || null,
+                maxPlayers: rom.launchbox_metadata.max_players || null,
+                releaseType: rom.launchbox_metadata.release_type || null,
+                cooperative: rom.launchbox_metadata.cooperative || false,
+                youtubeVideoId: rom.launchbox_metadata.youtube_video_id || null,
+                communityRating: rom.launchbox_metadata.community_rating || null,
+                communityRatingCount: rom.launchbox_metadata.community_rating_count || null,
+            };
+        }
+
+        // Process RetroAchievements metadata if available
+        let retroAchievementsData = null;
+        if (rom.merged_ra_metadata) {
+            retroAchievementsData = {
+                totalAchievements: rom.merged_ra_metadata.total_achievements || 0,
+                earnedAchievements: rom.merged_ra_metadata.earned_achievements || 0,
+                hardcore: rom.merged_ra_metadata.hardcore || false,
+                points: rom.merged_ra_metadata.points || 0,
+                retroPoints: rom.merged_ra_metadata.retro_points || 0,
+                achievements: rom.merged_ra_metadata.achievements || [],
+            };
+        }
+
         return {
             // Core identification
             id: sourceId,
@@ -157,6 +233,7 @@ class RommSource {
             title: rom.name || rom.fs_name_no_ext,
             slug: rom.slug || null,
             overview: rom.summary || null,
+            tagline: null,
             type: 'game',
             source: 'romm',
             serverName: serverName,
@@ -165,48 +242,144 @@ class RommSource {
             poster: rom.url_cover || null,
             posterUrl: rom.url_cover || null,
             thumb: rom.url_cover || null,
+            thumbnailUrl: rom.url_cover || null,
             backgroundUrl: null, // RomM doesn't have background images for ROMs
+            clearLogoUrl: null,
+            screenshots: rom.merged_screenshots || [],
 
             // Game-specific fields
             platform: rom.platform_name || 'Unknown',
             platformId: rom.platform_id,
             platformSlug: rom.platform_slug || null,
+            platformDisplayName: rom.platform_display_name || rom.platform_name || null,
+            platformCustomName: rom.platform_custom_name || null,
 
-            // Metadata
-            genres: rom.metadatum?.genres || [],
+            // Metadata - Unified from all sources
+            genres: rom.metadatum?.genres || igdbData?.genres || mobyData?.genres || [],
+            franchises: rom.metadatum?.franchises || igdbData?.franchises || [],
+            collections: rom.metadatum?.collections || igdbData?.collections || [],
+            companies: rom.metadatum?.companies || igdbData?.companies || [],
+            gameModes: rom.metadatum?.game_modes || igdbData?.gameModes || [],
+            ageRatings: rom.metadatum?.age_ratings || [],
+            contentRating: rom.metadatum?.age_ratings?.[0] || null,
+
+            // Ratings
             rating: rom.metadatum?.average_rating || null,
-            releaseDate: rom.metadatum?.first_release_date || null,
+            communityRating: igdbData?.totalRating || launchboxData?.communityRating || null,
+            aggregatedRating: igdbData?.aggregatedRating || null,
+            mobyScore: mobyData?.mobyScore || null,
+
+            // Release info
+            releaseDate: rom.metadatum?.first_release_date || igdbData?.firstReleaseDate || null,
             year: rom.metadatum?.first_release_date
                 ? new Date(rom.metadatum.first_release_date * 1000).getFullYear()
                 : null,
 
-            // Additional info
-            igdbId: rom.igdb_id || null,
-            alternativeNames: rom.alternative_names || [],
+            // Alternative names and localization
+            alternativeNames: rom.alternative_names || igdbData?.alternativeNames || [],
             languages: rom.languages || [],
             regions: rom.regions || [],
+            tags: rom.tags || [],
+            revision: rom.revision || null,
+
+            // Provider IDs
+            providerIds: providerIds,
+            igdbId: rom.igdb_id || null,
+            sgdbId: rom.sgdb_id || null,
+            mobyId: rom.moby_id || null,
+            screenperId: rom.ss_id || null,
+            raId: rom.ra_id || null,
+            launchboxId: rom.launchbox_id || null,
+            hasheousId: rom.hasheous_id || null,
+            tgdbId: rom.tgdb_id || null,
 
             // File info
             fileSize: rom.fs_size_bytes || 0,
             fileName: rom.fs_name || null,
+            fileNameNoTags: rom.fs_name_no_tags || null,
+            fileNameNoExt: rom.fs_name_no_ext || null,
+            fileExtension: rom.fs_extension || null,
+            filePath: rom.fs_path || null,
+            fullPath: rom.full_path || null,
             multi: rom.multi || false,
+            files: rom.files || [],
+
+            // Hashes
+            crcHash: rom.crc_hash || null,
+            md5Hash: rom.md5_hash || null,
+            sha1Hash: rom.sha1_hash || null,
+
+            // Manual/Documentation
+            hasManual: rom.has_manual || false,
+            pathManual: rom.path_manual || null,
+            urlManual: rom.url_manual || null,
+
+            // Video
+            youtubeVideoId:
+                rom.youtube_video_id ||
+                igdbData?.youtubeVideoId ||
+                launchboxData?.youtubeVideoId ||
+                null,
 
             // RetroAchievements
             raId: rom.ra_id || null,
             hasRetroAchievements: Boolean(rom.ra_id),
-            achievements: null, // Will be populated if merged_ra_metadata exists
-            achievementCount: 0,
-            achievementEarned: 0,
+            retroAchievements: retroAchievementsData,
+            achievementCount: retroAchievementsData?.totalAchievements || 0,
+            achievementEarned: retroAchievementsData?.earnedAchievements || 0,
+
+            // Related games (from IGDB)
+            relatedGames: igdbData
+                ? {
+                      expansions: igdbData.expansions,
+                      dlcs: igdbData.dlcs,
+                      remasters: igdbData.remasters,
+                      remakes: igdbData.remakes,
+                      expandedGames: igdbData.expandedGames,
+                      ports: igdbData.ports,
+                      similarGames: igdbData.similarGames,
+                  }
+                : null,
+
+            // Multiplayer info
+            maxPlayers: launchboxData?.maxPlayers || null,
+            cooperative: launchboxData?.cooperative || false,
+
+            // Identification status
+            isIdentified: rom.is_identified || false,
+            isUnidentified: rom.is_unidentified || false,
+            missingFromFs: rom.missing_from_fs || false,
+
+            // Timestamps
+            createdAt: rom.created_at || null,
+            updatedAt: rom.updated_at || null,
+            addedAt: rom.created_at ? new Date(rom.created_at).getTime() : null,
 
             // User data (if available)
             isFavorite: rom.rom_user?.is_favorite || false,
             lastPlayed: rom.rom_user?.last_played || null,
+            userNotes: rom.user_notes || [],
+            userCollections: rom.user_collections || [],
+            userSaves: rom.user_saves || [],
+            userStates: rom.user_states || [],
+            userScreenshots: rom.user_screenshots || [],
+
+            // Sibling ROMs (different regions/versions of same game)
+            siblings: rom.siblings || [],
+
+            // Provider-specific metadata (full objects for advanced use)
+            igdbMetadata: igdbData,
+            mobyMetadata: mobyData,
+            ssMetadata: rom.ss_metadata || null,
+            launchboxMetadata: launchboxData,
+            hasheousMetadata: rom.hasheous_metadata || null,
 
             // Original data for reference
             originalData: {
                 rommId: rom.id,
-                igdbMetadata: rom.igdb_metadata || null,
+                platformFsSlug: rom.platform_fs_slug || null,
                 hasManual: rom.has_manual || false,
+                rawMetadata: rom.metadatum || null,
             },
         };
     }
