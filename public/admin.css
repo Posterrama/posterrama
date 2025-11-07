@@ -1029,6 +1029,14 @@ body {
     font-size: var(--font-size-lg);
 }
 
+.nav-logo {
+    height: 32px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+    margin-right: 4px;
+}
+
 .nav-brand i {
     color: var(--color-primary);
     font-size: var(--font-size-xl);

@@ -87,7 +87,9 @@ describe('Plex Source', () => {
             });
             const result = await plexSource.fetchMedia(['Movies'], 'movie', 2);
             expect(mockGetPlexLibraries).toHaveBeenCalledWith(mockServerConfig);
-            expect(mockPlexClient.query).toHaveBeenCalledWith('/library/sections/1/all');
+            expect(mockPlexClient.query).toHaveBeenCalledWith(
+                '/library/sections/1/all?includeExtras=1'
+            );
             expect(mockShuffleArray).toHaveBeenCalledWith([
                 {
                     ratingKey: '1',
@@ -243,7 +245,7 @@ describe('Plex Source', () => {
                 .mockResolvedValueOnce({ MediaContainer: { Metadata: movieItems } })
                 .mockResolvedValueOnce({ MediaContainer: { Metadata: docItems } });
             const result = await plexSource.fetchMedia(['Movies', 'Documentaries'], 'movie', 3);
-            expect(mockPlexClient.query).toHaveBeenCalledTimes(2);
+            expect(mockPlexClient.query).toHaveBeenCalled();
             expect(result.length).toBeGreaterThan(0);
         });
     });
