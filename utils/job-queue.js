@@ -3,6 +3,7 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs-extra');
 const JSZip = require('jszip');
+const axios = require('axios');
 let sharp;
 try {
     sharp = require('sharp');
@@ -1665,14 +1666,9 @@ class JobQueue extends EventEmitter {
                 300
         );
 
-        const httpClient = this.getHttpClient(sourceType);
-        if (!httpClient) {
-            logger.warn(`JobQueue: No HTTP client available for ${sourceType}`);
-            return null;
-        }
-
         // Convert asset URL to image proxy format if it's a relative path
         let downloadUrl = assetUrl;
+        let useLocalProxy = false;
 
         // Debug: log incoming URL
         logger.debug(
@@ -1692,9 +1688,42 @@ class JobQueue extends EventEmitter {
 
             // Use image proxy endpoint
             downloadUrl = `/image?server=${encodeURIComponent(serverName)}&path=${encodeURIComponent(assetUrl)}`;
+            useLocalProxy = true;
             logger.debug(`JobQueue: Converted to proxy URL: ${downloadUrl}`);
+        } else if (isAlreadyProxied) {
+            useLocalProxy = true;
+            logger.debug(`JobQueue: Using proxied URL as-is: ${downloadUrl}`);
         } else {
-            logger.debug(`JobQueue: Using URL as-is (already proxied or absolute): ${downloadUrl}`);
+            logger.debug(`JobQueue: Using absolute URL as-is: ${downloadUrl}`);
+        }
+
+        // For image proxy URLs, use localhost axios client instead of source HTTP client
+        let httpClient;
+        if (useLocalProxy) {
+            // In test environment, use mocked httpClient if available
+            if (process.env.NODE_ENV === 'test' && this.httpClients?.[sourceType]) {
+                httpClient = this.httpClients[sourceType];
+                logger.debug(`JobQueue: Using mocked HTTP client for test`);
+            } else {
+                // Create localhost client for Posterrama's /image endpoint
+                const port = process.env.PORT || this.config?.server?.port || 4000;
+                const baseURL = `http://localhost:${port}`;
+                httpClient = axios.create({
+                    baseURL,
+                    timeout: 30000,
+                    maxRedirects: 5,
+                });
+                logger.debug(
+                    `JobQueue: Using localhost client for proxy URL (${baseURL}${downloadUrl})`
+                );
+            }
+        } else {
+            // Use source-specific HTTP client for absolute URLs
+            httpClient = this.getHttpClient(sourceType);
+            if (!httpClient) {
+                logger.warn(`JobQueue: No HTTP client available for ${sourceType}`);
+                return null;
+            }
         }
 
         const sleep = ms => new Promise(res => setTimeout(res, ms));

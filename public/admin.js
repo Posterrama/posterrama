@@ -16366,7 +16366,6 @@
                         refreshOverviewCounts();
                     });
                     rommPlatformsEl.dataset.countWired = 'true';
-                    console.log('[RomM] Platform change listener attached');
                 }
 
                 // Initial sync
@@ -17124,25 +17123,28 @@
             initMsForSelect('jf-ms-movies', 'jf.movies');
             initMsForSelect('jf-ms-shows', 'jf.shows');
             // Now load dependent selectors
-            try {
-                await loadJellyfinRatings(
-                    Array.isArray(jf.ratingFilter)
-                        ? jf.ratingFilter.join(',')
-                        : jf.ratingFilter || ''
-                );
-            } catch (e) {
-                dbg('loadJellyfinRatings failed', e);
-            }
-            try {
-                await loadJellyfinGenres(jf.genreFilter || '');
-            } catch (e) {
-                dbg('loadJellyfinGenres failed', e);
-            }
-            try {
-                // Jellyfin qualities disabled
-                await loadJellyfinQualities('');
-            } catch (e) {
-                dbg('loadJellyfinQualities failed', e);
+            // Only load Jellyfin filters if enabled
+            if (jf.enabled) {
+                try {
+                    await loadJellyfinRatings(
+                        Array.isArray(jf.ratingFilter)
+                            ? jf.ratingFilter.join(',')
+                            : jf.ratingFilter || ''
+                    );
+                } catch (e) {
+                    dbg('loadJellyfinRatings failed', e);
+                }
+                try {
+                    await loadJellyfinGenres(jf.genreFilter || '');
+                } catch (e) {
+                    dbg('loadJellyfinGenres failed', e);
+                }
+                try {
+                    // Jellyfin qualities disabled
+                    await loadJellyfinQualities('');
+                } catch (e) {
+                    dbg('loadJellyfinQualities failed', e);
+                }
             }
             // Defer fetching Jellyfin libraries until the Jellyfin panel is opened
             // TMDB
@@ -17481,13 +17483,10 @@
                 const selectedPlatforms = Array.isArray(romm.selectedPlatforms)
                     ? romm.selectedPlatforms
                     : [];
-                console.log('[RomM Load] Selected platforms from config:', selectedPlatforms);
-                console.log('[RomM Load] Cached platforms:', window.__rommPlatforms?.length || 0);
 
                 // Build platform options from cached platforms
                 if (window.__rommPlatforms && window.__rommPlatforms.length > 0) {
                     // Use cached platforms with full details
-                    console.log('[RomM Load] Using cached platforms');
                     setMultiSelect('romm.platforms', window.__rommPlatforms, selectedPlatforms);
                     initMsForSelect('romm-ms-platforms', 'romm.platforms');
                 } else {
@@ -17495,15 +17494,12 @@
                     const willAutoFetch = romm.enabled && romm.url && romm.username;
                     if (!willAutoFetch && selectedPlatforms.length > 0) {
                         // Only show placeholders if we won't auto-fetch
-                        console.log('[RomM Load] Using placeholder platforms from selection');
                         const placeholderOptions = selectedPlatforms.map(p => ({
                             value: p,
                             label: p,
                         }));
                         setMultiSelect('romm.platforms', placeholderOptions, selectedPlatforms);
                         initMsForSelect('romm-ms-platforms', 'romm.platforms');
-                    } else {
-                        console.log('[RomM Load] Waiting for auto-fetch to populate platforms');
                     }
                 }
 
@@ -18827,8 +18823,7 @@
                         hostname,
                         port,
                         apiKey: apiKey || undefined,
-                        movieLibraries,
-                        showLibraries,
+                        libraries: [...movieLibraries, ...showLibraries],
                     }),
                 });
                 const data = await res.json().catch(() => ({}));
@@ -19214,9 +19209,8 @@
                     password = savedPassword;
                     console.log('[RomM] Using password from localStorage for auto-fetch');
                 } else {
-                    console.log(
-                        '[RomM] Skipping auto-fetch: password not available (click "Fetch Platforms" to load)'
-                    );
+                    // Silently skip auto-fetch when password is not available
+                    // (user can manually click "Fetch Platforms" button)
                     return;
                 }
             }
@@ -24346,8 +24340,7 @@ if (!document.__niwDelegatedFallback) {
                                     headers: { 'Content-Type': 'application/json' },
                                     credentials: 'include',
                                     body: JSON.stringify({
-                                        movieLibraries: jfMovieLibs,
-                                        showLibraries: jfShowLibs,
+                                        libraries: [...jfMovieLibs, ...jfShowLibs],
                                     }),
                                 });
                                 if (res.ok) {
@@ -25010,8 +25003,7 @@ if (!document.__niwDelegatedFallback) {
                                     headers: { 'Content-Type': 'application/json' },
                                     credentials: 'include',
                                     body: JSON.stringify({
-                                        movieLibraries: jfMovieLibs,
-                                        showLibraries: jfShowLibs,
+                                        libraries: [...jfMovieLibs, ...jfShowLibs],
                                     }),
                                 });
                                 if (res.ok) {
@@ -25284,7 +25276,10 @@ if (!document.__niwDelegatedFallback) {
                 }
             });
 
-            console.log(`[Jobs] Restored ${jobs.length} jobs from server`);
+            // Only log if there are jobs to restore
+            if (jobs.length > 0) {
+                console.log(`[Jobs] Restored ${jobs.length} jobs from server`);
+            }
         } catch (error) {
             console.error('[Jobs] Failed to restore jobs:', error);
         }

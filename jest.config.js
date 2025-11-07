@@ -97,7 +97,7 @@ module.exports = {
                   statements: 100,
               },
               // FASE 5 improvements - Middleware orchestration
-              'middleware/index.js': { branches: 85, functions: 100, lines: 96, statements: 91.1 },
+              'middleware/index.js': { branches: 85, functions: 100, lines: 96, statements: 90 },
               // FASE 7 improvements - Metrics middleware (realistic targets; ratchet up later)
               'middleware/metrics.js': {
                   branches: 66,

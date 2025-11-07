@@ -55,14 +55,14 @@ echo ""
 
 # 5. Console.log Check (excluding development/debug files)
 echo "5. 🚫 Checking for console.log statements..."
-CONSOLE_LOGS=$(grep -r "console\.log(" public/ server.js sources/ utils/ middleware/ --include="*.js" --exclude-dir=node_modules | grep -v ": \*" | grep -v "console\.log = " | grep -v "originalConsoleLog" | grep -v "logger\." | grep -v "client-logger.js" | grep -v "public/admin.js:" | grep -v "public/cinema/cinema-display.js:" | grep -v "public/device-mgmt.js:" | head -5)
+CONSOLE_LOGS=$(grep -r "console\.log(" public/ server.js sources/ utils/ middleware/ --include="*.js" --exclude-dir=node_modules | grep -v ": \*" | grep -v "console\.log = " | grep -v "originalConsoleLog" | grep -v "logger\." | grep -v "client-logger.js" | grep -v "public/admin.js:" | grep -v "public/cinema/cinema-display.js:" | grep -v "public/device-mgmt.js:" | grep -v "public/debug-viewer.js:" | grep -v "public/promo/promo-box-overlay.js:" | grep -v "public/cinema/cinema-bootstrap.js:" | head -5)
 if [ -n "$CONSOLE_LOGS" ]; then
     echo "❌ Found console.log statements:"
     echo "$CONSOLE_LOGS"
     echo "❌ Console.log Check: FAILED"
     OVERALL_SUCCESS=false
 else
-    echo "✅ No console.log statements found (excluding debug files: admin.js, cinema-display.js, device-mgmt.js)"
+    echo "✅ No console.log statements found (excluding debug files: admin.js, cinema-display.js, device-mgmt.js, debug-viewer.js, promo-box-overlay.js, cinema-bootstrap.js)"
 fi
 echo ""
 

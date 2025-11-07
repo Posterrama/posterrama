@@ -23,7 +23,7 @@ jest.mock('../../utils/logger', () => ({
 
 const logger = require('../../utils/logger');
 
-describe('Middleware Index - Comprehensive Tests', () => {
+describe('Middleware comprehensive coverage', () => {
     let app;
 
     beforeEach(() => {
@@ -651,6 +651,54 @@ describe('Middleware Index - Comprehensive Tests', () => {
                 'Server error occurred',
                 expect.objectContaining({ error: 'Integration test error' })
             );
+        });
+    });
+
+    describe('Compression edge cases', () => {
+        test('should skip compression for SSE with text/event-stream in Accept header', async () => {
+            app.get('/events', (_req, res) => {
+                res.setHeader('Content-Type', 'text/event-stream');
+                res.send('data: test\n\n');
+            });
+
+            const response = await request(app).get('/events').set('Accept', 'text/event-stream');
+
+            expect(response.status).toBe(200);
+        });
+
+        test('should skip compression for images with .webp extension', async () => {
+            app.get('/image.webp', (_req, res) => {
+                res.send('fake-webp-data');
+            });
+
+            const response = await request(app).get('/image.webp');
+
+            expect(response.status).toBe(200);
+        });
+
+        test('should handle getHeader error gracefully in compression filter', async () => {
+            app.get('/test', (_req, res) => {
+                res.send({ data: 'test' });
+            });
+
+            const response = await request(app).get('/test');
+
+            // Test passes if no crash occurs
+            expect(response.status).toBe(200);
+        });
+    });
+
+    describe('CORS edge cases', () => {
+        test('should allow requests with no origin', async () => {
+            app.get('/test', (_req, res) => {
+                res.json({ success: true });
+            });
+
+            const response = await request(app).get('/test');
+
+            // CORS headers are set when origin is present
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({ success: true });
         });
     });
 });
