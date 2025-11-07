@@ -1,12 +1,10 @@
 <div align="center">
   <img src="./public/logo.png" alt="Posterrama Logo" width="120">
+  
+  <h1 style="margin-bottom: 5px;">Posterrama - Bring your media library to life.</h1>
+  <p style="margin-top: 0;"><em>Transform any screen into a cinematic, always-fresh movie poster display.</em></p>
+  <br>
 </div>
-
-# Posterrama - Bring your media library to life.
-
----
-
-Transform any screen into a cinematic, always-fresh movie poster display.
 
 <div align="center">
 
