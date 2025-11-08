@@ -1533,23 +1533,47 @@
                         if (isMusicItem) {
                             try {
                                 const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
-                                const visibility = musicConfig.visibility || {};
+                                const displayStyle = musicConfig.displayStyle || 'covers-only';
+                                const showArtist = musicConfig.showArtist !== false;
+                                const showAlbumTitle = musicConfig.showAlbumTitle !== false;
+                                const showYear = musicConfig.showYear !== false;
+                                const showGenre = musicConfig.showGenre === true;
 
-                                // Only create overlay if at least one metadata field is enabled
-                                if (
-                                    visibility.artist ||
-                                    visibility.albumTitle ||
-                                    visibility.year ||
-                                    visibility.genre
-                                ) {
+                                // Display style: covers-only (minimal overlay)
+                                if (displayStyle === 'covers-only' && showArtist && item.artist) {
                                     const overlay = document.createElement('div');
-                                    overlay.className = 'music-metadata-overlay';
+                                    overlay.className = 'music-metadata-overlay covers-only';
                                     overlay.style.cssText = `
                                         position: absolute;
                                         bottom: 0;
                                         left: 0;
                                         right: 0;
-                                        background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
+                                        background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+                                        color: #fff;
+                                        padding: 8px 12px;
+                                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                                        pointer-events: none;
+                                        font-size: 0.85em;
+                                        font-weight: 500;
+                                        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+                                        white-space: nowrap;
+                                        overflow: hidden;
+                                        text-overflow: ellipsis;
+                                    `;
+                                    overlay.textContent = item.artist;
+                                    posterItem.appendChild(overlay);
+                                }
+
+                                // Display style: album-info (detailed metadata)
+                                else if (displayStyle === 'album-info') {
+                                    const overlay = document.createElement('div');
+                                    overlay.className = 'music-metadata-overlay album-info';
+                                    overlay.style.cssText = `
+                                        position: absolute;
+                                        bottom: 0;
+                                        left: 0;
+                                        right: 0;
+                                        background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.7) 70%, transparent 100%);
                                         color: #fff;
                                         padding: 12px;
                                         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1557,25 +1581,51 @@
                                     `;
 
                                     let html = '';
-
-                                    if (visibility.artist && item.artist) {
-                                        html += `<div style="font-size: 0.9em; font-weight: 600; margin-bottom: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${item.artist}</div>`;
+                                    if (showArtist && item.artist) {
+                                        html += `<div style="font-size: 0.9em; font-weight: 600; margin-bottom: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.artist}</div>`;
                                     }
-
-                                    if (visibility.albumTitle && item.title) {
-                                        html += `<div style="font-size: 0.8em; opacity: 0.9; margin-bottom: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${item.title}</div>`;
+                                    if (showAlbumTitle && item.title) {
+                                        html += `<div style="font-size: 0.8em; opacity: 0.9; margin-bottom: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title}</div>`;
                                     }
 
                                     const metaItems = [];
-                                    if (visibility.year && item.year) {
-                                        metaItems.push(item.year);
-                                    }
-                                    if (visibility.genre && item.genre) {
-                                        metaItems.push(item.genre);
-                                    }
+                                    if (showYear && item.year) metaItems.push(item.year);
+                                    if (showGenre && item.genres && item.genres[0])
+                                        metaItems.push(item.genres[0]);
 
                                     if (metaItems.length > 0) {
-                                        html += `<div style="font-size: 0.7em; opacity: 0.7; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${metaItems.join(' • ')}</div>`;
+                                        html += `<div style="font-size: 0.7em; opacity: 0.75; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${metaItems.join(' • ')}</div>`;
+                                    }
+
+                                    overlay.innerHTML = html;
+                                    posterItem.appendChild(overlay);
+                                }
+
+                                // Display style: artist-cards (artist-focused with large text)
+                                else if (displayStyle === 'artist-cards' && item.artist) {
+                                    const overlay = document.createElement('div');
+                                    overlay.className = 'music-metadata-overlay artist-cards';
+                                    overlay.style.cssText = `
+                                        position: absolute;
+                                        inset: 0;
+                                        background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 40%, transparent 60%);
+                                        color: #fff;
+                                        padding: 16px;
+                                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                                        pointer-events: none;
+                                        display: flex;
+                                        flex-direction: column;
+                                        justify-content: flex-end;
+                                    `;
+
+                                    let html = `<div style="font-size: 1.1em; font-weight: 700; margin-bottom: 6px; text-shadow: 0 2px 4px rgba(0,0,0,0.9); line-height: 1.2;">${item.artist}</div>`;
+
+                                    if (showAlbumTitle && item.title) {
+                                        html += `<div style="font-size: 0.75em; opacity: 0.85; text-shadow: 0 1px 3px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title}</div>`;
+                                    }
+
+                                    if (showYear && item.year) {
+                                        html += `<div style="font-size: 0.7em; opacity: 0.7; margin-top: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${item.year}</div>`;
                                     }
 
                                     overlay.innerHTML = html;
@@ -1906,6 +1956,16 @@
                         window.innerWidth <= 768 ||
                         /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
 
+                    // Check if this is a music item - use music animation if configured
+                    const isMusicItem = newItem.type === 'music';
+                    const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
+                    const musicAnimation = musicConfig.animation || 'vinyl-spin';
+
+                    // Use music-specific animation for music items
+                    if (isMusicItem && musicAnimation && musicAnimation !== 'default') {
+                        animationType = musicAnimation;
+                    }
+
                     // Determine animation type
                     const anim = String(animationType).toLowerCase();
                     const duration = 600; // ms - default animation duration
@@ -2125,6 +2185,77 @@
                                 img.style.opacity = '1';
                             });
                         }, duration);
+                    } else if (anim === 'vinyl-spin') {
+                        // Music-specific: Vinyl record spinning effect
+                        const spinDuration = isMobile ? 800 : 1000;
+                        element.style.perspective = '1000px';
+
+                        img.style.transition = `transform ${spinDuration / 2}ms ease-in, opacity ${spinDuration / 2}ms ease`;
+                        img.style.transform = 'rotateZ(180deg) scale(0.8)';
+                        img.style.opacity = '0';
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Album Cover';
+                            img.style.transition = 'none';
+                            img.style.transform = 'rotateZ(-180deg) scale(0.8)';
+                            img.style.opacity = '0';
+                            img.offsetHeight;
+
+                            img.style.transition = `transform ${spinDuration / 2}ms ease-out, opacity ${spinDuration / 2}ms ease`;
+                            setTimeout(() => {
+                                img.style.transform = 'rotateZ(0deg) scale(1)';
+                                img.style.opacity = '1';
+                            }, 50);
+                        }, spinDuration / 2);
+                    } else if (anim === 'slide-fade') {
+                        // Music-specific: Smooth slide with fade
+                        const slideDuration = isMobile ? 600 : 800;
+                        const slideDistance = isMobile ? '40px' : '60px';
+
+                        img.style.transition = `all ${slideDuration / 2}ms ease-in`;
+                        img.style.transform = `translateY(${slideDistance})`;
+                        img.style.opacity = '0';
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Album Cover';
+                            img.style.transition = 'none';
+                            img.style.transform = `translateY(-${slideDistance})`;
+                            img.style.opacity = '0';
+                            img.offsetHeight;
+
+                            img.style.transition = `all ${slideDuration / 2}ms ease-out`;
+                            setTimeout(() => {
+                                img.style.transform = 'translateY(0)';
+                                img.style.opacity = '1';
+                            }, 50);
+                        }, slideDuration / 2);
+                    } else if (anim === 'crossfade') {
+                        // Music-specific: Pure crossfade
+                        const fadeDuration = isMobile ? 700 : 900;
+
+                        const newImg = document.createElement('img');
+                        newImg.src = newItem.posterUrl;
+                        newImg.alt = newItem.title || 'Album Cover';
+                        newImg.style.cssText = `
+                            position: absolute;
+                            inset: 0;
+                            width: 100%;
+                            height: 100%;
+                            object-fit: cover;
+                            opacity: 0;
+                            transition: opacity ${fadeDuration}ms ease;
+                        `;
+
+                        element.appendChild(newImg);
+                        setTimeout(() => (newImg.style.opacity = '1'), 50);
+
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Album Cover';
+                            newImg.remove();
+                        }, fadeDuration + 100);
                     } else {
                         // Default: fade
                         img.style.transition = `opacity ${duration}ms ease`;

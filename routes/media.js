@@ -170,7 +170,7 @@ module.exports = function createMediaRouter({
      * /get-media:
      *   get:
      *     summary: Retrieve media playlist
-     *     description: Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB, RomM). Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true.
+     *     description: Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB, RomM). Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true. Supports Music Mode for album covers.
      *     tags: ['Public API']
      *     parameters:
      *       - in: query
@@ -185,6 +185,19 @@ module.exports = function createMediaRouter({
      *           type: string
      *           enum: ['1']
      *         description: Set to '1' to bypass cache (admin use)
+     *       - in: query
+     *         name: musicMode
+     *         schema:
+     *           type: string
+     *           enum: ['1', 'true']
+     *         description: 'Set to "1" or "true" to return music albums instead of movies/TV shows. Requires wallartMode.musicMode.enabled=true in config. Returns items with type="music" containing album metadata (artist, album, genres, etc.)'
+     *       - in: query
+     *         name: count
+     *         schema:
+     *           type: integer
+     *           minimum: 1
+     *           maximum: 1000
+     *         description: Number of items to return (used with musicMode)
      *       - in: query
      *         name: includeExtras
      *         schema:
