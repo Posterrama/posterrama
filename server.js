@@ -2754,6 +2754,8 @@ app.use(
         asyncHandler,
         getPlexClient,
         processPlexItem,
+        getPlexLibraries,
+        shuffleArray,
         getPlaylistCache,
         isPlaylistRefreshing,
         getRefreshStartTime,

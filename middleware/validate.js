@@ -95,6 +95,17 @@ const getMediaQuerySchema = Joi.object({
     excludeGames: Joi.alternatives()
         .try(Joi.boolean(), Joi.string().valid('1', 'true', 'false', '0'), Joi.number().valid(0, 1))
         .optional(),
+    // Optional flag to enable music mode (fetch albums instead of movies/shows)
+    // Accepts boolean or string values: true, "true", "1", 1
+    musicMode: Joi.alternatives()
+        .try(Joi.boolean(), Joi.string().valid('1', 'true', 'false', '0'), Joi.number().valid(0, 1))
+        .optional(),
+    // Optional count parameter for limiting results (used with music mode)
+    count: Joi.number().integer().min(1).max(1000).optional(),
+    // Optional nocache flag to bypass cache
+    nocache: Joi.alternatives()
+        .try(Joi.boolean(), Joi.string().valid('1', 'true', 'false', '0'), Joi.number().valid(0, 1))
+        .optional(),
 });
 
 const imageQuerySchema = Joi.object({

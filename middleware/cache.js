@@ -233,7 +233,10 @@ const cacheMiddleware = {
     // Media cache for media listings
     media: createCacheMiddleware({
         ttl: 10 * 60 * 1000, // 10 minutes
-        skipIf: req => req.query.nocache === 'true',
+        skipIf: req =>
+            req.query.nocache === 'true' ||
+            req.query.musicMode === '1' ||
+            req.query.musicMode === 'true',
     }),
 
     // Config cache for configuration data

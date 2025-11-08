@@ -698,19 +698,19 @@
                     </div>
                   </div>
 
-                  <!-- Content Source card -->
-                  <div class="mode-card" data-card-key="source" style="padding:12px;">
-                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-filter"></i> Content Source</div>
-                    <div class="form-grid">
-                      <div class="form-row">
-                        <label class="checkbox" for="wallartMode_gamesOnly">
-                          <input type="checkbox" id="wallartMode_gamesOnly" />
-                          <span class="checkmark"></span>
-                          <span>Games only mode</span>
-                        </label>
-                        <small class="form-help" id="wallart-games-only-help">Show only game covers from RomM (requires RomM enabled)</small>
-                      </div>
+                  <!-- Games Mode card -->
+                  <div class="mode-card" id="wallart-games-card" data-card-key="games" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;">
+                      <i class="fas fa-gamepad"></i> Games Mode
+                      <label class="header-toggle" for="wallartMode_gamesOnly" style="margin-left:auto;">
+                        <input type="checkbox" id="wallartMode_gamesOnly" />
+                        <span class="ht-switch" aria-hidden="true"></span>
+                      </label>
                     </div>
+                    <div class="form-grid" id="games-mode-settings">
+                      <!-- Settings would go here if needed in the future -->
+                    </div>
+                    <small class="form-help" id="wallart-games-only-help">Exclusive mode: when enabled, only game covers from RomM will be displayed (no movies, series, or music)</small>
                   </div>
 
                   <!-- Music Mode card -->
@@ -809,61 +809,8 @@
                           <span>Show genre</span>
                         </label>
                       </div>
-
-                      <!-- Library Selection (populated dynamically) -->
-                      <div class="form-row" id="music-library-row" style="display:none;">
-                        <label for="music-library-select">
-                          Music Library
-                          <button type="button" class="icon-btn" id="refresh-music-libraries" title="Refresh libraries">
-                            <i class="fas fa-sync-alt"></i>
-                          </button>
-                        </label>
-                        <div class="select-wrap has-caret">
-                          <select id="music-library-select">
-                            <option value="">Select library...</option>
-                          </select>
-                          <span class="select-caret" aria-hidden="true">▾</span>
-                        </div>
-                      </div>
-
-                      <!-- Genre Filter (populated dynamically) -->
-                      <div class="form-row" id="music-genre-row" style="display:none;">
-                        <label for="music-genre-filter">
-                          Genre Filter
-                          <span class="help-text">Select genres to include</span>
-                        </label>
-                        <div id="music-genre-filter-container">
-                          <small class="form-help">Select a library first</small>
-                        </div>
-                      </div>
-
-                      <!-- Artist Filter (populated dynamically) -->
-                      <div class="form-row" id="music-artist-row" style="display:none;">
-                        <label for="music-artist-filter">
-                          Artist Filter
-                          <span class="help-text">Select artists to include</span>
-                        </label>
-                        <div id="music-artist-filter-container">
-                          <small class="form-help">Select a library first</small>
-                        </div>
-                      </div>
-
-                      <!-- Minimum Rating -->
-                      <div class="form-row">
-                        <label for="wallartMode_musicMode_minRating">
-                          Minimum Rating
-                          <span class="help-text">Only show albums with rating ≥ this value (0 = all)</span>
-                        </label>
-                        <div class="number-input-wrapper">
-                          <input type="number" min="0" max="10" step="0.5" id="wallartMode_musicMode_minRating" placeholder="0" />
-                          <div class="number-controls" role="group">
-                            <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
-                            <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
-                          </div>
-                        </div>
-                      </div>
                     </div>
-                    <small class="form-help" id="music-mode-help">Display album covers from your Plex music library (requires Plex server with music libraries)</small>
+                    <small class="form-help" id="music-mode-help">Exclusive mode: when enabled, only album covers from your Plex music library will be displayed (no movies, series, or games). Configure music library, genres, and artists in the Plex section above.</small>
                   </div>
 
                   <!-- Hero settings card (shown for Hero Grid) -->

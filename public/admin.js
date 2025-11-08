@@ -2896,6 +2896,8 @@
         try {
             const gamesOnlyCheckbox = document.getElementById('wallartMode_gamesOnly');
             const gamesOnlyHelp = document.getElementById('wallart-games-only-help');
+            const gamesSettings = document.getElementById('games-mode-settings');
+            const gamesCard = document.getElementById('wallart-games-card');
             const mediaServers = c.mediaServers || [];
             const rommServer = mediaServers.find(s => s.type === 'romm');
             const rommEnabled = rommServer?.enabled && rommServer?.url;
@@ -2906,15 +2908,29 @@
                     gamesOnlyCheckbox.checked = false;
                 }
             }
+
+            // Update help text and hide settings when RomM not available
             if (gamesOnlyHelp) {
                 if (rommEnabled) {
-                    gamesOnlyHelp.textContent = 'Show only game covers from RomM';
+                    gamesOnlyHelp.textContent =
+                        'Exclusive mode: when enabled, only game covers from RomM will be displayed (no movies, series, or music)';
                     gamesOnlyHelp.style.color = '';
                 } else {
                     gamesOnlyHelp.textContent =
                         'RomM must be enabled and configured to use this feature';
                     gamesOnlyHelp.style.color = 'var(--color-warning)';
                 }
+            }
+
+            // Hide settings area when Games Mode is disabled or RomM unavailable
+            if (gamesSettings) {
+                gamesSettings.style.display =
+                    gamesOnlyCheckbox?.checked && rommEnabled ? '' : 'none';
+            }
+
+            // Dim entire card when RomM unavailable
+            if (gamesCard) {
+                gamesCard.style.opacity = rommEnabled ? '1' : '0.6';
             }
         } catch (_) {
             /* games-only UI state failed */
@@ -2924,20 +2940,36 @@
         try {
             const gamesOnlyCheckbox = document.getElementById('wallartMode_gamesOnly');
             const musicModeCheckbox = document.getElementById('wallartMode_musicMode_enabled');
+            const gamesSettings = document.getElementById('games-mode-settings');
+            const musicSettings = document.getElementById('music-mode-settings');
 
             if (gamesOnlyCheckbox && musicModeCheckbox) {
-                // When games only is checked, disable music mode
+                // When games only is checked, disable music mode and update visibility
                 gamesOnlyCheckbox.addEventListener('change', () => {
                     if (gamesOnlyCheckbox.checked && musicModeCheckbox.checked) {
                         musicModeCheckbox.checked = false;
                         musicModeCheckbox.dispatchEvent(new Event('change'));
                     }
+
+                    // Update games settings visibility
+                    if (gamesSettings) {
+                        gamesSettings.style.display = gamesOnlyCheckbox.checked ? '' : 'none';
+                    }
                 });
 
-                // When music mode is checked, disable games only
+                // When music mode is checked, disable games only and update visibility
                 musicModeCheckbox.addEventListener('change', () => {
                     if (musicModeCheckbox.checked && gamesOnlyCheckbox.checked) {
                         gamesOnlyCheckbox.checked = false;
+                        // Update games settings visibility when unchecked
+                        if (gamesSettings) {
+                            gamesSettings.style.display = 'none';
+                        }
+                    }
+
+                    // Update music settings visibility
+                    if (musicSettings) {
+                        musicSettings.style.display = musicModeCheckbox.checked ? '' : 'none';
                     }
                 });
             }
@@ -4436,6 +4468,34 @@
             // Prefill
             const cfg = await loadAdminConfig();
             hydrateDisplayForm(cfg);
+
+            // Trigger Music Mode visibility update after config is loaded
+            try {
+                const musicModeCheckbox = document.getElementById('wallartMode_musicMode_enabled');
+                const musicSettings = document.getElementById('music-mode-settings');
+                if (musicModeCheckbox && musicSettings) {
+                    musicSettings.style.display = musicModeCheckbox.checked ? '' : 'none';
+                }
+            } catch (_) {
+                /* music mode visibility trigger failed */
+            }
+
+            // Trigger Games Mode visibility update after config is loaded
+            try {
+                const gamesOnlyCheckbox = document.getElementById('wallartMode_gamesOnly');
+                const gamesSettings = document.getElementById('games-mode-settings');
+                const mediaServers = (cfg?.config || cfg)?.mediaServers || [];
+                const rommServer = mediaServers.find(s => s.type === 'romm');
+                const rommEnabled = rommServer?.enabled && rommServer?.url;
+
+                if (gamesSettings) {
+                    gamesSettings.style.display =
+                        gamesOnlyCheckbox?.checked && rommEnabled ? '' : 'none';
+                }
+            } catch (_) {
+                /* games mode visibility trigger failed */
+            }
+
             // Hydrate Root Route UI
             try {
                 const c = cfg?.config || cfg || {};
@@ -26277,7 +26337,7 @@ if (!document.__niwDelegatedFallback) {
                         if (enabledCheckbox) enabledCheckbox.disabled = false;
                         if (musicHelp) {
                             musicHelp.textContent =
-                                'Display album covers from your Plex music library';
+                                'Exclusive mode: when enabled, only album covers from your Plex music library will be displayed (no movies, series, or games). Configure music library, genres, and artists in the Plex section above.';
                             musicHelp.style.color = '';
                         }
                     }

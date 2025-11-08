@@ -359,12 +359,20 @@ class PlexSource {
                 }
 
                 try {
-                    // Fetch all albums from the music library (type=9 for albums)
+                    // Fetch all albums from the music library using the /albums endpoint
                     const content = await this.plex.query(
-                        `/library/sections/${library.key}/all?type=9`
+                        `/library/sections/${library.key}/albums`
                     );
 
                     if (content?.MediaContainer?.Metadata) {
+                        // Debug: log first album to see structure
+                        if (content.MediaContainer.Metadata.length > 0 && this.isDebug) {
+                            logger.debug(
+                                '[PlexSource] Sample album data:',
+                                JSON.stringify(content.MediaContainer.Metadata[0], null, 2)
+                            );
+                        }
+
                         const itemsWithLibrary = content.MediaContainer.Metadata.map(item => ({
                             ...item,
                             librarySectionTitle: name,
@@ -567,6 +575,8 @@ class PlexSource {
      * @private
      */
     async processMusicAlbum(album, serverConfig) {
+        // For albums (type 9): parentTitle = artist name, title = album title
+        // Based on Plex API: albums use different structure than tracks
         const artist = album.parentTitle || album.originalTitle || 'Unknown Artist';
         const albumTitle = album.title || 'Unknown Album';
         const year = album.year || album.parentYear || null;
@@ -577,19 +587,15 @@ class PlexSource {
         const styles = album.Style ? album.Style.map(s => s.tag) : [];
         const moods = album.Mood ? album.Mood.map(m => m.tag) : [];
 
-        // Build album cover URL
-        let posterUrl = null;
-        if (album.thumb) {
-            const protocol = serverConfig.port === 443 ? 'https' : 'http';
-            posterUrl = `${protocol}://${serverConfig.hostname}:${serverConfig.port}${album.thumb}?X-Plex-Token=${process.env[serverConfig.tokenEnvVar] || serverConfig.token}`;
-        }
+        // Build album cover URL using proxy route to avoid SSL certificate issues
+        const posterUrl = album.thumb
+            ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(album.thumb)}`
+            : null;
 
-        // Build artist photo URL (from parent artist)
-        let backgroundUrl = null;
-        if (album.parentThumb) {
-            const protocol = serverConfig.port === 443 ? 'https' : 'http';
-            backgroundUrl = `${protocol}://${serverConfig.hostname}:${serverConfig.port}${album.parentThumb}?X-Plex-Token=${process.env[serverConfig.tokenEnvVar] || serverConfig.token}`;
-        }
+        // Build artist photo URL (from parent artist) using proxy route
+        const backgroundUrl = album.parentThumb
+            ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(album.parentThumb)}`
+            : null;
 
         return {
             key: album.key || album.ratingKey,
