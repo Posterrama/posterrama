@@ -592,18 +592,36 @@
 
     function __setupMusicLibraryListener() {
         const musicSelect = document.getElementById('plex.music');
-        if (!musicSelect) return;
+        if (!musicSelect) {
+            console.log('[Music Filters] Music select element not found');
+            return;
+        }
 
+        console.log('[Music Filters] Setting up music library listener');
         musicSelect.addEventListener('change', () => {
+            console.log('[Music Filters] Music library selection changed');
             const helpers = window.__adminHelpers;
-            if (!helpers || !helpers.getMultiSelectValues) return;
+            if (!helpers || !helpers.getMultiSelectValues) {
+                console.warn('[Music Filters] Admin helpers not available');
+                return;
+            }
 
             const selectedLibraries = helpers.getMultiSelectValues('plex.music');
+            console.log('[Music Filters] Selected libraries:', selectedLibraries);
             if (selectedLibraries.length > 0) {
                 const libraryKey = window.__plexLibraryNameToId?.get(selectedLibraries[0]);
+                console.log('[Music Filters] Library key:', libraryKey);
                 if (libraryKey) {
-                    loadMusicGenresForMultiselect(libraryKey).catch(() => {});
-                    loadMusicArtistsForMultiselect(libraryKey).catch(() => {});
+                    console.log(
+                        '[Music Filters] Loading genres and artists for library:',
+                        selectedLibraries[0]
+                    );
+                    loadMusicGenresForMultiselect(libraryKey).catch(err =>
+                        console.error('[Music Filters] Genre load error:', err)
+                    );
+                    loadMusicArtistsForMultiselect(libraryKey).catch(err =>
+                        console.error('[Music Filters] Artist load error:', err)
+                    );
                 }
             }
         });
@@ -25949,10 +25967,18 @@ if (!document.__niwDelegatedFallback) {
     window.loadMusicGenresForMultiselect = async function loadMusicGenresForMultiselect(
         libraryKey
     ) {
-        if (!libraryKey) return;
+        console.log(
+            '[Music Genres] loadMusicGenresForMultiselect called with libraryKey:',
+            libraryKey
+        );
+        if (!libraryKey) {
+            console.warn('[Music Genres] No library key provided');
+            return;
+        }
 
         const chipsRoot = document.getElementById('plex-ms-music-genres-chips');
         const optsEl = document.getElementById('plex-ms-music-genres-options');
+        console.log('[Music Genres] Elements found:', { chipsRoot: !!chipsRoot, optsEl: !!optsEl });
         if (!chipsRoot || !optsEl) return;
 
         chipsRoot.innerHTML = '<div class="subtle">Loading genres…</div>';
@@ -25968,17 +25994,36 @@ if (!document.__niwDelegatedFallback) {
                 return;
             }
 
+            console.log('[Music Genres] Genres loaded:', genres.length);
             const helpers = window.__adminHelpers || {};
-            if (!helpers.setMultiSelect || !helpers.getMultiSelectValues) return;
+            if (!helpers.setMultiSelect || !helpers.getMultiSelectValues) {
+                console.error('[Music Genres] Required helpers not available:', {
+                    setMultiSelect: !!helpers.setMultiSelect,
+                    getMultiSelectValues: !!helpers.getMultiSelectValues,
+                });
+                return;
+            }
 
             // Ensure it's wired first (before setting options)
             const msRoot = document.getElementById('plex-ms-music-genres');
+            console.log(
+                '[Music Genres] Multiselect root found:',
+                !!msRoot,
+                'Already wired:',
+                msRoot?.dataset?.msWired
+            );
             if (msRoot && msRoot.dataset.msWired !== 'true') {
+                console.log('[Music Genres] Wiring multiselect...');
                 if (typeof window.initMsForSelect === 'function') {
+                    console.log('[Music Genres] Using window.initMsForSelect');
                     window.initMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
                 } else if (helpers.initMsForSelect) {
+                    console.log('[Music Genres] Using helpers.initMsForSelect');
                     helpers.initMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
                 }
+                console.log('[Music Genres] Wired status after init:', msRoot.dataset.msWired);
+            } else {
+                console.log('[Music Genres] Already wired or root not found');
             }
 
             // Get current selections
@@ -25991,14 +26036,24 @@ if (!document.__niwDelegatedFallback) {
             }));
 
             // Populate the multiselect
+            console.log(
+                '[Music Genres] Setting options:',
+                options.length,
+                'Current selections:',
+                currentGenres
+            );
             helpers.setMultiSelect('plex.musicGenres', options, currentGenres);
 
             // Rebuild to update UI
+            console.log('[Music Genres] Rebuilding multiselect UI...');
             if (typeof window.rebuildMsForSelect === 'function') {
+                console.log('[Music Genres] Using window.rebuildMsForSelect');
                 window.rebuildMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
             } else if (helpers.rebuildMsForSelect) {
+                console.log('[Music Genres] Using helpers.rebuildMsForSelect');
                 helpers.rebuildMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
             }
+            console.log('[Music Genres] Rebuild complete');
 
             // Clear loading message after successful load
             const selectedCount = currentGenres.length;
@@ -26017,10 +26072,21 @@ if (!document.__niwDelegatedFallback) {
         libraryKey,
         limit = 50
     ) {
-        if (!libraryKey) return;
+        console.log(
+            '[Music Artists] loadMusicArtistsForMultiselect called with libraryKey:',
+            libraryKey
+        );
+        if (!libraryKey) {
+            console.warn('[Music Artists] No library key provided');
+            return;
+        }
 
         const chipsRoot = document.getElementById('plex-ms-music-artists-chips');
         const optsEl = document.getElementById('plex-ms-music-artists-options');
+        console.log('[Music Artists] Elements found:', {
+            chipsRoot: !!chipsRoot,
+            optsEl: !!optsEl,
+        });
         if (!chipsRoot || !optsEl) return;
 
         chipsRoot.innerHTML = '<div class="subtle">Loading artists…</div>';
