@@ -546,6 +546,7 @@
         // Media Sources (main panels)
         __ensureMsWired('plex-ms-movies', 'plex.movies');
         __ensureMsWired('plex-ms-shows', 'plex.shows');
+        __ensureMsWired('plex-ms-music', 'plex.music');
         __ensureMsWired('jf-ms-movies', 'jf.movies');
         __ensureMsWired('jf-ms-shows', 'jf.shows');
         // Posterpack section
@@ -16997,6 +16998,7 @@
             window.__plexConfigSelection = {
                 movies: plex.movieLibraryNames || [],
                 shows: plex.showLibraryNames || [],
+                music: plex.musicLibraryNames || [],
             };
             // Mark that Plex config is loaded so auto-fetch can use it
             window.__plexConfigReady = true;
@@ -17940,20 +17942,27 @@
                     const shows = libs
                         .filter(l => l.type === 'show')
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+                    const music = libs
+                        .filter(l => l.type === 'artist')
+                        .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
 
                     // Use config-based selection as source of truth, fall back to DOM if not available
                     const configMovies = window.__plexConfigSelection?.movies || [];
                     const configShows = window.__plexConfigSelection?.shows || [];
+                    const configMusic = window.__plexConfigSelection?.music || [];
 
                     // Try DOM first (if already populated), then config, then empty
                     const domMovies = getMultiSelectValues('plex.movies');
                     const domShows = getMultiSelectValues('plex.shows');
+                    const domMusic = getMultiSelectValues('plex.music');
                     const prevMovies = new Set(domMovies.length > 0 ? domMovies : configMovies);
                     const prevShows = new Set(domShows.length > 0 ? domShows : configShows);
+                    const prevMusic = new Set(domMusic.length > 0 ? domMusic : configMusic);
 
                     // Always respect the config/current selection - no auto-select all
                     setMultiSelect('plex.movies', movies, Array.from(prevMovies));
                     setMultiSelect('plex.shows', shows, Array.from(prevShows));
+                    setMultiSelect('plex.music', music, Array.from(prevMusic));
 
                     // Ensure multiselects are wired and rebuild with counts
                     if (document.getElementById('plex-ms-movies')?.dataset?.msWired !== 'true') {
@@ -17962,9 +17971,13 @@
                     if (document.getElementById('plex-ms-shows')?.dataset?.msWired !== 'true') {
                         initMsForSelect('plex-ms-shows', 'plex.shows');
                     }
+                    if (document.getElementById('plex-ms-music')?.dataset?.msWired !== 'true') {
+                        initMsForSelect('plex-ms-music', 'plex.music');
+                    }
                     // Rebuild multiselect options with counts
                     rebuildMsForSelect('plex-ms-movies', 'plex.movies');
                     rebuildMsForSelect('plex-ms-shows', 'plex.shows');
+                    rebuildMsForSelect('plex-ms-music', 'plex.music');
                     // If Posterpack source is currently Plex, immediately sync Posterpack lists
                     try {
                         const srcSel = document.getElementById('posterpack.source');
@@ -19549,6 +19562,7 @@
                 plex.genreFilter = getPlexGenreFilterHidden();
                 plex.movieLibraryNames = getMultiSelectValues('plex.movies');
                 plex.showLibraryNames = getMultiSelectValues('plex.shows');
+                plex.musicLibraryNames = getMultiSelectValues('plex.music');
                 // Ensure token env var retained; hostname/port now stored directly in config
                 plex.tokenEnvVar = plex.tokenEnvVar || 'PLEX_TOKEN';
                 if (plexIdx >= 0) servers[plexIdx] = plex;

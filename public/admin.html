@@ -1135,6 +1135,29 @@
               </div>
               <small class="form-help">Select one or more libraries. Populated from Plex.</small>
             </div>
+            <div class="form-group">
+              <label for="plex.music">Music Libraries</label>
+              <select id="plex.music" multiple style="display:none"></select>
+              <div class="multiselect" id="plex-ms-music">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="plex-ms-music-chips"></div>
+                  <button class="ms-clear" id="plex-ms-music-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="plex-ms-music-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="plex-ms-music-search" type="text" placeholder="Search libraries…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="plex-ms-music-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="plex-ms-music-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="plex-ms-music-options"></div>
+                </div>
+              </div>
+              <small class="form-help">Select music libraries for Music Mode. Populated from Plex.</small>
+            </div>
           </div>
 
           <!-- Years -->
