@@ -26010,7 +26010,6 @@ if (!document.__niwDelegatedFallback) {
 
         // Check Plex server availability
         const checkPlexAvailability = () => {
-            const musicCard = document.getElementById('wallart-music-card');
             const musicHelp = document.getElementById('music-mode-help');
 
             fetchJSON('/api/get-config')
