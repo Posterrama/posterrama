@@ -38,6 +38,9 @@ const {
     getPlexGenresWithCounts,
     getPlexQualitiesWithCounts,
     processPlexItem,
+    getPlexMusicLibraries,
+    getPlexMusicGenres,
+    getPlexMusicArtists,
 } = require('./lib/plex-helpers');
 const {
     getJellyfinClient,
@@ -1959,6 +1962,237 @@ app.put(
         }
     }
 );
+
+/**
+ * @swagger
+ * /api/admin/plex/music-libraries:
+ *   get:
+ *     summary: Get all Plex music libraries with metadata
+ *     description: Returns a list of all music libraries from the configured Plex server, including album and artist counts.
+ *     tags: ['Admin', 'Plex', 'Music']
+ *     security:
+ *       - sessionAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of music libraries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   key:
+ *                     type: string
+ *                     description: Library section key
+ *                   title:
+ *                     type: string
+ *                     description: Library name
+ *                   type:
+ *                     type: string
+ *                     description: Library type (artist for music)
+ *                   agent:
+ *                     type: string
+ *                     nullable: true
+ *                   scanner:
+ *                     type: string
+ *                     nullable: true
+ *                   language:
+ *                     type: string
+ *                     nullable: true
+ *                   uuid:
+ *                     type: string
+ *                     nullable: true
+ *                   albumCount:
+ *                     type: integer
+ *                     description: Number of albums in library
+ *                   artistCount:
+ *                     type: integer
+ *                     description: Number of artists in library
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: No Plex server configured
+ *       500:
+ *         description: Failed to fetch music libraries
+ */
+app.get('/api/admin/plex/music-libraries', adminAuth, async (req, res) => {
+    try {
+        // Find enabled Plex server
+        const plexServer = (config.mediaServers || []).find(s => s.enabled && s.type === 'plex');
+
+        if (!plexServer) {
+            return res.status(404).json({ error: 'no_plex_server_configured' });
+        }
+
+        const libraries = await getPlexMusicLibraries(plexServer);
+        res.json(libraries);
+    } catch (err) {
+        logger.error(`Failed to fetch Plex music libraries: ${err.message}`);
+        res.status(500).json({ error: 'music_libraries_fetch_failed', message: err.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/admin/plex/music-genres:
+ *   get:
+ *     summary: Get genres from a Plex music library
+ *     description: Returns all genres available in the specified music library with usage counts, sorted by count descending.
+ *     tags: ['Admin', 'Plex', 'Music']
+ *     security:
+ *       - sessionAuth: []
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: library
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Library section key
+ *     responses:
+ *       200:
+ *         description: List of genres with counts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   tag:
+ *                     type: string
+ *                     description: Genre name
+ *                   count:
+ *                     type: integer
+ *                     description: Number of albums with this genre
+ *       400:
+ *         description: Missing library parameter
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: No Plex server configured
+ *       500:
+ *         description: Failed to fetch genres
+ */
+app.get('/api/admin/plex/music-genres', adminAuth, async (req, res) => {
+    try {
+        const { library } = req.query;
+
+        if (!library) {
+            return res.status(400).json({ error: 'library_parameter_required' });
+        }
+
+        // Find enabled Plex server
+        const plexServer = (config.mediaServers || []).find(s => s.enabled && s.type === 'plex');
+
+        if (!plexServer) {
+            return res.status(404).json({ error: 'no_plex_server_configured' });
+        }
+
+        const genres = await getPlexMusicGenres(plexServer, library);
+        res.json(genres);
+    } catch (err) {
+        logger.error(`Failed to fetch Plex music genres: ${err.message}`);
+        res.status(500).json({ error: 'music_genres_fetch_failed', message: err.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/admin/plex/music-artists:
+ *   get:
+ *     summary: Get artists from a Plex music library
+ *     description: Returns artists from the specified music library with pagination support.
+ *     tags: ['Admin', 'Plex', 'Music']
+ *     security:
+ *       - sessionAuth: []
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: library
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Library section key
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *         description: Maximum number of artists to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Starting offset for pagination
+ *     responses:
+ *       200:
+ *         description: Artists with pagination info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 artists:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       key:
+ *                         type: string
+ *                         description: Artist rating key
+ *                       title:
+ *                         type: string
+ *                         description: Artist name
+ *                       thumb:
+ *                         type: string
+ *                         nullable: true
+ *                         description: Artist thumbnail URL
+ *                       albumCount:
+ *                         type: integer
+ *                         description: Number of albums by this artist
+ *                 total:
+ *                   type: integer
+ *                   description: Total number of artists in library
+ *       400:
+ *         description: Missing library parameter
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: No Plex server configured
+ *       500:
+ *         description: Failed to fetch artists
+ */
+app.get('/api/admin/plex/music-artists', adminAuth, async (req, res) => {
+    try {
+        const { library, limit = 100, offset = 0 } = req.query;
+
+        if (!library) {
+            return res.status(400).json({ error: 'library_parameter_required' });
+        }
+
+        // Find enabled Plex server
+        const plexServer = (config.mediaServers || []).find(s => s.enabled && s.type === 'plex');
+
+        if (!plexServer) {
+            return res.status(404).json({ error: 'no_plex_server_configured' });
+        }
+
+        const result = await getPlexMusicArtists(
+            plexServer,
+            library,
+            parseInt(limit, 10),
+            parseInt(offset, 10)
+        );
+        res.json(result);
+    } catch (err) {
+        logger.error(`Failed to fetch Plex music artists: ${err.message}`);
+        res.status(500).json({ error: 'music_artists_fetch_failed', message: err.message });
+    }
+});
 
 /**
  * @swagger
