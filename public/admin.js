@@ -588,7 +588,10 @@
         if (!musicSelect) return;
 
         musicSelect.addEventListener('change', () => {
-            const selectedLibraries = getMultiSelectValues('plex.music');
+            const helpers = window.__adminHelpers;
+            if (!helpers || !helpers.getMultiSelectValues) return;
+
+            const selectedLibraries = helpers.getMultiSelectValues('plex.music');
             if (selectedLibraries.length > 0) {
                 const libraryKey = window.__plexLibraryNameToId?.get(selectedLibraries[0]);
                 if (libraryKey) {
@@ -18058,14 +18061,18 @@
                             loadPlexRatings?.(getPlexHidden?.('plex.ratingFilter-hidden'));
                             loadPlexQualities?.(getPlexHidden?.('plex.qualityFilter-hidden'));
                             // Refresh music filters if music library is selected
-                            const selectedMusicLibraries = getMultiSelectValues('plex.music');
-                            if (selectedMusicLibraries.length > 0) {
-                                const libraryKey = window.__plexLibraryNameToId?.get(
-                                    selectedMusicLibraries[0]
-                                );
-                                if (libraryKey) {
-                                    loadMusicGenresForMultiselect(libraryKey).catch(() => {});
-                                    loadMusicArtistsForMultiselect(libraryKey).catch(() => {});
+                            const helpers = window.__adminHelpers;
+                            if (helpers && helpers.getMultiSelectValues) {
+                                const selectedMusicLibraries =
+                                    helpers.getMultiSelectValues('plex.music');
+                                if (selectedMusicLibraries.length > 0) {
+                                    const libraryKey = window.__plexLibraryNameToId?.get(
+                                        selectedMusicLibraries[0]
+                                    );
+                                    if (libraryKey) {
+                                        loadMusicGenresForMultiselect(libraryKey).catch(() => {});
+                                        loadMusicArtistsForMultiselect(libraryKey).catch(() => {});
+                                    }
                                 }
                             }
                         } catch (_) {
