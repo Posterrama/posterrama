@@ -17944,7 +17944,7 @@
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
                     const music = libs
                         .filter(l => l.type === 'artist')
-                        .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+                        .map(l => ({ value: l.name, label: l.name })); // No count for music libraries
 
                     // Use config-based selection as source of truth, fall back to DOM if not available
                     const configMovies = window.__plexConfigSelection?.movies || [];
