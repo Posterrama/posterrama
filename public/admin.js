@@ -17042,9 +17042,6 @@
                 (musicFilters.artists || []).map(a => ({ value: a, label: a })),
                 musicFilters.artists || []
             );
-            if (getInput('plex.musicMinRating')) {
-                getInput('plex.musicMinRating').value = musicFilters.minRating || '';
-            }
             // Store the config-based selection so fetchPlexLibraries can use it as source of truth
             window.__plexConfigSelection = {
                 movies: plex.movieLibraryNames || [],
@@ -19629,7 +19626,6 @@
                 plex.musicFilters = {
                     genres: getMultiSelectValues('plex.musicGenres'),
                     artists: getMultiSelectValues('plex.musicArtists'),
-                    minRating: parseFloat(getInput('plex.musicMinRating')?.value) || undefined,
                 };
                 // Ensure token env var retained; hostname/port now stored directly in config
                 plex.tokenEnvVar = plex.tokenEnvVar || 'PLEX_TOKEN';
@@ -25982,6 +25978,12 @@ if (!document.__niwDelegatedFallback) {
             if (helpers.rebuildMsForSelect) {
                 helpers.rebuildMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
             }
+
+            // Clear loading message after successful load
+            const selectedCount = currentGenres.length;
+            if (selectedCount === 0) {
+                chipsRoot.innerHTML = '';
+            }
         } catch (err) {
             console.error('Failed to load music genres:', err);
             chipsRoot.innerHTML =
@@ -26038,14 +26040,20 @@ if (!document.__niwDelegatedFallback) {
                 helpers.rebuildMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
             }
 
-            // Add note if there are more artists
+            // Clear loading message and show note if there are more artists
+            const selectedCount = currentArtists.length;
+            if (selectedCount === 0) {
+                chipsRoot.innerHTML = '';
+            }
             if (data.total > limit) {
                 const note = document.createElement('div');
                 note.className = 'subtle';
                 note.style.fontSize = '0.85em';
                 note.style.marginTop = '4px';
                 note.textContent = `Showing first ${limit} of ${data.total} artists`;
-                chipsRoot.appendChild(note);
+                if (selectedCount === 0) {
+                    chipsRoot.appendChild(note);
+                }
             }
         } catch (err) {
             console.error('Failed to load music artists:', err);
