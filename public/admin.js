@@ -518,11 +518,18 @@
         control.classList.toggle('has-selection', selected.size > 0);
     }
 
+    // Export multiselect functions to window for music filter components
+    if (typeof window !== 'undefined') {
+        window.initMsForSelect = initMsForSelect;
+        window.rebuildMsForSelect = rebuildMsForSelect;
+    }
+
     // Resilient late-binding: ensure known multiselects are wired even if earlier init missed
     function __ensureMsWired(idBase, selectId) {
         try {
             // Skip auto-wiring for Plex/Jellyfin library multiselects
             // They will be wired when the dropdown is opened and libraries are fetched
+            // Exception: music genres/artists need to be wired upfront for dynamic loading
             if (
                 selectId === 'plex.movies' ||
                 selectId === 'plex.shows' ||
@@ -25965,8 +25972,11 @@ if (!document.__niwDelegatedFallback) {
             if (!helpers.setMultiSelect || !helpers.getMultiSelectValues) return;
 
             // Ensure it's wired first (before setting options)
-            if (document.getElementById('plex-ms-music-genres')?.dataset?.msWired !== 'true') {
-                if (helpers.initMsForSelect) {
+            const msRoot = document.getElementById('plex-ms-music-genres');
+            if (msRoot && msRoot.dataset.msWired !== 'true') {
+                if (typeof window.initMsForSelect === 'function') {
+                    window.initMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
+                } else if (helpers.initMsForSelect) {
                     helpers.initMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
                 }
             }
@@ -25984,7 +25994,9 @@ if (!document.__niwDelegatedFallback) {
             helpers.setMultiSelect('plex.musicGenres', options, currentGenres);
 
             // Rebuild to update UI
-            if (helpers.rebuildMsForSelect) {
+            if (typeof window.rebuildMsForSelect === 'function') {
+                window.rebuildMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
+            } else if (helpers.rebuildMsForSelect) {
                 helpers.rebuildMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
             }
 
@@ -26028,8 +26040,11 @@ if (!document.__niwDelegatedFallback) {
             if (!helpers.setMultiSelect || !helpers.getMultiSelectValues) return;
 
             // Ensure it's wired first (before setting options)
-            if (document.getElementById('plex-ms-music-artists')?.dataset?.msWired !== 'true') {
-                if (helpers.initMsForSelect) {
+            const msRoot = document.getElementById('plex-ms-music-artists');
+            if (msRoot && msRoot.dataset.msWired !== 'true') {
+                if (typeof window.initMsForSelect === 'function') {
+                    window.initMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
+                } else if (helpers.initMsForSelect) {
                     helpers.initMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
                 }
             }
@@ -26047,7 +26062,9 @@ if (!document.__niwDelegatedFallback) {
             helpers.setMultiSelect('plex.musicArtists', options, currentArtists);
 
             // Rebuild to update UI
-            if (helpers.rebuildMsForSelect) {
+            if (typeof window.rebuildMsForSelect === 'function') {
+                window.rebuildMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
+            } else if (helpers.rebuildMsForSelect) {
                 helpers.rebuildMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
             }
 
