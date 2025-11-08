@@ -1,8 +1,9 @@
 /* Admin v2 Dashboard (theme-based) */
 // NOTE: Removed blanket 'eslint-disable no-empty'; empty catches now annotated with purpose.
 /* global saveConfigPatch, miniCache, inflight, refreshOverviewLastSync */
-/* global initMsForSelect, rebuildMsForSelect, getMultiSelectValues, fetchPlexLibraries */
+/* global initMsForSelect, rebuildMsForSelect, getMultiSelectValues, setMultiSelect, fetchPlexLibraries */
 /* global fetchJellyfinLibraries, populatePosterpackLibraries */
+/* global loadMusicGenresForMultiselect, loadMusicArtistsForMultiselect */
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -590,10 +591,8 @@
             const selectedLibraries = getMultiSelectValues('plex.music');
             if (selectedLibraries.length > 0) {
                 const libraryKey = window.__plexLibraryNameToId?.get(selectedLibraries[0]);
-                if (libraryKey && typeof loadMusicGenresForMultiselect === 'function') {
+                if (libraryKey) {
                     loadMusicGenresForMultiselect(libraryKey).catch(() => {});
-                }
-                if (libraryKey && typeof loadMusicArtistsForMultiselect === 'function') {
                     loadMusicArtistsForMultiselect(libraryKey).catch(() => {});
                 }
             }
@@ -18058,8 +18057,8 @@
                                     selectedMusicLibraries[0]
                                 );
                                 if (libraryKey) {
-                                    loadMusicGenresForMultiselect?.(libraryKey)?.catch?.(() => {});
-                                    loadMusicArtistsForMultiselect?.(libraryKey)?.catch?.(() => {});
+                                    loadMusicGenresForMultiselect(libraryKey).catch(() => {});
+                                    loadMusicArtistsForMultiselect(libraryKey).catch(() => {});
                                 }
                             }
                         } catch (_) {
@@ -25927,7 +25926,9 @@ if (!document.__niwDelegatedFallback) {
     }
 
     // Load music genres into multiselect component
-    async function loadMusicGenresForMultiselect(libraryKey) {
+    window.loadMusicGenresForMultiselect = async function loadMusicGenresForMultiselect(
+        libraryKey
+    ) {
         if (!libraryKey) return;
 
         const chipsRoot = document.getElementById('plex-ms-music-genres-chips');
@@ -25969,10 +25970,13 @@ if (!document.__niwDelegatedFallback) {
             chipsRoot.innerHTML =
                 '<div class="subtle" style="color:var(--color-error);">Failed to load genres</div>';
         }
-    }
+    };
 
     // Load music artists into multiselect component
-    async function loadMusicArtistsForMultiselect(libraryKey, limit = 50) {
+    window.loadMusicArtistsForMultiselect = async function loadMusicArtistsForMultiselect(
+        libraryKey,
+        limit = 50
+    ) {
         if (!libraryKey) return;
 
         const chipsRoot = document.getElementById('plex-ms-music-artists-chips');
@@ -26024,7 +26028,7 @@ if (!document.__niwDelegatedFallback) {
             chipsRoot.innerHTML =
                 '<div class="subtle" style="color:var(--color-error);">Failed to load artists</div>';
         }
-    }
+    };
 
     // Load genres for selected library (legacy checkbox-based UI)
     async function loadMusicGenres(libraryKey) {
