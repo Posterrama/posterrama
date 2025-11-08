@@ -25971,10 +25971,6 @@ if (!document.__niwDelegatedFallback) {
     window.loadMusicGenresForMultiselect = async function loadMusicGenresForMultiselect(
         libraryKey
     ) {
-        console.log(
-            '[Music Genres] loadMusicGenresForMultiselect called with libraryKey:',
-            libraryKey
-        );
         if (!libraryKey) return;
 
         const chipsRoot = document.getElementById('plex-ms-music-genres-chips');
@@ -26043,10 +26039,6 @@ if (!document.__niwDelegatedFallback) {
         libraryKey,
         limit = 50
     ) {
-        console.log(
-            '[Music Artists] loadMusicArtistsForMultiselect called with libraryKey:',
-            libraryKey
-        );
         if (!libraryKey) return;
 
         const chipsRoot = document.getElementById('plex-ms-music-artists-chips');
