@@ -26337,7 +26337,7 @@ if (!document.__niwDelegatedFallback) {
                         if (enabledCheckbox) enabledCheckbox.disabled = false;
                         if (musicHelp) {
                             musicHelp.textContent =
-                                'Exclusive mode: when enabled, only album covers from your Plex music library will be displayed (no movies, series, or games). Configure music library, genres, and artists in the Plex section above.';
+                                'Exclusive mode: when enabled, only album covers from your Plex music library will be displayed (no movies, series, or games). Configure music library, genres, and artists in the Plex media Source.';
                             musicHelp.style.color = '';
                         }
                     }
