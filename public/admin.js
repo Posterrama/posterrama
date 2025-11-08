@@ -26156,20 +26156,10 @@ if (!document.__niwDelegatedFallback) {
                 helpers.rebuildMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
             }
 
-            // Clear loading message and show note if there are more artists
+            // Clear loading message after successful load
             const selectedCount = currentArtists.length;
             if (selectedCount === 0) {
                 chipsRoot.innerHTML = '';
-            }
-            if (data.total > limit) {
-                const note = document.createElement('div');
-                note.className = 'subtle';
-                note.style.fontSize = '0.85em';
-                note.style.marginTop = '4px';
-                note.textContent = `Showing first ${limit} of ${data.total} artists`;
-                if (selectedCount === 0) {
-                    chipsRoot.appendChild(note);
-                }
             }
         } catch (err) {
             console.error('Failed to load music artists:', err);
