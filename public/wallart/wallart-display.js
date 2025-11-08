@@ -144,8 +144,11 @@
                 const isMobile = screenWidth <= 768; // Mobile breakpoint
                 const isPromoSite = document.body.classList.contains('promo-site');
 
-                // Standard movie poster aspect ratio - NEVER change this!
-                const posterAspectRatio = 2 / 3; // width/height
+                // Check if music mode is enabled - use square aspect ratio (1:1) for albums
+                const isMusicMode = window.appConfig?.wallartMode?.musicMode?.enabled === true;
+
+                // Poster aspect ratio: 2/3 for movies, 1/1 for music albums
+                const posterAspectRatio = isMusicMode ? 1 : 2 / 3; // width/height
 
                 // Adjust available screen height for promo site when promo box is visible
                 let availableHeight = screenHeight;

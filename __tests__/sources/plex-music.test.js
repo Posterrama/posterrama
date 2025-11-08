@@ -87,7 +87,7 @@ describe('PlexSource - Music Support', () => {
 
             const result = await plexSource.fetchMusic(['Music'], 10);
 
-            expect(mockPlexClient.query).toHaveBeenCalledWith('/library/sections/1/all?type=9');
+            expect(mockPlexClient.query).toHaveBeenCalledWith('/library/sections/1/albums');
             expect(result).toHaveLength(2);
             expect(result[0]).toMatchObject({
                 type: 'music',
@@ -291,9 +291,10 @@ describe('PlexSource - Music Support', () => {
                 addedAt: 1234567890,
                 viewCount: 42,
             });
-            expect(result.posterUrl).toContain('localhost:32400');
-            expect(result.posterUrl).toContain('/library/metadata/123/thumb');
-            expect(result.backdropUrl).toContain('/library/metadata/456/thumb');
+            expect(result.posterUrl).toContain('/image?server=');
+            expect(result.posterUrl).toContain('path=%2Flibrary%2Fmetadata%2F123%2Fthumb');
+            expect(result.backdropUrl).toContain('/image?server=');
+            expect(result.backdropUrl).toContain('path=%2Flibrary%2Fmetadata%2F456%2Fthumb');
         });
 
         test('handles missing optional fields', async () => {
@@ -326,7 +327,8 @@ describe('PlexSource - Music Support', () => {
 
             const result = await plexSource.processMusicAlbum(mockAlbum, httpsConfig);
 
-            expect(result.posterUrl).toContain('https://localhost:443');
+            expect(result.posterUrl).toContain('/image?server=');
+            expect(result.posterUrl).toContain('path=%2Fthumb%2Ftest');
         });
     });
 

@@ -37,6 +37,23 @@ const schemas = {
             enabled: Joi.boolean(),
             durationSeconds: Joi.number().integer().min(5).max(60),
         }),
+        wallartMode: Joi.object({
+            musicMode: Joi.object({
+                enabled: Joi.boolean().default(false),
+                displayStyle: Joi.string()
+                    .valid('covers-only', 'album-info', 'artist-cards')
+                    .default('covers-only'),
+                animation: Joi.string()
+                    .valid('vinyl-spin', 'slide-fade', 'crossfade', 'flip')
+                    .default('vinyl-spin'),
+                gridSize: Joi.string().valid('3x3', '4x4', '5x5', '6x6').default('4x4'),
+                layout: Joi.string().valid('grid', 'hero-grid').default('grid'),
+                showArtist: Joi.boolean().default(true),
+                showAlbumTitle: Joi.boolean().default(true),
+                showYear: Joi.boolean().default(true),
+                showGenre: Joi.boolean().default(false),
+            }).optional(),
+        }).optional(),
         mediaServers: Joi.array().items(
             Joi.object({
                 name: Joi.string().required(),
