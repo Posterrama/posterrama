@@ -1244,6 +1244,64 @@
             </div>
           </div>
 
+          <!-- Music Mode Filters -->
+          <div class="form-section">
+            <div class="section-title"><i class="fas fa-music"></i> Music Mode Filters</div>
+          </div>
+          <div class="form-grid plex-dense" id="plex-music-filters-grid">
+            <div class="form-group">
+              <label for="plex.musicGenres">Music Genres</label>
+              <input type="hidden" id="plex.musicGenres-hidden" value="">
+              <div class="multiselect" id="plex-ms-music-genres">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="plex-ms-music-genres-chips"></div>
+                  <button class="ms-clear" id="plex-ms-music-genres-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="plex-ms-music-genres-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="plex-ms-music-genres-search" type="text" placeholder="Search genres…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="plex-ms-music-genres-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="plex-ms-music-genres-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="plex-ms-music-genres-options"></div>
+                </div>
+              </div>
+              <small class="form-help">Filter music albums by genre. Select music library first, then click refresh icon to load.</small>
+            </div>
+            <div class="form-group">
+              <label for="plex.musicArtists">Music Artists</label>
+              <input type="hidden" id="plex.musicArtists-hidden" value="">
+              <div class="multiselect" id="plex-ms-music-artists">
+                <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <div class="ms-chips" id="plex-ms-music-artists-chips"></div>
+                  <button class="ms-clear" id="plex-ms-music-artists-clear" title="Clear selection"><i class="fas fa-xmark"></i></button>
+                  <i class="fas fa-chevron-down ms-caret" aria-hidden="true"></i>
+                </div>
+                <div class="ms-menu" id="plex-ms-music-artists-menu" role="listbox">
+                  <div class="ms-search">
+                    <i class="fas fa-search"></i>
+                    <input id="plex-ms-music-artists-search" type="text" placeholder="Search artists…">
+                  </div>
+                  <div class="ms-actions">
+                    <button class="btn btn-outline btn-sm" id="plex-ms-music-artists-select-all"><i class="fas fa-square-check"></i> Select all</button>
+                    <button class="btn btn-outline btn-sm" id="plex-ms-music-artists-clear-all"><i class="fas fa-eraser"></i> Clear</button>
+                  </div>
+                  <div class="ms-options" id="plex-ms-music-artists-options"></div>
+                </div>
+              </div>
+              <small class="form-help">Filter music albums by artist. Select music library first, then click refresh icon to load.</small>
+            </div>
+            <div class="form-group">
+              <label for="plex.musicMinRating">Minimum Rating</label>
+              <input type="number" id="plex.musicMinRating" min="0" max="10" step="0.5" placeholder="7.0">
+              <small class="form-help">Only show albums with rating ≥ this value (0-10)</small>
+            </div>
+          </div>
+
           <!-- Recently added -->
           <div class="form-section">
             <div class="section-title"><i class="fas fa-clock"></i> Recently added
