@@ -25957,6 +25957,13 @@ if (!document.__niwDelegatedFallback) {
             const helpers = window.__adminHelpers || {};
             if (!helpers.setMultiSelect || !helpers.getMultiSelectValues) return;
 
+            // Ensure it's wired first (before setting options)
+            if (document.getElementById('plex-ms-music-genres')?.dataset?.msWired !== 'true') {
+                if (helpers.initMsForSelect) {
+                    helpers.initMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
+                }
+            }
+
             // Get current selections
             const currentGenres = helpers.getMultiSelectValues('plex.musicGenres');
 
@@ -25969,12 +25976,7 @@ if (!document.__niwDelegatedFallback) {
             // Populate the multiselect
             helpers.setMultiSelect('plex.musicGenres', options, currentGenres);
 
-            // Ensure it's wired
-            if (document.getElementById('plex-ms-music-genres')?.dataset?.msWired !== 'true') {
-                if (helpers.initMsForSelect) {
-                    helpers.initMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
-                }
-            }
+            // Rebuild to update UI
             if (helpers.rebuildMsForSelect) {
                 helpers.rebuildMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
             }
@@ -26018,6 +26020,13 @@ if (!document.__niwDelegatedFallback) {
             const helpers = window.__adminHelpers || {};
             if (!helpers.setMultiSelect || !helpers.getMultiSelectValues) return;
 
+            // Ensure it's wired first (before setting options)
+            if (document.getElementById('plex-ms-music-artists')?.dataset?.msWired !== 'true') {
+                if (helpers.initMsForSelect) {
+                    helpers.initMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
+                }
+            }
+
             // Get current selections
             const currentArtists = helpers.getMultiSelectValues('plex.musicArtists');
 
@@ -26030,12 +26039,7 @@ if (!document.__niwDelegatedFallback) {
             // Populate the multiselect
             helpers.setMultiSelect('plex.musicArtists', options, currentArtists);
 
-            // Ensure it's wired
-            if (document.getElementById('plex-ms-music-artists')?.dataset?.msWired !== 'true') {
-                if (helpers.initMsForSelect) {
-                    helpers.initMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
-                }
-            }
+            // Rebuild to update UI
             if (helpers.rebuildMsForSelect) {
                 helpers.rebuildMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
             }
