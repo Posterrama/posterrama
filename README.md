@@ -208,29 +208,6 @@ Setup is straightforward—just enable MQTT in Posterrama settings, point it to 
 - Resilient configuration (/get-config) with schema validation and safe defaults
 - API-first design with OpenAPI docs at /api-docs
 
-## Roadmap
-
-A quick peek at what's next. We're actively building these high‑impact upgrades to make Posterrama even more powerful and fun.
-
-**Cinema & visual experience**
-
-- [ ] Motion posters with AI
-- [ ] Trailer support
-
-**Customization & design**
-
-- [ ] Font/size/color customization
-
-**Media sources & libraries**
-
-- [ ] Emby integration
-- [ ] Additional poster services
-- [ ] Music library support
-
-**Content & curation**
-
-- [ ] Online art galleries — browse and feature curated artwork streams alongside your library
-
 ## System requirements
 
 **Minimum recommended:**
