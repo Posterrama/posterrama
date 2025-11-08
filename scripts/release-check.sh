@@ -228,10 +228,26 @@ quality_checks() {
         exit 1
     fi
     
-    print_status "13c. Alle tests uitvoeren (relaxed coverage drempels voor release-check)..."
-    # Run full suite but relax coverage thresholds by adding a focused pattern argument (see jest.config.js focusedRun)
-    if npx jest --testPathPattern ".*" --runInBand; then
+    print_status "13c. Alle tests uitvoeren met coverage rapport..."
+    # Run full suite with coverage to generate HTML report
+    if npx jest --testPathPattern ".*" --coverage --runInBand; then
         print_success "Tests: Alle tests geslaagd"
+        
+        # Check if coverage report was generated
+        if [[ -f "coverage/lcov-report/index.html" ]]; then
+            print_success "Coverage rapport gegenereerd: coverage/lcov-report/index.html"
+            
+            # Add coverage report to git if not already tracked
+            if git ls-files --error-unmatch coverage/lcov-report/index.html >/dev/null 2>&1; then
+                print_status "Coverage rapport al in Git"
+            else
+                print_status "Coverage rapport toevoegen aan Git..."
+                git add -f coverage/lcov-report/ coverage/*.css coverage/*.js coverage/*.html 2>/dev/null || true
+                print_success "Coverage rapport toegevoegd aan Git"
+            fi
+        else
+            print_warning "Coverage rapport niet gegenereerd"
+        fi
     else
         print_error "Tests: Gefaald"
         exit 1
