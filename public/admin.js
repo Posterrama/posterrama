@@ -26058,6 +26058,9 @@ if (!document.__niwDelegatedFallback) {
                 count: g.count,
             }));
 
+            console.log('[Music Genres] First 3 genres from API:', genres.slice(0, 3));
+            console.log('[Music Genres] First 3 options built:', options.slice(0, 3));
+
             // Populate the multiselect
             console.log(
                 '[Music Genres] Setting options:',
@@ -26066,6 +26069,17 @@ if (!document.__niwDelegatedFallback) {
                 currentGenres
             );
             helpers.setMultiSelect('plex.musicGenres', options, currentGenres);
+
+            // Check what got set in the select element
+            const sel = document.getElementById('plex.musicGenres');
+            if (sel && sel.options.length > 0) {
+                console.log(
+                    '[Music Genres] First 3 select options:',
+                    Array.from(sel.options)
+                        .slice(0, 3)
+                        .map(o => ({ value: o.value, text: o.textContent }))
+                );
+            }
 
             // Rebuild to update UI
             console.log('[Music Genres] Rebuilding multiselect UI...');
@@ -26148,8 +26162,22 @@ if (!document.__niwDelegatedFallback) {
                 count: a.albumCount,
             }));
 
+            console.log('[Music Artists] First 3 artists from API:', data.artists.slice(0, 3));
+            console.log('[Music Artists] First 3 options built:', options.slice(0, 3));
+
             // Populate the multiselect
             helpers.setMultiSelect('plex.musicArtists', options, currentArtists);
+
+            // Check what got set in the select element
+            const sel = document.getElementById('plex.musicArtists');
+            if (sel && sel.options.length > 0) {
+                console.log(
+                    '[Music Artists] First 3 select options:',
+                    Array.from(sel.options)
+                        .slice(0, 3)
+                        .map(o => ({ value: o.value, text: o.textContent }))
+                );
+            }
 
             // Rebuild to update UI
             if (typeof window.rebuildMsForSelect === 'function') {
