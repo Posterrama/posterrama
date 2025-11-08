@@ -92,6 +92,19 @@ Display a beautiful grid of posters, updating dynamically with new content. Choo
   
 </figure>
 
+**Music Mode** — Transform your Wallart display into an album art gallery. Music mode integrates with your Plex music library to showcase square album covers in beautiful grid layouts with customizable metadata overlays.
+
+**Key features:**
+
+- Square album cover display (optimized for music)
+- Metadata overlays showing artist, album, year, genre
+- Filter by genre, artist, or minimum rating
+- Configurable grid sizes (2×2 to 5×5)
+- Multiple animation styles (fade, slide, zoom)
+- Respects Plex ratings and music metadata
+
+> **Note:** Music mode requires a Plex Media Server with at least one configured music library. See [Music Mode Testing Guide](./docs/MUSIC-MODE-TESTING.md) for detailed configuration steps.
+
 ### Cinema mode
 
 Perfect for vertical screens or digital signage. Show a rotating selection of posters in portrait orientation, with smooth transitions and optional info overlays. Ideal for hallway displays, kiosks, or a true cinema entrance feel.
@@ -135,6 +148,7 @@ Local library: Add your own artwork with a simple upload—posters, cinematic ba
 - Choose which libraries or collections to include
 - Filter by genre, rating, or quality
 - Games-only mode for RomM: display only game covers in Wallart
+- Music mode for Plex: showcase your music library with square album art and metadata overlays
 
 ---
 
