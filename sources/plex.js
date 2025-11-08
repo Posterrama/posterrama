@@ -319,6 +319,305 @@ class PlexSource {
     }
 
     /**
+     * Fetches music albums from specified Plex music libraries.
+     * @param {string[]} libraryNames - The names of the music libraries to fetch from.
+     * @param {number} count - The number of albums to fetch.
+     * @param {object} filters - Optional filters (genres, artists, minRating).
+     * @returns {Promise<object[]>} A promise that resolves to an array of processed album items.
+     */
+    async fetchMusic(libraryNames, count, filters = {}) {
+        if (!libraryNames || libraryNames.length === 0 || count === 0) {
+            return [];
+        }
+
+        // Ensure Plex client is initialized
+        await this.ensurePlexClient();
+
+        const reqStart = Date.now();
+        this.metrics.requestCount++;
+
+        if (this.isDebug) {
+            logger.info(`Fetching music from Plex`, {
+                server: this.server.name,
+                count,
+                libraries: libraryNames,
+                filters,
+            });
+        }
+
+        try {
+            const allLibraries = await this.getPlexLibraries(this.server);
+            let allAlbums = [];
+
+            for (const name of libraryNames) {
+                const library = allLibraries.get(name);
+                if (!library) {
+                    logger.warn(
+                        `[PlexSource:${this.server.name}] Music library "${name}" not found.`
+                    );
+                    continue;
+                }
+
+                try {
+                    // Fetch all albums from the music library (type=9 for albums)
+                    const content = await this.plex.query(
+                        `/library/sections/${library.key}/all?type=9`
+                    );
+
+                    if (content?.MediaContainer?.Metadata) {
+                        const itemsWithLibrary = content.MediaContainer.Metadata.map(item => ({
+                            ...item,
+                            librarySectionTitle: name,
+                            librarySectionID: library.key,
+                        }));
+                        allAlbums = allAlbums.concat(itemsWithLibrary);
+
+                        if (this.isDebug) {
+                            logger.debug(
+                                `[PlexSource:${this.server.name}] Music library "${name}" provided ${content.MediaContainer.Metadata.length} albums`
+                            );
+                        }
+                    }
+                } catch (libraryError) {
+                    logger.error(
+                        `[PlexSource:${this.server.name}] Failed to fetch from music library "${name}":`,
+                        {
+                            error: libraryError.message,
+                            libraryKey: library.key,
+                        }
+                    );
+                    // Continue with other libraries
+                }
+            }
+
+            if (this.isDebug) {
+                logger.debug(
+                    `[PlexSource:${this.server.name}] Found ${allAlbums.length} total albums in specified libraries.`
+                );
+            }
+
+            // Apply music-specific filtering
+            const filteredAlbums = this.applyMusicFiltering(allAlbums, filters);
+            this.metrics.itemsProcessed += allAlbums.length;
+            this.metrics.itemsFiltered += Math.max(0, allAlbums.length - filteredAlbums.length);
+
+            if (this.isDebug) {
+                logger.debug(
+                    `[PlexSource:${this.server.name}] After filtering: ${filteredAlbums.length} albums remaining.`
+                );
+            }
+
+            // Apply weighted-random sorting
+            const sortedAlbums = this.applySortWeights(filteredAlbums, filters.sortWeights);
+
+            // Select requested count
+            const selectedAlbums = count > 0 ? sortedAlbums.slice(0, count) : sortedAlbums;
+
+            // Process albums into unified format
+            const processedAlbums = await Promise.all(
+                selectedAlbums.map(async album => {
+                    try {
+                        return await this.processMusicAlbum(album, this.server);
+                    } catch (e) {
+                        this.metrics.errorCount++;
+                        if (this.isDebug) {
+                            logger.warn(
+                                `[PlexSource:${this.server.name}] Failed to process album ${album.title || 'unknown'}: ${e.message}`
+                            );
+                        }
+                        return null;
+                    }
+                })
+            );
+
+            const finalAlbums = processedAlbums.filter(item => item !== null);
+
+            // Update metrics
+            const duration = Date.now() - reqStart;
+            const prev = this.metrics.averageProcessingTime || 0;
+            this.metrics.averageProcessingTime =
+                prev === 0 ? duration : Math.round(prev * 0.8 + duration * 0.2);
+            this.metrics.lastRequestTime = duration;
+
+            if (this.isDebug) {
+                logger.info(
+                    `[Plex Music Debug] Fetch completed: ${finalAlbums.length} albums processed, took ${duration}ms`
+                );
+            }
+
+            return finalAlbums;
+        } catch (error) {
+            this.metrics.errorCount++;
+            console.error(
+                `[PlexSource:${this.server.name}] Error fetching music: ${error.message}`
+            );
+            try {
+                logger.error(
+                    `[PlexSource:${this.server.name}] Error fetching music: ${error.message}`
+                );
+            } catch (_) {
+                /* ignore */
+            }
+            return [];
+        }
+    }
+
+    /**
+     * Applies music-specific filtering (genres, artists, minRating).
+     * @param {object[]} albums - Array of Plex album items to filter.
+     * @param {object} filters - Filter options (genres, artists, minRating).
+     * @returns {object[]} Filtered array of album items.
+     * @private
+     */
+    applyMusicFiltering(albums, filters) {
+        let filtered = [...albums];
+
+        // Genre filter
+        if (filters.genres && filters.genres.length > 0) {
+            const allowedGenres = new Set(filters.genres.map(g => g.toLowerCase()));
+            filtered = filtered.filter(album => {
+                if (!album.Genre || !Array.isArray(album.Genre)) return false;
+                return album.Genre.some(g => allowedGenres.has(g.tag.toLowerCase()));
+            });
+        }
+
+        // Artist filter
+        if (filters.artists && filters.artists.length > 0) {
+            const allowedArtists = new Set(filters.artists.map(a => a.toLowerCase()));
+            filtered = filtered.filter(album => {
+                const artist = album.parentTitle || album.originalTitle;
+                return artist && allowedArtists.has(artist.toLowerCase());
+            });
+        }
+
+        // Minimum rating filter
+        if (filters.minRating && filters.minRating > 0) {
+            filtered = filtered.filter(album => {
+                const rating = album.rating || 0;
+                return rating >= filters.minRating;
+            });
+        }
+
+        return filtered;
+    }
+
+    /**
+     * Applies weighted-random sorting to albums.
+     * @param {object[]} albums - Array of album items.
+     * @param {object} weights - Sort weights (recent, popular, random).
+     * @returns {object[]} Sorted array of albums.
+     * @private
+     */
+    applySortWeights(albums, weights = { recent: 20, popular: 30, random: 50 }) {
+        const now = Date.now();
+        const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+        // Categorize albums
+        const recent = [];
+        const popular = [];
+        const rest = [];
+
+        albums.forEach(album => {
+            const addedAt = album.addedAt ? album.addedAt * 1000 : 0;
+            const rating = album.rating || 0;
+
+            if (addedAt > thirtyDaysAgo) {
+                recent.push(album);
+            } else if (rating >= 7.0) {
+                popular.push(album);
+            } else {
+                rest.push(album);
+            }
+        });
+
+        // Shuffle each category
+        this.shuffleArray(recent);
+        this.shuffleArray(popular);
+        this.shuffleArray(rest);
+
+        // Calculate how many to take from each category
+        const totalWeight = weights.recent + weights.popular + weights.random;
+        const recentCount = Math.floor((albums.length * weights.recent) / totalWeight);
+        const popularCount = Math.floor((albums.length * weights.popular) / totalWeight);
+        const randomCount = albums.length - recentCount - popularCount;
+
+        // Build result array
+        const result = [];
+        result.push(...recent.slice(0, recentCount));
+        result.push(...popular.slice(0, popularCount));
+        result.push(...rest.slice(0, randomCount));
+
+        // Fill remaining slots if categories were too small
+        const remaining = albums.length - result.length;
+        if (remaining > 0) {
+            const unused = albums.filter(a => !result.includes(a));
+            this.shuffleArray(unused);
+            result.push(...unused.slice(0, remaining));
+        }
+
+        // Final shuffle to mix the weighted selection
+        return this.shuffleArray(result);
+    }
+
+    /**
+     * Processes a Plex music album into unified format.
+     * @param {object} album - Raw Plex album object.
+     * @param {object} serverConfig - Server configuration.
+     * @returns {Promise<object>} Processed album object.
+     * @private
+     */
+    async processMusicAlbum(album, serverConfig) {
+        const artist = album.parentTitle || album.originalTitle || 'Unknown Artist';
+        const albumTitle = album.title || 'Unknown Album';
+        const year = album.year || album.parentYear || null;
+        const rating = album.rating ? album.rating : null;
+
+        // Extract genres, styles, moods
+        const genres = album.Genre ? album.Genre.map(g => g.tag) : [];
+        const styles = album.Style ? album.Style.map(s => s.tag) : [];
+        const moods = album.Mood ? album.Mood.map(m => m.tag) : [];
+
+        // Build album cover URL
+        let posterUrl = null;
+        if (album.thumb) {
+            const protocol = serverConfig.port === 443 ? 'https' : 'http';
+            posterUrl = `${protocol}://${serverConfig.hostname}:${serverConfig.port}${album.thumb}?X-Plex-Token=${process.env[serverConfig.tokenEnvVar] || serverConfig.token}`;
+        }
+
+        // Build artist photo URL (from parent artist)
+        let backgroundUrl = null;
+        if (album.parentThumb) {
+            const protocol = serverConfig.port === 443 ? 'https' : 'http';
+            backgroundUrl = `${protocol}://${serverConfig.hostname}:${serverConfig.port}${album.parentThumb}?X-Plex-Token=${process.env[serverConfig.tokenEnvVar] || serverConfig.token}`;
+        }
+
+        return {
+            key: album.key || album.ratingKey,
+            title: albumTitle,
+            type: 'music',
+            posterUrl,
+            backdropUrl: backgroundUrl,
+            year,
+            rating,
+            source: serverConfig.name,
+            rottenTomatoesScore: null, // Not applicable for music
+            artist,
+            artistId: album.parentRatingKey,
+            album: albumTitle,
+            albumId: album.ratingKey,
+            genres,
+            styles,
+            moods,
+            // Additional metadata
+            studio: album.studio,
+            addedAt: album.addedAt,
+            viewCount: album.viewCount || 0,
+            librarySectionTitle: album.librarySectionTitle,
+            librarySectionID: album.librarySectionID,
+        };
+    }
+
+    /**
      * Applies content filtering based on server configuration.
      * @param {object[]} items - Array of Plex media items to filter.
      * @returns {object[]} Filtered array of media items.
