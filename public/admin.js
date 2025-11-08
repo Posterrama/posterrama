@@ -226,7 +226,15 @@
     function initMsForSelect(idBase, selectId) {
         const sel = document.getElementById(selectId);
         const root = document.getElementById(`${idBase}`);
-        if (!sel || !root) return;
+        if (!sel || !root) {
+            console.warn('[initMsForSelect] Missing base elements:', {
+                idBase,
+                selectId,
+                sel: !!sel,
+                root: !!root,
+            });
+            return;
+        }
         if (root.dataset.msWired === 'true') return; // listeners already attached; use rebuildMsForSelect() to refresh options
         const control = root.querySelector('.ms-control');
         const chipsEl = root.querySelector('.ms-chips');
@@ -236,7 +244,21 @@
         const clear = document.getElementById(`${idBase}-clear`);
         const selectAll = document.getElementById(`${idBase}-select-all`);
         const clearAll = document.getElementById(`${idBase}-clear-all`);
-        if (!control || !chipsEl || !menu || !optsEl || !search || !selectAll || !clearAll) return;
+        if (!control || !chipsEl || !menu || !optsEl || !search || !selectAll || !clearAll) {
+            console.warn('[initMsForSelect] Missing child elements:', {
+                idBase,
+                selectId,
+                control: !!control,
+                chipsEl: !!chipsEl,
+                menu: !!menu,
+                optsEl: !!optsEl,
+                search: !!search,
+                clear: !!clear,
+                selectAll: !!selectAll,
+                clearAll: !!clearAll,
+            });
+            return;
+        }
 
         const getSelected = () => new Set(Array.from(sel.selectedOptions).map(o => o.value));
         const setSelected = valsSet => {
