@@ -26012,7 +26012,7 @@ if (!document.__niwDelegatedFallback) {
         const checkPlexAvailability = () => {
             const musicHelp = document.getElementById('music-mode-help');
 
-            fetchJSON('/api/get-config')
+            fetchJSON('/get-config')
                 .then(config => {
                     const mediaServers = config?.mediaServers || [];
                     const plexServer = mediaServers.find(s => s.type === 'plex' && s.enabled);
