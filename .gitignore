@@ -52,16 +52,12 @@ Thumbs.db
 /logs
 
 # Test coverage reports
-coverage/*.json
-coverage/tmp/
+coverage/
 *.lcov
 jest-results.json
 
-# Keep coverage HTML reports for GitHub
+# Keep only lcov-report directory for GitHub
 !coverage/lcov-report/
-!coverage/*.css
-!coverage/*.js
-!coverage/*.html
 
 # Development/test files
 test-*.html
