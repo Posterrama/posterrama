@@ -1,7 +1,7 @@
 /* Admin v2 Dashboard (theme-based) */
 // NOTE: Removed blanket 'eslint-disable no-empty'; empty catches now annotated with purpose.
 /* global saveConfigPatch, miniCache, inflight, refreshOverviewLastSync */
-/* global initMsForSelect, rebuildMsForSelect, getMultiSelectValues, setMultiSelect, fetchPlexLibraries */
+/* global initMsForSelect, rebuildMsForSelect, getMultiSelectValues, fetchPlexLibraries */
 /* global fetchJellyfinLibraries, populatePosterpackLibraries */
 /* global loadMusicGenresForMultiselect, loadMusicArtistsForMultiselect */
 (function () {
@@ -15402,6 +15402,16 @@
             if (!sel) return [];
             return Array.from(sel.selectedOptions).map(o => o.value);
         }
+        // Export helpers to window for music filter functions
+        if (typeof window !== 'undefined') {
+            window.__adminHelpers = {
+                getInput,
+                setMultiSelect,
+                getMultiSelectValues,
+                initMsForSelect,
+                rebuildMsForSelect,
+            };
+        }
         function parseCsvList(str) {
             return String(str || '')
                 .split(',')
@@ -25948,8 +25958,11 @@ if (!document.__niwDelegatedFallback) {
                 return;
             }
 
+            const helpers = window.__adminHelpers || {};
+            if (!helpers.setMultiSelect || !helpers.getMultiSelectValues) return;
+
             // Get current selections
-            const currentGenres = getMultiSelectValues('plex.musicGenres');
+            const currentGenres = helpers.getMultiSelectValues('plex.musicGenres');
 
             // Build options from genres
             const options = genres.map(g => ({
@@ -25958,13 +25971,17 @@ if (!document.__niwDelegatedFallback) {
             }));
 
             // Populate the multiselect
-            setMultiSelect('plex.musicGenres', options, currentGenres);
+            helpers.setMultiSelect('plex.musicGenres', options, currentGenres);
 
             // Ensure it's wired
             if (document.getElementById('plex-ms-music-genres')?.dataset?.msWired !== 'true') {
-                initMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
+                if (helpers.initMsForSelect) {
+                    helpers.initMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
+                }
             }
-            rebuildMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
+            if (helpers.rebuildMsForSelect) {
+                helpers.rebuildMsForSelect('plex-ms-music-genres', 'plex.musicGenres');
+            }
         } catch (err) {
             console.error('Failed to load music genres:', err);
             chipsRoot.innerHTML =
@@ -25996,8 +26013,11 @@ if (!document.__niwDelegatedFallback) {
                 return;
             }
 
+            const helpers = window.__adminHelpers || {};
+            if (!helpers.setMultiSelect || !helpers.getMultiSelectValues) return;
+
             // Get current selections
-            const currentArtists = getMultiSelectValues('plex.musicArtists');
+            const currentArtists = helpers.getMultiSelectValues('plex.musicArtists');
 
             // Build options from artists
             const options = data.artists.map(a => ({
@@ -26006,13 +26026,17 @@ if (!document.__niwDelegatedFallback) {
             }));
 
             // Populate the multiselect
-            setMultiSelect('plex.musicArtists', options, currentArtists);
+            helpers.setMultiSelect('plex.musicArtists', options, currentArtists);
 
             // Ensure it's wired
             if (document.getElementById('plex-ms-music-artists')?.dataset?.msWired !== 'true') {
-                initMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
+                if (helpers.initMsForSelect) {
+                    helpers.initMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
+                }
             }
-            rebuildMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
+            if (helpers.rebuildMsForSelect) {
+                helpers.rebuildMsForSelect('plex-ms-music-artists', 'plex.musicArtists');
+            }
 
             // Add note if there are more artists
             if (data.total > limit) {
