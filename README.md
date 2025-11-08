@@ -19,7 +19,7 @@
   <a href="#content-source-features"><img alt="Plex" src="https://img.shields.io/badge/Plex-supported-ffaa00.svg?logo=plex&logoColor=white"></a>
   <a href="#content-source-features"><img alt="Jellyfin" src="https://img.shields.io/badge/Jellyfin-supported-8f7ee7.svg?logo=jellyfin&logoColor=white"></a>
   <a href="#content-source-features"><img alt="TMDB" src="https://img.shields.io/badge/TMDB-supported-01d277.svg?logo=themoviedatabase&logoColor=white"></a>
-  <a href="http://localhost:4000/api-docs"><img alt="OpenAPI Docs" src="https://img.shields.io/badge/OpenAPI-Docs-85EA2D.svg?logo=swagger&logoColor=white"></a>
+  <a href="https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/Posterrama/posterrama/main/docs/openapi-latest.json"><img alt="OpenAPI Docs" src="https://img.shields.io/badge/OpenAPI-Docs-85EA2D.svg?logo=swagger&logoColor=white"></a>
 </p>
 
 <img src="./screenshots/screensaver.png" alt="Posterrama hero" width="740">

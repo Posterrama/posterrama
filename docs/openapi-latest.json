@@ -2,11 +2,12 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Posterrama API",
-        "version": "2.9.0",
-        "description": "API documentation for the posterrama.app screensaver application. This documents the public API used by the frontend to retrieve media and configuration.",
+        "version": "2.9.2",
+        "description": "# Posterrama API Documentation\n\n**Posterrama** transforms any screen into a dynamic movie poster gallery by aggregating media from multiple sources including Plex, Jellyfin, and TMDB.\n\n## Overview\n\nThis API provides comprehensive access to:\n- **Media Management**: Retrieve and display movie/TV show posters with metadata\n- **Device Control**: Manage display devices, groups, and real-time playback\n- **Configuration**: Complete system and per-device settings management\n- **Admin Panel**: Full administrative control and monitoring\n\n## Key Features\n\n### Multi-Source Aggregation\nPosterrama seamlessly combines content from:\n- **Plex Media Server**: Direct integration with your local media library\n- **Jellyfin**: Open-source media server support\n- **TMDB**: The Movie Database for trending content\n- **Local Posterpacks**: Offline ZIP-based media packages\n\n### Display Modes\nThree distinct viewing experiences:\n- **Screensaver**: Rotating poster display with customizable transitions\n- **Cinema**: Coming attractions style with trailers and theme music\n- **Wallart**: Gallery-style continuous display\n\n### Real-time Control\n- WebSocket-based device management\n- Live settings updates without page reload\n- Group broadcasting for multi-device setups\n- Remote command execution (pause, play, reload, etc.)\n\n## Authentication\n\nThe API uses session-based authentication with cookies for admin endpoints. Public endpoints (like `/get-media`) are accessible without authentication.\n\n**Security Note**: Always use HTTPS in production to protect session cookies.\n\n## Rate Limiting\n\nSome endpoints have rate limiting to prevent abuse:\n- Media endpoints: Cached responses with configurable TTL\n- Admin operations: Standard rate limits apply\n- WebSocket connections: Maximum 1 active connection per device\n\n## Getting Started\n\n1. Access the admin panel at `/admin` to configure your media sources\n2. Use `/get-media` to retrieve the aggregated playlist\n3. Implement the display frontend using `/screensaver`, `/cinema`, or `/wallart` modes\n4. Register devices via `/api/devices/register` for remote control\n\nFor more information, visit the [GitHub repository](https://github.com/Posterrama/posterrama).",
         "contact": {
-            "name": "Posterrama",
-            "url": "https://github.com/Posterrama/posterrama"
+            "name": "Posterrama Project",
+            "url": "https://github.com/Posterrama/posterrama",
+            "email": "support@posterrama.app"
         },
         "license": {
             "name": "GPL-3.0-or-later",
@@ -16,63 +17,101 @@
     "tags": [
         {
             "name": "Public API",
-            "description": "Endpoints available to the frontend client without authentication."
-        },
-        {
-            "name": "Admin",
-            "description": "Secured endpoints for admin panel, setup, and configuration. Requires an active admin session where applicable."
-        },
-        {
-            "name": "Devices",
-            "description": "Device management endpoints for registration, heartbeat, pairing, commands, and admin device operations."
-        },
-        {
-            "name": "Groups",
-            "description": "Admin endpoints for managing device groups and broadcasting commands."
-        },
-        {
-            "name": "Authentication",
-            "description": "General authentication and authorization endpoints."
-        },
-        {
-            "name": "Configuration",
-            "description": "Application configuration management endpoints."
-        },
-        {
-            "name": "Validation",
-            "description": "Configuration and data validation endpoints."
-        },
-        {
-            "name": "Metrics",
-            "description": "Performance monitoring and metrics endpoints."
+            "description": "Public endpoints accessible without authentication. These are the core endpoints used by display devices to retrieve media content, images, and configuration.\n                    \n**Key Endpoints:**\n- `/get-media`: Primary media playlist endpoint\n- `/proxy`: Image proxy for secure media delivery\n- `/get-config`: Public configuration retrieval"
         },
         {
             "name": "Frontend",
-            "description": "Frontend asset serving, templates and static pages."
+            "description": "Frontend asset serving and template rendering. Serves the HTML/CSS/JS for the display modes and admin interface.\n                    \n**Available Pages:**\n- `/screensaver`: Rotating poster display\n- `/cinema`: Movie theater experience\n- `/wallart`: Gallery-style display\n- `/admin`: Administrative control panel\n- `/admin-analytics`: Analytics dashboard\n\n**Static Assets:**\n- Versioned CSS/JS with cache busting\n- Favicon and branding assets\n- Font files and icons"
         },
         {
-            "name": "Cache",
-            "description": "Cache management and configuration endpoints."
-        },
-        {
-            "name": "GitHub Integration",
-            "description": "GitHub API integration for releases and updates."
-        },
-        {
-            "name": "Auto-Update",
-            "description": "Automatic application update management endpoints."
-        },
-        {
-            "name": "Documentation",
-            "description": "API documentation and specification endpoints."
+            "name": "Authentication",
+            "description": "Authentication and authorization system. Posterrama uses session-based authentication with optional 2FA support.\n                    \n**Security Features:**\n- Session management with secure cookies\n- Password hashing (bcrypt)\n- Two-factor authentication (TOTP)\n- API key support for programmatic access\n- Rate limiting on auth endpoints\n\n**Session Lifecycle:**\n- Login creates session cookie (connect.sid)\n- Session persists across requests\n- Logout invalidates session"
         },
         {
             "name": "Security",
-            "description": "Security monitoring and violation reporting endpoints."
+            "description": "Security monitoring and violation reporting. Tracks authentication failures, rate limit violations, and suspicious activity.\n                    \n**Security Features:**\n- Failed login tracking\n- Rate limit enforcement\n- Session hijacking protection\n- CSRF protection\n- Security headers (CSP, HSTS)\n- IP-based blocking\n\n**Monitoring:**\n- Real-time security event log\n- Violation statistics\n- IP reputation tracking\n- Alert notifications for security events"
+        },
+        {
+            "name": "Admin",
+            "description": "Administrative endpoints for system configuration and management. These endpoints require an active admin session.\n                    \n**Capabilities:**\n- Complete configuration management\n- System monitoring and performance metrics\n- User authentication and session management\n- Backup and restore operations\n- Source connection testing\n\n**Authentication Required**: Session-based (cookie: connect.sid)"
+        },
+        {
+            "name": "Configuration",
+            "description": "Application configuration management. Configuration is stored in `config.json` with automatic validation and hot-reloading support.\n                    \n**Configuration Sections:**\n- Media sources (Plex, Jellyfin, TMDB, Local)\n- Display mode settings (Screensaver, Cinema, Wallart)\n- Server settings (port, cache, logging)\n- Device management\n- Security settings\n\n**Best Practices:**\n- Always validate before saving\n- Create backups before major changes\n- Test source connections after updates"
+        },
+        {
+            "name": "Validation",
+            "description": "Configuration and data validation endpoints. These endpoints validate configuration changes before applying them, preventing invalid configurations.\n                    \n**Validation Types:**\n- Server connectivity (Plex, Jellyfin)\n- API key validity\n- Configuration schema compliance\n- Port availability\n- File path accessibility"
+        },
+        {
+            "name": "Devices",
+            "description": "Device management system for controlling display clients. Posterrama supports registering unlimited devices and organizing them into groups.\n                    \n**Features:**\n- Device registration with pairing codes\n- Real-time status monitoring\n- Per-device settings overrides\n- Heartbeat tracking\n- WebSocket command channel\n\n**Device Lifecycle:**\n1. Register via `/api/devices/register`\n2. Pair with code via `/api/devices/pair`\n3. Send heartbeats via `/api/devices/heartbeat`\n4. Receive commands via WebSocket at `/ws/devices`"
+        },
+        {
+            "name": "Groups",
+            "description": "Organize devices into logical groups for coordinated control. Groups enable broadcasting commands to multiple devices simultaneously.\n                    \n**Use Cases:**\n- Floor/room organization\n- Synchronized displays\n- Bulk configuration updates\n- Targeted content delivery\n\n**Operations:**\n- Create and manage groups\n- Assign devices to groups\n- Broadcast commands to all group members"
+        },
+        {
+            "name": "Local Directory",
+            "description": "Local media source management for posterpack archives and directory-based media. Supports offline media delivery and custom collections.\n                    \n**Features:**\n- Posterpack generation from Plex/Jellyfin\n- ZIP archive management\n- Directory browsing\n- File upload/download\n- Metadata management\n- Asset extraction (posters, backgrounds, trailers, themes)\n\n**Posterpack Format:**\nA posterpack is a self-contained ZIP archive containing:\n- `metadata.json`: Complete media information\n- `poster.jpg`: Movie/show poster\n- `background.jpg`: Backdrop image\n- `thumbnail.jpg`: Small preview image\n- `trailer.mp4`: Optional trailer video\n- `theme.mp3`: Optional theme music\n- `clearlogo.png`: Optional logo overlay\n- `people/`: Cast/crew photos\n\n**Use Cases:**\n- Offline display setups\n- Custom media collections\n- Pre-packaged content distribution\n- Backup media libraries"
+        },
+        {
+            "name": "Cache",
+            "description": "Multi-tier caching system for optimal performance. Posterrama uses memory and disk caching with intelligent invalidation.\n                    \n**Cache Types:**\n- **Memory Cache**: Fast in-memory storage for API responses\n- **Disk Cache**: Persistent image cache\n- **HTTP Cache**: ETags and conditional requests\n- **Browser Cache**: Client-side caching with versioning\n\n**Operations:**\n- View cache statistics\n- Clear specific cache entries\n- Invalidate on configuration changes\n- Configure TTL per endpoint"
+        },
+        {
+            "name": "Metrics",
+            "description": "Performance monitoring and metrics collection. Real-time system health, source performance, and cache statistics.\n                    \n**Metrics Categories:**\n- System resources (CPU, memory, uptime)\n- Source performance (response times, error rates)\n- Cache efficiency (hit rate, size, TTL)\n- Request statistics (throughput, latency)\n- Device activity (connections, commands)\n\n**Use Cases:**\n- Performance optimization\n- Troubleshooting slow responses\n- Capacity planning\n- Source reliability monitoring"
+        },
+        {
+            "name": "Auto-Update",
+            "description": "Automatic application update system powered by PM2 ecosystem. Safely updates Posterrama to the latest version with rollback support.\n                    \n**Update Process:**\n1. Backup current configuration\n2. Pull latest code from GitHub\n3. Install npm dependencies\n4. Run database migrations (if any)\n5. Restart application gracefully\n6. Verify health post-update\n\n**Safety Features:**\n- Automatic configuration backups\n- Health check verification\n- Rollback on failure\n- Update status tracking\n- Manual control override\n\n**Requirements:**\n- PM2 process manager\n- Git repository access\n- Write permissions to install directory"
+        },
+        {
+            "name": "GitHub Integration",
+            "description": "Integration with GitHub API for release information and automatic updates.\n                    \n**Features:**\n- Check for latest releases\n- Download release assets\n- Version comparison\n- Changelog retrieval\n- Release notes display\n\n**Update Process:**\n1. Check `/api/admin/github/latest-release`\n2. Compare with current version\n3. Notify admin of available updates\n4. Optional: Auto-update via updater service"
+        },
+        {
+            "name": "Documentation",
+            "description": "API documentation and specification endpoints. Provides access to this interactive documentation and the raw OpenAPI specification.\n                    \n**Endpoints:**\n- `/api-docs`: Interactive ReDoc documentation (this page)\n- `/api-docs/swagger.json`: Raw OpenAPI 3.0 specification\n\n**OpenAPI Spec:**\nThe OpenAPI specification is dynamically generated from JSDoc comments in the source code, ensuring documentation stays synchronized with implementation."
         },
         {
             "name": "Site Server",
-            "description": "Public-facing site server endpoints and routes."
+            "description": "Public-facing site server for marketing and information pages. Serves static content about Posterrama.\n                    \n**Content:**\n- Project information\n- Installation guides\n- Feature showcase\n- Support resources\n- Community links\n\n**Note:** These endpoints are separate from the application API and do not require authentication."
+        }
+    ],
+    "x-tagGroups": [
+        {
+            "name": "Core API",
+            "tags": ["Public API", "Frontend"]
+        },
+        {
+            "name": "Authentication & Security",
+            "tags": ["Authentication", "Security"]
+        },
+        {
+            "name": "Admin & Configuration",
+            "tags": ["Admin", "Configuration", "Validation"]
+        },
+        {
+            "name": "Device Management",
+            "tags": ["Devices", "Groups"]
+        },
+        {
+            "name": "Media Sources",
+            "tags": ["Local Directory"]
+        },
+        {
+            "name": "System Monitoring",
+            "tags": ["Cache", "Metrics"]
+        },
+        {
+            "name": "Updates & Integrations",
+            "tags": ["Auto-Update", "GitHub Integration"]
+        },
+        {
+            "name": "Utilities",
+            "tags": ["Documentation", "Site Server"]
         }
     ],
     "servers": [
@@ -83,6 +122,12 @@
     ],
     "components": {
         "securitySchemes": {
+            "isAuthenticated": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "connect.sid",
+                "description": "Session-based authentication (alias for sessionAuth)"
+            },
             "sessionAuth": {
                 "type": "apiKey",
                 "in": "cookie",
@@ -94,6 +139,24 @@
                 "scheme": "bearer",
                 "bearerFormat": "JWT",
                 "description": "Bearer token authentication. The application accepts API keys as Bearer tokens."
+            },
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "Bearer token authentication (alias for bearerAuth)."
+            },
+            "SessionAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "connect.sid",
+                "description": "Session-based authentication (alias for sessionAuth)"
+            },
+            "ApiKeyAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "API-Key",
+                "description": "API Key authentication using Bearer scheme"
             }
         },
         "schemas": {
@@ -864,78 +927,276 @@
             },
             "MediaItem": {
                 "type": "object",
+                "description": "A media item from any source (Plex, Jellyfin, TMDB, or Local). Contains all metadata needed to display the poster and additional information.",
                 "properties": {
                     "key": {
                         "type": "string",
-                        "description": "A unique identifier for the media item, composed of server type, name and item key."
+                        "description": "A unique identifier for the media item, composed of source type, server name, and item ID (e.g., \"plex-MyServer-12345\", \"jellyfin-Home-67890\", \"tmdb-movie-550\").",
+                        "example": "plex-MyPlexServer-12345"
                     },
                     "title": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Title of the movie or TV show",
+                        "example": "Blade Runner 2049"
                     },
                     "backgroundUrl": {
                         "type": "string",
                         "format": "uri",
-                        "description": "URL to the background image, proxied through the app."
+                        "description": "URL to the background/backdrop image, proxied through /proxy endpoint to hide server details.",
+                        "example": "/proxy?server=MyPlexServer&path=/library/metadata/12345/art/1234567890"
                     },
                     "posterUrl": {
                         "type": "string",
                         "format": "uri",
-                        "description": "URL to the poster image, proxied through the app."
+                        "description": "URL to the poster image, proxied through /proxy endpoint.",
+                        "example": "/proxy?server=MyPlexServer&path=/library/metadata/12345/thumb/1234567890"
                     },
                     "thumbnailUrl": {
                         "type": "string",
                         "format": "uri",
                         "nullable": true,
-                        "description": "URL to the thumbnail image when available (e.g., from Local posterpacks)."
+                        "description": "URL to a smaller thumbnail image when available (primarily from Local posterpacks). Useful for gallery views.",
+                        "example": "/local-posterpack?zip=complete/plex-export/Blade%20Runner%202049%20(2017).zip&entry=thumbnail"
                     },
                     "clearLogoUrl": {
                         "type": "string",
                         "format": "uri",
                         "nullable": true,
-                        "description": "URL to the ClearLogo image, proxied through the app."
+                        "description": "URL to the ClearLogo image (transparent logo), proxied through the app. Great for overlays.",
+                        "example": "/proxy?server=MyPlexServer&path=/library/metadata/12345/clearlogo"
                     },
                     "tagline": {
                         "type": "string",
-                        "nullable": true
+                        "nullable": true,
+                        "description": "Movie tagline or short description",
+                        "example": "The key to the future is finally unearthed."
                     },
                     "rating": {
                         "type": "number",
                         "nullable": true,
-                        "description": "The general audience rating (e.g., 7.8)."
+                        "description": "The general audience rating on a scale (typically 0-10).",
+                        "example": 8
                     },
                     "year": {
                         "type": "integer",
-                        "nullable": true
+                        "nullable": true,
+                        "description": "Release year",
+                        "example": 2017
                     },
                     "imdbUrl": {
                         "type": "string",
                         "format": "uri",
                         "nullable": true,
-                        "description": "Direct link to the IMDb page for this item."
+                        "description": "Direct link to the IMDb page for this item.",
+                        "example": "https://www.imdb.com/title/tt1856101/"
                     },
                     "rottenTomatoes": {
                         "type": "object",
                         "nullable": true,
+                        "description": "Rotten Tomatoes score information when available",
                         "properties": {
                             "score": {
                                 "type": "integer",
-                                "description": "The Rotten Tomatoes score (0-100)."
+                                "description": "The Rotten Tomatoes score (0-100).",
+                                "example": 88
                             },
                             "icon": {
                                 "type": "string",
                                 "enum": ["fresh", "rotten", "certified-fresh"],
-                                "description": "The corresponding RT icon."
+                                "description": "The corresponding RT freshness icon.",
+                                "example": "certified-fresh"
                             },
                             "originalScore": {
                                 "type": "number",
-                                "description": "The original score from the source (e.g., scale 0-10)."
+                                "description": "The original score from the source before conversion to 0-100 scale.",
+                                "example": 8.8
                             }
                         }
                     },
+                    "extras": {
+                        "type": "array",
+                        "nullable": true,
+                        "description": "Array of extras (trailers, behind the scenes, deleted scenes, interviews, etc.). Only populated when includeExtras=true query parameter is set. Available for Plex and Jellyfin sources only.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "description": "Type of extra content",
+                                    "example": "clip",
+                                    "enum": [
+                                        "clip",
+                                        "behindTheScenes",
+                                        "deletedScene",
+                                        "interview",
+                                        "sceneOrSample",
+                                        "featurette",
+                                        "short"
+                                    ]
+                                },
+                                "title": {
+                                    "type": "string",
+                                    "description": "Title of the extra",
+                                    "example": "Official Trailer"
+                                },
+                                "thumb": {
+                                    "type": "string",
+                                    "format": "uri",
+                                    "nullable": true,
+                                    "description": "Thumbnail image URL for the extra",
+                                    "example": "/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb"
+                                },
+                                "key": {
+                                    "type": "string",
+                                    "description": "Server-specific key/ID for the extra (used to construct streaming URLs)",
+                                    "example": "/library/metadata/12346"
+                                },
+                                "duration": {
+                                    "type": "integer",
+                                    "nullable": true,
+                                    "description": "Duration in milliseconds",
+                                    "example": 155000
+                                },
+                                "year": {
+                                    "type": "integer",
+                                    "nullable": true,
+                                    "example": 2017
+                                },
+                                "addedAt": {
+                                    "type": "integer",
+                                    "nullable": true,
+                                    "description": "Timestamp when extra was added (Unix timestamp in seconds)",
+                                    "example": 1635724800
+                                }
+                            }
+                        },
+                        "example": [
+                            {
+                                "type": "clip",
+                                "title": "Official Trailer",
+                                "thumb": "/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb",
+                                "key": "/library/metadata/12346",
+                                "duration": 155000,
+                                "year": 2017,
+                                "addedAt": 1635724800
+                            },
+                            {
+                                "type": "behindTheScenes",
+                                "title": "Making Of",
+                                "thumb": "/proxy?server=MyPlexServer&path=/library/metadata/12347/thumb",
+                                "key": "/library/metadata/12347",
+                                "duration": 892000,
+                                "year": 2017,
+                                "addedAt": 1635724800
+                            }
+                        ]
+                    },
+                    "trailer": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "First trailer from the extras array for convenience. Only populated when includeExtras=true. Provides quick access to the main trailer without filtering the extras array.",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "example": "clip"
+                            },
+                            "title": {
+                                "type": "string",
+                                "example": "Official Trailer"
+                            },
+                            "thumb": {
+                                "type": "string",
+                                "format": "uri",
+                                "nullable": true,
+                                "example": "/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb"
+                            },
+                            "key": {
+                                "type": "string",
+                                "description": "Key to fetch full trailer metadata and construct streaming URL",
+                                "example": "/library/metadata/12346"
+                            },
+                            "duration": {
+                                "type": "integer",
+                                "nullable": true,
+                                "example": 155000
+                            },
+                            "year": {
+                                "type": "integer",
+                                "nullable": true,
+                                "example": 2017
+                            },
+                            "addedAt": {
+                                "type": "integer",
+                                "nullable": true,
+                                "example": 1635724800
+                            }
+                        },
+                        "example": {
+                            "type": "clip",
+                            "title": "Official Trailer",
+                            "thumb": "/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb",
+                            "key": "/library/metadata/12346",
+                            "duration": 155000,
+                            "year": 2017,
+                            "addedAt": 1635724800
+                        }
+                    },
+                    "theme": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Raw theme music path from Plex (e.g., /library/metadata/12345/theme/1234567890). Only populated when includeExtras=true for Plex sources with theme music.",
+                        "example": "/library/metadata/12345/theme/1730000000"
+                    },
+                    "themeUrl": {
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true,
+                        "description": "Proxied theme music URL for streaming (e.g., /proxy/plex?server=...&path=...). Only populated when includeExtras=true for Plex sources with theme music. Note: Direct streaming via /proxy/plex endpoint is planned but not yet implemented. For now, use /get-media?includeExtras=true and construct URLs manually.",
+                        "example": "/proxy?server=MyPlexServer&path=/library/metadata/12345/theme/1730000000"
+                    },
                     "_raw": {
                         "type": "object",
-                        "description": "Raw metadata from the media server (only included in debug mode)."
+                        "description": "Raw metadata from the media server (only included when debug mode is enabled in config). Useful for development and troubleshooting."
                     }
+                },
+                "example": {
+                    "key": "plex-MyPlexServer-12345",
+                    "title": "Blade Runner 2049",
+                    "backgroundUrl": "/proxy?server=MyPlexServer&path=/library/metadata/12345/art/1234567890",
+                    "posterUrl": "/proxy?server=MyPlexServer&path=/library/metadata/12345/thumb/1234567890",
+                    "thumbnailUrl": null,
+                    "clearLogoUrl": "/proxy?server=MyPlexServer&path=/library/metadata/12345/clearlogo",
+                    "tagline": "The key to the future is finally unearthed.",
+                    "rating": 8,
+                    "year": 2017,
+                    "imdbUrl": "https://www.imdb.com/title/tt1856101/",
+                    "rottenTomatoes": {
+                        "score": 88,
+                        "icon": "certified-fresh",
+                        "originalScore": 8.8
+                    },
+                    "extras": [
+                        {
+                            "type": "clip",
+                            "title": "Official Trailer",
+                            "thumb": "/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb",
+                            "key": "/library/metadata/12346",
+                            "duration": 155000,
+                            "year": 2017,
+                            "addedAt": 1635724800
+                        }
+                    ],
+                    "trailer": {
+                        "type": "clip",
+                        "title": "Official Trailer",
+                        "thumb": "/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb",
+                        "key": "/library/metadata/12346",
+                        "duration": 155000,
+                        "year": 2017,
+                        "addedAt": 1635724800
+                    },
+                    "theme": "/library/metadata/12345/theme/1730000000",
+                    "themeUrl": "/proxy?server=MyPlexServer&path=/library/metadata/12345/theme/1730000000"
                 }
             },
             "ApiMessage": {
@@ -1664,56 +1925,106 @@
                 }
             }
         },
-        "/api/v1/admin/config/validate": {
-            "post": {
-                "summary": "Validate configuration data",
-                "description": "Validates configuration object against schema and returns sanitized data",
-                "tags": ["Validation"],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "description": "Configuration object to validate"
-                            }
-                        }
+        "/local-media/{path}": {
+            "get": {
+                "summary": "Serve local media files",
+                "description": "Serves images and videos from configured local directories.\nThis endpoint is disabled by default for security.\nLocal media can be accessed via /local-posterpack for ZIP contents.\n",
+                "tags": ["Local Media"],
+                "parameters": [
+                    {
+                        "name": "path",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Relative path to media file (e.g., posters/Movie.jpg)"
                     }
-                },
+                ],
                 "responses": {
                     "200": {
-                        "description": "Configuration is valid",
+                        "description": "Media file content",
                         "content": {
-                            "application/json": {
+                            "image/jpeg": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Configuration is valid"
-                                        },
-                                        "sanitized": {
-                                            "type": "object",
-                                            "description": "Sanitized configuration data"
-                                        }
-                                    }
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            },
+                            "image/png": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            },
+                            "video/mp4": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Local directory support not enabled or direct serving disabled"
+                    }
+                }
+            }
+        },
+        "/local-posterpack": {
+            "get": {
+                "summary": "Stream assets from posterpack ZIP files",
+                "description": "Streams poster, background, clearlogo, thumbnail, or banner directly from a posterpack ZIP\nwithout extraction. Used for serving local media from compressed archives.\n",
+                "tags": ["Local Media"],
+                "parameters": [
+                    {
+                        "name": "zip",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Relative path to ZIP file (e.g., complete/manual/Movie (2024).zip)",
+                        "example": "complete/manual/Movie (2024).zip"
+                    },
+                    {
+                        "name": "entry",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": ["poster", "background", "clearlogo", "thumbnail", "banner"]
+                        },
+                        "description": "Type of asset to extract from ZIP",
+                        "example": "poster"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Image content from ZIP",
+                        "content": {
+                            "image/jpeg": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            },
+                            "image/png": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Missing parameters or invalid zip path/entry type"
+                    },
+                    "404": {
+                        "description": "Local directory support not enabled or file not found"
+                    },
+                    "500": {
+                        "description": "Error reading ZIP file"
                     }
                 }
             }
@@ -1775,6 +2086,60 @@
                     },
                     "400": {
                         "description": "Validation/timeout error"
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/config/validate": {
+            "post": {
+                "summary": "Validate configuration data",
+                "description": "Validates configuration object against schema and returns sanitized data",
+                "tags": ["Validation"],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "description": "Configuration object to validate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Configuration is valid",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Configuration is valid"
+                                        },
+                                        "sanitized": {
+                                            "type": "object",
+                                            "description": "Sanitized configuration data"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -3323,6 +3688,26 @@
                 }
             }
         },
+        "/reset-refresh": {
+            "get": {
+                "summary": "Reset stuck playlist refresh state",
+                "description": "User-friendly endpoint to reset stuck refresh state.\nReturns an HTML page with reset confirmation.\nCan be accessed directly in a browser.\n",
+                "tags": ["Utilities"],
+                "responses": {
+                    "200": {
+                        "description": "HTML page confirming refresh state reset",
+                        "content": {
+                            "text/html": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "<!DOCTYPE html>\n<html>\n<body>\n  <h1>🔄 Refresh Reset</h1>\n  <p>✅ Playlist refresh state has been reset successfully!</p>\n</body>\n</html>\n"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/debug-cache": {
             "get": {
                 "summary": "Debug cache status and configuration",
@@ -3399,11 +3784,12 @@
                 }
             },
             "post": {
-                "summary": "Update server configuration (partial)",
+                "summary": "Save configuration changes",
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "isAuthenticated": []
+                        "isAuthenticated": [],
+                        "bearerAuth": []
                     }
                 ],
                 "requestBody": {
@@ -3415,7 +3801,11 @@
                                 "properties": {
                                     "config": {
                                         "type": "object",
-                                        "description": "Partial config to deep-merge into config.json"
+                                        "description": "Partial configuration object to merge"
+                                    },
+                                    "env": {
+                                        "type": "object",
+                                        "description": "Environment variables to update"
                                     }
                                 }
                             }
@@ -3424,9 +3814,16 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Configuration updated"
+                        "description": "Configuration saved successfully"
+                    },
+                    "400": {
+                        "description": "Invalid request body"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
                     }
-                }
+                },
+                "description": "Updates config.json and .env with provided changes. Detects mode changes and broadcasts navigation commands to connected devices."
             }
         },
         "/api/admin/source-status": {
@@ -3599,6 +3996,167 @@
                 }
             }
         },
+        "/api/plex/sessions": {
+            "get": {
+                "summary": "Get current Plex playback sessions",
+                "description": "Returns cached Plex session data showing what is currently being played. Updated every 10 seconds via background polling.\n",
+                "tags": ["Admin", "Plex"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current Plex sessions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "sessions": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "sessionKey": {
+                                                        "type": "string"
+                                                    },
+                                                    "ratingKey": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": {
+                                                        "type": "string"
+                                                    },
+                                                    "title": {
+                                                        "type": "string"
+                                                    },
+                                                    "year": {
+                                                        "type": "number"
+                                                    },
+                                                    "thumb": {
+                                                        "type": "string"
+                                                    },
+                                                    "art": {
+                                                        "type": "string"
+                                                    },
+                                                    "viewOffset": {
+                                                        "type": "number"
+                                                    },
+                                                    "duration": {
+                                                        "type": "number"
+                                                    },
+                                                    "User": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "title": {
+                                                                "type": "string"
+                                                            },
+                                                            "thumb": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "Player": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "state": {
+                                                                "type": "string"
+                                                            },
+                                                            "device": {
+                                                                "type": "string"
+                                                            },
+                                                            "platform": {
+                                                                "type": "string"
+                                                            },
+                                                            "product": {
+                                                                "type": "string"
+                                                            },
+                                                            "title": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "lastUpdate": {
+                                            "type": "number",
+                                            "description": "Timestamp of last poll (milliseconds)"
+                                        },
+                                        "isActive": {
+                                            "type": "boolean",
+                                            "description": "Whether poller is currently running"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Sessions poller not initialized"
+                    }
+                }
+            }
+        },
+        "/api/plex/users": {
+            "get": {
+                "summary": "Get Plex users with access to this server",
+                "description": "Returns a list of all Plex users (including owner and shared users) who have access to the server. Useful for filtering Now Playing sessions by specific users.\n",
+                "tags": ["Admin", "Plex"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of Plex users",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "users": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "username": {
+                                                        "type": "string"
+                                                    },
+                                                    "title": {
+                                                        "type": "string"
+                                                    },
+                                                    "email": {
+                                                        "type": "string"
+                                                    },
+                                                    "thumb": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No Plex server configured"
+                    },
+                    "500": {
+                        "description": "Failed to fetch users from Plex"
+                    }
+                }
+            }
+        },
         "/admin/debug": {
             "get": {
                 "summary": "Retrieve debug information",
@@ -3685,6 +4243,33 @@
                 }
             }
         },
+        "/api/admin/config-schema": {
+            "get": {
+                "summary": "Retrieve configuration JSON schema (alias)",
+                "description": "Alias of /api/admin/config/schema returning config.schema.json for autocomplete tooling in the admin UI.",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The JSON schema document",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized."
+                    }
+                }
+            }
+        },
         "/api/config/schema": {
             "get": {
                 "summary": "Retrieve configuration JSON schema",
@@ -3716,33 +4301,6 @@
             "get": {
                 "summary": "Retrieve configuration JSON schema (admin alias)",
                 "description": "Alias of /api/config/schema for environments routing admin traffic under /api/admin.",
-                "tags": ["Admin"],
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "The JSON schema document",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized."
-                    }
-                }
-            }
-        },
-        "/api/admin/config-schema": {
-            "get": {
-                "summary": "Retrieve configuration JSON schema (alias)",
-                "description": "Alias of /api/admin/config/schema returning config.schema.json for autocomplete tooling in the admin UI.",
                 "tags": ["Admin"],
                 "security": [
                     {
@@ -3887,6 +4445,86 @@
                     },
                     "400": {
                         "description": "Connection error (e.g., incorrect credentials, timeout)."
+                    }
+                }
+            }
+        },
+        "/api/admin/test-romm": {
+            "post": {
+                "summary": "Test RomM connection",
+                "description": "Validates RomM server credentials and connectivity",
+                "tags": ["Admin"],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["url", "username", "password"],
+                                "properties": {
+                                    "url": {
+                                        "type": "string"
+                                    },
+                                    "username": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "insecureHttps": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "RomM connection successful"
+                    },
+                    "400": {
+                        "description": "Connection failed"
+                    }
+                }
+            }
+        },
+        "/api/admin/romm-platforms": {
+            "post": {
+                "summary": "Fetch available platforms from RomM",
+                "description": "Returns list of gaming platforms available in RomM server",
+                "tags": ["Admin"],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["url", "username", "password"],
+                                "properties": {
+                                    "url": {
+                                        "type": "string"
+                                    },
+                                    "username": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "insecureHttps": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Platform list fetched successfully"
+                    },
+                    "400": {
+                        "description": "Failed to fetch platforms"
                     }
                 }
             }
@@ -5103,7 +5741,7 @@
         "/api/devices/check": {
             "post": {
                 "summary": "Check device authentication and registration status",
-                "description": "Verify device credentials and registration status. Used by clients to confirm their stored ID/secret are valid.\n\n**Flexible Authentication**: This endpoint accepts checks with only deviceId, hardwareId, or installId (without secret) \nto determine if a device is registered. When a secret is provided, it validates the credentials.\n\n**Response behavior**:\n- Device not found: Returns `{valid: false, isRegistered: false, reason: 'device_not_found'}`\n- Device exists, no secret: Returns `{valid: false, isRegistered: true, deviceId, reason: 'secret_required'}`\n- Invalid secret: Returns 401 `{valid: false, error: 'invalid_secret'}`\n- Valid credentials: Returns `{valid: true, isRegistered: true, deviceId}`\n",
+                "description": "Verify device credentials and registration status. Used by clients to confirm their stored ID/secret are valid.\n\n**Flexible Authentication**: This endpoint accepts checks with only deviceId, hardwareId, or installId (without secret)\nto determine if a device is registered. When a secret is provided, it validates the credentials.\n\n**Response behavior**:\n- Device not found: Returns `{valid: false, isRegistered: false, reason: 'device_not_found'}`\n- Device exists, no secret: Returns `{valid: false, isRegistered: true, deviceId, reason: 'secret_required'}`\n- Invalid secret: Returns 401 `{valid: false, error: 'invalid_secret'}`\n- Valid credentials: Returns `{valid: true, isRegistered: true, deviceId}`\n",
                 "tags": ["Devices"],
                 "requestBody": {
                     "required": true,
@@ -5327,6 +5965,82 @@
                 }
             }
         },
+        "/api/devices/{id}/pairing-code": {
+            "post": {
+                "summary": "Generate pairing code for device",
+                "description": "Generates a new pairing code for a specific device. Admin only.",
+                "tags": ["Devices"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Device ID"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ttlMs": {
+                                        "type": "number",
+                                        "description": "Time-to-live in milliseconds",
+                                        "default": 600000
+                                    },
+                                    "requireToken": {
+                                        "type": "boolean",
+                                        "description": "Whether token is required for pairing",
+                                        "default": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Pairing code generated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "deviceId": {
+                                            "type": "string"
+                                        },
+                                        "expiresAt": {
+                                            "type": "string"
+                                        },
+                                        "expiresInMs": {
+                                            "type": "number"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Device not found"
+                    }
+                }
+            }
+        },
         "/api/devices/pairing-codes/active": {
             "get": {
                 "summary": "List active pairing codes",
@@ -5472,6 +6186,78 @@
                         "description": "Device not found"
                     }
                 }
+            },
+            "patch": {
+                "summary": "Update device settings",
+                "description": "Update device properties like name, preset, or settings overrides",
+                "tags": ["Devices"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Device ID"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Device name"
+                                    },
+                                    "location": {
+                                        "type": "string",
+                                        "description": "Device location"
+                                    },
+                                    "groups": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Array of group IDs this device belongs to"
+                                    },
+                                    "preset": {
+                                        "type": "string",
+                                        "description": "Preset name to apply to device"
+                                    },
+                                    "settingsOverride": {
+                                        "type": "object",
+                                        "description": "Device-specific settings overrides"
+                                    },
+                                    "plexUsername": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "description": "Plex username for Cinema Now Playing integration (null to clear)"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Device updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Device not found"
+                    }
+                }
             }
         },
         "/api/devices/{id}/preview": {
@@ -5517,6 +6303,79 @@
                     },
                     "404": {
                         "description": "Device not found"
+                    }
+                }
+            }
+        },
+        "/api/devices/{id}/merge": {
+            "post": {
+                "summary": "Merge source devices into target device",
+                "description": "Merge one or more source devices into a target device, combining their properties, groups, settings, and state",
+                "tags": ["Devices"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Target device ID (device to merge into)"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["sourceIds"],
+                                "properties": {
+                                    "sourceIds": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Array of source device IDs to merge into target"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Devices merged successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "merged": {
+                                            "type": "integer",
+                                            "description": "Number of devices merged"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Target device not found"
                     }
                 }
             }
@@ -5584,6 +6443,68 @@
                     },
                     "401": {
                         "description": "Unauthorized"
+                    }
+                }
+            }
+        },
+        "/api/devices/{id}/command": {
+            "post": {
+                "summary": "Send command to a specific device",
+                "description": "Send a management command to a device. Supports both WebSocket (live) and queued delivery.",
+                "tags": ["Devices"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Device ID"
+                    },
+                    {
+                        "in": "query",
+                        "name": "wait",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "description": "Wait for ACK from device (timeout after 3s)"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "description": "Command type (e.g., core.mgmt.reload)"
+                                    },
+                                    "payload": {
+                                        "type": "object",
+                                        "description": "Command payload"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Command sent/queued"
+                    },
+                    "404": {
+                        "description": "Device not found"
+                    },
+                    "500": {
+                        "description": "Send failed"
                     }
                 }
             }
@@ -6215,6 +7136,79 @@
                 }
             }
         },
+        "/api/local/bulk-download": {
+            "post": {
+                "summary": "Download multiple files as a single ZIP",
+                "description": "Creates a ZIP archive containing selected files and streams it to the client",
+                "tags": ["Local Directory"],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["paths"],
+                                "properties": {
+                                    "paths": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Array of file paths to include in the ZIP"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "ZIP stream"
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    },
+                    "404": {
+                        "description": "File(s) not found"
+                    }
+                }
+            }
+        },
+        "/api/local/bulk-delete": {
+            "post": {
+                "summary": "Delete multiple files",
+                "description": "Deletes multiple files using the cleanup endpoint",
+                "tags": ["Local Directory"],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["paths"],
+                                "properties": {
+                                    "paths": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Array of file paths to delete"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Files deleted"
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    }
+                }
+            }
+        },
         "/api/local/import-posterpacks": {
             "post": {
                 "summary": "Manage posterpack ZIPs (ZIP-only)",
@@ -6645,7 +7639,7 @@
         "/get-media": {
             "get": {
                 "summary": "Retrieve media playlist",
-                "description": "Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). Cached for performance.",
+                "description": "Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB, RomM). Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true.",
                 "tags": ["Public API"],
                 "parameters": [
                     {
@@ -6653,7 +7647,7 @@
                         "name": "source",
                         "schema": {
                             "type": "string",
-                            "enum": ["plex", "jellyfin", "tmdb", "local"]
+                            "enum": ["plex", "jellyfin", "tmdb", "local", "romm"]
                         },
                         "description": "Optional source filter to return only items from a specific provider"
                     },
@@ -6665,11 +7659,19 @@
                             "enum": ["1"]
                         },
                         "description": "Set to '1' to bypass cache (admin use)"
+                    },
+                    {
+                        "in": "query",
+                        "name": "includeExtras",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "description": "When true, enriches items with trailers and theme music URLs (Plex/Jellyfin only). Note that this adds latency to the request as it fetches additional metadata per item."
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Playlist of media items.",
+                        "description": "Playlist of media items. When includeExtras=true, items include extras array with trailers, trailer object (first trailer for convenience), theme path, and themeUrl for streaming.",
                         "content": {
                             "application/json": {
                                 "schema": {

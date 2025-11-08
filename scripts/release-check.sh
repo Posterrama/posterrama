@@ -237,7 +237,15 @@ quality_checks() {
         exit 1
     fi
     
-    print_status "13d. API documentatie verificatie..."
+    print_status "13d. OpenAPI spec genereren..."
+    if (cd scripts && node generate-openapi-spec.js) >/dev/null 2>&1; then
+        print_success "OpenAPI spec: Gegenereerd naar docs/openapi-latest.json"
+    else
+        print_error "OpenAPI spec: Genereren gefaald"
+        exit 1
+    fi
+    
+    print_status "13e. API documentatie verificatie..."
     API_OUTPUT=$(cd scripts && node validation/verify-api-docs.js)
     
     if echo "$API_OUTPUT" | grep -q "Excellent\|very comprehensive"; then
@@ -257,7 +265,7 @@ quality_checks() {
         fi
     fi
     
-    print_status "13e. Security audit..."
+    print_status "13f. Security audit..."
     if npm run deps:security-audit 2>/dev/null || true; then
         print_success "Security audit: Voltooid"
     else
