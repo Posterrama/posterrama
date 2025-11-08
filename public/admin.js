@@ -26054,7 +26054,8 @@ if (!document.__niwDelegatedFallback) {
             // Build options from genres
             const options = genres.map(g => ({
                 value: g.tag,
-                label: `${g.tag} (${g.count})`,
+                label: g.tag,
+                count: g.count,
             }));
 
             // Populate the multiselect
@@ -26143,7 +26144,8 @@ if (!document.__niwDelegatedFallback) {
             // Build options from artists
             const options = data.artists.map(a => ({
                 value: a.title,
-                label: `${a.title} (${a.albumCount} albums)`,
+                label: a.title,
+                count: a.albumCount,
             }));
 
             // Populate the multiselect
