@@ -713,6 +713,159 @@
                     </div>
                   </div>
 
+                  <!-- Music Mode card -->
+                  <div class="mode-card" id="wallart-music-card" data-card-key="music" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;">
+                      <i class="fas fa-music"></i> Music Mode
+                      <label class="header-toggle" for="wallartMode_musicMode_enabled" style="margin-left:auto;">
+                        <input type="checkbox" id="wallartMode_musicMode_enabled" />
+                        <span class="toggle-slider"></span>
+                      </label>
+                    </div>
+                    <div class="form-grid" id="music-mode-settings">
+                      <!-- Display Style -->
+                      <div class="form-row">
+                        <label for="wallartMode_musicMode_displayStyle">Display Style</label>
+                        <div class="select-wrap has-caret">
+                          <select id="wallartMode_musicMode_displayStyle">
+                            <option value="albumCover">Album Cover</option>
+                            <option value="artistPhoto">Artist Photo</option>
+                            <option value="mixed">Mixed</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                      </div>
+
+                      <!-- Animation Type -->
+                      <div class="form-row">
+                        <label for="wallartMode_musicMode_animation">Animation</label>
+                        <div class="select-wrap has-caret">
+                          <select id="wallartMode_musicMode_animation">
+                            <option value="fade">Fade</option>
+                            <option value="slide">Slide</option>
+                            <option value="zoom">Zoom</option>
+                            <option value="none">None</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                      </div>
+
+                      <!-- Grid Size -->
+                      <div class="form-row">
+                        <label for="wallartMode_musicMode_gridSize">Grid Size</label>
+                        <div class="select-wrap has-caret">
+                          <select id="wallartMode_musicMode_gridSize">
+                            <option value="2x2">2×2 (4 albums)</option>
+                            <option value="3x3">3×3 (9 albums)</option>
+                            <option value="4x4">4×4 (16 albums)</option>
+                            <option value="5x5">5×5 (25 albums)</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                      </div>
+
+                      <!-- Layout -->
+                      <div class="form-row">
+                        <label for="wallartMode_musicMode_layout">Layout</label>
+                        <div class="select-wrap has-caret">
+                          <select id="wallartMode_musicMode_layout">
+                            <option value="grid">Grid</option>
+                            <option value="carousel">Carousel</option>
+                            <option value="masonry">Masonry</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                      </div>
+
+                      <!-- Display Options -->
+                      <div class="form-row">
+                        <label class="checkbox" for="wallartMode_musicMode_showArtist">
+                          <input type="checkbox" id="wallartMode_musicMode_showArtist" />
+                          <span class="checkmark"></span>
+                          <span>Show artist name</span>
+                        </label>
+                      </div>
+
+                      <div class="form-row">
+                        <label class="checkbox" for="wallartMode_musicMode_showAlbumTitle">
+                          <input type="checkbox" id="wallartMode_musicMode_showAlbumTitle" />
+                          <span class="checkmark"></span>
+                          <span>Show album title</span>
+                        </label>
+                      </div>
+
+                      <div class="form-row">
+                        <label class="checkbox" for="wallartMode_musicMode_showYear">
+                          <input type="checkbox" id="wallartMode_musicMode_showYear" />
+                          <span class="checkmark"></span>
+                          <span>Show release year</span>
+                        </label>
+                      </div>
+
+                      <div class="form-row">
+                        <label class="checkbox" for="wallartMode_musicMode_showGenre">
+                          <input type="checkbox" id="wallartMode_musicMode_showGenre" />
+                          <span class="checkmark"></span>
+                          <span>Show genre</span>
+                        </label>
+                      </div>
+
+                      <!-- Library Selection (populated dynamically) -->
+                      <div class="form-row" id="music-library-row" style="display:none;">
+                        <label for="music-library-select">
+                          Music Library
+                          <button type="button" class="icon-btn" id="refresh-music-libraries" title="Refresh libraries">
+                            <i class="fas fa-sync-alt"></i>
+                          </button>
+                        </label>
+                        <div class="select-wrap has-caret">
+                          <select id="music-library-select">
+                            <option value="">Select library...</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                      </div>
+
+                      <!-- Genre Filter (populated dynamically) -->
+                      <div class="form-row" id="music-genre-row" style="display:none;">
+                        <label for="music-genre-filter">
+                          Genre Filter
+                          <span class="help-text">Select genres to include</span>
+                        </label>
+                        <div id="music-genre-filter-container">
+                          <small class="form-help">Select a library first</small>
+                        </div>
+                      </div>
+
+                      <!-- Artist Filter (populated dynamically) -->
+                      <div class="form-row" id="music-artist-row" style="display:none;">
+                        <label for="music-artist-filter">
+                          Artist Filter
+                          <span class="help-text">Select artists to include</span>
+                        </label>
+                        <div id="music-artist-filter-container">
+                          <small class="form-help">Select a library first</small>
+                        </div>
+                      </div>
+
+                      <!-- Minimum Rating -->
+                      <div class="form-row">
+                        <label for="wallartMode_musicMode_minRating">
+                          Minimum Rating
+                          <span class="help-text">Only show albums with rating ≥ this value (0 = all)</span>
+                        </label>
+                        <div class="number-input-wrapper">
+                          <input type="number" min="0" max="10" step="0.5" id="wallartMode_musicMode_minRating" placeholder="0" />
+                          <div class="number-controls" role="group">
+                            <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                            <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <small class="form-help" id="music-mode-help">Display album covers from your Plex music library (requires Plex server with music libraries)</small>
+                  </div>
+
                   <!-- Hero settings card (shown for Hero Grid) -->
                   <div class="mode-card" id="wallart-hero-card" data-card-key="hero" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-user-astronaut"></i> Hero Settings</div>

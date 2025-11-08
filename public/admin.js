@@ -2818,6 +2818,20 @@
         setIf('wallartMode_layoutVariant', w.layoutVariant || 'heroGrid');
         setIf('wallartMode_ambientGradient', w.ambientGradient === true);
         setIf('wallartMode_gamesOnly', w.gamesOnly === true);
+
+        // Music Mode
+        const musicMode = w.musicMode || {};
+        setIf('wallartMode_musicMode_enabled', musicMode.enabled === true);
+        setIf('wallartMode_musicMode_displayStyle', musicMode.displayStyle || 'albumCover');
+        setIf('wallartMode_musicMode_animation', musicMode.animation || 'fade');
+        setIf('wallartMode_musicMode_gridSize', musicMode.gridSize || '3x3');
+        setIf('wallartMode_musicMode_layout', musicMode.layout || 'grid');
+        setIf('wallartMode_musicMode_showArtist', musicMode.showArtist !== false);
+        setIf('wallartMode_musicMode_showAlbumTitle', musicMode.showAlbumTitle !== false);
+        setIf('wallartMode_musicMode_showYear', musicMode.showYear === true);
+        setIf('wallartMode_musicMode_showGenre', musicMode.showGenre === true);
+        setIf('wallartMode_musicMode_minRating', musicMode.minRating || 0);
+
         // Columns / Items per screen / Grid transition removed in Admin v2; Density controls layout.
         const hg = (w.layoutSettings && w.layoutSettings.heroGrid) || {};
         setIf('wallartMode_heroSide', hg.heroSide || 'left');
@@ -2850,6 +2864,31 @@
             }
         } catch (_) {
             /* games-only UI state failed */
+        }
+
+        // Wallart: Music Mode and Games Only are mutually exclusive
+        try {
+            const gamesOnlyCheckbox = document.getElementById('wallartMode_gamesOnly');
+            const musicModeCheckbox = document.getElementById('wallartMode_musicMode_enabled');
+
+            if (gamesOnlyCheckbox && musicModeCheckbox) {
+                // When games only is checked, disable music mode
+                gamesOnlyCheckbox.addEventListener('change', () => {
+                    if (gamesOnlyCheckbox.checked && musicModeCheckbox.checked) {
+                        musicModeCheckbox.checked = false;
+                        musicModeCheckbox.dispatchEvent(new Event('change'));
+                    }
+                });
+
+                // When music mode is checked, disable games only
+                musicModeCheckbox.addEventListener('change', () => {
+                    if (musicModeCheckbox.checked && gamesOnlyCheckbox.checked) {
+                        gamesOnlyCheckbox.checked = false;
+                    }
+                });
+            }
+        } catch (_) {
+            /* mutual exclusivity logic failed */
         }
 
         // Wallart: show hero settings only for heroGrid layout
@@ -4271,6 +4310,18 @@
                 layoutVariant: val('wallartMode_layoutVariant'),
                 ambientGradient: val('wallartMode_ambientGradient'),
                 gamesOnly: val('wallartMode_gamesOnly'),
+                musicMode: {
+                    enabled: val('wallartMode_musicMode_enabled'),
+                    displayStyle: val('wallartMode_musicMode_displayStyle'),
+                    animation: val('wallartMode_musicMode_animation'),
+                    gridSize: val('wallartMode_musicMode_gridSize'),
+                    layout: val('wallartMode_musicMode_layout'),
+                    showArtist: val('wallartMode_musicMode_showArtist'),
+                    showAlbumTitle: val('wallartMode_musicMode_showAlbumTitle'),
+                    showYear: val('wallartMode_musicMode_showYear'),
+                    showGenre: val('wallartMode_musicMode_showGenre'),
+                    minRating: parseFloat(val('wallartMode_musicMode_minRating')) || 0,
+                },
                 layoutSettings: {
                     heroGrid: {
                         heroSide: val('wallartMode_heroSide'),
@@ -25739,4 +25790,269 @@ if (!document.__niwDelegatedFallback) {
         });
         showNotification(`${removed} completed job(s) cleared`, 'success');
     }
+})();
+
+// ========== Music Mode Helpers ==========
+(function initMusicMode() {
+    'use strict';
+
+    // Helper to fetch JSON with auth
+    async function fetchJSON(url, opts = {}) {
+        const response = await fetch(url, {
+            ...opts,
+            headers: {
+                'Content-Type': 'application/json',
+                ...opts.headers,
+            },
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+    }
+
+    // Load Plex music libraries
+    async function loadMusicLibraries() {
+        try {
+            const libraries = await fetchJSON('/api/admin/plex/music-libraries');
+            const select = document.getElementById('music-library-select');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">Select library...</option>';
+            libraries.forEach(lib => {
+                const opt = document.createElement('option');
+                opt.value = lib.key;
+                opt.textContent = `${lib.title} (${lib.albumCount} albums, ${lib.artistCount} artists)`;
+                select.appendChild(opt);
+            });
+
+            // Show library row if we have libraries
+            const libraryRow = document.getElementById('music-library-row');
+            if (libraryRow) {
+                libraryRow.style.display = libraries.length > 0 ? '' : 'none';
+            }
+
+            // Show genre and artist rows when library is available
+            const genreRow = document.getElementById('music-genre-row');
+            const artistRow = document.getElementById('music-artist-row');
+            if (libraries.length > 0) {
+                if (genreRow) genreRow.style.display = '';
+                if (artistRow) artistRow.style.display = '';
+            }
+
+            return libraries;
+        } catch (err) {
+            console.error('Failed to load music libraries:', err);
+            const musicModeHelp = document.getElementById('music-mode-help');
+            if (musicModeHelp) {
+                musicModeHelp.textContent =
+                    'Failed to load music libraries. Ensure Plex server is configured and has music libraries.';
+                musicModeHelp.style.color = 'var(--color-error)';
+            }
+            return [];
+        }
+    }
+
+    // Load genres for selected library
+    async function loadMusicGenres(libraryKey) {
+        if (!libraryKey) return [];
+
+        try {
+            const genres = await fetchJSON(
+                `/api/admin/plex/music-genres?library=${encodeURIComponent(libraryKey)}`
+            );
+
+            const container = document.getElementById('music-genre-filter-container');
+            if (!container) return genres;
+
+            // Create multi-select UI
+            if (genres.length === 0) {
+                container.innerHTML =
+                    '<small class="form-help">No genres found in this library</small>';
+                return [];
+            }
+
+            // Create checkboxes for genres (show top 20 by default)
+            const topGenres = genres.slice(0, 20);
+            const html = topGenres
+                .map(
+                    g => `
+                <label class="checkbox" style="display:block; margin:4px 0;">
+                    <input type="checkbox" class="music-genre-checkbox" value="${g.tag}" />
+                    <span class="checkmark"></span>
+                    <span>${g.tag} (${g.count})</span>
+                </label>
+            `
+                )
+                .join('');
+
+            container.innerHTML = html;
+
+            if (genres.length > 20) {
+                const moreText = document.createElement('small');
+                moreText.className = 'form-help';
+                moreText.textContent = `Showing top 20 of ${genres.length} genres`;
+                container.appendChild(moreText);
+            }
+
+            return genres;
+        } catch (err) {
+            console.error('Failed to load music genres:', err);
+            const container = document.getElementById('music-genre-filter-container');
+            if (container) {
+                container.innerHTML =
+                    '<small class="form-help" style="color:var(--color-error);">Failed to load genres</small>';
+            }
+            return [];
+        }
+    }
+
+    // Load artists for selected library (with pagination)
+    async function loadMusicArtists(libraryKey, limit = 50) {
+        if (!libraryKey) return { artists: [], total: 0 };
+
+        try {
+            const data = await fetchJSON(
+                `/api/admin/plex/music-artists?library=${encodeURIComponent(libraryKey)}&limit=${limit}&offset=0`
+            );
+
+            const container = document.getElementById('music-artist-filter-container');
+            if (!container) return data;
+
+            // Create multi-select UI
+            if (data.artists.length === 0) {
+                container.innerHTML =
+                    '<small class="form-help">No artists found in this library</small>';
+                return data;
+            }
+
+            // Create checkboxes for artists
+            const html = data.artists
+                .map(
+                    artist => `
+                <label class="checkbox" style="display:block; margin:4px 0;">
+                    <input type="checkbox" class="music-artist-checkbox" value="${artist.title}" />
+                    <span class="checkmark"></span>
+                    <span>${artist.title} (${artist.albumCount} albums)</span>
+                </label>
+            `
+                )
+                .join('');
+
+            container.innerHTML = html;
+
+            if (data.total > limit) {
+                const moreText = document.createElement('small');
+                moreText.className = 'form-help';
+                moreText.textContent = `Showing first ${limit} of ${data.total} artists`;
+                container.appendChild(moreText);
+            }
+
+            return data;
+        } catch (err) {
+            console.error('Failed to load music artists:', err);
+            const container = document.getElementById('music-artist-filter-container');
+            if (container) {
+                container.innerHTML =
+                    '<small class="form-help" style="color:var(--color-error);">Failed to load artists</small>';
+            }
+            return { artists: [], total: 0 };
+        }
+    }
+
+    // Initialize music mode UI
+    function initMusicModeUI() {
+        const enabledCheckbox = document.getElementById('wallartMode_musicMode_enabled');
+        const musicSettings = document.getElementById('music-mode-settings');
+        const librarySelect = document.getElementById('music-library-select');
+        const refreshButton = document.getElementById('refresh-music-libraries');
+
+        // Toggle music settings visibility
+        if (enabledCheckbox && musicSettings) {
+            const toggleSettings = () => {
+                musicSettings.style.display = enabledCheckbox.checked ? '' : 'none';
+            };
+            enabledCheckbox.addEventListener('change', toggleSettings);
+            toggleSettings();
+        }
+
+        // Load libraries when music mode is enabled
+        if (enabledCheckbox) {
+            enabledCheckbox.addEventListener('change', () => {
+                if (enabledCheckbox.checked) {
+                    loadMusicLibraries();
+                }
+            });
+
+            // Load libraries on init if enabled
+            if (enabledCheckbox.checked) {
+                loadMusicLibraries();
+            }
+        }
+
+        // Refresh libraries button
+        if (refreshButton) {
+            refreshButton.addEventListener('click', () => {
+                loadMusicLibraries();
+            });
+        }
+
+        // Load genres/artists when library changes
+        if (librarySelect) {
+            librarySelect.addEventListener('change', () => {
+                const libraryKey = librarySelect.value;
+                if (libraryKey) {
+                    loadMusicGenres(libraryKey);
+                    loadMusicArtists(libraryKey);
+                }
+            });
+        }
+
+        // Check Plex server availability
+        const checkPlexAvailability = () => {
+            const musicCard = document.getElementById('wallart-music-card');
+            const musicHelp = document.getElementById('music-mode-help');
+
+            fetchJSON('/api/get-config')
+                .then(config => {
+                    const mediaServers = config?.mediaServers || [];
+                    const plexServer = mediaServers.find(s => s.type === 'plex' && s.enabled);
+
+                    if (!plexServer) {
+                        if (enabledCheckbox) enabledCheckbox.disabled = true;
+                        if (musicHelp) {
+                            musicHelp.textContent =
+                                'Plex server must be enabled and configured to use Music Mode';
+                            musicHelp.style.color = 'var(--color-warning)';
+                        }
+                    } else {
+                        if (enabledCheckbox) enabledCheckbox.disabled = false;
+                        if (musicHelp) {
+                            musicHelp.textContent =
+                                'Display album covers from your Plex music library';
+                            musicHelp.style.color = '';
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to check Plex availability:', err);
+                });
+        };
+
+        checkPlexAvailability();
+    }
+
+    // Initialize on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMusicModeUI);
+    } else {
+        initMusicModeUI();
+    }
+
+    // Expose for reuse
+    window.musicMode = {
+        loadLibraries: loadMusicLibraries,
+        loadGenres: loadMusicGenres,
+        loadArtists: loadMusicArtists,
+    };
 })();
