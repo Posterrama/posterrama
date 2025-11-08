@@ -26055,7 +26055,6 @@ if (!document.__niwDelegatedFallback) {
             const options = genres.map(g => ({
                 value: g.tag,
                 label: g.tag,
-                count: g.count,
             }));
 
             console.log('[Music Genres] First 3 genres from API:', genres.slice(0, 3));
@@ -26159,7 +26158,6 @@ if (!document.__niwDelegatedFallback) {
             const options = data.artists.map(a => ({
                 value: a.title,
                 label: a.title,
-                count: a.albumCount,
             }));
 
             console.log('[Music Artists] First 3 artists from API:', data.artists.slice(0, 3));
