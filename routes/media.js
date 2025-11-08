@@ -283,6 +283,63 @@ module.exports = function createMediaRouter({
                     }
                 }
 
+                // Check if music mode is enabled for wallart
+                const wallartMode = config?.wallartMode || {};
+                const musicMode = wallartMode.musicMode || {};
+                const isMusicModeEnabled = musicMode.enabled === true;
+                const isMusicModeRequest =
+                    req.query?.musicMode === '1' || req.query?.musicMode === 'true';
+
+                // If music mode is active, fetch and return music albums instead
+                if (isMusicModeEnabled && isMusicModeRequest) {
+                    try {
+                        // Find enabled Plex server
+                        const PlexSource = require('../sources/plex');
+                        const plexServer = (config.mediaServers || []).find(
+                            s => s.enabled && s.type === 'plex'
+                        );
+
+                        if (!plexServer) {
+                            logger.warn('Music mode requested but no Plex server is configured');
+                            return res.json([]);
+                        }
+
+                        // Get music library names from server config
+                        const musicLibraries = plexServer.musicLibraryNames || [];
+                        if (musicLibraries.length === 0) {
+                            logger.warn('Music mode enabled but no music libraries configured');
+                            return res.json([]);
+                        }
+
+                        // Get music filters from server config
+                        const musicFilters = plexServer.musicFilters || {};
+
+                        // Initialize Plex source
+                        const plexSource = new PlexSource(plexServer);
+
+                        // Fetch music albums (default to 50, can be overridden by query param)
+                        const count = parseInt(req.query?.count) || 50;
+                        const musicAlbums = await plexSource.fetchMusic(
+                            musicLibraries,
+                            count,
+                            musicFilters
+                        );
+
+                        if (isDebug) {
+                            logger.debug(
+                                `[Music Mode] Fetched ${musicAlbums.length} music albums from Plex`
+                            );
+                        }
+
+                        return res.json(musicAlbums);
+                    } catch (err) {
+                        logger.error(`Failed to fetch music albums: ${err.message}`, {
+                            error: err.stack,
+                        });
+                        // Fall through to regular media on error
+                    }
+                }
+
                 // Apply optional filtering by source
                 let filtered = applySourceFilter(playlistCache, req.query?.source);
 
