@@ -16,9 +16,9 @@
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue"></a>
 </p>
 <p style="margin: 2px 0 8px 0; line-height: 1.1;">
-  <a href="#content-source-features"><img alt="Plex" src="https://img.shields.io/badge/Plex-supported-ffaa00.svg?logo=plex&logoColor=white"></a>
-  <a href="#content-source-features"><img alt="Jellyfin" src="https://img.shields.io/badge/Jellyfin-supported-8f7ee7.svg?logo=jellyfin&logoColor=white"></a>
-  <a href="#content-source-features"><img alt="TMDB" src="https://img.shields.io/badge/TMDB-supported-01d277.svg?logo=themoviedatabase&logoColor=white"></a>
+  <a href="#multiple-content-sources"><img alt="Plex" src="https://img.shields.io/badge/Plex-supported-ffaa00.svg?logo=plex&logoColor=white"></a>
+  <a href="#multiple-content-sources"><img alt="Jellyfin" src="https://img.shields.io/badge/Jellyfin-supported-8f7ee7.svg?logo=jellyfin&logoColor=white"></a>
+  <a href="#multiple-content-sources"><img alt="TMDB" src="https://img.shields.io/badge/TMDB-supported-01d277.svg?logo=themoviedatabase&logoColor=white"></a>
   <a href="https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/Posterrama/posterrama/main/docs/openapi-latest.json"><img alt="OpenAPI Docs" src="https://img.shields.io/badge/OpenAPI-Docs-85EA2D.svg?logo=swagger&logoColor=white"></a>
 </p>
 

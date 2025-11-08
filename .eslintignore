@@ -12,3 +12,6 @@ cache/
 public/assets/
 dist/
 build/
+
+# Coverage report generated files
+coverage/lcov-report/*.js
