@@ -4,7 +4,7 @@ const schemas = {
     mediaItem: Joi.object({
         key: Joi.string().required(),
         title: Joi.string().required(),
-        type: Joi.string().valid('movie', 'show', 'episode', 'game').required(),
+        type: Joi.string().valid('movie', 'show', 'episode', 'game', 'music').required(),
         posterUrl: Joi.string().uri(),
         backdropUrl: Joi.string().uri(),
         year: Joi.number().integer().min(1900).max(2100),
@@ -14,6 +14,14 @@ const schemas = {
         // Game-specific fields
         platform: Joi.string().when('type', { is: 'game', then: Joi.optional() }),
         platformId: Joi.number().when('type', { is: 'game', then: Joi.optional() }),
+        // Music-specific fields
+        artist: Joi.string().when('type', { is: 'music', then: Joi.optional() }),
+        artistId: Joi.string().when('type', { is: 'music', then: Joi.optional() }),
+        album: Joi.string().when('type', { is: 'music', then: Joi.optional() }),
+        albumId: Joi.string().when('type', { is: 'music', then: Joi.optional() }),
+        genres: Joi.array().items(Joi.string()).when('type', { is: 'music', then: Joi.optional() }),
+        styles: Joi.array().items(Joi.string()).when('type', { is: 'music', then: Joi.optional() }),
+        moods: Joi.array().items(Joi.string()).when('type', { is: 'music', then: Joi.optional() }),
     }),
 
     config: Joi.object({

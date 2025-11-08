@@ -23,6 +23,17 @@
                 "heroRotationMinutes": 8,
                 "biasAmbientToHero": true
             }
+        },
+        "musicMode": {
+            "enabled": false,
+            "displayStyle": "covers-only",
+            "animation": "vinyl-spin",
+            "gridSize": "4x4",
+            "layout": "grid",
+            "showArtist": true,
+            "showAlbumTitle": true,
+            "showYear": true,
+            "showGenre": false
         }
     },
     "cinemaMode": false,
@@ -89,6 +100,17 @@
             "tokenEnvVar": "PLEX_TOKEN",
             "movieLibraryNames": ["Certified Fresh"],
             "showLibraryNames": [],
+            "musicLibraryNames": [],
+            "musicFilters": {
+                "genres": [],
+                "artists": [],
+                "minRating": 0,
+                "sortWeights": {
+                    "recent": 20,
+                    "popular": 30,
+                    "random": 50
+                }
+            },
             "recentlyAddedOnly": false,
             "recentlyAddedDays": 30,
             "ratingFilter": [],

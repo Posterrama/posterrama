@@ -188,6 +188,62 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Show only game covers from RomM sources (requires RomM to be enabled and configured)"
+                },
+                "musicMode": {
+                    "type": "object",
+                    "description": "Configuration for Wallart Music Mode - displays album covers in square grid layouts",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Enable Music Mode - shows only album covers (cannot be combined with gamesOnly)"
+                        },
+                        "displayStyle": {
+                            "type": "string",
+                            "enum": ["covers-only", "album-info", "artist-cards"],
+                            "default": "covers-only",
+                            "description": "Display style: covers-only (minimal), album-info (with metadata), artist-cards (artist-focused)"
+                        },
+                        "animation": {
+                            "type": "string",
+                            "enum": ["vinyl-spin", "slide-fade", "crossfade", "flip"],
+                            "default": "vinyl-spin",
+                            "description": "Animation style for album transitions"
+                        },
+                        "gridSize": {
+                            "type": "string",
+                            "enum": ["3x3", "4x4", "5x5", "6x6"],
+                            "default": "4x4",
+                            "description": "Grid size for album layout (square grids only)"
+                        },
+                        "layout": {
+                            "type": "string",
+                            "enum": ["grid", "hero-grid"],
+                            "default": "grid",
+                            "description": "Layout type: grid (uniform) or hero-grid (1 large + 16 small)"
+                        },
+                        "showArtist": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Show artist name overlay (covers-only style)"
+                        },
+                        "showAlbumTitle": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Show album title (album-info style)"
+                        },
+                        "showYear": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Show release year (album-info style)"
+                        },
+                        "showGenre": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Show genre tag (album-info style)"
+                        }
+                    },
+                    "additionalProperties": false
                 }
             }
         },
@@ -583,6 +639,82 @@
                         "type": "array",
                         "items": {
                             "type": "string"
+                        }
+                    },
+                    "musicLibraryNames": {
+                        "type": "array",
+                        "description": "List of Plex music library names to include for Music Mode (Plex only).",
+                        "items": {
+                            "type": "string"
+                        },
+                        "default": []
+                    },
+                    "musicFilters": {
+                        "type": "object",
+                        "description": "Filtering options for music content (Plex only).",
+                        "properties": {
+                            "genres": {
+                                "type": "array",
+                                "description": "List of allowed music genres (empty = all genres).",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "default": []
+                            },
+                            "artists": {
+                                "type": "array",
+                                "description": "List of specific artists to include (empty = all artists).",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "default": []
+                            },
+                            "minRating": {
+                                "type": "number",
+                                "description": "Minimum album rating (0-10 scale).",
+                                "minimum": 0,
+                                "maximum": 10,
+                                "default": 0
+                            },
+                            "sortWeights": {
+                                "type": "object",
+                                "description": "Weights for weighted-random sorting algorithm.",
+                                "properties": {
+                                    "recent": {
+                                        "type": "number",
+                                        "description": "Weight for recently added albums (0-100).",
+                                        "minimum": 0,
+                                        "maximum": 100,
+                                        "default": 20
+                                    },
+                                    "popular": {
+                                        "type": "number",
+                                        "description": "Weight for highly rated albums (0-100).",
+                                        "minimum": 0,
+                                        "maximum": 100,
+                                        "default": 30
+                                    },
+                                    "random": {
+                                        "type": "number",
+                                        "description": "Weight for random selection (0-100).",
+                                        "minimum": 0,
+                                        "maximum": 100,
+                                        "default": 50
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "additionalProperties": false,
+                        "default": {
+                            "genres": [],
+                            "artists": [],
+                            "minRating": 0,
+                            "sortWeights": {
+                                "recent": 20,
+                                "popular": 30,
+                                "random": 50
+                            }
                         }
                     },
                     "recentlyAddedOnly": {
