@@ -378,6 +378,11 @@
                     
                     // Check if games-only mode is enabled
                     const gamesOnly = window.appConfig?.wallartMode?.gamesOnly === true;
+                    
+                    // Check if music mode is enabled
+                    const musicMode = window.appConfig?.wallartMode?.musicMode?.enabled === true;
+                    
+                    // Determine media type
                     const type = gamesOnly ? 'game' : ((window.appConfig && window.appConfig.type) || 'movie');
                     
                     // Build absolute URL for better Safari/iOS compatibility
@@ -387,6 +392,11 @@
                     // If games-only mode, add source=romm filter
                     if (gamesOnly) {
                         url += '&source=romm';
+                    }
+                    
+                    // If music mode, add musicMode parameter
+                    if (musicMode) {
+                        url += '&musicMode=1';
                     }
                     
                     window.debugLog && window.debugLog('WALLART_FETCH_MEDIA', { url, gamesOnly, userAgent: navigator.userAgent });

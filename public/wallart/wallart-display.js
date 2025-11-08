@@ -1481,6 +1481,9 @@
                             window.innerWidth <= 768 ||
                             /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
 
+                        // Check if this is a music item
+                        const isMusicItem = item.type === 'music';
+
                         posterItem.style.cssText = `
                             background: #000;
                             overflow: hidden;
@@ -1506,10 +1509,15 @@
                             /* noop */
                         }
                         img.alt = item.title || 'Movie Poster';
+
+                        // For music albums, use cover/contain to show square album art properly
+                        // For movies/shows, keep contain to show full portrait poster
+                        const objectFit = isMusicItem ? 'cover' : 'contain';
+
                         img.style.cssText = `
                             width: 100%;
                             height: 100%;
-                            object-fit: contain;
+                            object-fit: ${objectFit};
                             object-position: center;
                             display: block;
                             transform: none;
@@ -1517,6 +1525,68 @@
                             ${isMobile ? 'will-change: opacity;' : ''}
                         `;
                         posterItem.appendChild(img);
+
+                        // Add music metadata overlay if configured
+                        if (isMusicItem) {
+                            try {
+                                const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
+                                const visibility = musicConfig.visibility || {};
+
+                                // Only create overlay if at least one metadata field is enabled
+                                if (
+                                    visibility.artist ||
+                                    visibility.albumTitle ||
+                                    visibility.year ||
+                                    visibility.genre
+                                ) {
+                                    const overlay = document.createElement('div');
+                                    overlay.className = 'music-metadata-overlay';
+                                    overlay.style.cssText = `
+                                        position: absolute;
+                                        bottom: 0;
+                                        left: 0;
+                                        right: 0;
+                                        background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
+                                        color: #fff;
+                                        padding: 12px;
+                                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                                        pointer-events: none;
+                                    `;
+
+                                    let html = '';
+
+                                    if (visibility.artist && item.artist) {
+                                        html += `<div style="font-size: 0.9em; font-weight: 600; margin-bottom: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${item.artist}</div>`;
+                                    }
+
+                                    if (visibility.albumTitle && item.title) {
+                                        html += `<div style="font-size: 0.8em; opacity: 0.9; margin-bottom: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${item.title}</div>`;
+                                    }
+
+                                    const metaItems = [];
+                                    if (visibility.year && item.year) {
+                                        metaItems.push(item.year);
+                                    }
+                                    if (visibility.genre && item.genre) {
+                                        metaItems.push(item.genre);
+                                    }
+
+                                    if (metaItems.length > 0) {
+                                        html += `<div style="font-size: 0.7em; opacity: 0.7; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${metaItems.join(' • ')}</div>`;
+                                    }
+
+                                    overlay.innerHTML = html;
+                                    posterItem.appendChild(overlay);
+                                }
+                            } catch (overlayErr) {
+                                // Gracefully ignore overlay creation errors
+                                console.warn(
+                                    '[Wallart] Failed to create music metadata overlay:',
+                                    overlayErr
+                                );
+                            }
+                        }
+
                         // Hide the global loader when first tile is created
                         try {
                             const loader = document.getElementById('loader');
