@@ -220,9 +220,11 @@
                 if (!Number.isFinite(rows) || rows < 1) rows = 1;
 
                 // Calculate poster dimensions with aspect ratio
-                let actualPosterWidth, actualPosterHeight;
-                actualPosterWidth = Math.max(1, Math.floor(screenWidth / cols));
-                actualPosterHeight = Math.max(1, Math.round(actualPosterWidth / posterAspectRatio));
+                const actualPosterWidth = Math.max(1, Math.floor(screenWidth / cols));
+                const actualPosterHeight = Math.max(
+                    1,
+                    Math.round(actualPosterWidth / posterAspectRatio)
+                );
 
                 // Check if we can fit the calculated height
                 let finalRows = rows;
