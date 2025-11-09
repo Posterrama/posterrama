@@ -1600,14 +1600,21 @@
                         `;
 
                         const img = document.createElement('img');
+                        // For artist-cards display style, use artist photo instead of album cover
+                        const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
+                        const displayStyle = musicConfig.displayStyle || 'covers-only';
+                        const useArtistPhoto =
+                            isMusicItem && displayStyle === 'artist-cards' && item.backdropUrl;
+                        const imageUrl = useArtistPhoto ? item.backdropUrl : item.posterUrl;
+
                         // Eagerly set src to avoid intersection/lazy race on initial grid
                         img.src =
-                            item.posterUrl ||
+                            imageUrl ||
                             'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
                         // Optionally wire lazy helper for future updates
                         try {
-                            if (item.posterUrl && window.makeLazy) {
-                                window.makeLazy(img, item.posterUrl);
+                            if (imageUrl && window.makeLazy) {
+                                window.makeLazy(img, imageUrl);
                             }
                         } catch (_) {
                             /* noop */
@@ -1649,20 +1656,20 @@
                                         overlay.style.cssText = `
                                             position: absolute;
                                             bottom: 0;
-                                            left: 0;
                                             right: 0;
-                                            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+                                            background: transparent;
                                             color: #fff;
                                             padding: 8px 12px;
                                             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                                             pointer-events: none;
                                             font-size: 0.85em;
                                             font-weight: 500;
-                                            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+                                            text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8);
                                             white-space: nowrap;
                                             overflow: hidden;
                                             text-overflow: ellipsis;
                                             z-index: 10;
+                                            text-align: right;
                                         `;
                                         overlay.textContent = item.artist;
                                         posterItem.appendChild(overlay);
@@ -1676,22 +1683,22 @@
                                     overlay.style.cssText = `
                                         position: absolute;
                                         bottom: 0;
-                                        left: 0;
                                         right: 0;
-                                        background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.7) 70%, transparent 100%);
+                                        background: transparent;
                                         color: #fff;
                                         padding: 12px;
                                         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                                         pointer-events: none;
                                         z-index: 10;
+                                        text-align: right;
                                     `;
 
                                     let html = '';
                                     if (showArtist && item.artist) {
-                                        html += `<div style="font-size: 0.9em; font-weight: 600; margin-bottom: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.artist}</div>`;
+                                        html += `<div style="font-size: 0.9em; font-weight: 600; margin-bottom: 4px; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.artist}</div>`;
                                     }
                                     if (showAlbumTitle && item.title) {
-                                        html += `<div style="font-size: 0.8em; opacity: 0.9; margin-bottom: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title}</div>`;
+                                        html += `<div style="font-size: 0.8em; opacity: 0.9; margin-bottom: 4px; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title}</div>`;
                                     }
 
                                     const metaItems = [];
@@ -1700,21 +1707,21 @@
                                         metaItems.push(item.genres[0]);
 
                                     if (metaItems.length > 0) {
-                                        html += `<div style="font-size: 0.7em; opacity: 0.75; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${metaItems.join(' • ')}</div>`;
+                                        html += `<div style="font-size: 0.7em; opacity: 0.75; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8);">${metaItems.join(' • ')}</div>`;
                                     }
 
                                     overlay.innerHTML = html;
                                     posterItem.appendChild(overlay);
                                 }
 
-                                // Display style: artist-cards (artist-focused with large text)
+                                // Display style: artist-cards (artist photo with prominent artist name)
                                 else if (displayStyle === 'artist-cards') {
                                     const overlay = document.createElement('div');
                                     overlay.className = 'music-metadata-overlay artist-cards';
                                     overlay.style.cssText = `
                                         position: absolute;
                                         inset: 0;
-                                        background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 40%, transparent 60%);
+                                        background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 40%, transparent 70%);
                                         color: #fff;
                                         padding: 16px;
                                         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1725,14 +1732,10 @@
                                         justify-content: flex-end;
                                     `;
 
-                                    let html = `<div style="font-size: 1.1em; font-weight: 700; margin-bottom: 6px; text-shadow: 0 2px 4px rgba(0,0,0,0.9); line-height: 1.2;">${item.artist}</div>`;
+                                    let html = `<div style="font-size: 1.3em; font-weight: 700; margin-bottom: 4px; text-shadow: 0 3px 12px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.9); line-height: 1.2;">${item.artist}</div>`;
 
                                     if (showAlbumTitle && item.title) {
-                                        html += `<div style="font-size: 0.75em; opacity: 0.85; text-shadow: 0 1px 3px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title}</div>`;
-                                    }
-
-                                    if (showYear && item.year) {
-                                        html += `<div style="font-size: 0.7em; opacity: 0.7; margin-top: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${item.year}</div>`;
+                                        html += `<div style="font-size: 0.75em; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title}</div>`;
                                     }
 
                                     overlay.innerHTML = html;

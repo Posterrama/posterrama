@@ -2971,6 +2971,23 @@
                         musicSettings.style.display = musicModeCheckbox.checked ? '' : 'none';
                     }
                 });
+
+                // Hide density and display options for artist-cards mode
+                const displayStyleSelect = document.getElementById(
+                    'wallartMode_musicMode_displayStyle'
+                );
+                const densityRow = document.getElementById('musicMode_densityRow');
+                const displayOptionsRow = document.getElementById('musicMode_displayOptionsRow');
+
+                const toggleMusicModeOptions = () => {
+                    const isArtistCards = displayStyleSelect?.value === 'artist-cards';
+                    if (densityRow) densityRow.style.display = isArtistCards ? 'none' : '';
+                    if (displayOptionsRow)
+                        displayOptionsRow.style.display = isArtistCards ? 'none' : '';
+                };
+
+                displayStyleSelect?.addEventListener('change', toggleMusicModeOptions);
+                toggleMusicModeOptions();
             }
         } catch (_) {
             /* mutual exclusivity logic failed */
@@ -17718,7 +17735,7 @@
                     // Only auto-fetch once per page load (not on every panel switch)
                     if (needsFetch && !window.__rommAutoFetchTriggered) {
                         window.__rommAutoFetchTriggered = true;
-                        console.log('[RomM] Auto-fetching platforms (first load)');
+                        // Auto-fetching platforms on first load
                         // Delay slightly to let UI render first
                         setTimeout(() => {
                             window.admin2?.maybeFetchRommOnOpen?.();
@@ -19434,7 +19451,7 @@
 
             // Only auto-fetch if credentials are configured
             if (url && username && password) {
-                console.log('[RomM] Auto-fetching platforms...');
+                // Auto-fetching platforms
                 fetchRommPlatforms().catch(() => {
                     // Silent fail on auto-fetch
                     console.log('[RomM] Auto-fetch failed silently');
@@ -19545,7 +19562,7 @@
                 // If UI selection is empty, try to get from last saved config
                 if (selected.length === 0 && window.__lastRommConfig?.selectedPlatforms) {
                     selected = window.__lastRommConfig.selectedPlatforms;
-                    console.log('[RomM] Restoring selection from config:', selected);
+                    // Restoring RomM selection from config
                 }
 
                 // Clear and rebuild multiselect with new platform options, preserving valid selections
@@ -19560,7 +19577,7 @@
                 if (!window.__lastRommConfig) window.__lastRommConfig = {};
                 window.__lastRommConfig.selectedPlatforms = selected;
                 console.log(
-                    '[RomM] Updated config cache with selection:',
+                    'Updated RomM config cache with selection:',
                     selected.length,
                     'platforms'
                 );
@@ -19570,8 +19587,8 @@
                 rebuildMsForSelect('romm-ms-platforms', 'romm.platforms');
 
                 // Log platform details for debugging
-                console.log('[RomM] Fetched platforms:', platforms.length, 'platforms');
-                console.log('[RomM] Restored selection:', selected.length, 'platforms');
+                // Fetched RomM platforms
+                // Restored RomM selection
 
                 // Refresh overview counts to update the game count pill
                 try {
