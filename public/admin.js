@@ -2878,7 +2878,7 @@
         setIf('wallartMode_musicMode_enabled', musicMode.enabled === true);
         setIf('wallartMode_musicMode_displayStyle', musicMode.displayStyle || 'covers-only');
         setIf('wallartMode_musicMode_animation', musicMode.animation || 'vinyl-spin');
-        setIf('wallartMode_musicMode_density', musicMode.density || 'balanced');
+        setIf('wallartMode_musicMode_density', musicMode.density || 'medium');
         setIf('wallartMode_musicMode_showArtist', musicMode.showArtist !== false);
         setIf('wallartMode_musicMode_showAlbumTitle', musicMode.showAlbumTitle !== false);
         setIf('wallartMode_musicMode_showYear', musicMode.showYear === true);

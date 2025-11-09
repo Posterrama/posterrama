@@ -148,19 +148,13 @@
                 const isMusicMode = window.appConfig?.wallartMode?.musicMode?.enabled === true;
                 const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
 
-                // Map music density to wallart density factor (4 options matching movies)
-                const musicDensityMap = {
-                    cozy: 'low',
-                    balanced: 'medium',
-                    dense: 'high',
-                    maximum: 'ludicrous',
-                };
+                // Music density uses same values as wallart (low/medium/high/ludicrous)
+                // No mapping needed - direct pass-through
 
                 // DEBUG: Log music mode configuration
                 if (isMusicMode) {
                     console.log('[MUSIC MODE DEBUG] Using variable layout with density:', {
                         musicDensity: musicConfig.density,
-                        mappedWallartDensity: musicDensityMap[musicConfig.density],
                     });
                 }
 
