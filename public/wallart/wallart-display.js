@@ -166,8 +166,9 @@
                     });
                 }
 
-                // Poster aspect ratio: 2/3 for movies, 1/1 for music albums
-                const posterAspectRatio = isMusicMode ? 1 : 2 / 3; // width/height
+                // Poster aspect ratio: use 2/3 for both movies and music to allow variable sizes
+                // Albums will maintain their actual aspect ratio via object-fit: contain
+                const posterAspectRatio = 2 / 3; // width/height
 
                 // Adjust available screen height for promo site when promo box is visible
                 let availableHeight = screenHeight;
@@ -1106,9 +1107,8 @@
                                 excludeId
                             );
 
-                        // Music mode always uses grid layout (no hero)
-                        const musicModeEnabled = appConfig?.wallartMode?.musicMode?.enabled;
-                        const effectiveLayoutVariant = musicModeEnabled ? 'grid' : layoutVariant;
+                        // Music mode uses the same layout as configured in wallart
+                        const effectiveLayoutVariant = layoutVariant;
 
                         if (effectiveLayoutVariant === 'heroGrid') {
                             // Determine hero settings
