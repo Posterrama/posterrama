@@ -236,7 +236,9 @@ const cacheMiddleware = {
         skipIf: req =>
             req.query.nocache === 'true' ||
             req.query.musicMode === '1' ||
-            req.query.musicMode === 'true',
+            req.query.musicMode === 'true' ||
+            req.query.gamesOnly === '1' ||
+            req.query.gamesOnly === 'true',
     }),
 
     // Config cache for configuration data

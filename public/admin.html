@@ -790,6 +790,19 @@
                           <span>Show genre</span>
                         </label>
                       </div>
+
+                      <!-- Artist Rotation Interval (only for artist-cards) -->
+                      <div class="form-row" id="musicMode_artistRotationRow" style="display: none;">
+                        <label for="wallartMode_musicMode_artistRotationSeconds">Artist Rotation (seconds)</label>
+                        <div class="number-input-wrapper">
+                          <input type="number" min="10" max="600" step="10" id="wallartMode_musicMode_artistRotationSeconds" />
+                          <div class="number-controls" role="group">
+                            <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                            <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                          </div>
+                        </div>
+                        <small class="form-help">How long each artist is displayed before rotating to the next one</small>
+                      </div>
                     </div>
                     <small class="form-help" id="music-mode-help">Exclusive mode: when enabled, only album covers from your Plex music library will be displayed (no movies, series, or games). Configure music library, genres, and artists in the Plex media Source.</small>
                   </div>

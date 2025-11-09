@@ -170,15 +170,15 @@ module.exports = function createMediaRouter({
      * /get-media:
      *   get:
      *     summary: Retrieve media playlist
-     *     description: Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB, RomM). Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true. Supports Music Mode for album covers.
+     *     description: Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). RomM games are only included when gamesOnly mode is enabled. Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true. Supports Music Mode for album covers and Games Mode for game covers.
      *     tags: ['Public API']
      *     parameters:
      *       - in: query
      *         name: source
      *         schema:
      *           type: string
-     *           enum: [plex, jellyfin, tmdb, local, romm]
-     *         description: Optional source filter to return only items from a specific provider
+     *           enum: [plex, jellyfin, tmdb, local]
+     *         description: Optional source filter to return only items from a specific provider (romm not included in regular playlist)
      *       - in: query
      *         name: nocache
      *         schema:
@@ -192,12 +192,18 @@ module.exports = function createMediaRouter({
      *           enum: ['1', 'true']
      *         description: 'Set to "1" or "true" to return music albums instead of movies/TV shows. Requires wallartMode.musicMode.enabled=true in config. Returns items with type="music" containing album metadata (artist, album, genres, etc.)'
      *       - in: query
+     *         name: gamesOnly
+     *         schema:
+     *           type: string
+     *           enum: ['1', 'true']
+     *         description: 'Set to "1" or "true" to return game covers from RomM. Requires wallartMode.gamesOnly=true in config. Returns items with type="game" containing game metadata (platform, etc.)'
+     *       - in: query
      *         name: count
      *         schema:
      *           type: integer
      *           minimum: 1
      *           maximum: 1000
-     *         description: Number of items to return (used with musicMode)
+     *         description: Number of items to return (used with musicMode and gamesOnly)
      *       - in: query
      *         name: includeExtras
      *         schema:
@@ -265,12 +271,65 @@ module.exports = function createMediaRouter({
                 res.setHeader('Cache-Control', 'no-store');
             }
 
-            // Check if music mode is requested - handle this BEFORE cache check
+            // Check if music mode or games mode is requested - handle this BEFORE cache check
             const wallartMode = config?.wallartMode || {};
             const musicMode = wallartMode.musicMode || {};
             const isMusicModeEnabled = musicMode.enabled === true;
             const isMusicModeRequest =
                 req.query?.musicMode === '1' || req.query?.musicMode === 'true';
+            const isGamesOnlyEnabled = wallartMode.gamesOnly === true;
+            const isGamesOnlyRequest =
+                req.query?.gamesOnly === '1' || req.query?.gamesOnly === 'true';
+
+            // If games mode is active, fetch and return games instead (bypass regular cache)
+            if (isGamesOnlyEnabled && isGamesOnlyRequest) {
+                try {
+                    // Find enabled RomM server
+                    const RommSource = require('../sources/romm');
+                    const rommServer = (config.mediaServers || []).find(
+                        s => s.enabled && s.type === 'romm'
+                    );
+
+                    if (!rommServer) {
+                        logger.warn('Games mode requested but no RomM server is configured');
+                        return res.json([]);
+                    }
+
+                    // Get platform selections from server config
+                    const platforms = rommServer.selectedPlatforms || [];
+                    if (platforms.length === 0) {
+                        logger.warn('Games mode enabled but no platforms selected');
+                        return res.json([]);
+                    }
+
+                    // Initialize RomM source
+                    const rommSource = new RommSource(rommServer, shuffleArray, isDebug);
+
+                    // Fetch games (default to 100, can be overridden by query param)
+                    const count = parseInt(req.query?.count) || 100;
+                    const ROMM_GAMES_LIMIT = 2000; // Maximum games to fetch
+
+                    logger.info(
+                        `[Games Mode] Fetching ${count} games from platforms: ${platforms.join(', ')}`
+                    );
+
+                    const games = await rommSource.fetchMedia(
+                        platforms,
+                        'game',
+                        Math.min(count, ROMM_GAMES_LIMIT)
+                    );
+
+                    logger.info(`[Games Mode] Returning ${games.length} games`);
+
+                    return res.json(games);
+                } catch (err) {
+                    logger.error(`[Games Mode] Failed to fetch games: ${err.message}`, {
+                        error: err.stack,
+                    });
+                    // Return empty array on error
+                    return res.json([]);
+                }
+            }
 
             // If music mode is active, fetch and return music albums instead (bypass regular cache)
             if (isMusicModeEnabled && isMusicModeRequest) {
@@ -434,6 +493,179 @@ module.exports = function createMediaRouter({
                 status: 'failed',
                 error: 'Media playlist is currently unavailable. The initial fetch may have failed. Check server logs.',
             });
+        })
+    );
+
+    /**
+     * @swagger
+     * /get-music-artists:
+     *   get:
+     *     summary: Get random artists with complete discographies
+     *     description: Fetches N random artists and all their albums for artist-cards display mode
+     *     tags: ['Public API']
+     *     parameters:
+     *       - in: query
+     *         name: count
+     *         schema:
+     *           type: integer
+     *           default: 50
+     *         description: Number of random artists to fetch
+     *     responses:
+     *       200:
+     *         description: Array of albums from random artists
+     */
+    router.get(
+        '/get-music-artists',
+        asyncHandler(async (req, res) => {
+            const artistCount = parseInt(req.query.count) || 50;
+
+            try {
+                const mediaServers = Array.isArray(config.mediaServers) ? config.mediaServers : [];
+                const plexServers = mediaServers.filter(
+                    s => s.type === 'plex' && s.enabled === true
+                );
+
+                if (plexServers.length === 0) {
+                    return res.json([]);
+                }
+
+                const allAlbums = [];
+
+                for (const serverConfig of plexServers) {
+                    try {
+                        const plex = await getPlexClient(serverConfig);
+                        const sectionsResponse = await plex.query('/library/sections');
+                        const allSections = sectionsResponse?.MediaContainer?.Directory || [];
+                        const musicSections = allSections.filter(s => s.type === 'artist');
+
+                        for (const section of musicSections) {
+                            // Get all artists (type=8 for artists in Plex)
+                            const artistsResponse = await plex.query(
+                                `/library/sections/${section.key}/all?type=8`
+                            );
+                            const artists = artistsResponse?.MediaContainer?.Metadata || [];
+
+                            // Shuffle and limit to requested count
+                            const selectedArtists = artists
+                                .sort(() => Math.random() - 0.5)
+                                .slice(0, artistCount);
+
+                            logger.info(
+                                `[Music Artists] Selected ${selectedArtists.length} random artists from ${section.title}`
+                            );
+
+                            // For each artist, fetch all albums
+                            for (const artist of selectedArtists) {
+                                try {
+                                    // Fetch full artist metadata (the /all endpoint doesn't include all fields)
+                                    // Remove /children from artist.key to get the artist metadata endpoint
+                                    const artistMetadataPath = artist.key.replace(
+                                        /\/children$/,
+                                        ''
+                                    );
+                                    const fullArtistResponse = await plex.query(artistMetadataPath);
+                                    const fullArtist =
+                                        fullArtistResponse?.MediaContainer?.Metadata?.[0] || artist;
+
+                                    // Debug: log artist thumb to verify it's correct
+                                    if (fullArtist.title === 'Metallica') {
+                                        logger.debug(
+                                            `[Music Artists] Metallica thumb: ${fullArtist.thumb}`,
+                                            {
+                                                key: fullArtist.key,
+                                                ratingKey: fullArtist.ratingKey,
+                                            }
+                                        );
+                                    }
+
+                                    // Fetch albums for this artist (type=9 for albums in Plex)
+                                    // artist.key already includes /children (e.g., /library/metadata/{artistId}/children)
+                                    const albumsResponse = await plex.query(`${artist.key}?type=9`);
+                                    const albums = albumsResponse?.MediaContainer?.Metadata || [];
+
+                                    // Add artist info to each album for grouping
+                                    albums.forEach(album => {
+                                        album.artistName = fullArtist.title;
+                                        // Use 'art' field for artist photo (background art), fallback to 'thumb'
+                                        album.artistThumb = fullArtist.art || fullArtist.thumb;
+                                    });
+
+                                    // Extract artist genres and styles from full metadata
+                                    const artistGenres =
+                                        fullArtist.Genre?.map(g => g.tag).filter(Boolean) || [];
+                                    const artistStyles =
+                                        fullArtist.Style?.map(s => s.tag).filter(Boolean) || [];
+
+                                    // Process each album
+                                    const processedAlbums = await Promise.all(
+                                        albums.map(async album => {
+                                            const processed = await processPlexItem(
+                                                album,
+                                                serverConfig,
+                                                plex
+                                            );
+                                            if (processed) {
+                                                // Add artist metadata
+                                                processed.artist = fullArtist.title;
+
+                                                // Add genres and styles from artist
+                                                if (artistGenres.length > 0) {
+                                                    processed.artistGenres = artistGenres;
+                                                }
+                                                if (artistStyles.length > 0) {
+                                                    processed.artistStyles = artistStyles;
+                                                }
+
+                                                // Extract path from artist photo (prefer 'art' over 'thumb')
+                                                const artistThumbPath =
+                                                    fullArtist.art || fullArtist.thumb;
+                                                if (artistThumbPath) {
+                                                    let thumbPath = artistThumbPath;
+                                                    // If it's a full URL, extract just the path part
+                                                    if (thumbPath.startsWith('http')) {
+                                                        try {
+                                                            const url = new URL(thumbPath);
+                                                            thumbPath = url.pathname + url.search;
+                                                        } catch (e) {
+                                                            // If parsing fails, use as-is
+                                                        }
+                                                    }
+                                                    processed.artistPhoto = `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(thumbPath)}`;
+                                                } else {
+                                                    processed.artistPhoto = null;
+                                                }
+                                            }
+                                            return processed;
+                                        })
+                                    );
+
+                                    // Filter out null/undefined results before adding
+                                    const validAlbums = processedAlbums.filter(
+                                        album => album != null
+                                    );
+                                    allAlbums.push(...validAlbums);
+                                } catch (err) {
+                                    logger.warn(
+                                        `[Music Artists] Error fetching albums for artist ${artist.title}: ${err.message}`
+                                    );
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        logger.error(
+                            `[Music Artists] Error fetching from ${serverConfig.name}: ${err.message}`
+                        );
+                    }
+                }
+
+                logger.info(
+                    `[Music Artists] Returning ${allAlbums.length} albums from ${artistCount} artists`
+                );
+                res.json(allAlbums);
+            } catch (err) {
+                logger.error(`[Music Artists] Failed: ${err.message}`, err.stack);
+                res.json([]);
+            }
         })
     );
 

@@ -525,6 +525,14 @@ module.exports = function createFrontendPagesRouter({
                     `/wallart/wallart.css?v=${versions['wallart/wallart.css'] || ASSET_VERSION}`
                 )
                 .replace(
+                    /\/wallart\/wallart-display\.js(\?v=[^"'\s>]+)?/g,
+                    `/wallart/wallart-display.js?v=${versions['wallart/wallart-display.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/wallart\/artist-cards\.js(\?v=[^"'\s>]+)?/g,
+                    `/wallart/artist-cards.js?v=${versions['wallart/artist-cards.js'] || ASSET_VERSION}`
+                )
+                .replace(
                     /device-mgmt\.js\?v=[^"&\s]+/g,
                     `device-mgmt.js?v=${versions['device-mgmt.js'] || ASSET_VERSION}`
                 )

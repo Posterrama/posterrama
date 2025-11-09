@@ -1702,6 +1702,86 @@ app.use((req, res, next) => {
     next();
 });
 
+// Serve wallart.html with asset version stamping
+app.get(['/wallart', '/wallart.html'], (req, res) => {
+    logger.info('[WALLART ROUTE] Serving wallart.html with asset versioning');
+    const filePath = path.join(__dirname, 'public', 'wallart.html');
+    fs.readFile(filePath, 'utf8', (err, contents) => {
+        if (err) {
+            logger.error('Error reading wallart.html:', err);
+            return res.sendFile(filePath); // Fallback to static file
+        }
+
+        // Generate versions inline for immediate availability
+        const crypto = require('crypto');
+        const generateVersion = assetPath => {
+            try {
+                const fullPath = path.join(__dirname, 'public', assetPath);
+                const stats = fs.statSync(fullPath);
+                const hash = crypto
+                    .createHash('sha1')
+                    .update(stats.mtime.getTime().toString())
+                    .digest('hex');
+                return hash.substring(0, 6);
+            } catch {
+                return 'fallback';
+            }
+        };
+
+        const versions = {
+            'wallart/wallart-display.js': generateVersion('wallart/wallart-display.js'),
+            'wallart/artist-cards.js': generateVersion('wallart/artist-cards.js'),
+            'wallart/wallart.css': generateVersion('wallart/wallart.css'),
+            'core.js': generateVersion('core.js'),
+            'lazy-loading.js': generateVersion('lazy-loading.js'),
+            'device-mgmt.js': generateVersion('device-mgmt.js'),
+            'debug-logger.js': generateVersion('debug-logger.js'),
+            'client-logger.js': generateVersion('client-logger.js'),
+        };
+
+        // Simple replacement of all {{ASSET_VERSION}} placeholders with actual versions
+        const stamped = contents
+            .replace(
+                /\/wallart\/wallart-display\.js\?v=\{\{ASSET_VERSION\}\}/g,
+                `/wallart/wallart-display.js?v=${versions['wallart/wallart-display.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /\/wallart\/artist-cards\.js\?v=\{\{ASSET_VERSION\}\}/g,
+                `/wallart/artist-cards.js?v=${versions['wallart/artist-cards.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /\/wallart\/wallart\.css\?v=\{\{ASSET_VERSION\}\}/g,
+                `/wallart/wallart.css?v=${versions['wallart/wallart.css'] || ASSET_VERSION}`
+            )
+            .replace(
+                /\/core\.js\?v=\{\{ASSET_VERSION\}\}/g,
+                `/core.js?v=${versions['core.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /\/lazy-loading\.js\?v=\{\{ASSET_VERSION\}\}/g,
+                `/lazy-loading.js?v=${versions['lazy-loading.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /\/device-mgmt\.js\?v=\{\{ASSET_VERSION\}\}/g,
+                `/device-mgmt.js?v=${versions['device-mgmt.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /\/debug-logger\.js\?v=\{\{ASSET_VERSION\}\}/g,
+                `/debug-logger.js?v=${versions['debug-logger.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /\/client-logger\.js\?v=\{\{ASSET_VERSION\}\}/g,
+                `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
+            );
+
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.send(stamped);
+    });
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Ensure cache-busted assets are not cached by proxies and mark as must-revalidate

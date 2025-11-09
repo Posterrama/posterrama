@@ -241,6 +241,13 @@
                             "type": "boolean",
                             "default": false,
                             "description": "Show genre tag (album-info style)"
+                        },
+                        "artistRotationSeconds": {
+                            "type": "integer",
+                            "minimum": 10,
+                            "maximum": 600,
+                            "default": 60,
+                            "description": "Seconds between artist rotations (artist-cards style only)"
                         }
                     },
                     "additionalProperties": false

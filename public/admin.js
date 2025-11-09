@@ -2884,6 +2884,7 @@
         setIf('wallartMode_musicMode_showYear', musicMode.showYear === true);
         setIf('wallartMode_musicMode_showGenre', musicMode.showGenre === true);
         setIf('wallartMode_musicMode_minRating', musicMode.minRating || 0);
+        setIf('wallartMode_musicMode_artistRotationSeconds', musicMode.artistRotationSeconds ?? 60);
 
         // Columns / Items per screen / Grid transition removed in Admin v2; Density controls layout.
         const hg = (w.layoutSettings && w.layoutSettings.heroGrid) || {};
@@ -2978,12 +2979,24 @@
                 );
                 const densityRow = document.getElementById('musicMode_densityRow');
                 const displayOptionsRow = document.getElementById('musicMode_displayOptionsRow');
+                const artistRotationRow = document.getElementById('musicMode_artistRotationRow');
 
                 const toggleMusicModeOptions = () => {
-                    const isArtistCards = displayStyleSelect?.value === 'artist-cards';
+                    const displayStyle = displayStyleSelect?.value;
+                    const isArtistCards = displayStyle === 'artist-cards';
+                    const isCoversOnly = displayStyle === 'covers-only';
+
+                    // Hide density for artist-cards mode
                     if (densityRow) densityRow.style.display = isArtistCards ? 'none' : '';
+
+                    // Hide display options for both covers-only and artist-cards modes
                     if (displayOptionsRow)
-                        displayOptionsRow.style.display = isArtistCards ? 'none' : '';
+                        displayOptionsRow.style.display =
+                            isArtistCards || isCoversOnly ? 'none' : '';
+
+                    // Show artist rotation slider only for artist-cards mode
+                    if (artistRotationRow)
+                        artistRotationRow.style.display = isArtistCards ? '' : 'none';
                 };
 
                 displayStyleSelect?.addEventListener('change', toggleMusicModeOptions);
@@ -4422,6 +4435,8 @@
                     showYear: val('wallartMode_musicMode_showYear'),
                     showGenre: val('wallartMode_musicMode_showGenre'),
                     minRating: parseFloat(val('wallartMode_musicMode_minRating')) || 0,
+                    artistRotationSeconds:
+                        parseInt(val('wallartMode_musicMode_artistRotationSeconds')) || 60,
                 },
                 layoutSettings: {
                     heroGrid: {

@@ -305,6 +305,7 @@
             }
         })();
     </script>
+    <script src="/wallart/artist-cards.js?v={{ASSET_VERSION}}"></script>
     <script src="/wallart/wallart-display.js?v={{ASSET_VERSION}}"></script>
     <script>
         (function () {
@@ -374,29 +375,42 @@
                         window.debugLog && window.debugLog('WALLART_MEDIA_ALREADY_EXISTS', { count: window.mediaQueue.length });
                         return true;
                     }
-                    const count = Math.max(60, Math.min(400, Math.floor((window.innerWidth * window.innerHeight) / 8000)));
-                    
                     // Check if games-only mode is enabled
                     const gamesOnly = window.appConfig?.wallartMode?.gamesOnly === true;
                     
                     // Check if music mode is enabled
                     const musicMode = window.appConfig?.wallartMode?.musicMode?.enabled === true;
                     
-                    // Determine media type
-                    const type = gamesOnly ? 'game' : ((window.appConfig && window.appConfig.type) || 'movie');
-                    
                     // Build absolute URL for better Safari/iOS compatibility
                     const baseUrl = window.location.origin;
-                    let url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+                    let url;
                     
-                    // If games-only mode, add source=romm filter
-                    if (gamesOnly) {
-                        url += '&source=romm';
-                    }
-                    
-                    // If music mode, add musicMode parameter
-                    if (musicMode) {
-                        url += '&musicMode=1';
+                    // For music mode with artist-cards, use special endpoint
+                    if (musicMode && window.appConfig?.wallartMode?.musicMode?.displayStyle === 'artist-cards') {
+                        const artistCount = 50; // Fetch 50 random artists with all their albums
+                        url = `${baseUrl}/get-music-artists?count=${artistCount}`;
+                    } else if (gamesOnly) {
+                        // Games-only mode: fetch games from RomM
+                        const gameCount = 100; // Default game count
+                        url = `${baseUrl}/get-media?count=${gameCount}&gamesOnly=1`;
+                    } else {
+                        // Regular media fetching (movies/TV)
+                        let count;
+                        if (musicMode) {
+                            count = 500; // Balanced count for reasonable loading time and variety
+                        } else {
+                            count = Math.max(60, Math.min(400, Math.floor((window.innerWidth * window.innerHeight) / 8000)));
+                        }
+                        
+                        // Determine media type
+                        const type = (window.appConfig && window.appConfig.type) || 'movie';
+                        
+                        url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+                        
+                        // If music mode, add musicMode parameter
+                        if (musicMode) {
+                            url += '&musicMode=1';
+                        }
                     }
                     
                     window.debugLog && window.debugLog('WALLART_FETCH_MEDIA', { url, gamesOnly, userAgent: navigator.userAgent });
@@ -548,6 +562,47 @@
                 }, 5000);
             }
         });
+    </script>
+    
+    <!-- Listen for config changes and refresh on games/music mode toggle -->
+    <script>
+        (function() {
+            try {
+                // Store initial config state
+                let currentGamesOnly = window.appConfig?.wallartMode?.gamesOnly;
+                let currentMusicMode = window.appConfig?.wallartMode?.musicMode?.enabled;
+                
+                // Listen for config updates via BroadcastChannel
+                const configChannel = new BroadcastChannel('posterrama-config');
+                configChannel.onmessage = (event) => {
+                    if (event.data && event.data.type === 'config-updated') {
+                        const settings = event.data.settings || {};
+                        
+                        // Check if games mode or music mode changed
+                        const newGamesOnly = settings.wallartMode?.gamesOnly;
+                        const newMusicMode = settings.wallartMode?.musicMode?.enabled;
+                        
+                        // Reload if games mode toggled
+                        if (newGamesOnly !== undefined && newGamesOnly !== currentGamesOnly) {
+                            console.log('[Wallart] Games mode changed, reloading...', { old: currentGamesOnly, new: newGamesOnly });
+                            window.location.reload();
+                            return;
+                        }
+                        
+                        // Reload if music mode toggled
+                        if (newMusicMode !== undefined && newMusicMode !== currentMusicMode) {
+                            console.log('[Wallart] Music mode changed, reloading...', { old: currentMusicMode, new: newMusicMode });
+                            window.location.reload();
+                            return;
+                        }
+                    }
+                };
+                
+                console.log('[Wallart] Config change listener initialized');
+            } catch (e) {
+                console.warn('[Wallart] BroadcastChannel not supported:', e);
+            }
+        })();
     </script>
         
         <!-- PWA Service Worker Registration -->

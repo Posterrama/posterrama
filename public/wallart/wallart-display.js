@@ -1049,6 +1049,20 @@
                         );
                         if (posterCount <= 0) return { currentPosters: [], usedPosters: new Set() };
 
+                        // Check for artist-cards mode - use separate module
+                        const isMusicMode = appConfig?.wallartMode?.musicMode?.enabled === true;
+                        const musicConfig = appConfig?.wallartMode?.musicMode || {};
+                        const displayStyle = musicConfig.displayStyle || 'covers-only';
+
+                        if (isMusicMode && displayStyle === 'artist-cards' && window.ArtistCards) {
+                            return window.ArtistCards.initialize({
+                                container: wallartGrid,
+                                mediaQueue,
+                                appConfig,
+                                wallartConfig,
+                            });
+                        }
+
                         const currentPosters = [];
                         const usedPosters = new Set();
 
@@ -1648,32 +1662,9 @@
                                 const showYear = musicConfig.showYear !== false;
                                 const showGenre = musicConfig.showGenre === true;
 
-                                // Display style: covers-only (minimal overlay)
+                                // Display style: covers-only (no overlay, just pure album covers)
                                 if (displayStyle === 'covers-only') {
-                                    if (showArtist && item.artist) {
-                                        const overlay = document.createElement('div');
-                                        overlay.className = 'music-metadata-overlay covers-only';
-                                        overlay.style.cssText = `
-                                            position: absolute;
-                                            bottom: 0;
-                                            right: 0;
-                                            background: transparent;
-                                            color: #fff;
-                                            padding: 8px 12px;
-                                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                                            pointer-events: none;
-                                            font-size: 0.85em;
-                                            font-weight: 500;
-                                            text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8);
-                                            white-space: nowrap;
-                                            overflow: hidden;
-                                            text-overflow: ellipsis;
-                                            z-index: 10;
-                                            text-align: right;
-                                        `;
-                                        overlay.textContent = item.artist;
-                                        posterItem.appendChild(overlay);
-                                    }
+                                    // No overlay for covers-only mode
                                 }
 
                                 // Display style: album-info (detailed metadata)
