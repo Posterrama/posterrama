@@ -1831,13 +1831,16 @@
                         };
 
                         // Separate layout changes (require restart) from config-only changes
-                        const layoutKeys = ['density', 'layoutVariant'];
+                        const layoutKeys = ['density', 'layoutVariant', 'gamesOnly'];
                         const configKeys = [
                             'ambientGradient',
                             'refreshRate',
                             'randomness',
                             'animationType',
                         ];
+
+                        // Music mode changes that require layout rebuild
+                        const musicModeKeys = ['enabled', 'gridSize', 'layout'];
 
                         let needsLayoutRebuild = false;
                         let needsConfigUpdate = false;
@@ -1849,6 +1852,36 @@
                             ) {
                                 needsLayoutRebuild = true;
                                 break;
+                            }
+                        }
+
+                        // Check music mode changes
+                        if (!needsLayoutRebuild && mergedWallartConfig.musicMode) {
+                            const oldMusic = oldConfig.musicMode || {};
+                            const newMusic = mergedWallartConfig.musicMode;
+                            for (const key of musicModeKeys) {
+                                if (key in newMusic && newMusic[key] !== oldMusic[key]) {
+                                    needsLayoutRebuild = true;
+                                    break;
+                                }
+                            }
+
+                            // Display style and animation changes should update existing posters, not rebuild
+                            const displayKeys = [
+                                'displayStyle',
+                                'animation',
+                                'showArtist',
+                                'showAlbumTitle',
+                                'showYear',
+                                'showGenre',
+                            ];
+                            if (!needsLayoutRebuild) {
+                                for (const key of displayKeys) {
+                                    if (key in newMusic && newMusic[key] !== oldMusic[key]) {
+                                        needsConfigUpdate = true;
+                                        break;
+                                    }
+                                }
                             }
                         }
 
@@ -1917,12 +1950,45 @@
                                 mergedWallartConfig.animationType &&
                                 mergedWallartConfig.animationType !== oldConfig.animationType;
 
+                            // Check if music mode display changed
+                            const musicDisplayChanged =
+                                mergedWallartConfig.musicMode &&
+                                oldConfig.musicMode &&
+                                (mergedWallartConfig.musicMode.displayStyle !==
+                                    oldConfig.musicMode.displayStyle ||
+                                    mergedWallartConfig.musicMode.showArtist !==
+                                        oldConfig.musicMode.showArtist ||
+                                    mergedWallartConfig.musicMode.showAlbumTitle !==
+                                        oldConfig.musicMode.showAlbumTitle ||
+                                    mergedWallartConfig.musicMode.showYear !==
+                                        oldConfig.musicMode.showYear ||
+                                    mergedWallartConfig.musicMode.showGenre !==
+                                        oldConfig.musicMode.showGenre);
+
                             // Update the stored config so future operations use new values
                             _state.wallartConfig = {
                                 ..._state.wallartConfig,
                                 ...mergedWallartConfig,
                             };
                             window.wallartConfig = { ..._state.wallartConfig };
+
+                            // If music display settings changed, force rebuild to apply new overlay style
+                            if (musicDisplayChanged) {
+                                // Stop and rebuild with new music config
+                                api.stop();
+                                _state.wallartGrid = null;
+                                _state.layoutInfo = null;
+                                _state.currentPosters = [];
+                                _state.usedPosters = new Set();
+                                setTimeout(() => {
+                                    try {
+                                        api.start(mergedWallartConfig);
+                                    } catch (e) {
+                                        console.error('[Wallart] Music display rebuild failed:', e);
+                                    }
+                                }, 150);
+                                return; // Skip animation demo below
+                            }
 
                             // If animation changed, demonstrate it immediately in preview
                             if (animationChanged && window.animatePosterChange) {
