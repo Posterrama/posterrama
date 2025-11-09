@@ -1355,22 +1355,45 @@
                                 }
                             };
 
-                            // Aim for a few mediums (2x2) then fill with singles
+                            // Aim for varied sizes: large (3x3), mediums (2x2), then singles (1x1)
                             const heroArea = heroSpan * rows;
                             const areaCells = Math.max(0, cols * rows - heroArea);
-                            let targetMedium = 3;
-                            const minCellsForThree =
-                                3 * 4 + Math.max(2, Math.floor(areaCells * 0.1));
-                            if (areaCells < minCellsForThree) targetMedium = 2;
 
-                            // Place mediums
+                            // More dynamic distribution based on available space
+                            let targetLarge = Math.floor(areaCells / 50); // ~2-4 large tiles
+                            let targetMedium = Math.floor(areaCells / 15); // ~8-12 medium tiles
+
+                            // Ensure minimums for visual variety
+                            if (targetLarge < 1 && areaCells > 40) targetLarge = 1;
+                            if (targetMedium < 5 && areaCells > 30) targetMedium = 5;
+
+                            let counter = 0;
+
+                            // Place large tiles (3x3)
+                            const largeCandidates = [];
+                            for (let r = 0; r < rows - 2; r++) {
+                                for (let c = 0; c < cols - 2; c++) largeCandidates.push({ r, c });
+                            }
+                            largeCandidates.sort(() => Math.random() - 0.5);
+                            let placedLarge = 0;
+                            for (const { r, c } of largeCandidates) {
+                                if (placedLarge >= targetLarge) break;
+                                if (!canPlace(r, c, 3, 3)) continue;
+                                const poster = pickUnique(null);
+                                if (!poster) continue;
+                                currentPosters.push(poster);
+                                placeTile(r, c, 3, 3, poster, ++counter);
+                                mark(r, c, 3, 3);
+                                placedLarge++;
+                            }
+
+                            // Place medium tiles (2x2)
                             const mediumCandidates = [];
                             for (let r = 0; r < rows - 1; r++) {
                                 for (let c = 0; c < cols - 1; c++) mediumCandidates.push({ r, c });
                             }
                             mediumCandidates.sort(() => Math.random() - 0.5);
                             let placedMedium = 0;
-                            let counter = 0;
                             for (const { r, c } of mediumCandidates) {
                                 if (placedMedium >= targetMedium) break;
                                 if (!canPlace(r, c, 2, 2)) continue;
@@ -1381,24 +1404,7 @@
                                 mark(r, c, 2, 2);
                                 placedMedium++;
                             }
-                            if (placedMedium < targetMedium) {
-                                const additional = [];
-                                for (let r = 0; r < rows - 1; r++) {
-                                    for (let c = 0; c < cols - 1; c++) additional.push({ r, c });
-                                }
-                                additional.sort(() => Math.random() - 0.5);
-                                for (const { r, c } of additional) {
-                                    if (placedMedium >= targetMedium) break;
-                                    if (!canPlace(r, c, 2, 2)) continue;
-                                    const poster = pickUnique(null);
-                                    if (!poster) continue;
-                                    currentPosters.push(poster);
-                                    placeTile(r, c, 2, 2, poster, ++counter);
-                                    mark(r, c, 2, 2);
-                                    placedMedium++;
-                                }
-                            }
-                            // Fill singles
+                            // Fill remaining space with singles (1x1)
                             for (let r = 0; r < rows; r++) {
                                 for (let c = 0; c < cols; c++) {
                                     if (occupied[r][c]) continue;
