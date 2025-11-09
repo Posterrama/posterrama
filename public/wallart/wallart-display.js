@@ -1169,7 +1169,13 @@
                             const firstHero = pickUnique(null);
                             if (firstHero) {
                                 currentPosters.push(firstHero);
-                                const heroEl = api.runtime.createPosterElement(firstHero, 0);
+                                const heroEl = api.runtime.createPosterElement(
+                                    firstHero,
+                                    0,
+                                    heroSpan,
+                                    layoutInfo.actualPosterWidth
+                                );
+                                if (!heroEl) throw new Error('Failed to create hero element');
                                 const startCol = heroSide === 'left' ? 1 : cols - heroSpan + 1;
                                 heroEl.style.gridColumn = `${startCol} / span ${heroSpan}`;
 
@@ -1325,7 +1331,13 @@
 
                             // Placement helpers
                             const placeTile = (r, c, hSpan, wSpan, poster, orderIndex) => {
-                                const el = api.runtime.createPosterElement(poster, orderIndex);
+                                const el = api.runtime.createPosterElement(
+                                    poster,
+                                    orderIndex,
+                                    Math.max(hSpan, wSpan),
+                                    layoutInfo.actualPosterWidth
+                                );
+                                if (!el) return;
                                 el.style.gridRow = `${r + 1} / span ${hSpan}`;
                                 el.style.gridColumn = `${c + 1} / span ${wSpan}`;
                                 el.style.opacity = '0';
@@ -1431,7 +1443,13 @@
                                 const poster = pickUnique(null);
                                 if (!poster) break;
                                 currentPosters.push(poster);
-                                const el = api.runtime.createPosterElement(poster, i);
+                                const el = api.runtime.createPosterElement(
+                                    poster,
+                                    i,
+                                    1,
+                                    layoutInfo.actualPosterWidth
+                                );
+                                if (!el) continue;
                                 if (pack === 'staggered') {
                                     el.style.opacity = '0';
                                     el.style.transform = 'scale(0.96)';
@@ -1554,12 +1572,14 @@
                         return { gridEl: null, layoutInfo: null };
                     }
                 },
-                createPosterElement(item, index) {
+                createPosterElement(item, index, tileSize = 1, posterWidth = 0) {
                     try {
                         const posterItem = document.createElement('div');
                         posterItem.className = 'wallart-poster-item';
                         posterItem.dataset.originalIndex = index;
                         posterItem.dataset.posterId = item.id || item.title || index;
+                        posterItem.dataset.tileSize = tileSize;
+                        posterItem.dataset.posterWidth = posterWidth;
 
                         const isMobile =
                             window.innerWidth <= 768 ||
@@ -1610,8 +1630,9 @@
                         `;
                         posterItem.appendChild(img);
 
-                        // Add music metadata overlay if configured
-                        if (isMusicItem) {
+                        // Add music metadata overlay if configured (only on medium/large tiles, not on 1x1 singles)
+                        const shouldShowOverlay = isMusicItem && Number(tileSize) >= 2;
+                        if (shouldShowOverlay) {
                             try {
                                 const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
                                 const displayStyle = musicConfig.displayStyle || 'covers-only';
@@ -1641,6 +1662,7 @@
                                             white-space: nowrap;
                                             overflow: hidden;
                                             text-overflow: ellipsis;
+                                            z-index: 10;
                                         `;
                                         overlay.textContent = item.artist;
                                         posterItem.appendChild(overlay);
@@ -1661,6 +1683,7 @@
                                         padding: 12px;
                                         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                                         pointer-events: none;
+                                        z-index: 10;
                                     `;
 
                                     let html = '';
@@ -1698,6 +1721,7 @@
                                         pointer-events: none;
                                         display: flex;
                                         flex-direction: column;
+                                        z-index: 10;
                                         justify-content: flex-end;
                                     `;
 
@@ -1716,7 +1740,7 @@
                                 }
                             } catch (overlayErr) {
                                 // Gracefully ignore overlay creation errors
-                                console.warn(
+                                console.error(
                                     '[Wallart] Failed to create music metadata overlay:',
                                     overlayErr
                                 );
@@ -1734,9 +1758,10 @@
                             /* noop */
                         }
                         return posterItem;
-                    } catch (_) {
-                        // createPosterElement failed; return null to fallback gracefully
-                        return null;
+                    } catch (err) {
+                        // createPosterElement failed; throw error for debugging
+                        console.error('[Wallart] createPosterElement failed:', err);
+                        throw err;
                     }
                 },
                 getUniqueRandomPoster(currentPosters, usedPosters, mediaQueue, excludePosterId) {
