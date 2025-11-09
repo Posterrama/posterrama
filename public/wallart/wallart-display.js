@@ -181,9 +181,7 @@
                 }
                 // Use music density if in music mode, otherwise use wallart density
                 const effectiveDensity =
-                    isMusicMode && musicConfig.density
-                        ? musicDensityMap[musicConfig.density] || 'medium'
-                        : density;
+                    isMusicMode && musicConfig.density ? musicConfig.density : density;
                 let densityFactor = densityFactors[effectiveDensity] || densityFactors['medium'];
 
                 if (isMusicMode) {
