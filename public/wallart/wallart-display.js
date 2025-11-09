@@ -153,8 +153,10 @@
 
                 // DEBUG: Log music mode configuration
                 if (isMusicMode) {
-                    console.log('[MUSIC MODE DEBUG] Using variable layout with density:', {
+                    console.log('[MUSIC MODE DEBUG] Music mode active:', {
                         musicDensity: musicConfig.density,
+                        fullMusicConfig: musicConfig,
+                        fullAppConfig: window.appConfig,
                     });
                 }
 
@@ -185,9 +187,12 @@
                 let densityFactor = densityFactors[effectiveDensity] || densityFactors['medium'];
 
                 if (isMusicMode) {
-                    console.log('[MUSIC MODE DEBUG] Density factor:', {
+                    console.log('[MUSIC MODE DEBUG] Density calculation:', {
+                        musicConfigDensity: musicConfig.density,
+                        wallartDensity: density,
                         effectiveDensity,
                         densityFactor,
+                        availableDensityFactors: densityFactors,
                     });
                 }
 
