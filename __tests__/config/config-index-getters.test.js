@@ -1,7 +1,9 @@
 const path = require('path');
 
 // Set up required environment variables before any config loading
+process.env.NODE_ENV = 'test';
 process.env.PLEX_TOKEN = 'test-token';
+process.env.SESSION_SECRET = 'test-session-secret';
 
 /**
  * Tests for config/index.js getter helpers to raise coverage on simple
@@ -15,13 +17,27 @@ describe('config/index.js getters', () => {
 
     beforeAll(() => {
         originalConfigContent = require('fs').readFileSync(configPath, 'utf8');
+
+        // Create a minimal test config that won't require tokens
+        const fs = require('fs');
+        const testConfig = JSON.parse(originalConfigContent);
+        // Disable all servers to avoid token requirements during tests
+        if (testConfig.mediaServers) {
+            testConfig.mediaServers = testConfig.mediaServers.map(server => ({
+                ...server,
+                enabled: false,
+            }));
+        }
+        if (testConfig.tmdbSource) {
+            testConfig.tmdbSource.enabled = false;
+        }
+        fs.writeFileSync(configPath, JSON.stringify(testConfig, null, 2));
     });
 
     afterEach(() => {
         // restore env and config cache between tests
         process.env = { ...originalEnv };
         jest.resetModules();
-        require('fs').writeFileSync(configPath, originalConfigContent);
     });
 
     afterAll(() => {
