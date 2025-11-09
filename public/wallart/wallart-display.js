@@ -1909,9 +1909,14 @@
 
                         // IMPORTANT: settings contains only the DELTA (changed properties)
                         // We need to merge with window.appConfig to get the FULL config for comparison
+                        // Deep merge for nested musicMode object
                         const mergedWallartConfig = {
                             ...window.appConfig?.wallartMode,
                             ...newWallartConfig,
+                            musicMode: {
+                                ...(window.appConfig?.wallartMode?.musicMode || {}),
+                                ...(newWallartConfig.musicMode || {}),
+                            },
                         };
 
                         // Separate layout changes (require restart) from config-only changes
@@ -1924,7 +1929,7 @@
                         ];
 
                         // Music mode changes that require layout rebuild
-                        const musicModeKeys = ['enabled', 'gridSize', 'layout'];
+                        const musicModeKeys = ['enabled', 'density'];
 
                         let needsLayoutRebuild = false;
                         let needsConfigUpdate = false;
