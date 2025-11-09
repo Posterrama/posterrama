@@ -146,6 +146,7 @@
 
                 // Check if music mode is enabled - use square aspect ratio (1:1) for albums
                 const isMusicMode = window.appConfig?.wallartMode?.musicMode?.enabled === true;
+                const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
 
                 // Poster aspect ratio: 2/3 for movies, 1/1 for music albums
                 const posterAspectRatio = isMusicMode ? 1 : 2 / 3; // width/height
@@ -175,8 +176,8 @@
                 }
 
                 // Calculate optimal poster width based on screen width and density
-                const optimalPosterWidth = Math.max(1, Math.round(screenWidth * densityFactor));
-                const optimalPosterHeight = Math.max(
+                let optimalPosterWidth = Math.max(1, Math.round(screenWidth * densityFactor));
+                let optimalPosterHeight = Math.max(
                     1,
                     Math.round(optimalPosterWidth / posterAspectRatio)
                 );
@@ -184,6 +185,18 @@
                 // Calculate how many posters fit
                 let cols = Math.floor(screenWidth / optimalPosterWidth);
                 let rows = Math.floor(availableHeight / optimalPosterHeight);
+
+                // Override with music mode gridSize if specified
+                if (isMusicMode && musicConfig.gridSize) {
+                    const gridMatch = musicConfig.gridSize.match(/(\d+)x(\d+)/);
+                    if (gridMatch) {
+                        cols = parseInt(gridMatch[1]);
+                        rows = parseInt(gridMatch[2]);
+                        // Recalculate poster dimensions to fit the grid
+                        optimalPosterWidth = Math.floor(screenWidth / cols);
+                        optimalPosterHeight = Math.floor(availableHeight / rows);
+                    }
+                }
                 if (!Number.isFinite(cols) || cols < 1) cols = 1;
                 if (!Number.isFinite(rows) || rows < 1) rows = 1;
 
@@ -1069,7 +1082,15 @@
                                 excludeId
                             );
 
-                        if (layoutVariant === 'heroGrid') {
+                        // Check if music mode has its own layout preference
+                        const musicModeEnabled = appConfig?.wallartMode?.musicMode?.enabled;
+                        const musicLayout = musicModeEnabled
+                            ? appConfig?.wallartMode?.musicMode?.layout
+                            : null;
+                        const effectiveLayoutVariant =
+                            musicLayout === 'hero-grid' ? 'heroGrid' : layoutVariant;
+
+                        if (effectiveLayoutVariant === 'heroGrid') {
                             // Determine hero settings
                             const heroCfg = (wallartConfig.layoutSettings || {}).heroGrid || {};
                             const rawHeroSideValue =
@@ -1102,12 +1123,16 @@
                             const baseCellW = layoutInfo.actualPosterWidth;
                             const baseCellH = layoutInfo.actualPosterHeight;
                             const portraitMode = window.innerHeight > window.innerWidth;
+                            const isMusicMode = appConfig?.wallartMode?.musicMode?.enabled === true;
+
                             let heroSpan;
                             if (portraitMode) {
                                 heroSpan = 4; // 4x4
                                 heroSpan = Math.max(2, Math.min(heroSpan, cols - 1));
                             } else {
-                                const heroTargetW = Math.round((2 / 3) * (rows * baseCellH));
+                                // For music mode (square albums), use square hero. Otherwise, use 2:3 aspect ratio
+                                const aspectRatio = isMusicMode ? 1 : 2 / 3;
+                                const heroTargetW = Math.round(aspectRatio * (rows * baseCellH));
                                 heroSpan = Math.max(1, Math.round(heroTargetW / baseCellW));
                                 const minRemainingCols = Math.max(2, Math.ceil(cols * 0.25));
                                 heroSpan = Math.min(heroSpan, cols - minRemainingCols);
@@ -1147,7 +1172,8 @@
                                 heroEl.dataset.hero = 'true';
                                 const heroImg = heroEl.querySelector('img');
                                 if (heroImg) {
-                                    heroImg.style.objectFit = 'contain';
+                                    // For music mode, use cover to fill the square hero area
+                                    heroImg.style.objectFit = isMusicMode ? 'cover' : 'contain';
                                     heroImg.style.objectPosition = 'center';
                                     heroImg.style.background = 'black';
                                     heroImg.style.transform = 'none';
