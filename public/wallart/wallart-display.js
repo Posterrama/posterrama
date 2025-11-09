@@ -162,6 +162,24 @@
                         ? densityToGrid[musicConfig.density] || '6x3'
                         : null;
 
+                // DEBUG: Log music mode configuration
+                if (isMusicMode) {
+                    console.log('[MUSIC MODE DEBUG] Configuration:', {
+                        density: musicConfig.density,
+                        mappedGridSize: musicGridSize,
+                        fullMusicConfig: musicConfig,
+                    });
+                }
+
+                // DEBUG: Log music mode configuration
+                if (isMusicMode) {
+                    console.log('[MUSIC MODE DEBUG] Configuration:', {
+                        density: musicConfig.density,
+                        mappedGridSize: musicGridSize,
+                        fullMusicConfig: musicConfig,
+                    });
+                }
+
                 // Poster aspect ratio: 2/3 for movies, 1/1 for music albums
                 const posterAspectRatio = isMusicMode ? 1 : 2 / 3; // width/height
 
@@ -204,8 +222,16 @@
                 if (isMusicMode && musicGridSize) {
                     const gridMatch = musicGridSize.match(/(\d+)x(\d+)/);
                     if (gridMatch) {
+                        const oldCols = cols;
+                        const oldRows = rows;
                         cols = parseInt(gridMatch[1]);
                         rows = parseInt(gridMatch[2]);
+                        console.log('[MUSIC MODE DEBUG] Grid size override:', {
+                            density: musicConfig.density,
+                            gridSize: musicGridSize,
+                            oldGrid: `${oldCols}x${oldRows}`,
+                            newGrid: `${cols}x${rows}`,
+                        });
                     }
                 }
                 if (!Number.isFinite(cols) || cols < 1) cols = 1;
@@ -1948,8 +1974,19 @@
                         if (!needsLayoutRebuild && mergedWallartConfig.musicMode) {
                             const oldMusic = oldConfig.musicMode || {};
                             const newMusic = mergedWallartConfig.musicMode;
+                            console.log('[MUSIC MODE DEBUG] Checking for changes:', {
+                                oldMusic,
+                                newMusic,
+                                musicModeKeys,
+                            });
                             for (const key of musicModeKeys) {
                                 if (key in newMusic && newMusic[key] !== oldMusic[key]) {
+                                    console.log(
+                                        `[MUSIC MODE DEBUG] Change detected in ${key}:`,
+                                        oldMusic[key],
+                                        '->',
+                                        newMusic[key]
+                                    );
                                     needsLayoutRebuild = true;
                                     break;
                                 }
@@ -2011,6 +2048,7 @@
                         }
 
                         if (needsLayoutRebuild) {
+                            console.log('[MUSIC MODE DEBUG] Layout rebuild triggered!');
                             // Stop current cycle to avoid conflicts
                             api.stop();
 
