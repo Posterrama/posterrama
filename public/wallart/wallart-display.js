@@ -148,6 +148,20 @@
                 const isMusicMode = window.appConfig?.wallartMode?.musicMode?.enabled === true;
                 const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
 
+                // Map density to grid sizes for music mode
+                const densityToGrid = {
+                    cozy: '4x2',
+                    comfortable: '5x3',
+                    balanced: '6x3',
+                    dense: '6x4',
+                    'very-dense': '8x4',
+                    maximum: '8x5',
+                };
+                const musicGridSize =
+                    isMusicMode && musicConfig.density
+                        ? densityToGrid[musicConfig.density] || '6x3'
+                        : null;
+
                 // Poster aspect ratio: 2/3 for movies, 1/1 for music albums
                 const posterAspectRatio = isMusicMode ? 1 : 2 / 3; // width/height
 
@@ -186,9 +200,9 @@
                 let cols = Math.floor(screenWidth / optimalPosterWidth);
                 let rows = Math.floor(availableHeight / optimalPosterHeight);
 
-                // Override with music mode gridSize if specified
-                if (isMusicMode && musicConfig.gridSize) {
-                    const gridMatch = musicConfig.gridSize.match(/(\d+)x(\d+)/);
+                // Override with music mode density if specified
+                if (isMusicMode && musicGridSize) {
+                    const gridMatch = musicGridSize.match(/(\d+)x(\d+)/);
                     if (gridMatch) {
                         cols = parseInt(gridMatch[1]);
                         rows = parseInt(gridMatch[2]);
@@ -199,7 +213,7 @@
 
                 // For music mode with explicit grid size, calculate dimensions to perfectly fill screen
                 let actualPosterWidth, actualPosterHeight;
-                if (isMusicMode && musicConfig.gridSize) {
+                if (isMusicMode && musicGridSize) {
                     // Square tiles that perfectly fill the screen
                     actualPosterWidth = Math.floor(screenWidth / cols);
                     actualPosterHeight = Math.floor(availableHeight / rows);
@@ -222,7 +236,7 @@
                 let finalPosterWidth = actualPosterWidth;
 
                 // Skip optimization for music mode - use exact grid
-                if (isMusicMode && musicConfig.gridSize) {
+                if (isMusicMode && musicGridSize) {
                     // Use exact dimensions, no optimization
                     finalRows = rows;
                     finalPosterHeight = actualPosterHeight;
@@ -1101,13 +1115,9 @@
                                 excludeId
                             );
 
-                        // Check if music mode has its own layout preference
+                        // Music mode always uses grid layout (no hero)
                         const musicModeEnabled = appConfig?.wallartMode?.musicMode?.enabled;
-                        const musicLayout = musicModeEnabled
-                            ? appConfig?.wallartMode?.musicMode?.layout
-                            : null;
-                        const effectiveLayoutVariant =
-                            musicLayout === 'hero-grid' ? 'heroGrid' : layoutVariant;
+                        const effectiveLayoutVariant = musicModeEnabled ? 'grid' : layoutVariant;
 
                         if (effectiveLayoutVariant === 'heroGrid') {
                             // Determine hero settings

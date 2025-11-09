@@ -46,10 +46,9 @@ const schemas = {
                 animation: Joi.string()
                     .valid('vinyl-spin', 'slide-fade', 'crossfade', 'flip')
                     .default('vinyl-spin'),
-                gridSize: Joi.string()
-                    .valid('4x2', '5x3', '6x3', '6x4', '8x4', '8x5')
-                    .default('6x3'),
-                layout: Joi.string().valid('grid', 'hero-grid').default('grid'),
+                density: Joi.string()
+                    .valid('cozy', 'comfortable', 'balanced', 'dense', 'very-dense', 'maximum')
+                    .default('balanced'),
                 showArtist: Joi.boolean().default(true),
                 showAlbumTitle: Joi.boolean().default(true),
                 showYear: Joi.boolean().default(true),
