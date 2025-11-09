@@ -148,23 +148,21 @@
                 const isMusicMode = window.appConfig?.wallartMode?.musicMode?.enabled === true;
                 const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
 
-                // Music mode now uses the same variable layout as wallart
-                // Density is ignored - we use the normal wallart density setting instead
-                const musicGridSize = null;
+                // Map music density to wallart density factor
+                const musicDensityMap = {
+                    cozy: 'low',
+                    comfortable: 'medium',
+                    balanced: 'medium',
+                    dense: 'high',
+                    'very-dense': 'high',
+                    maximum: 'ludicrous',
+                };
 
                 // DEBUG: Log music mode configuration
                 if (isMusicMode) {
-                    console.log(
-                        '[MUSIC MODE DEBUG] Using variable wallart layout (not uniform grid)'
-                    );
-                }
-
-                // DEBUG: Log music mode configuration
-                if (isMusicMode) {
-                    console.log('[MUSIC MODE DEBUG] Configuration:', {
-                        density: musicConfig.density,
-                        mappedGridSize: musicGridSize,
-                        fullMusicConfig: musicConfig,
+                    console.log('[MUSIC MODE DEBUG] Using variable layout with density:', {
+                        musicDensity: musicConfig.density,
+                        mappedWallartDensity: musicDensityMap[musicConfig.density],
                     });
                 }
 
@@ -188,7 +186,19 @@
                 } else {
                     densityFactors = { low: 0.15, medium: 0.12, high: 0.09, ludicrous: 0.06 };
                 }
-                let densityFactor = densityFactors[density] || densityFactors['medium'];
+                // Use music density if in music mode, otherwise use wallart density
+                const effectiveDensity =
+                    isMusicMode && musicConfig.density
+                        ? musicDensityMap[musicConfig.density] || 'medium'
+                        : density;
+                let densityFactor = densityFactors[effectiveDensity] || densityFactors['medium'];
+
+                if (isMusicMode) {
+                    console.log('[MUSIC MODE DEBUG] Density factor:', {
+                        effectiveDensity,
+                        densityFactor,
+                    });
+                }
 
                 const isHeroGrid = window.wallartConfig?.layoutVariant === 'heroGrid';
                 if (window.IS_PREVIEW && !isHeroGrid) {
@@ -206,56 +216,21 @@
                 let cols = Math.floor(screenWidth / optimalPosterWidth);
                 let rows = Math.floor(availableHeight / optimalPosterHeight);
 
-                // Override with music mode density if specified
-                if (isMusicMode && musicGridSize) {
-                    const gridMatch = musicGridSize.match(/(\d+)x(\d+)/);
-                    if (gridMatch) {
-                        const oldCols = cols;
-                        const oldRows = rows;
-                        cols = parseInt(gridMatch[1]);
-                        rows = parseInt(gridMatch[2]);
-                        console.log('[MUSIC MODE DEBUG] Grid size override:', {
-                            density: musicConfig.density,
-                            gridSize: musicGridSize,
-                            oldGrid: `${oldCols}x${oldRows}`,
-                            newGrid: `${cols}x${rows}`,
-                        });
-                    }
-                }
                 if (!Number.isFinite(cols) || cols < 1) cols = 1;
                 if (!Number.isFinite(rows) || rows < 1) rows = 1;
 
-                // For music mode with explicit grid size, calculate dimensions to perfectly fill screen
+                // Calculate poster dimensions with aspect ratio
                 let actualPosterWidth, actualPosterHeight;
-                if (isMusicMode && musicGridSize) {
-                    // Square tiles that perfectly fill the screen
-                    actualPosterWidth = Math.floor(screenWidth / cols);
-                    actualPosterHeight = Math.floor(availableHeight / rows);
-                    // Force square by using the smaller dimension
-                    const squareSize = Math.min(actualPosterWidth, actualPosterHeight);
-                    actualPosterWidth = squareSize;
-                    actualPosterHeight = squareSize;
-                } else {
-                    // Normal calculation with aspect ratio
-                    actualPosterWidth = Math.max(1, Math.floor(screenWidth / cols));
-                    actualPosterHeight = Math.max(
-                        1,
-                        Math.round(actualPosterWidth / posterAspectRatio)
-                    );
-                }
+                actualPosterWidth = Math.max(1, Math.floor(screenWidth / cols));
+                actualPosterHeight = Math.max(1, Math.round(actualPosterWidth / posterAspectRatio));
 
                 // Check if we can fit the calculated height
                 let finalRows = rows;
                 let finalPosterHeight = actualPosterHeight;
                 let finalPosterWidth = actualPosterWidth;
 
-                // Skip optimization for music mode - use exact grid
-                if (isMusicMode && musicGridSize) {
-                    // Use exact dimensions, no optimization
-                    finalRows = rows;
-                    finalPosterHeight = actualPosterHeight;
-                    finalPosterWidth = actualPosterWidth;
-                } else {
+                // Grid optimization - fit as many posters as possible
+                {
                     const calculatedGridHeight = rows * actualPosterHeight;
                     const remainingHeight = availableHeight - calculatedGridHeight;
 
@@ -1943,7 +1918,7 @@
                         ];
 
                         // Music mode changes that require layout rebuild
-                        const musicModeKeys = ['enabled'];
+                        const musicModeKeys = ['enabled', 'density'];
 
                         let needsLayoutRebuild = false;
                         let needsConfigUpdate = false;
