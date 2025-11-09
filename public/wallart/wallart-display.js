@@ -166,9 +166,9 @@
                     });
                 }
 
-                // Poster aspect ratio: use 2/3 for both movies and music to allow variable sizes
-                // Albums will maintain their actual aspect ratio via object-fit: contain
-                const posterAspectRatio = 2 / 3; // width/height
+                // Poster aspect ratio: 2/3 for movies, 1/1 for music albums (ALWAYS SQUARE!)
+                // Music mode: variable SIZES of squares, not aspect ratios
+                const posterAspectRatio = isMusicMode ? 1 : 2 / 3; // width/height
 
                 // Adjust available screen height for promo site when promo box is visible
                 let availableHeight = screenHeight;
