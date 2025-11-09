@@ -148,27 +148,15 @@
                 const isMusicMode = window.appConfig?.wallartMode?.musicMode?.enabled === true;
                 const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
 
-                // Map density to grid sizes for music mode
-                const densityToGrid = {
-                    cozy: '4x2',
-                    comfortable: '5x3',
-                    balanced: '6x3',
-                    dense: '6x4',
-                    'very-dense': '8x4',
-                    maximum: '8x5',
-                };
-                const musicGridSize =
-                    isMusicMode && musicConfig.density
-                        ? densityToGrid[musicConfig.density] || '6x3'
-                        : null;
+                // Music mode now uses the same variable layout as wallart
+                // Density is ignored - we use the normal wallart density setting instead
+                const musicGridSize = null;
 
                 // DEBUG: Log music mode configuration
                 if (isMusicMode) {
-                    console.log('[MUSIC MODE DEBUG] Configuration:', {
-                        density: musicConfig.density,
-                        mappedGridSize: musicGridSize,
-                        fullMusicConfig: musicConfig,
-                    });
+                    console.log(
+                        '[MUSIC MODE DEBUG] Using variable wallart layout (not uniform grid)'
+                    );
                 }
 
                 // DEBUG: Log music mode configuration
@@ -1955,7 +1943,7 @@
                         ];
 
                         // Music mode changes that require layout rebuild
-                        const musicModeKeys = ['enabled', 'density'];
+                        const musicModeKeys = ['enabled'];
 
                         let needsLayoutRebuild = false;
                         let needsConfigUpdate = false;
