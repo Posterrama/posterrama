@@ -338,6 +338,12 @@
                     const appConfig = window.appConfig || {};
                     const mediaQueue = Array.isArray(window.mediaQueue) ? window.mediaQueue : [];
 
+                    console.log('[MUSIC MODE DEBUG] Media queue check:', {
+                        mediaQueueLength: mediaQueue.length,
+                        musicModeEnabled: appConfig?.wallartMode?.musicMode?.enabled,
+                        hasMediaQueue: Array.isArray(window.mediaQueue),
+                    });
+
                     // If no media yet, try to fetch then retry shortly to avoid blank screen
                     if (!mediaQueue || mediaQueue.length === 0) {
                         window.debugLog &&
