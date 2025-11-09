@@ -151,15 +151,6 @@
                 // Music density uses same values as wallart (low/medium/high/ludicrous)
                 // No mapping needed - direct pass-through
 
-                // DEBUG: Log music mode configuration
-                if (isMusicMode) {
-                    console.log('[MUSIC MODE DEBUG] Music mode active:', {
-                        musicDensity: musicConfig.density,
-                        fullMusicConfig: musicConfig,
-                        fullAppConfig: window.appConfig,
-                    });
-                }
-
                 // Poster aspect ratio: 2/3 for movies, 1/1 for music albums (ALWAYS SQUARE!)
                 // Music mode: variable SIZES of squares, not aspect ratios
                 const posterAspectRatio = isMusicMode ? 1 : 2 / 3; // width/height
@@ -185,16 +176,6 @@
                 const effectiveDensity =
                     isMusicMode && musicConfig.density ? musicConfig.density : density;
                 let densityFactor = densityFactors[effectiveDensity] || densityFactors['medium'];
-
-                if (isMusicMode) {
-                    console.log('[MUSIC MODE DEBUG] Density calculation:', {
-                        musicConfigDensity: musicConfig.density,
-                        wallartDensity: density,
-                        effectiveDensity,
-                        densityFactor,
-                        availableDensityFactors: densityFactors,
-                    });
-                }
 
                 const isHeroGrid = window.wallartConfig?.layoutVariant === 'heroGrid';
                 if (window.IS_PREVIEW && !isHeroGrid) {
@@ -337,12 +318,6 @@
                     // Reuse global appConfig/mediaQueue when available to avoid duplicate fetches
                     const appConfig = window.appConfig || {};
                     const mediaQueue = Array.isArray(window.mediaQueue) ? window.mediaQueue : [];
-
-                    console.log('[MUSIC MODE DEBUG] Media queue check:', {
-                        mediaQueueLength: mediaQueue.length,
-                        musicModeEnabled: appConfig?.wallartMode?.musicMode?.enabled,
-                        hasMediaQueue: Array.isArray(window.mediaQueue),
-                    });
 
                     // If no media yet, try to fetch then retry shortly to avoid blank screen
                     if (!mediaQueue || mediaQueue.length === 0) {
@@ -1940,19 +1915,8 @@
                         if (!needsLayoutRebuild && mergedWallartConfig.musicMode) {
                             const oldMusic = oldConfig.musicMode || {};
                             const newMusic = mergedWallartConfig.musicMode;
-                            console.log('[MUSIC MODE DEBUG] Checking for changes:', {
-                                oldMusic,
-                                newMusic,
-                                musicModeKeys,
-                            });
                             for (const key of musicModeKeys) {
                                 if (key in newMusic && newMusic[key] !== oldMusic[key]) {
-                                    console.log(
-                                        `[MUSIC MODE DEBUG] Change detected in ${key}:`,
-                                        oldMusic[key],
-                                        '->',
-                                        newMusic[key]
-                                    );
                                     needsLayoutRebuild = true;
                                     break;
                                 }
@@ -2014,7 +1978,6 @@
                         }
 
                         if (needsLayoutRebuild) {
-                            console.log('[MUSIC MODE DEBUG] Layout rebuild triggered!');
                             // Stop current cycle to avoid conflicts
                             api.stop();
 
