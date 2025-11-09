@@ -168,9 +168,9 @@
                 // Optimize for both desktop and mobile with different density factors
                 let densityFactors;
                 if (isMobile || isPortrait) {
-                    densityFactors = { low: 0.25, medium: 0.2, high: 0.167, ludicrous: 0.1 };
+                    densityFactors = { low: 0.25, medium: 0.2, high: 0.167, ludicrous: 0.12 };
                 } else {
-                    densityFactors = { low: 0.15, medium: 0.12, high: 0.09, ludicrous: 0.06 };
+                    densityFactors = { low: 0.15, medium: 0.12, high: 0.09, ludicrous: 0.085 };
                 }
                 // Use music density if in music mode, otherwise use wallart density
                 const effectiveDensity =
