@@ -51,6 +51,15 @@ const schemas = {
                 showAlbumTitle: Joi.boolean().default(true),
                 showYear: Joi.boolean().default(true),
                 showGenre: Joi.boolean().default(false),
+                artistRotationSeconds: Joi.number().integer().min(10).max(600).default(60),
+                sortMode: Joi.string()
+                    .valid('weighted-random', 'recent', 'popular', 'alphabetical', 'random')
+                    .default('weighted-random'),
+                sortWeights: Joi.object({
+                    recent: Joi.number().integer().min(0).max(100).default(20),
+                    popular: Joi.number().integer().min(0).max(100).default(30),
+                    random: Joi.number().integer().min(0).max(100).default(50),
+                }).default({ recent: 20, popular: 30, random: 50 }),
             }).optional(),
         }).optional(),
         mediaServers: Joi.array().items(

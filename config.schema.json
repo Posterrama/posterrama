@@ -683,6 +683,18 @@
                                 "maximum": 10,
                                 "default": 0
                             },
+                            "sortMode": {
+                                "type": "string",
+                                "description": "Album sorting algorithm.",
+                                "enum": [
+                                    "weighted-random",
+                                    "recent",
+                                    "popular",
+                                    "alphabetical",
+                                    "random"
+                                ],
+                                "default": "weighted-random"
+                            },
                             "sortWeights": {
                                 "type": "object",
                                 "description": "Weights for weighted-random sorting algorithm.",

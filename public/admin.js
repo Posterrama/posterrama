@@ -2886,6 +2886,29 @@
         setIf('wallartMode_musicMode_minRating', musicMode.minRating || 0);
         setIf('wallartMode_musicMode_artistRotationSeconds', musicMode.artistRotationSeconds ?? 60);
 
+        // Sorting configuration
+        const sortWeights = musicMode.sortWeights || { recent: 20, popular: 30, random: 50 };
+        setIf('wallartMode_musicMode_sortMode', musicMode.sortMode || 'weighted-random');
+        setIf('wallartMode_musicMode_sortWeight_recent', sortWeights.recent ?? 20);
+        setIf('wallartMode_musicMode_sortWeight_popular', sortWeights.popular ?? 30);
+        setIf('wallartMode_musicMode_sortWeight_random', sortWeights.random ?? 50);
+
+        // Update weight value displays
+        const updateWeightDisplay = (id, value) => {
+            const display = document.getElementById(id + '_value');
+            if (display) display.textContent = value + '%';
+        };
+        updateWeightDisplay('wallartMode_musicMode_sortWeight_recent', sortWeights.recent ?? 20);
+        updateWeightDisplay('wallartMode_musicMode_sortWeight_popular', sortWeights.popular ?? 30);
+        updateWeightDisplay('wallartMode_musicMode_sortWeight_random', sortWeights.random ?? 50);
+
+        // Show/hide weight sliders based on sort mode
+        const sortWeightsRow = document.getElementById('musicMode_sortWeightsRow');
+        const sortModeSelect = document.getElementById('wallartMode_musicMode_sortMode');
+        if (sortWeightsRow && sortModeSelect) {
+            sortWeightsRow.style.display = sortModeSelect.value === 'weighted-random' ? '' : 'none';
+        }
+
         // Columns / Items per screen / Grid transition removed in Admin v2; Density controls layout.
         const hg = (w.layoutSettings && w.layoutSettings.heroGrid) || {};
         setIf('wallartMode_heroSide', hg.heroSide || 'left');
@@ -3001,6 +3024,30 @@
 
                 displayStyleSelect?.addEventListener('change', toggleMusicModeOptions);
                 toggleMusicModeOptions();
+
+                // Sort mode dropdown - toggle weight sliders
+                const sortModeSelect = document.getElementById('wallartMode_musicMode_sortMode');
+                const sortWeightsRow = document.getElementById('musicMode_sortWeightsRow');
+                if (sortModeSelect && sortWeightsRow) {
+                    sortModeSelect.addEventListener('change', () => {
+                        sortWeightsRow.style.display =
+                            sortModeSelect.value === 'weighted-random' ? '' : 'none';
+                    });
+                }
+
+                // Weight sliders - update value displays in real-time
+                const setupWeightSlider = id => {
+                    const slider = document.getElementById(id);
+                    const display = document.getElementById(id + '_value');
+                    if (slider && display) {
+                        slider.addEventListener('input', () => {
+                            display.textContent = slider.value + '%';
+                        });
+                    }
+                };
+                setupWeightSlider('wallartMode_musicMode_sortWeight_recent');
+                setupWeightSlider('wallartMode_musicMode_sortWeight_popular');
+                setupWeightSlider('wallartMode_musicMode_sortWeight_random');
             }
         } catch (_) {
             /* mutual exclusivity logic failed */
@@ -4437,6 +4484,12 @@
                     minRating: parseFloat(val('wallartMode_musicMode_minRating')) || 0,
                     artistRotationSeconds:
                         parseInt(val('wallartMode_musicMode_artistRotationSeconds')) || 60,
+                    sortMode: val('wallartMode_musicMode_sortMode') || 'weighted-random',
+                    sortWeights: {
+                        recent: parseInt(val('wallartMode_musicMode_sortWeight_recent')) || 20,
+                        popular: parseInt(val('wallartMode_musicMode_sortWeight_popular')) || 30,
+                        random: parseInt(val('wallartMode_musicMode_sortWeight_random')) || 50,
+                    },
                 },
                 layoutSettings: {
                     heroGrid: {

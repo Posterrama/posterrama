@@ -803,6 +803,56 @@
                         </div>
                         <small class="form-help">How long each artist is displayed before rotating to the next one</small>
                       </div>
+
+                      <!-- Album Sorting Mode -->
+                      <div class="form-row">
+                        <label for="wallartMode_musicMode_sortMode">Album Sorting</label>
+                        <div class="select-wrap has-caret">
+                          <select id="wallartMode_musicMode_sortMode">
+                            <option value="weighted-random">Smart Mix (Recommended)</option>
+                            <option value="recent">Recently Added</option>
+                            <option value="popular">Most Played</option>
+                            <option value="alphabetical">Alphabetical (A-Z)</option>
+                            <option value="random">Pure Random</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                        <small class="form-help">How albums are selected and ordered for display</small>
+                      </div>
+
+                      <!-- Smart Mix Weights (only for weighted-random) -->
+                      <div id="musicMode_sortWeightsRow" style="display: none; margin-left: 1rem; padding: 1rem; background: var(--color-bg-subtle); border-radius: 8px; border-left: 3px solid var(--color-accent);">
+                        <div style="font-weight: 600; margin-bottom: 0.75rem; color: var(--color-text-primary);"><i class="fas fa-sliders"></i> Smart Mix Weights</div>
+                        
+                        <div class="form-row" style="margin-bottom: 0.75rem;">
+                          <label for="wallartMode_musicMode_sortWeight_recent" style="font-size: 0.9rem;">Recent Albums</label>
+                          <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="range" id="wallartMode_musicMode_sortWeight_recent" min="0" max="100" step="5" style="flex: 1;" />
+                            <span id="wallartMode_musicMode_sortWeight_recent_value" style="min-width: 3rem; text-align: right; font-weight: 600; color: var(--color-accent);">20%</span>
+                          </div>
+                          <small class="form-help">Albums recently added to your library</small>
+                        </div>
+
+                        <div class="form-row" style="margin-bottom: 0.75rem;">
+                          <label for="wallartMode_musicMode_sortWeight_popular" style="font-size: 0.9rem;">Popular Albums</label>
+                          <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="range" id="wallartMode_musicMode_sortWeight_popular" min="0" max="100" step="5" style="flex: 1;" />
+                            <span id="wallartMode_musicMode_sortWeight_popular_value" style="min-width: 3rem; text-align: right; font-weight: 600; color: var(--color-accent);">30%</span>
+                          </div>
+                          <small class="form-help">Highly rated albums</small>
+                        </div>
+
+                        <div class="form-row">
+                          <label for="wallartMode_musicMode_sortWeight_random" style="font-size: 0.9rem;">Random Albums</label>
+                          <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="range" id="wallartMode_musicMode_sortWeight_random" min="0" max="100" step="5" style="flex: 1;" />
+                            <span id="wallartMode_musicMode_sortWeight_random_value" style="min-width: 3rem; text-align: right; font-weight: 600; color: var(--color-accent);">50%</span>
+                          </div>
+                          <small class="form-help">Random selection for variety and rediscovering albums</small>
+                        </div>
+
+                        <small class="form-help" style="display: block; margin-top: 0.75rem; font-style: italic; color: var(--color-text-secondary);">Adjust weights to balance between new, popular, and rediscovered albums. Total doesn't need to equal 100%.</small>
+                      </div>
                     </div>
                     <small class="form-help" id="music-mode-help">Exclusive mode: when enabled, only album covers from your Plex music library will be displayed (no movies, series, or games). Configure music library, genres, and artists in the Plex media Source.</small>
                   </div>
