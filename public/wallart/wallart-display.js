@@ -176,8 +176,8 @@
                 }
 
                 // Calculate optimal poster width based on screen width and density
-                let optimalPosterWidth = Math.max(1, Math.round(screenWidth * densityFactor));
-                let optimalPosterHeight = Math.max(
+                const optimalPosterWidth = Math.max(1, Math.round(screenWidth * densityFactor));
+                const optimalPosterHeight = Math.max(
                     1,
                     Math.round(optimalPosterWidth / posterAspectRatio)
                 );
@@ -192,49 +192,68 @@
                     if (gridMatch) {
                         cols = parseInt(gridMatch[1]);
                         rows = parseInt(gridMatch[2]);
-                        // Recalculate poster dimensions to fit the grid
-                        optimalPosterWidth = Math.floor(screenWidth / cols);
-                        optimalPosterHeight = Math.floor(availableHeight / rows);
                     }
                 }
                 if (!Number.isFinite(cols) || cols < 1) cols = 1;
                 if (!Number.isFinite(rows) || rows < 1) rows = 1;
 
-                // Now optimize: stretch posters slightly to minimize black space while maintaining aspect ratio
-                const actualPosterWidth = Math.max(1, Math.floor(screenWidth / cols));
-                const actualPosterHeight = Math.max(
-                    1,
-                    Math.round(actualPosterWidth / posterAspectRatio)
-                );
+                // For music mode with explicit grid size, calculate dimensions to perfectly fill screen
+                let actualPosterWidth, actualPosterHeight;
+                if (isMusicMode && musicConfig.gridSize) {
+                    // Square tiles that perfectly fill the screen
+                    actualPosterWidth = Math.floor(screenWidth / cols);
+                    actualPosterHeight = Math.floor(availableHeight / rows);
+                    // Force square by using the smaller dimension
+                    const squareSize = Math.min(actualPosterWidth, actualPosterHeight);
+                    actualPosterWidth = squareSize;
+                    actualPosterHeight = squareSize;
+                } else {
+                    // Normal calculation with aspect ratio
+                    actualPosterWidth = Math.max(1, Math.floor(screenWidth / cols));
+                    actualPosterHeight = Math.max(
+                        1,
+                        Math.round(actualPosterWidth / posterAspectRatio)
+                    );
+                }
 
                 // Check if we can fit the calculated height
                 let finalRows = rows;
                 let finalPosterHeight = actualPosterHeight;
                 let finalPosterWidth = actualPosterWidth;
 
-                const calculatedGridHeight = rows * actualPosterHeight;
-                const remainingHeight = availableHeight - calculatedGridHeight;
+                // Skip optimization for music mode - use exact grid
+                if (isMusicMode && musicConfig.gridSize) {
+                    // Use exact dimensions, no optimization
+                    finalRows = rows;
+                    finalPosterHeight = actualPosterHeight;
+                    finalPosterWidth = actualPosterWidth;
+                } else {
+                    const calculatedGridHeight = rows * actualPosterHeight;
+                    const remainingHeight = availableHeight - calculatedGridHeight;
 
-                if (remainingHeight > actualPosterHeight * 0.4) {
-                    const newRows = rows + 1;
-                    const heightPerRow = Math.floor(availableHeight / newRows);
-                    const widthForHeight = Math.round(heightPerRow * posterAspectRatio);
-                    if (widthForHeight * cols <= screenWidth) {
-                        finalRows = newRows;
-                        finalPosterHeight = heightPerRow;
-                        finalPosterWidth = widthForHeight;
-                    } else {
+                    if (remainingHeight > actualPosterHeight * 0.4) {
+                        const newRows = rows + 1;
+                        const heightPerRow = Math.floor(availableHeight / newRows);
+                        const widthForHeight = Math.round(heightPerRow * posterAspectRatio);
+                        if (widthForHeight * cols <= screenWidth) {
+                            finalRows = newRows;
+                            finalPosterHeight = heightPerRow;
+                            finalPosterWidth = widthForHeight;
+                        } else {
+                            finalPosterHeight = Math.floor(availableHeight / rows);
+                            finalPosterWidth = Math.round(finalPosterHeight * posterAspectRatio);
+                            if (finalPosterWidth * cols > screenWidth) {
+                                finalPosterWidth = Math.floor(screenWidth / cols);
+                                finalPosterHeight = Math.round(
+                                    finalPosterWidth / posterAspectRatio
+                                );
+                            }
+                        }
+                    } else if (remainingHeight < 0) {
                         finalPosterHeight = Math.floor(availableHeight / rows);
                         finalPosterWidth = Math.round(finalPosterHeight * posterAspectRatio);
-                        if (finalPosterWidth * cols > screenWidth) {
-                            finalPosterWidth = Math.floor(screenWidth / cols);
-                            finalPosterHeight = Math.round(finalPosterWidth / posterAspectRatio);
-                        }
                     }
-                } else if (remainingHeight < 0) {
-                    finalPosterHeight = Math.floor(availableHeight / rows);
-                    finalPosterWidth = Math.round(finalPosterHeight * posterAspectRatio);
-                }
+                } // End of else block for music mode skip
 
                 const gridWidth = cols * finalPosterWidth;
                 const gridHeight = finalRows * finalPosterHeight;
@@ -1126,17 +1145,42 @@
                             const isMusicMode = appConfig?.wallartMode?.musicMode?.enabled === true;
 
                             let heroSpan;
+                            let heroRowSpan;
+
                             if (portraitMode) {
                                 heroSpan = 4; // 4x4
+                                heroRowSpan = 4;
                                 heroSpan = Math.max(2, Math.min(heroSpan, cols - 1));
+                                heroRowSpan = Math.max(2, Math.min(heroRowSpan, rows - 1));
                             } else {
-                                // For music mode (square albums), use square hero. Otherwise, use 2:3 aspect ratio
-                                const aspectRatio = isMusicMode ? 1 : 2 / 3;
-                                const heroTargetW = Math.round(aspectRatio * (rows * baseCellH));
-                                heroSpan = Math.max(1, Math.round(heroTargetW / baseCellW));
-                                const minRemainingCols = Math.max(2, Math.ceil(cols * 0.25));
-                                heroSpan = Math.min(heroSpan, cols - minRemainingCols);
-                                heroSpan = Math.max(2, heroSpan);
+                                if (isMusicMode) {
+                                    // For music mode: make hero PERFECTLY SQUARE (same rows as cols)
+                                    // Use about 1/3 of the screen width
+                                    heroSpan = Math.max(2, Math.min(Math.floor(cols / 3), rows));
+                                    heroRowSpan = heroSpan; // SQUARE!
+                                    // Ensure we don't take up the whole screen
+                                    const minRemainingCols = Math.max(2, Math.ceil(cols * 0.25));
+                                    if (heroSpan > cols - minRemainingCols) {
+                                        heroSpan = Math.max(2, cols - minRemainingCols);
+                                        heroRowSpan = heroSpan;
+                                    }
+                                    // Also check rows
+                                    if (heroRowSpan > rows - 1) {
+                                        heroRowSpan = Math.max(2, rows - 1);
+                                        heroSpan = heroRowSpan;
+                                    }
+                                } else {
+                                    // For movies: use 2:3 aspect ratio
+                                    const aspectRatio = 2 / 3;
+                                    const heroTargetW = Math.round(
+                                        aspectRatio * (rows * baseCellH)
+                                    );
+                                    heroSpan = Math.max(1, Math.round(heroTargetW / baseCellW));
+                                    const minRemainingCols = Math.max(2, Math.ceil(cols * 0.25));
+                                    heroSpan = Math.min(heroSpan, cols - minRemainingCols);
+                                    heroSpan = Math.max(2, heroSpan);
+                                    heroRowSpan = rows; // Full height for movies
+                                }
                             }
 
                             // Occupancy grid
@@ -1150,24 +1194,32 @@
                                 currentPosters.push(firstHero);
                                 const heroEl = api.runtime.createPosterElement(firstHero, 0);
                                 const startCol = heroSide === 'left' ? 1 : cols - heroSpan + 1;
+                                heroEl.style.gridColumn = `${startCol} / span ${heroSpan}`;
+
                                 if (portraitMode) {
-                                    const heroHeight = 4;
+                                    const heroHeight = heroRowSpan || 4;
                                     if (rows >= heroHeight + 2) {
                                         const heroStartRow =
                                             Math.floor((rows - heroHeight) / 2) + 1;
                                         const heroEndRow = heroStartRow + heroHeight;
-                                        heroEl.style.gridColumn = `${startCol} / span ${heroSpan}`;
                                         heroEl.style.gridRow = `${heroStartRow} / ${heroEndRow}`;
                                     } else if (rows >= heroHeight) {
-                                        heroEl.style.gridColumn = `${startCol} / span ${heroSpan}`;
                                         heroEl.style.gridRow = `1 / ${heroHeight + 1}`;
                                     } else {
-                                        heroEl.style.gridColumn = `${startCol} / span ${heroSpan}`;
                                         heroEl.style.gridRow = `1 / -1`;
                                     }
                                 } else {
-                                    heroEl.style.gridColumn = `${startCol} / span ${heroSpan}`;
-                                    heroEl.style.gridRow = `1 / -1`;
+                                    if (isMusicMode) {
+                                        // For music: center the square hero vertically
+                                        const heroStartRow = Math.max(
+                                            1,
+                                            Math.floor((rows - heroRowSpan) / 2) + 1
+                                        );
+                                        heroEl.style.gridRow = `${heroStartRow} / span ${heroRowSpan}`;
+                                    } else {
+                                        // For movies: full height
+                                        heroEl.style.gridRow = `1 / -1`;
+                                    }
                                 }
                                 heroEl.dataset.hero = 'true';
                                 const heroImg = heroEl.querySelector('img');
@@ -1202,7 +1254,7 @@
 
                                 // Mark occupied
                                 if (portraitMode) {
-                                    const heroHeight = Math.min(4, rows);
+                                    const heroHeight = heroRowSpan || Math.min(4, rows);
                                     let heroStartRow = 0;
                                     if (rows >= heroHeight + 2) {
                                         heroStartRow = Math.floor((rows - heroHeight) / 2);
@@ -1219,11 +1271,31 @@
                                         }
                                     }
                                 } else {
-                                    for (let r = 0; r < rows; r++) {
-                                        for (let c = 0; c < heroSpan; c++) {
-                                            const colIdx =
-                                                (heroSide === 'left' ? 0 : cols - heroSpan) + c;
-                                            occupied[r][colIdx] = true;
+                                    if (isMusicMode) {
+                                        // For music: only mark the square hero area
+                                        const heroStartRow = Math.max(
+                                            0,
+                                            Math.floor((rows - heroRowSpan) / 2)
+                                        );
+                                        for (
+                                            let r = heroStartRow;
+                                            r < Math.min(rows, heroStartRow + heroRowSpan);
+                                            r++
+                                        ) {
+                                            for (let c = 0; c < heroSpan; c++) {
+                                                const colIdx =
+                                                    (heroSide === 'left' ? 0 : cols - heroSpan) + c;
+                                                occupied[r][colIdx] = true;
+                                            }
+                                        }
+                                    } else {
+                                        // For movies: mark full height
+                                        for (let r = 0; r < rows; r++) {
+                                            for (let c = 0; c < heroSpan; c++) {
+                                                const colIdx =
+                                                    (heroSide === 'left' ? 0 : cols - heroSpan) + c;
+                                                occupied[r][colIdx] = true;
+                                            }
                                         }
                                     }
                                 }
@@ -1566,28 +1638,30 @@
                                 const showGenre = musicConfig.showGenre === true;
 
                                 // Display style: covers-only (minimal overlay)
-                                if (displayStyle === 'covers-only' && showArtist && item.artist) {
-                                    const overlay = document.createElement('div');
-                                    overlay.className = 'music-metadata-overlay covers-only';
-                                    overlay.style.cssText = `
-                                        position: absolute;
-                                        bottom: 0;
-                                        left: 0;
-                                        right: 0;
-                                        background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
-                                        color: #fff;
-                                        padding: 8px 12px;
-                                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                                        pointer-events: none;
-                                        font-size: 0.85em;
-                                        font-weight: 500;
-                                        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-                                        white-space: nowrap;
-                                        overflow: hidden;
-                                        text-overflow: ellipsis;
-                                    `;
-                                    overlay.textContent = item.artist;
-                                    posterItem.appendChild(overlay);
+                                if (displayStyle === 'covers-only') {
+                                    if (showArtist && item.artist) {
+                                        const overlay = document.createElement('div');
+                                        overlay.className = 'music-metadata-overlay covers-only';
+                                        overlay.style.cssText = `
+                                            position: absolute;
+                                            bottom: 0;
+                                            left: 0;
+                                            right: 0;
+                                            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+                                            color: #fff;
+                                            padding: 8px 12px;
+                                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                                            pointer-events: none;
+                                            font-size: 0.85em;
+                                            font-weight: 500;
+                                            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+                                            white-space: nowrap;
+                                            overflow: hidden;
+                                            text-overflow: ellipsis;
+                                        `;
+                                        overlay.textContent = item.artist;
+                                        posterItem.appendChild(overlay);
+                                    }
                                 }
 
                                 // Display style: album-info (detailed metadata)
@@ -1628,7 +1702,7 @@
                                 }
 
                                 // Display style: artist-cards (artist-focused with large text)
-                                else if (displayStyle === 'artist-cards' && item.artist) {
+                                else if (displayStyle === 'artist-cards') {
                                     const overlay = document.createElement('div');
                                     overlay.className = 'music-metadata-overlay artist-cards';
                                     overlay.style.cssText = `
