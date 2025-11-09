@@ -82,21 +82,21 @@
                 "density": {
                     "type": "string",
                     "enum": ["low", "medium", "high", "ludicrous"],
-                    "default": "medium",
+                    "default": "high",
                     "description": "Grid density preset that influences number of rows/columns"
                 },
                 "refreshRate": {
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 10,
-                    "default": 6,
+                    "default": 4,
                     "description": "Relative refresh tempo (1=slow, 10=fast)"
                 },
                 "randomness": {
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 10,
-                    "default": 3,
+                    "default": 2,
                     "description": "Amount of random staggering in the cycle timing"
                 },
                 "animationType": {
@@ -116,7 +116,7 @@
                         "chromaticShift",
                         "mosaicShatter"
                     ],
-                    "default": "fade",
+                    "default": "flip",
                     "description": "Animation style used for grid updates"
                 },
                 "layoutVariant": {
@@ -127,13 +127,8 @@
                 },
                 "ambientGradient": {
                     "type": "boolean",
-                    "default": false,
-                    "description": "Enable subtle ambient gradient background overlay"
-                },
-                "autoRefresh": {
-                    "type": "boolean",
                     "default": true,
-                    "description": "Automatically refresh wallart content without manual interaction"
+                    "description": "Enable subtle ambient gradient background overlay"
                 },
                 "layoutSettings": {
                     "type": "object",
@@ -144,14 +139,14 @@
                                 "heroSide": {
                                     "type": "string",
                                     "enum": ["left", "right"],
-                                    "default": "left",
+                                    "default": "right",
                                     "description": "Position of the hero poster - left or right side of the grid"
                                 },
                                 "heroRotationMinutes": {
                                     "type": "integer",
                                     "minimum": 1,
                                     "maximum": 60,
-                                    "default": 10,
+                                    "default": 8,
                                     "description": "How often (in minutes) to rotate the hero poster"
                                 },
                                 "biasAmbientToHero": {
@@ -162,27 +157,6 @@
                             }
                         }
                     }
-                },
-                "itemsPerScreen": {
-                    "type": "number",
-                    "minimum": 4,
-                    "maximum": 100,
-                    "default": 30,
-                    "description": "Number of posters to display simultaneously in grid layout"
-                },
-                "columns": {
-                    "type": "number",
-                    "minimum": 2,
-                    "maximum": 12,
-                    "default": 6,
-                    "description": "Number of columns in the grid layout"
-                },
-                "transitionInterval": {
-                    "type": "number",
-                    "minimum": 5,
-                    "maximum": 300,
-                    "default": 30,
-                    "description": "Seconds between grid updates (replacing old posters with new ones)"
                 },
                 "gamesOnly": {
                     "type": "boolean",
@@ -263,7 +237,7 @@
             "description": "Force a specific portrait orientation for cinema mode instead of relying on device sensors.",
             "type": "string",
             "enum": ["auto", "portrait", "portrait-flipped"],
-            "default": "auto"
+            "default": "portrait-flipped"
         },
         "cinema": {
             "description": "Cinema mode overlays and presentation settings (header/footer, marquee, specs, ambilight).",
@@ -279,7 +253,7 @@
                         },
                         "text": {
                             "type": "string",
-                            "default": "Now Playing",
+                            "default": "Super Cool",
                             "description": "Text to display in cinema header"
                         },
                         "style": {
@@ -292,7 +266,7 @@
                     "additionalProperties": false,
                     "default": {
                         "enabled": true,
-                        "text": "Now Playing",
+                        "text": "Super Cool",
                         "style": "classic"
                     }
                 },
@@ -341,13 +315,13 @@
                                 },
                                 "showFlags": {
                                     "type": "boolean",
-                                    "default": false,
+                                    "default": true,
                                     "description": "Display content flags/badges"
                                 },
                                 "style": {
                                     "type": "string",
                                     "enum": ["subtle", "filled", "outline"],
-                                    "default": "subtle",
+                                    "default": "outline",
                                     "description": "Visual style for specs display"
                                 },
                                 "iconSet": {
@@ -362,8 +336,8 @@
                                 "showResolution": true,
                                 "showAudio": true,
                                 "showAspectRatio": true,
-                                "showFlags": false,
-                                "style": "subtle",
+                                "showFlags": true,
+                                "style": "outline",
                                 "iconSet": "filled"
                             }
                         }
@@ -378,8 +352,8 @@
                             "showResolution": true,
                             "showAudio": true,
                             "showAspectRatio": true,
-                            "showFlags": false,
-                            "style": "subtle",
+                            "showFlags": true,
+                            "style": "outline",
                             "iconSet": "filled"
                         }
                     }
@@ -396,7 +370,8 @@
                                 "Coming Soon",
                                 "Now Playing",
                                 "Home Cinema",
-                                "Feature Presentation"
+                                "Feature Presentation",
+                                "Super Cool"
                             ]
                         },
                         "footerTexts": {
@@ -418,7 +393,8 @@
                             "Coming Soon",
                             "Now Playing",
                             "Home Cinema",
-                            "Feature Presentation"
+                            "Feature Presentation",
+                            "Super Cool"
                         ],
                         "footerTexts": [
                             "Coming Soon",
@@ -507,9 +483,10 @@
             },
             "additionalProperties": false,
             "default": {
+                "orientation": "auto",
                 "header": {
                     "enabled": true,
-                    "text": "Now Playing",
+                    "text": "Super Cool",
                     "style": "classic"
                 },
                 "footer": {
@@ -521,17 +498,30 @@
                         "showResolution": true,
                         "showAudio": true,
                         "showAspectRatio": true,
-                        "showFlags": false,
-                        "style": "subtle",
+                        "showFlags": true,
+                        "style": "outline",
                         "iconSet": "filled"
                     }
                 },
+                "ambilight": {
+                    "enabled": true,
+                    "strength": 60
+                },
+                "nowPlaying": {
+                    "enabled": false,
+                    "priority": "first",
+                    "filterUser": "",
+                    "fallbackToRotation": true,
+                    "updateIntervalSeconds": 15
+                },
+                "rotationIntervalMinutes": 0,
                 "presets": {
                     "headerTexts": [
                         "Coming Soon",
                         "Now Playing",
                         "Home Cinema",
-                        "Feature Presentation"
+                        "Feature Presentation",
+                        "Super Cool"
                     ],
                     "footerTexts": [
                         "Coming Soon",
@@ -539,13 +529,7 @@
                         "Home Cinema",
                         "Feature Presentation"
                     ]
-                },
-                "ambilight": {
-                    "enabled": true,
-                    "strength": 60
-                },
-                "rotationIntervalMinutes": 0,
-                "orientation": "auto"
+                }
             }
         },
         "transitionEffect": {
@@ -818,7 +802,6 @@
                             "type": "string"
                         }
                     },
-
                     "insecureHttps": {
                         "type": "boolean",
                         "description": "Allow self-signed or invalid HTTPS certificates (for type=romm only).",
@@ -866,12 +849,12 @@
                             "items": {
                                 "type": "string"
                             },
-                            "default": ["127.0.0.1", "::1", "192.168.0.0/16"]
+                            "default": ["127.0.0.1", "10.255.0.0/16"]
                         }
                     },
                     "additionalProperties": false,
                     "default": {
-                        "ipAllowList": ["127.0.0.1", "::1", "192.168.0.0/16"]
+                        "ipAllowList": ["127.0.0.1", "10.255.0.0/16"]
                     }
                 }
             }
@@ -897,7 +880,7 @@
             "properties": {
                 "enabled": {
                     "type": "boolean",
-                    "default": false,
+                    "default": true,
                     "description": "Enable MQTT integration"
                 },
                 "broker": {
@@ -905,7 +888,7 @@
                     "properties": {
                         "host": {
                             "type": "string",
-                            "default": "localhost",
+                            "default": "your-server-address",
                             "description": "MQTT broker hostname or IP"
                         },
                         "port": {
@@ -917,7 +900,7 @@
                         },
                         "username": {
                             "type": "string",
-                            "default": "",
+                            "default": "mqtt",
                             "description": "MQTT broker username (optional)"
                         },
                         "passwordEnvVar": {
@@ -929,22 +912,15 @@
                             "type": "string",
                             "default": "",
                             "description": "MQTT password (direct, less secure than passwordEnvVar)"
-                        },
-                        "tls": {
-                            "type": "boolean",
-                            "default": false,
-                            "description": "Use TLS for MQTT connection"
                         }
                     },
                     "required": ["host", "port"],
                     "additionalProperties": false,
                     "default": {
-                        "host": "localhost",
+                        "host": "your-server-address",
                         "port": 1883,
-                        "username": "",
-                        "passwordEnvVar": "MQTT_PASSWORD",
-                        "password": "",
-                        "tls": false
+                        "username": "mqtt",
+                        "passwordEnvVar": "MQTT_PASSWORD"
                     }
                 },
                 "discovery": {
@@ -954,34 +930,16 @@
                             "type": "boolean",
                             "default": true,
                             "description": "Enable Home Assistant MQTT Discovery"
-                        },
-                        "prefix": {
-                            "type": "string",
-                            "default": "homeassistant",
-                            "description": "MQTT discovery topic prefix"
                         }
                     },
                     "additionalProperties": false,
                     "default": {
-                        "enabled": true,
-                        "prefix": "homeassistant"
+                        "enabled": true
                     }
-                },
-                "topicPrefix": {
-                    "type": "string",
-                    "default": "posterrama",
-                    "description": "Prefix for all Posterrama MQTT topics"
                 },
                 "externalUrl": {
                     "type": "string",
                     "description": "External URL for Home Assistant to access Posterrama (e.g., http://192.168.1.100:4000). If not set, uses baseUrl from main config."
-                },
-                "publishInterval": {
-                    "type": "integer",
-                    "default": 30,
-                    "minimum": 5,
-                    "maximum": 300,
-                    "description": "Interval in seconds to publish device state updates"
                 },
                 "availability": {
                     "type": "object",
@@ -1008,20 +966,17 @@
             },
             "additionalProperties": false,
             "default": {
-                "enabled": false,
+                "enabled": true,
                 "broker": {
-                    "host": "localhost",
+                    "host": "your-server-address",
                     "port": 1883,
-                    "username": "",
-                    "passwordEnvVar": "MQTT_PASSWORD",
-                    "tls": false
+                    "username": "mqtt",
+                    "passwordEnvVar": "MQTT_PASSWORD"
                 },
+                "externalUrl": "your-server-address",
                 "discovery": {
-                    "enabled": true,
-                    "prefix": "homeassistant"
+                    "enabled": true
                 },
-                "topicPrefix": "posterrama",
-                "publishInterval": 30,
                 "availability": {
                     "enabled": true,
                     "timeout": 60
@@ -1046,17 +1001,13 @@
                     "type": "number",
                     "minimum": 0,
                     "maximum": 10,
-                    "default": 0,
+                    "default": 8,
                     "description": "Minimum TMDB rating to include (0-10)"
                 },
                 "apiKey": {
                     "type": "string",
-                    "default": "",
+                    "default": "your-api-key-here",
                     "description": "TMDB API key"
-                },
-                "yearFilter": {
-                    "type": ["integer", "string", "null"],
-                    "default": null
                 },
                 "genreFilter": {
                     "type": "string",
@@ -1082,25 +1033,6 @@
                     "minimum": 0,
                     "default": 2,
                     "description": "Maximum cache size in gigabytes"
-                },
-                "minFreeDiskSpaceMB": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "default": 750
-                },
-                "autoCleanup": {
-                    "type": "boolean",
-                    "default": true
-                },
-                "cleanupIntervalMinutes": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "default": 15
-                },
-                "maxAgeHours": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "default": 168
                 }
             }
         },
@@ -1112,7 +1044,7 @@
         "baseUrl": {
             "description": "Base URL where this instance is reachable (for links/tooling).",
             "type": "string",
-            "default": "http://localhost:4000"
+            "default": "your-server-address"
         },
         "port": {
             "description": "Optional explicit port override for integrations/tests.",
@@ -1152,7 +1084,7 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 60,
-                    "default": 10
+                    "default": 5
                 }
             },
             "required": ["enabled", "time", "retention"],
@@ -1211,12 +1143,12 @@
                 "enabled": {
                     "description": "Enable local directory as a media source.",
                     "type": "boolean",
-                    "default": false
+                    "default": true
                 },
                 "rootPath": {
                     "description": "Root path for local media directory. Must be an absolute path.",
                     "type": "string",
-                    "default": ""
+                    "default": "media"
                 },
                 "watchDirectories": {
                     "description": "Additional absolute directories to scan/watch as local media roots (same expected subfolders as rootPath).",
@@ -1226,215 +1158,10 @@
                     },
                     "default": []
                 },
-                "scanInterval": {
-                    "description": "Interval in seconds to scan for file changes.",
-                    "type": "integer",
-                    "minimum": 60,
-                    "maximum": 3600,
-                    "default": 300
-                },
-                "autoImportPosterpacks": {
-                    "description": "Automatically import generated posterpack ZIPs from complete/* into posters/backgrounds/clearlogos. When false, generation only writes ZIP files under complete and no assets are extracted.",
-                    "type": "boolean",
-                    "default": false
-                },
-                "generateThumbnails": {
-                    "description": "Automatically generate thumbnails for image files.",
-                    "type": "boolean",
-                    "default": true
-                },
-                "maxFileSize": {
-                    "description": "Maximum file size in bytes (100MB = 104857600).",
-                    "type": "integer",
-                    "minimum": 1048576,
-                    "maximum": 1073741824,
-                    "default": 104857600
-                },
-                "supportedFormats": {
-                    "description": "Array of supported file extensions.",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "default": [
-                        "jpg",
-                        "jpeg",
-                        "png",
-                        "webp",
-                        "gif",
-                        "bmp",
-                        "mp4",
-                        "webm",
-                        "avi",
-                        "zip"
-                    ]
-                },
                 "posterpackGeneration": {
                     "description": "Configuration for automatic posterpack generation from Plex/Jellyfin.",
                     "type": "object",
-                    "properties": {
-                        "generateThumbnail": {
-                            "type": "boolean",
-                            "description": "When true, derive a small thumbnail (thumbnail.jpg) from poster.jpg inside generated posterpack ZIPs.",
-                            "default": true
-                        },
-                        "enabled": {
-                            "description": "Enable posterpack generation functionality.",
-                            "type": "boolean",
-                            "default": true
-                        },
-                        "plex": {
-                            "type": "object",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean",
-                                    "default": true
-                                },
-                                "selectedLibraries": {
-                                    "description": "Array of Plex library IDs to include in generation.",
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    },
-                                    "default": []
-                                },
-                                "schedule": {
-                                    "description": "Generation schedule: manual, weekly, monthly.",
-                                    "type": "string",
-                                    "enum": ["manual", "weekly", "monthly"],
-                                    "default": "manual"
-                                },
-                                "lastGenerated": {
-                                    "description": "Timestamp of last generation (ISO string).",
-                                    "type": ["string", "null"],
-                                    "default": null
-                                }
-                            },
-                            "additionalProperties": false
-                        },
-                        "jellyfin": {
-                            "type": "object",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean",
-                                    "default": true
-                                },
-                                "selectedLibraries": {
-                                    "description": "Array of Jellyfin library IDs to include in generation.",
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    },
-                                    "default": []
-                                },
-                                "schedule": {
-                                    "description": "Generation schedule: manual, weekly, monthly.",
-                                    "type": "string",
-                                    "enum": ["manual", "weekly", "monthly"],
-                                    "default": "manual"
-                                },
-                                "lastGenerated": {
-                                    "description": "Timestamp of last generation (ISO string).",
-                                    "type": ["string", "null"],
-                                    "default": null
-                                }
-                            },
-                            "additionalProperties": false
-                        },
-                        "includeAssets": {
-                            "description": "Which asset types to include in posterpacks.",
-                            "type": "object",
-                            "properties": {
-                                "poster": {
-                                    "type": "boolean",
-                                    "default": true
-                                },
-                                "background": {
-                                    "type": "boolean",
-                                    "default": true
-                                },
-                                "clearart": {
-                                    "type": "boolean",
-                                    "default": true
-                                },
-                                "fanart": {
-                                    "type": "boolean",
-                                    "default": true
-                                },
-                                "discart": {
-                                    "type": "boolean",
-                                    "default": true
-                                },
-                                "cast": {
-                                    "type": "boolean",
-                                    "default": true
-                                }
-                            },
-                            "additionalProperties": false
-                        },
-                        "outputNaming": {
-                            "description": "Template for posterpack filename: {{title}} ({{year}}).",
-                            "type": "string",
-                            "default": "{{title}} ({{year}})"
-                        },
-                        "concurrentJobs": {
-                            "description": "Maximum concurrent posterpack generation jobs.",
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 5,
-                            "default": 2
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "security": {
-                    "description": "Security settings for file operations.",
-                    "type": "object",
-                    "properties": {
-                        "pathValidation": {
-                            "description": "Enable strict path validation (prevent directory traversal).",
-                            "type": "boolean",
-                            "default": true
-                        },
-                        "fileTypeValidation": {
-                            "description": "Enable file type validation (check file headers).",
-                            "type": "boolean",
-                            "default": true
-                        },
-                        "maxConcurrentUploads": {
-                            "description": "Maximum concurrent file uploads.",
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 20,
-                            "default": 5
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "performance": {
-                    "description": "Performance tuning settings.",
-                    "type": "object",
-                    "properties": {
-                        "thumbnailSize": {
-                            "description": "Thumbnail size in pixels (width).",
-                            "type": "integer",
-                            "minimum": 100,
-                            "maximum": 500,
-                            "default": 300
-                        },
-                        "indexCacheSize": {
-                            "description": "Maximum number of file metadata entries to cache in memory.",
-                            "type": "integer",
-                            "minimum": 100,
-                            "maximum": 10000,
-                            "default": 1000
-                        },
-                        "watcherEnabled": {
-                            "description": "Enable real-time file system watching for changes.",
-                            "type": "boolean",
-                            "default": true
-                        }
-                    },
+                    "properties": {},
                     "additionalProperties": false
                 }
             },
