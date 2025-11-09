@@ -2876,8 +2876,8 @@
         // Music Mode
         const musicMode = w.musicMode || {};
         setIf('wallartMode_musicMode_enabled', musicMode.enabled === true);
-        setIf('wallartMode_musicMode_displayStyle', musicMode.displayStyle || 'albumCover');
-        setIf('wallartMode_musicMode_animation', musicMode.animation || 'fade');
+        setIf('wallartMode_musicMode_displayStyle', musicMode.displayStyle || 'covers-only');
+        setIf('wallartMode_musicMode_animation', musicMode.animation || 'vinyl-spin');
         setIf('wallartMode_musicMode_gridSize', musicMode.gridSize || '3x3');
         setIf('wallartMode_musicMode_layout', musicMode.layout || 'grid');
         setIf('wallartMode_musicMode_showArtist', musicMode.showArtist !== false);
