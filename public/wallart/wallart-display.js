@@ -148,13 +148,11 @@
                 const isMusicMode = window.appConfig?.wallartMode?.musicMode?.enabled === true;
                 const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
 
-                // Map music density to wallart density factor
+                // Map music density to wallart density factor (4 options matching movies)
                 const musicDensityMap = {
                     cozy: 'low',
-                    comfortable: 'medium',
                     balanced: 'medium',
                     dense: 'high',
-                    'very-dense': 'high',
                     maximum: 'ludicrous',
                 };
 

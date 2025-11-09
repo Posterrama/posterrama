@@ -47,7 +47,7 @@ const schemas = {
                     .valid('vinyl-spin', 'slide-fade', 'crossfade', 'flip')
                     .default('vinyl-spin'),
                 density: Joi.string()
-                    .valid('cozy', 'comfortable', 'balanced', 'dense', 'very-dense', 'maximum')
+                    .valid('cozy', 'balanced', 'dense', 'maximum')
                     .default('balanced'),
                 showArtist: Joi.boolean().default(true),
                 showAlbumTitle: Joi.boolean().default(true),
