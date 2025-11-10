@@ -392,7 +392,7 @@
                 artistPhoto.style.cssText = `
                     width: 100%;
                     height: 100%;
-                    object-fit: contain;
+                    object-fit: cover;
                     object-position: center;
                     filter: grayscale(1) brightness(0.3) sepia(1) hue-rotate(180deg) saturate(3);
                 `;
