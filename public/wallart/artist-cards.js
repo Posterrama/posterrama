@@ -221,7 +221,7 @@
                     height: 100%;
                     object-fit: cover;
                     object-position: center;
-                    filter: grayscale(100%) brightness(0.4) sepia(100%) saturate(500%) hue-rotate(180deg);
+                    filter: grayscale(100%) brightness(0.25) sepia(100%) saturate(350%) hue-rotate(180deg);
                     clip-path: inset(0 60% 0 0);
                     z-index: 0;
                 `;
