@@ -375,10 +375,10 @@
                 z-index: 3;
             `;
 
-            // Show up to 10 album covers (pick UNIQUE albums, randomized)
+            // Show up to 9 album covers (pick UNIQUE albums, randomized)
             const albumsToShow = [];
             const usedIds = new Set(); // Track unique IDs to prevent duplicates
-            const targetCount = Math.min(10, artistData.albums.length);
+            const targetCount = Math.min(9, artistData.albums.length);
 
             if (artistData.albums.length === 0) {
                 // No albums - will show empty placeholders
@@ -404,7 +404,7 @@
                 albumCover.src = album.posterUrl || '';
                 albumCover.alt = album.title || '';
                 albumCover.style.cssText = `
-                    width: calc((100% - (9 * 0.8vw)) / 10);
+                    width: calc((100% - (8 * 0.8vw)) / 9);
                     aspect-ratio: 1;
                     flex-shrink: 0;
                     object-fit: cover;
