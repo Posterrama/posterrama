@@ -267,8 +267,7 @@
                     height: 100%;
                     object-fit: cover;
                     object-position: right center;
-                    filter: blur(20px) brightness(0.4) saturate(1.2) hue-rotate(200deg);
-                    transform: scale(1.1);
+                    filter: grayscale(1) brightness(0.3) sepia(1) hue-rotate(180deg) saturate(3);
                 `;
                 backdrop.appendChild(backdropImg);
                 rightSide.appendChild(backdrop);
