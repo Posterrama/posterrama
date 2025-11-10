@@ -177,14 +177,14 @@ describe('Plex Music Helpers', () => {
 
             const result = await getPlexMusicGenres(mockServerConfig, '1');
 
-            // Results may be sorted alphabetically, not by count
+            // Results are sorted alphabetically and only include tag, not count
             expect(result).toHaveLength(4);
             expect(result).toEqual(
                 expect.arrayContaining([
-                    { tag: 'Rock', count: 250 },
-                    { tag: 'Jazz', count: 120 },
-                    { tag: 'Classical', count: 85 },
-                    { tag: 'Electronic', count: 60 },
+                    { tag: 'Rock' },
+                    { tag: 'Jazz' },
+                    { tag: 'Classical' },
+                    { tag: 'Electronic' },
                 ])
             );
         });
