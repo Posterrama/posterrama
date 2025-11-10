@@ -737,7 +737,7 @@
                       </div>
 
                       <!-- Animation Type -->
-                      <div class="form-row">
+                      <div class="form-row" id="musicMode_animationRow">
                         <label for="wallartMode_musicMode_animation">Animation</label>
                         <div class="select-wrap has-caret">
                           <select id="wallartMode_musicMode_animation">
@@ -804,6 +804,19 @@
                         <small class="form-help">How long each artist is displayed before rotating to the next one</small>
                       </div>
 
+                      <!-- Album Rotation -->
+                      <div class="form-row" id="musicMode_albumRotationRow" style="display: none;">
+                        <label for="wallartMode_musicMode_albumRotationSeconds">Album Rotation (seconds)</label>
+                        <div class="number-input-wrapper">
+                          <input type="number" min="5" max="120" step="5" id="wallartMode_musicMode_albumRotationSeconds" />
+                          <div class="number-controls" role="group">
+                            <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                            <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                          </div>
+                        </div>
+                        <small class="form-help">How often album covers rotate within artist cards (artist-cards style only)</small>
+                      </div>
+
                       <!-- Album Sorting Mode -->
                       <div class="form-row">
                         <label for="wallartMode_musicMode_sortMode">Album Sorting</label>
@@ -821,14 +834,14 @@
                       </div>
 
                       <!-- Smart Mix Weights (only for weighted-random) -->
-                      <div id="musicMode_sortWeightsRow" style="display: none; margin-left: 1rem; padding: 1rem; background: var(--color-bg-subtle); border-radius: 8px; border-left: 3px solid var(--color-accent);">
+                      <div id="musicMode_sortWeightsRow" style="display: none; margin-left: 1rem; padding: 1rem; background: var(--color-bg-subtle); border-radius: 8px; border-left: 3px solid var(--color-primary);">
                         <div style="font-weight: 600; margin-bottom: 0.75rem; color: var(--color-text-primary);"><i class="fas fa-sliders"></i> Smart Mix Weights</div>
                         
                         <div class="form-row" style="margin-bottom: 0.75rem;">
                           <label for="wallartMode_musicMode_sortWeight_recent" style="font-size: 0.9rem;">Recent Albums</label>
                           <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <input type="range" id="wallartMode_musicMode_sortWeight_recent" min="0" max="100" step="5" style="flex: 1;" />
-                            <span id="wallartMode_musicMode_sortWeight_recent_value" style="min-width: 3rem; text-align: right; font-weight: 600; color: var(--color-accent);">20%</span>
+                            <span id="wallartMode_musicMode_sortWeight_recent_value" style="min-width: 3rem; text-align: right; font-weight: 600; color: var(--color-primary);">20%</span>
                           </div>
                           <small class="form-help">Albums recently added to your library</small>
                         </div>
@@ -837,7 +850,7 @@
                           <label for="wallartMode_musicMode_sortWeight_popular" style="font-size: 0.9rem;">Popular Albums</label>
                           <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <input type="range" id="wallartMode_musicMode_sortWeight_popular" min="0" max="100" step="5" style="flex: 1;" />
-                            <span id="wallartMode_musicMode_sortWeight_popular_value" style="min-width: 3rem; text-align: right; font-weight: 600; color: var(--color-accent);">30%</span>
+                            <span id="wallartMode_musicMode_sortWeight_popular_value" style="min-width: 3rem; text-align: right; font-weight: 600; color: var(--color-primary);">30%</span>
                           </div>
                           <small class="form-help">Highly rated albums</small>
                         </div>
@@ -846,7 +859,7 @@
                           <label for="wallartMode_musicMode_sortWeight_random" style="font-size: 0.9rem;">Random Albums</label>
                           <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <input type="range" id="wallartMode_musicMode_sortWeight_random" min="0" max="100" step="5" style="flex: 1;" />
-                            <span id="wallartMode_musicMode_sortWeight_random_value" style="min-width: 3rem; text-align: right; font-weight: 600; color: var(--color-accent);">50%</span>
+                            <span id="wallartMode_musicMode_sortWeight_random_value" style="min-width: 3rem; text-align: right; font-weight: 600; color: var(--color-primary);">50%</span>
                           </div>
                           <small class="form-help">Random selection for variety and rediscovering albums</small>
                         </div>

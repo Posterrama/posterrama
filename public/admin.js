@@ -2482,6 +2482,12 @@
         // Single authoritative nav sync (no other code should toggle .active)
         ensureNavActive(id);
 
+        // Show/hide Configure Dashboard Cards button only on dashboard
+        const btnConfigureCards = document.getElementById('btn-configure-cards');
+        if (btnConfigureCards) {
+            btnConfigureCards.style.display = id === 'section-dashboard' ? '' : 'none';
+        }
+
         // Lazy device section initialization (if user clicked sidebar directly, hash routing may not fire init)
         if (id === 'section-devices') {
             try {
@@ -2890,6 +2896,7 @@
         setIf('wallartMode_musicMode_showGenre', musicMode.showGenre === true);
         setIf('wallartMode_musicMode_minRating', musicMode.minRating || 0);
         setIf('wallartMode_musicMode_artistRotationSeconds', musicMode.artistRotationSeconds ?? 60);
+        setIf('wallartMode_musicMode_albumRotationSeconds', musicMode.albumRotationSeconds ?? 15);
 
         // Sorting configuration
         const sortWeights = musicMode.sortWeights || { recent: 20, popular: 30, random: 50 };
@@ -3005,14 +3012,19 @@
                 const displayStyleSelect = document.getElementById(
                     'wallartMode_musicMode_displayStyle'
                 );
+                const animationRow = document.getElementById('musicMode_animationRow');
                 const densityRow = document.getElementById('musicMode_densityRow');
                 const displayOptionsRow = document.getElementById('musicMode_displayOptionsRow');
                 const artistRotationRow = document.getElementById('musicMode_artistRotationRow');
+                const albumRotationRow = document.getElementById('musicMode_albumRotationRow');
 
                 const toggleMusicModeOptions = () => {
                     const displayStyle = displayStyleSelect?.value;
                     const isArtistCards = displayStyle === 'artist-cards';
                     const isCoversOnly = displayStyle === 'covers-only';
+
+                    // Hide animation for artist-cards mode
+                    if (animationRow) animationRow.style.display = isArtistCards ? 'none' : '';
 
                     // Hide density for artist-cards mode
                     if (densityRow) densityRow.style.display = isArtistCards ? 'none' : '';
@@ -3025,6 +3037,10 @@
                     // Show artist rotation slider only for artist-cards mode
                     if (artistRotationRow)
                         artistRotationRow.style.display = isArtistCards ? '' : 'none';
+
+                    // Show album rotation slider only for artist-cards mode
+                    if (albumRotationRow)
+                        albumRotationRow.style.display = isArtistCards ? '' : 'none';
                 };
 
                 displayStyleSelect?.addEventListener('change', toggleMusicModeOptions);
@@ -4489,6 +4505,8 @@
                     minRating: parseFloat(val('wallartMode_musicMode_minRating')) || 0,
                     artistRotationSeconds:
                         parseInt(val('wallartMode_musicMode_artistRotationSeconds')) || 60,
+                    albumRotationSeconds:
+                        parseInt(val('wallartMode_musicMode_albumRotationSeconds')) || 15,
                     sortMode: val('wallartMode_musicMode_sortMode') || 'weighted-random',
                     sortWeights: {
                         recent: parseInt(val('wallartMode_musicMode_sortWeight_recent')) || 20,

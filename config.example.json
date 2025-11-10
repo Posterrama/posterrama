@@ -33,7 +33,9 @@
             "showArtist": true,
             "showAlbumTitle": true,
             "showYear": true,
-            "showGenre": false
+            "showGenre": false,
+            "artistRotationSeconds": 60,
+            "albumRotationSeconds": 15
         }
     },
     "cinemaMode": false,

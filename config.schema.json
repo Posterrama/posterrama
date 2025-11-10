@@ -222,6 +222,13 @@
                             "maximum": 600,
                             "default": 60,
                             "description": "Seconds between artist rotations (artist-cards style only)"
+                        },
+                        "albumRotationSeconds": {
+                            "type": "integer",
+                            "minimum": 5,
+                            "maximum": 120,
+                            "default": 15,
+                            "description": "Seconds between album cover rotations within artist cards (artist-cards style only)"
                         }
                     },
                     "additionalProperties": false

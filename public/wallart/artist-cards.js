@@ -239,7 +239,7 @@
                 blueOverlay.style.cssText = `
                     position: absolute;
                     inset: 0;
-                    background: rgba(30, 80, 160, 0.6);
+                    background: rgba(20, 60, 140, 0.75);
                     mix-blend-mode: multiply;
                     pointer-events: none;
                 `;
@@ -364,6 +364,7 @@
 
             // BOTTOM - Album Covers Grid (full width at bottom, over both panels)
             const albumGrid = document.createElement('div');
+            albumGrid.className = 'artist-album-grid';
 
             albumGrid.style.cssText = `
                 position: absolute;
@@ -371,14 +372,14 @@
                 left: 2vw;
                 right: 2vw;
                 display: flex;
-                gap: 0.8vw;
+                gap: 1.5vw;
                 z-index: 3;
             `;
 
-            // Show up to 9 album covers (pick UNIQUE albums, randomized)
+            // Show up to 8 album covers (pick UNIQUE albums, randomized)
             const albumsToShow = [];
             const usedIds = new Set(); // Track unique IDs to prevent duplicates
-            const targetCount = Math.min(9, artistData.albums.length);
+            const targetCount = Math.min(8, artistData.albums.length);
 
             if (artistData.albums.length === 0) {
                 // No albums - will show empty placeholders
@@ -404,7 +405,7 @@
                 albumCover.src = album.posterUrl || '';
                 albumCover.alt = album.title || '';
                 albumCover.style.cssText = `
-                    width: calc((100% - (8 * 0.8vw)) / 9);
+                    width: calc((100% - (7 * 1.5vw)) / 8);
                     aspect-ratio: 1;
                     flex-shrink: 0;
                     object-fit: cover;
@@ -438,7 +439,7 @@
                 return;
             }
 
-            const albumGrid = card.querySelector('div[style*="grid-template-columns"]');
+            const albumGrid = card.querySelector('.artist-album-grid');
             if (!albumGrid) {
                 console.warn('[Artist Cards] Could not find album grid');
                 return;
@@ -466,7 +467,12 @@
                 'total albums'
             );
 
-            // Rotate albums every 10 seconds
+            // Get album rotation interval from config (default 15 seconds)
+            const albumRotationSeconds =
+                window.appConfig?.wallartMode?.musicMode?.albumRotationSeconds ?? 15;
+            console.log('[Artist Cards] Album rotation interval:', albumRotationSeconds, 'seconds');
+
+            // Rotate albums at configured interval
             const rotationInterval = setInterval(() => {
                 // Stop if card is removed from DOM
                 if (!card.isConnected) {
@@ -541,7 +547,7 @@
                         }, 400);
                     }, idx * 150); // Stagger by 150ms per cover
                 });
-            }, 10000); // Every 10 seconds
+            }, albumRotationSeconds * 1000); // Use configured interval
         },
     };
 

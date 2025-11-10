@@ -84,26 +84,39 @@ Display a beautiful grid of posters, updating dynamically with new content. Choo
   
 </figure>
 
-<br>
+**Games Mode** — Display your game collection from RomM in Wallart. Games mode showcases your retro and modern game covers with the same beautiful grid layouts and animations.
 
 <figure>
-  <img src="./screenshots/romm.png" alt="Games Only Mode" width="740">
+  <img src="./screenshots/games_mode.png" alt="Games Only Mode" width="740">
   <figcaption style="text-align:left; color:#6a6a6a;"><em>Games-only mode: showcase your retro and modern game collection from RomM</em></figcaption>
   
 </figure>
 
 **Music Mode** — Transform your Wallart display into an album art gallery. Music mode integrates with your Plex music library to showcase square album covers in beautiful grid layouts with customizable metadata overlays.
 
+<figure>
+  <img src="./screenshots/music_artist_card.png" alt="Music Mode - Artist Cards" width="740">
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>Artist Cards display: full-screen artist photos with album covers and metadata</em></figcaption>
+  
+</figure>
+
+<figure>
+  <img src="./screenshots/music_covers.png" alt="Music Mode - Album Covers" width="740">
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>Album covers grid: clean, minimal display focused on artwork</em></figcaption>
+  
+</figure>
+
 **Key features:**
 
-- Square album cover display (optimized for music)
-- Metadata overlays showing artist, album, year, genre
+- Three display styles: covers-only (minimal grid), album-info (with metadata), artist-cards (full-screen artist showcase)
+- Artist Cards mode: cinematic split-screen with artist photo, album covers, and rotating album display
+- Square album cover display optimized for music artwork
+- Configurable grid sizes (3×3 to 6×6) for covers-only and album-info styles
+- Customizable rotation intervals for both artists and album covers
+- Smart Mix sorting with adjustable weights for recent, popular, and random albums
 - Filter by genre, artist, or minimum rating
-- Configurable grid sizes (2×2 to 5×5)
-- Multiple animation styles (fade, slide, zoom)
+- Multiple animation styles including vinyl-spin, slide-fade, crossfade, and flip
 - Respects Plex ratings and music metadata
-
-> **Note:** Music mode requires a Plex Media Server with at least one configured music library. See [Music Mode Testing Guide](./docs/MUSIC-MODE-TESTING.md) for detailed configuration steps.
 
 ### Cinema mode
 
