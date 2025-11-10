@@ -412,7 +412,6 @@
             }
 
             const allAlbums = [...artistData.albums];
-            const albumCount = allAlbums.length;
 
             // Track currently visible album IDs to ensure uniqueness
             const getCurrentlyVisibleIds = () => {
