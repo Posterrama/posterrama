@@ -208,11 +208,12 @@
                 animation: cardFadeIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             `;
 
-            // Full background artist photo (16:9, covers entire card)
+            // Background layer: Two versions of the same photo
             if (artistData.photo) {
-                const bgPhoto = document.createElement('img');
-                bgPhoto.src = artistData.photo;
-                bgPhoto.style.cssText = `
+                // Left side: Blue filtered version (40%)
+                const bluePhoto = document.createElement('img');
+                bluePhoto.src = artistData.photo;
+                bluePhoto.style.cssText = `
                     position: absolute;
                     top: 0;
                     left: 0;
@@ -220,26 +221,27 @@
                     height: 100%;
                     object-fit: cover;
                     object-position: center;
+                    filter: grayscale(1) brightness(0.3) sepia(1) hue-rotate(180deg) saturate(3);
+                    clip-path: inset(0 60% 0 0);
                     z-index: 0;
                 `;
-                card.appendChild(bgPhoto);
-            }
+                card.appendChild(bluePhoto);
 
-            // Blue filter overlay for left 40% only
-            if (artistData.photo) {
-                const blueFilter = document.createElement('div');
-                blueFilter.style.cssText = `
+                // Right side: Original colors (60%)
+                const originalPhoto = document.createElement('img');
+                originalPhoto.src = artistData.photo;
+                originalPhoto.style.cssText = `
                     position: absolute;
                     top: 0;
                     left: 0;
-                    width: 40%;
+                    width: 100%;
                     height: 100%;
-                    background: rgba(0, 0, 0, 0.4);
-                    backdrop-filter: grayscale(1) brightness(0.7) sepia(1) hue-rotate(180deg) saturate(4);
-                    -webkit-backdrop-filter: grayscale(1) brightness(0.7) sepia(1) hue-rotate(180deg) saturate(4);
+                    object-fit: cover;
+                    object-position: center;
+                    clip-path: inset(0 0 0 40%);
                     z-index: 0;
                 `;
-                card.appendChild(blueFilter);
+                card.appendChild(originalPhoto);
             }
 
             // LEFT SIDE - Info + Albums (40% width)
