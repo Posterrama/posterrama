@@ -347,8 +347,7 @@
                 bottom: 2vh;
                 left: 2vw;
                 right: 2vw;
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(7vw, 1fr));
+                display: flex;
                 gap: 0.8vw;
                 z-index: 3;
             `;
@@ -382,8 +381,9 @@
                 albumCover.src = album.posterUrl || '';
                 albumCover.alt = album.title || '';
                 albumCover.style.cssText = `
-                    width: 100%;
-                    aspect-ratio: 1;
+                    width: 7vw;
+                    height: 7vw;
+                    flex-shrink: 0;
                     object-fit: cover;
                     border-radius: 0.6vw;
                     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
