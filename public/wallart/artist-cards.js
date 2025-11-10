@@ -208,15 +208,15 @@
                 animation: cardFadeIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             `;
 
-            // Full background artist photo (16:9, covers entire card)
+            // Full background artist photo (16:9, covers entire card) - original colors
             if (artistData.photo) {
                 const bgPhoto = document.createElement('img');
                 bgPhoto.src = artistData.photo;
                 bgPhoto.style.cssText = `
                     position: absolute;
                     top: 0;
-                    left: 0;
-                    width: 100%;
+                    right: 0;
+                    width: 60%;
                     height: 100%;
                     object-fit: cover;
                     object-position: center;
@@ -225,7 +225,25 @@
                 card.appendChild(bgPhoto);
             }
 
-            // LEFT SIDE - Info + Albums (40% width) with blue filter overlay
+            // Blue filtered photo for left side
+            if (artistData.photo) {
+                const bluePhoto = document.createElement('img');
+                bluePhoto.src = artistData.photo;
+                bluePhoto.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 40%;
+                    height: 100%;
+                    object-fit: cover;
+                    object-position: center;
+                    filter: grayscale(1) brightness(0.3) sepia(1) hue-rotate(180deg) saturate(3);
+                    z-index: 0;
+                `;
+                card.appendChild(bluePhoto);
+            }
+
+            // LEFT SIDE - Info + Albums (40% width)
             const leftSide = document.createElement('div');
             leftSide.style.cssText = `
                 width: 40%;
@@ -237,20 +255,6 @@
                 position: relative;
                 z-index: 1;
             `;
-
-            // Blue filter overlay for left side
-            const blueOverlay = document.createElement('div');
-            blueOverlay.style.cssText = `
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(135deg, rgba(22, 33, 62, 0.95) 0%, rgba(15, 24, 34, 0.95) 100%);
-                backdrop-filter: grayscale(1) brightness(0.5) sepia(1) hue-rotate(180deg) saturate(3);
-                z-index: 0;
-            `;
-            leftSide.appendChild(blueOverlay);
 
             // TOP - Artist Name
             const artistName = document.createElement('div');
