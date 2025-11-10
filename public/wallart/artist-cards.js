@@ -266,7 +266,7 @@
                     width: 300%;
                     height: 100%;
                     object-fit: cover;
-                    object-position: -200% center;
+                    object-position: right center;
                     filter: blur(20px) brightness(0.4) saturate(1.2) hue-rotate(200deg);
                     transform: scale(1.1);
                 `;
