@@ -1346,8 +1346,8 @@
                                 return map[Math.min(Math.max(rate, 1), 10) - 1];
                             })();
                             const parts = [`${density} · ${rateLabel} · ${variant}`];
-                            if (musicMode) parts.push('🎵 Music');
-                            if (gamesOnly) parts.push('🎮 Games');
+                            if (musicMode) parts.push('Music');
+                            if (gamesOnly) parts.push('Games');
                             return parts.join(' · ');
                         }
                         // cinema
