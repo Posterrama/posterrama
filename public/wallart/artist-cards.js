@@ -210,7 +210,7 @@
 
             // Background layer: Two versions of the same photo
             if (artistData.photo) {
-                // Left side: Blue filtered version (40%)
+                // Left side: Blue monochrome version (40%)
                 const bluePhoto = document.createElement('img');
                 bluePhoto.src = artistData.photo;
                 bluePhoto.style.cssText = `
@@ -221,7 +221,7 @@
                     height: 100%;
                     object-fit: cover;
                     object-position: center;
-                    filter: grayscale(1) brightness(0.3) sepia(1) hue-rotate(180deg) saturate(3);
+                    filter: grayscale(100%) brightness(0.4) sepia(100%) saturate(500%) hue-rotate(180deg);
                     clip-path: inset(0 60% 0 0);
                     z-index: 0;
                 `;
