@@ -237,8 +237,7 @@
                     height: 100%;
                     background: linear-gradient(135deg, rgba(30, 58, 138, 0.7) 0%, rgba(17, 24, 39, 0.75) 100%);
                     mix-blend-mode: multiply;
-                    clip-path: inset(0 60% 0 0);
-                    z-index: 0;
+                    z-index: 1;
                 `;
                 card.appendChild(blueOverlay);
 
