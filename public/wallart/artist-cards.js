@@ -210,7 +210,7 @@
 
             // Background layer: Two versions of the same photo
             if (artistData.photo) {
-                // Left side: Blue monochrome version (40%)
+                // Left side: Blue monochrome version (40%) - visible with blue tint
                 const bluePhoto = document.createElement('img');
                 bluePhoto.src = artistData.photo;
                 bluePhoto.style.cssText = `
@@ -221,11 +221,26 @@
                     height: 100%;
                     object-fit: cover;
                     object-position: center;
-                    filter: grayscale(1) brightness(0.2) contrast(1.2) sepia(1) hue-rotate(190deg) saturate(2.5);
+                    filter: grayscale(1) contrast(1.1) brightness(0.7);
                     clip-path: inset(0 60% 0 0);
                     z-index: 0;
                 `;
                 card.appendChild(bluePhoto);
+
+                // Blue color overlay on top of left photo
+                const blueOverlay = document.createElement('div');
+                blueOverlay.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 40%;
+                    height: 100%;
+                    background: linear-gradient(135deg, rgba(30, 58, 138, 0.7) 0%, rgba(17, 24, 39, 0.75) 100%);
+                    mix-blend-mode: multiply;
+                    clip-path: inset(0 60% 0 0);
+                    z-index: 0;
+                `;
+                card.appendChild(blueOverlay);
 
                 // Right side: Original colors (60%)
                 const originalPhoto = document.createElement('img');
