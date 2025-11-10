@@ -336,6 +336,9 @@
                 line-height: 1.6;
                 font-style: italic;
                 margin-top: 1vh;
+                padding-right: 2vw;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
             `;
             const albumTitles = artistData.albums
                 .slice(0, 5)
