@@ -208,15 +208,15 @@
                 animation: cardFadeIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             `;
 
-            // Full background artist photo (16:9, covers entire card) - original colors
+            // Full background artist photo (16:9, covers entire card)
             if (artistData.photo) {
                 const bgPhoto = document.createElement('img');
                 bgPhoto.src = artistData.photo;
                 bgPhoto.style.cssText = `
                     position: absolute;
                     top: 0;
-                    right: 0;
-                    width: 60%;
+                    left: 0;
+                    width: 100%;
                     height: 100%;
                     object-fit: cover;
                     object-position: center;
@@ -225,22 +225,21 @@
                 card.appendChild(bgPhoto);
             }
 
-            // Blue filtered photo for left side
+            // Blue filter overlay for left 40% only
             if (artistData.photo) {
-                const bluePhoto = document.createElement('img');
-                bluePhoto.src = artistData.photo;
-                bluePhoto.style.cssText = `
+                const blueFilter = document.createElement('div');
+                blueFilter.style.cssText = `
                     position: absolute;
                     top: 0;
                     left: 0;
                     width: 40%;
                     height: 100%;
-                    object-fit: cover;
-                    object-position: center;
-                    filter: grayscale(1) brightness(0.3) sepia(1) hue-rotate(180deg) saturate(3);
+                    background: rgba(0, 0, 0, 0.4);
+                    backdrop-filter: grayscale(1) brightness(0.7) sepia(1) hue-rotate(180deg) saturate(4);
+                    -webkit-backdrop-filter: grayscale(1) brightness(0.7) sepia(1) hue-rotate(180deg) saturate(4);
                     z-index: 0;
                 `;
-                card.appendChild(bluePhoto);
+                card.appendChild(blueFilter);
             }
 
             // LEFT SIDE - Info + Albums (40% width)
