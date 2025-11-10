@@ -222,7 +222,7 @@
                     object-fit: cover;
                     object-position: center;
                     filter: grayscale(1) brightness(0.3) sepia(1) hue-rotate(180deg) saturate(3);
-                    clip-path: inset(0 65% 0 0);
+                    clip-path: inset(0 60% 0 0);
                     z-index: 0;
                 `;
                 card.appendChild(bluePhoto);
@@ -238,21 +238,21 @@
                     height: 100%;
                     object-fit: cover;
                     object-position: center;
-                    clip-path: inset(0 0 0 35%);
+                    clip-path: inset(0 0 0 40%);
                     z-index: 0;
                 `;
                 card.appendChild(originalPhoto);
             }
 
-            // LEFT SIDE - Info + Albums (35% width)
+            // LEFT SIDE - Info (40% width)
             const leftSide = document.createElement('div');
             leftSide.style.cssText = `
-                width: 35%;
+                width: 40%;
                 height: 100%;
                 padding: 3vh 3vw;
                 display: flex;
                 flex-direction: column;
-                justify-content: space-between;
+                justify-content: flex-start;
                 position: relative;
                 z-index: 1;
             `;
@@ -326,17 +326,31 @@
 
             leftSide.appendChild(metadata);
 
-            // BOTTOM - Album Covers Grid (auto-fit, larger covers)
+            card.appendChild(leftSide);
+
+            // RIGHT SIDE - Original photo visible (60% width, transparent overlay)
+            const rightSide = document.createElement('div');
+            rightSide.style.cssText = `
+                width: 60%;
+                height: 100%;
+                position: relative;
+                z-index: 1;
+            `;
+
+            card.appendChild(rightSide);
+
+            // BOTTOM - Album Covers Grid (full width at bottom, over both panels)
             const albumGrid = document.createElement('div');
 
             albumGrid.style.cssText = `
+                position: absolute;
+                bottom: 2vh;
+                left: 2vw;
+                right: 2vw;
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(7vw, 1fr));
                 gap: 0.8vw;
-                margin-top: 2vh;
-                margin-bottom: 2vh;
-                position: relative;
-                z-index: 2;
+                z-index: 3;
             `;
 
             // Show up to 10 album covers (pick UNIQUE albums, randomized)
@@ -384,35 +398,7 @@
                 albumGrid.appendChild(albumCover);
             });
 
-            leftSide.appendChild(albumGrid);
-
-            // Label below grid
-            const label = document.createElement('div');
-            label.textContent = 'FEATURED ALBUM COVER';
-            label.style.cssText = `
-                text-align: center;
-                font-size: 0.85vw;
-                color: rgba(255,255,255,0.4);
-                letter-spacing: 0.15em;
-                font-weight: 600;
-                margin-top: 1.2vh;
-                position: relative;
-                z-index: 2;
-            `;
-            leftSide.appendChild(label);
-
-            card.appendChild(leftSide);
-
-            // RIGHT SIDE - Original photo visible (65% width, transparent overlay)
-            const rightSide = document.createElement('div');
-            rightSide.style.cssText = `
-                width: 65%;
-                height: 100%;
-                position: relative;
-                z-index: 1;
-            `;
-
-            card.appendChild(rightSide);
+            card.appendChild(albumGrid);
 
             return card;
         },
