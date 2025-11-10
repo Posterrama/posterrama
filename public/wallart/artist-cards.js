@@ -316,13 +316,13 @@
 
             albumGrid.style.cssText = `
                 display: grid;
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(4, 1fr);
                 gap: 1vw;
                 margin-top: 2vh;
                 margin-bottom: 3vh;
             `;
 
-            // Always show 3 album covers (pick 3 UNIQUE albums, randomized)
+            // Always show 4 album covers (pick 4 UNIQUE albums, randomized)
             const albumsToShow = [];
             const usedIds = new Set(); // Track unique IDs to prevent duplicates
 
@@ -334,9 +334,12 @@
             } else if (artistData.albums.length === 2) {
                 // 2 albums - show both (guaranteed unique)
                 albumsToShow.push(...artistData.albums);
+            } else if (artistData.albums.length === 3) {
+                // 3 albums - show all three
+                albumsToShow.push(...artistData.albums);
             } else {
-                // 3+ albums - pick random UNIQUE albums
-                const targetCount = Math.min(3, artistData.albums.length);
+                // 4+ albums - pick random UNIQUE albums
+                const targetCount = Math.min(4, artistData.albums.length);
                 const shuffled = [...artistData.albums].sort(() => Math.random() - 0.5);
 
                 // Pick albums ensuring each is unique by ID
