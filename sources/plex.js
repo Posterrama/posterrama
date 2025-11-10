@@ -598,6 +598,7 @@ class PlexSource {
             : null;
 
         return {
+            id: album.ratingKey, // Unique ID for this album
             key: album.key || album.ratingKey,
             title: albumTitle,
             type: 'music',
