@@ -322,23 +322,33 @@
                 margin-bottom: 40px;
             `;
 
-            // Always show 3 album covers (pick 3 different albums, randomized)
+            // Always show 3 album covers (pick 3 UNIQUE albums, randomized)
             const albumsToShow = [];
+            const usedIds = new Set(); // Track unique IDs to prevent duplicates
+
             if (artistData.albums.length === 0) {
                 // No albums - will show empty placeholders
             } else if (artistData.albums.length === 1) {
                 // 1 album - show it once
                 albumsToShow.push(artistData.albums[0]);
             } else if (artistData.albums.length === 2) {
-                // 2 albums - show both
-                albumsToShow.push(...artistData.albums);
-            } else if (artistData.albums.length <= 3) {
-                // 3 albums - show all
+                // 2 albums - show both (guaranteed unique)
                 albumsToShow.push(...artistData.albums);
             } else {
-                // 4+ albums - pick 3 random unique albums
+                // 3+ albums - pick random UNIQUE albums
+                const targetCount = Math.min(3, artistData.albums.length);
                 const shuffled = [...artistData.albums].sort(() => Math.random() - 0.5);
-                albumsToShow.push(...shuffled.slice(0, 3));
+
+                // Pick albums ensuring each is unique by ID
+                for (const album of shuffled) {
+                    if (albumsToShow.length >= targetCount) break;
+
+                    const albumId = album.id || album.key || album.posterUrl;
+                    if (!usedIds.has(albumId)) {
+                        albumsToShow.push(album);
+                        usedIds.add(albumId);
+                    }
+                }
             }
 
             const visibleAlbums = albumsToShow;
@@ -389,7 +399,7 @@
          * @param {object} artistData - Artist data with albums array
          */
         startAlbumRotation(card, artistData) {
-            // Don't rotate if only 1 or 2 albums (not enough to change)
+            // Don't rotate if only 1 album (nothing to rotate to)
             if (!artistData.albums || artistData.albums.length <= 1) {
                 console.log('[Artist Cards] Not enough albums to rotate for', artistData.name);
                 return;
@@ -403,16 +413,18 @@
 
             const allAlbums = [...artistData.albums];
             const albumCount = allAlbums.length;
-            let currentOffset = 0;
 
-            // Get initial displayed albums based on count
-            const getInitialDisplayed = () => {
-                if (albumCount === 1) return [0];
-                if (albumCount === 2) return [0, 1];
-                return [0, 1, 2];
+            // Track currently visible album IDs to ensure uniqueness
+            const getCurrentlyVisibleIds = () => {
+                const albumCovers = albumGrid.querySelectorAll('img');
+                const ids = new Set();
+                albumCovers.forEach(img => {
+                    const src = img.src;
+                    // Extract album identifier from src
+                    if (src) ids.add(src);
+                });
+                return ids;
             };
-
-            let displayedIndices = getInitialDisplayed();
 
             console.log(
                 '[Artist Cards] Starting album rotation for',
@@ -433,30 +445,43 @@
                 const albumCovers = albumGrid.querySelectorAll('img');
                 if (albumCovers.length === 0) return;
 
-                // Calculate next albums to show (never repeat current ones)
-                const nextAlbums = [];
-                const nextIndices = [];
+                // Get currently visible album URLs to avoid duplicates
+                const visibleUrls = getCurrentlyVisibleIds();
 
-                if (albumCount === 2) {
-                    // With 2 albums: alternate between showing both
-                    nextIndices.push(displayedIndices[0] === 0 ? 1 : 0);
-                    nextIndices.push(displayedIndices[0] === 0 ? 0 : 1);
-                    nextAlbums.push(allAlbums[nextIndices[0]]);
-                    nextAlbums.push(allAlbums[nextIndices[1]]);
-                } else {
-                    // With 3+ albums: shift by number of visible covers
-                    const visibleCount = Math.min(3, albumCovers.length);
-                    currentOffset =
-                        (displayedIndices[displayedIndices.length - 1] + 1) % albumCount;
+                // Build pool of albums NOT currently visible
+                const availableAlbums = allAlbums.filter(
+                    album => !visibleUrls.has(album.posterUrl)
+                );
 
-                    for (let i = 0; i < visibleCount; i++) {
-                        const nextIndex = (currentOffset + i) % albumCount;
-                        nextIndices.push(nextIndex);
-                        nextAlbums.push(allAlbums[nextIndex]);
-                    }
+                // If not enough different albums available, skip rotation
+                // (e.g., only 2 albums and both are showing)
+                if (availableAlbums.length === 0) {
+                    console.log('[Artist Cards] All albums currently visible, skipping rotation');
+                    return;
                 }
 
-                displayedIndices = nextIndices;
+                // For each visible position, pick a NEW album from available pool
+                const nextAlbums = [];
+                const usedInRotation = new Set();
+
+                for (let i = 0; i < albumCovers.length; i++) {
+                    // Filter out albums we've already picked for this rotation
+                    const stillAvailable = availableAlbums.filter(
+                        album => !usedInRotation.has(album.posterUrl)
+                    );
+
+                    if (stillAvailable.length > 0) {
+                        // Pick random album from available pool
+                        const randomIndex = Math.floor(Math.random() * stillAvailable.length);
+                        const chosen = stillAvailable[randomIndex];
+                        nextAlbums.push(chosen);
+                        usedInRotation.add(chosen.posterUrl);
+                    } else {
+                        // Not enough unique albums, reuse from available pool
+                        const randomIndex = Math.floor(Math.random() * availableAlbums.length);
+                        nextAlbums.push(availableAlbums[randomIndex]);
+                    }
+                }
 
                 // Animate each album cover with staggered timing
                 albumCovers.forEach((img, idx) => {
