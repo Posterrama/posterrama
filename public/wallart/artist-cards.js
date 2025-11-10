@@ -326,37 +326,28 @@
 
             leftSide.appendChild(metadata);
 
-            // BOTTOM - Album Covers Grid (always 4 columns)
+            // BOTTOM - Album Covers Grid (auto-fit, larger covers)
             const albumGrid = document.createElement('div');
 
             albumGrid.style.cssText = `
                 display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 1vw;
+                grid-template-columns: repeat(auto-fit, minmax(7vw, 1fr));
+                gap: 0.8vw;
                 margin-top: 2vh;
-                margin-bottom: 3vh;
+                margin-bottom: 2vh;
                 position: relative;
                 z-index: 2;
             `;
 
-            // Always show 4 album covers (pick 4 UNIQUE albums, randomized)
+            // Show up to 10 album covers (pick UNIQUE albums, randomized)
             const albumsToShow = [];
             const usedIds = new Set(); // Track unique IDs to prevent duplicates
+            const targetCount = Math.min(10, artistData.albums.length);
 
             if (artistData.albums.length === 0) {
                 // No albums - will show empty placeholders
-            } else if (artistData.albums.length === 1) {
-                // 1 album - show it once
-                albumsToShow.push(artistData.albums[0]);
-            } else if (artistData.albums.length === 2) {
-                // 2 albums - show both (guaranteed unique)
-                albumsToShow.push(...artistData.albums);
-            } else if (artistData.albums.length === 3) {
-                // 3 albums - show all three
-                albumsToShow.push(...artistData.albums);
             } else {
-                // 4+ albums - pick random UNIQUE albums
-                const targetCount = Math.min(4, artistData.albums.length);
+                // Pick random UNIQUE albums up to target count
                 const shuffled = [...artistData.albums].sort(() => Math.random() - 0.5);
 
                 // Pick albums ensuring each is unique by ID
