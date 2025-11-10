@@ -208,35 +208,10 @@
                 animation: cardFadeIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             `;
 
-            // LEFT SIDE - Artist Photo (40% width, shows left half of square photo)
+            // LEFT SIDE - Info + Albums (40% width)
             const leftSide = document.createElement('div');
             leftSide.style.cssText = `
                 width: 40%;
-                height: 100%;
-                position: relative;
-                overflow: hidden;
-            `;
-
-            if (artistData.photo) {
-                const artistPhoto = document.createElement('img');
-                artistPhoto.src = artistData.photo;
-                artistPhoto.style.cssText = `
-                    width: 200%;
-                    height: 100%;
-                    object-fit: cover;
-                    object-position: left center;
-                `;
-                leftSide.appendChild(artistPhoto);
-            } else {
-                leftSide.style.background = 'linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%)';
-            }
-
-            card.appendChild(leftSide);
-
-            // RIGHT SIDE - Info + Albums (60% width)
-            const rightSide = document.createElement('div');
-            rightSide.style.cssText = `
-                width: 60%;
                 height: 100%;
                 background: linear-gradient(135deg, #16213e 0%, #0f1822 100%);
                 padding: 3vh 3vw;
@@ -244,34 +219,7 @@
                 flex-direction: column;
                 justify-content: space-between;
                 position: relative;
-                overflow: hidden;
             `;
-
-            // Add blurred backdrop (right half of artist photo) if photo exists
-            if (artistData.photo) {
-                const backdrop = document.createElement('div');
-                backdrop.style.cssText = `
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 33.33%;
-                    height: 100%;
-                    z-index: 0;
-                    overflow: hidden;
-                `;
-
-                const backdropImg = document.createElement('img');
-                backdropImg.src = artistData.photo;
-                backdropImg.style.cssText = `
-                    width: 300%;
-                    height: 100%;
-                    object-fit: cover;
-                    object-position: right center;
-                    filter: grayscale(1) brightness(0.3) sepia(1) hue-rotate(180deg) saturate(3);
-                `;
-                backdrop.appendChild(backdropImg);
-                rightSide.appendChild(backdrop);
-            }
 
             // TOP - Artist Name
             const artistName = document.createElement('div');
@@ -287,7 +235,7 @@
                 position: relative;
                 z-index: 1;
             `;
-            rightSide.appendChild(artistName);
+            leftSide.appendChild(artistName);
 
             // MIDDLE - Metadata
             const metadata = document.createElement('div');
@@ -340,7 +288,7 @@
             albumList.textContent = `"${artistData.albums.length > 5 ? albumTitles + '...' : albumTitles}"`;
             metadata.appendChild(albumList);
 
-            rightSide.appendChild(metadata);
+            leftSide.appendChild(metadata);
 
             // BOTTOM - Album Covers Grid (always 4 columns)
             const albumGrid = document.createElement('div');
@@ -409,7 +357,7 @@
                 albumGrid.appendChild(albumCover);
             });
 
-            rightSide.appendChild(albumGrid);
+            leftSide.appendChild(albumGrid);
 
             // Label below grid
             const label = document.createElement('div');
@@ -424,7 +372,34 @@
                 position: relative;
                 z-index: 1;
             `;
-            rightSide.appendChild(label);
+            leftSide.appendChild(label);
+
+            card.appendChild(leftSide);
+
+            // RIGHT SIDE - Artist Photo (60% width, almost square on 16:9)
+            const rightSide = document.createElement('div');
+            rightSide.style.cssText = `
+                width: 60%;
+                height: 100%;
+                position: relative;
+                overflow: hidden;
+            `;
+
+            // Add full artist photo with blue monochrome effect
+            if (artistData.photo) {
+                const artistPhoto = document.createElement('img');
+                artistPhoto.src = artistData.photo;
+                artistPhoto.style.cssText = `
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    object-position: center;
+                    filter: grayscale(1) brightness(0.3) sepia(1) hue-rotate(180deg) saturate(3);
+                `;
+                rightSide.appendChild(artistPhoto);
+            } else {
+                rightSide.style.background = 'linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%)';
+            }
 
             card.appendChild(rightSide);
 
