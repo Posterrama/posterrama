@@ -1328,6 +1328,8 @@
                             const density = w.density || 'medium';
                             const rate = Number(w.refreshRate ?? 6);
                             const variant = w.layoutVariant || 'heroGrid';
+                            const musicMode = w.musicMode?.enabled === true;
+                            const gamesOnly = w.gamesOnly === true;
                             const rateLabel = (() => {
                                 const map = [
                                     'Very slow',
@@ -1343,7 +1345,10 @@
                                 ];
                                 return map[Math.min(Math.max(rate, 1), 10) - 1];
                             })();
-                            return `${density} · ${rateLabel} · ${variant}`;
+                            const parts = [`${density} · ${rateLabel} · ${variant}`];
+                            if (musicMode) parts.push('🎵 Music');
+                            if (gamesOnly) parts.push('🎮 Games');
+                            return parts.join(' · ');
                         }
                         // cinema
                         const orient = c.cinemaOrientation || 'auto';
