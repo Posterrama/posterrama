@@ -74,7 +74,7 @@
                 overflow: hidden !important;
                 box-sizing: border-box !important;
                 z-index: 1000 !important;
-                padding: 40px !important;
+                padding: 2.5vh !important;
             `;
 
             const currentPosters = [];
@@ -239,7 +239,7 @@
                 width: 60%;
                 height: 100%;
                 background: linear-gradient(135deg, #16213e 0%, #0f1822 100%);
-                padding: 50px;
+                padding: 3vh 3vw;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
@@ -250,12 +250,12 @@
             const artistName = document.createElement('div');
             artistName.textContent = artistData.name;
             artistName.style.cssText = `
-                font-size: 4em;
+                font-size: 4vw;
                 font-weight: 900;
                 color: #fff;
                 line-height: 1;
                 text-shadow: 0 4px 20px rgba(0,0,0,0.7);
-                margin-bottom: 20px;
+                margin-bottom: 1.5vh;
                 letter-spacing: -0.03em;
             `;
             rightSide.appendChild(artistName);
@@ -265,7 +265,7 @@
             metadata.style.cssText = `
                 display: flex;
                 flex-direction: column;
-                gap: 12px;
+                gap: 0.8vh;
                 margin-bottom: auto;
             `;
 
@@ -274,7 +274,7 @@
                 const genresArray = Array.from(artistData.genres).slice(0, 3);
                 const genresRow = document.createElement('div');
                 genresRow.style.cssText = `
-                    font-size: 1.1em;
+                    font-size: 1.3vw;
                     color: rgba(255,255,255,0.7);
                     font-weight: 500;
                 `;
@@ -285,7 +285,7 @@
             // Album count
             const albumCountRow = document.createElement('div');
             albumCountRow.style.cssText = `
-                font-size: 1.1em;
+                font-size: 1.3vw;
                 color: rgba(255,255,255,0.7);
                 font-weight: 500;
             `;
@@ -296,11 +296,11 @@
             // Album list with comma separation
             const albumList = document.createElement('div');
             albumList.style.cssText = `
-                font-size: 0.95em;
+                font-size: 1.1vw;
                 color: rgba(255,255,255,0.6);
                 line-height: 1.6;
                 font-style: italic;
-                margin-top: 10px;
+                margin-top: 1vh;
             `;
             const albumTitles = artistData.albums
                 .slice(0, 5)
@@ -317,9 +317,9 @@
             albumGrid.style.cssText = `
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 15px;
-                margin-top: 30px;
-                margin-bottom: 40px;
+                gap: 1vw;
+                margin-top: 2vh;
+                margin-bottom: 3vh;
             `;
 
             // Always show 3 album covers (pick 3 UNIQUE albums, randomized)
@@ -360,7 +360,7 @@
                     width: 100%;
                     aspect-ratio: 1;
                     object-fit: cover;
-                    border-radius: 12px;
+                    border-radius: 0.6vw;
                     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
                     opacity: 0;
                     animation: albumFadeIn 0.6s ease forwards;
@@ -380,11 +380,11 @@
             label.textContent = 'FEATURED ALBUM COVER';
             label.style.cssText = `
                 text-align: center;
-                font-size: 0.75em;
+                font-size: 0.85vw;
                 color: rgba(255,255,255,0.4);
                 letter-spacing: 0.15em;
                 font-weight: 600;
-                margin-top: 15px;
+                margin-top: 1.2vh;
             `;
             rightSide.appendChild(label);
 
