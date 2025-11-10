@@ -208,18 +208,49 @@
                 animation: cardFadeIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             `;
 
-            // LEFT SIDE - Info + Albums (40% width)
+            // Full background artist photo (16:9, covers entire card)
+            if (artistData.photo) {
+                const bgPhoto = document.createElement('img');
+                bgPhoto.src = artistData.photo;
+                bgPhoto.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    object-position: center;
+                    z-index: 0;
+                `;
+                card.appendChild(bgPhoto);
+            }
+
+            // LEFT SIDE - Info + Albums (40% width) with blue filter overlay
             const leftSide = document.createElement('div');
             leftSide.style.cssText = `
                 width: 40%;
                 height: 100%;
-                background: linear-gradient(135deg, #16213e 0%, #0f1822 100%);
                 padding: 3vh 3vw;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
                 position: relative;
+                z-index: 1;
             `;
+
+            // Blue filter overlay for left side
+            const blueOverlay = document.createElement('div');
+            blueOverlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(135deg, rgba(22, 33, 62, 0.95) 0%, rgba(15, 24, 34, 0.95) 100%);
+                backdrop-filter: grayscale(1) brightness(0.5) sepia(1) hue-rotate(180deg) saturate(3);
+                z-index: 0;
+            `;
+            leftSide.appendChild(blueOverlay);
 
             // TOP - Artist Name
             const artistName = document.createElement('div');
@@ -233,7 +264,7 @@
                 margin-bottom: 1.5vh;
                 letter-spacing: -0.03em;
                 position: relative;
-                z-index: 1;
+                z-index: 2;
             `;
             leftSide.appendChild(artistName);
 
@@ -245,7 +276,7 @@
                 gap: 0.8vh;
                 margin-bottom: auto;
                 position: relative;
-                z-index: 1;
+                z-index: 2;
             `;
 
             // Genres
@@ -300,7 +331,7 @@
                 margin-top: 2vh;
                 margin-bottom: 3vh;
                 position: relative;
-                z-index: 1;
+                z-index: 2;
             `;
 
             // Always show 4 album covers (pick 4 UNIQUE albums, randomized)
@@ -370,36 +401,20 @@
                 font-weight: 600;
                 margin-top: 1.2vh;
                 position: relative;
-                z-index: 1;
+                z-index: 2;
             `;
             leftSide.appendChild(label);
 
             card.appendChild(leftSide);
 
-            // RIGHT SIDE - Artist Photo (60% width, almost square on 16:9)
+            // RIGHT SIDE - Original photo visible (60% width, transparent overlay)
             const rightSide = document.createElement('div');
             rightSide.style.cssText = `
                 width: 60%;
                 height: 100%;
                 position: relative;
-                overflow: hidden;
+                z-index: 1;
             `;
-
-            // Add full artist photo with blue monochrome effect
-            if (artistData.photo) {
-                const artistPhoto = document.createElement('img');
-                artistPhoto.src = artistData.photo;
-                artistPhoto.style.cssText = `
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                    object-position: center;
-                    filter: grayscale(1) brightness(0.3) sepia(1) hue-rotate(180deg) saturate(3);
-                `;
-                rightSide.appendChild(artistPhoto);
-            } else {
-                rightSide.style.background = 'linear-gradient(135deg, #2a2a3e 0%, #1a1a2e 100%)';
-            }
 
             card.appendChild(rightSide);
 
