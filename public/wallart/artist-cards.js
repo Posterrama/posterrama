@@ -381,8 +381,8 @@
                 albumCover.src = album.posterUrl || '';
                 albumCover.alt = album.title || '';
                 albumCover.style.cssText = `
-                    width: 7vw;
-                    height: 7vw;
+                    width: calc((100% - (9 * 0.8vw)) / 10);
+                    aspect-ratio: 1;
                     flex-shrink: 0;
                     object-fit: cover;
                     border-radius: 0.6vw;
