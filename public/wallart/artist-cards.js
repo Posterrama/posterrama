@@ -222,7 +222,7 @@
                     object-fit: cover;
                     object-position: center;
                     filter: grayscale(1) brightness(0.3) sepia(1) hue-rotate(180deg) saturate(3);
-                    clip-path: inset(0 60% 0 0);
+                    clip-path: inset(0 65% 0 0);
                     z-index: 0;
                 `;
                 card.appendChild(bluePhoto);
@@ -238,16 +238,16 @@
                     height: 100%;
                     object-fit: cover;
                     object-position: center;
-                    clip-path: inset(0 0 0 40%);
+                    clip-path: inset(0 0 0 35%);
                     z-index: 0;
                 `;
                 card.appendChild(originalPhoto);
             }
 
-            // LEFT SIDE - Info + Albums (40% width)
+            // LEFT SIDE - Info + Albums (35% width)
             const leftSide = document.createElement('div');
             leftSide.style.cssText = `
-                width: 40%;
+                width: 35%;
                 height: 100%;
                 padding: 3vh 3vw;
                 display: flex;
@@ -412,10 +412,10 @@
 
             card.appendChild(leftSide);
 
-            // RIGHT SIDE - Original photo visible (60% width, transparent overlay)
+            // RIGHT SIDE - Original photo visible (65% width, transparent overlay)
             const rightSide = document.createElement('div');
             rightSide.style.cssText = `
-                width: 60%;
+                width: 65%;
                 height: 100%;
                 position: relative;
                 z-index: 1;
