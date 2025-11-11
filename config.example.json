@@ -17,6 +17,7 @@
         "animationType": "flip",
         "layoutVariant": "heroGrid",
         "ambientGradient": true,
+        "gamesOnly": false,
         "layoutSettings": {
             "heroGrid": {
                 "heroSide": "right",
@@ -34,8 +35,15 @@
             "showAlbumTitle": true,
             "showYear": true,
             "showGenre": false,
+            "minRating": 0,
             "artistRotationSeconds": 60,
-            "albumRotationSeconds": 15
+            "albumRotationSeconds": 15,
+            "sortMode": "weighted-random",
+            "sortWeights": {
+                "recent": 20,
+                "popular": 30,
+                "random": 50
+            }
         }
     },
     "cinemaMode": false,
@@ -182,7 +190,14 @@
     "localDirectory": {
         "enabled": true,
         "rootPath": "media",
-        "watchDirectories": []
+        "watchDirectories": [],
+        "posterpackGeneration": {
+            "itemConcurrency": 3,
+            "assetConcurrency": 5,
+            "maxInflightDownloads": 10,
+            "retryMaxRetries": 4,
+            "retryBaseDelay": 250
+        }
     },
     "rootRoute": {
         "behavior": "landing",

@@ -184,6 +184,12 @@
                             "default": "vinyl-spin",
                             "description": "Animation style for album transitions"
                         },
+                        "density": {
+                            "type": "string",
+                            "enum": ["low", "medium", "high", "ludicrous"],
+                            "default": "high",
+                            "description": "Grid density for music mode (affects number of albums shown)"
+                        },
                         "gridSize": {
                             "type": "string",
                             "enum": ["3x3", "4x4", "5x5", "6x6"],
@@ -229,6 +235,53 @@
                             "maximum": 120,
                             "default": 15,
                             "description": "Seconds between album cover rotations within artist cards (artist-cards style only)"
+                        },
+                        "minRating": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 10,
+                            "default": 0,
+                            "description": "Minimum rating filter for music albums (0-10 scale)"
+                        },
+                        "sortMode": {
+                            "type": "string",
+                            "enum": [
+                                "weighted-random",
+                                "recent",
+                                "popular",
+                                "alphabetical",
+                                "random"
+                            ],
+                            "default": "weighted-random",
+                            "description": "Sorting mode for music albums"
+                        },
+                        "sortWeights": {
+                            "type": "object",
+                            "description": "Weights for weighted-random sorting (only applies when sortMode is weighted-random)",
+                            "properties": {
+                                "recent": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 100,
+                                    "default": 20,
+                                    "description": "Weight for recently added albums (0-100)"
+                                },
+                                "popular": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 100,
+                                    "default": 30,
+                                    "description": "Weight for popular/most played albums (0-100)"
+                                },
+                                "random": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 100,
+                                    "default": 50,
+                                    "description": "Weight for random selection (0-100)"
+                                }
+                            },
+                            "additionalProperties": false
                         }
                     },
                     "additionalProperties": false
@@ -1168,7 +1221,43 @@
                 "posterpackGeneration": {
                     "description": "Configuration for automatic posterpack generation from Plex/Jellyfin.",
                     "type": "object",
-                    "properties": {},
+                    "properties": {
+                        "itemConcurrency": {
+                            "description": "Maximum number of media items to process in parallel.",
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 10,
+                            "default": 3
+                        },
+                        "assetConcurrency": {
+                            "description": "Maximum number of assets (posters, backgrounds, etc.) to download in parallel per item.",
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 20,
+                            "default": 5
+                        },
+                        "maxInflightDownloads": {
+                            "description": "Maximum total number of simultaneous asset downloads across all items.",
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50,
+                            "default": 10
+                        },
+                        "retryMaxRetries": {
+                            "description": "Maximum number of retry attempts for failed downloads.",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10,
+                            "default": 4
+                        },
+                        "retryBaseDelay": {
+                            "description": "Base delay in milliseconds between retry attempts (uses exponential backoff).",
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 5000,
+                            "default": 250
+                        }
+                    },
                     "additionalProperties": false
                 }
             },
