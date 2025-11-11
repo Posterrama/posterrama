@@ -1,0 +1,65 @@
+[
+  {
+    "id": "15378446-6643-4b6a-b524-19bc9f83debf",
+    "installId": "iid-g1",
+    "hardwareId": "hw-g1",
+    "secretHash": "sha256:4b37d7c0f775d8f33012361379eb031015a6fede4d436d4fa4b691e3fe88d5aa",
+    "name": "Device 2025-11-11",
+    "location": "",
+    "tags": [],
+    "groups": [
+      "g-wait-1762894795745-6jl3ji"
+    ],
+    "createdAt": "2025-11-11T20:59:55.848Z",
+    "updatedAt": "2025-11-11T20:59:55.998Z",
+    "lastSeenAt": null,
+    "status": "unknown",
+    "clientInfo": {},
+    "settingsOverride": {},
+    "preset": "",
+    "currentState": {},
+    "pairing": {}
+  },
+  {
+    "id": "073ea982-4a41-4cf3-a26c-63b489301d36",
+    "installId": "iid-g2",
+    "hardwareId": "hw-g2",
+    "secretHash": "sha256:da579b3adbd34cf1a6864a061817d61427100c30905af49f770bd8032f1343db",
+    "name": "Device 2025-11-11",
+    "location": "",
+    "tags": [],
+    "groups": [
+      "g-wait-1762894795745-6jl3ji"
+    ],
+    "createdAt": "2025-11-11T20:59:55.881Z",
+    "updatedAt": "2025-11-11T20:59:56.035Z",
+    "lastSeenAt": null,
+    "status": "unknown",
+    "clientInfo": {},
+    "settingsOverride": {},
+    "preset": "",
+    "currentState": {},
+    "pairing": {}
+  },
+  {
+    "id": "49fabd97-fdb9-4df4-8844-0cddf6bab8b6",
+    "installId": "iid-g3",
+    "hardwareId": "hw-g3",
+    "secretHash": "sha256:5165dcb26ba9cd023f241a2f9a9ceca9692946a5415afc2180e90aa1d2d133a9",
+    "name": "Device 2025-11-11",
+    "location": "",
+    "tags": [],
+    "groups": [
+      "g-wait-1762894795745-6jl3ji"
+    ],
+    "createdAt": "2025-11-11T20:59:55.914Z",
+    "updatedAt": "2025-11-11T20:59:56.072Z",
+    "lastSeenAt": null,
+    "status": "unknown",
+    "clientInfo": {},
+    "settingsOverride": {},
+    "preset": "",
+    "currentState": {},
+    "pairing": {}
+  }
+]

@@ -303,15 +303,15 @@ describe('Wallart Music Mode Display', () => {
 
         test('wallart-display.js contains metadata overlay creation', () => {
             expect(wallartDisplayJs).toContain('music-metadata-overlay');
-            expect(wallartDisplayJs).toContain('visibility.artist');
-            expect(wallartDisplayJs).toContain('visibility.albumTitle');
-            expect(wallartDisplayJs).toContain('visibility.year');
-            expect(wallartDisplayJs).toContain('visibility.genre');
+            expect(wallartDisplayJs).toContain('showArtist');
+            expect(wallartDisplayJs).toContain('showAlbumTitle');
+            expect(wallartDisplayJs).toContain('showYear');
+            expect(wallartDisplayJs).toContain('showGenre');
         });
 
         test('wallart-display.js uses proper gradient for overlay background', () => {
             expect(wallartDisplayJs).toContain('linear-gradient(to top');
-            expect(wallartDisplayJs).toContain('rgba(0,0,0,0.85)');
+            expect(wallartDisplayJs).toContain('rgba(0,0,0,0.8)');
         });
 
         test('wallart-display.js handles overlay creation errors', () => {
