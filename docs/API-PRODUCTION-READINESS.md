@@ -387,97 +387,232 @@ Original document was written based on assumptions about likely patterns rather 
 
 ---
 
+## Migration Strategy: Lessons Learned
+
+**Date**: November 11, 2025  
+**Context**: Previous migration attempt with breaking changes caused production issues
+
+### What Went Wrong
+
+A direct "search-and-replace" migration (`/api/*` → `/api/v1/*`) was attempted on 2025-11-11. Despite comprehensive sed patterns and verification showing 0 old paths remaining, **multiple critical systems broke**:
+
+1. **Device Management**: Devices not recognized despite being registered
+2. **Image Delivery**: Posters showing "not available" errors
+3. **RomM Integration**: 400 errors on admin endpoints
+4. **Client-Side State**: localStorage incompatibilities
+
+**Root Cause**: Aggressive path changes without backwards compatibility broke existing device clients, cached state, and interdependencies between frontend/backend.
+
+### Corrected Approach: Phased Migration with Backwards Compatibility
+
+The API migration **must be approached differently**:
+
+#### 1. **Backwards Compatibility First**
+
+- ✅ Keep old endpoints functioning as canonical implementations
+- ✅ Add NEW `/api/v1/*` endpoints as **aliases** initially
+- ✅ Both paths work simultaneously during transition
+- ❌ **Never** break existing paths immediately
+
+#### 2. **Phased Migration Timeline**
+
+- **Phase 0**: Add `/api/v1/*` aliases alongside existing endpoints (no breaking changes)
+- **Phase 1**: Update frontend to use `/api/v1/*` but keep both working
+- **Phase 2**: Monitor logs to confirm no old path usage
+- **Phase 3**: Move implementation to `/api/v1/*` and convert old paths to redirects
+- **Phase 4**: After 6 months, remove legacy redirects
+
+#### 3. **Comprehensive Testing Per Phase**
+
+- ✅ **Device flows**: Registration, pairing, heartbeat, WebSocket commands
+- ✅ **Image delivery**: Poster loading, caching, fallback handling
+- ✅ **Admin functions**: Config load/save, authentication, live logs
+- ✅ **Display modes**: Screensaver, Wallart, Cinema modes fully functional
+- ✅ **Client-side state**: localStorage, session handling, hardware IDs
+
+#### 4. **Frontend Updates Only After Backend Stability**
+
+- ❌ **Wrong**: Update frontend and backend simultaneously
+- ✅ **Right**: Deploy backend with both paths working, then update frontend incrementally
+- ✅ Test each frontend component independently
+- ✅ Maintain rollback capability at every step
+
+#### 5. **Implementation Order**
+
+1. **Backend**: Add `/api/v1/*` routes as aliases to existing implementations
+2. **Testing**: Verify all functionality works via both old and new paths
+3. **Frontend**: Gradually update components to use `/api/v1/*`
+4. **Monitoring**: Log usage of old vs new paths
+5. **Migration**: Move logic to `/api/v1/*` when safe
+6. **Deprecation**: Add deprecation headers after frontend fully migrated
+7. **Removal**: Delete old paths after 6-month sunset period
+
+### Critical Lessons
+
+- **Never trust status codes alone**: `200 OK` doesn't mean functionality works
+- **Test actual workflows**: Device registration, image loading, admin operations
+- **Preserve client state**: Don't break localStorage, device IDs, session handling
+- **Backwards compatibility is mandatory**: No breaking changes until new paths proven stable
+- **Incremental deployment**: One component at a time, with full testing between each
+
+**Status**: Ready for proper phased implementation starting with Phase 0 (non-breaking additions).
+
+---
+
 ## Phase 0: Critical Breaking Changes (Corrected Plan)
 
-**Must complete before any production deployment**
+**UPDATED APPROACH**: This phase is now split into **non-breaking additions** followed by **gradual migration**.
 
-**Timeline**: 14-18 hours (reduced from 20 due to Issue 4 being false)  
-**Impact**: Breaking changes for all API consumers  
-**Risk**: LOW (no external consumers exist)  
-**Version Bump**: v2.8.1 → v3.0.0
+**Timeline**: 20-25 hours (increased to include proper testing and phased rollout)  
+**Impact**: Initially ZERO breaking changes (both paths work), breaking changes deferred to Phase 3  
+**Risk**: LOW (backwards compatibility maintained throughout)  
+**Version Bump**: v2.8.1 → v2.9.0 (minor) initially, then v3.0.0 after migration complete
 
-### Task 0.1: Fix Non-RESTful Paths 🔴 PRIORITY 1
+### Task 0.1: Add `/api/v1/*` Aliases (Non-Breaking) 🟢 PRIORITY 1
 
-**Estimated Time**: 5-7 hours  
-**Status**: Not started
+**Estimated Time**: 6-8 hours  
+**Status**: Not started  
+**Breaking Changes**: NONE (both old and new paths work)
 
-**Goal**: Rename all verb-based paths to noun-based REST paths.
+**Goal**: Add new RESTful `/api/v1/*` endpoints as **aliases** to existing implementations. Old paths remain functional.
 
-**Endpoints to Fix**:
+**New Endpoints to Add** (alongside existing):
 
-1. `/get-media` → `/media`
-2. `/get-media-by-key/:key` → `/media/:key`
-3. `/get-config` → `/config`
-4. `/bypass-check` → `/bypass-status`
-5. `/clear-reload` → `/reload`
+1. `/api/v1/media` → alias for `/get-media`
+2. `/api/v1/media/:key` → alias for `/get-media-by-key/:key`
+3. `/api/v1/config` → alias for `/get-config`
+4. `/api/v1/devices/bypass-status` → alias for `/api/devices/bypass-check`
+5. `/api/v1/devices/reload` → alias for `/api/devices/clear-reload`
 
 **Implementation Steps**:
 
-1. **Update Route Files** (2 hours)
-    - Rename paths in `routes/media.js` (2 endpoints)
-    - Rename paths in `routes/devices.js` (2 endpoints)
-    - Create `routes/config.js` and move `/get-config` logic from `server.js`
-    - Update JSDoc comments and OpenAPI annotations
+1. **Create `/api/v1` Router Mount** (1 hour)
+    - Add v1Router in server.js
+    - Mount at `/api/v1`
+    - Apply API-wide middleware
 
-2. **Update Frontend Code** (1-2 hours)
-    - `public/screensaver/screensaver.js` - Update fetch calls
-    - `public/wallart/wallart.js` - Update fetch calls
-    - `public/cinema/cinema.js` - Update fetch calls
-    - `public/admin.js` - Update fetch calls
-    - Search for all `/get-media` references
-    - Search for all `/get-config` references
+2. **Add Alias Routes** (2-3 hours)
+    - Add `/api/v1/media` route that internally calls existing `/get-media` handler
+    - Add `/api/v1/media/:key` route that calls existing `/get-media-by-key` handler
+    - Add `/api/v1/config` route that calls existing `/get-config` handler
+    - Add `/api/v1/devices/*` subrouter with new aliases
+    - **Keep all original paths untouched and functioning**
+    - Add JSDoc comments and OpenAPI annotations for new paths only
 
-3. **Update Tests** (1-2 hours)
-    - `__tests__/routes/media-music-mode.test.js` (10+ references)
-    - `__tests__/api/public-endpoints-validation.test.js`
-    - `__tests__/middleware/errorHandler.comprehensive.test.js`
-    - Run full test suite (681 tests)
+3. **Add Tests for New Paths** (2 hours)
+    - Add tests for `/api/v1/media` endpoint (verify same response as `/get-media`)
+    - Add tests for `/api/v1/config` endpoint (verify same response as `/get-config`)
+    - Add tests for `/api/v1/devices/*` endpoints
+    - **Keep all existing tests unchanged** (old paths must still pass)
+    - Run full test suite (681 tests must pass)
 
-4. **Test All Features** (1-2 hours)
-    - Screensaver mode loads and displays media
-    - Wallart mode loads artists and albums
-    - Cinema mode displays trailers
-    - Admin UI loads configuration
-    - Device registration/pairing flow
-    - Health check endpoint
+4. **Comprehensive Testing with BOTH Paths** (2-3 hours)
+    - Test `/get-media` still works (old path) ✅
+    - Test `/api/v1/media` works identically (new path) ✅
+    - Test `/get-config` still works (old path) ✅
+    - Test `/api/v1/config` works identically (new path) ✅
+    - Verify device registration/pairing unchanged ✅
+    - Verify all display modes work with old paths ✅
+    - Test image delivery still works ✅
+    - Test RomM integration unchanged ✅
+    - **No frontend changes in this phase**
 
-5. **Update Documentation** (30 min)
-    - Update OpenAPI spec
-    - Verify Swagger UI reflects changes
-    - Update any README references
+5. **Update Documentation Only** (1 hour)
+    - Add `/api/v1/*` paths to OpenAPI spec
+    - Mark old paths as "not yet deprecated" in docs
+    - Document that both old and new paths work
+    - Add migration timeline notes
+    - Update Swagger UI to show both path versions
 
 **Files to Modify**:
 
-- `routes/media.js`
-- `routes/devices.js`
-- `routes/config.js` (new file)
-- `server.js` (mount config router)
-- `public/screensaver/screensaver.js`
-- `public/wallart/wallart.js`
-- `public/cinema/cinema.js`
-- `public/admin.js`
-- `__tests__/routes/media-music-mode.test.js`
-- `__tests__/api/public-endpoints-validation.test.js`
-- `__tests__/middleware/errorHandler.comprehensive.test.js`
+- `server.js` (add v1Router mount, add alias routes)
+- `swagger.js` (add new path documentation)
+- `__tests__/api/v1-endpoints.test.js` (new test file)
+
+**Files NOT to Modify** (preserved for backwards compatibility):
+
+- ❌ `routes/media.js` (keep original paths)
+- ❌ `routes/devices.js` (keep original paths)
+- ❌ `public/screensaver/screensaver.js` (still uses old paths)
+- ❌ `public/wallart/wallart.js` (still uses old paths)
+- ❌ `public/cinema/cinema.js` (still uses old paths)
+- ❌ `public/admin.js` (still uses old paths)
+- ❌ Existing test files (old paths must still pass)
 
 **Acceptance Criteria**:
 
-- [ ] All paths use nouns only
-- [ ] All 681 tests pass
-- [ ] All display modes work correctly
-- [ ] Device registration/pairing functional
-- [ ] OpenAPI spec validates without errors
+- [ ] `/api/v1/*` paths work identically to old paths
+- [ ] ALL original paths still function unchanged
+- [ ] All 681 existing tests pass
+- [ ] New tests added for `/api/v1/*` paths
+- [ ] All display modes work (using old paths)
+- [ ] Device registration/pairing functional (old paths)
+- [ ] Image delivery works (old paths)
+- [ ] Admin UI works (old paths)
+- [ ] OpenAPI spec documents both path versions
+- [ ] No breaking changes for any client
 - [ ] No console errors in browser
 
 ---
 
-### Task 0.2: Fix API Versioning Direction 🔴 PRIORITY 1
+### Task 0.2: Update Frontend to Use `/api/v1/*` 🟡 PRIORITY 2
+
+**Estimated Time**: 4-6 hours  
+**Status**: Not started  
+**Depends On**: Task 0.1 completion (backend must have both paths working)  
+**Breaking Changes**: NONE (old backend paths still work)
+
+**Goal**: Gradually update frontend components to use new `/api/v1/*` paths. Backend continues supporting both old and new paths.
+
+**Frontend Files to Update**:
+
+1. `public/screensaver/screensaver.js` - `/get-media` → `/api/v1/media`
+2. `public/wallart/wallart.js` - `/get-media` → `/api/v1/media`
+3. `public/cinema/cinema.js` - `/get-media` → `/api/v1/media`
+4. `public/admin.js` - `/get-config` → `/api/v1/config`
+5. `public/device-mgmt.js` - `/api/devices/*` → `/api/v1/devices/*`
+
+**Implementation Steps**:
+
+1. **Update One Component at a Time** (1 hour each)
+    - Update screensaver.js → test screensaver mode works
+    - Update wallart.js → test wallart mode works
+    - Update cinema.js → test cinema mode works
+    - Update admin.js → test admin UI works
+    - Update device-mgmt.js → test device registration/pairing works
+
+2. **Testing After Each Update** (30 min per component)
+    - Deploy updated component
+    - Test functionality thoroughly
+    - Check browser console for errors
+    - Verify no 404s in network tab
+    - Roll back if any issues
+
+3. **Monitor Usage of Old Paths** (ongoing)
+    - Add logging to track old path usage
+    - Confirm gradual decrease in old path requests
+    - Identify any missed frontend references
+
+**Acceptance Criteria**:
+
+- [ ] All frontend components use `/api/v1/*` paths
+- [ ] All display modes work correctly
+- [ ] Device management works correctly
+- [ ] Admin UI works correctly
+- [ ] No breaking changes (old paths still supported in backend)
+- [ ] Logs show majority of traffic using new paths
+
+---
+
+### Task 0.3: Migrate Backend Logic to `/api/v1/*` 🔴 PRIORITY 3
 
 **Estimated Time**: 6-8 hours  
 **Status**: Not started  
-**Depends On**: Task 0.1 completion
+**Depends On**: Task 0.2 completion (frontend must be using new paths)  
+**Breaking Changes**: NONE (legacy redirects added)
 
-**Goal**: Make `/api/v1/*` canonical paths with actual implementation, legacy paths redirect WITH deprecation headers.
+**Goal**: Move actual implementation to `/api/v1/*` paths, convert old paths to redirects with deprecation headers.
 
 **Current Problem**:
 
