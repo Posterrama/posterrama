@@ -122,41 +122,17 @@
     ],
     "components": {
         "securitySchemes": {
-            "isAuthenticated": {
-                "type": "apiKey",
-                "in": "cookie",
-                "name": "connect.sid",
-                "description": "Session-based authentication (alias for sessionAuth)"
-            },
             "sessionAuth": {
                 "type": "apiKey",
                 "in": "cookie",
                 "name": "connect.sid",
-                "description": "Session-based authentication using cookies"
+                "description": "Session-based authentication using cookies. Used for admin endpoints and authenticated user operations."
             },
             "bearerAuth": {
                 "type": "http",
                 "scheme": "bearer",
                 "bearerFormat": "JWT",
-                "description": "Bearer token authentication. The application accepts API keys as Bearer tokens."
-            },
-            "BearerAuth": {
-                "type": "http",
-                "scheme": "bearer",
-                "bearerFormat": "JWT",
-                "description": "Bearer token authentication (alias for bearerAuth)."
-            },
-            "SessionAuth": {
-                "type": "apiKey",
-                "in": "cookie",
-                "name": "connect.sid",
-                "description": "Session-based authentication (alias for sessionAuth)"
-            },
-            "ApiKeyAuth": {
-                "type": "http",
-                "scheme": "bearer",
-                "bearerFormat": "API-Key",
-                "description": "API Key authentication using Bearer scheme"
+                "description": "Bearer token authentication. The application accepts API keys as Bearer tokens for programmatic access."
             }
         },
         "schemas": {
@@ -1829,6 +1805,21 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Config"
+                                },
+                                "example": {
+                                    "clockWidget": true,
+                                    "transitionIntervalSeconds": 0,
+                                    "backgroundRefreshMinutes": 0,
+                                    "showClearLogo": true,
+                                    "showPoster": true,
+                                    "showMetadata": true,
+                                    "showRottenTomatoes": true,
+                                    "rottenTomatoesMinimumScore": 0,
+                                    "kenBurnsEffect": {
+                                        "enabled": true,
+                                        "durationSeconds": 0
+                                    },
+                                    "isPublicSite": true
                                 }
                             }
                         }
@@ -1877,7 +1868,8 @@
                                     "items": {
                                         "$ref": "#/components/schemas/MediaItem"
                                     }
-                                }
+                                },
+                                "example": []
                             }
                         }
                     }
@@ -2080,6 +2072,13 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "cached": true,
+                                    "count": 0,
+                                    "sample": [],
+                                    "warnings": []
                                 }
                             }
                         }
@@ -2127,6 +2126,11 @@
                                             "description": "Sanitized configuration data"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "Configuration is valid",
+                                    "sanitized": {}
                                 }
                             }
                         }
@@ -2194,6 +2198,11 @@
                                             "description": "Sanitized connection data"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "Plex connection data is valid",
+                                    "sanitized": {}
                                 }
                             }
                         }
@@ -2259,6 +2268,10 @@
                                             "description": "Updated configuration"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "config": {}
                                 }
                             }
                         }
@@ -2306,7 +2319,8 @@
                                             }
                                         }
                                     }
-                                }
+                                },
+                                "example": []
                             }
                         }
                     },
@@ -2375,6 +2389,9 @@
                                             }
                                         }
                                     ]
+                                },
+                                "example": {
+                                    "success": true
                                 }
                             }
                         }
@@ -2452,7 +2469,8 @@
                                             }
                                         }
                                     }
-                                }
+                                },
+                                "example": []
                             }
                         }
                     },
@@ -2512,7 +2530,8 @@
                                             }
                                         }
                                     }
-                                }
+                                },
+                                "example": []
                             }
                         }
                     },
@@ -2611,6 +2630,10 @@
                                             "description": "Total number of artists in library"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "artists": [],
+                                    "total": 0
                                 }
                             }
                         }
@@ -2675,7 +2698,7 @@
                 "tags": ["Cache"],
                 "security": [
                     {
-                        "isAuthenticated": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -2694,6 +2717,10 @@
                                             "description": "Cache statistics data"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "data": {}
                                 }
                             }
                         }
@@ -2720,6 +2747,9 @@
                                 "schema": {
                                     "type": "object",
                                     "description": "OpenAPI 3.0 specification"
+                                },
+                                "example": {
+                                    "success": true
                                 }
                             }
                         }
@@ -2759,7 +2789,7 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "isAuthenticated": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -2802,6 +2832,11 @@
                                             "format": "date-time"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "status": "ok",
+                                    "timestamp": "2025-07-27T12:00:00Z",
+                                    "checks": []
                                 }
                             }
                         }
@@ -2851,6 +2886,10 @@
                                             "example": true
                                         }
                                     }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "restarting": true
                                 }
                             }
                         }
@@ -2949,6 +2988,10 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "libraries": []
                                 }
                             }
                         }
@@ -3008,6 +3051,11 @@
                                             "type": "string"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "count": 0,
+                                    "error": "string"
                                 }
                             }
                         }
@@ -3043,6 +3091,9 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "genres": []
                                 }
                             }
                         }
@@ -3098,6 +3149,9 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "genres": []
                                 }
                             }
                         }
@@ -3145,6 +3199,13 @@
                                             "type": "string"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "enabled": true,
+                                    "movies": 0,
+                                    "shows": 0,
+                                    "total": 0,
+                                    "note": "string"
                                 }
                             }
                         }
@@ -3177,6 +3238,10 @@
                                             "type": "boolean"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "cacheStats": {},
+                                    "enabled": true
                                 }
                             }
                         }
@@ -3214,6 +3279,11 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/AdminApiResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "string",
+                                    "error": "string"
                                 }
                             }
                         }
@@ -3276,6 +3346,13 @@
                                             "example": 183600
                                         }
                                     }
+                                },
+                                "example": {
+                                    "app": {},
+                                    "database": {},
+                                    "cache": {},
+                                    "uptime": "2d 5h",
+                                    "uptimeSeconds": 183600
                                 }
                             }
                         }
@@ -3290,7 +3367,7 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "bearerAuth": []
                     }
                 ],
                 "responses": {
@@ -3306,6 +3383,9 @@
                                             "example": "1.7.6"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "version": "1.7.6"
                                 }
                             }
                         }
@@ -3366,6 +3446,17 @@
                                             "example": "Version 1.6.0 - GitHub Integration"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "currentVersion": "1.5.0",
+                                    "latestVersion": "1.6.0",
+                                    "hasUpdate": true,
+                                    "updateType": "minor",
+                                    "releaseUrl": "https://github.com/Posterrama/posterrama/releases/tag/v1.6.0",
+                                    "downloadUrl": "https://github.com/Posterrama/posterrama/archive/v1.6.0.tar.gz",
+                                    "releaseNotes": "### New Features\n- Added GitHub integration",
+                                    "publishedAt": "2025-08-15T20:00:00Z",
+                                    "releaseName": "Version 1.6.0 - GitHub Integration"
                                 }
                             }
                         }
@@ -3418,7 +3509,8 @@
                                             }
                                         }
                                     }
-                                }
+                                },
+                                "example": []
                             }
                         }
                     }
@@ -3466,6 +3558,17 @@
                                             "type": "string"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "name": "string",
+                                    "fullName": "string",
+                                    "description": "string",
+                                    "url": "string",
+                                    "stars": 0,
+                                    "forks": 0,
+                                    "issues": 0,
+                                    "language": "string",
+                                    "license": "string"
                                 }
                             }
                         }
@@ -3491,6 +3594,9 @@
                                             "example": "GitHub cache cleared successfully"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "message": "GitHub cache cleared successfully"
                                 }
                             }
                         }
@@ -3548,6 +3654,11 @@
                                             "type": "string"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "string",
+                                    "updateId": "string"
                                 }
                             }
                         }
@@ -3617,6 +3728,15 @@
                                             "type": "boolean"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "phase": "string",
+                                    "progress": 0,
+                                    "message": "string",
+                                    "error": "string",
+                                    "startTime": "string",
+                                    "backupPath": "string",
+                                    "isUpdating": true
                                 }
                             }
                         }
@@ -3644,6 +3764,10 @@
                                             "type": "string"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "string"
                                 }
                             }
                         }
@@ -3691,7 +3815,8 @@
                                             }
                                         }
                                     }
-                                }
+                                },
+                                "example": []
                             }
                         }
                     }
@@ -3740,6 +3865,11 @@
                                             "type": "string"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "deleted": 0,
+                                    "kept": 0,
+                                    "message": "string"
                                 }
                             }
                         }
@@ -3791,6 +3921,10 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "cpu": {},
+                                    "memory": {}
                                 }
                             }
                         }
@@ -3815,6 +3949,11 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/RefreshMediaResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "Media playlist successfully refreshed. 150 items found.",
+                                    "itemCount": 150
                                 }
                             }
                         }
@@ -3953,7 +4092,7 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "isAuthenticated": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -3983,6 +4122,11 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/AdminApiResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "string",
+                                    "error": "string"
                                 }
                             }
                         }
@@ -3997,7 +4141,7 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "isAuthenticated": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -4013,7 +4157,7 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "isAuthenticated": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -4027,7 +4171,7 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "isAuthenticated": [],
+                        "sessionAuth": [],
                         "bearerAuth": []
                     }
                 ],
@@ -4113,6 +4257,12 @@
                                             "type": "string"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "string",
+                                    "filesRemoved": 0,
+                                    "spaceSaved": "string"
                                 }
                             }
                         }
@@ -4149,6 +4299,9 @@
                                             "nullable": true
                                         }
                                     }
+                                },
+                                "example": {
+                                    "apiKey": "string"
                                 }
                             }
                         }
@@ -4180,6 +4333,9 @@
                                             "example": true
                                         }
                                     }
+                                },
+                                "example": {
+                                    "hasKey": true
                                 }
                             }
                         }
@@ -4204,6 +4360,10 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ApiKeyResponse"
+                                },
+                                "example": {
+                                    "apiKey": "pk_live_1234567890abcdefghijklmnop",
+                                    "message": "API key generated successfully. Store this securely - it will not be shown again."
                                 }
                             }
                         }
@@ -4228,6 +4388,11 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/AdminApiResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "string",
+                                    "error": "string"
                                 }
                             }
                         }
@@ -4331,6 +4496,11 @@
                                             "description": "Whether poller is currently running"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "sessions": [],
+                                    "lastUpdate": 0,
+                                    "isActive": true
                                 }
                             }
                         }
@@ -4383,6 +4553,9 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "users": []
                                 }
                             }
                         }
@@ -4413,6 +4586,15 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/DebugResponse"
+                                },
+                                "example": {
+                                    "note": "string",
+                                    "playlist_item_count": 0,
+                                    "playlist_items_raw": [
+                                        {
+                                            "success": true
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -4499,6 +4681,9 @@
                             "application/json": {
                                 "schema": {
                                     "type": "object"
+                                },
+                                "example": {
+                                    "success": true
                                 }
                             }
                         }
@@ -4526,6 +4711,9 @@
                             "application/json": {
                                 "schema": {
                                     "type": "object"
+                                },
+                                "example": {
+                                    "success": true
                                 }
                             }
                         }
@@ -4553,6 +4741,9 @@
                             "application/json": {
                                 "schema": {
                                     "type": "object"
+                                },
+                                "example": {
+                                    "success": true
                                 }
                             }
                         }
@@ -4590,6 +4781,11 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/AdminApiResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "string",
+                                    "error": "string"
                                 }
                             }
                         }
@@ -4627,6 +4823,10 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/PlexLibrariesResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "libraries": []
                                 }
                             }
                         }
@@ -4678,6 +4878,11 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/AdminApiResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "string",
+                                    "error": "string"
                                 }
                             }
                         }
@@ -4774,10 +4979,10 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "BearerAuth": []
+                        "bearerAuth": []
                     },
                     {
-                        "SessionAuth": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -4795,6 +5000,9 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "genres": []
                                 }
                             }
                         }
@@ -4811,10 +5019,10 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "BearerAuth": []
+                        "bearerAuth": []
                     },
                     {
-                        "SessionAuth": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -4840,6 +5048,9 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "genres": []
                                 }
                             }
                         }
@@ -4899,6 +5110,9 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "genres": []
                                 }
                             }
                         }
@@ -4969,6 +5183,9 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "genres": []
                                 }
                             }
                         }
@@ -5042,6 +5259,9 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "genres": []
                                 }
                             }
                         }
@@ -5123,6 +5343,9 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "genres": []
                                 }
                             }
                         }
@@ -5161,6 +5384,9 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "genres": []
                                 }
                             }
                         }
@@ -5191,7 +5417,8 @@
                                     "items": {
                                         "$ref": "#/components/schemas/LogEntry"
                                     }
-                                }
+                                },
+                                "example": []
                             }
                         }
                     }
@@ -5235,6 +5462,10 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "currentLevel": "string",
+                                    "availableLevels": []
                                 }
                             }
                         }
@@ -5294,6 +5525,11 @@
                                             "type": "string"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "oldLevel": "string",
+                                    "newLevel": "string"
                                 }
                             }
                         }
@@ -5334,6 +5570,11 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/NotificationTestResponse"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "level": "string",
+                                    "message": "string"
                                 }
                             }
                         }
@@ -5525,6 +5766,11 @@
                                             "type": "string"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "string",
+                                    "redirectTo": "string"
                                 }
                             }
                         }
@@ -5570,6 +5816,9 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Generate2FAResponse"
+                                },
+                                "example": {
+                                    "qrCodeDataUrl": "string"
                                 }
                             }
                         }
@@ -5610,6 +5859,11 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/AdminApiResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "string",
+                                    "error": "string"
                                 }
                             }
                         }
@@ -5650,6 +5904,11 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/AdminApiResponse"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "message": "string",
+                                    "error": "string"
                                 }
                             }
                         }
@@ -5680,6 +5939,10 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/BackupListResponse"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "backups": []
                                 }
                             }
                         }
@@ -5702,6 +5965,15 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/BackupCreateResponse"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "backup": {
+                                        "id": "config-backup-1730000000000",
+                                        "createdAt": "2025-10-25T12:00:00.000Z",
+                                        "sizeBytes": 4096,
+                                        "type": "manual"
+                                    }
                                 }
                             }
                         }
@@ -5744,6 +6016,11 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/BackupCleanupResponse"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "removed": 0,
+                                    "retained": 0
                                 }
                             }
                         }
@@ -5794,6 +6071,16 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/BackupRestoreResponse"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "restored": true,
+                                    "backup": {
+                                        "id": "abc123",
+                                        "createdAt": "string",
+                                        "sizeBytes": 1024,
+                                        "type": "backup type (manual|auto|upgrade)"
+                                    }
                                 }
                             }
                         }
@@ -5831,6 +6118,11 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/BackupDeleteResponse"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "deleted": true,
+                                    "id": "string"
                                 }
                             }
                         }
@@ -5858,6 +6150,14 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/BackupScheduleResponse"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "schedule": {
+                                        "enabled": true,
+                                        "cron": "Cron expression for automated backups",
+                                        "retain": 0
+                                    }
                                 }
                             }
                         }
@@ -5917,6 +6217,21 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Config"
+                                },
+                                "example": {
+                                    "clockWidget": true,
+                                    "transitionIntervalSeconds": 0,
+                                    "backgroundRefreshMinutes": 0,
+                                    "showClearLogo": true,
+                                    "showPoster": true,
+                                    "showMetadata": true,
+                                    "showRottenTomatoes": true,
+                                    "rottenTomatoesMinimumScore": 0,
+                                    "kenBurnsEffect": {
+                                        "enabled": true,
+                                        "durationSeconds": 0
+                                    },
+                                    "isPublicSite": true
                                 }
                             }
                         }
@@ -5964,6 +6279,10 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/DeviceRegisterResponse"
+                                },
+                                "example": {
+                                    "deviceId": "dev_abc123xyz",
+                                    "deviceSecret": "$2b$10$abcdefghijklmnopqrstuvwxyz1234567890"
                                 }
                             }
                         }
@@ -6051,6 +6370,12 @@
                                             }
                                         }
                                     }
+                                },
+                                "example": {
+                                    "valid": true,
+                                    "isRegistered": true,
+                                    "deviceId": "Device ID (when device is found)",
+                                    "reason": "Reason code (device_not_found, secret_required, etc.)"
                                 }
                             }
                         }
@@ -6115,6 +6440,11 @@
                                             "description": "Commands waiting to be executed"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "reload": true,
+                                    "queuedCommands": []
                                 }
                             }
                         }
@@ -6147,6 +6477,10 @@
                                             "description": "The detected IP address"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "bypass": true,
+                                    "ip": "The detected IP address"
                                 }
                             }
                         }
@@ -6191,6 +6525,10 @@
                                             "type": "string"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "deviceId": "string",
+                                    "secret": "string"
                                 }
                             }
                         }
@@ -6267,6 +6605,12 @@
                                             "type": "number"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "code": "string",
+                                    "deviceId": "string",
+                                    "expiresAt": "string",
+                                    "expiresInMs": 0
                                 }
                             }
                         }
@@ -6314,7 +6658,8 @@
                                             }
                                         }
                                     }
-                                }
+                                },
+                                "example": []
                             }
                         }
                     },
@@ -6344,7 +6689,8 @@
                                     "items": {
                                         "$ref": "#/components/schemas/Device"
                                     }
-                                }
+                                },
+                                "example": []
                             }
                         }
                     },
@@ -6382,6 +6728,40 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Device"
+                                },
+                                "example": {
+                                    "id": "string",
+                                    "name": "string",
+                                    "location": "string",
+                                    "tags": ["string"],
+                                    "groups": ["string"],
+                                    "installId": "string",
+                                    "hardwareId": "string",
+                                    "createdAt": "string",
+                                    "updatedAt": "string",
+                                    "lastSeenAt": "string",
+                                    "status": "unknown",
+                                    "clientInfo": {
+                                        "userAgent": "string",
+                                        "screen": {
+                                            "w": 0,
+                                            "h": 0,
+                                            "dpr": 0
+                                        },
+                                        "mode": "string"
+                                    },
+                                    "settingsOverride": {
+                                        "success": true
+                                    },
+                                    "preset": "string",
+                                    "currentState": {
+                                        "mediaId": "string",
+                                        "paused": true,
+                                        "pinned": true,
+                                        "pinMediaId": "string",
+                                        "poweredOff": true
+                                    },
+                                    "wsConnected": true
                                 }
                             }
                         }
@@ -6536,6 +6916,12 @@
                                             "type": "boolean"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "id": "string",
+                                    "name": "string",
+                                    "location": "string",
+                                    "connected": true
                                 }
                             }
                         }
@@ -6603,6 +6989,10 @@
                                             "description": "Number of devices merged"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "merged": 0
                                 }
                             }
                         }
@@ -6673,6 +7063,11 @@
                                             "description": "Number of commands queued for offline devices"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true,
+                                    "sent": 0,
+                                    "queued": 0
                                 }
                             }
                         }
@@ -6781,6 +7176,12 @@
                                             "type": "integer"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "live": 0,
+                                    "queued": 0,
+                                    "total": 0
                                 }
                             }
                         }
@@ -6977,7 +7378,8 @@
                                     "items": {
                                         "$ref": "#/components/schemas/Group"
                                     }
-                                }
+                                },
+                                "example": []
                             }
                         }
                     },
@@ -7066,6 +7468,15 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Group"
+                                },
+                                "example": {
+                                    "id": "string",
+                                    "name": "string",
+                                    "description": "string",
+                                    "settingsTemplate": {
+                                        "success": true
+                                    },
+                                    "order": 0
                                 }
                             }
                         }
@@ -7161,6 +7572,13 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/GroupCommandResponse"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "live": 0,
+                                    "queued": 0,
+                                    "total": 0,
+                                    "results": []
                                 }
                             }
                         }
@@ -7207,6 +7625,9 @@
                                             "$ref": "#/components/schemas/HealthCheckResponse"
                                         }
                                     ]
+                                },
+                                "example": {
+                                    "success": true
                                 }
                             }
                         }
@@ -7946,7 +8367,8 @@
                                     "items": {
                                         "$ref": "#/components/schemas/MediaItem"
                                     }
-                                }
+                                },
+                                "example": []
                             }
                         }
                     },
@@ -8032,6 +8454,45 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/MediaItem"
+                                },
+                                "example": {
+                                    "key": "plex-MyPlexServer-12345",
+                                    "title": "Blade Runner 2049",
+                                    "backgroundUrl": "/proxy?server=MyPlexServer&path=/library/metadata/12345/art/1234567890",
+                                    "posterUrl": "/proxy?server=MyPlexServer&path=/library/metadata/12345/thumb/1234567890",
+                                    "thumbnailUrl": null,
+                                    "clearLogoUrl": "/proxy?server=MyPlexServer&path=/library/metadata/12345/clearlogo",
+                                    "tagline": "The key to the future is finally unearthed.",
+                                    "rating": 8,
+                                    "year": 2017,
+                                    "imdbUrl": "https://www.imdb.com/title/tt1856101/",
+                                    "rottenTomatoes": {
+                                        "score": 88,
+                                        "icon": "certified-fresh",
+                                        "originalScore": 8.8
+                                    },
+                                    "extras": [
+                                        {
+                                            "type": "clip",
+                                            "title": "Official Trailer",
+                                            "thumb": "/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb",
+                                            "key": "/library/metadata/12346",
+                                            "duration": 155000,
+                                            "year": 2017,
+                                            "addedAt": 1635724800
+                                        }
+                                    ],
+                                    "trailer": {
+                                        "type": "clip",
+                                        "title": "Official Trailer",
+                                        "thumb": "/proxy?server=MyPlexServer&path=/library/metadata/12346/thumb",
+                                        "key": "/library/metadata/12346",
+                                        "duration": 155000,
+                                        "year": 2017,
+                                        "addedAt": 1635724800
+                                    },
+                                    "theme": "/library/metadata/12345/theme/1730000000",
+                                    "themeUrl": "/proxy?server=MyPlexServer&path=/library/metadata/12345/theme/1730000000"
                                 }
                             }
                         }
@@ -8294,6 +8755,9 @@
                                             "type": "boolean"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true
                                 }
                             }
                         }
@@ -8323,6 +8787,9 @@
                                             "type": "boolean"
                                         }
                                     }
+                                },
+                                "example": {
+                                    "success": true
                                 }
                             }
                         }
