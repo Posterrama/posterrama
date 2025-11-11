@@ -9,6 +9,20 @@ describe('config.schema: posterpackGeneration concurrency/limits/retry', () => {
 
     beforeAll(() => {
         const cfg = JSON.parse(originalConfig);
+
+        // Disable all media servers to avoid validation/token errors
+        if (cfg.mediaServers) {
+            cfg.mediaServers.forEach(server => {
+                server.enabled = false;
+                // Ensure valid hostname/port for schema validation
+                if (!server.hostname) server.hostname = 'localhost';
+                if (!server.port) server.port = 32400;
+            });
+        }
+        if (cfg.tmdbSource) {
+            cfg.tmdbSource.enabled = false;
+        }
+
         cfg.localDirectory = cfg.localDirectory || {};
         cfg.localDirectory.enabled = true;
         cfg.localDirectory.rootPath = '/tmp/posterrama-media';

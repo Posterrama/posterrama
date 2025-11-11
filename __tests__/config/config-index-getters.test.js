@@ -5,6 +5,9 @@ process.env.NODE_ENV = 'test';
 process.env.PLEX_TOKEN = 'test-token';
 process.env.SESSION_SECRET = 'test-session-secret';
 
+// Mock process.exit to prevent test termination
+const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {});
+
 /**
  * Tests for config/index.js getter helpers to raise coverage on simple
  * precedence + parsing logic (get, getInt, getBool, defaults).
@@ -26,6 +29,9 @@ describe('config/index.js getters', () => {
             testConfig.mediaServers = testConfig.mediaServers.map(server => ({
                 ...server,
                 enabled: false,
+                // Ensure hostname and port are present to avoid validation errors
+                hostname: server.hostname || 'localhost',
+                port: server.port || 32400,
             }));
         }
         if (testConfig.tmdbSource) {
@@ -43,13 +49,15 @@ describe('config/index.js getters', () => {
     afterAll(() => {
         process.env = originalEnv;
         require('fs').writeFileSync(configPath, originalConfigContent);
+        mockExit.mockRestore();
     });
 
     test('get falls back: env > config > defaults', () => {
         const fs = require('fs');
-        const cfg = JSON.parse(originalConfigContent);
-        cfg.testKeyConfig = 'fromConfig';
-        fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
+        // Read current config (which was set in beforeAll with disabled servers)
+        const currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        currentConfig.testKeyConfig = 'fromConfig';
+        fs.writeFileSync(configPath, JSON.stringify(currentConfig, null, 2));
 
         process.env.testKeyConfig = 'fromEnv';
 
@@ -64,9 +72,10 @@ describe('config/index.js getters', () => {
 
     test('getInt parses integers and null on falsy', () => {
         const fs = require('fs');
-        const cfg = JSON.parse(originalConfigContent);
-        cfg.someInt = 42;
-        fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
+        // Read current config (which was set in beforeAll with disabled servers)
+        const currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        currentConfig.someInt = 42;
+        fs.writeFileSync(configPath, JSON.stringify(currentConfig, null, 2));
         const config = require('../../config/index.js');
 
         expect(config.getInt('someInt')).toBe(42);
@@ -82,7 +91,8 @@ describe('config/index.js getters', () => {
 
     test('getBool recognizes string true and boolean true only', () => {
         const fs = require('fs');
-        const cfg = JSON.parse(originalConfigContent);
+        // Read current config (which was set in beforeAll with disabled servers)
+        const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         cfg.flagA = true;
         cfg.flagB = false;
         fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
@@ -108,7 +118,8 @@ describe('config/index.js getters', () => {
         // Removed unused duplicate require that triggered lint (no-unused-vars)
         // if config.json has port we cannot assert 4000, so we mimic removal by editing config
         const fs = require('fs');
-        const cfg = JSON.parse(originalConfigContent);
+        // Read current config (which was set in beforeAll with disabled servers)
+        const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         delete cfg.SERVER_PORT;
         fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
         jest.resetModules();

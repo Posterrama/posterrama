@@ -14,6 +14,17 @@ describe('Direct mediaServers connection fields precedence', () => {
     beforeAll(() => {
         originalConfigContent = fs.readFileSync(configPath, 'utf8');
         const cfg = JSON.parse(originalConfigContent);
+
+        // Disable ALL servers first to avoid validation errors in test environment
+        if (cfg.mediaServers) {
+            cfg.mediaServers.forEach(server => {
+                server.enabled = false;
+                // Ensure all servers have valid hostname/port to pass schema validation
+                if (!server.hostname) server.hostname = 'localhost';
+                if (!server.port) server.port = 32400;
+            });
+        }
+
         let plex = cfg.mediaServers.find(s => s.type === 'plex');
 
         // Create Plex server if it doesn't exist
@@ -21,7 +32,7 @@ describe('Direct mediaServers connection fields precedence', () => {
             plex = {
                 name: 'Test Plex Server',
                 type: 'plex',
-                enabled: true,
+                enabled: false, // Keep disabled for test
                 movieLibraryNames: [],
                 showLibraryNames: [],
             };
@@ -32,6 +43,7 @@ describe('Direct mediaServers connection fields precedence', () => {
         plex.hostname = '10.10.10.10';
         plex.port = 12345;
         plex.token = 'CONFIG_TOKEN';
+        plex.enabled = false; // Keep disabled to avoid connection validation
         fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
         // Set env vars that would otherwise be used
         process.env.PLEX_HOSTNAME = '99.99.99.99';
