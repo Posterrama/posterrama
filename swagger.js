@@ -19,88 +19,8 @@ function generateSwaggerSpec() {
             info: {
                 title: 'Posterrama API',
                 version: pkg.version,
-                description: `**Posterrama** aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.
-
----
-
-## Authentication
-
-### Public Endpoints
-No authentication required:
-- \`GET /get-media\` - Media playlist
-- \`GET /get-config\` - Public configuration
-- \`GET /health\` - Health check
-- \`GET /image\` - Proxy images
-
-### Protected Endpoints (Admin)
-Require session cookie (\`connect.sid\`) OR Bearer token:
-
-**Session Flow:**
-\`\`\`
-1. POST /login → Returns Set-Cookie: connect.sid
-2. Subsequent requests include cookie automatically
-3. POST /logout → Destroys session
-\`\`\`
-
-**Bearer Token Flow:**
-\`\`\`
-Authorization: Bearer <your-api-key>
-\`\`\`
-
-**2FA (Optional):**
-- If enabled, \`/login\` returns \`twoFactorRequired: true\`
-- Complete with \`POST /verify-2fa\` using TOTP code
-
----
-
-## Rate Limiting
-
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| \`POST /api/devices/register\` | 5 req | 1 min |
-| \`POST /api/devices/pair\` | 5 req | 1 min |
-| \`POST /login\` | 5 req | 15 min |
-| Other endpoints | No limit | - |
-
-**Rate Limit Headers:**
-\`\`\`
-X-RateLimit-Limit: 5
-X-RateLimit-Remaining: 3
-X-RateLimit-Reset: 1699876543
-Retry-After: 42
-\`\`\`
-
----
-
-## Common Error Scenarios
-
-**400 Bad Request**
-\`\`\`json
-{"error": "Invalid request parameters", "message": "count must be between 1-500"}
-\`\`\`
-
-**401 Unauthorized**
-\`\`\`json
-{"error": "Unauthorized", "message": "Authentication required"}
-\`\`\`
-
-**404 Not Found**
-\`\`\`json
-{"error": "Not found", "message": "Device dev_abc123 does not exist"}
-\`\`\`
-
-**429 Too Many Requests**
-\`\`\`json
-{"error": "Rate limit exceeded", "retryAfter": 42}
-\`\`\`
-
-**500 Internal Server Error**
-\`\`\`json
-{"error": "Internal server error", "message": "Failed to connect to Plex"}
-\`\`\`
-
----
-`,
+                description:
+                    'Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.',
                 contact: {
                     name: 'Posterrama Project',
                     url: 'https://github.com/Posterrama/posterrama',
@@ -109,6 +29,11 @@ Retry-After: 42
                 license: {
                     name: 'GPL-3.0-or-later',
                     url: 'https://www.gnu.org/licenses/gpl-3.0.html',
+                },
+                'x-logo': {
+                    url: '/logo.png',
+                    altText: 'Posterrama Logo',
+                    backgroundColor: '#ffffff',
                 },
             },
             tags: [
