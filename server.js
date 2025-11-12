@@ -462,6 +462,40 @@ app.get('/api/v1/media', (req, res) => {
     app._router.handle(req, res);
 });
 
+/**
+ * @swagger
+ * /api/v1/media/{key}:
+ *   get:
+ *     summary: Get single media item by key (v1 API alias)
+ *     description: Version 1 API alias that redirects to /get-media-by-key/:key endpoint
+ *     tags: ['Public API']
+ *     parameters:
+ *       - in: path
+ *         name: key
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Unique media item key (e.g., plex-ServerName-12345)
+ *     responses:
+ *       200:
+ *         description: Single media item
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MediaItem'
+ *       404:
+ *         description: Media item not found
+ */
+app.get('/api/v1/media/:key', (req, res) => {
+    // 308 Permanent Redirect preserves method and body
+    res.redirect(
+        308,
+        '/get-media-by-key/' +
+            req.params.key +
+            (req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '')
+    );
+});
+
 if (isDebug) logger.debug('--- DEBUG MODE IS ACTIVE ---');
 
 // Trust the first proxy in front of the app (e.g., Nginx, Cloudflare).
