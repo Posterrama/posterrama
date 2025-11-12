@@ -2525,39 +2525,137 @@ app.get('/api-docs', (req, res) => {
             background: #ffffff;
         }
         
-        /* Logo size control - keep it small and sharp */
+        /* Enhanced search box styling */
+        div[role="search"] {
+            margin: 1rem 1.5rem !important;
+            padding: 0 !important;
+        }
+        
+        div[role="search"] input {
+            width: 100% !important;
+            padding: 12px 16px 12px 44px !important;
+            font-size: 15px !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            background: #ffffff !important;
+            color: #1f2937 !important;
+            transition: all 0.2s ease !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        }
+        
+        div[role="search"] input:focus {
+            outline: none !important;
+            border-color: #4d9375 !important;
+            box-shadow: 0 0 0 3px rgba(77, 147, 117, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        div[role="search"] input::placeholder {
+            color: #9ca3af !important;
+        }
+        
+        /* Search icon styling */
+        div[role="search"] svg {
+            position: absolute !important;
+            left: 28px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            color: #6b7280 !important;
+            width: 20px !important;
+            height: 20px !important;
+        }
+        
+        /* API info header - professional card style */
+        div[class*="api-info"] {
+            background: linear-gradient(135deg, #f8fafb 0%, #ffffff 100%) !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            padding: 2rem 1.5rem !important;
+        }
+        
+        /* Title styling */
+        div[class*="api-info"] h1 {
+            font-size: 28px !important;
+            font-weight: 700 !important;
+            color: #1f2937 !important;
+            margin-bottom: 0.75rem !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.75rem !important;
+        }
+        
+        /* Version badge */
+        div[class*="api-info"] h1 span {
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            color: #4d9375 !important;
+            background: #f0fdf4 !important;
+            padding: 4px 12px !important;
+            border-radius: 12px !important;
+            border: 1px solid #bbf7d0 !important;
+        }
+        
+        /* Description text */
+        div[class*="api-info"] > div > p:first-of-type {
+            font-size: 15px !important;
+            line-height: 1.6 !important;
+            color: #4b5563 !important;
+            margin: 1rem 0 1.5rem 0 !important;
+        }
+        
+        /* Contact/License links - badge style */
+        div[class*="api-info"] p:has(a),
+        div[class*="api-info"] > div > p {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            margin: 0.5rem 0.75rem 0.5rem 0 !important;
+            font-size: 13px !important;
+        }
+        
+        div[class*="api-info"] a:not([href*="redoc"]) {
+            color: #4d9375 !important;
+            text-decoration: none !important;
+            font-weight: 500 !important;
+            padding: 6px 12px !important;
+            background: #f0fdf4 !important;
+            border-radius: 6px !important;
+            border: 1px solid #bbf7d0 !important;
+            transition: all 0.2s ease !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+        }
+        
+        div[class*="api-info"] a:not([href*="redoc"]):hover {
+            background: #dcfce7 !important;
+            border-color: #86efac !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 2px 4px rgba(77, 147, 117, 0.1) !important;
+        }
+        
+        /* Download button styling */
+        a[download] {
+            background: #4d9375 !important;
+            color: white !important;
+            padding: 10px 20px !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            border: none !important;
+            box-shadow: 0 2px 4px rgba(77, 147, 117, 0.2) !important;
+        }
+        
+        a[download]:hover {
+            background: #3d7d65 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 6px rgba(77, 147, 117, 0.3) !important;
+        }
+        
+        /* Logo size control */
         img[src*="logo"], img[src*="icon"] {
             max-height: 60px !important;
             max-width: 200px !important;
             width: auto !important;
             height: auto !important;
             object-fit: contain;
-        }
-        
-        /* API info section spacing */
-        div[class*="api-info"] img {
-            max-height: 50px !important;
-            margin-bottom: 1rem;
-        }
-        
-        /* Make contact/license info more prominent in header */
-        div[class*="api-info"] p,
-        div[class*="api-info"] a:not([href*="redoc"]) {
-            font-size: 14px !important;
-            margin: 0.5rem 0 !important;
-            color: #4d9375 !important;
-        }
-        
-        div[class*="api-info"] a:not([href*="redoc"]):hover {
-            color: #3d7d65 !important;
-            text-decoration: underline !important;
-        }
-        
-        /* Header info styling */
-        div[class*="api-info"] > div > p {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
         
         /* Hide Redocly branding and footer */
