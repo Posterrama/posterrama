@@ -3,18 +3,54 @@
     "info": {
         "title": "Posterrama API",
         "version": "2.9.4",
-        "description": "**Posterrama** aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.\n\n---\n\n## Quick Start\n\n1. **Configure Sources** → Visit `/admin` to connect Plex/Jellyfin/TMDB\n2. **Fetch Media** → `GET /get-media` returns aggregated playlist\n3. **Display** → Use `/screensaver`, `/cinema`, or `/wallart` modes\n4. **Manage Devices** → Register displays via `/api/devices/*`\n\n---\n\n## Authentication\n\n### Public Endpoints\nNo authentication required:\n- `GET /get-media` - Media playlist\n- `GET /get-config` - Public configuration\n- `GET /health` - Health check\n- `GET /image` - Proxy images\n\n### Protected Endpoints (Admin)\nRequire session cookie (`connect.sid`) OR Bearer token:\n\n**Session Flow:**\n```\n1. POST /login → Returns Set-Cookie: connect.sid\n2. Subsequent requests include cookie automatically\n3. POST /logout → Destroys session\n```\n\n**Bearer Token Flow:**\n```\nAuthorization: Bearer <your-api-key>\n```\n\n**2FA (Optional):**\n- If enabled, `/login` returns `twoFactorRequired: true`\n- Complete with `POST /verify-2fa` using TOTP code\n\n---\n\n## Rate Limiting\n\n| Endpoint | Limit | Window |\n|----------|-------|--------|\n| `POST /api/devices/register` | 5 req | 1 min |\n| `POST /api/devices/pair` | 5 req | 1 min |\n| `POST /login` | 5 req | 15 min |\n| Other endpoints | No limit | - |\n\n**Rate Limit Headers:**\n```\nX-RateLimit-Limit: 5\nX-RateLimit-Remaining: 3\nX-RateLimit-Reset: 1699876543\nRetry-After: 42\n```\n\n---\n\n## Common Error Scenarios\n\n**400 Bad Request**\n```json\n{\"error\": \"Invalid request parameters\", \"message\": \"count must be between 1-500\"}\n```\n\n**401 Unauthorized**\n```json\n{\"error\": \"Unauthorized\", \"message\": \"Authentication required\"}\n```\n\n**404 Not Found**\n```json\n{\"error\": \"Not found\", \"message\": \"Device dev_abc123 does not exist\"}\n```\n\n**429 Too Many Requests**\n```json\n{\"error\": \"Rate limit exceeded\", \"retryAfter\": 42}\n```\n\n**500 Internal Server Error**\n```json\n{\"error\": \"Internal server error\", \"message\": \"Failed to connect to Plex\"}\n```\n\n---\n\n## Resources\n\n- [GitHub Repository](https://github.com/Posterrama/posterrama)\n- [Installation Guide](https://github.com/Posterrama/posterrama#installation)\n- [Configuration Schema](https://github.com/Posterrama/posterrama/blob/main/config.schema.json)\n",
+        "description": "Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.",
         "contact": {
             "name": "Posterrama Project",
             "url": "https://github.com/Posterrama/posterrama",
             "email": "support@posterrama.app"
+        },
+        "x-logo": {
+            "url": "https://github.com/Posterrama/posterrama",
+            "altText": "GitHub Repository"
         },
         "license": {
             "name": "GPL-3.0-or-later",
             "url": "https://www.gnu.org/licenses/gpl-3.0.html"
         }
     },
+    "externalDocs": {
+        "description": "Full documentation, setup guides, and tutorials",
+        "url": "https://github.com/Posterrama/posterrama/tree/main/docs"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:4000",
+            "description": "Development server (default port 4000)"
+        },
+        {
+            "url": "http://{host}:{port}",
+            "description": "Custom deployment",
+            "variables": {
+                "host": {
+                    "default": "localhost",
+                    "description": "Server hostname or IP address"
+                },
+                "port": {
+                    "default": "4000",
+                    "description": "Server port (configured via PORT env variable)"
+                }
+            }
+        }
+    ],
     "tags": [
+        {
+            "name": "API v1",
+            "description": "**Modern RESTful API** (Preferred) - Clean, versioned endpoints following REST best practices. Use these for all new integrations. Includes `/api/v1/config`, `/api/v1/media`, `/api/v1/media/{key}`, `/api/v1/devices/*`.",
+            "externalDocs": {
+                "description": "API v1 Documentation",
+                "url": "https://github.com/Posterrama/posterrama/blob/main/docs/API-PRODUCTION-READINESS.md"
+            }
+        },
         {
             "name": "Public API",
             "description": "**Core endpoints** for fetching media and configuration. No authentication required. Examples: GET /get-media, GET /health",
@@ -86,6 +122,10 @@
     ],
     "x-tagGroups": [
         {
+            "name": "Modern API (Recommended)",
+            "tags": ["API v1"]
+        },
+        {
             "name": "Core API",
             "tags": ["Public API", "Frontend"]
         },
@@ -116,12 +156,6 @@
         {
             "name": "Utilities",
             "tags": ["Documentation", "Site Server"]
-        }
-    ],
-    "servers": [
-        {
-            "url": "/",
-            "description": "Current server"
         }
     ],
     "components": {
@@ -231,6 +265,23 @@
                             "$ref": "#/components/schemas/BackupRecord"
                         }
                     }
+                },
+                "example": {
+                    "ok": true,
+                    "backups": [
+                        {
+                            "id": "config-backup-1730000000000",
+                            "createdAt": "2025-10-25T12:00:00.000Z",
+                            "sizeBytes": 4096,
+                            "type": "manual"
+                        },
+                        {
+                            "id": "config-backup-1729950000000",
+                            "createdAt": "2025-10-24T23:00:00.000Z",
+                            "sizeBytes": 4102,
+                            "type": "auto"
+                        }
+                    ]
                 }
             },
             "BackupCleanupResponse": {
@@ -245,6 +296,11 @@
                     "retained": {
                         "type": "integer"
                     }
+                },
+                "example": {
+                    "ok": true,
+                    "removed": 5,
+                    "retained": 10
                 }
             },
             "BackupRestoreResponse": {
@@ -258,6 +314,16 @@
                     },
                     "backup": {
                         "$ref": "#/components/schemas/BackupRecord"
+                    }
+                },
+                "example": {
+                    "ok": true,
+                    "restored": true,
+                    "backup": {
+                        "id": "config-backup-1730000000000",
+                        "createdAt": "2025-10-25T12:00:00.000Z",
+                        "sizeBytes": 4096,
+                        "type": "manual"
                     }
                 }
             },
@@ -273,6 +339,11 @@
                     "id": {
                         "type": "string"
                     }
+                },
+                "example": {
+                    "ok": true,
+                    "deleted": true,
+                    "id": "config-backup-1730000000000"
                 }
             },
             "BackupSchedule": {
@@ -300,6 +371,14 @@
                     "schedule": {
                         "$ref": "#/components/schemas/BackupSchedule"
                     }
+                },
+                "example": {
+                    "ok": true,
+                    "schedule": {
+                        "enabled": true,
+                        "cron": "0 2 * * *",
+                        "retain": 10
+                    }
                 }
             },
             "NotificationTestRequest": {
@@ -308,11 +387,19 @@
                     "level": {
                         "type": "string",
                         "enum": ["info", "warn", "error"],
-                        "default": "warn"
+                        "default": "warn",
+                        "description": "Notification severity level"
                     },
                     "message": {
-                        "type": "string"
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Test notification message (1-500 characters)"
                     }
+                },
+                "example": {
+                    "level": "warn",
+                    "message": "This is a test notification from Posterrama"
                 }
             },
             "NotificationTestResponse": {
@@ -327,6 +414,11 @@
                     "message": {
                         "type": "string"
                     }
+                },
+                "example": {
+                    "ok": true,
+                    "level": "warn",
+                    "message": "Test notification sent successfully"
                 }
             },
             "PaginatedMediaResponse": {
@@ -1227,18 +1319,25 @@
                 "properties": {
                     "hostname": {
                         "type": "string",
-                        "description": "The hostname or IP address of the Plex server.",
+                        "description": "The hostname or IP address of the Plex server (e.g., 192.168.1.10 or plex.local)",
                         "example": "192.168.1.10"
                     },
                     "port": {
                         "type": "integer",
-                        "description": "The port of the Plex server.",
+                        "minimum": 1,
+                        "maximum": 65535,
+                        "description": "The port of the Plex server (default: 32400)",
                         "example": 32400
                     },
                     "token": {
                         "type": "string",
-                        "description": "The Plex X-Plex-Token. Optional when testing, required when fetching libraries if none is configured."
+                        "description": "The Plex X-Plex-Token. Find yours at: https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/"
                     }
+                },
+                "example": {
+                    "hostname": "192.168.1.10",
+                    "port": 32400,
+                    "token": "xxxxxxxxxxxxxxxxxxxx"
                 }
             },
             "PlexLibrary": {
@@ -1275,6 +1374,26 @@
                             "$ref": "#/components/schemas/PlexLibrary"
                         }
                     }
+                },
+                "example": {
+                    "success": true,
+                    "libraries": [
+                        {
+                            "key": "1",
+                            "name": "Movies",
+                            "type": "movie"
+                        },
+                        {
+                            "key": "2",
+                            "name": "TV Shows",
+                            "type": "show"
+                        },
+                        {
+                            "key": "3",
+                            "name": "Music",
+                            "type": "artist"
+                        }
+                    ]
                 }
             },
             "AdminConfigResponse": {
@@ -1297,6 +1416,21 @@
                             }
                         }
                     }
+                },
+                "example": {
+                    "config": {
+                        "clockWidget": true,
+                        "transitionIntervalSeconds": 30,
+                        "showClearLogo": true,
+                        "showPoster": true
+                    },
+                    "env": {
+                        "NODE_ENV": "production",
+                        "PORT": "4000"
+                    },
+                    "security": {
+                        "is2FAEnabled": false
+                    }
                 }
             },
             "SaveConfigRequest": {
@@ -1304,11 +1438,21 @@
                 "properties": {
                     "config": {
                         "type": "object",
-                        "description": "The complete config.json object to save."
+                        "description": "The complete config.json object to save. Must conform to config schema (see config.schema.json)."
                     },
                     "env": {
                         "type": "object",
-                        "description": "Key-value pairs of environment variables to save."
+                        "description": "Key-value pairs of environment variables to save to .env file. Only whitelisted variables are persisted."
+                    }
+                },
+                "example": {
+                    "config": {
+                        "clockWidget": true,
+                        "transitionIntervalSeconds": 30,
+                        "showClearLogo": true
+                    },
+                    "env": {
+                        "PORT": "4000"
                     }
                 }
             },
@@ -1318,16 +1462,25 @@
                 "properties": {
                     "currentPassword": {
                         "type": "string",
-                        "format": "password"
+                        "format": "password",
+                        "description": "Current admin password for verification"
                     },
                     "newPassword": {
                         "type": "string",
-                        "format": "password"
+                        "format": "password",
+                        "minLength": 8,
+                        "description": "New password (minimum 8 characters, should include mix of letters, numbers, and special characters)"
                     },
                     "confirmPassword": {
                         "type": "string",
-                        "format": "password"
+                        "format": "password",
+                        "description": "Must match newPassword exactly"
                     }
+                },
+                "example": {
+                    "currentPassword": "oldPassword123",
+                    "newPassword": "newSecurePass456!",
+                    "confirmPassword": "newSecurePass456!"
                 }
             },
             "Generate2FAResponse": {
@@ -1338,6 +1491,9 @@
                         "format": "uri",
                         "description": "A data URI of the QR code image that can be scanned."
                     }
+                },
+                "example": {
+                    "qrCodeDataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
                 }
             },
             "Verify2FARequest": {
@@ -1346,8 +1502,14 @@
                 "properties": {
                     "token": {
                         "type": "string",
-                        "description": "The 6-digit TOTP code from the authenticator app."
+                        "pattern": "^[0-9]{6}$",
+                        "minLength": 6,
+                        "maxLength": 6,
+                        "description": "The 6-digit TOTP code from the authenticator app (e.g., Google Authenticator, Authy)"
                     }
+                },
+                "example": {
+                    "token": "123456"
                 }
             },
             "Disable2FARequest": {
@@ -1357,8 +1519,11 @@
                     "password": {
                         "type": "string",
                         "format": "password",
-                        "description": "The current admin password of the user."
+                        "description": "The current admin password. Required for security verification before disabling 2FA."
                     }
+                },
+                "example": {
+                    "password": "myAdminPassword123"
                 }
             },
             "DebugResponse": {
@@ -1379,6 +1544,18 @@
                             "type": "object"
                         }
                     }
+                },
+                "example": {
+                    "note": "Debug information for current playlist",
+                    "playlist_item_count": 150,
+                    "playlist_items_raw": [
+                        {
+                            "title": "Blade Runner 2049",
+                            "year": 2017,
+                            "rating": 8,
+                            "source": "plex"
+                        }
+                    ]
                 }
             },
             "ApiKeyResponse": {
@@ -1436,6 +1613,11 @@
                     "message": {
                         "type": "string"
                     }
+                },
+                "example": {
+                    "timestamp": "2025-11-12T10:30:00.000Z",
+                    "level": "INFO",
+                    "message": "Media playlist refreshed successfully"
                 }
             },
             "ErrorResponse": {
@@ -1445,6 +1627,9 @@
                         "type": "string",
                         "description": "Error message describing what went wrong."
                     }
+                },
+                "example": {
+                    "error": "Resource not found"
                 }
             },
             "BasicHealthResponse": {
@@ -1529,6 +1714,27 @@
                             "$ref": "#/components/schemas/HealthCheckResult"
                         }
                     }
+                },
+                "example": {
+                    "status": "ok",
+                    "timestamp": "2025-11-12T10:30:00.000Z",
+                    "checks": [
+                        {
+                            "name": "configuration",
+                            "status": "ok",
+                            "message": "Configuration valid"
+                        },
+                        {
+                            "name": "plex_connectivity",
+                            "status": "ok",
+                            "message": "Connected successfully"
+                        },
+                        {
+                            "name": "cache_efficiency",
+                            "status": "ok",
+                            "message": "Cache hit rate: 87%"
+                        }
+                    ]
                 }
             },
             "ValidationResponse": {
@@ -1578,6 +1784,15 @@
                         "type": "object",
                         "description": "Plex server information if successful"
                     }
+                },
+                "example": {
+                    "success": true,
+                    "message": "Connection successful",
+                    "serverInfo": {
+                        "name": "My Plex Server",
+                        "version": "1.40.0.7998",
+                        "platform": "Linux"
+                    }
                 }
             },
             "ApiKeyStatusResponse": {
@@ -1591,6 +1806,10 @@
                         "type": "string",
                         "description": "ID of the current API key"
                     }
+                },
+                "example": {
+                    "hasApiKey": true,
+                    "keyId": "key_abc123xyz789"
                 }
             },
             "MetricsResponse": {
@@ -1612,6 +1831,33 @@
                         "type": "object",
                         "description": "Cache usage metrics"
                     }
+                },
+                "example": {
+                    "performance": {
+                        "avgResponseTime": 125,
+                        "p95ResponseTime": 450,
+                        "requestsPerMinute": 42
+                    },
+                    "endpoints": {
+                        "/get-media": {
+                            "count": 1520,
+                            "avgTime": 98
+                        },
+                        "/api/devices/heartbeat": {
+                            "count": 3840,
+                            "avgTime": 15
+                        }
+                    },
+                    "system": {
+                        "memoryUsage": "256MB",
+                        "cpuUsage": "12%",
+                        "uptime": 3600
+                    },
+                    "cache": {
+                        "hitRate": 0.87,
+                        "size": "45MB",
+                        "entries": 150
+                    }
                 }
             },
             "GenreResponse": {
@@ -1628,6 +1874,10 @@
                         },
                         "description": "List of available genres"
                     }
+                },
+                "example": {
+                    "success": true,
+                    "genres": ["Action", "Comedy", "Drama", "Horror", "Sci-Fi", "Thriller"]
                 }
             },
             "LoginRequest": {
@@ -1636,13 +1886,20 @@
                 "properties": {
                     "username": {
                         "type": "string",
-                        "description": "Username for authentication"
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "description": "Username for authentication (typically \"admin\")"
                     },
                     "password": {
                         "type": "string",
                         "format": "password",
+                        "minLength": 1,
                         "description": "Password for authentication"
                     }
+                },
+                "example": {
+                    "username": "admin",
+                    "password": "mySecurePassword123"
                 }
             },
             "LoginResponse": {
@@ -1683,6 +1940,17 @@
                         "type": "array",
                         "description": "List of active user sessions"
                     }
+                },
+                "example": {
+                    "sessions": [
+                        {
+                            "id": "sess_abc123",
+                            "userId": "admin",
+                            "createdAt": "2025-11-12T09:00:00.000Z",
+                            "lastActivity": "2025-11-12T10:30:00.000Z",
+                            "ipAddress": "192.168.1.100"
+                        }
+                    ]
                 }
             },
             "TMDBConnectionRequest": {
@@ -1691,8 +1959,13 @@
                 "properties": {
                     "apiKey": {
                         "type": "string",
-                        "description": "The TMDB API key"
+                        "minLength": 32,
+                        "maxLength": 64,
+                        "description": "The TMDB API key. Get yours free at: https://www.themoviedb.org/settings/api"
                     }
+                },
+                "example": {
+                    "apiKey": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
                 }
             },
             "TMDBGenresResponse": {
@@ -1709,6 +1982,21 @@
                         },
                         "description": "List of TMDB genres"
                     }
+                },
+                "example": {
+                    "success": true,
+                    "genres": [
+                        "Action",
+                        "Adventure",
+                        "Animation",
+                        "Comedy",
+                        "Crime",
+                        "Documentary",
+                        "Drama",
+                        "Fantasy",
+                        "Horror",
+                        "Science Fiction"
+                    ]
                 }
             },
             "PlexGenresResponse": {
@@ -1725,6 +2013,10 @@
                         },
                         "description": "List of Plex genres"
                     }
+                },
+                "example": {
+                    "success": true,
+                    "genres": ["Action", "Comedy", "Drama", "Horror", "Romance", "Sci-Fi"]
                 }
             },
             "GitHubRelease": {
@@ -1760,6 +2052,17 @@
                     },
                     "release": {
                         "$ref": "#/components/schemas/GitHubRelease"
+                    }
+                },
+                "example": {
+                    "success": true,
+                    "release": {
+                        "id": 123456789,
+                        "tag_name": "v2.8.1",
+                        "name": "Release 2.8.1",
+                        "body": "## Bug Fixes\n- Fixed MQTT broker display issue\n- Improved error handling",
+                        "published_at": "2025-10-25T10:00:00Z",
+                        "prerelease": false
                     }
                 }
             },
@@ -1806,19 +2109,293 @@
     "paths": {
         "/api/v1/config": {
             "get": {
-                "summary": "Get configuration (v1 API alias)",
-                "description": "Version 1 API alias that redirects to the main configuration endpoint /get-config",
-                "tags": ["Public API"],
+                "summary": "Get public configuration",
+                "description": "Fetches the non-sensitive configuration needed by the frontend for display logic.\n\nThis endpoint returns configuration settings for:\n- Display mode intervals and transitions\n- Available media sources and libraries\n- UI customization options\n- Device-specific overrides\n\nThe response is cached for 30 seconds to improve performance.\n",
+                "tags": ["API v1"],
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "cURL",
+                        "source": "curl http://localhost:4000/api/v1/config\n"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript (fetch)",
+                        "source": "fetch('http://localhost:4000/api/v1/config')\n  .then(response => response.json())\n  .then(config => console.log('Screensaver interval:', config.screensaverInterval));\n"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python (requests)",
+                        "source": "import requests\nconfig = requests.get('http://localhost:4000/api/v1/config').json()\nprint(f\"Screensaver interval: {config['screensaverInterval']}\")\n"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Configuration data (handled by /get-config endpoint)",
+                        "description": "The public configuration object",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Config"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "message": "Failed to retrieve configuration",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/v1/media": {
+            "get": {
+                "summary": "Get media collection",
+                "description": "Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB).\n\nFeatures:\n- Cached for performance\n- Supports source filtering (plex, jellyfin, tmdb, local)\n- Music Mode: Returns music albums instead of movies/TV shows\n- Games Mode: Returns game covers from RomM\n- Optional extras: Trailers and theme music URLs\n\nThe playlist is automatically shuffled and filtered based on configuration.\n",
+                "tags": ["API v1"],
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "cURL",
+                        "source": "curl http://localhost:4000/api/v1/media\n"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript (fetch)",
+                        "source": "fetch('http://localhost:4000/api/v1/media')\n  .then(response => response.json())\n  .then(data => console.log(data));\n"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python (requests)",
+                        "source": "import requests\nresponse = requests.get('http://localhost:4000/api/v1/media')\nmedia = response.json()\n"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "source",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["plex", "jellyfin", "tmdb", "local"]
+                        },
+                        "description": "Optional source filter to return only items from a specific provider"
+                    },
+                    {
+                        "in": "query",
+                        "name": "nocache",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["1"]
+                        },
+                        "description": "Set to '1' to bypass cache (admin use)"
+                    },
+                    {
+                        "in": "query",
+                        "name": "musicMode",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["1", "true"]
+                        },
+                        "description": "Set to \"1\" or \"true\" to return music albums instead of movies/TV shows. Requires wallartMode.musicMode.enabled=true in config."
+                    },
+                    {
+                        "in": "query",
+                        "name": "gamesOnly",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["1", "true"]
+                        },
+                        "description": "Set to \"1\" or \"true\" to return game covers from RomM. Requires wallartMode.gamesOnly=true in config."
+                    },
+                    {
+                        "in": "query",
+                        "name": "count",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000
+                        },
+                        "description": "Number of items to return (used with musicMode and gamesOnly)"
+                    },
+                    {
+                        "in": "query",
+                        "name": "includeExtras",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "description": "When true, enriches items with trailers and theme music URLs. Adds latency as it fetches additional metadata per item."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Playlist of media items. When includeExtras=true, items include extras array with trailers and theme URLs.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/MediaItem"
+                                    }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "202": {
+                        "description": "Playlist is being built. Client should retry in a few seconds.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "building"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "retryIn": {
+                                            "type": "number",
+                                            "description": "Suggested retry delay in milliseconds"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "message": "The count parameter must be between 1 and 1000",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "message": "Failed to fetch media from configured sources",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/v1/media/{key}": {
+            "get": {
+                "summary": "Get single media item",
+                "description": "Retrieves a single media item by its unique key.\n\nThe key format is: `{type}-{serverName}-{itemId}`\n- Examples: `plex-My Server-12345`, `jellyfin-MainServer-67890`\n\nThis endpoint is typically used when a user clicks on a 'recently added' item\nthat isn't in the main playlist cache.\n",
+                "tags": ["API v1"],
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "cURL",
+                        "source": "curl \"http://localhost:4000/api/v1/media/plex-My%20Server-12345\"\n"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript (fetch)",
+                        "source": "fetch('http://localhost:4000/api/v1/media/plex-My%20Server-12345')\n  .then(response => response.json())\n  .then(item => console.log(item.title));\n"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python (requests)",
+                        "source": "import requests\nitem = requests.get('http://localhost:4000/api/v1/media/plex-My%20Server-12345').json()\nprint(f\"Title: {item['title']}\")\n"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "key",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Unique media item key in format: type-serverName-itemId (e.g., plex-My Server-12345)",
+                        "example": "plex-My Server-12345"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The requested media item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MediaItem"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid key format",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid media key parameter",
+                                    "details": [
+                                        {
+                                            "field": "key",
+                                            "message": "Key must contain only alphanumeric characters, hyphens, underscores, and spaces"
+                                        }
+                                    ],
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Media item not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Media item not found",
+                                    "message": "No media item found with the specified key",
+                                    "statusCode": 404
                                 }
                             }
                         }
@@ -1841,64 +2418,46 @@
                 "security": []
             }
         },
-        "/api/v1/media": {
+        "/api/v1/devices/bypass-status": {
             "get": {
-                "summary": "Get media data (v1 API alias)",
-                "description": "Version 1 API alias that redirects to the main media endpoint /get-media",
-                "tags": ["Public API"],
-                "parameters": [
+                "summary": "Check device bypass status",
+                "description": "Returns whether the requesting IP address is whitelisted for device management bypass.\n\nIPs on the bypass list can access device management features without authentication.\nThis is useful for trusted local networks or specific administrative IPs.\n",
+                "tags": ["API v1"],
+                "x-codeSamples": [
                     {
-                        "in": "query",
-                        "name": "search",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "description": "Search term to filter media"
+                        "lang": "curl",
+                        "label": "cURL",
+                        "source": "curl http://localhost:4000/api/v1/devices/bypass-status\n"
                     },
                     {
-                        "in": "query",
-                        "name": "year",
-                        "schema": {
-                            "type": "integer"
-                        },
-                        "description": "Filter by year"
-                    },
-                    {
-                        "in": "query",
-                        "name": "genre",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "description": "Filter by genre"
+                        "lang": "JavaScript",
+                        "label": "JavaScript (fetch)",
+                        "source": "fetch('http://localhost:4000/api/v1/devices/bypass-status')\n  .then(response => response.json())\n  .then(data => console.log('Bypass:', data.bypass, 'IP:', data.ip));\n"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Media data (handled by /get-media endpoint)",
+                        "description": "Bypass status and detected IP address",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/MediaItem"
+                                    "type": "object",
+                                    "properties": {
+                                        "bypass": {
+                                            "type": "boolean",
+                                            "description": "Whether this IP is on the bypass list",
+                                            "example": false
+                                        },
+                                        "ip": {
+                                            "type": "string",
+                                            "description": "The detected IP address of the requester",
+                                            "example": "192.168.1.100"
+                                        }
                                     }
                                 },
                                 "example": {
-                                    "success": true
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request parameters",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Invalid request parameters",
-                                    "statusCode": 400
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -1919,6 +2478,96 @@
                     }
                 },
                 "security": []
+            }
+        },
+        "/api/v1/devices/reload": {
+            "post": {
+                "summary": "Reload all devices",
+                "description": "Sends clearCache and reload commands to all registered devices via WebSocket.\n\nThis endpoint:\n- Clears the cache on all connected devices\n- Triggers a page reload after 500ms\n- Queues commands for offline devices\n\nRequires admin authentication (Bearer token).\n",
+                "tags": ["API v1"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "cURL",
+                        "source": "curl -X POST http://localhost:4000/api/v1/devices/reload \\\n  -H \"Authorization: Bearer YOUR_TOKEN\"\n"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript (fetch)",
+                        "source": "fetch('http://localhost:4000/api/v1/devices/reload', {\n  method: 'POST',\n  headers: { 'Authorization': 'Bearer YOUR_TOKEN' }\n})\n  .then(response => response.json())\n  .then(data => console.log(`Reloaded ${data.live} live, ${data.queued} queued`));\n"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Commands sent/queued successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "live": {
+                                            "type": "integer",
+                                            "description": "Number of connected devices that received commands",
+                                            "example": 3
+                                        },
+                                        "queued": {
+                                            "type": "integer",
+                                            "description": "Number of offline devices with queued commands",
+                                            "example": 1
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "description": "Total number of devices",
+                                            "example": 4
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Invalid or missing authentication token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required",
+                                    "statusCode": 401
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/": {
@@ -2130,7 +2779,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -2209,7 +2859,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -2294,7 +2945,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -2377,7 +3029,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -2456,7 +3109,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -2528,7 +3182,8 @@
                                     ]
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -2608,7 +3263,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -2671,7 +3327,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -2773,7 +3430,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -2872,7 +3530,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -2882,6 +3541,77 @@
                     },
                     "403": {
                         "description": "Forbidden - Admin role required"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/performance/metrics": {
+            "get": {
+                "summary": "Get comprehensive performance metrics",
+                "description": "Retrieve detailed performance metrics including cache statistics,\nsource performance, and system information. Used for baseline\nmeasurements and optimization monitoring.\n",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "sessionAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Performance metrics",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "timestamp": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "cache": {
+                                                    "type": "object",
+                                                    "description": "Cache performance metrics"
+                                                },
+                                                "sources": {
+                                                    "type": "object",
+                                                    "description": "Media source performance metrics"
+                                                },
+                                                "system": {
+                                                    "type": "object",
+                                                    "description": "System information"
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
                     },
                     "500": {
                         "description": "Internal server error",
@@ -2915,7 +3645,8 @@
                                     "description": "OpenAPI 3.0 specification"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3004,7 +3735,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3085,7 +3817,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3200,7 +3933,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3291,7 +4025,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3357,7 +4092,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3429,7 +4165,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3493,7 +4230,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3557,7 +4295,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3611,7 +4350,8 @@
                                     "$ref": "#/components/schemas/AdminApiResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3690,7 +4430,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3738,7 +4479,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3815,7 +4557,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3885,7 +4628,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -3965,7 +4709,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -4008,7 +4753,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -4083,7 +4829,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -4156,7 +4903,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -4201,7 +4949,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -4252,7 +5001,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -4319,7 +5069,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -4402,7 +5153,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -4444,7 +5196,8 @@
                                     "$ref": "#/components/schemas/RefreshMediaResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -4789,7 +5542,8 @@
                                     "$ref": "#/components/schemas/AdminApiResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -4839,6 +5593,98 @@
                 "responses": {
                     "200": {
                         "description": "Cache statistics retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required to access this endpoint",
+                                    "statusCode": 401
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/cache/clear": {
+            "post": {
+                "summary": "Clear cache entries",
+                "description": "Clear all cache entries or specific tier. Supports query parameter 'tier' to clear specific cache tier (veryShort, short, medium, long, veryLong, mediaFiltered, config).",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "sessionAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "tier",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "veryShort",
+                                "short",
+                                "medium",
+                                "long",
+                                "veryLong",
+                                "mediaFiltered",
+                                "config"
+                            ]
+                        },
+                        "required": false,
+                        "description": "Specific cache tier to clear (omit to clear all)"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cache cleared successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "cleared": {
+                                            "type": "integer",
+                                            "description": "Number of entries cleared"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid tier specified"
                     },
                     "401": {
                         "description": "Unauthorized - Authentication required",
@@ -5108,7 +5954,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5147,7 +5994,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5210,7 +6058,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5266,7 +6115,8 @@
                                     "$ref": "#/components/schemas/ApiKeyResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5322,7 +6172,8 @@
                                     "$ref": "#/components/schemas/AdminApiResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5457,7 +6308,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5541,7 +6393,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5589,7 +6442,8 @@
                                     "$ref": "#/components/schemas/DebugResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5707,7 +6561,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5751,7 +6606,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5795,7 +6651,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5849,7 +6706,8 @@
                                     "$ref": "#/components/schemas/AdminApiResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -5918,7 +6776,8 @@
                                     "$ref": "#/components/schemas/PlexLibrariesResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6001,7 +6860,8 @@
                                     "$ref": "#/components/schemas/AdminApiResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6180,7 +7040,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6242,7 +7103,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6318,7 +7180,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6406,7 +7269,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6497,7 +7361,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6596,7 +7461,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6652,7 +7518,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6700,7 +7567,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6776,7 +7644,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6867,7 +7736,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -6925,7 +7795,8 @@
                                     "$ref": "#/components/schemas/NotificationTestResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7173,7 +8044,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7234,7 +8106,8 @@
                                     "$ref": "#/components/schemas/Generate2FAResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7291,7 +8164,8 @@
                                     "$ref": "#/components/schemas/AdminApiResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7348,7 +8222,8 @@
                                     "$ref": "#/components/schemas/AdminApiResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7395,7 +8270,8 @@
                                     "$ref": "#/components/schemas/BackupListResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7449,7 +8325,8 @@
                                     "$ref": "#/components/schemas/BackupCreateResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7523,7 +8400,8 @@
                                     "$ref": "#/components/schemas/BackupCleanupResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7619,7 +8497,8 @@
                                     "$ref": "#/components/schemas/BackupRestoreResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7688,7 +8567,8 @@
                                     "$ref": "#/components/schemas/BackupDeleteResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7762,7 +8642,8 @@
                                     "$ref": "#/components/schemas/BackupScheduleResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7846,7 +8727,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -7895,63 +8777,6 @@
                         }
                     }
                 }
-            }
-        },
-        "/get-config": {
-            "get": {
-                "deprecated": true,
-                "summary": "Retrieve the public application configuration (DEPRECATED)",
-                "description": "**DEPRECATED**: This endpoint is deprecated and will be removed in v3.0.0 (June 2026).\nPlease use `/api/v1/config` instead.\n\nFetches the non-sensitive configuration needed by the frontend for display logic.\nThis endpoint is also accessible via the versioned API at /api/v1/config.\nThe response is cached for 30 seconds to improve performance.\n",
-                "x-sunset-date": "2026-06-01",
-                "tags": ["Public API"],
-                "x-codeSamples": [
-                    {
-                        "lang": "curl",
-                        "label": "cURL",
-                        "source": "curl http://localhost:4000/get-config\n"
-                    },
-                    {
-                        "lang": "JavaScript",
-                        "label": "JavaScript (fetch)",
-                        "source": "fetch('http://localhost:4000/get-config')\n  .then(response => response.json())\n  .then(config => console.log('Screensaver interval:', config.screensaverInterval));\n"
-                    },
-                    {
-                        "lang": "Python",
-                        "label": "Python (requests)",
-                        "source": "import requests\nconfig = requests.get('http://localhost:4000/get-config').json()\nprint(f\"Screensaver interval: {config['screensaverInterval']}\")\n"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "The public configuration object.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Config"
-                                },
-                                "example": {
-                                    "success": true
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Internal server error",
-                                    "message": "Failed to retrieve configuration",
-                                    "statusCode": 500
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": []
             }
         },
         "/api/devices/register": {
@@ -8182,7 +9007,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -8264,7 +9090,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -8328,7 +9155,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -8393,6 +9221,29 @@
                 "responses": {
                     "200": {
                         "description": "Pairing successful",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                },
+                                "description": "Maximum requests allowed per time window",
+                                "example": 5
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                },
+                                "description": "Remaining requests in current window",
+                                "example": 4
+                            },
+                            "X-RateLimit-Reset": {
+                                "schema": {
+                                    "type": "integer"
+                                },
+                                "description": "Unix timestamp when rate limit resets",
+                                "example": 1699876543
+                            }
+                        },
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -8407,16 +9258,68 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "deviceId": "dev_a1b2c3d4e5f6",
+                                    "secret": "sec_x9y8z7w6v5u4t3s2"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Invalid or expired code"
+                        "description": "Invalid or expired code",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "invalid_code_format",
+                                    "message": "Code must be a 6-digit number",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
                     },
                     "429": {
-                        "description": "Too many pairing attempts"
+                        "description": "Too many pairing attempts. Rate limit is 5 requests per minute.",
+                        "headers": {
+                            "Retry-After": {
+                                "schema": {
+                                    "type": "integer"
+                                },
+                                "description": "Seconds to wait before retrying",
+                                "example": 42
+                            },
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                },
+                                "example": 5
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                },
+                                "example": 0
+                            },
+                            "X-RateLimit-Reset": {
+                                "schema": {
+                                    "type": "integer"
+                                },
+                                "example": 1699876585
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Too many requests",
+                                    "message": "Rate limit exceeded. Please wait 42 seconds before retrying.",
+                                    "statusCode": 429
+                                }
+                            }
+                        }
                     },
                     "500": {
                         "description": "Internal server error",
@@ -8501,7 +9404,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -8579,7 +9483,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -8607,7 +9512,7 @@
         "/api/devices": {
             "get": {
                 "summary": "List all devices",
-                "description": "Returns a list of all registered devices with their current status. Admin only.",
+                "description": "Returns a list of all registered devices with their current status. Admin only.\n\n**Note**: Pagination is not yet implemented. All devices are returned in a single response.\nFuture versions may support page and limit query parameters.\n",
                 "tags": ["Devices"],
                 "security": [
                     {
@@ -8625,9 +9530,24 @@
                                         "$ref": "#/components/schemas/Device"
                                     }
                                 },
-                                "example": {
-                                    "success": true
-                                }
+                                "example": [
+                                    {
+                                        "id": "dev_abc123",
+                                        "name": "Living Room TV",
+                                        "location": "living-room",
+                                        "status": "online",
+                                        "wsConnected": true,
+                                        "lastSeenAt": "2025-11-12T10:30:00.000Z"
+                                    },
+                                    {
+                                        "id": "dev_xyz789",
+                                        "name": "Bedroom Display",
+                                        "location": "bedroom",
+                                        "status": "offline",
+                                        "wsConnected": false,
+                                        "lastSeenAt": "2025-11-11T22:15:00.000Z"
+                                    }
+                                ]
                             }
                         }
                     },
@@ -8681,7 +9601,8 @@
                                     "$ref": "#/components/schemas/Device"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -8922,7 +9843,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -9021,7 +9943,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -9108,7 +10031,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -9262,7 +10186,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -9515,6 +10440,7 @@
         "/api/groups": {
             "get": {
                 "summary": "List all groups",
+                "description": "Returns all device groups with their settings templates and members.\n\n**Note**: Pagination is not yet implemented. All groups are returned in a single response.\n",
                 "tags": ["Groups", "Admin"],
                 "security": [
                     {
@@ -9532,9 +10458,26 @@
                                         "$ref": "#/components/schemas/Group"
                                     }
                                 },
-                                "example": {
-                                    "success": true
-                                }
+                                "example": [
+                                    {
+                                        "id": "lobby-displays",
+                                        "name": "Lobby Displays",
+                                        "description": "All screens in the main lobby",
+                                        "settingsTemplate": {
+                                            "transitionIntervalSeconds": 30
+                                        },
+                                        "order": 1
+                                    },
+                                    {
+                                        "id": "bedroom-displays",
+                                        "name": "Bedroom Displays",
+                                        "description": "Bedroom screens with night mode",
+                                        "settingsTemplate": {
+                                            "clockWidget": false
+                                        },
+                                        "order": 2
+                                    }
+                                ]
                             }
                         }
                     },
@@ -9614,7 +10557,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -9693,7 +10637,8 @@
                                     "$ref": "#/components/schemas/Group"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -9819,7 +10764,8 @@
                                     "$ref": "#/components/schemas/GroupCommandResponse"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -9882,7 +10828,8 @@
                                     ]
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -10608,7 +11555,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -10669,7 +11617,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -10938,170 +11887,6 @@
                 "security": []
             }
         },
-        "/get-media": {
-            "get": {
-                "deprecated": true,
-                "summary": "Retrieve media playlist (DEPRECATED)",
-                "description": "**DEPRECATED**: This endpoint is deprecated and will be removed in v3.0.0 (June 2026).\nPlease use `/api/v1/media` instead.\n\nReturns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). RomM games are only included when gamesOnly mode is enabled. Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true. Supports Music Mode for album covers and Games Mode for game covers.\n",
-                "x-sunset-date": "2026-06-01",
-                "tags": ["Public API"],
-                "x-codeSamples": [
-                    {
-                        "lang": "curl",
-                        "label": "cURL",
-                        "source": "curl http://localhost:4000/get-media\n"
-                    },
-                    {
-                        "lang": "JavaScript",
-                        "label": "JavaScript (fetch)",
-                        "source": "fetch('http://localhost:4000/get-media')\n  .then(response => response.json())\n  .then(data => console.log(data));\n"
-                    },
-                    {
-                        "lang": "Python",
-                        "label": "Python (requests)",
-                        "source": "import requests\nresponse = requests.get('http://localhost:4000/get-media')\nmedia = response.json()\n"
-                    }
-                ],
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "source",
-                        "schema": {
-                            "type": "string",
-                            "enum": ["plex", "jellyfin", "tmdb", "local"]
-                        },
-                        "description": "Optional source filter to return only items from a specific provider (romm not included in regular playlist)"
-                    },
-                    {
-                        "in": "query",
-                        "name": "nocache",
-                        "schema": {
-                            "type": "string",
-                            "enum": ["1"]
-                        },
-                        "description": "Set to '1' to bypass cache (admin use)"
-                    },
-                    {
-                        "in": "query",
-                        "name": "musicMode",
-                        "schema": {
-                            "type": "string",
-                            "enum": ["1", "true"]
-                        },
-                        "description": "Set to \"1\" or \"true\" to return music albums instead of movies/TV shows. Requires wallartMode.musicMode.enabled=true in config. Returns items with type=\"music\" containing album metadata (artist, album, genres, etc.)"
-                    },
-                    {
-                        "in": "query",
-                        "name": "gamesOnly",
-                        "schema": {
-                            "type": "string",
-                            "enum": ["1", "true"]
-                        },
-                        "description": "Set to \"1\" or \"true\" to return game covers from RomM. Requires wallartMode.gamesOnly=true in config. Returns items with type=\"game\" containing game metadata (platform, etc.)"
-                    },
-                    {
-                        "in": "query",
-                        "name": "count",
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 1000
-                        },
-                        "description": "Number of items to return (used with musicMode and gamesOnly)"
-                    },
-                    {
-                        "in": "query",
-                        "name": "includeExtras",
-                        "schema": {
-                            "type": "boolean"
-                        },
-                        "description": "When true, enriches items with trailers and theme music URLs (Plex/Jellyfin only). Note that this adds latency to the request as it fetches additional metadata per item."
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Playlist of media items. When includeExtras=true, items include extras array with trailers, trailer object (first trailer for convenience), theme path, and themeUrl for streaming.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/MediaItem"
-                                    }
-                                },
-                                "example": {
-                                    "success": true
-                                }
-                            }
-                        }
-                    },
-                    "202": {
-                        "description": "Playlist is being built. Client should retry in a few seconds.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {
-                                            "type": "string",
-                                            "example": "building"
-                                        },
-                                        "message": {
-                                            "type": "string"
-                                        },
-                                        "retryIn": {
-                                            "type": "number",
-                                            "description": "Suggested retry delay in milliseconds"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request parameters",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Invalid request parameters",
-                                    "message": "The count parameter must be between 1 and 1000",
-                                    "statusCode": 400
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Internal server error",
-                                    "message": "Failed to fetch media from configured sources",
-                                    "statusCode": 500
-                                }
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "Service unavailable. Playlist fetch failed.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiMessage"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": []
-            }
-        },
         "/get-music-artists": {
             "get": {
                 "summary": "Get random artists with complete discographies",
@@ -11113,91 +11898,16 @@
                         "name": "count",
                         "schema": {
                             "type": "integer",
+                            "minimum": 1,
+                            "maximum": 200,
                             "default": 50
                         },
-                        "description": "Number of random artists to fetch"
+                        "description": "Number of random artists to fetch (1-200, default 50)"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "Array of albums from random artists"
-                    }
-                },
-                "security": []
-            }
-        },
-        "/get-media-by-key/{key}": {
-            "get": {
-                "summary": "Retrieve a single media item by its unique key",
-                "description": "Fetches the full details for a specific media item, typically used when a user clicks on a 'recently added' item that isn't in the main playlist.",
-                "tags": ["Public API"],
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "key",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "description": "The unique key of the media item (e.g., plex-MyPlex-12345)."
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "The requested media item.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/MediaItem"
-                                },
-                                "example": {
-                                    "success": true
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid key format",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Invalid media key format",
-                                    "statusCode": 400
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Media item not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Media item not found",
-                                    "message": "No media item found with the specified key",
-                                    "statusCode": 404
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Internal server error",
-                                    "statusCode": 500
-                                }
-                            }
-                        }
                     }
                 },
                 "security": []
@@ -11213,25 +11923,29 @@
                         "in": "query",
                         "name": "server",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "maxLength": 256
                         },
-                        "description": "The name of the server config from config.json (for Plex-style paths)."
+                        "description": "The name of the server config from config.json (for Plex-style paths). Required if using path parameter."
                     },
                     {
                         "in": "query",
                         "name": "path",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "maxLength": 1024
                         },
-                        "description": "The image path from the media item object (e.g., /library/metadata/12345/art/...)."
+                        "description": "The image path from the media item object (e.g., /library/metadata/12345/art/...). Required if using server parameter."
                     },
                     {
                         "in": "query",
                         "name": "url",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uri",
+                            "maxLength": 2048
                         },
-                        "description": "Direct URL to proxy (for Jellyfin and external images)."
+                        "description": "Direct URL to proxy (for Jellyfin and external images). Alternative to server+path parameters."
                     }
                 ],
                 "responses": {
@@ -11655,7 +12369,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -11716,7 +12431,8 @@
                                     }
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -11823,7 +12539,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -11889,7 +12606,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -11926,7 +12644,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -11992,7 +12711,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -12029,7 +12749,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -12066,7 +12787,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -12099,10 +12821,11 @@
                         "in": "query",
                         "name": "text",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "maxLength": 2048
                         },
                         "required": true,
-                        "description": "Text to encode in the QR code"
+                        "description": "Text to encode in the QR code (max 2048 characters)"
                     },
                     {
                         "in": "query",
@@ -12169,7 +12892,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
@@ -12206,7 +12930,8 @@
                                     "type": "object"
                                 },
                                 "example": {
-                                    "success": true
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
                                 }
                             }
                         }
