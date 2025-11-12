@@ -169,8 +169,14 @@ module.exports = function createMediaRouter({
      * @swagger
      * /get-media:
      *   get:
-     *     summary: Retrieve media playlist
-     *     description: Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). RomM games are only included when gamesOnly mode is enabled. Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true. Supports Music Mode for album covers and Games Mode for game covers.
+     *     deprecated: true
+     *     summary: Retrieve media playlist (DEPRECATED)
+     *     description: |
+     *       **DEPRECATED**: This endpoint is deprecated and will be removed in v3.0.0 (June 2026).
+     *       Please use `/api/v1/media` instead.
+     *
+     *       Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). RomM games are only included when gamesOnly mode is enabled. Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true. Supports Music Mode for album covers and Games Mode for game covers.
+     *     x-sunset-date: '2026-06-01'
      *     tags: ['Public API']
      *     parameters:
      *       - in: query
@@ -233,6 +239,26 @@ module.exports = function createMediaRouter({
      *                 retryIn:
      *                   type: number
      *                   description: Suggested retry delay in milliseconds
+     *       400:
+     *         description: Invalid request parameters
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/StandardErrorResponse'
+     *             example:
+     *               error: 'Invalid request parameters'
+     *               message: 'The count parameter must be between 1 and 1000'
+     *               statusCode: 400
+     *       500:
+     *         description: Internal server error
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/StandardErrorResponse'
+     *             example:
+     *               error: 'Internal server error'
+     *               message: 'Failed to fetch media from configured sources'
+     *               statusCode: 500
      *       503:
      *         description: Service unavailable. Playlist fetch failed.
      *         content:
@@ -690,8 +716,34 @@ module.exports = function createMediaRouter({
      *           application/json:
      *             schema:
      *               $ref: '#/components/schemas/MediaItem'
+     *       400:
+     *         description: Invalid key format
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/StandardErrorResponse'
+     *             example:
+     *               error: 'Invalid media key format'
+     *               statusCode: 400
      *       404:
-     *         description: Media item not found.
+     *         description: Media item not found
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/StandardErrorResponse'
+     *             example:
+     *               error: 'Media item not found'
+     *               message: 'No media item found with the specified key'
+     *               statusCode: 404
+     *       500:
+     *         description: Internal server error
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/StandardErrorResponse'
+     *             example:
+     *               error: 'Internal server error'
+     *               statusCode: 500
      */
     router.get(
         '/get-media-by-key/:key',

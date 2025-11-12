@@ -32,11 +32,16 @@ module.exports = function createConfigPublicRouter({
      * @swagger
      * /get-config:
      *   get:
-     *     summary: Retrieve the public application configuration
-     *     description: >
+     *     deprecated: true
+     *     summary: Retrieve the public application configuration (DEPRECATED)
+     *     description: |
+     *       **DEPRECATED**: This endpoint is deprecated and will be removed in v3.0.0 (June 2026).
+     *       Please use `/api/v1/config` instead.
+     *
      *       Fetches the non-sensitive configuration needed by the frontend for display logic.
      *       This endpoint is also accessible via the versioned API at /api/v1/config.
      *       The response is cached for 30 seconds to improve performance.
+     *     x-sunset-date: '2026-06-01'
      *     tags: ['Public API']
      *     responses:
      *       200:
@@ -45,6 +50,16 @@ module.exports = function createConfigPublicRouter({
      *           application/json:
      *             schema:
      *               $ref: '#/components/schemas/Config'
+     *       500:
+     *         description: Internal server error
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/StandardErrorResponse'
+     *             example:
+     *               error: 'Internal server error'
+     *               message: 'Failed to retrieve configuration'
+     *               statusCode: 500
      */
     router.get(
         '/',

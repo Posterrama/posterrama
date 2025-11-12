@@ -19,60 +19,103 @@ function generateSwaggerSpec() {
             info: {
                 title: 'Posterrama API',
                 version: pkg.version,
-                description: `# Posterrama API Documentation
+                description: `**Posterrama** aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.
 
-**Posterrama** transforms any screen into a dynamic movie poster gallery by aggregating media from multiple sources including Plex, Jellyfin, and TMDB.
+---
 
-## Overview
+## Quick Start
 
-This API provides comprehensive access to:
-- **Media Management**: Retrieve and display movie/TV show posters with metadata
-- **Device Control**: Manage display devices, groups, and real-time playback
-- **Configuration**: Complete system and per-device settings management
-- **Admin Panel**: Full administrative control and monitoring
+1. **Configure Sources** → Visit \`/admin\` to connect Plex/Jellyfin/TMDB
+2. **Fetch Media** → \`GET /get-media\` returns aggregated playlist
+3. **Display** → Use \`/screensaver\`, \`/cinema\`, or \`/wallart\` modes
+4. **Manage Devices** → Register displays via \`/api/devices/*\`
 
-## Key Features
-
-### Multi-Source Aggregation
-Posterrama seamlessly combines content from:
-- **Plex Media Server**: Direct integration with your local media library
-- **Jellyfin**: Open-source media server support
-- **TMDB**: The Movie Database for trending content
-- **Local Posterpacks**: Offline ZIP-based media packages
-
-### Display Modes
-Three distinct viewing experiences:
-- **Screensaver**: Rotating poster display with customizable transitions
-- **Cinema**: Coming attractions style with trailers and theme music
-- **Wallart**: Gallery-style continuous display
-
-### Real-time Control
-- WebSocket-based device management
-- Live settings updates without page reload
-- Group broadcasting for multi-device setups
-- Remote command execution (pause, play, reload, etc.)
+---
 
 ## Authentication
 
-The API uses session-based authentication with cookies for admin endpoints. Public endpoints (like \`/get-media\`) are accessible without authentication.
+### Public Endpoints
+No authentication required:
+- \`GET /get-media\` - Media playlist
+- \`GET /get-config\` - Public configuration
+- \`GET /health\` - Health check
+- \`GET /image\` - Proxy images
 
-**Security Note**: Always use HTTPS in production to protect session cookies.
+### Protected Endpoints (Admin)
+Require session cookie (\`connect.sid\`) OR Bearer token:
+
+**Session Flow:**
+\`\`\`
+1. POST /login → Returns Set-Cookie: connect.sid
+2. Subsequent requests include cookie automatically
+3. POST /logout → Destroys session
+\`\`\`
+
+**Bearer Token Flow:**
+\`\`\`
+Authorization: Bearer <your-api-key>
+\`\`\`
+
+**2FA (Optional):**
+- If enabled, \`/login\` returns \`twoFactorRequired: true\`
+- Complete with \`POST /verify-2fa\` using TOTP code
+
+---
 
 ## Rate Limiting
 
-Some endpoints have rate limiting to prevent abuse:
-- Media endpoints: Cached responses with configurable TTL
-- Admin operations: Standard rate limits apply
-- WebSocket connections: Maximum 1 active connection per device
+| Endpoint | Limit | Window |
+|----------|-------|--------|
+| \`POST /api/devices/register\` | 5 req | 1 min |
+| \`POST /api/devices/pair\` | 5 req | 1 min |
+| \`POST /login\` | 5 req | 15 min |
+| Other endpoints | No limit | - |
 
-## Getting Started
+**Rate Limit Headers:**
+\`\`\`
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 3
+X-RateLimit-Reset: 1699876543
+Retry-After: 42
+\`\`\`
 
-1. Access the admin panel at \`/admin\` to configure your media sources
-2. Use \`/get-media\` to retrieve the aggregated playlist
-3. Implement the display frontend using \`/screensaver\`, \`/cinema\`, or \`/wallart\` modes
-4. Register devices via \`/api/devices/register\` for remote control
+---
 
-For more information, visit the [GitHub repository](https://github.com/Posterrama/posterrama).`,
+## Common Error Scenarios
+
+**400 Bad Request**
+\`\`\`json
+{"error": "Invalid request parameters", "message": "count must be between 1-500"}
+\`\`\`
+
+**401 Unauthorized**
+\`\`\`json
+{"error": "Unauthorized", "message": "Authentication required"}
+\`\`\`
+
+**404 Not Found**
+\`\`\`json
+{"error": "Not found", "message": "Device dev_abc123 does not exist"}
+\`\`\`
+
+**429 Too Many Requests**
+\`\`\`json
+{"error": "Rate limit exceeded", "retryAfter": 42}
+\`\`\`
+
+**500 Internal Server Error**
+\`\`\`json
+{"error": "Internal server error", "message": "Failed to connect to Plex"}
+\`\`\`
+
+---
+
+## Resources
+
+- [GitHub Repository](https://github.com/Posterrama/posterrama)
+- [Installation Guide](https://github.com/Posterrama/posterrama#installation)
+- [Configuration Schema](https://github.com/Posterrama/posterrama/blob/main/config.schema.json)
+`,
                 contact: {
                     name: 'Posterrama Project',
                     url: 'https://github.com/Posterrama/posterrama',
@@ -84,290 +127,89 @@ For more information, visit the [GitHub repository](https://github.com/Posterram
                 },
             },
             tags: [
-                // === 1. CORE API (meest gebruikt) ===
                 {
                     name: 'Public API',
-                    description: `Public endpoints accessible without authentication. These are the core endpoints used by display devices to retrieve media content, images, and configuration.
-                    
-**Key Endpoints:**
-- \`/get-media\`: Primary media playlist endpoint
-- \`/proxy\`: Image proxy for secure media delivery
-- \`/get-config\`: Public configuration retrieval`,
+                    description:
+                        '**Core endpoints** for fetching media and configuration. No authentication required. Examples: GET /get-media, GET /health',
+                    externalDocs: {
+                        description: 'API Usage Examples',
+                        url: 'https://github.com/Posterrama/posterrama#api-usage',
+                    },
                 },
                 {
                     name: 'Frontend',
-                    description: `Frontend asset serving and template rendering. Serves the HTML/CSS/JS for the display modes and admin interface.
-                    
-**Available Pages:**
-- \`/screensaver\`: Rotating poster display
-- \`/cinema\`: Movie theater experience
-- \`/wallart\`: Gallery-style display
-- \`/admin\`: Administrative control panel
-- \`/admin-analytics\`: Analytics dashboard
-
-**Static Assets:**
-- Versioned CSS/JS with cache busting
-- Favicon and branding assets
-- Font files and icons`,
+                    description:
+                        '**Display pages** (/screensaver, /cinema, /wallart) and admin interface (/admin). Returns HTML with embedded configurations.',
                 },
-
-                // === 2. AUTHENTICATION & SECURITY ===
                 {
                     name: 'Authentication',
-                    description: `Authentication and authorization system. Posterrama uses session-based authentication with optional 2FA support.
-                    
-**Security Features:**
-- Session management with secure cookies
-- Password hashing (bcrypt)
-- Two-factor authentication (TOTP)
-- API key support for programmatic access
-- Rate limiting on auth endpoints
-
-**Session Lifecycle:**
-- Login creates session cookie (connect.sid)
-- Session persists across requests
-- Logout invalidates session`,
+                    description:
+                        '**Session-based auth** with optional 2FA. Login flow: POST /login → Cookie → POST /logout. Supports Bearer tokens for API access.',
                 },
                 {
                     name: 'Security',
-                    description: `Security monitoring and violation reporting. Tracks authentication failures, rate limit violations, and suspicious activity.
-                    
-**Security Features:**
-- Failed login tracking
-- Rate limit enforcement
-- Session hijacking protection
-- CSRF protection
-- Security headers (CSP, HSTS)
-- IP-based blocking
-
-**Monitoring:**
-- Real-time security event log
-- Violation statistics
-- IP reputation tracking
-- Alert notifications for security events`,
+                    description:
+                        '**Security monitoring** including CSP violation reporting, rate limiting, and login attempt tracking. Admin-only endpoints.',
                 },
-
-                // === 3. ADMIN & CONFIGURATION ===
                 {
                     name: 'Admin',
-                    description: `Administrative endpoints for system configuration and management. These endpoints require an active admin session.
-                    
-**Capabilities:**
-- Complete configuration management
-- System monitoring and performance metrics
-- User authentication and session management
-- Backup and restore operations
-- Source connection testing
-
-**Authentication Required**: Session-based (cookie: connect.sid)`,
+                    description:
+                        '**System management** including config backups, server restarts, and health monitoring. All endpoints require sessionAuth or bearerAuth.',
                 },
                 {
                     name: 'Configuration',
-                    description: `Application configuration management. Configuration is stored in \`config.json\` with automatic validation and hot-reloading support.
-                    
-**Configuration Sections:**
-- Media sources (Plex, Jellyfin, TMDB, Local)
-- Display mode settings (Screensaver, Cinema, Wallart)
-- Server settings (port, cache, logging)
-- Device management
-- Security settings
-
-**Best Practices:**
-- Always validate before saving
-- Create backups before major changes
-- Test source connections after updates`,
+                    description:
+                        '**Application settings** for media sources (Plex/Jellyfin/TMDB), display modes (screensaver/cinema/wallart), and server options. Supports config backups.',
                 },
                 {
                     name: 'Validation',
-                    description: `Configuration and data validation endpoints. These endpoints validate configuration changes before applying them, preventing invalid configurations.
-                    
-**Validation Types:**
-- Server connectivity (Plex, Jellyfin)
-- API key validity
-- Configuration schema compliance
-- Port availability
-- File path accessibility`,
+                    description:
+                        '**Test connections** to Plex/Jellyfin/TMDB servers before saving config. Returns detailed error messages on failure.',
                 },
-
-                // === 4. DEVICE MANAGEMENT ===
-                // === 4. DEVICE MANAGEMENT ===
                 {
                     name: 'Devices',
-                    description: `Device management system for controlling display clients. Posterrama supports registering unlimited devices and organizing them into groups.
-                    
-**Features:**
-- Device registration with pairing codes
-- Real-time status monitoring
-- Per-device settings overrides
-- Heartbeat tracking
-- WebSocket command channel
-
-**Device Lifecycle:**
-1. Register via \`/api/devices/register\`
-2. Pair with code via \`/api/devices/pair\`
-3. Send heartbeats via \`/api/devices/heartbeat\`
-4. Receive commands via WebSocket at \`/ws/devices\``,
+                    description:
+                        '**Device lifecycle** → Register POST /api/devices/register, pair with code POST /api/devices/pair, control via WebSocket /ws/devices. Rate limited: 5 req/min.',
                 },
                 {
                     name: 'Groups',
-                    description: `Organize devices into logical groups for coordinated control. Groups enable broadcasting commands to multiple devices simultaneously.
-                    
-**Use Cases:**
-- Floor/room organization
-- Synchronized displays
-- Bulk configuration updates
-- Targeted content delivery
-
-**Operations:**
-- Create and manage groups
-- Assign devices to groups
-- Broadcast commands to all group members`,
+                    description:
+                        '**Device grouping** for broadcast control. Create groups POST /api/groups, assign devices, send commands to all members simultaneously.',
                 },
-
-                // === 5. MEDIA SOURCES ===
                 {
                     name: 'Local Directory',
-                    description: `Local media source management for posterpack archives and directory-based media. Supports offline media delivery and custom collections.
-                    
-**Features:**
-- Posterpack generation from Plex/Jellyfin
-- ZIP archive management
-- Directory browsing
-- File upload/download
-- Metadata management
-- Asset extraction (posters, backgrounds, trailers, themes)
-
-**Posterpack Format:**
-A posterpack is a self-contained ZIP archive containing:
-- \`metadata.json\`: Complete media information
-- \`poster.jpg\`: Movie/show poster
-- \`background.jpg\`: Backdrop image
-- \`thumbnail.jpg\`: Small preview image
-- \`trailer.mp4\`: Optional trailer video
-- \`theme.mp3\`: Optional theme music
-- \`clearlogo.png\`: Optional logo overlay
-- \`people/\`: Cast/crew photos
-
-**Use Cases:**
-- Offline display setups
-- Custom media collections
-- Pre-packaged content distribution
-- Backup media libraries`,
+                    description:
+                        '**Offline media** from ZIP posterpack archives or directory scans. Upload POST /local-posterpack/upload, list GET /local-posterpack/:zipName/list.',
                 },
-
-                // === 6. SYSTEM MONITORING ===
                 {
                     name: 'Cache',
-                    description: `Multi-tier caching system for optimal performance. Posterrama uses memory and disk caching with intelligent invalidation.
-                    
-**Cache Types:**
-- **Memory Cache**: Fast in-memory storage for API responses
-- **Disk Cache**: Persistent image cache
-- **HTTP Cache**: ETags and conditional requests
-- **Browser Cache**: Client-side caching with versioning
-
-**Operations:**
-- View cache statistics
-- Clear specific cache entries
-- Invalidate on configuration changes
-- Configure TTL per endpoint`,
+                    description:
+                        '**Performance optimization** with multi-tier caching (memory + disk). View stats GET /api/cache/stats, clear cache POST /api/cache/clear.',
                 },
                 {
                     name: 'Metrics',
-                    description: `Performance monitoring and metrics collection. Real-time system health, source performance, and cache statistics.
-                    
-**Metrics Categories:**
-- System resources (CPU, memory, uptime)
-- Source performance (response times, error rates)
-- Cache efficiency (hit rate, size, TTL)
-- Request statistics (throughput, latency)
-- Device activity (connections, commands)
-
-**Use Cases:**
-- Performance optimization
-- Troubleshooting slow responses
-- Capacity planning
-- Source reliability monitoring`,
+                    description:
+                        '**System monitoring** → Source performance (Plex/Jellyfin/TMDB response times), cache hit rates, device status. Useful for diagnostics.',
                 },
-
-                // === 7. UPDATES & INTEGRATIONS ===
                 {
                     name: 'Auto-Update',
-                    description: `Automatic application update system powered by PM2 ecosystem. Safely updates Posterrama to the latest version with rollback support.
-                    
-**Update Process:**
-1. Backup current configuration
-2. Pull latest code from GitHub
-3. Install npm dependencies
-4. Run database migrations (if any)
-5. Restart application gracefully
-6. Verify health post-update
-
-**Safety Features:**
-- Automatic configuration backups
-- Health check verification
-- Rollback on failure
-- Update status tracking
-- Manual control override
-
-**Requirements:**
-- PM2 process manager
-- Git repository access
-- Write permissions to install directory`,
+                    description:
+                        '**GitHub Releases integration** for automatic updates via PM2. Check GET /api/github/latest, apply POST /api/admin/github/update.',
                 },
                 {
                     name: 'GitHub Integration',
-                    description: `Integration with GitHub API for release information and automatic updates.
-                    
-**Features:**
-- Check for latest releases
-- Download release assets
-- Version comparison
-- Changelog retrieval
-- Release notes display
-
-**Update Process:**
-1. Check \`/api/admin/github/latest-release\`
-2. Compare with current version
-3. Notify admin of available updates
-4. Optional: Auto-update via updater service`,
+                    description:
+                        '**Release management** → Fetch releases GET /api/admin/github/releases, trigger updates. Uses GitHub API with rate limiting (60 req/hour).',
                 },
-
-                // === 8. UTILITIES & MISC ===
                 {
                     name: 'Documentation',
-                    description: `API documentation and specification endpoints. Provides access to this interactive documentation and the raw OpenAPI specification.
-                    
-**Endpoints:**
-- \`/api-docs\`: Interactive ReDoc documentation (this page)
-- \`/api-docs/swagger.json\`: Raw OpenAPI 3.0 specification
-
-**OpenAPI Spec:**
-The OpenAPI specification is dynamically generated from JSDoc comments in the source code, ensuring documentation stays synchronized with implementation.`,
-                },
-                {
-                    name: 'Testing',
-                    description: `Development and testing utilities. These endpoints help developers test functionality and troubleshoot issues.
-                    
-**Available Tests:**
-- Notification system testing
-- Source connection verification
-- Cache behavior inspection
-- WebSocket connectivity
-- Performance benchmarking`,
+                    description:
+                        '**API reference** at /api-docs (ReDoc). Download OpenAPI spec GET /api-docs/swagger.json.',
                 },
                 {
                     name: 'Site Server',
-                    description: `Public-facing site server for marketing and information pages. Serves static content about Posterrama.
-                    
-**Content:**
-- Project information
-- Installation guides
-- Feature showcase
-- Support resources
-- Community links
-
-**Note:** These endpoints are separate from the application API and do not require authentication.`,
+                    description:
+                        '**Static assets** including favicon, manifest, robots.txt. Supports PWA installation.',
                 },
             ],
             'x-tagGroups': [
@@ -457,6 +299,32 @@ The OpenAPI specification is dynamically generated from JSDoc comments in the so
                             ok: { type: 'boolean', example: true },
                         },
                         example: { ok: true },
+                    },
+                    StandardErrorResponse: {
+                        type: 'object',
+                        properties: {
+                            error: {
+                                type: 'string',
+                                description: 'Error message describing what went wrong',
+                                example: 'Invalid request parameters',
+                            },
+                            message: {
+                                type: 'string',
+                                description: 'Additional error details (optional)',
+                                example: 'The count parameter must be between 1 and 500',
+                            },
+                            statusCode: {
+                                type: 'integer',
+                                description: 'HTTP status code',
+                                example: 400,
+                            },
+                        },
+                        required: ['error'],
+                        example: {
+                            error: 'Invalid request parameters',
+                            message: 'The count parameter must be between 1 and 500',
+                            statusCode: 400,
+                        },
                     },
                     BackupCreateResponse: {
                         type: 'object',
@@ -558,25 +426,6 @@ The OpenAPI specification is dynamically generated from JSDoc comments in the so
                             ok: { type: 'boolean' },
                             level: { type: 'string' },
                             message: { type: 'string' },
-                        },
-                    },
-                    StandardErrorResponse: {
-                        type: 'object',
-                        properties: {
-                            error: {
-                                type: 'string',
-                                description: 'Error message',
-                                example: 'Invalid request',
-                            },
-                            code: {
-                                type: 'string',
-                                description: 'Optional machine-readable code',
-                                example: 'VALIDATION_ERROR',
-                            },
-                        },
-                        example: {
-                            error: 'Invalid request',
-                            code: 'VALIDATION_ERROR',
                         },
                     },
                     PaginatedMediaResponse: {
@@ -1807,6 +1656,215 @@ The OpenAPI specification is dynamically generated from JSDoc comments in the so
         }
     } catch (_) {
         // Non-fatal if sanitization fails
+    }
+
+    // Post-process: Ensure all endpoints have 200 responses
+    // This fixes endpoints where JSDoc is incomplete
+    if (spec && spec.paths) {
+        for (const [pathKey, methods] of Object.entries(spec.paths)) {
+            for (const [method, operation] of Object.entries(methods)) {
+                if (typeof operation !== 'object' || !operation) continue;
+
+                // Skip parameter definitions
+                if (method === 'parameters') continue;
+
+                // Ensure responses object exists
+                if (!operation.responses) {
+                    operation.responses = {};
+                }
+
+                // Add 200 response if missing
+                if (!operation.responses['200']) {
+                    const isHtmlEndpoint =
+                        pathKey.includes('.html') ||
+                        pathKey === '/' ||
+                        pathKey.startsWith('/admin') ||
+                        pathKey.startsWith('/cinema') ||
+                        pathKey.startsWith('/wallart') ||
+                        pathKey.startsWith('/screensaver') ||
+                        pathKey.startsWith('/preview');
+
+                    const isJsonEndpoint =
+                        pathKey.startsWith('/api/') ||
+                        pathKey === '/get-media' ||
+                        pathKey === '/get-config';
+
+                    if (isHtmlEndpoint) {
+                        operation.responses['200'] = {
+                            description: 'Success',
+                            content: {
+                                'text/html': {
+                                    schema: { type: 'string' },
+                                    example: '<!DOCTYPE html>...',
+                                },
+                            },
+                        };
+                    } else if (isJsonEndpoint) {
+                        operation.responses['200'] = {
+                            description: 'Success',
+                            content: {
+                                'application/json': {
+                                    schema: { type: 'object' },
+                                    example: { success: true },
+                                },
+                            },
+                        };
+                    } else {
+                        // Generic 200 for other endpoints
+                        operation.responses['200'] = {
+                            description: 'Success',
+                            content: {
+                                'application/octet-stream': {
+                                    schema: { type: 'string', format: 'binary' },
+                                },
+                            },
+                        };
+                    }
+                }
+
+                // Ensure 200 response has examples
+                if (operation.responses['200'] && operation.responses['200'].content) {
+                    for (const [contentType, mediaType] of Object.entries(
+                        operation.responses['200'].content
+                    )) {
+                        if (
+                            !mediaType.example &&
+                            !mediaType.examples &&
+                            !(mediaType.schema && mediaType.schema.example)
+                        ) {
+                            // Add basic example based on content type
+                            if (contentType === 'application/json') {
+                                mediaType.example = { success: true };
+                            } else if (contentType === 'text/html') {
+                                mediaType.example = '<!DOCTYPE html>...';
+                            } else {
+                                mediaType.example = 'Binary data';
+                            }
+                        }
+                    }
+                }
+
+                // Add standard error responses for API endpoints (if missing)
+                const isApiEndpoint =
+                    pathKey.startsWith('/api/') ||
+                    pathKey === '/get-media' ||
+                    pathKey === '/get-config' ||
+                    pathKey === '/get-media-by-key';
+
+                if (isApiEndpoint) {
+                    // Add 400 Bad Request if missing (for endpoints with parameters)
+                    const hasParams =
+                        operation.parameters?.length > 0 ||
+                        operation.requestBody ||
+                        pathKey.includes('{') ||
+                        pathKey.includes(':');
+
+                    if (hasParams && !operation.responses['400']) {
+                        operation.responses['400'] = {
+                            description: 'Invalid request parameters',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/StandardErrorResponse' },
+                                    example: {
+                                        error: 'Invalid request parameters',
+                                        statusCode: 400,
+                                    },
+                                },
+                            },
+                        };
+                    }
+
+                    // Add 401 Unauthorized for protected endpoints (if missing)
+                    const isProtected =
+                        operation.security &&
+                        operation.security.length > 0 &&
+                        operation.security.some(s => Object.keys(s).length > 0);
+
+                    if (isProtected && !operation.responses['401']) {
+                        operation.responses['401'] = {
+                            description: 'Unauthorized - Authentication required',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/StandardErrorResponse' },
+                                    example: {
+                                        error: 'Unauthorized',
+                                        message: 'Authentication required to access this endpoint',
+                                        statusCode: 401,
+                                    },
+                                },
+                            },
+                        };
+                    }
+
+                    // Add 404 Not Found for endpoints with path parameters (if missing)
+                    const hasPathParams = pathKey.includes('{') || pathKey.includes(':');
+                    if (hasPathParams && !operation.responses['404']) {
+                        operation.responses['404'] = {
+                            description: 'Resource not found',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/StandardErrorResponse' },
+                                    example: {
+                                        error: 'Not found',
+                                        message: 'The requested resource does not exist',
+                                        statusCode: 404,
+                                    },
+                                },
+                            },
+                        };
+                    }
+
+                    // Add 500 Internal Server Error if missing
+                    if (!operation.responses['500']) {
+                        operation.responses['500'] = {
+                            description: 'Internal server error',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/StandardErrorResponse' },
+                                    example: {
+                                        error: 'Internal server error',
+                                        statusCode: 500,
+                                    },
+                                },
+                            },
+                        };
+                    }
+                }
+
+                // Add security: [] for public endpoints (no auth required)
+                const publicPaths = [
+                    '/api/v1/config',
+                    '/api/v1/media',
+                    '/',
+                    '/index.html',
+                    '/get-media',
+                    '/get-config',
+                    '/image',
+                    '/health',
+                    '/api/health',
+                    '/screensaver',
+                    '/cinema',
+                    '/wallart',
+                    '/preview',
+                    '/api-docs',
+                    '/api-docs/swagger.json',
+                    '/api/config',
+                    '/api/version',
+                    '/api/github/latest',
+                    '/local-posterpack',
+                    '/local-media',
+                    '/2fa-verify.html',
+                    '/setup.html',
+                    '/login.html',
+                ];
+
+                const isPublic = publicPaths.some(p => pathKey === p || pathKey.startsWith(p));
+
+                if (isPublic && !operation.security) {
+                    operation.security = []; // Explicitly mark as public (no security)
+                }
+            }
+        }
     }
 
     return spec;

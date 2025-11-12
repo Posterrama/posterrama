@@ -87,12 +87,58 @@ module.exports = function createDevicesRouter({
      *     responses:
      *       200:
      *         description: Device registered successfully
+     *         headers:
+     *           X-RateLimit-Limit:
+     *             schema:
+     *               type: integer
+     *             description: Maximum requests allowed per time window
+     *             example: 5
+     *           X-RateLimit-Remaining:
+     *             schema:
+     *               type: integer
+     *             description: Remaining requests in current window
+     *             example: 4
+     *           X-RateLimit-Reset:
+     *             schema:
+     *               type: integer
+     *             description: Unix timestamp when rate limit resets
+     *             example: 1699876543
      *         content:
      *           application/json:
      *             schema:
      *               $ref: '#/components/schemas/DeviceRegisterResponse'
+     *             example:
+     *               deviceId: dev_a1b2c3d4e5f6
+     *               secret: sec_x9y8z7w6v5u4t3s2
+     *               message: registered
      *       429:
-     *         description: Too many registration requests
+     *         description: Too many registration requests. Rate limit is 5 requests per minute.
+     *         headers:
+     *           Retry-After:
+     *             schema:
+     *               type: integer
+     *             description: Seconds to wait before retrying
+     *             example: 42
+     *           X-RateLimit-Limit:
+     *             schema:
+     *               type: integer
+     *             example: 5
+     *           X-RateLimit-Remaining:
+     *             schema:
+     *               type: integer
+     *             example: 0
+     *           X-RateLimit-Reset:
+     *             schema:
+     *               type: integer
+     *             example: 1699876585
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/StandardErrorResponse'
+     *             example:
+     *               error: Too many requests
+     *               message: Rate limit exceeded. Please wait 42 seconds before retrying.
+     *               statusCode: 429
      *       500:
      *         description: Register failed
      */

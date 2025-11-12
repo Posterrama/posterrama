@@ -2,9 +2,15 @@
 
 Complete guide for integrating Posterrama with Home Assistant via MQTT.
 
-**Version**: 2.8.1+  
-**Last Updated**: 2025-10-24  
-**Prerequisites**: Posterrama v2.8.1+, Home Assistant with MQTT broker
+**Version**: 2.9.3+  
+**Last Updated**: 2025-11-12  
+**Prerequisites**: Posterrama v2.9.3+, Home Assistant with MQTT broker
+
+**Quick Troubleshooting:**
+
+- 🔴 Not connecting? Check broker IP and credentials in config.json
+- 🟡 Entities not appearing? Ensure discovery.enabled: true and restart Posterrama
+- 🟢 Works but slow? Increase publishInterval to 60 seconds
 
 ---
 

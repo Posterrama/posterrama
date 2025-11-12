@@ -28,6 +28,10 @@ while read local_ref local_sha remote_ref remote_sha; do
     if [[ "$remote_ref" == "refs/heads/main" ]]; then
         echo "📊 Pushing to main branch - updating badges and coverage..."
         
+        # Sync OpenAPI spec
+        echo "📄 Syncing OpenAPI specification..."
+        npm run openapi:sync
+        
         # Generate coverage report
         echo "🧪 Generating test coverage..."
         npm run test:coverage --silent
@@ -49,6 +53,7 @@ while read local_ref local_sha remote_ref remote_sha; do
             # Stage the changes
             git add README.md 2>/dev/null || true
             git add docs/COVERAGE.md 2>/dev/null || true
+            git add docs/openapi-latest.json 2>/dev/null || true
             git add coverage/coverage-final.json 2>/dev/null || true
             git add coverage/lcov.info 2>/dev/null || true
             git add coverage/lcov-report 2>/dev/null || true

@@ -2410,10 +2410,64 @@ app.get('/api-docs', (req, res) => {
     <title>Posterrama API v${pkg.version}</title>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
+        /* Clean professional theme */
         body {
             margin: 0;
-            padding: 0;
+            background: #ffffff;
+        }
+        
+        /* Logo size control - keep it small and sharp */
+        img[src*="logo"], img[src*="icon"] {
+            max-height: 60px !important;
+            max-width: 200px !important;
+            width: auto !important;
+            height: auto !important;
+            object-fit: contain;
+        }
+        
+        /* API info section spacing */
+        div[class*="api-info"] img {
+            max-height: 50px !important;
+            margin-bottom: 1rem;
+        }
+        
+        /* Hide Redocly branding and footer */
+        a[href*="redocly.com"],
+        a[href*="redoc.ly"],
+        div[class*="sc-"][class*="poweredBy"],
+        div[class*="PoweredBy"],
+        [class*="powered-by"],
+        [class*="PoweredBy"],
+        div[class*="sc-"] > a[href*="redoc"],
+        footer a[href*="redoc"] {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+        }
+        
+        /* Clean up any remaining footer branding */
+        div[class*="api-info"] + div a[href*="redoc"],
+        .api-info a[href*="redoc"] {
+            display: none !important;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
         }
     </style>
 </head>
@@ -2426,22 +2480,104 @@ app.get('/api-docs', (req, res) => {
             {
                 theme: {
                     colors: {
-                        primary: { main: '#3b82f6' }
+                        primary: {
+                            main: '#4d9375'
+                        },
+                        success: {
+                            main: '#89ca78'
+                        },
+                        warning: {
+                            main: '#e5c07b'
+                        },
+                        error: {
+                            main: '#e06c75'
+                        },
+                        text: {
+                            primary: '#3c3c3c',
+                            secondary: '#6c6c6c'
+                        },
+                        border: {
+                            dark: '#e5e5e5',
+                            light: '#f5f5f5'
+                        },
+                        http: {
+                            get: '#89ca78',
+                            post: '#4d9375',
+                            put: '#e5c07b',
+                            patch: '#b77eb8',
+                            delete: '#e06c75',
+                            options: '#6c6c6c',
+                            head: '#5ab0b0'
+                        }
                     },
                     typography: {
                         fontSize: '15px',
-                        fontFamily: 'system-ui, -apple-system, sans-serif'
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        code: {
+                            fontSize: '14px',
+                            fontFamily: '"Consolas", "Courier New", monospace'
+                        }
+                    },
+                    sidebar: {
+                        backgroundColor: '#f8f8f8',
+                        textColor: '#3c3c3c',
+                        activeTextColor: '#4d9375',
+                        groupItems: {
+                            activeBackgroundColor: '#e8f4f0'
+                        }
+                    },
+                    rightPanel: {
+                        backgroundColor: '#2e2e2e',
+                        textColor: '#d4d4d4'
+                    },
+                    codeBlock: {
+                        backgroundColor: '#252525',
+                        tokens: {
+                            keyword: { color: '#c586c0' },
+                            string: { color: '#ce9178' },
+                            number: { color: '#b5cea8' },
+                            boolean: { color: '#569cd6' },
+                            comment: { color: '#6a9955', fontStyle: 'italic' },
+                            property: { color: '#9cdcfe' },
+                            punctuation: { color: '#d4d4d4' },
+                            operator: { color: '#d4d4d4' },
+                            function: { color: '#dcdcaa' },
+                            variable: { color: '#9cdcfe' },
+                            class: { color: '#4ec9b0' },
+                            type: { color: '#4ec9b0' }
+                        }
                     }
                 },
+                scrollYOffset: 0,
                 hideDownloadButton: false,
-                expandResponses: '200,201',
-                jsonSampleExpandLevel: 2,
+                downloadFileName: 'posterrama-openapi.json',
+                downloadDefinitionUrl: '/api-docs/swagger.json',
+                expandResponses: '200,201,202',
+                generatedPayloadSamplesMaxDepth: 4,
+                jsonSampleExpandLevel: 3,
+                maxDisplayedEnumValues: 10,
+                showExtensions: true,
+                sortEnumValuesAlphabetically: true,
+                sortOperationsAlphabetically: false,
                 sortPropsAlphabetically: true,
                 sortTagsAlphabetically: false,
                 pathInMiddlePanel: true,
                 requiredPropsFirst: true,
+                untrustedSpec: false,
                 noAutoAuth: false,
-                hideHostname: false
+                hideHostname: false,
+                expandDefaultServerVariables: true,
+                expandSingleSchemaField: true,
+                schemaExpansionLevel: 2,
+                menuToggle: true,
+                nativeScrollbars: false,
+                disableSearch: false,
+                searchMaxDepth: 5,
+                hideLoading: true,
+                hideLogo: true,
+                hideSchemaPattern: false,
+                showObjectSchemaExamples: true,
+                unstable_ignoreMimeParameters: false
             },
             document.getElementById('redoc-container')
         );
@@ -2567,7 +2703,7 @@ app.get('/admin', (req, res) => {
             // Read admin.html and inject cache busters
             fs.readFile(path.join(__dirname, 'public', 'admin.html'), 'utf8', (err, data) => {
                 if (err) {
-                    console.error('Error reading admin.html:', err);
+                    logger.error('Error reading admin.html:', err);
                     return res.status(500).send('Internal Server Error');
                 }
 
@@ -2594,7 +2730,7 @@ app.get('/admin', (req, res) => {
             });
         } catch (error) {
             // Fallback to timestamp-based cache buster if file stats fail
-            console.warn(
+            logger.warn(
                 'Could not read file stats for cache busting, using timestamp fallback:',
                 error.message
             );
@@ -2602,7 +2738,7 @@ app.get('/admin', (req, res) => {
 
             fs.readFile(path.join(__dirname, 'public', 'admin.html'), 'utf8', (err, data) => {
                 if (err) {
-                    console.error('Error reading admin.html:', err);
+                    logger.error('Error reading admin.html:', err);
                     return res.status(500).send('Internal Server Error');
                 }
 
@@ -2651,7 +2787,7 @@ app.get('/admin/logs', isAuthenticated, (req, res) => {
     const filePath = path.join(__dirname, 'public', 'logs.html');
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) {
-            console.error('Error reading logs.html:', err);
+            logger.error('Error reading logs.html:', err);
             return res.sendFile(filePath); // Fallback to static file
         }
 
@@ -3184,7 +3320,7 @@ app.use('/', localDirectoryRouter);
  *                 error:
  *                   type: string
  *       401:
- *         description: Niet geautoriseerd.
+ *         description: Unauthorized
  */
 app.post(
     '/api/admin/test-tmdb',
@@ -3298,7 +3434,7 @@ app.post(
                 }
             }
         } catch (error) {
-            if (isDebug) console.error('[Admin API] TMDB test failed:', error);
+            if (isDebug) logger.error('[Admin API] TMDB test failed:', error);
             res.json({
                 success: false,
                 error: error.message || 'Failed to connect to TMDB API',
@@ -3329,7 +3465,7 @@ app.post(
  *                   items:
  *                     type: string
  *       401:
- *         description: Niet geautoriseerd.
+ *         description: Unauthorized
  */
 app.get(
     '/api/admin/tmdb-genres',
@@ -3355,7 +3491,7 @@ app.get(
             if (isDebug) logger.debug(`[Admin API] Found ${genres.length} TMDB genres.`);
             res.json({ genres: genres });
         } catch (error) {
-            console.error(`[Admin API] Failed to get TMDB genres: ${error.message}`);
+            logger.error(`[Admin API] Failed to get TMDB genres: ${error.message}`);
             res.json({ genres: [], error: error.message });
         }
     })
@@ -3435,7 +3571,7 @@ app.post(
             res.json({ genres: genres });
         } catch (error) {
             if (isDebug)
-                console.error('[Admin API] Error getting genres from test TMDB:', error.message);
+                logger.error('[Admin API] Error getting genres from test TMDB:', error.message);
             throw new ApiError(400, `Failed to get TMDB genres: ${error.message}`);
         }
     })
@@ -3584,7 +3720,7 @@ app.get(
  *                 enabled:
  *                   type: boolean
  *       401:
- *         description: Niet geautoriseerd.
+ *         description: Unauthorized
  */
 app.get(
     '/api/admin/tmdb-cache-stats',
@@ -3688,7 +3824,7 @@ app.post(
         req.session.destroy(err => {
             if (err) {
                 if (isDebug)
-                    console.error(
+                    logger.error(
                         '[Admin API] Error destroying session after password change:',
                         err
                     );
@@ -3745,11 +3881,9 @@ app.post(
             exec(`pm2 restart ${appName}`, (error, stdout, stderr) => {
                 // We can't send a response here, but we can log the outcome for debugging.
                 if (error) {
-                    console.error(
-                        `[Admin API] PM2 restart command failed after response was sent.`
-                    );
-                    console.error(`[Admin API] Error: ${error.message}`);
-                    if (stderr) console.error(`[Admin API] PM2 stderr: ${stderr}`);
+                    logger.error(`[Admin API] PM2 restart command failed after response was sent.`);
+                    logger.error(`[Admin API] Error: ${error.message}`);
+                    if (stderr) logger.error(`[Admin API] PM2 stderr: ${stderr}`);
                     return;
                 }
                 if (isDebug)
@@ -3892,7 +4026,7 @@ app.get(
 
             res.json(statusData);
         } catch (error) {
-            console.error('[Admin API] Error getting system status:', error);
+            logger.error('[Admin API] Error getting system status:', error);
             res.status(500).json({ error: 'Failed to get system status' });
         }
     })
@@ -4686,7 +4820,7 @@ app.get(
                     total: formatBytes(totalSpace),
                 };
             } catch (e) {
-                console.warn('[Admin API] Could not get disk stats:', e.message);
+                logger.warn('[Admin API] Could not get disk stats:', e.message);
             }
 
             // Uptime
@@ -4722,7 +4856,7 @@ app.get(
 
             res.json(performanceData);
         } catch (error) {
-            console.error('[Admin API] Error getting performance metrics:', error);
+            logger.error('[Admin API] Error getting performance metrics:', error);
             res.status(500).json({ error: 'Failed to get performance metrics' });
         }
     })
@@ -5092,7 +5226,7 @@ app.get(
  *       200:
  *         description: Cache debug information
  *       401:
- *         description: Niet geautoriseerd.
+ *         description: Unauthorized
  */
 app.get(
     '/api/admin/debug-cache',
@@ -5181,7 +5315,7 @@ app.post(
                 message: `Successfully cleared ${clearedCount} cached images.`,
             });
         } catch (error) {
-            console.error('[Admin API] Error clearing image cache:', error);
+            logger.error('[Admin API] Error clearing image cache:', error);
             throw new ApiError(500, 'Failed to clear image cache. Check server logs for details.');
         }
     })
@@ -5300,7 +5434,7 @@ app.get(
             res.setHeader('Pragma', 'no-cache');
             res.json(response);
         } catch (error) {
-            console.error('[Admin API] Error getting cache stats:', error);
+            logger.error('[Admin API] Error getting cache stats:', error);
             throw new ApiError(
                 500,
                 'Failed to get cache statistics. Check server logs for details.'
@@ -5590,7 +5724,7 @@ app.post(
                                     );
                             } catch (err) {
                                 if (isDebug)
-                                    console.warn(
+                                    logger.warn(
                                         '[Admin API] Failed to remove file:',
                                         oldestFile.file,
                                         err.message
@@ -5614,7 +5748,7 @@ app.post(
                                     );
                             } catch (err) {
                                 if (isDebug)
-                                    console.warn(
+                                    logger.warn(
                                         '[Admin API] Failed to remove expired file:',
                                         oldFile.file,
                                         err.message
@@ -5623,7 +5757,7 @@ app.post(
                         }
                     } catch (err) {
                         if (isDebug)
-                            console.warn(
+                            logger.warn(
                                 '[Admin API] Error processing cache directory:',
                                 cacheDir,
                                 err.message
@@ -5651,7 +5785,7 @@ app.post(
                 spaceSaved: `${spaceSavedMB} MB`,
             });
         } catch (error) {
-            if (isDebug) console.error('[Admin API] Error during cache cleanup:', error);
+            if (isDebug) logger.error('[Admin API] Error during cache cleanup:', error);
             throw new ApiError(500, 'Failed to cleanup cache. Check server logs for details.');
         }
     })
@@ -6388,7 +6522,7 @@ if (require.main === module) {
                 // Pipe the response body (already decompressed by fetch)
                 response.body.pipe(res);
             } catch (error) {
-                console.error(
+                logger.error(
                     `[Site Server Proxy] Error forwarding request to ${targetUrl}:`,
                     error
                 );

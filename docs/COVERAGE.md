@@ -3,6 +3,19 @@
 This table is generated from Istanbul JSON and LCOV after running tests with coverage.
 To regenerate: npm run coverage:table
 
+## Overall Coverage Statistics
+
+**Last Updated:** November 12, 2025
+
+| Metric     | Coverage | Status                        |
+| ---------- | -------- | ----------------------------- |
+| Statements | 83.73%   | ✅ Pass (≥80%)                |
+| Branches   | 65.40%   | ⚠️ Below target (target: 75%) |
+| Functions  | 86.68%   | ✅ Pass (≥80%)                |
+| Lines      | 84.62%   | ✅ Pass (≥80%)                |
+
+**Test Suite:** 681 tests passing across 47 suites
+
 ## All files meet configured per-file thresholds
 
 ## Full per-file coverage
