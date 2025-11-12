@@ -2499,28 +2499,13 @@ app.get('/api-docs/swagger.json', (req, res) => {
     res.json(freshSwaggerSpecs);
 });
 
-// Stoplight Elements comparison view
-app.get('/api-docs/elements', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'api-docs-elements.html'));
-});
-
-// Swagger UI comparison view
-app.get('/api-docs/swagger', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'api-docs-swagger.html'));
-});
-
-// RapiDoc comparison view
-app.get('/api-docs/rapidoc', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'api-docs-rapidoc.html'));
-});
-
-// Scalar comparison view
-app.get('/api-docs/scalar', (req, res) => {
+// Scalar API documentation (modern interactive docs with Try It functionality)
+app.get('/api-docs', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'api-docs-scalar.html'));
 });
 
-// ReDoc API documentation with dynamic cache busting
-app.get('/api-docs', (req, res) => {
+// Legacy ReDoc documentation (redirect to main docs)
+app.get('/api-docs/redoc', (req, res) => {
     // Prevent caching
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
