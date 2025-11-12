@@ -5552,6 +5552,107 @@ app.get(
 
 /**
  * @swagger
+ * /api/admin/cache/clear:
+ *   post:
+ *     summary: Clear cache entries
+ *     description: Clear all cache entries or specific tier. Supports query parameter 'tier' to clear specific cache tier (veryShort, short, medium, long, veryLong, mediaFiltered, config).
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: tier
+ *         schema:
+ *           type: string
+ *           enum: [veryShort, short, medium, long, veryLong, mediaFiltered, config]
+ *         required: false
+ *         description: Specific cache tier to clear (omit to clear all)
+ *     responses:
+ *       200:
+ *         description: Cache cleared successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 cleared:
+ *                   type: integer
+ *                   description: Number of entries cleared
+ *       400:
+ *         description: Invalid tier specified
+ */
+app.post(
+    '/api/admin/cache/clear',
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const { tier } = req.query;
+
+        if (isDebug) {
+            logger.debug('[Admin API] Cache clear request', { tier: tier || 'all' });
+        }
+
+        try {
+            let cleared = 0;
+            let message = '';
+
+            if (tier) {
+                // Clear specific tier
+                const validTiers = [
+                    'veryShort',
+                    'short',
+                    'medium',
+                    'long',
+                    'veryLong',
+                    'mediaFiltered',
+                    'config',
+                ];
+                if (!validTiers.includes(tier)) {
+                    throw new ApiError(
+                        400,
+                        `Invalid tier '${tier}'. Valid tiers: ${validTiers.join(', ')}`
+                    );
+                }
+
+                // Count entries in this tier before clearing
+                const tierPrefix = `tier:${tier}:`;
+                for (const key of cacheManager.cache.keys()) {
+                    if (key.startsWith(tierPrefix)) {
+                        cacheManager.delete(key);
+                        cleared++;
+                    }
+                }
+
+                message = `Cleared ${cleared} entries from '${tier}' tier`;
+                logger.info('[Admin API] Cache tier cleared', { tier, cleared });
+            } else {
+                // Clear all cache
+                cleared = cacheManager.cache.size;
+                cacheManager.cache.clear();
+                cacheManager.resetStats();
+
+                message = `Cleared all cache entries (${cleared} total)`;
+                logger.info('[Admin API] All cache cleared', { cleared });
+            }
+
+            res.json({
+                success: true,
+                message,
+                cleared,
+            });
+        } catch (error) {
+            if (error instanceof ApiError) throw error;
+            logger.error('[Admin API] Error clearing cache:', error);
+            throw new ApiError(500, 'Failed to clear cache. Check server logs for details.');
+        }
+    })
+);
+
+/**
+ * @swagger
  * /api/admin/config:
  *   get:
  *     summary: Get current server configuration
