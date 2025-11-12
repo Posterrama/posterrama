@@ -2525,10 +2525,10 @@ app.get('/api-docs', (req, res) => {
             background: #ffffff;
         }
         
-        /* Enhanced search box styling */
+        /* Enhanced search box styling - align with menu */
         div[role="search"] {
             margin: 0 !important;
-            padding: 1rem 1.5rem !important;
+            padding: 1rem 1rem 1rem 1.5rem !important;
             background: #f8fafb !important;
             border-bottom: 1px solid #e5e7eb !important;
         }
@@ -2546,8 +2546,8 @@ app.get('/api-docs', (req, res) => {
         
         div[role="search"] input:focus {
             outline: none !important;
-            border-color: #60a5fa !important;
-            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+            border-color: #0ea5e9 !important;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1) !important;
         }
         
         div[role="search"] input::placeholder {
@@ -2583,15 +2583,15 @@ app.get('/api-docs', (req, res) => {
             gap: 0.75rem !important;
         }
         
-        /* Version badge - subtle */
+        /* Version badge - prominent blue badge */
         div[class*="api-info"] h1 span {
             font-size: 13px !important;
             font-weight: 500 !important;
-            color: #6b7280 !important;
-            background: transparent !important;
-            padding: 0 !important;
-            border-radius: 0 !important;
-            border: none !important;
+            color: #0369a1 !important;
+            background: #e0f2fe !important;
+            padding: 4px 10px !important;
+            border-radius: 6px !important;
+            border: 1px solid #bae6fd !important;
         }
         
         /* Description text */
@@ -2602,7 +2602,7 @@ app.get('/api-docs', (req, res) => {
             margin: 0.75rem 0 1.25rem 0 !important;
         }
         
-        /* Contact/License links - light blue badges */
+        /* Contact/License - plain text links, no badges */
         div[class*="api-info"] p:has(a),
         div[class*="api-info"] > div > p {
             display: inline-flex !important;
@@ -2612,42 +2612,45 @@ app.get('/api-docs', (req, res) => {
             font-size: 13px !important;
         }
         
-        div[class*="api-info"] a:not([href*="redoc"]) {
-            color: #2563eb !important;
+        div[class*="api-info"] a:not([href*="redoc"]):not([download]) {
+            color: #0369a1 !important;
             text-decoration: none !important;
             font-weight: 500 !important;
-            padding: 5px 12px !important;
-            background: #eff6ff !important;
-            border-radius: 6px !important;
-            border: 1px solid #dbeafe !important;
+            padding: 0 !important;
+            background: transparent !important;
+            border-radius: 0 !important;
+            border: none !important;
             transition: all 0.2s ease !important;
             display: inline-flex !important;
             align-items: center !important;
             gap: 0.5rem !important;
         }
         
-        div[class*="api-info"] a:not([href*="redoc"]):hover {
-            background: #dbeafe !important;
-            border-color: #bfdbfe !important;
-            transform: translateY(-1px) !important;
-            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1) !important;
+        div[class*="api-info"] a:not([href*="redoc"]):not([download]):hover {
+            color: #0284c7 !important;
+            text-decoration: underline !important;
+            background: transparent !important;
+            border: none !important;
+            transform: none !important;
+            box-shadow: none !important;
         }
         
-        /* Download button styling - light blue */
+        /* Download button styling - prominent blue button */
         a[download] {
-            background: #3b82f6 !important;
+            background: #0284c7 !important;
             color: white !important;
             padding: 8px 16px !important;
             border-radius: 6px !important;
             font-weight: 500 !important;
             border: none !important;
-            box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2) !important;
+            box-shadow: 0 1px 3px rgba(2, 132, 199, 0.3) !important;
+            transition: all 0.2s ease !important;
         }
         
         a[download]:hover {
-            background: #2563eb !important;
+            background: #0369a1 !important;
             transform: translateY(-1px) !important;
-            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3) !important;
+            box-shadow: 0 2px 4px rgba(2, 132, 199, 0.4) !important;
         }
         
         /* Logo size control */
