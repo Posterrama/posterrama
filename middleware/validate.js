@@ -135,12 +135,12 @@ const imageQuerySchema = Joi.object({
 
 const mediaKeyParamSchema = Joi.object({
     key: Joi.string()
-        .pattern(/^[a-zA-Z0-9\-_]+$/)
+        .pattern(/^[a-zA-Z0-9\-_ ]+$/)
         .max(100)
         .required()
         .messages({
             'string.pattern.base':
-                'Key must contain only alphanumeric characters, hyphens, and underscores',
+                'Key must contain only alphanumeric characters, hyphens, underscores, and spaces',
             'string.max': 'Key must not exceed 100 characters',
             'any.required': 'Key parameter is required',
         }),
