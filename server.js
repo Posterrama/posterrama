@@ -2701,7 +2701,7 @@ app.get('/api-docs', (req, res) => {
                 disableSearch: false,
                 searchMaxDepth: 5,
                 hideLoading: true,
-                hideLogo: false,
+                hideLogo: true,
                 hideSchemaPattern: false,
                 showObjectSchemaExamples: true,
                 unstable_ignoreMimeParameters: false
