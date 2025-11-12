@@ -675,38 +675,38 @@ app.get('/api/v1/media/:key', (req, res) => {
  *   get:
  *     summary: Check device bypass status
  *     description: |
-       Returns whether the requesting IP address is whitelisted for device management bypass.
-     *       
-     *       IPs on the bypass list can access device management features without authentication.
-       This is useful for trusted local networks or specific administrative IPs.
-     *     tags: ['API v1 - Devices']
-     *     x-codeSamples:
-     *       - lang: 'curl'
-     *         label: 'cURL'
-     *         source: |
-     *           curl http://localhost:4000/api/v1/devices/bypass-status
-     *       - lang: 'JavaScript'
-     *         label: 'JavaScript (fetch)'
-     *         source: |
-     *           fetch('http://localhost:4000/api/v1/devices/bypass-status')
-     *             .then(response => response.json())
-     *             .then(data => console.log('Bypass:', data.bypass, 'IP:', data.ip));
-     *     responses:
-     *       200:
-     *         description: Bypass status and detected IP address
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 bypass:
-     *                   type: boolean
-     *                   description: Whether this IP is on the bypass list
-     *                   example: false
-     *                 ip:
-     *                   type: string
-     *                   description: The detected IP address of the requester
-     *                   example: '192.168.1.100'
+ *       Returns whether the requesting IP address is whitelisted for device management bypass.
+ *
+ *       IPs on the bypass list can access device management features without authentication.
+ *       This is useful for trusted local networks or specific administrative IPs.
+ *     tags: ['API v1']
+ *     x-codeSamples:
+ *       - lang: 'curl'
+ *         label: 'cURL'
+ *         source: |
+ *           curl http://localhost:4000/api/v1/devices/bypass-status
+ *       - lang: 'JavaScript'
+ *         label: 'JavaScript (fetch)'
+ *         source: |
+ *           fetch('http://localhost:4000/api/v1/devices/bypass-status')
+ *             .then(response => response.json())
+ *             .then(data => console.log('Bypass:', data.bypass, 'IP:', data.ip));
+ *     responses:
+ *       200:
+ *         description: Bypass status and detected IP address
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 bypass:
+ *                   type: boolean
+ *                   description: Whether this IP is on the bypass list
+ *                   example: false
+ *                 ip:
+ *                   type: string
+ *                   description: The detected IP address of the requester
+ *                   example: '192.168.1.100'
  */
 app.get('/api/v1/devices/bypass-status', (req, res) => {
     req.url = '/api/devices/bypass-check';
@@ -720,65 +720,65 @@ app.get('/api/v1/devices/bypass-status', (req, res) => {
  *   post:
  *     summary: Reload all devices
  *     description: |
-       Sends clearCache and reload commands to all registered devices via WebSocket.
-     *       
-     *       This endpoint:
-     *       - Clears the cache on all connected devices
-     *       - Triggers a page reload after 500ms
-     *       - Queues commands for offline devices
-     *       
-     *       Requires admin authentication (Bearer token).
-     *     tags: ['API v1 - Devices']
-     *     security:
-     *       - bearerAuth: []
-     *     x-codeSamples:
-     *       - lang: 'curl'
-     *         label: 'cURL'
-     *         source: |
-     *           curl -X POST http://localhost:4000/api/v1/devices/reload \
-     *             -H "Authorization: Bearer YOUR_TOKEN"
-     *       - lang: 'JavaScript'
-     *         label: 'JavaScript (fetch)'
-     *         source: |
-     *           fetch('http://localhost:4000/api/v1/devices/reload', {
-     *             method: 'POST',
-     *             headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
-     *           })
-     *             .then(response => response.json())
-     *             .then(data => console.log(`Reloaded ${data.live} live, ${data.queued} queued`));
-     *     responses:
-     *       200:
-     *         description: Commands sent/queued successfully
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 ok:
-     *                   type: boolean
-     *                   example: true
-     *                 live:
-     *                   type: integer
-     *                   description: Number of connected devices that received commands
-     *                   example: 3
-     *                 queued:
-     *                   type: integer
-     *                   description: Number of offline devices with queued commands
-     *                   example: 1
-     *                 total:
-     *                   type: integer
-     *                   description: Total number of devices
-     *                   example: 4
-     *       401:
-     *         description: Unauthorized - Invalid or missing authentication token
-     *         content:
-     *           application/json:
-     *             schema:
-     *               $ref: '#/components/schemas/StandardErrorResponse'
-     *             example:
-     *               error: 'Unauthorized'
-     *               message: 'Authentication required'
-     *               statusCode: 401
+ *       Sends clearCache and reload commands to all registered devices via WebSocket.
+ *
+ *       This endpoint:
+ *       - Clears the cache on all connected devices
+ *       - Triggers a page reload after 500ms
+ *       - Queues commands for offline devices
+ *
+ *       Requires admin authentication (Bearer token).
+ *     tags: ['API v1']
+ *     security:
+ *       - bearerAuth: []
+ *     x-codeSamples:
+ *       - lang: 'curl'
+ *         label: 'cURL'
+ *         source: |
+ *           curl -X POST http://localhost:4000/api/v1/devices/reload \
+ *             -H "Authorization: Bearer YOUR_TOKEN"
+ *       - lang: 'JavaScript'
+ *         label: 'JavaScript (fetch)'
+ *         source: |
+ *           fetch('http://localhost:4000/api/v1/devices/reload', {
+ *             method: 'POST',
+ *             headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
+ *           })
+ *             .then(response => response.json())
+ *             .then(data => console.log(`Reloaded ${data.live} live, ${data.queued} queued`));
+ *     responses:
+ *       200:
+ *         description: Commands sent/queued successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 live:
+ *                   type: integer
+ *                   description: Number of connected devices that received commands
+ *                   example: 3
+ *                 queued:
+ *                   type: integer
+ *                   description: Number of offline devices with queued commands
+ *                   example: 1
+ *                 total:
+ *                   type: integer
+ *                   description: Total number of devices
+ *                   example: 4
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardErrorResponse'
+ *             example:
+ *               error: 'Unauthorized'
+ *               message: 'Authentication required'
+ *               statusCode: 401
  */
 app.post('/api/v1/devices/reload', (req, res) => {
     req.url = '/api/devices/clear-reload';
