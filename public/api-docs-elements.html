@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Posterrama API - Stoplight Elements</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    
+    <!-- Stoplight Elements CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements/styles.min.css" />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        /* Optional: Custom theme variables */
+        :root {
+            --color-primary: #0284c7;
+            --color-success: #89ca78;
+            --color-warning: #e5c07b;
+            --color-danger: #e06c75;
+        }
+        
+        /* Comparison banner */
+        .comparison-banner {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: white;
+            padding: 1rem 2rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .comparison-banner h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .comparison-banner p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .comparison-banner a {
+            color: white;
+            text-decoration: underline;
+            font-weight: 500;
+        }
+        
+        .comparison-banner a:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="comparison-banner">
+        <h3>🔬 Stoplight Elements Preview</h3>
+        <p>
+            Dit is een preview van Stoplight Elements. 
+            <a href="/api-docs">← Terug naar ReDoc</a> om te vergelijken
+        </p>
+    </div>
+    
+    <!-- Stoplight Elements container -->
+    <elements-api
+        apiDescriptionUrl="/api-docs/swagger.json"
+        router="hash"
+        layout="sidebar"
+        hideInternal="false"
+        hideTryIt="false"
+        tryItCredentialsPolicy="include"
+    />
+    
+    <!-- Stoplight Elements JS -->
+    <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
+</body>
+</html>

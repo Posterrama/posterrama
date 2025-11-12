@@ -2499,6 +2499,11 @@ app.get('/api-docs/swagger.json', (req, res) => {
     res.json(freshSwaggerSpecs);
 });
 
+// Stoplight Elements comparison view
+app.get('/api-docs/elements', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'api-docs-elements.html'));
+});
+
 // ReDoc API documentation with dynamic cache busting
 app.get('/api-docs', (req, res) => {
     // Prevent caching
