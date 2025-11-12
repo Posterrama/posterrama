@@ -285,6 +285,13 @@ module.exports = function createMediaRouter({
      */
     router.get(
         '/get-media',
+        (req, res, next) => {
+            // RFC 8594 Deprecation headers for legacy endpoint
+            res.set('Deprecation', 'true');
+            res.set('Sunset', 'Sat, 01 Jun 2026 00:00:00 GMT');
+            res.set('Link', '</api/v1/media>; rel="successor-version"');
+            next();
+        },
         validateGetMediaQuery,
         apiCacheMiddleware.media,
         asyncHandler(async (req, res) => {
@@ -766,6 +773,13 @@ module.exports = function createMediaRouter({
      */
     router.get(
         '/get-media-by-key/:key',
+        (req, res, next) => {
+            // RFC 8594 Deprecation headers for legacy endpoint
+            res.set('Deprecation', 'true');
+            res.set('Sunset', 'Sat, 01 Jun 2026 00:00:00 GMT');
+            res.set('Link', '</api/v1/media/:key>; rel="successor-version"');
+            next();
+        },
         validateMediaKeyParam,
         asyncHandler(async (req, res) => {
             const keyParts = req.params.key.split('-'); // e.g., ['plex', 'My', 'Server', '12345']

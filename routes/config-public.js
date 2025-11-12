@@ -80,6 +80,13 @@ module.exports = function createConfigPublicRouter({
      */
     router.get(
         '/',
+        (req, res, next) => {
+            // RFC 8594 Deprecation headers for legacy endpoint
+            res.set('Deprecation', 'true');
+            res.set('Sunset', 'Sat, 01 Jun 2026 00:00:00 GMT');
+            res.set('Link', '</api/v1/config>; rel="successor-version"');
+            next();
+        },
         validateGetConfigQuery,
         cacheMiddleware({
             ttl: 30000, // 30 seconds

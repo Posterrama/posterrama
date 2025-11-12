@@ -1,18 +1,19 @@
 # API Production Readiness
 
-**Version:** 2.9.3  
-**Production Readiness:** 85%  
-**Last Updated:** November 11, 2025
+**Version:** 2.9.4  
+**Production Readiness:** 87%  
+**Last Updated:** November 12, 2025
 
 ---
 
 ## Executive Summary
 
-The Posterrama API is **85% production-ready**. All documentation and OpenAPI compliance work is complete. The remaining 15% requires architectural improvements (breaking changes with backwards compatibility).
+The Posterrama API is **87% production-ready**. All documentation, OpenAPI compliance, and deprecation signaling work is complete. The remaining 13% requires architectural improvements (breaking changes with backwards compatibility).
 
 **Status:**
 
 - ✅ Phase 1 Complete: OpenAPI compliance, security schemes, examples
+- ✅ Phase 1.5 Complete: Deprecation headers, OpenAPI metadata improvements
 - ❌ Phase 0 Pending: RESTful paths, API versioning, consistent prefixes
 
 **Why Fix Now:**
@@ -20,20 +21,23 @@ The Posterrama API is **85% production-ready**. All documentation and OpenAPI co
 - ✅ No external API consumers exist
 - ✅ Breaking changes are safe to implement
 - ✅ 6-month deprecation window maintains compatibility
+- ✅ Deprecation headers now inform consumers about v3.0.0 changes
 
 ---
 
 ## Current State
 
-| Metric                  | Status                     |
-| ----------------------- | -------------------------- |
-| Production Readiness    | 85%                        |
-| Total Endpoints         | 166 documented, 128 routes |
-| OpenAPI Examples        | 92/92 (100%)               |
-| Security Schemes        | 2 (consolidated)           |
-| **Non-RESTful paths**   | **5 endpoints** 🔴         |
-| **API Versioning**      | **Backwards** 🔴           |
-| **Inconsistent prefix** | **Yes** 🟡                 |
+| Metric                  | Status                      |
+| ----------------------- | --------------------------- |
+| Production Readiness    | 87%                         |
+| Total Endpoints         | 166 documented, 128 routes  |
+| OpenAPI Examples        | 92/92 (100%)                |
+| Security Schemes        | 2 (consolidated)            |
+| **Deprecation Headers** | **3/3 legacy endpoints** ✅ |
+| **OpenAPI Metadata**    | **Enhanced** ✅             |
+| **Non-RESTful paths**   | **5 endpoints** 🔴          |
+| **API Versioning**      | **Backwards** 🔴            |
+| **Inconsistent prefix** | **Yes** 🟡                  |
 
 ---
 
@@ -47,6 +51,29 @@ The Posterrama API is **85% production-ready**. All documentation and OpenAPI co
 - ✅ Updated intro with all features (RomM, Music Mode, Games Mode)
 - ✅ Removed all duplicate schemes
 - **Impact:** Zero-risk documentation improvements only
+
+### Phase 1.5: Deprecation Signaling (November 12, 2025)
+
+- ✅ Added RFC 8594 deprecation headers to `/get-media`
+- ✅ Added RFC 8594 deprecation headers to `/get-media-by-key/:key`
+- ✅ Added RFC 8594 deprecation headers to `/get-config`
+- ✅ Enhanced OpenAPI metadata with `externalDocs` and `servers` array
+- ✅ Improved server documentation with variable templating
+- **Impact:** Zero-risk header additions, no functionality changes
+
+**Deprecation Headers Added:**
+
+```http
+Deprecation: true
+Sunset: Sat, 01 Jun 2026 00:00:00 GMT
+Link: </api/v1/ENDPOINT>; rel="successor-version"
+```
+
+**OpenAPI Enhancements:**
+
+- `externalDocs` pointing to GitHub documentation
+- `servers` array with development and custom deployment options
+- Server URL variables for flexible deployment configurations
 
 ---
 
@@ -315,12 +342,13 @@ Must verify after each implementation phase:
 
 ## Version History
 
-| Version | Date       | Changes                                           |
-| ------- | ---------- | ------------------------------------------------- |
-| 1.0     | 2025-11-11 | Initial assessment                                |
-| 1.1     | 2025-11-11 | Code-verified corrections, removed false issues   |
-| 1.2     | 2025-11-11 | Phase 1 completed (OpenAPI compliance)            |
-| 1.3     | 2025-11-11 | Consolidated, removed completed work, streamlined |
+| Version | Date       | Changes                                                         |
+| ------- | ---------- | --------------------------------------------------------------- |
+| 1.0     | 2025-11-11 | Initial assessment                                              |
+| 1.1     | 2025-11-11 | Code-verified corrections, removed false issues                 |
+| 1.2     | 2025-11-11 | Phase 1 completed (OpenAPI compliance)                          |
+| 1.3     | 2025-11-11 | Consolidated, removed completed work, streamlined               |
+| 1.4     | 2025-11-12 | Phase 1.5 completed (deprecation headers, OpenAPI metadata) +2% |
 
 ---
 
@@ -328,4 +356,4 @@ Must verify after each implementation phase:
 
 ---
 
-_All issues code-verified. Phase 1 (documentation) complete. Phase 0 (architecture) pending._
+_All issues code-verified. Phase 1 and 1.5 (documentation + deprecation) complete. Phase 0 (architecture) pending._

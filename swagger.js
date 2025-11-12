@@ -35,6 +35,30 @@ function generateSwaggerSpec() {
                     url: 'https://www.gnu.org/licenses/gpl-3.0.html',
                 },
             },
+            externalDocs: {
+                description: 'Full documentation, setup guides, and tutorials',
+                url: 'https://github.com/Posterrama/posterrama/tree/main/docs',
+            },
+            servers: [
+                {
+                    url: 'http://localhost:4000',
+                    description: 'Development server (default port 4000)',
+                },
+                {
+                    url: 'http://{host}:{port}',
+                    description: 'Custom deployment',
+                    variables: {
+                        host: {
+                            default: 'localhost',
+                            description: 'Server hostname or IP address',
+                        },
+                        port: {
+                            default: '4000',
+                            description: 'Server port (configured via PORT env variable)',
+                        },
+                    },
+                },
+            ],
             tags: [
                 {
                     name: 'Public API',
@@ -153,12 +177,6 @@ function generateSwaggerSpec() {
                 {
                     name: 'Utilities',
                     tags: ['Documentation', 'Site Server'],
-                },
-            ],
-            servers: [
-                {
-                    url: '/',
-                    description: 'Current server',
                 },
             ],
             components: {
