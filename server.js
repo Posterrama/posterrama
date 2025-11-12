@@ -407,15 +407,51 @@ app.use('/api', (req, res, next) => {
  * /api/v1/config:
  *   get:
  *     summary: Get public configuration
- *     description: Returns public configuration settings for display modes and device behavior. RESTful v1 endpoint.
+ *     description: |
+ *       Fetches the non-sensitive configuration needed by the frontend for display logic.
+ *       
+ *       This endpoint returns configuration settings for:
+ *       - Display mode intervals and transitions
+ *       - Available media sources and libraries
+ *       - UI customization options
+ *       - Device-specific overrides
+ *       
+ *       The response is cached for 30 seconds to improve performance.
  *     tags: ['API v1']
+ *     x-codeSamples:
+ *       - lang: 'curl'
+ *         label: 'cURL'
+ *         source: |
+ *           curl http://localhost:4000/api/v1/config
+ *       - lang: 'JavaScript'
+ *         label: 'JavaScript (fetch)'
+ *         source: |
+ *           fetch('http://localhost:4000/api/v1/config')
+ *             .then(response => response.json())
+ *             .then(config => console.log('Screensaver interval:', config.screensaverInterval));
+ *       - lang: 'Python'
+ *         label: 'Python (requests)'
+ *         source: |
+ *           import requests
+ *           config = requests.get('http://localhost:4000/api/v1/config').json()
+ *           print(f"Screensaver interval: {config['screensaverInterval']}")
  *     responses:
  *       200:
- *         description: Configuration data (handled by /get-config endpoint)
+ *         description: The public configuration object
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Config'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardErrorResponse'
+ *             example:
+ *               error: 'Internal server error'
+ *               message: 'Failed to retrieve configuration'
+ *               statusCode: 500
  */
 app.get('/api/v1/config', (req, res) => {
     req.url = '/get-config';
@@ -428,33 +464,116 @@ app.get('/api/v1/config', (req, res) => {
  * /api/v1/media:
  *   get:
  *     summary: Get media collection
- *     description: Returns a filtered and shuffled collection of media items from configured sources (Plex, Jellyfin, TMDB). RESTful v1 endpoint.
+ *     description: |
+ *       Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB).
+ *       
+ *       Features:
+ *       - Cached for performance
+ *       - Supports source filtering (plex, jellyfin, tmdb, local)
+ *       - Music Mode: Returns music albums instead of movies/TV shows
+ *       - Games Mode: Returns game covers from RomM
+ *       - Optional extras: Trailers and theme music URLs
+ *       
+ *       The playlist is automatically shuffled and filtered based on configuration.
  *     tags: ['API v1']
+ *     x-codeSamples:
+ *       - lang: 'curl'
+ *         label: 'cURL'
+ *         source: |
+ *           curl http://localhost:4000/api/v1/media
+ *       - lang: 'JavaScript'
+ *         label: 'JavaScript (fetch)'
+ *         source: |
+ *           fetch('http://localhost:4000/api/v1/media')
+ *             .then(response => response.json())
+ *             .then(data => console.log(data));
+ *       - lang: 'Python'
+ *         label: 'Python (requests)'
+ *         source: |
+ *           import requests
+ *           response = requests.get('http://localhost:4000/api/v1/media')
+ *           media = response.json()
  *     parameters:
  *       - in: query
- *         name: search
+ *         name: source
  *         schema:
  *           type: string
- *         description: Search term to filter media
+ *           enum: [plex, jellyfin, tmdb, local]
+ *         description: Optional source filter to return only items from a specific provider
  *       - in: query
- *         name: year
+ *         name: nocache
+ *         schema:
+ *           type: string
+ *           enum: ['1']
+ *         description: Set to '1' to bypass cache (admin use)
+ *       - in: query
+ *         name: musicMode
+ *         schema:
+ *           type: string
+ *           enum: ['1', 'true']
+ *         description: 'Set to "1" or "true" to return music albums instead of movies/TV shows. Requires wallartMode.musicMode.enabled=true in config.'
+ *       - in: query
+ *         name: gamesOnly
+ *         schema:
+ *           type: string
+ *           enum: ['1', 'true']
+ *         description: 'Set to "1" or "true" to return game covers from RomM. Requires wallartMode.gamesOnly=true in config.'
+ *       - in: query
+ *         name: count
  *         schema:
  *           type: integer
- *         description: Filter by year
+ *           minimum: 1
+ *           maximum: 1000
+ *         description: Number of items to return (used with musicMode and gamesOnly)
  *       - in: query
- *         name: genre
+ *         name: includeExtras
  *         schema:
- *           type: string
- *         description: Filter by genre
+ *           type: boolean
+ *         description: When true, enriches items with trailers and theme music URLs. Adds latency as it fetches additional metadata per item.
  *     responses:
  *       200:
- *         description: Media data (handled by /get-media endpoint)
+ *         description: Playlist of media items. When includeExtras=true, items include extras array with trailers and theme URLs.
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/MediaItem'
+ *       202:
+ *         description: Playlist is being built. Client should retry in a few seconds.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: building
+ *                 message:
+ *                   type: string
+ *                 retryIn:
+ *                   type: number
+ *                   description: Suggested retry delay in milliseconds
+ *       400:
+ *         description: Invalid request parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardErrorResponse'
+ *             example:
+ *               error: 'Invalid request parameters'
+ *               message: 'The count parameter must be between 1 and 1000'
+ *               statusCode: 400
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardErrorResponse'
+ *             example:
+ *               error: 'Internal server error'
+ *               message: 'Failed to fetch media from configured sources'
+ *               statusCode: 500
  */
 app.get('/api/v1/media', (req, res) => {
     req.url = '/get-media';
@@ -467,24 +586,78 @@ app.get('/api/v1/media', (req, res) => {
  * /api/v1/media/{key}:
  *   get:
  *     summary: Get single media item
- *     description: Retrieves a single media item by its unique key. RESTful v1 endpoint.
+ *     description: |
+ *       Retrieves a single media item by its unique key.
+ *       
+ *       The key format is: `{type}-{serverName}-{itemId}`
+ *       - Examples: `plex-My Server-12345`, `jellyfin-MainServer-67890`
+ *       
+ *       This endpoint is typically used when a user clicks on a 'recently added' item
+ *       that isn't in the main playlist cache.
  *     tags: ['API v1']
+ *     x-codeSamples:
+ *       - lang: 'curl'
+ *         label: 'cURL'
+ *         source: |
+ *           curl "http://localhost:4000/api/v1/media/plex-My%20Server-12345"
+ *       - lang: 'JavaScript'
+ *         label: 'JavaScript (fetch)'
+ *         source: |
+ *           fetch('http://localhost:4000/api/v1/media/plex-My%20Server-12345')
+ *             .then(response => response.json())
+ *             .then(item => console.log(item.title));
+ *       - lang: 'Python'
+ *         label: 'Python (requests)'
+ *         source: |
+ *           import requests
+ *           item = requests.get('http://localhost:4000/api/v1/media/plex-My%20Server-12345').json()
+ *           print(f"Title: {item['title']}")
  *     parameters:
  *       - in: path
  *         name: key
  *         required: true
  *         schema:
  *           type: string
- *         description: Unique media item key (e.g., plex-ServerName-12345)
+ *         description: 'Unique media item key in format: type-serverName-itemId (e.g., plex-My Server-12345)'
+ *         example: 'plex-My Server-12345'
  *     responses:
  *       200:
- *         description: Single media item
+ *         description: The requested media item
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/MediaItem'
+ *       400:
+ *         description: Invalid key format
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardErrorResponse'
+ *             example:
+ *               error: 'Invalid media key parameter'
+ *               details:
+ *                 - field: key
+ *                   message: 'Key must contain only alphanumeric characters, hyphens, underscores, and spaces'
+ *               statusCode: 400
  *       404:
  *         description: Media item not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardErrorResponse'
+ *             example:
+ *               error: 'Media item not found'
+ *               message: 'No media item found with the specified key'
+ *               statusCode: 404
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardErrorResponse'
+ *             example:
+ *               error: 'Internal server error'
+ *               statusCode: 500
  */
 app.get('/api/v1/media/:key', (req, res) => {
     // 308 Permanent Redirect preserves method and body
@@ -501,22 +674,39 @@ app.get('/api/v1/media/:key', (req, res) => {
  * /api/v1/devices/bypass-status:
  *   get:
  *     summary: Check device bypass status
- *     description: Returns whether the requesting IP address is whitelisted for device management bypass. RESTful v1 endpoint.
- *     tags: ['API v1 - Devices']
- *     responses:
- *       200:
- *         description: Bypass status
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 bypass:
- *                   type: boolean
- *                   description: Whether this IP is on the bypass list
- *                 ip:
- *                   type: string
- *                   description: The detected IP address
+ *     description: |
+       Returns whether the requesting IP address is whitelisted for device management bypass.
+     *       
+     *       IPs on the bypass list can access device management features without authentication.
+       This is useful for trusted local networks or specific administrative IPs.
+     *     tags: ['API v1 - Devices']
+     *     x-codeSamples:
+     *       - lang: 'curl'
+     *         label: 'cURL'
+     *         source: |
+     *           curl http://localhost:4000/api/v1/devices/bypass-status
+     *       - lang: 'JavaScript'
+     *         label: 'JavaScript (fetch)'
+     *         source: |
+     *           fetch('http://localhost:4000/api/v1/devices/bypass-status')
+     *             .then(response => response.json())
+     *             .then(data => console.log('Bypass:', data.bypass, 'IP:', data.ip));
+     *     responses:
+     *       200:
+     *         description: Bypass status and detected IP address
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 bypass:
+     *                   type: boolean
+     *                   description: Whether this IP is on the bypass list
+     *                   example: false
+     *                 ip:
+     *                   type: string
+     *                   description: The detected IP address of the requester
+     *                   example: '192.168.1.100'
  */
 app.get('/api/v1/devices/bypass-status', (req, res) => {
     req.url = '/api/devices/bypass-check';
@@ -529,17 +719,67 @@ app.get('/api/v1/devices/bypass-status', (req, res) => {
  * /api/v1/devices/reload:
  *   post:
  *     summary: Reload all devices
- *     description: Sends clearCache and reload commands to all registered devices via WebSocket. Requires admin authentication. RESTful v1 endpoint.
- *     tags: ['API v1 - Devices']
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Commands sent/queued
- *         content:
- *           application/json:
- *             schema:
- *               type: object
+ *     description: |
+       Sends clearCache and reload commands to all registered devices via WebSocket.
+     *       
+     *       This endpoint:
+     *       - Clears the cache on all connected devices
+     *       - Triggers a page reload after 500ms
+     *       - Queues commands for offline devices
+     *       
+     *       Requires admin authentication (Bearer token).
+     *     tags: ['API v1 - Devices']
+     *     security:
+     *       - bearerAuth: []
+     *     x-codeSamples:
+     *       - lang: 'curl'
+     *         label: 'cURL'
+     *         source: |
+     *           curl -X POST http://localhost:4000/api/v1/devices/reload \
+     *             -H "Authorization: Bearer YOUR_TOKEN"
+     *       - lang: 'JavaScript'
+     *         label: 'JavaScript (fetch)'
+     *         source: |
+     *           fetch('http://localhost:4000/api/v1/devices/reload', {
+     *             method: 'POST',
+     *             headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
+     *           })
+     *             .then(response => response.json())
+     *             .then(data => console.log(`Reloaded ${data.live} live, ${data.queued} queued`));
+     *     responses:
+     *       200:
+     *         description: Commands sent/queued successfully
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 ok:
+     *                   type: boolean
+     *                   example: true
+     *                 live:
+     *                   type: integer
+     *                   description: Number of connected devices that received commands
+     *                   example: 3
+     *                 queued:
+     *                   type: integer
+     *                   description: Number of offline devices with queued commands
+     *                   example: 1
+     *                 total:
+     *                   type: integer
+     *                   description: Total number of devices
+     *                   example: 4
+     *       401:
+     *         description: Unauthorized - Invalid or missing authentication token
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/StandardErrorResponse'
+     *             example:
+     *               error: 'Unauthorized'
+     *               message: 'Authentication required'
+     *               statusCode: 401
+ */
  *               properties:
  *                 ok:
  *                   type: boolean
