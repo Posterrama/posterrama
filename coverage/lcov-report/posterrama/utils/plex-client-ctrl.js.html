@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">68.83% </span>
+                <span class="strong">74.02% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>53/77</span>
+                <span class='fraction'>57/77</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">76.36% </span>
+                <span class="strong">78.18% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>42/55</span>
+                <span class='fraction'>43/55</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">76.92% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>10/13</span>
+                <span class='fraction'>13/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">67.56% </span>
+                <span class="strong">72.97% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>50/74</span>
+                <span class='fraction'>54/74</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -338,34 +338,34 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">14x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">14x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">30x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">30x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -590,11 +590,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">30x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">14x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -614,9 +614,9 @@ let PlexServerClass = null;
 /**
  * Lazy-load the ES module
  */
-async function <span class="fstat-no" title="function not covered" >getPlexServer(</span>) {
-<span class="cstat-no" title="statement not covered" >    if (!PlexServerClass) {</span>
-        const plexModule = <span class="cstat-no" title="statement not covered" >await import('@ctrl/plex');</span>
+async function getPlexServer() {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (!PlexServerClass) {
+        const plexModule = await import('@ctrl/plex');
 <span class="cstat-no" title="statement not covered" >        PlexServerClass = plexModule.PlexServer;</span>
     }
 <span class="cstat-no" title="statement not covered" >    return PlexServerClass;</span>
@@ -632,8 +632,8 @@ async function <span class="fstat-no" title="function not covered" >getPlexServe
  * @returns {Promise&lt;PlexServer&gt;} Connected PlexServer instance
  * @throws {Error} If connection fails or parameters are invalid
  */
-async function <span class="fstat-no" title="function not covered" >createModernPlexClient(</span>{ hostname, port, token, timeout }) {
-    const PlexServer = <span class="cstat-no" title="statement not covered" >await getPlexServer();</span>
+async function createModernPlexClient({ hostname, port, token, timeout }) {
+    const PlexServer = await getPlexServer();
 <span class="cstat-no" title="statement not covered" >    if (!hostname || !port || !token) {</span>
 <span class="cstat-no" title="statement not covered" >        throw new Error('Plex client creation failed: missing hostname, port, or token.');</span>
     }
@@ -857,8 +857,8 @@ class PlexClientAdapter {
  * @param {object} options - Connection options (same as createModernPlexClient)
  * @returns {Promise&lt;PlexClientAdapter&gt;} Adapter with query() method
  */
-async function <span class="fstat-no" title="function not covered" >createCompatiblePlexClient(</span>options) {
-    const plexServer = <span class="cstat-no" title="statement not covered" >await createModernPlexClient(options);</span>
+async function createCompatiblePlexClient(options) {
+    const plexServer = await createModernPlexClient(options);
 <span class="cstat-no" title="statement not covered" >    return new PlexClientAdapter(plexServer);</span>
 }
 &nbsp;
@@ -874,7 +874,7 @@ module.exports = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-11-12T15:19:15.472Z
+                at 2025-11-12T17:04:38.103Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

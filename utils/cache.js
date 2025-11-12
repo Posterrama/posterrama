@@ -12,10 +12,20 @@ let logger = {
 
 /**
  * In-memory cache with TTL and storage capabilities
+ * Phase 3: Extended with tiered caching (L1/L2/L3)
  */
 class CacheManager {
     constructor(options = {}) {
-        this.cache = new Map();
+        // L1: Hot tier - frequently accessed, in-memory
+        this.l1Cache = new Map();
+        // L2: Warm tier - moderately accessed, in-memory
+        this.l2Cache = new Map();
+        // L3: Cold tier - rarely accessed, disk-backed
+        this.l3Cache = new Map();
+
+        // Legacy cache reference (points to L1 for backward compatibility)
+        this.cache = this.l1Cache;
+
         this.timers = new Map();
         this.stats = {
             hits: 0,
@@ -24,6 +34,12 @@ class CacheManager {
             deletes: 0,
             errors: 0,
             lastReset: Date.now(),
+            // Tiered cache stats
+            l1Hits: 0,
+            l2Hits: 0,
+            l3Hits: 0,
+            promotions: 0,
+            demotions: 0,
         };
         this.config = {
             defaultTTL: options.defaultTTL || 300000, // 5 minutes default
@@ -31,10 +47,22 @@ class CacheManager {
             persistPath: options.persistPath || path.resolve(__dirname, '../cache'),
             enablePersistence: options.enablePersistence || false,
             enableCompression: options.enableCompression || false,
+            // Tiered cache configuration
+            enableTiering: options.enableTiering || false,
+            l1MaxSize: options.l1MaxSize || 100, // Hot tier: 100 entries
+            l2MaxSize: options.l2MaxSize || 300, // Warm tier: 300 entries
+            l3MaxSize: options.l3MaxSize || 500, // Cold tier: 500 entries
+            promotionThreshold: options.promotionThreshold || 3, // Promote after N accesses
+            demotionAge: options.demotionAge || 10 * 60 * 1000, // Demote after 10 minutes
         };
 
         // Start periodic cleanup
         this.startPeriodicCleanup();
+
+        // Start periodic tier management (if tiering enabled)
+        if (this.config.enableTiering) {
+            this.startTierManagement();
+        }
 
         logger.debug('Cache manager initialized', {
             defaultTTL: this.config.defaultTTL,
@@ -42,6 +70,7 @@ class CacheManager {
             persistPath: this.config.persistPath,
             enablePersistence: this.config.enablePersistence,
             enableCompression: this.config.enableCompression,
+            enableTiering: this.config.enableTiering,
         });
     }
 
@@ -88,6 +117,13 @@ class CacheManager {
         // Clear cache
         this.cache.clear();
 
+        // Clear tiered caches
+        if (this.config.enableTiering) {
+            this.l2Cache.clear();
+            this.l3Cache.clear();
+            this.stopTierManagement();
+        }
+
         logger.debug('Cache manager cleaned up');
     }
 
@@ -98,10 +134,17 @@ class CacheManager {
         let expired = 0;
         const now = Date.now();
 
-        for (const [key, entry] of this.cache.entries()) {
-            if (now >= entry.expiresAt) {
-                this.delete(key);
-                expired++;
+        // Cleanup all tiers
+        const tiers = this.config.enableTiering
+            ? [this.l1Cache, this.l2Cache, this.l3Cache]
+            : [this.cache];
+
+        for (const tier of tiers) {
+            for (const [key, entry] of tier.entries()) {
+                if (now >= entry.expiresAt) {
+                    this.delete(key);
+                    expired++;
+                }
             }
         }
 
@@ -110,6 +153,114 @@ class CacheManager {
         }
 
         return expired;
+    }
+
+    /**
+     * Start periodic tier management (promotion/demotion)
+     */
+    startTierManagement() {
+        // Run tier management every 2 minutes
+        this.tierInterval = setInterval(
+            () => {
+                this.manageTiers();
+            },
+            2 * 60 * 1000
+        );
+
+        logger.debug('Tier management started');
+    }
+
+    /**
+     * Stop periodic tier management
+     */
+    stopTierManagement() {
+        if (this.tierInterval) {
+            clearInterval(this.tierInterval);
+            this.tierInterval = null;
+        }
+    }
+
+    /**
+     * Manage cache tiers: promote hot entries, demote cold entries
+     */
+    manageTiers() {
+        if (!this.config.enableTiering) return;
+
+        const now = Date.now();
+        let promoted = 0;
+        let demoted = 0;
+
+        // Promote L2 → L1 (frequently accessed entries)
+        for (const [key, entry] of this.l2Cache.entries()) {
+            if (entry.accessCount >= this.config.promotionThreshold) {
+                if (this.l1Cache.size < this.config.l1MaxSize) {
+                    this.l1Cache.set(key, entry);
+                    this.l2Cache.delete(key);
+                    this.stats.promotions++;
+                    promoted++;
+                    logger.debug('Promoted L2 → L1', { key, accessCount: entry.accessCount });
+                }
+            }
+        }
+
+        // Promote L3 → L2 (warming up)
+        for (const [key, entry] of this.l3Cache.entries()) {
+            if (entry.accessCount >= this.config.promotionThreshold) {
+                if (this.l2Cache.size < this.config.l2MaxSize) {
+                    this.l2Cache.set(key, entry);
+                    this.l3Cache.delete(key);
+                    this.stats.promotions++;
+                    promoted++;
+                    logger.debug('Promoted L3 → L2', { key, accessCount: entry.accessCount });
+                }
+            }
+        }
+
+        // Demote L1 → L2 (cooling down)
+        for (const [key, entry] of this.l1Cache.entries()) {
+            const age = now - entry.lastAccessed;
+            if (
+                age > this.config.demotionAge &&
+                entry.accessCount < this.config.promotionThreshold
+            ) {
+                if (this.l2Cache.size < this.config.l2MaxSize) {
+                    entry.accessCount = 0; // Reset access count on demotion
+                    this.l2Cache.set(key, entry);
+                    this.l1Cache.delete(key);
+                    this.stats.demotions++;
+                    demoted++;
+                    logger.debug('Demoted L1 → L2', { key, age });
+                }
+            }
+        }
+
+        // Demote L2 → L3 (going cold)
+        for (const [key, entry] of this.l2Cache.entries()) {
+            const age = now - entry.lastAccessed;
+            if (
+                age > this.config.demotionAge &&
+                entry.accessCount < this.config.promotionThreshold
+            ) {
+                if (this.l3Cache.size < this.config.l3MaxSize) {
+                    entry.accessCount = 0; // Reset access count on demotion
+                    this.l3Cache.set(key, entry);
+                    this.l2Cache.delete(key);
+                    this.stats.demotions++;
+                    demoted++;
+                    logger.debug('Demoted L2 → L3', { key, age });
+                }
+            }
+        }
+
+        if (promoted > 0 || demoted > 0) {
+            logger.info('Tier management complete', {
+                promoted,
+                demoted,
+                l1Size: this.l1Cache.size,
+                l2Size: this.l2Cache.size,
+                l3Size: this.l3Cache.size,
+            });
+        }
     }
 
     /**
@@ -222,7 +373,27 @@ class CacheManager {
      */
     get(key) {
         try {
-            const entry = this.cache.get(key);
+            let entry = null;
+            let tier = null;
+
+            // Search through tiers if tiering is enabled
+            if (this.config.enableTiering) {
+                if (this.l1Cache.has(key)) {
+                    entry = this.l1Cache.get(key);
+                    tier = 'L1';
+                    this.stats.l1Hits++;
+                } else if (this.l2Cache.has(key)) {
+                    entry = this.l2Cache.get(key);
+                    tier = 'L2';
+                    this.stats.l2Hits++;
+                } else if (this.l3Cache.has(key)) {
+                    entry = this.l3Cache.get(key);
+                    tier = 'L3';
+                    this.stats.l3Hits++;
+                }
+            } else {
+                entry = this.cache.get(key);
+            }
 
             if (!entry) {
                 this.stats.misses++;
@@ -245,6 +416,7 @@ class CacheManager {
 
             logger.debug('Cache hit', {
                 key,
+                tier,
                 accessCount: entry.accessCount,
                 age: Date.now() - entry.createdAt,
             });
@@ -261,6 +433,13 @@ class CacheManager {
      * Check if entry exists and is valid
      */
     has(key) {
+        if (this.config.enableTiering) {
+            // Check all tiers
+            const entry = this.l1Cache.get(key) || this.l2Cache.get(key) || this.l3Cache.get(key);
+            if (!entry) return false;
+            return Date.now() < entry.expiresAt;
+        }
+
         const entry = this.cache.get(key);
         if (!entry) return false;
         return Date.now() < entry.expiresAt;
@@ -277,11 +456,21 @@ class CacheManager {
                 this.timers.delete(key);
             }
 
-            const deleted = this.cache.delete(key);
+            let deleted = false;
+
+            // Delete from all tiers if tiering enabled
+            if (this.config.enableTiering) {
+                deleted =
+                    this.l1Cache.delete(key) ||
+                    this.l2Cache.delete(key) ||
+                    this.l3Cache.delete(key);
+            } else {
+                deleted = this.cache.delete(key);
+            }
 
             if (deleted) {
                 this.stats.deletes++;
-                logger.debug('Cache entry deleted', { key, cacheSize: this.cache.size });
+                logger.debug('Cache entry deleted', { key });
             }
 
             return deleted;

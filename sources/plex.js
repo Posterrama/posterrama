@@ -3,6 +3,10 @@
  * Handles fetching and processing media from a Plex server.
  */
 const logger = require('../utils/logger');
+const { RequestDeduplicator } = require('../utils/request-deduplicator');
+
+// Initialize deduplicator for Plex requests
+const deduplicator = new RequestDeduplicator({ keyPrefix: 'plex' });
 
 class PlexSource {
     constructor(
@@ -24,6 +28,8 @@ class PlexSource {
         // Lazy initialization: plex client will be awaited on first use
         this.plexPromise = null;
         this.plex = null;
+        // Request deduplicator for this instance
+        this.deduplicator = deduplicator;
 
         // Performance metrics
         this.metrics = {
@@ -33,6 +39,7 @@ class PlexSource {
             averageProcessingTime: 0,
             lastRequestTime: null,
             errorCount: 0,
+            deduplicationRate: 0,
         };
     }
 
@@ -46,12 +53,21 @@ class PlexSource {
                 ? this.metrics.itemsFiltered / this.metrics.itemsProcessed
                 : 0;
 
+        // Get deduplication stats
+        const dedupStats = this.deduplicator.getStats();
+
         return {
             totalItems: this.cachedMedia ? this.cachedMedia.length : 0,
             lastFetch: this.lastFetch,
             cacheDuration: 3600000, // Default cache duration
             ...this.metrics,
             filterEfficiency,
+            deduplication: {
+                totalRequests: dedupStats.totalRequests,
+                deduplicated: dedupStats.deduplicated,
+                rate: dedupStats.deduplicationRate,
+                inFlight: dedupStats.inFlight,
+            },
         };
     }
 
@@ -139,9 +155,16 @@ class PlexSource {
                 }
 
                 try {
-                    const content = await this.plex.query(
-                        `/library/sections/${library.key}/all?includeExtras=1`
+                    // Wrap library query with deduplication
+                    const fetchLibrary = () =>
+                        this.plex.query(`/library/sections/${library.key}/all?includeExtras=1`);
+                    const dedupKey = this.deduplicator.generateKey(
+                        'library',
+                        library.key,
+                        this.server.name
                     );
+                    const content = await this.deduplicator.deduplicate(dedupKey, fetchLibrary);
+
                     if (content?.MediaContainer?.Metadata) {
                         // Add library info to each item
                         const itemsWithLibrary = content.MediaContainer.Metadata.map(item => ({

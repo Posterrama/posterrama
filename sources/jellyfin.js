@@ -3,6 +3,10 @@
  * Handles fetching and processing media from a Jellyfin server.
  */
 const logger = require('../utils/logger');
+const { RequestDeduplicator } = require('../utils/request-deduplicator');
+
+// Initialize deduplicator for Jellyfin requests
+const deduplicator = new RequestDeduplicator({ keyPrefix: 'jellyfin' });
 
 class JellyfinSource {
     constructor(
@@ -21,6 +25,8 @@ class JellyfinSource {
         this.shuffleArray = shuffleArray;
         this.rtMinScore = rtMinScore;
         this.isDebug = isDebug;
+        // Request deduplicator for this instance
+        this.deduplicator = deduplicator;
 
         // Debug: log rating filters configuration
         if (this.isDebug) {
@@ -42,6 +48,7 @@ class JellyfinSource {
             averageProcessingTime: 0,
             lastRequestTime: null,
             errorCount: 0,
+            deduplicationRate: 0,
         };
     }
 
@@ -55,6 +62,9 @@ class JellyfinSource {
                 ? this.metrics.itemsFiltered / this.metrics.itemsProcessed
                 : 0;
 
+        // Get deduplication stats
+        const dedupStats = this.deduplicator.getStats();
+
         return {
             totalItems: this.cachedMedia ? this.cachedMedia.length : 0,
             lastFetch: this.lastFetch,
@@ -66,6 +76,12 @@ class JellyfinSource {
             lastRequestTime: this.metrics.lastRequestTime,
             errorCount: this.metrics.errorCount,
             filterEfficiency,
+            deduplication: {
+                totalRequests: dedupStats.totalRequests,
+                deduplicated: dedupStats.deduplicated,
+                rate: dedupStats.deduplicationRate,
+                inFlight: dedupStats.inFlight,
+            },
         };
     }
 
@@ -200,7 +216,8 @@ class JellyfinSource {
                             const batchPromises = [];
                             for (let i = 0; i < maxParallel && batch + i < remainingPages; i++) {
                                 const startIndex = (batch + i + 1) * pageSize;
-                                batchPromises.push(
+                                // Wrap pagination request with deduplication
+                                const fetchPage = () =>
                                     client.getItems({
                                         parentId: library.id,
                                         includeItemTypes: type === 'movie' ? ['Movie'] : ['Series'],
@@ -243,7 +260,15 @@ class JellyfinSource {
                                         sortBy: [],
                                         limit: pageSize,
                                         startIndex,
-                                    })
+                                    });
+                                const dedupKey = this.deduplicator.generateKey(
+                                    'page',
+                                    library.id,
+                                    startIndex,
+                                    this.server.name
+                                );
+                                batchPromises.push(
+                                    this.deduplicator.deduplicate(dedupKey, fetchPage)
                                 );
                             }
 

@@ -66,6 +66,7 @@ describe('JellyfinSource', () => {
                 averageProcessingTime: 0,
                 lastRequestTime: null,
                 errorCount: 0,
+                deduplicationRate: 0,
             });
         });
 
@@ -128,6 +129,12 @@ describe('JellyfinSource', () => {
                 lastRequestTime: null,
                 errorCount: 0,
                 filterEfficiency: 0,
+                deduplication: {
+                    totalRequests: 0,
+                    deduplicated: 0,
+                    rate: '0%',
+                    inFlight: 0,
+                },
             });
         });
 
