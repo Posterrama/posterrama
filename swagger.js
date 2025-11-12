@@ -23,15 +23,6 @@ function generateSwaggerSpec() {
 
 ---
 
-## Quick Start
-
-1. **Configure Sources** → Visit \`/admin\` to connect Plex/Jellyfin/TMDB
-2. **Fetch Media** → \`GET /get-media\` returns aggregated playlist
-3. **Display** → Use \`/screensaver\`, \`/cinema\`, or \`/wallart\` modes
-4. **Manage Devices** → Register displays via \`/api/devices/*\`
-
----
-
 ## Authentication
 
 ### Public Endpoints
