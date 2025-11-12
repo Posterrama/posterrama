@@ -2527,26 +2527,27 @@ app.get('/api-docs', (req, res) => {
         
         /* Enhanced search box styling */
         div[role="search"] {
-            margin: 1rem 1.5rem !important;
-            padding: 0 !important;
+            margin: 0 !important;
+            padding: 1rem 1.5rem !important;
+            background: #f8fafb !important;
+            border-bottom: 1px solid #e5e7eb !important;
         }
         
         div[role="search"] input {
             width: 100% !important;
-            padding: 12px 16px 12px 44px !important;
-            font-size: 15px !important;
-            border: 2px solid #e5e7eb !important;
-            border-radius: 8px !important;
+            padding: 10px 16px 10px 40px !important;
+            font-size: 14px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 6px !important;
             background: #ffffff !important;
             color: #1f2937 !important;
             transition: all 0.2s ease !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
         }
         
         div[role="search"] input:focus {
             outline: none !important;
-            border-color: #4d9375 !important;
-            box-shadow: 0 0 0 3px rgba(77, 147, 117, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+            border-color: #60a5fa !important;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
         }
         
         div[role="search"] input::placeholder {
@@ -2559,66 +2560,66 @@ app.get('/api-docs', (req, res) => {
             left: 28px !important;
             top: 50% !important;
             transform: translateY(-50%) !important;
-            color: #6b7280 !important;
-            width: 20px !important;
-            height: 20px !important;
+            color: #9ca3af !important;
+            width: 18px !important;
+            height: 18px !important;
         }
         
-        /* API info header - professional card style */
+        /* API info header - clean minimal style */
         div[class*="api-info"] {
-            background: linear-gradient(135deg, #f8fafb 0%, #ffffff 100%) !important;
+            background: #ffffff !important;
             border-bottom: 1px solid #e5e7eb !important;
-            padding: 2rem 1.5rem !important;
+            padding: 2rem 1.5rem 1.5rem 1.5rem !important;
         }
         
         /* Title styling */
         div[class*="api-info"] h1 {
-            font-size: 28px !important;
-            font-weight: 700 !important;
+            font-size: 26px !important;
+            font-weight: 600 !important;
             color: #1f2937 !important;
-            margin-bottom: 0.75rem !important;
+            margin-bottom: 0.5rem !important;
             display: flex !important;
             align-items: center !important;
             gap: 0.75rem !important;
         }
         
-        /* Version badge */
+        /* Version badge - subtle */
         div[class*="api-info"] h1 span {
-            font-size: 14px !important;
-            font-weight: 600 !important;
-            color: #4d9375 !important;
-            background: #f0fdf4 !important;
-            padding: 4px 12px !important;
-            border-radius: 12px !important;
-            border: 1px solid #bbf7d0 !important;
+            font-size: 13px !important;
+            font-weight: 500 !important;
+            color: #6b7280 !important;
+            background: transparent !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            border: none !important;
         }
         
         /* Description text */
         div[class*="api-info"] > div > p:first-of-type {
             font-size: 15px !important;
             line-height: 1.6 !important;
-            color: #4b5563 !important;
-            margin: 1rem 0 1.5rem 0 !important;
+            color: #6b7280 !important;
+            margin: 0.75rem 0 1.25rem 0 !important;
         }
         
-        /* Contact/License links - badge style */
+        /* Contact/License links - light blue badges */
         div[class*="api-info"] p:has(a),
         div[class*="api-info"] > div > p {
             display: inline-flex !important;
             align-items: center !important;
             gap: 0.5rem !important;
-            margin: 0.5rem 0.75rem 0.5rem 0 !important;
+            margin: 0.35rem 0.5rem 0.35rem 0 !important;
             font-size: 13px !important;
         }
         
         div[class*="api-info"] a:not([href*="redoc"]) {
-            color: #4d9375 !important;
+            color: #2563eb !important;
             text-decoration: none !important;
             font-weight: 500 !important;
-            padding: 6px 12px !important;
-            background: #f0fdf4 !important;
+            padding: 5px 12px !important;
+            background: #eff6ff !important;
             border-radius: 6px !important;
-            border: 1px solid #bbf7d0 !important;
+            border: 1px solid #dbeafe !important;
             transition: all 0.2s ease !important;
             display: inline-flex !important;
             align-items: center !important;
@@ -2626,27 +2627,27 @@ app.get('/api-docs', (req, res) => {
         }
         
         div[class*="api-info"] a:not([href*="redoc"]):hover {
-            background: #dcfce7 !important;
-            border-color: #86efac !important;
+            background: #dbeafe !important;
+            border-color: #bfdbfe !important;
             transform: translateY(-1px) !important;
-            box-shadow: 0 2px 4px rgba(77, 147, 117, 0.1) !important;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1) !important;
         }
         
-        /* Download button styling */
+        /* Download button styling - light blue */
         a[download] {
-            background: #4d9375 !important;
+            background: #3b82f6 !important;
             color: white !important;
-            padding: 10px 20px !important;
-            border-radius: 8px !important;
-            font-weight: 600 !important;
+            padding: 8px 16px !important;
+            border-radius: 6px !important;
+            font-weight: 500 !important;
             border: none !important;
-            box-shadow: 0 2px 4px rgba(77, 147, 117, 0.2) !important;
+            box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2) !important;
         }
         
         a[download]:hover {
-            background: #3d7d65 !important;
+            background: #2563eb !important;
             transform: translateY(-1px) !important;
-            box-shadow: 0 4px 6px rgba(77, 147, 117, 0.3) !important;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3) !important;
         }
         
         /* Logo size control */
