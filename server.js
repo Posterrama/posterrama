@@ -406,9 +406,9 @@ app.use('/api', (req, res, next) => {
  * @swagger
  * /api/v1/config:
  *   get:
- *     summary: Get configuration (v1 API alias)
- *     description: Version 1 API alias that redirects to the main configuration endpoint /get-config
- *     tags: ['Public API']
+ *     summary: Get public configuration
+ *     description: Returns public configuration settings for display modes and device behavior. RESTful v1 endpoint.
+ *     tags: ['API v1']
  *     responses:
  *       200:
  *         description: Configuration data (handled by /get-config endpoint)
@@ -427,9 +427,9 @@ app.get('/api/v1/config', (req, res) => {
  * @swagger
  * /api/v1/media:
  *   get:
- *     summary: Get media data (v1 API alias)
- *     description: Version 1 API alias that redirects to the main media endpoint /get-media
- *     tags: ['Public API']
+ *     summary: Get media collection
+ *     description: Returns a filtered and shuffled collection of media items from configured sources (Plex, Jellyfin, TMDB). RESTful v1 endpoint.
+ *     tags: ['API v1']
  *     parameters:
  *       - in: query
  *         name: search
@@ -466,9 +466,9 @@ app.get('/api/v1/media', (req, res) => {
  * @swagger
  * /api/v1/media/{key}:
  *   get:
- *     summary: Get single media item by key (v1 API alias)
- *     description: Version 1 API alias that redirects to /get-media-by-key/:key endpoint
- *     tags: ['Public API']
+ *     summary: Get single media item
+ *     description: Retrieves a single media item by its unique key. RESTful v1 endpoint.
+ *     tags: ['API v1']
  *     parameters:
  *       - in: path
  *         name: key
@@ -500,9 +500,9 @@ app.get('/api/v1/media/:key', (req, res) => {
  * @swagger
  * /api/v1/devices/bypass-status:
  *   get:
- *     summary: Check device bypass status (v1 API alias)
- *     description: Version 1 API alias for checking if client IP is on device bypass list
- *     tags: ['Devices']
+ *     summary: Check device bypass status
+ *     description: Returns whether the requesting IP address is whitelisted for device management bypass. RESTful v1 endpoint.
+ *     tags: ['API v1 - Devices']
  *     responses:
  *       200:
  *         description: Bypass status
@@ -528,9 +528,9 @@ app.get('/api/v1/devices/bypass-status', (req, res) => {
  * @swagger
  * /api/v1/devices/reload:
  *   post:
- *     summary: Clear cache and reload all devices (v1 API alias)
- *     description: Version 1 API alias for sending clearCache and reload commands to all registered devices
- *     tags: ['Devices']
+ *     summary: Reload all devices
+ *     description: Sends clearCache and reload commands to all registered devices via WebSocket. Requires admin authentication. RESTful v1 endpoint.
+ *     tags: ['API v1 - Devices']
  *     security:
  *       - bearerAuth: []
  *     responses:
