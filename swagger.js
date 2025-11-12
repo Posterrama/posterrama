@@ -20,7 +20,7 @@ function generateSwaggerSpec() {
                 title: 'Posterrama API',
                 version: pkg.version,
                 description:
-                    'Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.\n\n[GitHub Repository](https://github.com/Posterrama/posterrama)',
+                    'Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.',
                 contact: {
                     name: 'Posterrama Project',
                     url: 'https://github.com/Posterrama/posterrama',
