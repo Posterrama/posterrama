@@ -319,6 +319,7 @@ describe('CacheManager - Tiered Caching', () => {
             cache = new CacheManager({ enableTiering: false });
             cache.l1Cache.set('test', { value: 'value', accessCount: 10 });
 
+            const beforePromotions = cache.stats.promotions;
             const beforeDemotions = cache.stats.demotions;
 
             cache.manageTiers();
