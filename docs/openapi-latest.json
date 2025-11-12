@@ -126,41 +126,17 @@
     ],
     "components": {
         "securitySchemes": {
-            "isAuthenticated": {
-                "type": "apiKey",
-                "in": "cookie",
-                "name": "connect.sid",
-                "description": "Session-based authentication (alias for sessionAuth)"
-            },
             "sessionAuth": {
                 "type": "apiKey",
                 "in": "cookie",
                 "name": "connect.sid",
-                "description": "Session-based authentication using cookies"
+                "description": "Session-based authentication using HTTP cookies. Used by the admin web interface. Login via POST /admin/login to receive session cookie."
             },
             "bearerAuth": {
                 "type": "http",
                 "scheme": "bearer",
-                "bearerFormat": "JWT",
-                "description": "Bearer token authentication. The application accepts API keys as Bearer tokens."
-            },
-            "BearerAuth": {
-                "type": "http",
-                "scheme": "bearer",
-                "bearerFormat": "JWT",
-                "description": "Bearer token authentication (alias for bearerAuth)."
-            },
-            "SessionAuth": {
-                "type": "apiKey",
-                "in": "cookie",
-                "name": "connect.sid",
-                "description": "Session-based authentication (alias for sessionAuth)"
-            },
-            "ApiKeyAuth": {
-                "type": "http",
-                "scheme": "bearer",
                 "bearerFormat": "API-Key",
-                "description": "API Key authentication using Bearer scheme"
+                "description": "Bearer token authentication for programmatic API access. Include API key in Authorization header: \"Authorization: Bearer YOUR_API_KEY\". Configure API keys in admin settings."
             }
         },
         "schemas": {
@@ -2875,7 +2851,7 @@
                 "tags": ["Cache"],
                 "security": [
                     {
-                        "isAuthenticated": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -2982,7 +2958,7 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "isAuthenticated": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -4767,7 +4743,7 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "isAuthenticated": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -4857,7 +4833,7 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "isAuthenticated": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -4902,7 +4878,7 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "isAuthenticated": []
+                        "sessionAuth": []
                     }
                 ],
                 "responses": {
@@ -4945,8 +4921,25 @@
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "isAuthenticated": [],
+                        "sessionAuth": [],
                         "bearerAuth": []
+                    }
+                ],
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "Update Screensaver Interval",
+                        "source": "curl -X POST http://localhost:4000/api/admin/config \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Cookie: connect.sid=your-session\" \\\n  -d '{\n    \"config\": {\n      \"screensaverInterval\": 5000\n    }\n  }'\n"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "Configure Plex Source",
+                        "source": "fetch('http://localhost:4000/api/admin/config', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  credentials: 'include',\n  body: JSON.stringify({\n    config: {\n      plex: {\n        enabled: true,\n        baseUrl: 'http://192.168.1.100:32400',\n        token: 'YOUR_PLEX_TOKEN',\n        libraries: ['Movies', 'TV Shows']\n      }\n    }\n  })\n});\n"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Enable Local Directory",
+                        "source": "import requests\nsession = requests.Session()\nsession.post('http://localhost:4000/admin/login',\n             data={'username': 'admin', 'password': 'pass'})\nsession.post('http://localhost:4000/api/admin/config',\n  json={'config': {\n    'localDirectory': {\n      'enabled': True,\n      'rootPath': '/mnt/media/posterrama'\n    }\n  }})\n"
                     }
                 ],
                 "requestBody": {
@@ -4963,6 +4956,45 @@
                                     "env": {
                                         "type": "object",
                                         "description": "Environment variables to update"
+                                    }
+                                }
+                            },
+                            "examples": {
+                                "screensaver": {
+                                    "summary": "Update screensaver settings",
+                                    "value": {
+                                        "config": {
+                                            "screensaverInterval": 5000,
+                                            "transitionDuration": 2000,
+                                            "randomOrder": true
+                                        }
+                                    }
+                                },
+                                "plex": {
+                                    "summary": "Configure Plex connection",
+                                    "value": {
+                                        "config": {
+                                            "plex": {
+                                                "enabled": true,
+                                                "baseUrl": "http://192.168.1.100:32400",
+                                                "token": "YOUR_PLEX_TOKEN",
+                                                "libraries": ["Movies", "TV Shows"]
+                                            }
+                                        }
+                                    }
+                                },
+                                "jellyfin": {
+                                    "summary": "Configure Jellyfin connection",
+                                    "value": {
+                                        "config": {
+                                            "jellyfin": {
+                                                "enabled": true,
+                                                "baseUrl": "http://192.168.1.100:8096",
+                                                "apiKey": "YOUR_API_KEY",
+                                                "userId": "YOUR_USER_ID",
+                                                "libraries": ["Movies"]
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -7023,6 +7055,23 @@
                 "summary": "Admin login authentication",
                 "description": "Authenticate admin user with username and password. May require 2FA verification if enabled.",
                 "tags": ["Authentication"],
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "cURL",
+                        "source": "curl -X POST http://localhost:4000/admin/login \\\n  -H \"Content-Type: application/x-www-form-urlencoded\" \\\n  -d \"username=admin&password=your-password\" \\\n  -c cookies.txt\n"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript (fetch)",
+                        "source": "fetch('http://localhost:4000/admin/login', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },\n  body: new URLSearchParams({\n    username: 'admin',\n    password: 'your-password'\n  }),\n  credentials: 'include' // Important: include cookies\n})\n  .then(response => response.json())\n  .then(data => console.log(data));\n"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python (requests)",
+                        "source": "import requests\nsession = requests.Session()\nresponse = session.post(\n    'http://localhost:4000/admin/login',\n    data={'username': 'admin', 'password': 'your-password'}\n)\nprint(response.json())\n"
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -7855,6 +7904,23 @@
                 "description": "**DEPRECATED**: This endpoint is deprecated and will be removed in v3.0.0 (June 2026).\nPlease use `/api/v1/config` instead.\n\nFetches the non-sensitive configuration needed by the frontend for display logic.\nThis endpoint is also accessible via the versioned API at /api/v1/config.\nThe response is cached for 30 seconds to improve performance.\n",
                 "x-sunset-date": "2026-06-01",
                 "tags": ["Public API"],
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "cURL",
+                        "source": "curl http://localhost:4000/get-config\n"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript (fetch)",
+                        "source": "fetch('http://localhost:4000/get-config')\n  .then(response => response.json())\n  .then(config => console.log('Screensaver interval:', config.screensaverInterval));\n"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python (requests)",
+                        "source": "import requests\nconfig = requests.get('http://localhost:4000/get-config').json()\nprint(f\"Screensaver interval: {config['screensaverInterval']}\")\n"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "The public configuration object.",
@@ -7893,6 +7959,23 @@
                 "summary": "Register a new device",
                 "description": "Register a new display device to receive media and commands. Returns device ID and secret for authentication.",
                 "tags": ["Devices"],
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "cURL",
+                        "source": "curl -X POST http://localhost:4000/api/devices/register \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"name\": \"Living Room TV\", \"location\": \"living-room\"}'\n"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript (fetch)",
+                        "source": "fetch('http://localhost:4000/api/devices/register', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    name: 'Living Room TV',\n    location: 'living-room'\n  })\n})\n  .then(response => response.json())\n  .then(data => console.log('Device ID:', data.deviceId));\n"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python (requests)",
+                        "source": "import requests\nresponse = requests.post(\n    'http://localhost:4000/api/devices/register',\n    json={'name': 'Living Room TV', 'location': 'living-room'}\n)\ndevice = response.json()\nprint(f\"Device ID: {device['deviceId']}\")\n"
+                    }
+                ],
                 "requestBody": {
                     "required": false,
                     "content": {
@@ -8273,6 +8356,23 @@
                 "summary": "Pair device with pairing code",
                 "description": "Exchange a pairing code for device credentials. Used for simplified onboarding flow.",
                 "tags": ["Devices"],
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "cURL",
+                        "source": "curl -X POST http://localhost:4000/api/devices/pair \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"code\": \"123456\"}'\n"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript (fetch)",
+                        "source": "fetch('http://localhost:4000/api/devices/pair', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ code: '123456' })\n})\n  .then(response => response.json())\n  .then(data => {\n    console.log('Device ID:', data.deviceId);\n    console.log('Secret:', data.secret);\n  });\n"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python (requests)",
+                        "source": "import requests\nresponse = requests.post(\n    'http://localhost:4000/api/devices/pair',\n    json={'code': '123456'}\n)\ncredentials = response.json()\nprint(f\"Device ID: {credentials['deviceId']}\")\nprint(f\"Secret: {credentials['secret']}\")\n"
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -9454,12 +9554,53 @@
                         "sessionAuth": []
                     }
                 ],
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "Create Basic Group",
+                        "source": "curl -X POST http://localhost:4000/api/groups \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Cookie: connect.sid=your-session\" \\\n  -d '{\n    \"id\": \"lobby-displays\",\n    \"name\": \"Lobby Displays\",\n    \"description\": \"All screens in the main lobby\"\n  }'\n"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "Create Group with Settings Template",
+                        "source": "fetch('http://localhost:4000/api/groups', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  credentials: 'include',\n  body: JSON.stringify({\n    id: 'kitchen-displays',\n    name: 'Kitchen Displays',\n    description: 'Kitchen area screens',\n    settingsTemplate: {\n      screensaverInterval: 8000,\n      transitionDuration: 1500\n    },\n    order: 10\n  })\n});\n"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Create Group with Python",
+                        "source": "import requests\nsession = requests.Session()\nsession.post('http://localhost:4000/admin/login',\n             data={'username': 'admin', 'password': 'pass'})\nresponse = session.post('http://localhost:4000/api/groups',\n  json={\n    'id': 'conference-rooms',\n    'name': 'Conference Rooms',\n    'description': 'All conference room displays',\n    'settingsTemplate': {\n      'randomOrder': False,\n      'showMetadata': True\n    }\n  })\nprint(f\"Created group: {response.json()['name']}\")\n"
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/GroupCreateRequest"
+                            },
+                            "examples": {
+                                "basic": {
+                                    "summary": "Basic group",
+                                    "value": {
+                                        "id": "lobby-displays",
+                                        "name": "Lobby Displays",
+                                        "description": "All screens in the main lobby"
+                                    }
+                                },
+                                "with_settings": {
+                                    "summary": "Group with settings template",
+                                    "value": {
+                                        "id": "kitchen-displays",
+                                        "name": "Kitchen Displays",
+                                        "description": "Kitchen area screens",
+                                        "settingsTemplate": {
+                                            "screensaverInterval": 8000,
+                                            "transitionDuration": 1500,
+                                            "randomOrder": true
+                                        },
+                                        "order": 10
+                                    }
+                                }
                             }
                         }
                     }
@@ -10804,6 +10945,23 @@
                 "description": "**DEPRECATED**: This endpoint is deprecated and will be removed in v3.0.0 (June 2026).\nPlease use `/api/v1/media` instead.\n\nReturns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). RomM games are only included when gamesOnly mode is enabled. Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true. Supports Music Mode for album covers and Games Mode for game covers.\n",
                 "x-sunset-date": "2026-06-01",
                 "tags": ["Public API"],
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "cURL",
+                        "source": "curl http://localhost:4000/get-media\n"
+                    },
+                    {
+                        "lang": "JavaScript",
+                        "label": "JavaScript (fetch)",
+                        "source": "fetch('http://localhost:4000/get-media')\n  .then(response => response.json())\n  .then(data => console.log(data));\n"
+                    },
+                    {
+                        "lang": "Python",
+                        "label": "Python (requests)",
+                        "source": "import requests\nresponse = requests.get('http://localhost:4000/get-media')\nmedia = response.json()\n"
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "query",

@@ -286,6 +286,38 @@ module.exports = function createAuthRouter({
      *     summary: Admin login authentication
      *     description: Authenticate admin user with username and password. May require 2FA verification if enabled.
      *     tags: ['Authentication']
+     *     x-codeSamples:
+     *       - lang: 'curl'
+     *         label: 'cURL'
+     *         source: |
+     *           curl -X POST http://localhost:4000/admin/login \
+     *             -H "Content-Type: application/x-www-form-urlencoded" \
+     *             -d "username=admin&password=your-password" \
+     *             -c cookies.txt
+     *       - lang: 'JavaScript'
+     *         label: 'JavaScript (fetch)'
+     *         source: |
+     *           fetch('http://localhost:4000/admin/login', {
+     *             method: 'POST',
+     *             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+     *             body: new URLSearchParams({
+     *               username: 'admin',
+     *               password: 'your-password'
+     *             }),
+     *             credentials: 'include' // Important: include cookies
+     *           })
+     *             .then(response => response.json())
+     *             .then(data => console.log(data));
+     *       - lang: 'Python'
+     *         label: 'Python (requests)'
+     *         source: |
+     *           import requests
+     *           session = requests.Session()
+     *           response = session.post(
+     *               'http://localhost:4000/admin/login',
+     *               data={'username': 'admin', 'password': 'your-password'}
+     *           )
+     *           print(response.json())
      *     requestBody:
      *       required: true
      *       content:

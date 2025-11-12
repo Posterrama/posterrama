@@ -178,6 +178,23 @@ module.exports = function createMediaRouter({
      *       Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). RomM games are only included when gamesOnly mode is enabled. Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true. Supports Music Mode for album covers and Games Mode for game covers.
      *     x-sunset-date: '2026-06-01'
      *     tags: ['Public API']
+     *     x-codeSamples:
+     *       - lang: 'curl'
+     *         label: 'cURL'
+     *         source: |
+     *           curl http://localhost:4000/get-media
+     *       - lang: 'JavaScript'
+     *         label: 'JavaScript (fetch)'
+     *         source: |
+     *           fetch('http://localhost:4000/get-media')
+     *             .then(response => response.json())
+     *             .then(data => console.log(data));
+     *       - lang: 'Python'
+     *         label: 'Python (requests)'
+     *         source: |
+     *           import requests
+     *           response = requests.get('http://localhost:4000/get-media')
+     *           media = response.json()
      *     parameters:
      *       - in: query
      *         name: source

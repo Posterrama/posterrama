@@ -2330,7 +2330,7 @@ app.post('/csp-report', cspReportJson, (req, res) => {
  *     description: Retrieve detailed statistics about API cache performance and usage
  *     tags: ['Cache']
  *     security:
- *       - isAuthenticated: []
+ *       - sessionAuth: []
  *     responses:
  *       200:
  *         description: Cache statistics
@@ -2771,7 +2771,7 @@ app.get('/admin', (req, res) => {
  *     description: Serves the live log viewer page for administrators
  *     tags: ['Admin']
  *     security:
- *       - isAuthenticated: []
+ *       - sessionAuth: []
  *     responses:
  *       200:
  *         description: Logs viewer page served successfully
@@ -5221,7 +5221,7 @@ app.get(
  *     summary: Debug cache status and configuration
  *     tags: ['Admin']
  *     security:
- *       - isAuthenticated: []
+ *       - sessionAuth: []
  *     responses:
  *       200:
  *         description: Cache debug information
@@ -5329,7 +5329,7 @@ app.post(
  *     description: Returns cache size and disk usage information using session authentication
  *     tags: ['Admin']
  *     security:
- *       - isAuthenticated: []
+ *       - sessionAuth: []
  *     responses:
  *       200:
  *         description: Cache statistics retrieved successfully
@@ -5450,7 +5450,7 @@ app.get(
  *     summary: Get current server configuration
  *     tags: ['Admin']
  *     security:
- *       - isAuthenticated: []
+ *       - sessionAuth: []
  *     responses:
  *       200:
  *         description: Current configuration
@@ -5478,7 +5478,51 @@ app.get(
  *     summary: Update server configuration (partial)
  *     tags: ['Admin']
  *     security:
- *       - isAuthenticated: []
+ *       - sessionAuth: []
+ *     x-codeSamples:
+ *       - lang: 'curl'
+ *         label: 'Update Screensaver Interval'
+ *         source: |
+ *           curl -X POST http://localhost:4000/api/admin/config \
+ *             -H "Content-Type: application/json" \
+ *             -H "Cookie: connect.sid=your-session" \
+ *             -d '{
+ *               "config": {
+ *                 "screensaverInterval": 5000
+ *               }
+ *             }'
+ *       - lang: 'JavaScript'
+ *         label: 'Configure Plex Source'
+ *         source: |
+ *           fetch('http://localhost:4000/api/admin/config', {
+ *             method: 'POST',
+ *             headers: { 'Content-Type': 'application/json' },
+ *             credentials: 'include',
+ *             body: JSON.stringify({
+ *               config: {
+ *                 plex: {
+ *                   enabled: true,
+ *                   baseUrl: 'http://192.168.1.100:32400',
+ *                   token: 'YOUR_PLEX_TOKEN',
+ *                   libraries: ['Movies', 'TV Shows']
+ *                 }
+ *               }
+ *             })
+ *           });
+ *       - lang: 'Python'
+ *         label: 'Enable Local Directory'
+ *         source: |
+ *           import requests
+ *           session = requests.Session()
+ *           session.post('http://localhost:4000/admin/login',
+ *                        data={'username': 'admin', 'password': 'pass'})
+ *           session.post('http://localhost:4000/api/admin/config',
+ *             json={'config': {
+ *               'localDirectory': {
+ *                 'enabled': True,
+ *                 'rootPath': '/mnt/media/posterrama'
+ *               }
+ *             }})
  *     requestBody:
  *       required: true
  *       content:
@@ -5489,6 +5533,33 @@ app.get(
  *               config:
  *                 type: object
  *                 description: Partial config to deep-merge into config.json
+ *           examples:
+ *             screensaver:
+ *               summary: Update screensaver settings
+ *               value:
+ *                 config:
+ *                   screensaverInterval: 5000
+ *                   transitionDuration: 2000
+ *                   randomOrder: true
+ *             plex:
+ *               summary: Configure Plex connection
+ *               value:
+ *                 config:
+ *                   plex:
+ *                     enabled: true
+ *                     baseUrl: 'http://192.168.1.100:32400'
+ *                     token: 'YOUR_PLEX_TOKEN'
+ *                     libraries: ['Movies', 'TV Shows']
+ *             jellyfin:
+ *               summary: Configure Jellyfin connection
+ *               value:
+ *                 config:
+ *                   jellyfin:
+ *                     enabled: true
+ *                     baseUrl: 'http://192.168.1.100:8096'
+ *                     apiKey: 'YOUR_API_KEY'
+ *                     userId: 'YOUR_USER_ID'
+ *                     libraries: ['Movies']
  *     responses:
  *       200:
  *         description: Configuration updated

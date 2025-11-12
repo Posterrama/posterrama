@@ -65,6 +65,36 @@ module.exports = function createDevicesRouter({
      *     summary: Register a new device
      *     description: Register a new display device to receive media and commands. Returns device ID and secret for authentication.
      *     tags: ['Devices']
+     *     x-codeSamples:
+     *       - lang: 'curl'
+     *         label: 'cURL'
+     *         source: |
+     *           curl -X POST http://localhost:4000/api/devices/register \
+     *             -H "Content-Type: application/json" \
+     *             -d '{"name": "Living Room TV", "location": "living-room"}'
+     *       - lang: 'JavaScript'
+     *         label: 'JavaScript (fetch)'
+     *         source: |
+     *           fetch('http://localhost:4000/api/devices/register', {
+     *             method: 'POST',
+     *             headers: { 'Content-Type': 'application/json' },
+     *             body: JSON.stringify({
+     *               name: 'Living Room TV',
+     *               location: 'living-room'
+     *             })
+     *           })
+     *             .then(response => response.json())
+     *             .then(data => console.log('Device ID:', data.deviceId));
+     *       - lang: 'Python'
+     *         label: 'Python (requests)'
+     *         source: |
+     *           import requests
+     *           response = requests.post(
+     *               'http://localhost:4000/api/devices/register',
+     *               json={'name': 'Living Room TV', 'location': 'living-room'}
+     *           )
+     *           device = response.json()
+     *           print(f"Device ID: {device['deviceId']}")
      *     requestBody:
      *       required: false
      *       content:
@@ -479,6 +509,37 @@ module.exports = function createDevicesRouter({
      *     summary: Pair device with pairing code
      *     description: Exchange a pairing code for device credentials. Used for simplified onboarding flow.
      *     tags: ['Devices']
+     *     x-codeSamples:
+     *       - lang: 'curl'
+     *         label: 'cURL'
+     *         source: |
+     *           curl -X POST http://localhost:4000/api/devices/pair \
+     *             -H "Content-Type: application/json" \
+     *             -d '{"code": "123456"}'
+     *       - lang: 'JavaScript'
+     *         label: 'JavaScript (fetch)'
+     *         source: |
+     *           fetch('http://localhost:4000/api/devices/pair', {
+     *             method: 'POST',
+     *             headers: { 'Content-Type': 'application/json' },
+     *             body: JSON.stringify({ code: '123456' })
+     *           })
+     *             .then(response => response.json())
+     *             .then(data => {
+     *               console.log('Device ID:', data.deviceId);
+     *               console.log('Secret:', data.secret);
+     *             });
+     *       - lang: 'Python'
+     *         label: 'Python (requests)'
+     *         source: |
+     *           import requests
+     *           response = requests.post(
+     *               'http://localhost:4000/api/devices/pair',
+     *               json={'code': '123456'}
+     *           )
+     *           credentials = response.json()
+     *           print(f"Device ID: {credentials['deviceId']}")
+     *           print(f"Secret: {credentials['secret']}")
      *     requestBody:
      *       required: true
      *       content:

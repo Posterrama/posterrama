@@ -43,6 +43,23 @@ module.exports = function createConfigPublicRouter({
      *       The response is cached for 30 seconds to improve performance.
      *     x-sunset-date: '2026-06-01'
      *     tags: ['Public API']
+     *     x-codeSamples:
+     *       - lang: 'curl'
+     *         label: 'cURL'
+     *         source: |
+     *           curl http://localhost:4000/get-config
+     *       - lang: 'JavaScript'
+     *         label: 'JavaScript (fetch)'
+     *         source: |
+     *           fetch('http://localhost:4000/get-config')
+     *             .then(response => response.json())
+     *             .then(config => console.log('Screensaver interval:', config.screensaverInterval));
+     *       - lang: 'Python'
+     *         label: 'Python (requests)'
+     *         source: |
+     *           import requests
+     *           config = requests.get('http://localhost:4000/get-config').json()
+     *           print(f"Screensaver interval: {config['screensaverInterval']}")
      *     responses:
      *       200:
      *         description: The public configuration object.

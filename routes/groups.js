@@ -60,12 +60,78 @@ module.exports = function createGroupsRouter({ adminAuth, cacheManager }) {
      *     tags: ['Groups', 'Admin']
      *     security:
      *       - sessionAuth: []
+     *     x-codeSamples:
+     *       - lang: 'curl'
+     *         label: 'Create Basic Group'
+     *         source: |
+     *           curl -X POST http://localhost:4000/api/groups \
+     *             -H "Content-Type: application/json" \
+     *             -H "Cookie: connect.sid=your-session" \
+     *             -d '{
+     *               "id": "lobby-displays",
+     *               "name": "Lobby Displays",
+     *               "description": "All screens in the main lobby"
+     *             }'
+     *       - lang: 'JavaScript'
+     *         label: 'Create Group with Settings Template'
+     *         source: |
+     *           fetch('http://localhost:4000/api/groups', {
+     *             method: 'POST',
+     *             headers: { 'Content-Type': 'application/json' },
+     *             credentials: 'include',
+     *             body: JSON.stringify({
+     *               id: 'kitchen-displays',
+     *               name: 'Kitchen Displays',
+     *               description: 'Kitchen area screens',
+     *               settingsTemplate: {
+     *                 screensaverInterval: 8000,
+     *                 transitionDuration: 1500
+     *               },
+     *               order: 10
+     *             })
+     *           });
+     *       - lang: 'Python'
+     *         label: 'Create Group with Python'
+     *         source: |
+     *           import requests
+     *           session = requests.Session()
+     *           session.post('http://localhost:4000/admin/login',
+     *                        data={'username': 'admin', 'password': 'pass'})
+     *           response = session.post('http://localhost:4000/api/groups',
+     *             json={
+     *               'id': 'conference-rooms',
+     *               'name': 'Conference Rooms',
+     *               'description': 'All conference room displays',
+     *               'settingsTemplate': {
+     *                 'randomOrder': False,
+     *                 'showMetadata': True
+     *               }
+     *             })
+     *           print(f"Created group: {response.json()['name']}")
      *     requestBody:
      *       required: true
      *       content:
      *         application/json:
      *           schema:
      *             $ref: '#/components/schemas/GroupCreateRequest'
+     *           examples:
+     *             basic:
+     *               summary: Basic group
+     *               value:
+     *                 id: lobby-displays
+     *                 name: Lobby Displays
+     *                 description: All screens in the main lobby
+     *             with_settings:
+     *               summary: Group with settings template
+     *               value:
+     *                 id: kitchen-displays
+     *                 name: Kitchen Displays
+     *                 description: Kitchen area screens
+     *                 settingsTemplate:
+     *                   screensaverInterval: 8000
+     *                   transitionDuration: 1500
+     *                   randomOrder: true
+     *                 order: 10
      *     responses:
      *       201:
      *         description: Created group

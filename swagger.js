@@ -254,42 +254,19 @@ Retry-After: 42
             ],
             components: {
                 securitySchemes: {
-                    isAuthenticated: {
-                        type: 'apiKey',
-                        in: 'cookie',
-                        name: 'connect.sid',
-                        description: 'Session-based authentication (alias for sessionAuth)',
-                    },
                     sessionAuth: {
                         type: 'apiKey',
                         in: 'cookie',
                         name: 'connect.sid',
-                        description: 'Session-based authentication using cookies',
+                        description:
+                            'Session-based authentication using HTTP cookies. Used by the admin web interface. Login via POST /admin/login to receive session cookie.',
                     },
                     bearerAuth: {
                         type: 'http',
                         scheme: 'bearer',
-                        bearerFormat: 'JWT',
-                        description:
-                            'Bearer token authentication. The application accepts API keys as Bearer tokens.',
-                    },
-                    BearerAuth: {
-                        type: 'http',
-                        scheme: 'bearer',
-                        bearerFormat: 'JWT',
-                        description: 'Bearer token authentication (alias for bearerAuth).',
-                    },
-                    SessionAuth: {
-                        type: 'apiKey',
-                        in: 'cookie',
-                        name: 'connect.sid',
-                        description: 'Session-based authentication (alias for sessionAuth)',
-                    },
-                    ApiKeyAuth: {
-                        type: 'http',
-                        scheme: 'bearer',
                         bearerFormat: 'API-Key',
-                        description: 'API Key authentication using Bearer scheme',
+                        description:
+                            'Bearer token authentication for programmatic API access. Include API key in Authorization header: "Authorization: Bearer YOUR_API_KEY". Configure API keys in admin settings.',
                     },
                 },
                 schemas: {
