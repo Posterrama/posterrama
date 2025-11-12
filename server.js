@@ -2777,6 +2777,12 @@ app.get('/api-docs', (req, res) => {
                             class: { color: '#4ec9b0' },
                             type: { color: '#4ec9b0' }
                         }
+                    },
+                    schema: {
+                        linesColor: '#e5e7eb',
+                        defaultDetailsWidth: '75%',
+                        typeNameColor: '#0369a1',
+                        typeTitleColor: '#1f2937'
                     }
                 },
                 scrollYOffset: 0,
@@ -2798,6 +2804,12 @@ app.get('/api-docs', (req, res) => {
                 noAutoAuth: false,
                 hideHostname: false,
                 expandDefaultServerVariables: true,
+                nativeScrollbars: true,
+                hideSingleRequestSampleTab: true,
+                menuToggle: true,
+                expandSingleSchemaField: true,
+                showObjectSchemaExamples: true,
+                payloadSampleIdx: 0,
                 expandSingleSchemaField: true,
                 schemaExpansionLevel: 2,
                 menuToggle: true,
