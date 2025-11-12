@@ -2410,7 +2410,7 @@ app.get(
     newValidationMiddleware(validationRules.adminRequest),
     asyncHandler(async (req, res) => {
         const cacheStats = apiCache.getStats();
-        const mainCacheStats = cache.getStats();
+        const mainCacheStats = cacheManager.getStats();
 
         // Gather source metrics
         const sourceMetrics = {};
