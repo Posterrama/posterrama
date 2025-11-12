@@ -61,6 +61,15 @@ function generateSwaggerSpec() {
             ],
             tags: [
                 {
+                    name: 'API v1',
+                    description:
+                        '**Modern RESTful API** (Preferred) - Clean, versioned endpoints following REST best practices. Use these for all new integrations. Includes `/api/v1/config`, `/api/v1/media`, `/api/v1/media/{key}`, `/api/v1/devices/*`.',
+                    externalDocs: {
+                        description: 'API v1 Documentation',
+                        url: 'https://github.com/Posterrama/posterrama/blob/main/docs/API-PRODUCTION-READINESS.md',
+                    },
+                },
+                {
                     name: 'Public API',
                     description:
                         '**Core endpoints** for fetching media and configuration. No authentication required. Examples: GET /get-media, GET /health',
@@ -146,6 +155,10 @@ function generateSwaggerSpec() {
                 },
             ],
             'x-tagGroups': [
+                {
+                    name: 'Modern API (Recommended)',
+                    tags: ['API v1'],
+                },
                 {
                     name: 'Core API',
                     tags: ['Public API', 'Frontend'],
