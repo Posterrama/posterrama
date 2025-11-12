@@ -114,3 +114,4 @@ private/
 
 # Test broadcast device files (generated during test runs)
 devices.broadcast.*.json
+performance-baseline.json

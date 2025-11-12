@@ -2363,6 +2363,113 @@ app.get(
     }
 );
 
+// Performance metrics endpoint (admin only)
+/**
+ * @swagger
+ * /api/admin/performance/metrics:
+ *   get:
+ *     summary: Get comprehensive performance metrics
+ *     description: |
+ *       Retrieve detailed performance metrics including cache statistics,
+ *       source performance, and system information. Used for baseline
+ *       measurements and optimization monitoring.
+ *     tags: ['Admin']
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Performance metrics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     cache:
+ *                       type: object
+ *                       description: Cache performance metrics
+ *                     sources:
+ *                       type: object
+ *                       description: Media source performance metrics
+ *                     system:
+ *                       type: object
+ *                       description: System information
+ *       401:
+ *         description: Unauthorized
+ */
+app.get(
+    '/api/admin/performance/metrics',
+    isAuthenticated,
+    newValidationMiddleware(validationRules.adminRequest),
+    asyncHandler(async (req, res) => {
+        const cacheStats = apiCache.getStats();
+        const mainCacheStats = cache.getStats();
+
+        // Gather source metrics
+        const sourceMetrics = {};
+        if (global.__posterramaPlexSources) {
+            sourceMetrics.plex = Object.fromEntries(
+                Array.from(global.__posterramaPlexSources.entries()).map(([name, source]) => [
+                    name,
+                    source.getMetrics(),
+                ])
+            );
+        }
+        if (global.__posterramaJellyfinSources) {
+            sourceMetrics.jellyfin = Object.fromEntries(
+                Array.from(global.__posterramaJellyfinSources.entries()).map(([name, source]) => [
+                    name,
+                    source.getMetrics(),
+                ])
+            );
+        }
+        if (global.__posterramaTmdbSource) {
+            sourceMetrics.tmdb = global.__posterramaTmdbSource.getMetrics();
+        }
+        if (global.__posterramaLocalSource) {
+            sourceMetrics.local = global.__posterramaLocalSource.getMetrics();
+        }
+
+        // System information
+        const memUsage = process.memoryUsage();
+        const uptime = process.uptime();
+
+        res.json({
+            success: true,
+            timestamp: new Date().toISOString(),
+            data: {
+                cache: {
+                    api: cacheStats,
+                    main: mainCacheStats,
+                },
+                sources: sourceMetrics,
+                system: {
+                    memory: {
+                        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+                        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+                        external: Math.round(memUsage.external / 1024 / 1024),
+                        rss: Math.round(memUsage.rss / 1024 / 1024),
+                        unit: 'MB',
+                    },
+                    uptime: {
+                        seconds: Math.round(uptime),
+                        formatted: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`,
+                    },
+                    node: process.version,
+                    platform: process.platform,
+                },
+            },
+        });
+    })
+);
+
 // Direct swagger spec endpoint for debugging
 /**
  * @swagger
