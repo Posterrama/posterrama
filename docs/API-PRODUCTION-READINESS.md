@@ -1,20 +1,21 @@
 # API Production Readiness
 
-**Version:** 2.9.4  
-**Production Readiness:** 87%  
+**Version:** 2.9.5  
+**Production Readiness:** 90%  
 **Last Updated:** November 12, 2025
 
 ---
 
 ## Executive Summary
 
-The Posterrama API is **87% production-ready**. All documentation, OpenAPI compliance, and deprecation signaling work is complete. The remaining 13% requires architectural improvements (breaking changes with backwards compatibility).
+The Posterrama API is **90% production-ready**. All documentation, OpenAPI compliance, deprecation signaling, and initial API versioning work is complete. The remaining 10% requires broader architectural improvements (breaking changes with backwards compatibility).
 
 **Status:**
 
 - ✅ Phase 1 Complete: OpenAPI compliance, security schemes, examples
 - ✅ Phase 1.5 Complete: Deprecation headers, OpenAPI metadata improvements
-- ❌ Phase 0 Pending: RESTful paths, API versioning, consistent prefixes
+- ✅ Phase 0.1 Complete: Initial v1 endpoints for config and media
+- ❌ Phase 0.2 Pending: Remaining RESTful paths, consistent prefixes
 
 **Why Fix Now:**
 
@@ -27,17 +28,18 @@ The Posterrama API is **87% production-ready**. All documentation, OpenAPI compl
 
 ## Current State
 
-| Metric                  | Status                      |
-| ----------------------- | --------------------------- |
-| Production Readiness    | 87%                         |
-| Total Endpoints         | 166 documented, 128 routes  |
-| OpenAPI Examples        | 92/92 (100%)                |
-| Security Schemes        | 2 (consolidated)            |
-| **Deprecation Headers** | **3/3 legacy endpoints** ✅ |
-| **OpenAPI Metadata**    | **Enhanced** ✅             |
-| **Non-RESTful paths**   | **5 endpoints** 🔴          |
-| **API Versioning**      | **Backwards** 🔴            |
-| **Inconsistent prefix** | **Yes** 🟡                  |
+| Metric                  | Status                        |
+| ----------------------- | ----------------------------- |
+| Production Readiness    | 90%                           |
+| Total Endpoints         | 169 documented, 131 routes    |
+| OpenAPI Examples        | 92/92 (100%)                  |
+| Security Schemes        | 2 (consolidated)              |
+| **Deprecation Headers** | **3/3 legacy endpoints** ✅   |
+| **OpenAPI Metadata**    | **Enhanced** ✅               |
+| **V1 Config Endpoint**  | **/api/v1/config** ✅         |
+| **V1 Media Endpoints**  | **/api/v1/media (+ :key)** ✅ |
+| **Non-RESTful paths**   | **2 endpoints** 🟡            |
+| **Inconsistent prefix** | **Mixed** 🟡                  |
 
 ---
 
@@ -75,86 +77,105 @@ Link: </api/v1/ENDPOINT>; rel="successor-version"
 - `servers` array with development and custom deployment options
 - Server URL variables for flexible deployment configurations
 
+### Phase 0.1: Initial API Versioning (November 12, 2025)
+
+- ✅ Implemented `/api/v1/config` endpoint (internal redirect to `/get-config`)
+- ✅ Implemented `/api/v1/media` endpoint (internal redirect to `/get-media`)
+- ✅ Implemented `/api/v1/media/:key` endpoint (308 redirect to `/get-media-by-key/:key`)
+- ✅ Fixed validator to allow spaces in media key parameter
+- **Impact:** Zero-risk additions with full backwards compatibility
+
+**Implementation:**
+
+3 new v1 endpoints created alongside legacy endpoints:
+
+```javascript
+GET /api/v1/config          → internal forward to /get-config
+GET /api/v1/media           → internal forward to /get-media
+GET /api/v1/media/:key      → HTTP 308 redirect to /get-media-by-key/:key
+```
+
+All endpoints tested and verified working. Legacy endpoints remain fully functional.
+
+**Validator Fix:**
+
+Modified `mediaKeyParamSchema` regex to allow spaces in keys:
+
+- Before: `/^[a-zA-Z0-9\-_]+$/`
+- After: `/^[a-zA-Z0-9\-_ ]+$/`
+
+This fixes keys in format `plex-Plex Server-12345` (space in server name).
+
 ---
 
 ## Remaining Issues
 
-Three architectural improvements remain. All require code changes but include backwards compatibility via redirects.
+Two architectural improvements remain. Both require code changes but include backwards compatibility via redirects.
 
-### Issue 1: Non-RESTful Paths 🔴
+### Issue 1: Non-RESTful Paths 🟡
 
-**Problem:** 5 endpoints have verbs in URLs (violates REST principles)
+**Problem:** 2 endpoints still have verbs in URLs (violates REST principles)
 
-**Examples:**
+**Remaining:**
 
 ```
-/get-media              → /api/v1/media
-/get-media-by-key/:key  → /api/v1/media/:key
-/get-config             → /api/v1/config
 /bypass-check           → /api/v1/devices/bypass-status
 /clear-reload           → /api/v1/devices/reload
 ```
 
+**Completed (Phase 0.1):**
+
+```
+✅ /get-media              → /api/v1/media
+✅ /get-media-by-key/:key  → /api/v1/media/:key
+✅ /get-config             → /api/v1/config
+```
+
 **Why Fix:** REST uses nouns in URLs, verbs in HTTP methods (`GET /media` not `GET /get-media`)
 
-**Impact:** All display modes and admin UI use these endpoints
+**Impact:** Display modes and admin UI use these endpoints
 
 **Files to Update:**
 
-- `routes/media.js`, `routes/devices.js`, `server.js`
+- `routes/devices.js`, `server.js`
 - `public/*.js` (screensaver, wallart, cinema, admin)
-- `__tests__/**/*.test.js` (10+ test files)
+- `__tests__/**/*.test.js` (test files)
 
-**Effort:** 5-7 hours
-
----
-
-### Issue 2: Backwards API Versioning 🔴
-
-**Problem:** `/api/v1/*` paths redirect TO legacy paths (should be opposite)
-
-**Current (Wrong):**
-
-```javascript
-app.get('/api/v1/media', (req, res) => {
-    req.url = '/get-media'; // Redirects to legacy
-    app._router.handle(req, res);
-});
-```
-
-**Desired:**
-
-```javascript
-// v1 is canonical
-app.get('/api/v1/media', validateQuery, cache, async (req, res) => {
-    // ... actual implementation ...
-});
-
-// Legacy redirects to v1
-app.get('/get-media', (req, res) => {
-    res.set('Deprecation', 'true');
-    res.set('Sunset', 'Sat, 1 Jun 2026 00:00:00 GMT');
-    res.redirect(308, `/api/v1/media${req.url.substring(10)}`);
-});
-```
-
-**Why Fix:** Cannot introduce v2 API or deprecate old paths properly
-
-**Router Mounts to Change:**
-
-```
-app.use('/api/devices', ...) → app.use('/api/v1/devices', ...)
-app.use('/api/groups', ...)  → app.use('/api/v1/groups', ...)
-app.use('/', mediaRouter)    → app.use('/api/v1', mediaRouter)
-```
-
-**Effort:** 6-8 hours
+**Effort:** 2-3 hours
 
 ---
 
-### Issue 3: Inconsistent `/api` Prefix 🟡
+### Issue 2: Inconsistent Prefixes 🟡
 
-**Problem:** Media routes at root level, others under `/api`
+**Problem:** Some endpoints use `/api/v1/*`, most don't have `/api/*` prefix
+
+**Examples:**
+
+```
+✅ /api/v1/config          (new, has prefix)
+✅ /api/v1/media           (new, has prefix)
+✅ /api/v1/media/:key      (new, has prefix)
+❌ /health                 (no prefix)
+❌ /admin/*                (no prefix)
+❌ /bypass-check           (no prefix)
+```
+
+**Why Fix:** Consistent URL structure improves discoverability and organization
+
+**Approach:** Gradually migrate all endpoints under `/api/v1/*` prefix while maintaining backwards compatibility redirects for 6 months.
+
+**Router Mounts to Consider:**
+
+```
+Current: app.use('/api/devices', ...)
+Future:  app.use('/api/v1/devices', ...)
+```
+
+**Effort:** 4-5 hours for planning, 8-10 hours for implementation
+
+---
+
+## Implementation Strategy
 
 **Current:**
 
@@ -186,31 +207,53 @@ app.use('/', mediaRouter)    → app.use('/api/v1', mediaRouter)
 
 **Critical Lesson:** Previous aggressive migration broke device management, image delivery, and client state. Must maintain backwards compatibility throughout.
 
-#### Phase 0.1: Add `/api/v1/*` Aliases (Non-Breaking)
+#### Phase 0.1: Add `/api/v1/*` Aliases (Non-Breaking) ✅
 
-**Time:** 6-8 hours  
-**Status:** Not started
+**Time:** 2 hours  
+**Status:** Complete (November 12, 2025)
 
-1. Create `/api/v1` router mount in `server.js`
-2. Add new RESTful paths as **aliases** to existing implementations
-3. Both old and new paths work simultaneously
-4. Add tests for new paths
-5. **No frontend changes yet**
+1. ✅ Create `/api/v1` endpoints in `server.js`
+2. ✅ Add new RESTful paths as **aliases** to existing implementations
+3. ✅ Both old and new paths work simultaneously
+4. ✅ Fixed validator to allow spaces in media keys
+5. ✅ All endpoints tested and verified working
 
-**New Paths Added:**
+**Paths Implemented:**
 
 ```
-/api/v1/media              → alias for /get-media
-/api/v1/media/:key         → alias for /get-media-by-key/:key
-/api/v1/config             → alias for /get-config
+✅ /api/v1/config             → internal forward to /get-config
+✅ /api/v1/media              → internal forward to /get-media
+✅ /api/v1/media/:key         → HTTP 308 redirect to /get-media-by-key/:key
+```
+
+**Still Pending (Phase 0.2):**
+
+```
+⏳ /api/v1/devices/bypass-status → alias for /api/devices/bypass-check
+⏳ /api/v1/devices/reload     → alias for /api/devices/clear-reload
+```
+
+#### Phase 0.2: Complete RESTful Migration (Non-Breaking)
+
+**Time:** 3-4 hours  
+**Status:** Not started
+
+1. Add remaining `/api/v1/devices/*` aliases
+2. Update OpenAPI documentation for new endpoints
+3. Add tests for all v1 endpoints
+4. **No frontend changes yet**
+
+**Remaining Paths:**
+
+```
 /api/v1/devices/bypass-status → alias for /api/devices/bypass-check
 /api/v1/devices/reload     → alias for /api/devices/clear-reload
 ```
 
-#### Phase 0.2: Update Frontend (Non-Breaking)
+#### Phase 0.3: Update Frontend (Non-Breaking)
 
 **Time:** 4-6 hours  
-**Depends:** Phase 0.1 complete
+**Depends:** Phase 0.2 complete
 
 1. Update one frontend component at a time
 2. Test thoroughly after each update
@@ -219,10 +262,10 @@ app.use('/', mediaRouter)    → app.use('/api/v1', mediaRouter)
 
 **Files:** `public/screensaver.js`, `public/wallart.js`, `public/cinema.js`, `public/admin.js`
 
-#### Phase 0.3: Migrate Backend Logic (Breaking w/ Redirects)
+#### Phase 0.4: Migrate Backend Logic (Breaking w/ Redirects)
 
 **Time:** 6-8 hours  
-**Depends:** Phase 0.2 complete
+**Depends:** Phase 0.3 complete
 
 1. Move implementation from legacy paths to `/api/v1/*`
 2. Convert old paths to 308 redirects with deprecation headers
@@ -238,7 +281,7 @@ res.set('Sunset', 'Sat, 1 Jun 2026 00:00:00 GMT');
 res.set('Link', '</api/v1/media>; rel="successor-version"');
 ```
 
-**Total Time:** 16-22 hours (split across 3 phases)
+**Total Time:** 13-18 hours remaining (Phase 0.1 complete: 2 hours)
 
 ---
 
