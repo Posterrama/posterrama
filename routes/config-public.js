@@ -32,15 +32,14 @@ module.exports = function createConfigPublicRouter({
      * @swagger
      * /get-config:
      *   get:
-     *     summary: Retrieve the public application configuration
+     *     summary: Retrieve the public application configuration (legacy)
      *     description: |
-     *       Fetches the non-sensitive configuration needed by the frontend for display logic.
+     *       **Legacy endpoint** - Use `/api/v1/config` instead.
      *
-     *       **Note**: A modern RESTful alternative is available at `/api/v1/config`.
-     *       This endpoint is also accessible via the versioned API at /api/v1/config.
-     *       The response is cached for 30 seconds to improve performance.
-     *     x-sunset-date: '2026-06-01'
-     *     tags: ['Public API']
+     *       Fetches the non-sensitive configuration needed by the frontend for display logic.
+     *       This endpoint is maintained for backwards compatibility.
+     *     x-internal: true
+     *     tags: ['Legacy API']
      *     x-codeSamples:
      *       - lang: 'curl'
      *         label: 'cURL'

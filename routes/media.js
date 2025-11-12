@@ -169,12 +169,14 @@ module.exports = function createMediaRouter({
      * @swagger
      * /get-media:
      *   get:
-     *     summary: Retrieve media playlist
+     *     summary: Retrieve media playlist (legacy)
      *     description: |
-     *       Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). RomM games are only included when gamesOnly mode is enabled. Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true. Supports Music Mode for album covers and Games Mode for game covers.
+     *       **Legacy endpoint** - Use `/api/v1/media` instead.
      *
-     *       **Note**: A modern RESTful alternative is available at `/api/v1/media`.
-     *     tags: ['Public API']
+     *       Returns the aggregated playlist from all configured media sources.
+     *       This endpoint is maintained for backwards compatibility.
+     *     x-internal: true
+     *     tags: ['Legacy API']
      *     x-codeSamples:
      *       - lang: 'curl'
      *         label: 'cURL'
@@ -715,12 +717,14 @@ module.exports = function createMediaRouter({
      * @swagger
      * /get-media-by-key/{key}:
      *   get:
-     *     summary: Retrieve a single media item by its unique key
+     *     summary: Retrieve a single media item by key (legacy)
      *     description: |
-     *       Fetches the full details for a specific media item, typically used when a user clicks on a 'recently added' item that isn't in the main playlist.
+     *       **Legacy endpoint** - Use `/api/v1/media/{key}` instead.
      *
-     *       **Note**: A modern RESTful alternative is available at `/api/v1/media/{key}`.
-     *     tags: ['Public API']
+     *       Fetches the full details for a specific media item.
+     *       This endpoint is maintained for backwards compatibility.
+     *     x-internal: true
+     *     tags: ['Legacy API']
      *     parameters:
      *       - in: path
      *         name: key
