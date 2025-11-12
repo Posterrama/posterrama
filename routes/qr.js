@@ -30,8 +30,9 @@ module.exports = function createQRRouter({ isAuthenticated }) {
      *         name: text
      *         schema:
      *           type: string
+     *           maxLength: 2048
      *         required: true
-     *         description: Text to encode in the QR code
+     *         description: Text to encode in the QR code (max 2048 characters)
      *       - in: query
      *         name: format
      *         schema:

@@ -27,6 +27,10 @@ module.exports = function createGroupsRouter({ adminAuth, cacheManager }) {
      * /api/groups:
      *   get:
      *     summary: List all groups
+     *     description: |
+     *       Returns all device groups with their settings templates and members.
+     *
+     *       **Note**: Pagination is not yet implemented. All groups are returned in a single response.
      *     tags: ['Groups', 'Admin']
      *     security:
      *       - sessionAuth: []
@@ -38,6 +42,17 @@ module.exports = function createGroupsRouter({ adminAuth, cacheManager }) {
      *             schema:
      *               type: array
      *               items: { $ref: '#/components/schemas/Group' }
+     *             example:
+     *               - id: lobby-displays
+     *                 name: Lobby Displays
+     *                 description: All screens in the main lobby
+     *                 settingsTemplate: { transitionIntervalSeconds: 30 }
+     *                 order: 1
+     *               - id: bedroom-displays
+     *                 name: Bedroom Displays
+     *                 description: Bedroom screens with night mode
+     *                 settingsTemplate: { clockWidget: false }
+     *                 order: 2
      *       401:
      *         description: Unauthorized
      *       500:

@@ -551,8 +551,10 @@ module.exports = function createMediaRouter({
      *         name: count
      *         schema:
      *           type: integer
+     *           minimum: 1
+     *           maximum: 200
      *           default: 50
-     *         description: Number of random artists to fetch
+     *         description: Number of random artists to fetch (1-200, default 50)
      *     responses:
      *       200:
      *         description: Array of albums from random artists
@@ -813,17 +815,21 @@ module.exports = function createMediaRouter({
      *         name: server
      *         schema:
      *           type: string
-     *         description: The name of the server config from config.json (for Plex-style paths).
+     *           maxLength: 256
+     *         description: The name of the server config from config.json (for Plex-style paths). Required if using path parameter.
      *       - in: query
      *         name: path
      *         schema:
      *           type: string
-     *         description: The image path from the media item object (e.g., /library/metadata/12345/art/...).
+     *           maxLength: 1024
+     *         description: The image path from the media item object (e.g., /library/metadata/12345/art/...). Required if using server parameter.
      *       - in: query
      *         name: url
      *         schema:
      *           type: string
-     *         description: Direct URL to proxy (for Jellyfin and external images).
+     *           format: uri
+     *           maxLength: 2048
+     *         description: Direct URL to proxy (for Jellyfin and external images). Alternative to server+path parameters.
      *     responses:
      *       200:
      *         description: The requested image.

@@ -555,6 +555,22 @@ module.exports = function createDevicesRouter({
      *     responses:
      *       200:
      *         description: Pairing successful
+     *         headers:
+     *           X-RateLimit-Limit:
+     *             schema:
+     *               type: integer
+     *             description: Maximum requests allowed per time window
+     *             example: 5
+     *           X-RateLimit-Remaining:
+     *             schema:
+     *               type: integer
+     *             description: Remaining requests in current window
+     *             example: 4
+     *           X-RateLimit-Reset:
+     *             schema:
+     *               type: integer
+     *             description: Unix timestamp when rate limit resets
+     *             example: 1699876543
      *         content:
      *           application/json:
      *             schema:
@@ -564,10 +580,47 @@ module.exports = function createDevicesRouter({
      *                   type: string
      *                 secret:
      *                   type: string
+     *             example:
+     *               deviceId: dev_a1b2c3d4e5f6
+     *               secret: sec_x9y8z7w6v5u4t3s2
      *       400:
      *         description: Invalid or expired code
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/StandardErrorResponse'
+     *             example:
+     *               error: invalid_code_format
+     *               message: Code must be a 6-digit number
+     *               statusCode: 400
      *       429:
-     *         description: Too many pairing attempts
+     *         description: Too many pairing attempts. Rate limit is 5 requests per minute.
+     *         headers:
+     *           Retry-After:
+     *             schema:
+     *               type: integer
+     *             description: Seconds to wait before retrying
+     *             example: 42
+     *           X-RateLimit-Limit:
+     *             schema:
+     *               type: integer
+     *             example: 5
+     *           X-RateLimit-Remaining:
+     *             schema:
+     *               type: integer
+     *             example: 0
+     *           X-RateLimit-Reset:
+     *             schema:
+     *               type: integer
+     *             example: 1699876585
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/StandardErrorResponse'
+     *             example:
+     *               error: Too many requests
+     *               message: Rate limit exceeded. Please wait 42 seconds before retrying.
+     *               statusCode: 429
      */
     router.post('/pair', devicePairClaimLimiter, express.json(), async (req, res) => {
         try {
@@ -742,7 +795,11 @@ module.exports = function createDevicesRouter({
      * /api/devices:
      *   get:
      *     summary: List all devices
-     *     description: Returns a list of all registered devices with their current status. Admin only.
+     *     description: |
+     *       Returns a list of all registered devices with their current status. Admin only.
+     *
+     *       **Note**: Pagination is not yet implemented. All devices are returned in a single response.
+     *       Future versions may support page and limit query parameters.
      *     tags: ['Devices']
      *     security:
      *       - bearerAuth: []
@@ -755,6 +812,19 @@ module.exports = function createDevicesRouter({
      *               type: array
      *               items:
      *                 $ref: '#/components/schemas/Device'
+     *             example:
+     *               - id: dev_abc123
+     *                 name: Living Room TV
+     *                 location: living-room
+     *                 status: online
+     *                 wsConnected: true
+     *                 lastSeenAt: '2025-11-12T10:30:00.000Z'
+     *               - id: dev_xyz789
+     *                 name: Bedroom Display
+     *                 location: bedroom
+     *                 status: offline
+     *                 wsConnected: false
+     *                 lastSeenAt: '2025-11-11T22:15:00.000Z'
      *       401:
      *         description: Unauthorized
      */

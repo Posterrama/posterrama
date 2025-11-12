@@ -20,11 +20,15 @@ function generateSwaggerSpec() {
                 title: 'Posterrama API',
                 version: pkg.version,
                 description:
-                    'Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.',
+                    'Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.\n\n[GitHub Repository](https://github.com/Posterrama/posterrama)',
                 contact: {
                     name: 'Posterrama Project',
                     url: 'https://github.com/Posterrama/posterrama',
                     email: 'support@posterrama.app',
+                },
+                'x-logo': {
+                    url: 'https://github.com/Posterrama/posterrama',
+                    altText: 'GitHub Repository',
                 },
                 license: {
                     name: 'GPL-3.0-or-later',
@@ -248,6 +252,23 @@ function generateSwaggerSpec() {
                                 items: { $ref: '#/components/schemas/BackupRecord' },
                             },
                         },
+                        example: {
+                            ok: true,
+                            backups: [
+                                {
+                                    id: 'config-backup-1730000000000',
+                                    createdAt: '2025-10-25T12:00:00.000Z',
+                                    sizeBytes: 4096,
+                                    type: 'manual',
+                                },
+                                {
+                                    id: 'config-backup-1729950000000',
+                                    createdAt: '2025-10-24T23:00:00.000Z',
+                                    sizeBytes: 4102,
+                                    type: 'auto',
+                                },
+                            ],
+                        },
                     },
                     BackupCleanupResponse: {
                         type: 'object',
@@ -255,6 +276,11 @@ function generateSwaggerSpec() {
                             ok: { type: 'boolean' },
                             removed: { type: 'integer' },
                             retained: { type: 'integer' },
+                        },
+                        example: {
+                            ok: true,
+                            removed: 5,
+                            retained: 10,
                         },
                     },
                     BackupRestoreResponse: {
@@ -264,6 +290,16 @@ function generateSwaggerSpec() {
                             restored: { type: 'boolean' },
                             backup: { $ref: '#/components/schemas/BackupRecord' },
                         },
+                        example: {
+                            ok: true,
+                            restored: true,
+                            backup: {
+                                id: 'config-backup-1730000000000',
+                                createdAt: '2025-10-25T12:00:00.000Z',
+                                sizeBytes: 4096,
+                                type: 'manual',
+                            },
+                        },
                     },
                     BackupDeleteResponse: {
                         type: 'object',
@@ -271,6 +307,11 @@ function generateSwaggerSpec() {
                             ok: { type: 'boolean' },
                             deleted: { type: 'boolean' },
                             id: { type: 'string' },
+                        },
+                        example: {
+                            ok: true,
+                            deleted: true,
+                            id: 'config-backup-1730000000000',
                         },
                     },
                     BackupSchedule: {
@@ -290,6 +331,14 @@ function generateSwaggerSpec() {
                             ok: { type: 'boolean' },
                             schedule: { $ref: '#/components/schemas/BackupSchedule' },
                         },
+                        example: {
+                            ok: true,
+                            schedule: {
+                                enabled: true,
+                                cron: '0 2 * * *',
+                                retain: 10,
+                            },
+                        },
                     },
                     NotificationTestRequest: {
                         type: 'object',
@@ -298,8 +347,18 @@ function generateSwaggerSpec() {
                                 type: 'string',
                                 enum: ['info', 'warn', 'error'],
                                 default: 'warn',
+                                description: 'Notification severity level',
                             },
-                            message: { type: 'string' },
+                            message: {
+                                type: 'string',
+                                minLength: 1,
+                                maxLength: 500,
+                                description: 'Test notification message (1-500 characters)',
+                            },
+                        },
+                        example: {
+                            level: 'warn',
+                            message: 'This is a test notification from Posterrama',
                         },
                     },
                     NotificationTestResponse: {
@@ -308,6 +367,11 @@ function generateSwaggerSpec() {
                             ok: { type: 'boolean' },
                             level: { type: 'string' },
                             message: { type: 'string' },
+                        },
+                        example: {
+                            ok: true,
+                            level: 'warn',
+                            message: 'Test notification sent successfully',
                         },
                     },
                     PaginatedMediaResponse: {
@@ -1016,19 +1080,27 @@ function generateSwaggerSpec() {
                         properties: {
                             hostname: {
                                 type: 'string',
-                                description: 'The hostname or IP address of the Plex server.',
+                                description:
+                                    'The hostname or IP address of the Plex server (e.g., 192.168.1.10 or plex.local)',
                                 example: '192.168.1.10',
                             },
                             port: {
                                 type: 'integer',
-                                description: 'The port of the Plex server.',
+                                minimum: 1,
+                                maximum: 65535,
+                                description: 'The port of the Plex server (default: 32400)',
                                 example: 32400,
                             },
                             token: {
                                 type: 'string',
                                 description:
-                                    'The Plex X-Plex-Token. Optional when testing, required when fetching libraries if none is configured.',
+                                    'The Plex X-Plex-Token. Find yours at: https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/',
                             },
+                        },
+                        example: {
+                            hostname: '192.168.1.10',
+                            port: 32400,
+                            token: 'xxxxxxxxxxxxxxxxxxxx',
                         },
                     },
                     PlexLibrary: {
@@ -1061,6 +1133,14 @@ function generateSwaggerSpec() {
                                 items: { $ref: '#/components/schemas/PlexLibrary' },
                             },
                         },
+                        example: {
+                            success: true,
+                            libraries: [
+                                { key: '1', name: 'Movies', type: 'movie' },
+                                { key: '2', name: 'TV Shows', type: 'show' },
+                                { key: '3', name: 'Music', type: 'artist' },
+                            ],
+                        },
                     },
                     AdminConfigResponse: {
                         type: 'object',
@@ -1084,17 +1164,44 @@ function generateSwaggerSpec() {
                                 },
                             },
                         },
+                        example: {
+                            config: {
+                                clockWidget: true,
+                                transitionIntervalSeconds: 30,
+                                showClearLogo: true,
+                                showPoster: true,
+                            },
+                            env: {
+                                NODE_ENV: 'production',
+                                PORT: '4000',
+                            },
+                            security: {
+                                is2FAEnabled: false,
+                            },
+                        },
                     },
                     SaveConfigRequest: {
                         type: 'object',
                         properties: {
                             config: {
                                 type: 'object',
-                                description: 'The complete config.json object to save.',
+                                description:
+                                    'The complete config.json object to save. Must conform to config schema (see config.schema.json).',
                             },
                             env: {
                                 type: 'object',
-                                description: 'Key-value pairs of environment variables to save.',
+                                description:
+                                    'Key-value pairs of environment variables to save to .env file. Only whitelisted variables are persisted.',
+                            },
+                        },
+                        example: {
+                            config: {
+                                clockWidget: true,
+                                transitionIntervalSeconds: 30,
+                                showClearLogo: true,
+                            },
+                            env: {
+                                PORT: '4000',
                             },
                         },
                     },
@@ -1102,9 +1209,28 @@ function generateSwaggerSpec() {
                         type: 'object',
                         required: ['currentPassword', 'newPassword', 'confirmPassword'],
                         properties: {
-                            currentPassword: { type: 'string', format: 'password' },
-                            newPassword: { type: 'string', format: 'password' },
-                            confirmPassword: { type: 'string', format: 'password' },
+                            currentPassword: {
+                                type: 'string',
+                                format: 'password',
+                                description: 'Current admin password for verification',
+                            },
+                            newPassword: {
+                                type: 'string',
+                                format: 'password',
+                                minLength: 8,
+                                description:
+                                    'New password (minimum 8 characters, should include mix of letters, numbers, and special characters)',
+                            },
+                            confirmPassword: {
+                                type: 'string',
+                                format: 'password',
+                                description: 'Must match newPassword exactly',
+                            },
+                        },
+                        example: {
+                            currentPassword: 'oldPassword123',
+                            newPassword: 'newSecurePass456!',
+                            confirmPassword: 'newSecurePass456!',
                         },
                     },
                     Generate2FAResponse: {
@@ -1116,6 +1242,10 @@ function generateSwaggerSpec() {
                                 description: 'A data URI of the QR code image that can be scanned.',
                             },
                         },
+                        example: {
+                            qrCodeDataUrl:
+                                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+                        },
                     },
                     Verify2FARequest: {
                         type: 'object',
@@ -1123,8 +1253,15 @@ function generateSwaggerSpec() {
                         properties: {
                             token: {
                                 type: 'string',
-                                description: 'The 6-digit TOTP code from the authenticator app.',
+                                pattern: '^[0-9]{6}$',
+                                minLength: 6,
+                                maxLength: 6,
+                                description:
+                                    'The 6-digit TOTP code from the authenticator app (e.g., Google Authenticator, Authy)',
                             },
+                        },
+                        example: {
+                            token: '123456',
                         },
                     },
                     Disable2FARequest: {
@@ -1134,8 +1271,12 @@ function generateSwaggerSpec() {
                             password: {
                                 type: 'string',
                                 format: 'password',
-                                description: 'The current admin password of the user.',
+                                description:
+                                    'The current admin password. Required for security verification before disabling 2FA.',
                             },
+                        },
+                        example: {
+                            password: 'myAdminPassword123',
                         },
                     },
                     DebugResponse: {
@@ -1157,6 +1298,18 @@ function generateSwaggerSpec() {
                                     type: 'object',
                                 },
                             },
+                        },
+                        example: {
+                            note: 'Debug information for current playlist',
+                            playlist_item_count: 150,
+                            playlist_items_raw: [
+                                {
+                                    title: 'Blade Runner 2049',
+                                    year: 2017,
+                                    rating: 8.0,
+                                    source: 'plex',
+                                },
+                            ],
                         },
                     },
                     ApiKeyResponse: {
@@ -1209,6 +1362,11 @@ function generateSwaggerSpec() {
                             },
                             message: { type: 'string' },
                         },
+                        example: {
+                            timestamp: '2025-11-12T10:30:00.000Z',
+                            level: 'INFO',
+                            message: 'Media playlist refreshed successfully',
+                        },
                     },
                     ErrorResponse: {
                         type: 'object',
@@ -1217,6 +1375,9 @@ function generateSwaggerSpec() {
                                 type: 'string',
                                 description: 'Error message describing what went wrong.',
                             },
+                        },
+                        example: {
+                            error: 'Resource not found',
                         },
                     },
                     BasicHealthResponse: {
@@ -1301,6 +1462,27 @@ function generateSwaggerSpec() {
                                 items: { $ref: '#/components/schemas/HealthCheckResult' },
                             },
                         },
+                        example: {
+                            status: 'ok',
+                            timestamp: '2025-11-12T10:30:00.000Z',
+                            checks: [
+                                {
+                                    name: 'configuration',
+                                    status: 'ok',
+                                    message: 'Configuration valid',
+                                },
+                                {
+                                    name: 'plex_connectivity',
+                                    status: 'ok',
+                                    message: 'Connected successfully',
+                                },
+                                {
+                                    name: 'cache_efficiency',
+                                    status: 'ok',
+                                    message: 'Cache hit rate: 87%',
+                                },
+                            ],
+                        },
                     },
                     ValidationResponse: {
                         type: 'object',
@@ -1345,6 +1527,15 @@ function generateSwaggerSpec() {
                                 description: 'Plex server information if successful',
                             },
                         },
+                        example: {
+                            success: true,
+                            message: 'Connection successful',
+                            serverInfo: {
+                                name: 'My Plex Server',
+                                version: '1.40.0.7998',
+                                platform: 'Linux',
+                            },
+                        },
                     },
                     ApiKeyStatusResponse: {
                         type: 'object',
@@ -1355,6 +1546,10 @@ function generateSwaggerSpec() {
                             },
                             keyId: { type: 'string', description: 'ID of the current API key' },
                         },
+                        example: {
+                            hasApiKey: true,
+                            keyId: 'key_abc123xyz789',
+                        },
                     },
                     MetricsResponse: {
                         type: 'object',
@@ -1363,6 +1558,27 @@ function generateSwaggerSpec() {
                             endpoints: { type: 'object', description: 'Endpoint usage metrics' },
                             system: { type: 'object', description: 'System resource metrics' },
                             cache: { type: 'object', description: 'Cache usage metrics' },
+                        },
+                        example: {
+                            performance: {
+                                avgResponseTime: 125,
+                                p95ResponseTime: 450,
+                                requestsPerMinute: 42,
+                            },
+                            endpoints: {
+                                '/get-media': { count: 1520, avgTime: 98 },
+                                '/api/devices/heartbeat': { count: 3840, avgTime: 15 },
+                            },
+                            system: {
+                                memoryUsage: '256MB',
+                                cpuUsage: '12%',
+                                uptime: 3600,
+                            },
+                            cache: {
+                                hitRate: 0.87,
+                                size: '45MB',
+                                entries: 150,
+                            },
                         },
                     },
                     GenreResponse: {
@@ -1378,6 +1594,10 @@ function generateSwaggerSpec() {
                                 description: 'List of available genres',
                             },
                         },
+                        example: {
+                            success: true,
+                            genres: ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Thriller'],
+                        },
                     },
                     LoginRequest: {
                         type: 'object',
@@ -1385,13 +1605,20 @@ function generateSwaggerSpec() {
                         properties: {
                             username: {
                                 type: 'string',
-                                description: 'Username for authentication',
+                                minLength: 1,
+                                maxLength: 100,
+                                description: 'Username for authentication (typically "admin")',
                             },
                             password: {
                                 type: 'string',
                                 format: 'password',
+                                minLength: 1,
                                 description: 'Password for authentication',
                             },
+                        },
+                        example: {
+                            username: 'admin',
+                            password: 'mySecurePassword123',
                         },
                     },
                     LoginResponse: {
@@ -1433,6 +1660,17 @@ function generateSwaggerSpec() {
                                 description: 'List of active user sessions',
                             },
                         },
+                        example: {
+                            sessions: [
+                                {
+                                    id: 'sess_abc123',
+                                    userId: 'admin',
+                                    createdAt: '2025-11-12T09:00:00.000Z',
+                                    lastActivity: '2025-11-12T10:30:00.000Z',
+                                    ipAddress: '192.168.1.100',
+                                },
+                            ],
+                        },
                     },
                     TMDBConnectionRequest: {
                         type: 'object',
@@ -1440,8 +1678,14 @@ function generateSwaggerSpec() {
                         properties: {
                             apiKey: {
                                 type: 'string',
-                                description: 'The TMDB API key',
+                                minLength: 32,
+                                maxLength: 64,
+                                description:
+                                    'The TMDB API key. Get yours free at: https://www.themoviedb.org/settings/api',
                             },
+                        },
+                        example: {
+                            apiKey: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6',
                         },
                     },
                     TMDBGenresResponse: {
@@ -1454,6 +1698,21 @@ function generateSwaggerSpec() {
                                 description: 'List of TMDB genres',
                             },
                         },
+                        example: {
+                            success: true,
+                            genres: [
+                                'Action',
+                                'Adventure',
+                                'Animation',
+                                'Comedy',
+                                'Crime',
+                                'Documentary',
+                                'Drama',
+                                'Fantasy',
+                                'Horror',
+                                'Science Fiction',
+                            ],
+                        },
                     },
                     PlexGenresResponse: {
                         type: 'object',
@@ -1464,6 +1723,10 @@ function generateSwaggerSpec() {
                                 items: { type: 'string' },
                                 description: 'List of Plex genres',
                             },
+                        },
+                        example: {
+                            success: true,
+                            genres: ['Action', 'Comedy', 'Drama', 'Horror', 'Romance', 'Sci-Fi'],
                         },
                     },
                     GitHubRelease: {
@@ -1482,6 +1745,17 @@ function generateSwaggerSpec() {
                         properties: {
                             success: { type: 'boolean', example: true },
                             release: { $ref: '#/components/schemas/GitHubRelease' },
+                        },
+                        example: {
+                            success: true,
+                            release: {
+                                id: 123456789,
+                                tag_name: 'v2.8.1',
+                                name: 'Release 2.8.1',
+                                body: '## Bug Fixes\n- Fixed MQTT broker display issue\n- Improved error handling',
+                                published_at: '2025-10-25T10:00:00Z',
+                                prerelease: false,
+                            },
                         },
                     },
                     UpdateCheckResponse: {
@@ -1587,7 +1861,10 @@ function generateSwaggerSpec() {
                             content: {
                                 'application/json': {
                                     schema: { type: 'object' },
-                                    example: { success: true },
+                                    example: {
+                                        ok: true,
+                                        message: 'Operation completed successfully',
+                                    },
                                 },
                             },
                         };
@@ -1616,7 +1893,10 @@ function generateSwaggerSpec() {
                         ) {
                             // Add basic example based on content type
                             if (contentType === 'application/json') {
-                                mediaType.example = { success: true };
+                                mediaType.example = {
+                                    ok: true,
+                                    message: 'Operation completed successfully',
+                                };
                             } else if (contentType === 'text/html') {
                                 mediaType.example = '<!DOCTYPE html>...';
                             } else {
