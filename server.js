@@ -2534,7 +2534,7 @@ app.get('/api-docs', (req, res) => {
         }
         
         div[role="search"] input {
-            width: 100% !important;
+            width: 80% !important;
             max-width: 100% !important;
             padding: 10px 16px 10px 40px !important;
             font-size: 14px !important;
