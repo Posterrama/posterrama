@@ -2540,6 +2540,26 @@ app.get('/api-docs', (req, res) => {
             margin-bottom: 1rem;
         }
         
+        /* Make contact/license info more prominent in header */
+        div[class*="api-info"] p,
+        div[class*="api-info"] a:not([href*="redoc"]) {
+            font-size: 14px !important;
+            margin: 0.5rem 0 !important;
+            color: #4d9375 !important;
+        }
+        
+        div[class*="api-info"] a:not([href*="redoc"]):hover {
+            color: #3d7d65 !important;
+            text-decoration: underline !important;
+        }
+        
+        /* Header info styling */
+        div[class*="api-info"] > div > p {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
         /* Hide Redocly branding and footer */
         a[href*="redocly.com"],
         a[href*="redoc.ly"],
