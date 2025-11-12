@@ -524,7 +524,7 @@ class CacheManager {
         const now = Date.now();
         const totalRequests = this.stats.hits + this.stats.misses;
 
-        return {
+        const stats = {
             // Basic stats
             size: this.cache.size,
             maxSize: this.config.maxSize,
@@ -534,6 +534,8 @@ class CacheManager {
             totalRequests,
             hits: this.stats.hits,
             misses: this.stats.misses,
+            sets: this.stats.sets,
+            deletes: this.stats.deletes,
 
             // Entry details
             entries: entries.map(entry => ({
@@ -561,6 +563,25 @@ class CacheManager {
             lastCleanup: this.stats.lastCleanup,
             cleanupCount: this.stats.cleanups,
         };
+
+        // Add tier-specific stats if tiering is enabled
+        if (this.config.enableTiering) {
+            stats.tiering = {
+                l1Hits: this.stats.l1Hits,
+                l2Hits: this.stats.l2Hits,
+                l3Hits: this.stats.l3Hits,
+                promotions: this.stats.promotions,
+                demotions: this.stats.demotions,
+                l1Size: this.l1Cache.size,
+                l2Size: this.l2Cache.size,
+                l3Size: this.l3Cache.size,
+                l1MaxSize: this.config.l1MaxSize,
+                l2MaxSize: this.config.l2MaxSize,
+                l3MaxSize: this.config.l3MaxSize,
+            };
+        }
+
+        return stats;
     }
 
     /**
