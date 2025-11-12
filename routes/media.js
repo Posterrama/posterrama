@@ -766,12 +766,6 @@ module.exports = function createMediaRouter({
      */
     router.get(
         '/get-media-by-key/:key',
-        (req, res, next) => {
-            // RFC 8594 Deprecation headers for legacy endpoint
-            res.set('Deprecation', 'true');
-            res.set('Sunset', 'Sat, 01 Jun 2026 00:00:00 GMT');
-    router.get(
-        '/get-media-by-key/:key',
         validateMediaKeyParam,
         asyncHandler(async (req, res) => {
             const keyParts = req.params.key.split('-'); // e.g., ['plex', 'My', 'Server', '12345']
