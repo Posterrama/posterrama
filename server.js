@@ -496,6 +496,70 @@ app.get('/api/v1/media/:key', (req, res) => {
     );
 });
 
+/**
+ * @swagger
+ * /api/v1/devices/bypass-status:
+ *   get:
+ *     summary: Check device bypass status (v1 API alias)
+ *     description: Version 1 API alias for checking if client IP is on device bypass list
+ *     tags: ['Devices']
+ *     responses:
+ *       200:
+ *         description: Bypass status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 bypass:
+ *                   type: boolean
+ *                   description: Whether this IP is on the bypass list
+ *                 ip:
+ *                   type: string
+ *                   description: The detected IP address
+ */
+app.get('/api/v1/devices/bypass-status', (req, res) => {
+    req.url = '/api/devices/bypass-check';
+    req.originalUrl = '/api/devices/bypass-check';
+    app._router.handle(req, res);
+});
+
+/**
+ * @swagger
+ * /api/v1/devices/reload:
+ *   post:
+ *     summary: Clear cache and reload all devices (v1 API alias)
+ *     description: Version 1 API alias for sending clearCache and reload commands to all registered devices
+ *     tags: ['Devices']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Commands sent/queued
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 live:
+ *                   type: integer
+ *                   description: Number of connected devices that received commands
+ *                 queued:
+ *                   type: integer
+ *                   description: Number of offline devices with queued commands
+ *                 total:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ */
+app.post('/api/v1/devices/reload', (req, res) => {
+    req.url = '/api/devices/clear-reload';
+    req.originalUrl = '/api/devices/clear-reload';
+    app._router.handle(req, res);
+});
+
 if (isDebug) logger.debug('--- DEBUG MODE IS ACTIVE ---');
 
 // Trust the first proxy in front of the app (e.g., Nginx, Cloudflare).
