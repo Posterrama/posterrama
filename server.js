@@ -409,13 +409,13 @@ app.use('/api', (req, res, next) => {
  *     summary: Get public configuration
  *     description: |
  *       Fetches the non-sensitive configuration needed by the frontend for display logic.
- *       
+ *
  *       This endpoint returns configuration settings for:
  *       - Display mode intervals and transitions
  *       - Available media sources and libraries
  *       - UI customization options
  *       - Device-specific overrides
- *       
+ *
  *       The response is cached for 30 seconds to improve performance.
  *     tags: ['API v1']
  *     x-codeSamples:
@@ -466,14 +466,14 @@ app.get('/api/v1/config', (req, res) => {
  *     summary: Get media collection
  *     description: |
  *       Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB).
- *       
+ *
  *       Features:
  *       - Cached for performance
  *       - Supports source filtering (plex, jellyfin, tmdb, local)
  *       - Music Mode: Returns music albums instead of movies/TV shows
  *       - Games Mode: Returns game covers from RomM
  *       - Optional extras: Trailers and theme music URLs
- *       
+ *
  *       The playlist is automatically shuffled and filtered based on configuration.
  *     tags: ['API v1']
  *     x-codeSamples:
@@ -588,10 +588,10 @@ app.get('/api/v1/media', (req, res) => {
  *     summary: Get single media item
  *     description: |
  *       Retrieves a single media item by its unique key.
- *       
+ *
  *       The key format is: `{type}-{serverName}-{itemId}`
  *       - Examples: `plex-My Server-12345`, `jellyfin-MainServer-67890`
- *       
+ *
  *       This endpoint is typically used when a user clicks on a 'recently added' item
  *       that isn't in the main playlist cache.
  *     tags: ['API v1']
@@ -779,20 +779,6 @@ app.get('/api/v1/devices/bypass-status', (req, res) => {
      *               error: 'Unauthorized'
      *               message: 'Authentication required'
      *               statusCode: 401
- */
- *               properties:
- *                 ok:
- *                   type: boolean
- *                 live:
- *                   type: integer
- *                   description: Number of connected devices that received commands
- *                 queued:
- *                   type: integer
- *                   description: Number of offline devices with queued commands
- *                 total:
- *                   type: integer
- *       401:
- *         description: Unauthorized
  */
 app.post('/api/v1/devices/reload', (req, res) => {
     req.url = '/api/devices/clear-reload';
