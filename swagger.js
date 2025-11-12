@@ -109,12 +109,6 @@ Retry-After: 42
 \`\`\`
 
 ---
-
-## Resources
-
-- [GitHub Repository](https://github.com/Posterrama/posterrama)
-- [Installation Guide](https://github.com/Posterrama/posterrama#installation)
-- [Configuration Schema](https://github.com/Posterrama/posterrama/blob/main/config.schema.json)
 `,
                 contact: {
                     name: 'Posterrama Project',
