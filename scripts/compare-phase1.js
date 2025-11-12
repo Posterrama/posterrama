@@ -1,6 +1,6 @@
 const path = require('path');
-const before = require(path.join(process.cwd(), 'performance-baseline.json'));
-const after = require(path.join(process.cwd(), 'performance-phase1-after.json'));
+const before = require(path.join(__dirname, 'performance-baseline.json'));
+const after = require(path.join(__dirname, 'performance-phase1-after.json'));
 
 console.log('\n════════════════════════════════════════════════════════════════');
 console.log('           PHASE 1 PERFORMANCE COMPARISON                       ');

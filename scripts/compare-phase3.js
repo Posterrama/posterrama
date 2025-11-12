@@ -8,10 +8,10 @@ const fs = require('fs');
 const path = require('path');
 
 // Load baseline files
-const baselinePath = path.join(__dirname, '../performance-baseline.json');
-const phase1Path = path.join(__dirname, '../performance-phase1-after.json');
-const phase2Path = path.join(__dirname, '../performance-phase2-after.json');
-const phase3Path = path.join(__dirname, '../performance-phase3-after.json');
+const baselinePath = path.join(__dirname, 'performance-baseline.json');
+const phase1Path = path.join(__dirname, 'performance-phase1-after.json');
+const phase2Path = path.join(__dirname, 'performance-phase2-after.json');
+const phase3Path = path.join(__dirname, 'performance-phase3-after.json');
 
 function loadBaseline(filePath, label) {
     try {

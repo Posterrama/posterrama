@@ -9,7 +9,7 @@
  *   node scripts/baseline-metrics.js [--save] [--output=FILE]
  *
  * Options:
- *   --save          Save metrics to file (default: performance-baseline.json)
+ *   --save          Save metrics to file (default: scripts/performance-baseline.json)
  *   --output=FILE   Custom output file path
  *   --pretty        Pretty-print JSON output
  */
@@ -20,7 +20,7 @@ const path = require('path');
 
 // Configuration
 const BASE_URL = process.env.BASE_URL || 'http://localhost:4000';
-const OUTPUT_FILE = 'performance-baseline.json';
+const OUTPUT_FILE = path.join(__dirname, 'performance-baseline.json');
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
