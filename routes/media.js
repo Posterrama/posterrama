@@ -169,14 +169,11 @@ module.exports = function createMediaRouter({
      * @swagger
      * /get-media:
      *   get:
-     *     deprecated: true
-     *     summary: Retrieve media playlist (DEPRECATED)
+     *     summary: Retrieve media playlist
      *     description: |
-     *       **DEPRECATED**: This endpoint is deprecated and will be removed in v3.0.0 (June 2026).
-     *       Please use `/api/v1/media` instead.
-     *
      *       Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB). RomM games are only included when gamesOnly mode is enabled. Cached for performance. Optionally includes extras (trailers, theme music) when includeExtras=true. Supports Music Mode for album covers and Games Mode for game covers.
-     *     x-sunset-date: '2026-06-01'
+     *
+     *       **Note**: A modern RESTful alternative is available at `/api/v1/media`.
      *     tags: ['Public API']
      *     x-codeSamples:
      *       - lang: 'curl'
@@ -285,13 +282,6 @@ module.exports = function createMediaRouter({
      */
     router.get(
         '/get-media',
-        (req, res, next) => {
-            // RFC 8594 Deprecation headers for legacy endpoint
-            res.set('Deprecation', 'true');
-            res.set('Sunset', 'Sat, 01 Jun 2026 00:00:00 GMT');
-            res.set('Link', '</api/v1/media>; rel="successor-version"');
-            next();
-        },
         validateGetMediaQuery,
         apiCacheMiddleware.media,
         asyncHandler(async (req, res) => {
@@ -726,7 +716,10 @@ module.exports = function createMediaRouter({
      * /get-media-by-key/{key}:
      *   get:
      *     summary: Retrieve a single media item by its unique key
-     *     description: Fetches the full details for a specific media item, typically used when a user clicks on a 'recently added' item that isn't in the main playlist.
+     *     description: |
+     *       Fetches the full details for a specific media item, typically used when a user clicks on a 'recently added' item that isn't in the main playlist.
+     *
+     *       **Note**: A modern RESTful alternative is available at `/api/v1/media/{key}`.
      *     tags: ['Public API']
      *     parameters:
      *       - in: path
@@ -777,9 +770,8 @@ module.exports = function createMediaRouter({
             // RFC 8594 Deprecation headers for legacy endpoint
             res.set('Deprecation', 'true');
             res.set('Sunset', 'Sat, 01 Jun 2026 00:00:00 GMT');
-            res.set('Link', '</api/v1/media/:key>; rel="successor-version"');
-            next();
-        },
+    router.get(
+        '/get-media-by-key/:key',
         validateMediaKeyParam,
         asyncHandler(async (req, res) => {
             const keyParts = req.params.key.split('-'); // e.g., ['plex', 'My', 'Server', '12345']

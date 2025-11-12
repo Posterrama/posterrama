@@ -32,13 +32,11 @@ module.exports = function createConfigPublicRouter({
      * @swagger
      * /get-config:
      *   get:
-     *     deprecated: true
-     *     summary: Retrieve the public application configuration (DEPRECATED)
+     *     summary: Retrieve the public application configuration
      *     description: |
-     *       **DEPRECATED**: This endpoint is deprecated and will be removed in v3.0.0 (June 2026).
-     *       Please use `/api/v1/config` instead.
-     *
      *       Fetches the non-sensitive configuration needed by the frontend for display logic.
+     *
+     *       **Note**: A modern RESTful alternative is available at `/api/v1/config`.
      *       This endpoint is also accessible via the versioned API at /api/v1/config.
      *       The response is cached for 30 seconds to improve performance.
      *     x-sunset-date: '2026-06-01'
@@ -80,13 +78,6 @@ module.exports = function createConfigPublicRouter({
      */
     router.get(
         '/',
-        (req, res, next) => {
-            // RFC 8594 Deprecation headers for legacy endpoint
-            res.set('Deprecation', 'true');
-            res.set('Sunset', 'Sat, 01 Jun 2026 00:00:00 GMT');
-            res.set('Link', '</api/v1/config>; rel="successor-version"');
-            next();
-        },
         validateGetConfigQuery,
         cacheMiddleware({
             ttl: 30000, // 30 seconds
