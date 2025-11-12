@@ -219,20 +219,42 @@ function createCacheMiddleware(options = {}) {
 
 /**
  * Specific cache middleware for different endpoints
+ *
+ * TTL Strategy (optimized for performance):
+ * - Static content (config, genres, libraries): Long TTL (hours)
+ * - Semi-static (media listings): Medium TTL (minutes to hour)
+ * - Dynamic (device status, groups): Short TTL (1-2 minutes)
  */
 const cacheMiddleware = {
-    // Short cache for frequently changing data
-    short: createCacheMiddleware({ ttl: 1 * 60 * 1000 }), // 1 minute
+    // Very short cache for highly dynamic data (device status)
+    veryShort: createCacheMiddleware({ ttl: 1 * 60 * 1000 }), // 1 minute
 
-    // Medium cache for semi-static data
-    medium: createCacheMiddleware({ ttl: 5 * 60 * 1000 }), // 5 minutes
+    // Short cache for frequently changing data (groups, filtered media)
+    short: createCacheMiddleware({ ttl: 2 * 60 * 1000 }), // 2 minutes
 
-    // Long cache for static data
-    long: createCacheMiddleware({ ttl: 30 * 60 * 1000 }), // 30 minutes
+    // Medium cache for semi-static data (unfiltered media)
+    medium: createCacheMiddleware({ ttl: 30 * 60 * 1000 }), // 30 minutes
 
-    // Media cache for media listings
+    // Long cache for static data (libraries)
+    long: createCacheMiddleware({ ttl: 2 * 60 * 60 * 1000 }), // 2 hours
+
+    // Very long cache for highly static data (genres, ratings)
+    veryLong: createCacheMiddleware({ ttl: 4 * 60 * 60 * 1000 }), // 4 hours
+
+    // Media cache for media listings (differentiated by filters)
     media: createCacheMiddleware({
-        ttl: 10 * 60 * 1000, // 10 minutes
+        ttl: 30 * 60 * 1000, // 30 minutes (unfiltered content)
+        skipIf: req =>
+            req.query.nocache === 'true' ||
+            req.query.musicMode === '1' ||
+            req.query.musicMode === 'true' ||
+            req.query.gamesOnly === '1' ||
+            req.query.gamesOnly === 'true',
+    }),
+
+    // Filtered media cache (shorter TTL for user-specific filters)
+    mediaFiltered: createCacheMiddleware({
+        ttl: 5 * 60 * 1000, // 5 minutes (filtered content)
         skipIf: req =>
             req.query.nocache === 'true' ||
             req.query.musicMode === '1' ||
@@ -243,7 +265,7 @@ const cacheMiddleware = {
 
     // Config cache for configuration data
     config: createCacheMiddleware({
-        ttl: 60 * 60 * 1000, // 1 hour
+        ttl: 4 * 60 * 60 * 1000, // 4 hours (rarely changes)
         skipIf: req => req.method !== 'GET',
     }),
 };

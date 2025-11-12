@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const JSZip = require('jszip');
 const axios = require('axios');
+const crypto = require('crypto');
 let sharp;
 try {
     sharp = require('sharp');
@@ -684,15 +685,68 @@ class JobQueue extends EventEmitter {
                                       ? true
                                       : cfgFlag;
                             if (wantThumb && posterData && sharp) {
-                                const thumb = await sharp(posterData)
-                                    .resize({
-                                        width: 300,
-                                        height: 300,
-                                        fit: 'inside',
-                                        withoutEnlargement: true,
-                                    })
-                                    .jpeg({ quality: 80 })
-                                    .toBuffer();
+                                // Generate cache key from poster URL
+                                const thumbHash = crypto
+                                    .createHash('md5')
+                                    .update(item.poster)
+                                    .digest('hex');
+                                const thumbCachePath = path.join(
+                                    process.cwd(),
+                                    'image_cache',
+                                    `thumb_${thumbHash}.jpg`
+                                );
+
+                                let thumb;
+                                // Check if thumbnail exists in cache
+                                if (await fs.pathExists(thumbCachePath)) {
+                                    try {
+                                        thumb = await fs.readFile(thumbCachePath);
+                                        if (exportLogger) {
+                                            await exportLogger.debug('Using cached thumbnail', {
+                                                hash: thumbHash,
+                                            });
+                                        }
+                                    } catch (e) {
+                                        // Cache read failed, regenerate
+                                        if (exportLogger) {
+                                            await exportLogger.warn(
+                                                'Thumbnail cache read failed, regenerating',
+                                                {
+                                                    error: e.message,
+                                                }
+                                            );
+                                        }
+                                    }
+                                }
+
+                                // Generate thumbnail if not cached
+                                if (!thumb) {
+                                    thumb = await sharp(posterData)
+                                        .resize({
+                                            width: 300,
+                                            height: 300,
+                                            fit: 'inside',
+                                            withoutEnlargement: true,
+                                        })
+                                        .jpeg({
+                                            quality: 80,
+                                            progressive: true,
+                                            mozjpeg: true,
+                                            chromaSubsampling: '4:2:0',
+                                        })
+                                        .toBuffer();
+
+                                    // Save to cache (fire and forget)
+                                    if (thumb && thumb.length > 0) {
+                                        fs.writeFile(thumbCachePath, thumb).catch(err => {
+                                            logger.warn('Failed to cache thumbnail', {
+                                                hash: thumbHash,
+                                                error: err.message,
+                                            });
+                                        });
+                                    }
+                                }
+
                                 if (thumb && thumb.length > 0) {
                                     zip.file('thumbnail.jpg', thumb);
                                     assets.thumbnail = true;
@@ -1379,7 +1433,12 @@ class JobQueue extends EventEmitter {
                                                 fit: 'inside',
                                                 withoutEnlargement: true,
                                             })
-                                            .jpeg({ quality: 85 })
+                                            .jpeg({
+                                                quality: 85,
+                                                progressive: true,
+                                                mozjpeg: true,
+                                                chromaSubsampling: '4:2:0',
+                                            })
                                             .toBuffer();
                                     } catch (e) {
                                         // If resize fails, keep original buffer

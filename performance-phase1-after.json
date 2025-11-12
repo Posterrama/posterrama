@@ -1,0 +1,48 @@
+{
+    "timestamp": "2025-11-12T15:11:02.802Z",
+    "baseUrl": "http://localhost:4000",
+    "endpoints": {
+        "health": {
+            "success": true,
+            "samples": 5,
+            "avg": 3,
+            "min": 3,
+            "max": 4,
+            "median": 3,
+            "avgSize": 116
+        },
+        "get-config": {
+            "success": true,
+            "samples": 5,
+            "avg": 7,
+            "min": 5,
+            "max": 10,
+            "median": 6,
+            "avgSize": 2889
+        },
+        "get-media": {
+            "success": true,
+            "samples": 5,
+            "avg": 102,
+            "min": 83,
+            "max": 158,
+            "median": 88,
+            "avgSize": 5853176
+        },
+        "device-list": {
+            "success": true,
+            "samples": 5,
+            "avg": 7,
+            "min": 5,
+            "max": 11,
+            "median": 7,
+            "avgSize": 13229
+        }
+    },
+    "performance": null,
+    "system": {
+        "nodeVersion": "v20.19.5",
+        "platform": "linux",
+        "arch": "x64"
+    }
+}
