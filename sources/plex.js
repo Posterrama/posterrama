@@ -130,11 +130,12 @@ class PlexSource {
             const allLibraries = await this.getPlexLibraries(this.server);
             let allItems = [];
 
-            for (const name of libraryNames) {
+            // Parallelize library queries for better performance
+            const libraryPromises = libraryNames.map(async name => {
                 const library = allLibraries.get(name);
                 if (!library) {
                     logger.warn(`[PlexSource:${this.server.name}] Library "${name}" not found.`);
-                    continue;
+                    return [];
                 }
 
                 try {
@@ -148,13 +149,14 @@ class PlexSource {
                             librarySectionTitle: name,
                             librarySectionID: library.key,
                         }));
-                        allItems = allItems.concat(itemsWithLibrary);
                         if (this.isDebug) {
                             logger.debug(
                                 `[PlexSource:${this.server.name}] Library "${name}" provided ${content.MediaContainer.Metadata.length} items`
                             );
                         }
+                        return itemsWithLibrary;
                     }
+                    return [];
                 } catch (libraryError) {
                     logger.error(
                         `[PlexSource:${this.server.name}] Failed to fetch from library "${name}":`,
@@ -164,9 +166,14 @@ class PlexSource {
                             libraryKey: library.key,
                         }
                     );
-                    // Continue with other libraries
+                    // Return empty array to continue with other libraries
+                    return [];
                 }
-            }
+            });
+
+            // Wait for all library queries to complete
+            const libraryResults = await Promise.all(libraryPromises);
+            allItems = libraryResults.flat();
 
             if (this.isDebug) {
                 logger.debug(

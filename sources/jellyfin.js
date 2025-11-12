@@ -130,85 +130,160 @@ class JellyfinSource {
 
             // Fetch ALL items for selected libraries (paginated), then filter across the full set
             let allItems = [];
-            for (const name of libraryNames) {
+
+            // Parallelize library fetching for better performance
+            const libraryPromises = libraryNames.map(async name => {
                 const library = allLibraries.get(name);
                 if (!library) {
                     logger.warn(
                         `[JellyfinSource:${this.server.name}] Library "${name}" not found.`
                     );
-                    continue;
+                    return [];
                 }
 
                 try {
                     const pageSize = 1000;
-                    let startIndex = 0;
-                    let fetched = 0;
-                    do {
-                        const page = await client.getItems({
-                            parentId: library.id,
-                            includeItemTypes: type === 'movie' ? ['Movie'] : ['Series'],
-                            recursive: true,
-                            fields: [
-                                'Genres',
-                                'Overview',
-                                'CommunityRating',
-                                'OfficialRating',
-                                'UserData',
-                                'ProductionYear',
-                                'RunTimeTicks',
-                                'Taglines',
-                                'OriginalTitle',
-                                'ImageTags',
-                                'BackdropImageTags',
-                                // Include media info so quality filtering can work
-                                'MediaStreams',
-                                'MediaSources',
-                                // Phase 7: Comprehensive metadata
-                                'People',
-                                'Studios',
-                                'ProviderIds',
-                                'Path',
-                                'Chapters',
-                                'CriticRating',
-                                'ParentId',
-                                'SeriesId',
-                                'SeasonId',
-                                'IndexNumber',
-                                'ParentIndexNumber',
-                                'ChildCount',
-                                'RecursiveItemCount',
-                                'LockedFields',
-                                'Status',
-                                'AirTime',
-                                'AirDays',
-                                'EndDate',
-                            ],
-                            sortBy: [], // deterministic fetch; we will shuffle after filtering
-                            limit: pageSize,
-                            startIndex,
-                        });
-                        const items = (page && page.Items) || [];
-                        allItems = allItems.concat(items);
-                        fetched = items.length;
-                        startIndex += pageSize;
-                        if (this.isDebug) {
-                            logger.debug(
-                                `[JellyfinSource:${this.server.name}] Library "${name}" page @${startIndex - pageSize} -> +${items.length}`
-                            );
+                    const libraryItems = [];
+
+                    // Fetch first page to get total count
+                    const firstPage = await client.getItems({
+                        parentId: library.id,
+                        includeItemTypes: type === 'movie' ? ['Movie'] : ['Series'],
+                        recursive: true,
+                        fields: [
+                            'Genres',
+                            'Overview',
+                            'CommunityRating',
+                            'OfficialRating',
+                            'UserData',
+                            'ProductionYear',
+                            'RunTimeTicks',
+                            'Taglines',
+                            'OriginalTitle',
+                            'ImageTags',
+                            'BackdropImageTags',
+                            'MediaStreams',
+                            'MediaSources',
+                            'People',
+                            'Studios',
+                            'ProviderIds',
+                            'Path',
+                            'Chapters',
+                            'CriticRating',
+                            'ParentId',
+                            'SeriesId',
+                            'SeasonId',
+                            'IndexNumber',
+                            'ParentIndexNumber',
+                            'ChildCount',
+                            'RecursiveItemCount',
+                            'LockedFields',
+                            'Status',
+                            'AirTime',
+                            'AirDays',
+                            'EndDate',
+                        ],
+                        sortBy: [],
+                        limit: pageSize,
+                        startIndex: 0,
+                    });
+
+                    libraryItems.push(...(firstPage?.Items || []));
+                    const totalItems = firstPage?.TotalRecordCount || 0;
+
+                    // If there are more pages, fetch them in parallel batches
+                    if (totalItems > pageSize) {
+                        const remainingPages = Math.ceil((totalItems - pageSize) / pageSize);
+                        const maxParallel = 5; // Limit concurrent requests per library
+
+                        for (let batch = 0; batch < remainingPages; batch += maxParallel) {
+                            const batchPromises = [];
+                            for (let i = 0; i < maxParallel && batch + i < remainingPages; i++) {
+                                const startIndex = (batch + i + 1) * pageSize;
+                                batchPromises.push(
+                                    client.getItems({
+                                        parentId: library.id,
+                                        includeItemTypes: type === 'movie' ? ['Movie'] : ['Series'],
+                                        recursive: true,
+                                        fields: firstPage.Items?.[0]
+                                            ? Object.keys(firstPage.Items[0])
+                                            : [
+                                                  'Genres',
+                                                  'Overview',
+                                                  'CommunityRating',
+                                                  'OfficialRating',
+                                                  'UserData',
+                                                  'ProductionYear',
+                                                  'RunTimeTicks',
+                                                  'Taglines',
+                                                  'OriginalTitle',
+                                                  'ImageTags',
+                                                  'BackdropImageTags',
+                                                  'MediaStreams',
+                                                  'MediaSources',
+                                                  'People',
+                                                  'Studios',
+                                                  'ProviderIds',
+                                                  'Path',
+                                                  'Chapters',
+                                                  'CriticRating',
+                                                  'ParentId',
+                                                  'SeriesId',
+                                                  'SeasonId',
+                                                  'IndexNumber',
+                                                  'ParentIndexNumber',
+                                                  'ChildCount',
+                                                  'RecursiveItemCount',
+                                                  'LockedFields',
+                                                  'Status',
+                                                  'AirTime',
+                                                  'AirDays',
+                                                  'EndDate',
+                                              ],
+                                        sortBy: [],
+                                        limit: pageSize,
+                                        startIndex,
+                                    })
+                                );
+                            }
+
+                            const batchResults = await Promise.all(batchPromises);
+                            batchResults.forEach(page => {
+                                if (page?.Items) {
+                                    libraryItems.push(...page.Items);
+                                }
+                            });
+
+                            if (this.isDebug) {
+                                logger.debug(
+                                    `[JellyfinSource:${this.server.name}] Library "${name}" fetched batch ${batch / maxParallel + 1}, total: ${libraryItems.length}/${totalItems}`
+                                );
+                            }
                         }
-                    } while (fetched === pageSize);
+                    }
+
+                    if (this.isDebug) {
+                        logger.debug(
+                            `[JellyfinSource:${this.server.name}] Library "${name}" completed: ${libraryItems.length} items`
+                        );
+                    }
+
+                    return libraryItems;
                 } catch (libraryError) {
                     logger.error(
                         `[JellyfinSource:${this.server.name}] Failed to fetch from library "${name}":`,
                         {
                             error: libraryError.message,
                             type,
-                            libraryId: library.id,
                         }
                     );
-                    // Continue with other libraries
+                    return [];
                 }
-            }
+            });
+
+            // Wait for all libraries to complete
+            const libraryResults = await Promise.all(libraryPromises);
+            allItems = libraryResults.flat();
 
             if (this.isDebug) {
                 logger.debug(
