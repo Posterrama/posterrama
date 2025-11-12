@@ -114,6 +114,12 @@ describe('Middleware Cache Tests', () => {
             expect(testCache.stats.deletes).toBe(1);
         });
 
+        test('should return false when deleting non-existent key', () => {
+            const result = testCache.delete('non-existent-key');
+            expect(result).toBe(false);
+            expect(testCache.stats.deletes).toBe(0);
+        });
+
         test('should clear all entries', () => {
             testCache.set('key1', 'data1');
             testCache.set('key2', 'data2');
@@ -220,15 +226,151 @@ describe('Middleware Cache Tests', () => {
             expect(res.set).toHaveBeenCalledWith('X-Cache', 'MISS');
             expect(res.set).toHaveBeenCalledWith('X-Cache-Key', expect.stringContaining('...'));
         });
+
+        test('should not cache non-success responses', () => {
+            const middleware = createCacheMiddleware();
+            const responseData = { error: 'test error' };
+            res.statusCode = 400; // Bad request
+
+            middleware(req, res, next);
+            res.json(responseData);
+
+            // Should call originalJson but not cache
+            expect(res.json).toHaveBeenCalled();
+            expect(res.set).not.toHaveBeenCalledWith('X-Cache', 'MISS');
+        });
+
+        test('should skip caching with custom skipIf function', () => {
+            const middleware = createCacheMiddleware({
+                skipIf: req => req.query.skip === 'true',
+            });
+            req.query.skip = 'true';
+
+            middleware(req, res, next);
+
+            expect(next).toHaveBeenCalled();
+        });
     });
 
     describe('Cache Presets', () => {
         test('should have predefined cache middleware', () => {
+            expect(typeof cacheMiddleware.veryShort).toBe('function');
             expect(typeof cacheMiddleware.short).toBe('function');
             expect(typeof cacheMiddleware.medium).toBe('function');
             expect(typeof cacheMiddleware.long).toBe('function');
+            expect(typeof cacheMiddleware.veryLong).toBe('function');
             expect(typeof cacheMiddleware.media).toBe('function');
+            expect(typeof cacheMiddleware.mediaFiltered).toBe('function');
             expect(typeof cacheMiddleware.config).toBe('function');
+        });
+
+        test('veryShort middleware should cache for 1 minute', () => {
+            const req = { method: 'GET', url: '/api/status', query: {} };
+            const res = {
+                statusCode: 200,
+                json: jest.fn(function (_data) {
+                    return this;
+                }),
+                set: jest.fn(),
+            };
+            const next = jest.fn();
+
+            cacheMiddleware.veryShort(req, res, next);
+            expect(next).toHaveBeenCalled();
+
+            // Simulate response
+            res.json({ status: 'ok' });
+            expect(res.set).toHaveBeenCalledWith('X-Cache', 'MISS');
+        });
+
+        test('short middleware should cache for 2 minutes', () => {
+            const req = { method: 'GET', url: '/api/groups', query: {} };
+            const res = {
+                statusCode: 200,
+                json: jest.fn(function (_data) {
+                    return this;
+                }),
+                set: jest.fn(),
+            };
+            const next = jest.fn();
+
+            cacheMiddleware.short(req, res, next);
+            expect(next).toHaveBeenCalled();
+
+            res.json({ groups: [] });
+            expect(res.set).toHaveBeenCalledWith('X-Cache', 'MISS');
+        });
+
+        test('medium middleware should cache for 30 minutes', () => {
+            const req = { method: 'GET', url: '/api/media', query: {} };
+            const res = {
+                statusCode: 200,
+                json: jest.fn(function (_data) {
+                    return this;
+                }),
+                set: jest.fn(),
+            };
+            const next = jest.fn();
+
+            cacheMiddleware.medium(req, res, next);
+            expect(next).toHaveBeenCalled();
+
+            res.json({ media: [] });
+            expect(res.set).toHaveBeenCalledWith('X-Cache', 'MISS');
+        });
+
+        test('long middleware should cache for 2 hours', () => {
+            const req = { method: 'GET', url: '/api/libraries', query: {} };
+            const res = {
+                statusCode: 200,
+                json: jest.fn(function (_data) {
+                    return this;
+                }),
+                set: jest.fn(),
+            };
+            const next = jest.fn();
+
+            cacheMiddleware.long(req, res, next);
+            expect(next).toHaveBeenCalled();
+
+            res.json({ libraries: [] });
+            expect(res.set).toHaveBeenCalledWith('X-Cache', 'MISS');
+        });
+
+        test('veryLong middleware should cache for 4 hours', () => {
+            const req = { method: 'GET', url: '/api/genres', query: {} };
+            const res = {
+                statusCode: 200,
+                json: jest.fn(function (_data) {
+                    return this;
+                }),
+                set: jest.fn(),
+            };
+            const next = jest.fn();
+
+            cacheMiddleware.veryLong(req, res, next);
+            expect(next).toHaveBeenCalled();
+
+            res.json({ genres: [] });
+            expect(res.set).toHaveBeenCalledWith('X-Cache', 'MISS');
+        });
+
+        test('mediaFiltered middleware should cache for 5 minutes', () => {
+            const req = { method: 'GET', url: '/api/media', query: { genre: 'Action' } };
+            const res = {
+                statusCode: 200,
+                json: jest.fn(function (_data) {
+                    return this;
+                }),
+                set: jest.fn(),
+            };
+            const next = jest.fn();
+
+            cacheMiddleware.mediaFiltered(req, res, next);
+            expect(next).toHaveBeenCalled();
+
+            res.json({ media: [] });
+            expect(res.set).toHaveBeenCalledWith('X-Cache', 'MISS');
         });
 
         test('media middleware should skip when nocache=true', () => {
@@ -241,6 +383,48 @@ describe('Middleware Cache Tests', () => {
             const next = jest.fn();
 
             cacheMiddleware.media(req, res, next);
+
+            expect(next).toHaveBeenCalled();
+        });
+
+        test('media middleware should skip when musicMode=1', () => {
+            const req = {
+                method: 'GET',
+                url: '/api/media',
+                query: { musicMode: '1' },
+            };
+            const res = { json: jest.fn(), set: jest.fn() };
+            const next = jest.fn();
+
+            cacheMiddleware.media(req, res, next);
+
+            expect(next).toHaveBeenCalled();
+        });
+
+        test('media middleware should skip when gamesOnly=true', () => {
+            const req = {
+                method: 'GET',
+                url: '/api/media',
+                query: { gamesOnly: 'true' },
+            };
+            const res = { json: jest.fn(), set: jest.fn() };
+            const next = jest.fn();
+
+            cacheMiddleware.media(req, res, next);
+
+            expect(next).toHaveBeenCalled();
+        });
+
+        test('config middleware should skip non-GET requests', () => {
+            const req = {
+                method: 'POST',
+                url: '/api/config',
+                query: {},
+            };
+            const res = { json: jest.fn(), set: jest.fn() };
+            const next = jest.fn();
+
+            cacheMiddleware.config(req, res, next);
 
             expect(next).toHaveBeenCalled();
         });

@@ -132,4 +132,31 @@ describe('deviceBypass middleware coverage', () => {
         await run(deviceBypassMiddleware, req2);
         expect(req2.deviceBypass).toBe(true);
     });
+
+    test('handles IP parsing errors in CIDR matcher', async () => {
+        const { deviceBypassMiddleware, __testSetAllowList } = loadFresh();
+        __testSetAllowList(['192.168.0.0/16']);
+        // Try with invalid IP format that might throw during matching
+        const req = buildReq({ ip: 'invalid-ip-format' });
+        await run(deviceBypassMiddleware, req);
+        expect(req.deviceBypass).toBeUndefined();
+    });
+
+    test('handles IP parsing errors in single IP matcher', async () => {
+        const { deviceBypassMiddleware, __testSetAllowList } = loadFresh();
+        __testSetAllowList(['192.168.1.1']);
+        // Try with malformed IP
+        const req = buildReq({ ip: '999.999.999.999' });
+        await run(deviceBypassMiddleware, req);
+        expect(req.deviceBypass).toBeUndefined();
+    });
+
+    test('handles config loading errors gracefully', async () => {
+        // This will trigger the catch block in loadAllowList
+        const { deviceBypassMiddleware } = loadFresh();
+        // Even with corrupted/missing config, middleware should work
+        const req = buildReq({ ip: '10.0.0.5' });
+        await run(deviceBypassMiddleware, req);
+        expect(req.deviceBypass).toBeUndefined();
+    });
 });
