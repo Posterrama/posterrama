@@ -2528,13 +2528,14 @@ app.get('/api-docs', (req, res) => {
         /* Enhanced search box styling - align with menu */
         div[role="search"] {
             margin: 0 !important;
-            padding: 1rem 1rem 1rem 1.5rem !important;
+            padding: 1rem 0.75rem 1rem 0.75rem !important;
             background: #f8fafb !important;
             border-bottom: 1px solid #e5e7eb !important;
         }
         
         div[role="search"] input {
             width: 100% !important;
+            max-width: 100% !important;
             padding: 10px 16px 10px 40px !important;
             font-size: 14px !important;
             border: 1px solid #d1d5db !important;
@@ -2542,6 +2543,7 @@ app.get('/api-docs', (req, res) => {
             background: #ffffff !important;
             color: #1f2937 !important;
             transition: all 0.2s ease !important;
+            box-sizing: border-box !important;
         }
         
         div[role="search"] input:focus {
@@ -2557,7 +2559,7 @@ app.get('/api-docs', (req, res) => {
         /* Search icon styling */
         div[role="search"] svg {
             position: absolute !important;
-            left: 28px !important;
+            left: 24px !important;
             top: 50% !important;
             transform: translateY(-50%) !important;
             color: #9ca3af !important;
