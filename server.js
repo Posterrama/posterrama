@@ -2504,6 +2504,21 @@ app.get('/api-docs/elements', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'api-docs-elements.html'));
 });
 
+// Swagger UI comparison view
+app.get('/api-docs/swagger', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'api-docs-swagger.html'));
+});
+
+// RapiDoc comparison view
+app.get('/api-docs/rapidoc', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'api-docs-rapidoc.html'));
+});
+
+// Scalar comparison view
+app.get('/api-docs/scalar', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'api-docs-scalar.html'));
+});
+
 // ReDoc API documentation with dynamic cache busting
 app.get('/api-docs', (req, res) => {
     // Prevent caching
