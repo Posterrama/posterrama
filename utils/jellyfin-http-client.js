@@ -210,21 +210,53 @@ class JellyfinHttpClient {
      * Test the connection to the Jellyfin server
      */
     async testConnection() {
+        logger.info('[JellyfinHttpClient] Testing connection...', {
+            baseUrl: this.baseUrl,
+            insecure: this.insecure,
+            hasApiKey: !!this.apiKey,
+        });
+
         return this.retryRequest(async () => {
             // 1) Try public system info first (works even if auth is required elsewhere)
             let serverInfo;
             try {
+                logger.debug('[JellyfinHttpClient] Attempting /System/Info/Public');
                 const respPublic = await this.http.get('/System/Info/Public');
                 serverInfo = respPublic.data;
+                logger.info('[JellyfinHttpClient] Public system info retrieved successfully', {
+                    serverName: serverInfo.ServerName,
+                    version: serverInfo.Version,
+                });
             } catch (e) {
+                logger.warn(
+                    '[JellyfinHttpClient] /System/Info/Public failed, trying /System/Info',
+                    {
+                        error: e.message,
+                        status: e.response?.status,
+                    }
+                );
                 // Fallback to /System/Info for older servers or when public endpoint is restricted
-                const resp = await this.http.get('/System/Info');
-                serverInfo = resp.data;
+                try {
+                    const resp = await this.http.get('/System/Info');
+                    serverInfo = resp.data;
+                    logger.info('[JellyfinHttpClient] System info retrieved successfully', {
+                        serverName: serverInfo.ServerName,
+                        version: serverInfo.Version,
+                    });
+                } catch (e2) {
+                    logger.error('[JellyfinHttpClient] Both system info endpoints failed', {
+                        error: e2.message,
+                        status: e2.response?.status,
+                        code: e2.code,
+                    });
+                    throw e2;
+                }
             }
 
             // 2) Validate token by calling an authenticated endpoint accessible to normal users
             //    Use /Users which requires a valid token and lists users the token can access
             try {
+                logger.debug('[JellyfinHttpClient] Testing authentication with /Users endpoint');
                 if (this.__jfDebug) {
                     logger.debug(
                         `[JellyfinHttpClient] Testing auth with /Users, apiKey length: ${
@@ -233,7 +265,14 @@ class JellyfinHttpClient {
                     );
                 }
                 await this.http.get('/Users');
+                logger.info('[JellyfinHttpClient] Authentication successful');
             } catch (e) {
+                logger.error('[JellyfinHttpClient] Authentication failed', {
+                    status: e.response?.status,
+                    statusText: e.response?.statusText,
+                    error: e.message,
+                    code: e.code,
+                });
                 if (this.__jfDebug) {
                     logger.debug(
                         `[JellyfinHttpClient] /Users failed:`,
@@ -244,20 +283,31 @@ class JellyfinHttpClient {
                 if (e.response && (e.response.status === 401 || e.response.status === 403)) {
                     // Some reverse proxies can strip X-Emby-Token headers; try query-param fallback
                     try {
+                        logger.debug('[JellyfinHttpClient] Retrying with query param fallback');
                         if (this.__jfDebug) {
                             logger.debug(`[JellyfinHttpClient] Retrying with query param fallback`);
                         }
                         await this.http.get(`/Users?api_key=${encodeURIComponent(this.apiKey)}`);
+                        logger.info(
+                            '[JellyfinHttpClient] Authentication successful via query param'
+                        );
                     } catch (e2) {
                         if (
                             e2.response &&
                             (e2.response.status === 401 || e2.response.status === 403)
                         ) {
+                            logger.error('[JellyfinHttpClient] API key rejected by server', {
+                                status: e2.response.status,
+                                hint: 'Check if API key is valid and has correct permissions',
+                            });
                             const err = new Error('401 Unauthorized: Jellyfin API key rejected');
                             err.code = 'EJELLYFIN_UNAUTHORIZED';
                             throw err;
                         }
                         if (e2.response && e2.response.status === 404) {
+                            logger.error('[JellyfinHttpClient] Endpoint not found', {
+                                hint: 'Check if basePath is correctly configured',
+                            });
                             const err = new Error('404 Not Found: Check Jellyfin base path');
                             err.code = 'EJELLYFIN_NOT_FOUND';
                             throw err;
@@ -269,6 +319,10 @@ class JellyfinHttpClient {
                                     e2.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE')) ||
                             (e2.message && /self[- ]signed|unable to verify/i.test(e2.message))
                         ) {
+                            logger.error('[JellyfinHttpClient] TLS certificate error', {
+                                code: e2.code,
+                                hint: 'Enable "insecureHttps" option in config or install valid certificate',
+                            });
                             const err = new Error('TLS certificate error');
                             err.code = 'EJELLYFIN_CERT';
                             throw err;
@@ -276,6 +330,9 @@ class JellyfinHttpClient {
                         throw e2;
                     }
                 } else if (e.response && e.response.status === 404) {
+                    logger.error('[JellyfinHttpClient] Endpoint not found', {
+                        hint: 'Check if basePath is correctly configured',
+                    });
                     const err = new Error('404 Not Found: Check Jellyfin base path');
                     err.code = 'EJELLYFIN_NOT_FOUND';
                     throw err;
@@ -285,15 +342,35 @@ class JellyfinHttpClient {
                             e.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE')) ||
                     (e.message && /self[- ]signed|unable to verify/i.test(e.message))
                 ) {
+                    logger.error('[JellyfinHttpClient] TLS certificate error', {
+                        code: e.code,
+                        hint: 'Enable "insecureHttps" option in config or install valid certificate',
+                    });
                     const err = new Error('TLS certificate error');
                     err.code = 'EJELLYFIN_CERT';
                     throw err;
+                } else if (
+                    e.code === 'ECONNREFUSED' ||
+                    e.code === 'ETIMEDOUT' ||
+                    e.code === 'ENOTFOUND'
+                ) {
+                    logger.error('[JellyfinHttpClient] Network connection error', {
+                        code: e.code,
+                        baseUrl: this.baseUrl,
+                        hint: 'Check if Jellyfin server is running and accessible',
+                    });
+                    throw e;
                 } else {
                     // Re-throw other errors to be handled by retry/backoff
+                    logger.debug('[JellyfinHttpClient] Other error, rethrowing', {
+                        message: e.message,
+                        code: e.code,
+                    });
                     throw e;
                 }
             }
 
+            logger.info('[JellyfinHttpClient] Connection test successful');
             return {
                 success: true,
                 serverName: serverInfo.ServerName || serverInfo.serverName || 'Jellyfin',
