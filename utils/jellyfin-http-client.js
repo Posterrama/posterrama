@@ -210,7 +210,7 @@ class JellyfinHttpClient {
      * Test the connection to the Jellyfin server
      */
     async testConnection() {
-        logger.info('[JellyfinHttpClient] Testing connection...', {
+        logger.debug('[JellyfinHttpClient] Testing connection...', {
             baseUrl: this.baseUrl,
             insecure: this.insecure,
             hasApiKey: !!this.apiKey,
@@ -223,7 +223,7 @@ class JellyfinHttpClient {
                 logger.debug('[JellyfinHttpClient] Attempting /System/Info/Public');
                 const respPublic = await this.http.get('/System/Info/Public');
                 serverInfo = respPublic.data;
-                logger.info('[JellyfinHttpClient] Public system info retrieved successfully', {
+                logger.debug('[JellyfinHttpClient] Public system info retrieved successfully', {
                     serverName: serverInfo.ServerName,
                     version: serverInfo.Version,
                 });
@@ -265,7 +265,7 @@ class JellyfinHttpClient {
                     );
                 }
                 await this.http.get('/Users');
-                logger.info('[JellyfinHttpClient] Authentication successful');
+                logger.debug('[JellyfinHttpClient] Authentication successful');
             } catch (e) {
                 logger.error('[JellyfinHttpClient] Authentication failed', {
                     status: e.response?.status,
@@ -288,7 +288,7 @@ class JellyfinHttpClient {
                             logger.debug(`[JellyfinHttpClient] Retrying with query param fallback`);
                         }
                         await this.http.get(`/Users?api_key=${encodeURIComponent(this.apiKey)}`);
-                        logger.info(
+                        logger.debug(
                             '[JellyfinHttpClient] Authentication successful via query param'
                         );
                     } catch (e2) {
@@ -370,7 +370,7 @@ class JellyfinHttpClient {
                 }
             }
 
-            logger.info('[JellyfinHttpClient] Connection test successful');
+            logger.debug('[JellyfinHttpClient] Connection test successful');
             return {
                 success: true,
                 serverName: serverInfo.ServerName || serverInfo.serverName || 'Jellyfin',
