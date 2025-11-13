@@ -168,8 +168,4 @@ module.exports = {
 
     // Verbose output - reduced for cleaner test output
     verbose: false,
-    moduleNameMapper: {
-        '^@so-ric/colorspace$': '<rootDir>/__mocks__/colorspace.js',
-        '^color$': '<rootDir>/__mocks__/color.js',
-    },
 };
