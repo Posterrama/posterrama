@@ -16,7 +16,8 @@ jobs:
       
       - name: Test runner
         run: |
-          echo "🎉 Gitea Actions runner werkt!"
+          echo "🎉 Gitea Actions runner test v2"
+          echo "Runner is actief en beschikbaar!"
           echo "Node versie: $(node --version)"
           echo "NPM versie: $(npm --version)"
       
