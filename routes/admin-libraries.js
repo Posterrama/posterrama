@@ -232,10 +232,10 @@ module.exports = function createAdminLibrariesRouter({
     );
 
     /**
-     * @swagger
+     * @openapi
      * /api/admin/plex-genres:
      *   get:
-     *     summary: Retourneert alle Plex genres
+     *     summary: Returns all Plex genres
      *     tags:
      *       - Admin
      *     security:
@@ -243,7 +243,7 @@ module.exports = function createAdminLibrariesRouter({
      *       - SessionAuth: []
      *     responses:
      *       200:
-     *         description: Succesvol
+     *         description: Successful
      *         content:
      *           application/json:
      *             schema:
@@ -254,7 +254,7 @@ module.exports = function createAdminLibrariesRouter({
      *                   items:
      *                     type: string
      *       401:
-     *         description: Niet geautoriseerd.
+     *         description: Unauthorized
      */
     router.get(
         '/api/admin/plex-genres',
@@ -292,10 +292,10 @@ module.exports = function createAdminLibrariesRouter({
     );
 
     /**
-     * @swagger
+     * @openapi
      * /api/admin/plex-genres-with-counts:
      *   get:
-     *     summary: Retourneert alle Plex genres met aantallen
+     *     summary: Returns all Plex genres with counts
      *     tags:
      *       - Admin
      *     security:
@@ -303,7 +303,7 @@ module.exports = function createAdminLibrariesRouter({
      *       - SessionAuth: []
      *     responses:
      *       200:
-     *         description: Succesvol
+     *         description: Successful
      *         content:
      *           application/json:
      *             schema:
@@ -319,7 +319,7 @@ module.exports = function createAdminLibrariesRouter({
      *                       count:
      *                         type: number
      *       401:
-     *         description: Niet geautoriseerd.
+     *         description: Unauthorized
      */
     router.get(
         '/api/admin/plex-genres-with-counts',

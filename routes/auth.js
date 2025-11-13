@@ -749,7 +749,7 @@ module.exports = function createAuthRouter({
      *       400:
      *         description: Invalid verification code or no 2FA process pending.
      *       401:
-     *         description: Niet geautoriseerd.
+     *         description: Unauthorized
      */
     router.post(
         '/api/admin/2fa/verify',
