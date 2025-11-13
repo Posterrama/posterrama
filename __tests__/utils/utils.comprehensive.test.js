@@ -1,4 +1,4 @@
-const { shuffleArray } = require('../../utils.js');
+const { shuffleArray } = require('../../utils/array-utils');
 
 describe('Utils Module', () => {
     describe('shuffleArray', () => {

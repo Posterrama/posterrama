@@ -75,7 +75,12 @@ module.exports = {
               // Removed file-specific threshold for sources/tmdb.js (now excluded from coverage)
               'sources/plex.js': { branches: 59, functions: 73, lines: 69, statements: 68 },
               // FASE 1 improvements - Complete or high coverage
-              'utils.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
+              'utils/array-utils.js': {
+                  branches: 100,
+                  functions: 100,
+                  lines: 100,
+                  statements: 100,
+              },
               'utils/logger.js': { branches: 38, functions: 64, lines: 52, statements: 55 },
               'utils/errors.js': { branches: 100, functions: 100, lines: 100, statements: 100 },
               // FASE 2 improvements - Middleware optimization

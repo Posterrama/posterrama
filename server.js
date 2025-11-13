@@ -126,7 +126,7 @@ const {
     writeScheduleConfig: cfgWriteSchedule,
 } = require('./utils/configBackup');
 const ecosystemConfig = require('./ecosystem.config.js');
-const { shuffleArray } = require('./utils.js');
+const { shuffleArray } = require('./utils/array-utils');
 
 // Asset version (can later be replaced by build hash); fallback to package.json version
 const ASSET_VERSION = pkg.version || '1.0.0';
