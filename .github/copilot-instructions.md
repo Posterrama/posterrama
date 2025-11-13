@@ -1,14 +1,18 @@
-# Posterrama Repository - AI Agent Onboarding Guide
-
-## Repository Overview
-
 # Posterrama – AI Agent Onboarding Guide
 
-**Posterrama** (v2.8.1) is a Node.js/Express media server aggregation app that turns any screen into a dynamic poster gallery. It unifies Plex, Jellyfin, TMDB, and local libraries with three display modes (Screensaver, Wallart, Cinema), real-time device management over WebSocket, and comprehensive API documentation at `/api-docs`.
+**Posterrama** (v2.9.4) is a Node.js/Express media server aggregation app that turns any screen into a dynamic poster gallery. It unifies Plex, Jellyfin, TMDB, and local libraries with three display modes (Screensaver, Wallart, Cinema), real-time device management over WebSocket, and comprehensive API documentation at `/api-docs`.
 
 ## Architecture Quick Reference
 
-**Single-file monolith** – `server.js` (~19.6k lines) contains all routes, initialization, asset versioning, and WebSocket setup. Routes are inline (no separate router files).
+**Modular architecture** – Routes extracted to `routes/` directory, core logic in `lib/`, utilities in `utils/`. Main `server.js` (~5.6k lines) orchestrates initialization and route registration.
+
+### Key Components
+
+- **Routes**: Modular Express routers in `routes/` (admin-\*, api-\*, device-\*, media-\*)
+- **Sources**: Media server adapters in `sources/` (plex.js, jellyfin.js, tmdb.js)
+- **HTTP Clients**: Dedicated clients in `utils/` (plex-http-client.js, jellyfin-http-client.js)
+- **Core Libraries**: Business logic in `lib/` (jellyfin-helpers.js, plex-helpers.js)
+- **Utilities**: Shared utilities (logger.js, cache.js, wsHub.js, deviceStore.js)
 
 ### Key Features
 
@@ -32,80 +36,55 @@
 **Development Workflow:**
 
 ```bash
-npm install           # Install dependencies (681 total packages)
+npm install           # Install dependencies
 npm start            # Start development server on http://localhost:4000
-npm test             # Run 681 tests across 47 suites (expect some failures)
-npm run lint         # ESLint code quality checks (expect 20+ errors currently)
+npm test             # Run test suite (2400+ tests, 92%+ coverage)
+npm run lint         # ESLint code quality checks
 npm run format       # Prettier code formatting (auto-fix)
 ```
 
 **Quality Assurance:**
 
 ```bash
-npm run test:coverage      # Generate test coverage reports (target: 87%+)
+npm run test:coverage      # Generate test coverage reports (target: 92%+)
 npm run quality:all       # Complete quality pipeline (lint + format + test + security)
-npm run deps:audit        # Security vulnerability scanning (8 known vulnerabilities)
-npm run deps:health       # Dependency health analysis
+npm run deps:audit        # Security vulnerability scanning
 ```
 
-**Production Deployment:**
+**Production (PM2):**
 
 ```bash
-npm run release:patch     # Automated patch release with git tagging
-npm run push             # Deploy to production without version bump
+pm2 delete posterrama && pm2 start ecosystem.config.js  # Full restart with .env reload
+pm2 logs posterrama       # View logs
+pm2 restart posterrama    # Quick restart (less reliable for .env changes)
 ```
 
-## Posterrama – AI agent quickstart (v2.5.2)
+## Quick Reference
 
-Purpose: make code changes fast without guesswork. This repo is a Node.js/Express app that aggregates media from Plex/Jellyfin/TMDB, serves an admin UI, and drives devices over WebSocket.
+**Core Files:**
 
-Architecture (files to know):
+- `server.js` – Main Express app, routes registration, Swagger at `/api-docs`
+- `routes/` – Modular Express routers (admin-\*, api-\*, device-\*, media-\*)
+- `sources/` – Media adapters: plex.js, jellyfin.js, tmdb.js (fetchMedia, getMetrics, resetMetrics)
+- `utils/` – logger.js, cache.js, wsHub.js, deviceStore.js, \*-http-client.js
+- `lib/` – jellyfin-helpers.js, plex-helpers.js
 
-- server.js – single Express app. Auto-creates .env and config.json on first run, reloads .env (never overrides NODE_ENV), wires routes, Swagger at /api-docs, and boots WS hub.
-- sources/ (plex.js, jellyfin.js, tmdb.js) – adapters with a common shape: fetchMedia(libraryNames, type, count), getMetrics(), resetMetrics(). They compute filterEfficiency and maintain metrics.
-- utils/logger.js – Winston logger; console.\* is redirected to logger. In tests, console noise is suppressed and logs are kept in-memory for admin. Use logger.info/warn/error/debug.
-- utils/cache.js – in-memory cache with TTL, ETag, optional persistence; provides CacheManager and initializeCache/cacheMiddleware. Prefer this over ad‑hoc maps.
-- utils/wsHub.js – device WebSocket hub at /ws/devices. Single active connection per device, ACK pattern via sendCommandAwait(..., {timeoutMs}). Auth uses deviceStore.verifyDevice.
-- utils/deviceStore.js – JSON-backed device registry with secret hashing, pairing codes, per-device settings overrides.
-- public/ – admin and display assets. server.js does cache‑busting via content mtime.
+**Patterns:**
 
-Run and test:
+- **Logging**: `logger.info/warn/error/debug` (Winston, console redirected)
+- **Caching**: `CacheManager` from utils/cache.js (memory/disk/HTTP with TTL)
+- **HTTP**: Use utils/jellyfin-http-client.js, utils/plex-http-client.js
+- **WebSocket**: `/ws/devices` via wsHub.sendCommandAwait(deviceId, {type, payload})
 
-- Node >= 18. npm install → npm start (http://localhost:4000). Health: GET /health. Media: /get-media. Docs: /api-docs.
-- npm test, npm run test:coverage. Lint/format: npm run lint, npm run lint:fix, npm run format, npm run format:check.
-- Useful scripts: npm run config:validate, npm run deps:security-audit, npm run deps:health, npm run quality:all, npm run hooks:setup.
+**Jellyfin Debug:**
 
-Patterns and conventions:
+```bash
+# .env: JELLYFIN_HTTP_DEBUG=true
+pm2 delete posterrama && pm2 start ecosystem.config.js
+tail -f logs/combined.log | grep JellyfinHttpClient | jq -r '.message'
+```
 
-- Logging: import utils/logger and call logger.debug/info/warn/error. For admin live feed, logs are kept in memory (logger.memoryLogs) and streamed via logger.events.
-- Caching: use utils/cache CacheManager. Example flow: if (!cache.has(key)) cache.set(key, data, ttlMs); then read via cache.get(key)?.value. Avoid reinventing ETag/TTL.
-- Source adapters: follow sources/jellyfin.js style (paginate, gather all items, then filter/shuffle; update this.metrics; expose getAvailableRatings when helpful). Keep adapter pure; network I/O via dedicated http clients in utils/\*-http-client.js.
-- WebSocket control: init hub with wsHub.init(server, { path: '/ws/devices', verifyDevice }); use wsHub.sendCommandAwait(deviceId, {type, payload}) for actions; use wsHub.sendApplySettings(deviceId, override) for live per-device settings.
-- Config: server copies config.example.json → config.json and ensures SESSION_SECRET in .env (auto‑generates under PM2 when missing). Don’t override NODE_ENV from .env.
-- Images: posters cached to image_cache/. If adding new image flows, respect this directory and existing cache headers.
-
-Adding a new media source:
-
-1. Create sources/<name>.js implementing fetchMedia(), getMetrics(), resetMetrics(). 2) Reuse utils/cache for heavy calls. 3) Wire into server.js routes and Swagger. 4) Add tests under **tests**/sources/ using Jest + supertest patterns.
-
-Quick checks while developing:
-
-- curl http://localhost:4000/health, curl http://localhost:4000/get-config, open /api-docs.
-- Logs: tail logs/combined.log; in tests, rely on in‑memory logger and avoid asserting on console.
-
-Integration touchpoints:
-
-- Plex/Jellyfin API usage is encapsulated (utils/plex-http-client.js, utils/jellyfin-http-client.js). Prefer these helpers over raw fetch/axios.
-- Admin/Web UI relies on versioned assets; when adding new files in public/, ensure server.js cache‑busting list includes them if critical.
-- For new sources, starter utilities exist: utils/example-http-client.js and utils/example-processors.js.
-
-Reference map: server.js, sources/, utils/logger.js, utils/cache.js, utils/wsHub.js, utils/deviceStore.js, config/, public/.
-
-Last verified: 2025‑09 (repo v2.5.2). If anything seems off (paths/endpoints), search the named files first, then adjust here.
-
-- **utils/cache.js**: Multi-tier caching (memory/disk) with TTL and size management
-
-## Policy Addendum (2025-09-16)
+## Policy Addendum (2025-11-13)
 
 The AI assistant MUST:
 
