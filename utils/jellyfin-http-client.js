@@ -7,6 +7,8 @@ const axios = require('axios');
 const https = require('https');
 const os = require('os');
 const crypto = require('crypto');
+const logger = require('./logger');
+
 let pkgVersion = '1.0.0';
 try {
     // Resolve version for User-Agent / authorization metadata
