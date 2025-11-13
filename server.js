@@ -2816,9 +2816,10 @@ app.get('/api-docs/swagger.json', (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    // Generate fresh swagger spec
+    // Generate fresh swagger spec with dynamic server URL from request
     delete require.cache[require.resolve('./swagger.js')];
-    const freshSwaggerSpecs = require('./swagger.js');
+    const { generate } = require('./swagger.js');
+    const freshSwaggerSpecs = generate(req);
 
     res.json(freshSwaggerSpecs);
 });

@@ -7,11 +7,22 @@
 
 const swaggerJSDoc = require('swagger-jsdoc');
 
-// Function to generate swagger spec with current package.json version
-function generateSwaggerSpec() {
+// Function to generate swagger spec with current package.json version and optional dynamic server URL
+function generateSwaggerSpec(req = null) {
     // Always read fresh package.json to avoid caching issues
     delete require.cache[require.resolve('./package.json')];
     const pkg = require('./package.json');
+
+    // Determine server URL from request or fallback to localhost
+    let primaryServerUrl = 'http://localhost:4000';
+    let primaryServerDescription = 'Development server (default port 4000)';
+
+    if (req) {
+        const protocol = req.protocol || 'http';
+        const host = req.get('host') || 'localhost:4000';
+        primaryServerUrl = `${protocol}://${host}`;
+        primaryServerDescription = 'Current server (auto-detected from request)';
+    }
 
     const options = {
         definition: {
@@ -40,6 +51,10 @@ function generateSwaggerSpec() {
                 url: 'https://github.com/Posterrama/posterrama/tree/main/docs',
             },
             servers: [
+                {
+                    url: primaryServerUrl,
+                    description: primaryServerDescription,
+                },
                 {
                     url: 'http://localhost:4000',
                     description: 'Development server (default port 4000)',
