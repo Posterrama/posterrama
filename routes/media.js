@@ -911,18 +911,25 @@ module.exports = function createMediaRouter({
                 // 3. Handle server-based proxying (for Plex)
                 const serverConfig = config.mediaServers.find(s => s.name === serverName);
                 if (!serverConfig) {
-                    console.error(
-                        `[Image Proxy] Server configuration for "${serverName}" not found. Cannot process image request.`
-                    );
+                    logger.error('[Image Proxy] Server configuration not found', {
+                        serverName,
+                        requestPath: req.path,
+                        requestId: req.id,
+                    });
                     return res.redirect('/fallback-poster.png');
                 }
 
                 if (serverConfig.type === 'plex') {
                     const token = process.env[serverConfig.tokenEnvVar];
                     if (!token || !serverConfig.hostname || !serverConfig.port) {
-                        console.error(
-                            `[Image Proxy] Plex connection details incomplete for server "${serverName}". Ensure hostname/port in config.json and token env var ${serverConfig.tokenEnvVar}.`
-                        );
+                        logger.error('[Image Proxy] Plex connection details incomplete', {
+                            serverName,
+                            tokenEnvVar: serverConfig.tokenEnvVar,
+                            hasToken: !!token,
+                            hasHostname: !!serverConfig.hostname,
+                            hasPort: !!serverConfig.port,
+                            requestId: req.id,
+                        });
                         return res.redirect('/fallback-poster.png');
                     }
                     imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}`;
@@ -930,17 +937,24 @@ module.exports = function createMediaRouter({
                 } else if (serverConfig.type === 'jellyfin') {
                     const token = process.env[serverConfig.tokenEnvVar];
                     if (!token || !serverConfig.hostname || !serverConfig.port) {
-                        console.error(
-                            `[Image Proxy] Jellyfin connection details incomplete for server "${serverName}". Ensure hostname/port in config.json and token env var ${serverConfig.tokenEnvVar}.`
-                        );
+                        logger.error('[Image Proxy] Jellyfin connection details incomplete', {
+                            serverName,
+                            tokenEnvVar: serverConfig.tokenEnvVar,
+                            hasToken: !!token,
+                            hasHostname: !!serverConfig.hostname,
+                            hasPort: !!serverConfig.port,
+                            requestId: req.id,
+                        });
                         return res.redirect('/fallback-poster.png');
                     }
                     imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}`;
                     fetchOptions.headers['X-Emby-Token'] = token;
                 } else {
-                    console.error(
-                        `[Image Proxy] Unsupported server type "${serverConfig.type}" for server "${serverName}".`
-                    );
+                    logger.error('[Image Proxy] Unsupported server type', {
+                        serverType: serverConfig.type,
+                        serverName,
+                        requestId: req.id,
+                    });
                     return res.redirect('/fallback-poster.png');
                 }
             }
@@ -951,14 +965,13 @@ module.exports = function createMediaRouter({
                 const mediaServerResponse = await fetch(imageUrl, fetchOptions);
 
                 if (!mediaServerResponse.ok) {
-                    const identifier = directUrl
-                        ? `URL "${directUrl}"`
-                        : `Server "${serverName}", Path "${imagePath}"`;
-                    console.warn(
-                        `[Image Proxy] Request failed (${mediaServerResponse.status}): ${identifier}`
-                    );
-                    const fallbackInfo = directUrl || imagePath;
-                    console.warn(`[Image Proxy] Serving fallback image for "${fallbackInfo}".`);
+                    logger.warn('[Image Proxy] Request failed', {
+                        status: mediaServerResponse.status,
+                        serverName: serverName || 'direct',
+                        path: imagePath,
+                        directUrl: directUrl ? '[redacted]' : undefined,
+                        requestId: req.id,
+                    });
                     return res.redirect('/fallback-poster.png');
                 }
 
@@ -1016,36 +1029,32 @@ module.exports = function createMediaRouter({
                 });
 
                 fileStream.on('error', err => {
-                    console.error(
-                        `[Image Cache] ERROR: Failed to write to cache file ${cachedFilePath}:`,
-                        err
-                    );
+                    logger.error('[Image Cache] Failed to write to cache file', {
+                        cachedFilePath,
+                        error: err.message,
+                        requestId: req.id,
+                    });
                     // If caching fails, the user still gets the image, so we just log the error.
                     // We should also clean up the potentially partial file.
                     fsp.unlink(cachedFilePath).catch(unlinkErr => {
-                        console.error(
-                            `[Image Cache] Failed to clean up partial cache file ${cachedFilePath}:`,
-                            unlinkErr
-                        );
+                        logger.error('[Image Cache] Failed to clean up partial cache file', {
+                            cachedFilePath,
+                            error: unlinkErr.message,
+                            requestId: req.id,
+                        });
                     });
                 });
             } catch (error) {
-                console.error(
-                    `[Image Proxy] Network or fetch error for path "${imagePath}" on server "${serverName}".`
-                );
-
-                if (error.name === 'AbortError') {
-                    console.error(`[Image Proxy] Fetch aborted, possibly due to timeout.`);
-                } else if (error.message.startsWith('read ECONNRESET')) {
-                    console.error(
-                        `[Image Proxy] Connection reset by peer. The media server may have closed the connection unexpectedly.`
-                    );
-                }
-
-                console.error(`[Image Proxy] Error: ${error.message}`);
-                if (error.cause) console.error(`[Image Proxy] Cause: ${error.cause}`);
-                const fallbackInfo = directUrl || imagePath;
-                console.warn(`[Image Proxy] Serving fallback image for "${fallbackInfo}".`);
+                logger.error('[Image Proxy] Network or fetch error', {
+                    serverName: serverName || 'direct',
+                    path: imagePath,
+                    errorName: error.name,
+                    errorMessage: error.message,
+                    cause: error.cause,
+                    isAbortError: error.name === 'AbortError',
+                    isConnectionReset: error.message.startsWith('read ECONNRESET'),
+                    requestId: req.id,
+                });
                 res.redirect('/fallback-poster.png');
             }
         })

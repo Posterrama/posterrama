@@ -71,7 +71,10 @@ module.exports = function createAuthRouter({
         const filePath = path.join(__dirname, '..', 'public', 'setup.html');
         fs.readFile(filePath, 'utf8', (err, contents) => {
             if (err) {
-                console.error('Error reading setup.html:', err);
+                logger.error('Error reading setup.html', {
+                    error: err.message,
+                    stack: err.stack,
+                });
                 return res.sendFile(filePath); // Fallback to static file
             }
 
@@ -246,7 +249,10 @@ module.exports = function createAuthRouter({
         const filePath = path.join(__dirname, '..', 'public', 'login.html');
         fs.readFile(filePath, 'utf8', (err, contents) => {
             if (err) {
-                console.error('Error reading login.html:', err);
+                logger.error('Error reading login.html', {
+                    error: err.message,
+                    stack: err.stack,
+                });
                 return res.sendFile(filePath); // Fallback to static file
             }
 
@@ -455,7 +461,10 @@ module.exports = function createAuthRouter({
                     });
                 }
             } catch (error) {
-                console.error('[Admin Login] Error:', error);
+                logger.error('[Admin Login] Error', {
+                    error: error.message,
+                    stack: error.stack,
+                });
                 return res.status(500).json({ error: 'Internal server error. Please try again.' });
             }
         }
@@ -487,7 +496,10 @@ module.exports = function createAuthRouter({
         const filePath = path.join(__dirname, '..', 'public', '2fa-verify.html');
         fs.readFile(filePath, 'utf8', (err, contents) => {
             if (err) {
-                console.error('Error reading 2fa-verify.html:', err);
+                logger.error('Error reading 2fa-verify.html', {
+                    error: err.message,
+                    stack: err.stack,
+                });
                 return res.sendFile(filePath); // Fallback to static file
             }
 
@@ -662,7 +674,11 @@ module.exports = function createAuthRouter({
 
         req.session.destroy(err => {
             if (err) {
-                if (isDebug) console.error('[Admin Logout] Error destroying session:', err);
+                if (isDebug)
+                    logger.error('[Admin Logout] Error destroying session', {
+                        error: err.message,
+                        stack: err.stack,
+                    });
                 return next(new ApiError(500, 'Could not log out.'));
             }
             if (isDebug) logger.debug('[Admin Logout] Session destroyed successfully.');

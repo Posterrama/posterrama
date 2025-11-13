@@ -399,7 +399,11 @@ module.exports = function createPublicApiRouter({
                 if (isDebug) logger.debug('[Public API] Returning public config.');
                 res.json(publicConfig);
             } catch (error) {
-                if (isDebug) console.error('[Public API] Error reading config:', error);
+                if (isDebug)
+                    logger.error('[Public API] Error reading config', {
+                        error: error.message,
+                        stack: error.stack,
+                    });
                 // Return empty config if file doesn't exist yet
                 res.json({
                     plex: { server: null, token: false },

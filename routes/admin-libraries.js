@@ -278,9 +278,11 @@ module.exports = function createAdminLibrariesRouter({
                     const genres = await getPlexGenres(server);
                     genres.forEach(genre => allGenres.add(genre));
                 } catch (error) {
-                    console.warn(
-                        `[Admin API] Failed to get genres from ${server.name}: ${error.message}`
-                    );
+                    logger.warn('[Admin API] Failed to get genres from server', {
+                        serverName: server.name,
+                        serverType: 'plex',
+                        error: error.message,
+                    });
                 }
             }
 
@@ -349,9 +351,11 @@ module.exports = function createAdminLibrariesRouter({
                         allGenreCounts.set(genre, (allGenreCounts.get(genre) || 0) + count);
                     });
                 } catch (error) {
-                    console.warn(
-                        `[Admin API] Failed to get genres with counts from ${server.name}: ${error.message}`
-                    );
+                    logger.warn('[Admin API] Failed to get genres with counts', {
+                        serverName: server.name,
+                        serverType: 'plex',
+                        error: error.message,
+                    });
                 }
             }
 

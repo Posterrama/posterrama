@@ -235,7 +235,10 @@ module.exports = function createDevicesRouter({
                     `[Device] New device registered: ${device.id} (installId: ${stableInstallId})`
                 );
         } catch (e) {
-            console.error('[Device Register] Unexpected error:', e);
+            logger.error('[Device Register] Unexpected error', {
+                error: e.message,
+                stack: e.stack,
+            });
             res.status(500).json({ error: 'register_failed' });
         }
     });
@@ -359,7 +362,10 @@ module.exports = function createDevicesRouter({
 
             res.json({ valid: true, isRegistered: true, deviceId: device.id });
         } catch (e) {
-            console.error('[Device Check] Unexpected error:', e);
+            logger.error('[Device Check] Unexpected error', {
+                error: e.message,
+                stack: e.stack,
+            });
             res.status(500).json({ error: 'check_failed' });
         }
     });
@@ -465,7 +471,10 @@ module.exports = function createDevicesRouter({
                 queuedCommands: queuedCommands || [],
             });
         } catch (e) {
-            console.error('[Device Heartbeat] Unexpected error:', e);
+            logger.error('[Device Heartbeat] Unexpected error', {
+                error: e.message,
+                stack: e.stack,
+            });
             res.status(500).json({ error: 'heartbeat_failed' });
         }
     });
@@ -630,14 +639,14 @@ module.exports = function createDevicesRouter({
             }
 
             // Check if code exists in active pairings
-            const activePairings = await await deviceStore.getActivePairings();
+            const activePairings = await deviceStore.getActivePairings();
             const pairingInfo = activePairings.find(p => p.code === code);
             if (!pairingInfo) {
                 return res.status(400).json({ error: 'code_not_found_or_expired' });
             }
 
             // Claim the code (returns device and new secret)
-            const result = await await deviceStore.claimByPairingCode({
+            const result = await deviceStore.claimByPairingCode({
                 code,
                 token: req.body.token || null, // Optional token for enhanced security
                 name: req.body.name || pairingInfo.name,
@@ -658,7 +667,10 @@ module.exports = function createDevicesRouter({
             if (isDebug)
                 logger.debug(`[Device Pair] Device ${result.device.id} paired via code ${code}`);
         } catch (e) {
-            console.error('[Device Pair] Unexpected error:', e);
+            logger.error('[Device Pair] Unexpected error', {
+                error: e.message,
+                stack: e.stack,
+            });
             res.status(500).json({ error: 'pair_failed' });
         }
     });
@@ -745,7 +757,10 @@ module.exports = function createDevicesRouter({
                 expiresInMs,
             });
         } catch (e) {
-            console.error('[Device Pairing Code] Unexpected error:', e);
+            logger.error('[Device Pairing Code] Unexpected error', {
+                error: e.message,
+                stack: e.stack,
+            });
             res.status(500).json({ error: 'generation_failed', message: e.message });
         }
     });
@@ -782,10 +797,13 @@ module.exports = function createDevicesRouter({
      */
     router.get('/pairing-codes/active', adminAuth, async (_req, res) => {
         try {
-            const activeCodes = await await deviceStore.getActivePairings();
+            const activeCodes = await deviceStore.getActivePairings();
             res.json(activeCodes);
         } catch (e) {
-            console.error('[Device Pairing Codes] Unexpected error:', e);
+            logger.error('[Device Pairing Codes] Unexpected error', {
+                error: e.message,
+                stack: e.stack,
+            });
             res.status(500).json({ error: 'fetch_failed' });
         }
     });
@@ -843,7 +861,7 @@ module.exports = function createDevicesRouter({
             });
             res.json(devicesWithStatus);
         } catch (e) {
-            console.error('[Device List] Unexpected error:', e);
+            logger.error('[Device List] Unexpected error', { error: e.message, stack: e.stack });
             res.status(500).json({ error: 'fetch_failed' });
         }
     });
@@ -892,7 +910,7 @@ module.exports = function createDevicesRouter({
                 connected: isConnected, // Keep both for backward compatibility
             });
         } catch (e) {
-            console.error('[Device Get] Unexpected error:', e);
+            logger.error('[Device Get] Unexpected error', { error: e.message, stack: e.stack });
             res.status(500).json({ error: 'fetch_failed' });
         }
     });
@@ -961,7 +979,10 @@ module.exports = function createDevicesRouter({
                 status: device.status || null,
             });
         } catch (e) {
-            console.error('[Device Preview] Unexpected error:', e);
+            logger.error('[Device Preview] Unexpected error', {
+                error: e.message,
+                stack: e.stack,
+            });
             res.status(500).json({ error: 'preview_failed' });
         }
     });
@@ -1000,7 +1021,7 @@ module.exports = function createDevicesRouter({
             }
 
             // Delete the device
-            await await deviceStore.deleteDevice(deviceId);
+            await deviceStore.deleteDevice(deviceId);
 
             // Disconnect WebSocket if connected
             try {
@@ -1013,7 +1034,7 @@ module.exports = function createDevicesRouter({
 
             if (isDebug) logger.debug(`[Device Delete] Device ${deviceId} deleted`);
         } catch (e) {
-            console.error('[Device Delete] Unexpected error:', e);
+            logger.error('[Device Delete] Unexpected error', { error: e.message, stack: e.stack });
             res.status(500).json({ error: 'delete_failed' });
         }
     });
@@ -1133,7 +1154,7 @@ module.exports = function createDevicesRouter({
                 logger.debug(`[Device PATCH] Device ${deviceId} updated:`, updates);
             }
         } catch (e) {
-            console.error('[Device PATCH] Unexpected error:', e);
+            logger.error('[Device PATCH] Unexpected error', { error: e.message, stack: e.stack });
             res.status(500).json({ error: 'update_failed', message: e.message });
         }
     });
@@ -1231,7 +1252,10 @@ module.exports = function createDevicesRouter({
                     });
                 }
             } catch (e) {
-                console.error('[Device Merge] Unexpected error:', e);
+                logger.error('[Device Merge] Unexpected error', {
+                    error: e.message,
+                    stack: e.stack,
+                });
                 res.status(500).json({ error: 'merge_failed', message: e.message });
             }
         }
@@ -1374,7 +1398,7 @@ module.exports = function createDevicesRouter({
             const cmd = deviceStore.queueCommand(req.params.id, { type, payload });
             res.json({ queued: true, live: false, command: cmd });
         } catch (e) {
-            console.error('[Device Command] Unexpected error:', e);
+            logger.error('[Device Command] Unexpected error', { error: e.message, stack: e.stack });
             res.status(500).json({ error: 'queue_failed' });
         }
     });
@@ -1420,7 +1444,7 @@ module.exports = function createDevicesRouter({
 
             res.json({ success: true, sent, queued });
         } catch (e) {
-            console.error('[Device Command] Unexpected error:', e);
+            logger.error('[Device Command] Unexpected error', { error: e.message, stack: e.stack });
             res.status(500).json({ error: 'command_failed' });
         }
     });

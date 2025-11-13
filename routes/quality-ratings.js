@@ -57,9 +57,11 @@ module.exports = function createQualityRatingsRouter({
                         allQualityCounts.set(quality, (allQualityCounts.get(quality) || 0) + count);
                     });
                 } catch (error) {
-                    console.warn(
-                        `[Admin API] Failed to get qualities with counts from ${server.name}: ${error.message}`
-                    );
+                    logger.warn('[Admin API] Failed to get qualities with counts', {
+                        serverName: server.name,
+                        serverType: 'plex',
+                        error: error.message,
+                    });
                 }
             }
 
@@ -124,9 +126,11 @@ module.exports = function createQualityRatingsRouter({
                         allQualityCounts.set(quality, (allQualityCounts.get(quality) || 0) + count);
                     });
                 } catch (error) {
-                    console.warn(
-                        `[Admin API] Failed to get qualities with counts from ${server.name}: ${error.message}`
-                    );
+                    logger.warn('[Admin API] Failed to get qualities with counts', {
+                        serverName: server.name,
+                        serverType: 'jellyfin',
+                        error: error.message,
+                    });
                 }
             }
 

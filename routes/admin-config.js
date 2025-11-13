@@ -567,7 +567,12 @@ module.exports = function createAdminConfigRouter({
                     });
                 }
             } catch (error) {
-                if (isDebug) console.error('[Plex Test] Connection failed:', error.message);
+                if (isDebug)
+                    logger.error('[Plex Test] Connection failed', {
+                        error: error.message,
+                        hostname,
+                        port,
+                    });
                 let userMessage = 'Connection failed. Please check the hostname, port, and token.';
                 if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
                     userMessage = `Connection refused to ${hostname}:${port}. Is Plex running on this address? Check if the hostname and port are correct.`;
