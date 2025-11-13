@@ -250,6 +250,14 @@ describe('Route Modules Integration Tests', () => {
             if (fs.existsSync(testUploadsDir)) {
                 fs.rmSync(testUploadsDir, { recursive: true, force: true });
             }
+            // Remove parent uploads directory if empty
+            const uploadsParent = path.join(__dirname, '../../uploads');
+            if (fs.existsSync(uploadsParent)) {
+                const files = fs.readdirSync(uploadsParent);
+                if (files.length === 0) {
+                    fs.rmdirSync(uploadsParent);
+                }
+            }
         });
 
         it('should return 404 when no photo exists', async () => {
