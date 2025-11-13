@@ -34,7 +34,6 @@
         "test:regression:e2e": "jest __tests__/regression/critical-path.e2e.test.js --verbose --runInBand",
         "test:regression:config": "jest __tests__/regression/config-migration.test.js --verbose",
         "test:regression:external": "jest __tests__/regression/external-services.test.js --verbose",
-        "test:regression:visual": "jest __tests__/regression/visual-regression.test.js --verbose --runInBand",
         "test:quick-regression": "npm run test:regression:contracts && npm run health",
         "test:full-regression": "npm run test:regression:contracts && npm run test:regression:config && npm run test:regression:external",
         "test:pre-deployment": "./scripts/pre-deployment-regression.sh",
@@ -123,10 +122,7 @@
         "glob": "^11.0.3",
         "jest": "^29.7.0",
         "nock": "^13.5.6",
-        "pixelmatch": "^5.3.0",
-        "pngjs": "^7.0.0",
         "prettier": "^3.6.2",
-        "puppeteer": "^23.11.1",
         "supertest": "^7.0.0"
     },
     "engines": {

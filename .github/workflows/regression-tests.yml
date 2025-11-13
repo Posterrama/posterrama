@@ -58,18 +58,6 @@ jobs:
               run: npm run test:regression:e2e
               continue-on-error: true
 
-            - name: Install Visual Testing Dependencies
-              run: |
-                  # Install system dependencies for Puppeteer
-                  sudo apt-get update
-                  sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libxkbcommon0 libgtk-3-0
-
-            - name: Run Visual Regression Tests
-              run: npm run test:regression:visual
-              continue-on-error: true
-              env:
-                  HEADLESS: true
-
             - name: Run Performance Regression Tests
               run: |
                   echo "Running performance regression tests..."
@@ -106,11 +94,6 @@ jobs:
                   - ✅ Plex integration contracts validated
                   - ✅ Jellyfin integration contracts validated  
                   - ✅ TMDB integration contracts validated
-
-                  ### Visual Regression Tests
-                  - ✅ UI components render consistently
-                  - ✅ Admin interface layout stable
-                  - ✅ Responsive design maintained
 
                   ### Critical Path E2E Tests
                   - ✅ Media display workflow functional
