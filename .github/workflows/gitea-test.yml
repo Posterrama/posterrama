@@ -16,10 +16,11 @@ jobs:
       
       - name: Test runner
         run: |
-          echo "🎉 Gitea Actions runner test v2"
+          echo "🎉 Gitea Actions runner test v3 - nieuwe registratie"
           echo "Runner is actief en beschikbaar!"
           echo "Node versie: $(node --version)"
           echo "NPM versie: $(npm --version)"
+          echo "Hostname: $(hostname)"
       
       - name: Quick syntax check
         run: |
