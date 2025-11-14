@@ -238,7 +238,8 @@ class JobQueue extends EventEmitter {
             this.activeJobs.delete(jobId);
 
             // Process next job in queue
-            setTimeout(() => this.processNextJob(), 100);
+            const timeoutConfig = require('../config/');
+            setTimeout(() => this.processNextJob(), timeoutConfig.getTimeout('jobQueueNext'));
         }
     }
 

@@ -179,7 +179,12 @@ function sendCommand(deviceId, { type, payload }) {
     return sendToDevice(deviceId, { kind: 'command', type, payload: payload || {} });
 }
 
-function sendCommandAwait(deviceId, { type, payload, timeoutMs = 3000 }) {
+function sendCommandAwait(deviceId, { type, payload, timeoutMs }) {
+    const timeoutConfig = require('../config/');
+    const defaultTimeout = timeoutConfig.getTimeout('wsCommandAck');
+    const minTimeout = timeoutConfig.getTimeout('wsCommandAckMin');
+    const effectiveTimeout = timeoutMs ? Math.max(minTimeout, timeoutMs | 0) : defaultTimeout;
+
     const ws = deviceToSocket.get(deviceId);
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         return Promise.reject(new Error('not_connected'));
@@ -187,13 +192,10 @@ function sendCommandAwait(deviceId, { type, payload, timeoutMs = 3000 }) {
     const id = genId();
     const msg = { kind: 'command', id, type, payload: payload || {} };
     return new Promise((resolve, reject) => {
-        const timer = setTimeout(
-            () => {
-                pendingAcks.delete(id);
-                reject(new Error('ack_timeout'));
-            },
-            Math.max(500, timeoutMs | 0)
-        );
+        const timer = setTimeout(() => {
+            pendingAcks.delete(id);
+            reject(new Error('ack_timeout'));
+        }, effectiveTimeout);
         pendingAcks.set(id, { resolve, reject, timer, deviceId });
         try {
             sendJson(ws, msg);

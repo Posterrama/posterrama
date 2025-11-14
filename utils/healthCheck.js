@@ -800,8 +800,12 @@ async function checkTMDBConnectivity() {
             };
         }
 
+        const timeoutConfig = require('../config/');
         const controller = new AbortController();
-        const to = setTimeout(() => controller.abort(), 5000);
+        const to = setTimeout(
+            () => controller.abort(),
+            timeoutConfig.getTimeout('httpHealthCheck')
+        );
         let status = 'error';
         let message = 'Request failed';
         let httpStatus = 0;

@@ -3428,7 +3428,11 @@ app.post('/api/admin/restart-app', adminAuth, (req, res) => {
                 } catch (_) {
                     // best-effort logging
                 }
-                setTimeout(() => process.exit(0), 250);
+                const timeoutConfig = require('./config/');
+                setTimeout(
+                    () => process.exit(0),
+                    timeoutConfig.getTimeout('processGracefulShutdown')
+                );
             }
         } catch (e) {
             try {
@@ -3436,7 +3440,13 @@ app.post('/api/admin/restart-app', adminAuth, (req, res) => {
             } catch (_) {
                 // best-effort logging
             }
-            if (!process.env.PM2_HOME) setTimeout(() => process.exit(0), 250);
+            if (!process.env.PM2_HOME) {
+                const timeoutConfig = require('./config/');
+                setTimeout(
+                    () => process.exit(0),
+                    timeoutConfig.getTimeout('processGracefulShutdown')
+                );
+            }
         }
     }, 200);
 });

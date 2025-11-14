@@ -204,9 +204,12 @@ class AutoUpdater {
                 // Kick off restart but do not block the status progression; if it takes
                 // too long or fails, we still mark completion so the UI doesn’t hang.
                 try {
+                    const timeoutConfig = require('../config/');
                     await Promise.race([
                         this.startServices(),
-                        new Promise(resolve => setTimeout(resolve, 5000)),
+                        new Promise(resolve =>
+                            setTimeout(resolve, timeoutConfig.getTimeout('serviceStartRace'))
+                        ),
                     ]);
                 } catch (_e) {
                     // best-effort
@@ -489,7 +492,8 @@ class AutoUpdater {
             }
 
             // Give it a moment to stop gracefully
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            const config = require('../config/');
+            await new Promise(resolve => setTimeout(resolve, config.getTimeout('serviceStop')));
 
             logger.info('Services stopped successfully');
         } catch (error) {
@@ -635,7 +639,8 @@ class AutoUpdater {
             await execAsync(cmd, { cwd: this.appRoot });
 
             // Give it a moment to start
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            const config = require('../config/');
+            await new Promise(resolve => setTimeout(resolve, config.getTimeout('serviceStart')));
 
             logger.info('Services started successfully');
         } catch (error) {

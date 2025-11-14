@@ -402,7 +402,10 @@ class MqttBridge extends EventEmitter {
                 this.discoveryPublished.delete(device.id);
 
                 // Wait a bit to ensure HA processes the unpublish
-                await new Promise(resolve => setTimeout(resolve, 500));
+                const timeoutConfig = require('../config/');
+                await new Promise(resolve =>
+                    setTimeout(resolve, timeoutConfig.getTimeout('mqttRepublish'))
+                );
 
                 // Republish only available capabilities for new mode
                 await this.publishDiscovery(device);

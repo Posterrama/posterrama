@@ -1657,7 +1657,10 @@ class CapabilityRegistry {
                 await wsHub.sendApplySettings(deviceId, settings);
 
                 // Small delay to ensure state is fully persisted before HA queries it
-                await new Promise(resolve => setTimeout(resolve, 100));
+                const timeoutConfig = require('../config/');
+                await new Promise(resolve =>
+                    setTimeout(resolve, timeoutConfig.getTimeout('deviceStateSync'))
+                );
 
                 return true;
             } catch (error) {
