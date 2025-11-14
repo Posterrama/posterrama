@@ -18165,11 +18165,16 @@
                     // Get token from: 1) dataset, 2) input value, 3) global token store, 4) undefined
                     const tokenInput =
                         getInput('plex.token') || document.getElementById('plex_token');
-                    const token =
+                    const tokenRaw =
                         tokenInput?.dataset?.actualToken ||
                         tokenInput?.value ||
                         window.__tokenStore?.plexToken ||
                         undefined;
+                    // Only use token if it's a real token (not masked or EXISTING_TOKEN marker)
+                    // If not available, backend will use .env credentials automatically
+                    const isMaskedToken =
+                        tokenRaw && (/^[•]+$/.test(tokenRaw) || tokenRaw === 'EXISTING_TOKEN');
+                    const token = tokenRaw && !isMaskedToken ? tokenRaw : undefined;
                     const res = await fetch('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -18706,7 +18711,14 @@
                     // debug removed: Jellyfin fetch resolved inputs
                     const effHostname = hostname || window.__JELLYFIN_ENTRY?.hostname;
                     const effPort = port || window.__JELLYFIN_ENTRY?.port;
-                    const effApiKey = apiKey || window.__JELLYFIN_ENTRY?.apiKey;
+                    // Only use apiKey if it's a real key (not masked or EXISTING_TOKEN marker)
+                    // If not available, backend will use .env credentials automatically
+                    const isMaskedKey =
+                        apiKey && (/^[•]+$/.test(apiKey) || apiKey === 'EXISTING_TOKEN');
+                    const effApiKey =
+                        apiKey && !isMaskedKey
+                            ? apiKey
+                            : window.__JELLYFIN_ENTRY?.apiKey || undefined;
 
                     // Skip enabled check when explicitly requested via button click (refreshFilters=true)
                     // This allows users to fetch libraries before enabling Jellyfin
@@ -19647,12 +19659,18 @@
                 const url = getInput('romm.url')?.value?.trim() || '';
                 const username = getInput('romm.username')?.value?.trim() || '';
                 const passwordEl = getInput('romm.password');
-                const password =
+                const passwordRaw =
                     passwordEl?.dataset?.actualToken || passwordEl?.value?.trim() || '';
+                // Only use password if it's a real password (not masked or EXISTING_PASSWORD marker)
+                // If not available, backend will use config credentials automatically
+                const isMaskedPassword =
+                    passwordRaw &&
+                    (/^[•]+$/.test(passwordRaw) || passwordRaw === 'EXISTING_PASSWORD');
+                const password = passwordRaw && !isMaskedPassword ? passwordRaw : undefined;
                 const insecureHttps = !!getInput('romm.insecureHttps')?.checked;
 
-                if (!url || !username || !password) {
-                    throw new Error('URL, username, and password are required');
+                if (!url || !username) {
+                    throw new Error('URL and username are required');
                 }
 
                 const res = await fetch('/api/admin/romm-platforms', {

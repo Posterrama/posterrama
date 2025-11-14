@@ -1169,17 +1169,35 @@ module.exports = function createAdminConfigRouter({
         '/api/admin/romm-platforms',
         isAuthenticated,
         asyncHandler(async (req, res) => {
-            const { url, username, password, insecureHttps } = req.body;
+            let { url, username, password, insecureHttps } = req.body;
+
+            // Fallback to configured values if not provided in the request
+            const config = await readConfig();
+            const rommServerConfig = config.mediaServers?.find(s => s.type === 'romm');
+
+            if (!url && rommServerConfig?.url) {
+                url = rommServerConfig.url;
+            }
+            if (!username && rommServerConfig?.username) {
+                username = rommServerConfig.username;
+            }
+            if (!password && rommServerConfig?.password) {
+                password = rommServerConfig.password;
+            }
+            if (typeof insecureHttps === 'undefined' && rommServerConfig?.insecureHttps) {
+                insecureHttps = rommServerConfig.insecureHttps;
+            }
 
             logger.info('[RomM Platforms] Request received:', {
                 url,
                 username: username ? '***' : undefined,
                 hasPassword: !!password,
                 insecureHttps,
+                usedFallback: !req.body.password && !!password,
             });
 
             if (!url || !username || !password) {
-                logger.warn('[RomM Platforms] Missing required fields');
+                logger.warn('[RomM Platforms] Missing required fields even after config fallback');
                 throw new ApiError(400, 'URL, username, and password are required');
             }
 
