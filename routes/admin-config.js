@@ -381,17 +381,21 @@ module.exports = function createAdminConfigRouter({
             // config is a Config class instance, update its internal config object
             Object.assign(config.config, mergedConfig);
 
-            // Restart PM2 if environment variables changed (for tokens/secrets)
-            if (Object.keys(sanitizedEnv).length > 0) {
-                restartPM2ForEnvUpdate('configuration saved');
-            }
-
+            // Send response BEFORE PM2 restart to prevent 502 errors
             res.json({
                 success: true,
                 message: 'Configuration saved successfully',
                 modeChanged: !!broadcastModeChange,
                 targetMode: broadcastModeChange || undefined,
             });
+
+            // Restart PM2 after response if environment variables changed
+            // Delayed slightly to ensure response is sent
+            if (Object.keys(sanitizedEnv).length > 0) {
+                setTimeout(() => {
+                    restartPM2ForEnvUpdate('configuration saved');
+                }, 100);
+            }
         })
     );
 
