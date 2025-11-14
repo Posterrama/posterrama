@@ -4,18 +4,41 @@ const DOMPurify = require('dompurify');
 const validator = require('validator');
 const { JSDOM } = require('jsdom');
 
-// Provide a lazily-created DOMPurify instance (tests mock dompurify module)
+/**
+ * Initialize DOMPurify eagerly at module load time.
+ * This eliminates first-request penalty and ensures consistent behavior.
+ * In test environment, creates a fresh instance per request for proper mocking.
+ */
 let purifyInstance;
+
+try {
+    // Eager initialization in production/development
+    // Creates a stable JSDOM window for DOMPurify to use
+    const window = new JSDOM('').window;
+    purifyInstance = DOMPurify(window);
+} catch (error) {
+    // Fallback if initialization fails (e.g., in restricted environments)
+    console.error('[Validate] Failed to initialize DOMPurify:', error.message);
+    purifyInstance = null;
+}
+
+/**
+ * Get DOMPurify instance with test environment special handling
+ * @returns {Object} DOMPurify instance
+ */
 function getPurify() {
-    // In test environment always create a fresh instance so per-test mocks of DOMPurify.sanitize apply
+    // In test environment, create fresh instance for each call to support per-test mocks
     if (process.env.NODE_ENV === 'test') {
-        const window = new JSDOM('').window;
-        return DOMPurify(window);
+        try {
+            const window = new JSDOM('').window;
+            return DOMPurify(window);
+        } catch (error) {
+            console.error('[Validate] Failed to create test DOMPurify instance:', error.message);
+            return purifyInstance; // Fallback to global instance
+        }
     }
-    if (!purifyInstance) {
-        const window = new JSDOM('').window;
-        purifyInstance = DOMPurify(window);
-    }
+
+    // Return pre-initialized instance (no lazy loading)
     return purifyInstance;
 }
 
@@ -151,8 +174,16 @@ const circularGuard = new WeakSet();
 function sanitizeInput(obj) {
     if (typeof obj === 'string') {
         try {
+            const purify = getPurify();
+
+            // Fallback if DOMPurify unavailable (defensive programming)
+            if (!purify || !purify.sanitize) {
+                console.warn('[Validate] DOMPurify not available, skipping sanitization');
+                return obj;
+            }
+
             // Additional sanitization for common attack vectors
-            let sanitized = getPurify().sanitize(obj);
+            let sanitized = purify.sanitize(obj);
 
             // Remove potential script/javascript protocols
             sanitized = sanitized.replace(/^javascript:/i, '');
@@ -164,7 +195,8 @@ function sanitizeInput(obj) {
             }
 
             return sanitized;
-        } catch (_) {
+        } catch (error) {
+            console.error('[Validate] Sanitization error:', error.message);
             return obj;
         }
     }
