@@ -837,13 +837,26 @@ module.exports = function createAdminLibrariesRouter({
 
                 // Get all libraries to verify selected ones
                 const allLibraries = await fetchJellyfinLibraries(client);
+                
+                logger.info('[Admin API] Jellyfin genres - libraries info', {
+                    selectedLibraries,
+                    allLibraryNames: allLibraries.map(l => l.Name),
+                    allLibraryIds: allLibraries.map(l => l.Id)
+                });
+                
                 const libraryIds = selectedLibraries?.length
                     ? allLibraries
                           .filter(lib => selectedLibraries.includes(lib.Id))
                           .map(lib => lib.Id)
                     : allLibraries.map(lib => lib.Id);
 
+                logger.info('[Admin API] Jellyfin genres - resolved library IDs', {
+                    libraryIds,
+                    count: libraryIds.length
+                });
+
                 if (libraryIds.length === 0) {
+                    logger.warn('[Admin API] No library IDs found, returning empty genres');
                     return res.json({ genres: [] });
                 }
 
