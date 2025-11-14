@@ -241,6 +241,49 @@ module.exports = function createAdminConfigRouter({
             const existingConfig = await readConfig();
             const mergedConfig = { ...existingConfig, ...newConfig };
 
+            // Convert streamingSources object back to array if needed (admin UI sends object)
+            if (mergedConfig.streamingSources && !Array.isArray(mergedConfig.streamingSources)) {
+                const streamingObj = mergedConfig.streamingSources;
+                const streamingArray = [];
+
+                // Helper to add provider
+                const addProvider = (category, enabled) => {
+                    if (enabled) {
+                        streamingArray.push({
+                            enabled: true,
+                            category,
+                            watchRegion: streamingObj.region || 'US',
+                            minRating: streamingObj.minRating || 0,
+                        });
+                    }
+                };
+
+                // Convert each provider checkbox to array entry
+                if (streamingObj.enabled) {
+                    addProvider('streaming_netflix', streamingObj.netflix);
+                    addProvider('streaming_disney', streamingObj.disney);
+                    addProvider('streaming_prime', streamingObj.prime);
+                    addProvider('streaming_hbo', streamingObj.hbo);
+                    addProvider('streaming_hulu', streamingObj.hulu);
+                    addProvider('streaming_apple', streamingObj.apple);
+                    addProvider('streaming_paramount', streamingObj.paramount);
+                    addProvider('streaming_crunchyroll', streamingObj.crunchyroll);
+                    addProvider('streaming_new_releases', streamingObj.newReleases);
+                }
+
+                mergedConfig.streamingSources = streamingArray;
+                logger.debug(
+                    '[Streaming Debug] Converted streaming object to array for config.json:',
+                    JSON.stringify(streamingArray, null, 2)
+                );
+            }
+
+            // Ensure tmdbSource.apiKey is string not null (schema requires string)
+            if (mergedConfig.tmdbSource && mergedConfig.tmdbSource.apiKey === null) {
+                mergedConfig.tmdbSource.apiKey = '';
+                logger.debug('[TMDB Debug] Converted null apiKey to empty string');
+            }
+
             // Detect mode changes for broadcast to devices
             let broadcastModeChange = null;
             try {
