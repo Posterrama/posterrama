@@ -13,6 +13,50 @@ const { PassThrough } = require('stream');
 const { enrichPlexItemWithExtras } = require('../lib/plex-helpers');
 const { enrichJellyfinItemWithExtras } = require('../lib/jellyfin-helpers');
 
+// Fallback image tracking for monitoring upstream health
+const fallbackMetrics = {
+    total: 0,
+    byReason: {
+        serverNotFound: 0,
+        plexIncomplete: 0,
+        jellyfinIncomplete: 0,
+        unsupportedServer: 0,
+        httpError: 0,
+        networkError: 0,
+        cacheError: 0,
+    },
+    lastFallbacks: [], // Last 20 fallback events with timestamp and reason
+};
+
+/**
+ * Track fallback image usage for monitoring upstream health
+ * @param {string} reason - Reason for fallback (serverNotFound, httpError, etc.)
+ * @param {Object} context - Additional context (serverName, status, path, etc.)
+ * @param {Object} logger - Logger instance
+ */
+function trackFallback(reason, context, logger) {
+    fallbackMetrics.total++;
+    fallbackMetrics.byReason[reason] = (fallbackMetrics.byReason[reason] || 0) + 1;
+
+    const event = {
+        timestamp: new Date().toISOString(),
+        reason,
+        ...context,
+    };
+
+    fallbackMetrics.lastFallbacks.unshift(event);
+    if (fallbackMetrics.lastFallbacks.length > 20) {
+        fallbackMetrics.lastFallbacks.pop();
+    }
+
+    logger.debug('[Image Proxy] Fallback served', {
+        reason,
+        totalFallbacks: fallbackMetrics.total,
+        reasonCount: fallbackMetrics.byReason[reason],
+        ...context,
+    });
+}
+
 /**
  * Enrich media items with extras (trailers, theme music) on-demand.
  * Only enriches Plex and Jellyfin items.
@@ -916,6 +960,7 @@ module.exports = function createMediaRouter({
                         requestPath: req.path,
                         requestId: req.id,
                     });
+                    trackFallback('serverNotFound', { serverName, path: imagePath }, logger);
                     return res.redirect('/fallback-poster.png');
                 }
 
@@ -930,6 +975,7 @@ module.exports = function createMediaRouter({
                             hasPort: !!serverConfig.port,
                             requestId: req.id,
                         });
+                        trackFallback('plexIncomplete', { serverName, path: imagePath }, logger);
                         return res.redirect('/fallback-poster.png');
                     }
                     imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}`;
@@ -945,6 +991,11 @@ module.exports = function createMediaRouter({
                             hasPort: !!serverConfig.port,
                             requestId: req.id,
                         });
+                        trackFallback(
+                            'jellyfinIncomplete',
+                            { serverName, path: imagePath },
+                            logger
+                        );
                         return res.redirect('/fallback-poster.png');
                     }
                     imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}`;
@@ -955,6 +1006,11 @@ module.exports = function createMediaRouter({
                         serverName,
                         requestId: req.id,
                     });
+                    trackFallback(
+                        'unsupportedServer',
+                        { serverName, serverType: serverConfig.type, path: imagePath },
+                        logger
+                    );
                     return res.redirect('/fallback-poster.png');
                 }
             }
@@ -972,6 +1028,15 @@ module.exports = function createMediaRouter({
                         directUrl: directUrl ? '[redacted]' : undefined,
                         requestId: req.id,
                     });
+                    trackFallback(
+                        'httpError',
+                        {
+                            serverName: serverName || 'direct',
+                            status: mediaServerResponse.status,
+                            path: imagePath,
+                        },
+                        logger
+                    );
                     return res.redirect('/fallback-poster.png');
                 }
 
@@ -1055,10 +1120,33 @@ module.exports = function createMediaRouter({
                     isConnectionReset: error.message.startsWith('read ECONNRESET'),
                     requestId: req.id,
                 });
+                trackFallback(
+                    'networkError',
+                    {
+                        serverName: serverName || 'direct',
+                        errorName: error.name,
+                        errorMessage: error.message,
+                        path: imagePath,
+                    },
+                    logger
+                );
                 res.redirect('/fallback-poster.png');
             }
         })
     );
+
+    // Metrics endpoint for monitoring image proxy fallback health
+    router.get('/api/media/fallback-metrics', (req, res) => {
+        res.json({
+            success: true,
+            metrics: {
+                total: fallbackMetrics.total,
+                byReason: fallbackMetrics.byReason,
+                recentEvents: fallbackMetrics.lastFallbacks.slice(0, 10),
+            },
+            timestamp: new Date().toISOString(),
+        });
+    });
 
     // Lightweight fallback image to prevent broken redirects from the image proxy
     // Always available even if no static asset is present on disk.
