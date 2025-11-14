@@ -5,7 +5,7 @@
 
 const axios = require('axios');
 const https = require('https');
-const config = require('../config');
+const config = require('../config/');
 const UserAgentBuilder = require('./userAgent');
 
 class RommHttpClient {

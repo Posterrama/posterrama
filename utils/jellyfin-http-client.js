@@ -8,7 +8,7 @@ const https = require('https');
 const os = require('os');
 const crypto = require('crypto');
 const logger = require('./logger');
-const config = require('../config');
+const config = require('../config/');
 const UserAgentBuilder = require('./userAgent');
 
 let pkgVersion = '1.0.0';

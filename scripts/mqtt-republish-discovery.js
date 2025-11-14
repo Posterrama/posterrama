@@ -6,7 +6,7 @@
 
 const deviceStore = require('../utils/deviceStore');
 const MqttBridge = require('../utils/mqttBridge');
-const config = require('../config');
+const config = require('../config/');
 const logger = require('../utils/logger');
 
 async function republishDiscovery() {

@@ -507,7 +507,7 @@ class MqttBridge extends EventEmitter {
             this.lastCameraPoster.set(device.id, posterUrl);
 
             // Build full image URL
-            const config = require('../config');
+            const config = require('../config/');
             const axios = require('axios');
             let imageUrl;
 
