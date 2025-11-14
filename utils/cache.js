@@ -54,6 +54,17 @@ class CacheManager {
             l3MaxSize: options.l3MaxSize || 500, // Cold tier: 500 entries
             promotionThreshold: options.promotionThreshold || 3, // Promote after N accesses
             demotionAge: options.demotionAge || 10 * 60 * 1000, // Demote after 10 minutes
+            // Memory limits (Issue #4 fix)
+            maxEntrySizeBytes: options.maxEntrySizeBytes || 10 * 1024 * 1024, // 10MB per entry
+            maxTotalMemoryBytes: options.maxTotalMemoryBytes || 100 * 1024 * 1024, // 100MB total
+            enableMemoryMonitoring: options.enableMemoryMonitoring !== false,
+        };
+
+        // Memory tracking (Issue #4 fix)
+        this.memoryUsage = {
+            totalBytes: 0,
+            largestEntry: 0,
+            entriesRejected: 0,
         };
 
         // Start periodic cleanup
@@ -64,6 +75,11 @@ class CacheManager {
             this.startTierManagement();
         }
 
+        // Start memory monitoring (Issue #4 fix)
+        if (this.config.enableMemoryMonitoring) {
+            this.startMemoryMonitoring();
+        }
+
         logger.debug('Cache manager initialized', {
             defaultTTL: this.config.defaultTTL,
             maxSize: this.config.maxSize,
@@ -71,6 +87,8 @@ class CacheManager {
             enablePersistence: this.config.enablePersistence,
             enableCompression: this.config.enableCompression,
             enableTiering: this.config.enableTiering,
+            maxEntrySizeMB: Math.round(this.config.maxEntrySizeBytes / 1024 / 1024),
+            maxTotalMemoryMB: Math.round(this.config.maxTotalMemoryBytes / 1024 / 1024),
         });
     }
 
@@ -108,14 +126,20 @@ class CacheManager {
     cleanup() {
         this.stopPeriodicCleanup();
 
+        // Stop memory monitoring (Issue #4 fix)
+        if (this.memoryMonitorInterval) {
+            this.stopMemoryMonitoring();
+        }
+
         // Clear all timers
         for (const [, timer] of this.timers) {
             clearTimeout(timer);
         }
         this.timers.clear();
 
-        // Clear cache
+        // Clear cache and reset memory tracking (Issue #4 fix)
         this.cache.clear();
+        this.memoryUsage.totalBytes = 0;
 
         // Clear tiered caches
         if (this.config.enableTiering) {
@@ -273,6 +297,124 @@ class CacheManager {
     }
 
     /**
+     * Calculate entry size in bytes (Issue #4 fix)
+     */
+    calculateEntrySize(value) {
+        try {
+            const serialized = JSON.stringify(value);
+            return Buffer.byteLength(serialized, 'utf8');
+        } catch (e) {
+            // Estimation fallback for circular references
+            return 1024; // 1KB default estimate
+        }
+    }
+
+    /**
+     * Check if entry can be stored without exceeding limits (Issue #4 fix)
+     */
+    canStoreEntry(key, value) {
+        const entrySize = this.calculateEntrySize(value);
+
+        // Check individual entry size
+        if (entrySize > this.config.maxEntrySizeBytes) {
+            logger.warn('Cache entry too large', {
+                key,
+                size: entrySize,
+                maxSize: this.config.maxEntrySizeBytes,
+                sizeMB: Math.round((entrySize / 1024 / 1024) * 100) / 100,
+            });
+            this.memoryUsage.entriesRejected++;
+            return false;
+        }
+
+        // Check total memory limit
+        const existingEntry = this.cache.get(key);
+        const existingSize = existingEntry?.sizeBytes || 0;
+        const netIncrease = entrySize - existingSize;
+
+        if (this.memoryUsage.totalBytes + netIncrease > this.config.maxTotalMemoryBytes) {
+            logger.debug('Cache memory limit reached, attempting eviction', {
+                current: this.memoryUsage.totalBytes,
+                needed: netIncrease,
+                limit: this.config.maxTotalMemoryBytes,
+            });
+
+            // Try to free memory with aggressive eviction
+            const targetFree = netIncrease * 1.2; // Free 20% more than needed
+            let freedBytes = 0;
+
+            while (
+                this.cache.size > 0 &&
+                freedBytes < targetFree &&
+                this.memoryUsage.totalBytes + netIncrease > this.config.maxTotalMemoryBytes
+            ) {
+                const beforeSize = this.memoryUsage.totalBytes;
+                this.evictLRU();
+                freedBytes += beforeSize - this.memoryUsage.totalBytes;
+            }
+
+            // Check again after eviction
+            if (this.memoryUsage.totalBytes + netIncrease > this.config.maxTotalMemoryBytes) {
+                logger.warn('Cannot store entry even after eviction', {
+                    key,
+                    size: entrySize,
+                    available: this.config.maxTotalMemoryBytes - this.memoryUsage.totalBytes,
+                });
+                this.memoryUsage.entriesRejected++;
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Start memory monitoring (Issue #4 fix)
+     */
+    startMemoryMonitoring() {
+        // Run monitoring every minute
+        this.memoryMonitorInterval = setInterval(() => {
+            const memoryPercent =
+                (this.memoryUsage.totalBytes / this.config.maxTotalMemoryBytes) * 100;
+
+            if (memoryPercent > 90) {
+                logger.warn('Cache memory usage critical', {
+                    usage: `${Math.round(memoryPercent)}%`,
+                    totalBytes: this.memoryUsage.totalBytes,
+                    totalMB: Math.round((this.memoryUsage.totalBytes / 1024 / 1024) * 100) / 100,
+                    maxBytes: this.config.maxTotalMemoryBytes,
+                    maxMB: Math.round((this.config.maxTotalMemoryBytes / 1024 / 1024) * 100) / 100,
+                    entries: this.cache.size,
+                });
+
+                // Aggressive cleanup
+                this.cleanupExpired();
+
+                // Force eviction if still critical
+                if (this.memoryUsage.totalBytes / this.config.maxTotalMemoryBytes > 0.9) {
+                    const toEvict = Math.ceil(this.cache.size * 0.2); // Evict 20%
+                    logger.info('Force evicting entries due to memory pressure', { toEvict });
+                    for (let i = 0; i < toEvict && this.cache.size > 0; i++) {
+                        this.evictLRU();
+                    }
+                }
+            }
+        }, 60000); // Check every minute
+
+        logger.debug('Memory monitoring started');
+    }
+
+    /**
+     * Stop memory monitoring (Issue #4 fix)
+     */
+    stopMemoryMonitoring() {
+        if (this.memoryMonitorInterval) {
+            clearInterval(this.memoryMonitorInterval);
+            this.memoryMonitorInterval = null;
+        }
+    }
+
+    /**
      * Evict least recently used entry
      * Uses sort-based LRU for O(n log n) eviction
      */
@@ -305,7 +447,21 @@ class CacheManager {
      */
     set(key, value, ttl) {
         try {
+            // Check memory limits before storing (Issue #4 fix)
+            if (!this.canStoreEntry(key, value)) {
+                this.stats.errors++;
+                return null;
+            }
+
             this.stats.sets++;
+
+            const entrySize = this.calculateEntrySize(value);
+
+            // Update memory tracking (Issue #4 fix)
+            const existingEntry = this.cache.get(key);
+            if (existingEntry?.sizeBytes) {
+                this.memoryUsage.totalBytes -= existingEntry.sizeBytes;
+            }
 
             // Check cache size limit - use LRU eviction
             if (this.cache.size >= this.config.maxSize && !this.cache.has(key)) {
@@ -329,9 +485,12 @@ class CacheManager {
                 expiresAt,
                 accessCount: 0,
                 lastAccessed: now, // Will be updated on first get()
+                sizeBytes: entrySize, // Track size (Issue #4 fix)
             };
 
             this.cache.set(key, entry);
+            this.memoryUsage.totalBytes += entrySize;
+            this.memoryUsage.largestEntry = Math.max(this.memoryUsage.largestEntry, entrySize);
 
             // Set expiration timer
             if (ttlMs > 0) {
@@ -351,6 +510,8 @@ class CacheManager {
                 ttl: ttl || this.config.defaultTTL,
                 etag,
                 cacheSize: this.cache.size,
+                size: `${Math.round(entrySize / 1024)}KB`,
+                totalMemory: `${Math.round((this.memoryUsage.totalBytes / 1024 / 1024) * 100) / 100}MB`,
             });
 
             // Persist if enabled
@@ -450,6 +611,12 @@ class CacheManager {
      */
     delete(key) {
         try {
+            // Update memory tracking before delete (Issue #4 fix)
+            const entry = this.cache.get(key);
+            if (entry?.sizeBytes) {
+                this.memoryUsage.totalBytes -= entry.sizeBytes;
+            }
+
             // Clear timer
             if (this.timers.has(key)) {
                 clearTimeout(this.timers.get(key));
@@ -506,6 +673,7 @@ class CacheManager {
                 cleared = this.cache.size;
                 this.cache.clear();
                 this.timers.clear();
+                this.memoryUsage.totalBytes = 0; // Reset memory tracking (Issue #4 fix)
                 logger.info('Cache cleared completely', { cleared });
             }
 
@@ -556,8 +724,29 @@ class CacheManager {
                       ) / 100
                     : 0,
 
-            // Memory usage
-            memoryUsage: this.cache.size * 1024, // rough estimate in bytes
+            // Memory usage (Issue #4 fix - accurate tracking)
+            memoryUsage: {
+                totalBytes: this.memoryUsage.totalBytes,
+                totalMB: Math.round((this.memoryUsage.totalBytes / 1024 / 1024) * 100) / 100,
+                maxBytes: this.config.maxTotalMemoryBytes,
+                maxMB: Math.round((this.config.maxTotalMemoryBytes / 1024 / 1024) * 100) / 100,
+                percentUsed:
+                    Math.round(
+                        (this.memoryUsage.totalBytes / this.config.maxTotalMemoryBytes) * 10000
+                    ) / 100,
+                largestEntryBytes: this.memoryUsage.largestEntry,
+                largestEntryKB: Math.round(this.memoryUsage.largestEntry / 1024),
+                entriesRejected: this.memoryUsage.entriesRejected,
+                averageEntryBytes:
+                    this.cache.size > 0
+                        ? Math.round(this.memoryUsage.totalBytes / this.cache.size)
+                        : 0,
+                averageEntryKB:
+                    this.cache.size > 0
+                        ? Math.round((this.memoryUsage.totalBytes / this.cache.size / 1024) * 100) /
+                          100
+                        : 0,
+            },
 
             // Cleanup stats
             lastCleanup: this.stats.lastCleanup,

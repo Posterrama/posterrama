@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const logger = require('./logger');
+const { validateMessage, MessageRateLimiter, MAX_MESSAGE_SIZE } = require('./wsMessageValidator');
 
 // In-memory maps
 const deviceToSocket = new Map(); // deviceId -> ws
@@ -9,6 +10,9 @@ let wss = null;
 
 // Pending command acknowledgements: id -> { resolve, reject, timer, deviceId }
 const pendingAcks = new Map();
+
+// Rate limiter for WebSocket messages (Issue #5 fix)
+const rateLimiter = new MessageRateLimiter();
 
 function genId() {
     // Simple unique id: timestamp + random
@@ -119,6 +123,9 @@ function unregister(ws) {
                 cleanedUpAcks++;
             }
         }
+
+        // Cleanup rate limiter tracking (Issue #5 fix)
+        rateLimiter.cleanup(deviceId);
 
         logger.debug('🔴 WebSocket: Device disconnected', {
             deviceId,
@@ -307,7 +314,69 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
 
         ws.on('message', async data => {
             try {
-                const msg = JSON.parse(data.toString());
+                // Check message size (Issue #5 fix)
+                if (data.length > MAX_MESSAGE_SIZE) {
+                    logger.warn('[WS] Message too large', {
+                        size: data.length,
+                        maxSize: MAX_MESSAGE_SIZE,
+                        ip,
+                        deviceId,
+                    });
+                    return closeSocket(ws, 1009, 'Message too large');
+                }
+
+                // Parse JSON with error handling
+                let msg;
+                try {
+                    msg = JSON.parse(data.toString());
+                } catch (parseError) {
+                    logger.warn('[WS] Invalid JSON', {
+                        error: parseError.message,
+                        ip,
+                        deviceId,
+                        dataLength: data.length,
+                    });
+                    return closeSocket(ws, 1007, 'Invalid JSON');
+                }
+
+                // Validate message structure (Issue #5 fix)
+                const validation = validateMessage(msg);
+                if (!validation.valid) {
+                    logger.warn('[WS] Invalid message', {
+                        error: validation.error,
+                        kind: msg?.kind,
+                        ip,
+                        deviceId,
+                    });
+
+                    // Send error back to client for debugging
+                    sendJson(ws, {
+                        kind: 'error',
+                        message: 'Invalid message format',
+                        details: validation.error,
+                    });
+
+                    // Close for repeated invalid messages during auth
+                    if (authState !== 'authenticated') {
+                        return closeSocket(ws, 1008, 'Invalid message format');
+                    }
+
+                    return;
+                }
+
+                msg = validation.value; // Use validated/sanitized message
+
+                // Rate limiting for authenticated devices (Issue #5 fix)
+                if (authState === 'authenticated' && deviceId) {
+                    if (!rateLimiter.checkRateLimit(deviceId)) {
+                        logger.warn('[WS] Rate limit exceeded', {
+                            deviceId,
+                            ip,
+                            stats: rateLimiter.getStats(deviceId),
+                        });
+                        return closeSocket(ws, 1008, 'Rate limit exceeded');
+                    }
+                }
 
                 // Immediate rejection if auth failed
                 if (authState === 'failed') {
