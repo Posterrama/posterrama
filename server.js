@@ -75,13 +75,15 @@ const fetch = require('node-fetch');
 const crypto = require('crypto');
 const fsp = fs.promises;
 
-const config = require('./config.json');
+// Import Config class instance (provides methods like getTimeout())
+const config = require('./config/');
+const configJson = require('./config.json');
 
 // Validate configuration at startup (Issue #10: Config Validation Runs Too Late)
 // This ensures invalid configurations are caught before services initialize
 const { validateConfig } = require('./config/validators');
 try {
-    const validation = validateConfig(config);
+    const validation = validateConfig(configJson);
     if (!validation.valid) {
         logger.error('❌ Configuration validation failed:');
         validation.errors.forEach(err => {
