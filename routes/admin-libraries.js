@@ -251,9 +251,8 @@ module.exports = function createAdminLibrariesRouter({
             if (isDebug) logger.debug('[Admin API] Request received for /api/admin/plex-genres.');
 
             const currentConfig = await readConfig();
-            const enabledServers = currentConfig.mediaServers.filter(
-                s => s.enabled && s.type === 'plex'
-            );
+            const { getAllEnabledServers } = require('../lib/config-helpers');
+            const enabledServers = getAllEnabledServers(currentConfig, 'plex');
 
             if (enabledServers.length === 0) {
                 return res.json({ genres: [] });
@@ -321,9 +320,8 @@ module.exports = function createAdminLibrariesRouter({
                 );
 
             const currentConfig = await readConfig();
-            const enabledServers = currentConfig.mediaServers.filter(
-                s => s.enabled && s.type === 'plex'
-            );
+            const { getAllEnabledServers } = require('../lib/config-helpers');
+            const enabledServers = getAllEnabledServers(currentConfig, 'plex');
 
             if (enabledServers.length === 0) {
                 return res.json({ genres: [] });
@@ -410,27 +408,14 @@ module.exports = function createAdminLibrariesRouter({
             if (isDebug)
                 logger.debug('[Admin API] Request received for /api/admin/plex-genres-test.');
 
-            let { hostname, port, token } = req.body;
-
-            // Sanitize hostname
-            if (hostname) {
-                hostname = hostname.trim().replace(/^https?:\/\//, '');
-            }
-
-            // Fallback to configured values if not provided
+            // Get server configuration with fallbacks
             const currentConfig = await readConfig();
-            const plexServerConfig = currentConfig.mediaServers.find(s => s.type === 'plex');
-            if (!plexServerConfig) {
-                throw new ApiError(500, 'Plex server is not configured in config.json.');
-            }
-
-            if (!hostname && plexServerConfig.hostname) {
-                hostname = plexServerConfig.hostname.trim().replace(/^https?:\/\//, '');
-            }
-            if (!port && typeof plexServerConfig.port !== 'undefined') {
-                port = plexServerConfig.port;
-            }
-            token = token || process.env[plexServerConfig.tokenEnvVar];
+            const { hostname, port, token, serverConfig: plexServerConfig } = 
+                require('../lib/config-helpers').getServerConfig({
+                    config: currentConfig,
+                    serverType: 'plex',
+                    requestBody: req.body
+                });
 
             if (!hostname || !port || !token) {
                 throw new ApiError(
@@ -514,27 +499,14 @@ module.exports = function createAdminLibrariesRouter({
                     '[Admin API] Request received for /api/admin/plex-genres-with-counts-test.'
                 );
 
-            let { hostname, port, token } = req.body;
-
-            // Sanitize hostname
-            if (hostname) {
-                hostname = hostname.trim().replace(/^https?:\/\//, '');
-            }
-
-            // Fallback to configured values if not provided
+            // Get server configuration with fallbacks
             const currentConfig = await readConfig();
-            const plexServerConfig = currentConfig.mediaServers.find(s => s.type === 'plex');
-            if (!plexServerConfig) {
-                throw new ApiError(500, 'Plex server is not configured in config.json.');
-            }
-
-            if (!hostname && plexServerConfig.hostname) {
-                hostname = plexServerConfig.hostname.trim().replace(/^https?:\/\//, '');
-            }
-            if (!port && typeof plexServerConfig.port !== 'undefined') {
-                port = plexServerConfig.port;
-            }
-            token = token || process.env[plexServerConfig.tokenEnvVar];
+            const { hostname, port, token, serverConfig: plexServerConfig } = 
+                require('../lib/config-helpers').getServerConfig({
+                    config: currentConfig,
+                    serverType: 'plex',
+                    requestBody: req.body
+                });
 
             if (!hostname || !port || !token) {
                 throw new ApiError(
