@@ -19162,17 +19162,13 @@
                 const port = getInput('jf.port')?.value;
                 // Get API key from dataset first (actual key), fallback to input value
                 const apiKeyInput = getInput('jf.apikey');
-                const apiKey = apiKeyInput?.dataset?.actualToken || apiKeyInput?.value;
+                const apiKeyRaw = apiKeyInput?.dataset?.actualToken || apiKeyInput?.value;
+                // Only use apiKey if it's real (not masked or EXISTING_TOKEN marker)
+                const isMaskedKey = apiKeyRaw && (/^[•]+$/.test(apiKeyRaw) || apiKeyRaw === 'EXISTING_TOKEN');
+                const apiKey = (apiKeyRaw && !isMaskedKey) ? apiKeyRaw : undefined;
                 const movieLibraries = getMultiSelectValues('jf.movies');
                 const showLibraries = getMultiSelectValues('jf.shows');
-                // If no libraries are selected yet, don't call the API (it requires at least one)
-                if (movieLibraries.length === 0 && showLibraries.length === 0) {
-                    chips.innerHTML =
-                        '<div class="subtle">Select one or more libraries to load genres</div>';
-                    optsEl.innerHTML = '';
-                    setJfHidden('jf.genreFilter-hidden', '');
-                    return;
-                }
+                // Always call the API - backend will return empty array if no libraries selected
                 const res = await window.dedupJSON('/api/admin/jellyfin-genres-with-counts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -19180,7 +19176,7 @@
                     body: JSON.stringify({
                         hostname,
                         port,
-                        apiKey: apiKey || undefined,
+                        apiKey,
                         libraries: [...movieLibraries, ...showLibraries],
                     }),
                 });

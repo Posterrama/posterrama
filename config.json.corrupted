@@ -1,0 +1,238 @@
+{
+  "transitionIntervalSeconds": 10,
+  "backgroundRefreshMinutes": 60,
+  "showClearLogo": true,
+  "showRottenTomatoes": true,
+  "rottenTomatoesMinimumScore": 0,
+  "showPoster": true,
+  "showMetadata": true,
+  "clockWidget": true,
+  "clockTimezone": "auto",
+  "clockFormat": "24h",
+  "wallartMode": {
+    "enabled": true,
+    "density": "high",
+    "refreshRate": 4,
+    "randomness": 2,
+    "animationType": "flip",
+    "layoutVariant": "heroGrid",
+    "ambientGradient": true,
+    "gamesOnly": false,
+    "musicMode": {
+      "enabled": true,
+      "displayStyle": "artist-cards",
+      "animation": "vinyl-spin",
+      "density": "ludicrous",
+      "showArtist": true,
+      "showAlbumTitle": true,
+      "showYear": true,
+      "showGenre": true,
+      "minRating": 0,
+      "artistRotationSeconds": 120,
+      "albumRotationSeconds": 15,
+      "sortMode": "weighted-random",
+      "sortWeights": {
+        "recent": 20,
+        "popular": 55,
+        "random": 85
+      }
+    },
+    "layoutSettings": {
+      "heroGrid": {
+        "heroSide": "right",
+        "heroRotationMinutes": 8,
+        "biasAmbientToHero": true
+      }
+    }
+  },
+  "cinemaMode": false,
+  "cinemaOrientation": "auto",
+  "cinema": {
+    "orientation": "auto",
+    "header": {
+      "enabled": true,
+      "text": "Now Playing",
+      "style": "classic"
+    },
+    "footer": {
+      "enabled": true,
+      "type": "specs",
+      "marqueeText": "Feature Presentation",
+      "marqueeStyle": "classic",
+      "specs": {
+        "showResolution": true,
+        "showAudio": true,
+        "showAspectRatio": true,
+        "showFlags": true,
+        "style": "outline",
+        "iconSet": "filled"
+      }
+    },
+    "ambilight": {
+      "enabled": true,
+      "strength": 60
+    },
+    "rotationIntervalMinutes": 1,
+    "presets": {
+      "headerTexts": [
+        "Coming Soon",
+        "Now Playing",
+        "Home Cinema",
+        "Feature Presentation"
+      ],
+      "footerTexts": [
+        "Coming Soon",
+        "Now Playing",
+        "Home Cinema",
+        "Feature Presentation"
+      ]
+    },
+    "nowPlaying": {
+      "enabled": true,
+      "priority": "user",
+      "filterUser": "MediaJunkieMF",
+      "fallbackToRotation": true,
+      "updateIntervalSeconds": 15
+    }
+  },
+  "transitionEffect": "kenburns",
+  "effectPauseTime": 3,
+  "uiScaling": {
+    "global": 100,
+    "content": 100,
+    "clearlogo": 100,
+    "clock": 100
+  },
+  "mediaServers": [
+    {
+      "type": "plex",
+      "enabled": true,
+      "recentlyAddedOnly": false,
+      "recentlyAddedDays": 30,
+      "ratingFilter": [],
+      "qualityFilter": "",
+      "genreFilter": "",
+      "movieLibraryNames": [
+        "Certified Fresh"
+      ],
+      "showLibraryNames": [],
+      "tokenEnvVar": "PLEX_TOKEN",
+      "hostname": "192.168.10.25",
+      "port": 32400,
+      "name": "Plex Server",
+      "musicLibraryNames": [
+        "Music"
+      ],
+      "token": "CONFIG_TOKEN",
+      "musicFilters": {
+        "genres": [],
+        "artists": []
+      }
+    },
+    {
+      "type": "jellyfin",
+      "enabled": true,
+      "recentlyAddedOnly": false,
+      "recentlyAddedDays": 30,
+      "ratingFilter": [],
+      "genreFilter": "",
+      "qualityFilter": "",
+      "movieLibraryNames": [
+        "Movies"
+      ],
+      "showLibraryNames": [],
+      "tokenEnvVar": "JELLYFIN_API_KEY",
+      "hostname": "jelly.uberserver.nl",
+      "port": 443,
+      "name": "Jellyfin Server 2"
+    },
+    {
+      "type": "romm",
+      "name": "RomM",
+      "enabled": true,
+      "url": "http://192.168.10.28",
+      "username": "seedbox",
+      "insecureHttps": false,
+      "selectedPlatforms": [],
+      "password": "Bo1zxyl1!"
+    }
+  ],
+  "tmdbSource": {
+    "enabled": false,
+    "category": "popular",
+    "minRating": 0,
+    "apiKey": null,
+    "genreFilter": ""
+  },
+  "streamingSources": {
+    "enabled": false,
+    "region": "US",
+    "minRating": 0,
+    "netflix": false,
+    "disney": false,
+    "prime": false,
+    "hbo": false,
+    "hulu": false,
+    "apple": false,
+    "paramount": false,
+    "crunchyroll": false,
+    "newReleases": false
+  },
+  "siteServer": {
+    "enabled": true,
+    "port": 4001
+  },
+  "deviceMgmt": {
+    "enabled": true,
+    "bypass": {
+      "ipAllowList": [
+        "127.0.0.1",
+        "10.255.0.0/16"
+      ]
+    }
+  },
+  "clientDebugViewer": {
+    "enabled": false
+  },
+  "cache": {
+    "maxSizeGB": 5
+  },
+  "serverName": "Your Server Name",
+  "baseUrl": "https://dev.posterrama.app",
+  "port": 4000,
+  "syncEnabled": true,
+  "syncAlignMaxDelayMs": 1200,
+  "serverPort": 4000,
+  "plexClientOptions": {},
+  "backups": {
+    "enabled": true,
+    "time": "03:30",
+    "retention": 5
+  },
+  "testKeyConfig": "fromConfig",
+  "someInt": 42,
+  "localDirectory": {
+    "enabled": true,
+    "rootPath": "media",
+    "watchDirectories": []
+  },
+  "rootRoute": {
+    "behavior": "landing",
+    "defaultMode": "screensaver",
+    "statusCode": 302,
+    "bypassParam": "landing"
+  },
+  "previewOrientation": "landscape",
+  "mqtt": {
+    "enabled": true,
+    "broker": {
+      "host": "192.168.10.20",
+      "port": 1883,
+      "username": "mqtt",
+      "password": "mqtt"
+    },
+    "discovery": {
+      "enabled": true
+    }
+  }
+}
