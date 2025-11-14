@@ -852,25 +852,27 @@ module.exports = function createAuthRouter({
             const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
             if (!isValidPassword) throw new ApiError(401, 'Incorrect password.');
 
-            // Set to empty string AND update process.env immediately
+            // Clear 2FA secret from .env file (writeEnvFile updates process.env automatically)
             await writeEnvFile({ ADMIN_2FA_SECRET: '' });
-
-            // Also clear from current process.env to ensure immediate effect
-            delete process.env.ADMIN_2FA_SECRET;
 
             // Clear 2FA from session to prevent re-verification on next page load
             if (req.session) {
                 req.session.twoFactorVerified = false;
             }
 
-            // Restart PM2 to clear environment cache
-            restartPM2ForEnvUpdate('2FA disabled');
+            logger.info('[Admin 2FA] 2FA disabled successfully', {
+                user: req.session.user.username,
+                timestamp: new Date().toISOString(),
+            });
 
-            if (isDebug)
-                logger.debug(
-                    `[Admin 2FA] 2FA disabled successfully for user "${req.session.user.username}".`
-                );
-            res.json({ success: true, message: '2FA disabled successfully.' });
+            // Send response before PM2 restart (restart may terminate current process)
+            res.json({
+                success: true,
+                message: '2FA disabled. Server will restart to apply changes.',
+            });
+
+            // Restart PM2 to clear environment cache
+            await restartPM2ForEnvUpdate('2FA disabled');
         })
     );
 

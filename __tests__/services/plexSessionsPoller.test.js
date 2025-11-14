@@ -114,13 +114,24 @@ describe('PlexSessionsPoller', () => {
             expect(logger.info).toHaveBeenCalledWith('Stopping Plex sessions poller');
         });
 
-        test('should clear timer on stop', () => {
+        test('should clear timer on stop', async () => {
+            const mockSessions = {
+                MediaContainer: { Metadata: [] },
+            };
+            const mockPlexClient = {
+                query: jest.fn().mockResolvedValue(mockSessions),
+            };
+            mockGetPlexClient.mockResolvedValue(mockPlexClient);
+
             poller = new PlexSessionsPoller({
                 getPlexClient: mockGetPlexClient,
                 config: mockConfig,
             });
 
             poller.start();
+
+            // Let first poll complete (timer is set after poll)
+            await jest.runOnlyPendingTimersAsync();
             expect(poller.pollTimer).not.toBeNull();
 
             poller.stop();
