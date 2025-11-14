@@ -77,6 +77,26 @@ const fsp = fs.promises;
 
 const config = require('./config.json');
 
+// Validate configuration at startup (Issue #10: Config Validation Runs Too Late)
+// This ensures invalid configurations are caught before services initialize
+const { validateConfig } = require('./config/validators');
+try {
+    const validation = validateConfig(config);
+    if (!validation.valid) {
+        logger.error('❌ Configuration validation failed:');
+        validation.errors.forEach(err => {
+            logger.error(`  - ${err.path}: ${err.message}`);
+        });
+        logger.error('Please fix the configuration errors in config.json and restart the server.');
+        process.exit(1);
+    }
+    logger.info('✅ Configuration validated successfully');
+} catch (error) {
+    logger.error('❌ Configuration validation error:', error.message);
+    logger.error('Please check your config.json file for syntax errors.');
+    process.exit(1);
+}
+
 // Migrate config: ensure all mediaServers have a 'name' field
 if (Array.isArray(config.mediaServers)) {
     let needsSave = false;

@@ -145,7 +145,39 @@ function validate(schema, data) {
     return value;
 }
 
+/**
+ * Validate configuration object at application startup
+ * Returns validation result with success flag and errors array
+ * @param {object} config - Configuration object to validate
+ * @returns {object} Validation result { valid: boolean, errors: array, sanitized: object }
+ */
+function validateConfig(config) {
+    const { error, value } = schemas.config.validate(config, {
+        abortEarly: false,
+        stripUnknown: true,
+    });
+
+    if (error) {
+        return {
+            valid: false,
+            errors: error.details.map(err => ({
+                path: err.path.join('.'),
+                message: err.message,
+                type: err.type,
+            })),
+            sanitized: null,
+        };
+    }
+
+    return {
+        valid: true,
+        errors: [],
+        sanitized: value,
+    };
+}
+
 module.exports = {
     schemas,
     validate: (schema, data) => validate(schemas[schema], data),
+    validateConfig,
 };
