@@ -335,7 +335,8 @@ module.exports = function createAdminConfigRouter({
             }
 
             // Update in-memory config so routes see latest values
-            Object.assign(config, mergedConfig);
+            // config is a Config class instance, update its internal config object
+            Object.assign(config.config, mergedConfig);
 
             // Restart PM2 if environment variables changed (for tokens/secrets)
             if (Object.keys(sanitizedEnv).length > 0) {
