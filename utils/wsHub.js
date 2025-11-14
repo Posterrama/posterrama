@@ -19,15 +19,24 @@ function sendJson(ws, obj) {
     try {
         ws.send(JSON.stringify(obj));
     } catch (e) {
-        // ignore send errors
+        logger.debug('WebSocket send failed', {
+            error: e.message,
+            messageType: obj.kind || obj.type,
+            readyState: ws.readyState,
+        });
     }
 }
 
 function closeSocket(ws, code = 1008, reason = 'Policy violation') {
     try {
         ws.close(code, reason);
-    } catch (_) {
-        /* ignore close errors */
+    } catch (e) {
+        logger.debug('WebSocket close failed', {
+            error: e.message,
+            code,
+            reason,
+            readyState: ws.readyState,
+        });
     }
 }
 
@@ -41,8 +50,11 @@ function registerConnection(ws, deviceId) {
                 reason: 'single_connection_policy',
             });
             existing.terminate();
-        } catch (_) {
-            /* ignore terminate errors */
+        } catch (e) {
+            logger.debug('WebSocket terminate failed during replacement', {
+                error: e.message,
+                deviceId,
+            });
         }
     }
 
@@ -67,8 +79,11 @@ function registerConnection(ws, deviceId) {
         if (process.env.DEBUG_DEVICE_SSE === 'true') {
             logger.debug('[SSE] device-ws connect', { deviceId });
         }
-    } catch (_) {
-        /* ignore */
+    } catch (e) {
+        logger.debug('SSE broadcast failed on device connect', {
+            error: e.message,
+            deviceId,
+        });
     }
 }
 
@@ -84,14 +99,22 @@ function unregister(ws) {
             if (p.deviceId === deviceId) {
                 try {
                     clearTimeout(p.timer);
-                } catch (_) {
-                    /* noop: ignore clearTimeout errors */
+                } catch (e) {
+                    logger.debug('clearTimeout failed in unregister', {
+                        error: e.message,
+                        ackId: id,
+                        deviceId,
+                    });
                 }
                 pendingAcks.delete(id);
                 try {
                     p.reject(new Error('socket_closed'));
-                } catch (_) {
-                    /* noop: reject error ignored */
+                } catch (e) {
+                    logger.debug('Promise reject failed in unregister', {
+                        error: e.message,
+                        ackId: id,
+                        deviceId,
+                    });
                 }
                 cleanedUpAcks++;
             }
@@ -116,8 +139,11 @@ function unregister(ws) {
             if (process.env.DEBUG_DEVICE_SSE === 'true') {
                 logger.debug('[SSE] device-ws disconnect', { deviceId });
             }
-        } catch (_) {
-            /* ignore */
+        } catch (e) {
+            logger.debug('SSE broadcast failed on device disconnect', {
+                error: e.message,
+                deviceId,
+            });
         }
     }
 }
@@ -192,7 +218,12 @@ function broadcast(message) {
             if (ws && ws.readyState === WebSocket.OPEN) sendJson(ws, message);
         }
         return true;
-    } catch (_) {
+    } catch (e) {
+        logger.debug('WebSocket broadcast failed', {
+            error: e.message,
+            messageType: message.kind || message.type,
+            totalDevices: deviceToSocket.size,
+        });
         return false;
     }
 }
@@ -250,16 +281,25 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
                         pendingAcks.delete(msg.id);
                         try {
                             clearTimeout(p.timer);
-                        } catch (_) {
-                            /* noop: ignore clearTimeout on resolve */
+                        } catch (e) {
+                            logger.debug('clearTimeout failed on ack receive', {
+                                error: e.message,
+                                ackId: msg.id,
+                                deviceId,
+                            });
                         }
                         try {
                             p.resolve({
                                 status: msg.status || 'ok',
                                 info: msg.info || null,
                             });
-                        } catch (_) {
-                            /* noop: resolve handler threw */
+                        } catch (e) {
+                            logger.debug('Promise resolve handler threw error', {
+                                error: e.message,
+                                ackId: msg.id,
+                                deviceId,
+                                status: msg.status,
+                            });
                         }
                     }
                     return; // nothing else to do for ack
@@ -269,7 +309,10 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
                     sendJson(ws, { kind: 'pong', t: Date.now() });
                 }
             } catch (e) {
-                // ignore malformed
+                logger.debug('WebSocket message parse/handle failed', {
+                    error: e.message,
+                    rawDataLength: data?.toString()?.length || 0,
+                });
             }
         });
 
