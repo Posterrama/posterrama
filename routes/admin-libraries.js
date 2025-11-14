@@ -838,10 +838,14 @@ module.exports = function createAdminLibrariesRouter({
                 // Get all libraries to verify selected ones
                 const allLibraries = await fetchJellyfinLibraries(client);
                 
-                logger.info('[Admin API] Jellyfin genres - libraries info', {
-                    selectedLibraries,
-                    allLibraryNames: allLibraries.map(l => l.Name),
-                    allLibraryIds: allLibraries.map(l => l.Id)
+                logger.info('[Admin API] Jellyfin genres - raw library objects', {
+                    libraries: allLibraries.map(l => ({
+                        Name: l.Name,
+                        Id: l.Id,
+                        ItemId: l.ItemId,
+                        CollectionType: l.CollectionType,
+                        allKeys: Object.keys(l)
+                    }))
                 });
                 
                 const libraryIds = selectedLibraries?.length
