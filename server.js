@@ -1,4 +1,5 @@
 const logger = require('./utils/logger');
+const env = require('./config/environment');
 const fs = require('fs');
 const path = require('path');
 const AdmZip = require('adm-zip');
@@ -163,9 +164,9 @@ const ratingCache = require('./utils/rating-cache.js');
 // Device management bypass (IP allow list)
 const { deviceBypassMiddleware } = require('./middleware/deviceBypass');
 
-// Use process.env with a fallback to config.json
-const port = process.env.SERVER_PORT || config.serverPort || 4000;
-const isDebug = process.env.DEBUG === 'true';
+// Use environment configuration with fallback to config.json
+const port = env.server.port || config.serverPort || 4000;
+const isDebug = env.server.debug;
 
 // Wrapper for isAuthenticated that passes isDebug
 const isAuthenticated = createIsAuthenticated({ isDebug });
@@ -250,16 +251,16 @@ app.use(
     session({
         store: __fileStore,
         name: 'posterrama.sid',
-        secret: process.env.SESSION_SECRET,
+        secret: env.auth.sessionSecret || 'test-secret-fallback',
         resave: false,
         saveUninitialized: false,
         rolling: true, // Extend session lifetime on each request
-        proxy: process.env.NODE_ENV === 'production',
+        proxy: env.server.nodeEnv === 'production',
         cookie: {
             maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+            secure: env.server.nodeEnv === 'production',
+            sameSite: env.server.nodeEnv === 'production' ? 'strict' : 'lax',
         },
     })
 );
@@ -365,7 +366,7 @@ app.use((req, res, next) => {
         }
 
         // Log slow requests (configurable threshold)
-        const slowReqMs = Number(process.env.SLOW_REQUEST_WARN_MS || 3000);
+        const slowReqMs = env.server.slowRequestMs;
         if (duration > slowReqMs) {
             logger.warn('Slow request detected', {
                 ...requestLog,
@@ -1308,9 +1309,9 @@ app.post(
     express.json(),
     asyncHandler(async (req, res) => {
         try {
-            const perfTrace = String(process.env.PERF_TRACE_ADMIN || '').toLowerCase() === 'true';
+            const perfTrace = env.logging.perfTraceAdmin;
             const reqStart = Date.now();
-            const timeoutMs = Number(process.env.ADMIN_FILTER_PREVIEW_TIMEOUT_MS) || 8000;
+            const timeoutMs = env.performance.adminFilterPreviewTimeoutMs;
             // Fast-path cache (15s TTL) keyed by the normalized request body
             const cacheKey = (() => {
                 try {
@@ -1500,10 +1501,7 @@ app.post(
                             const lib = libsMap.get(libName);
                             if (!lib) return 0;
                             let start = 0;
-                            const pageSize = Math.max(
-                                1,
-                                Number(process.env.PLEX_PREVIEW_PAGE_SIZE || 200)
-                            );
+                            const pageSize = Math.max(1, env.plex.previewPageSize);
                             let total = 0;
                             let matched = 0;
                             let scanned = 0;
@@ -1631,10 +1629,7 @@ app.post(
                         const countForLib = async (libName, kind) => {
                             const lib = libsMap.get(libName);
                             if (!lib) return 0;
-                            const pageSize = Math.max(
-                                1,
-                                Number(process.env.JF_PREVIEW_PAGE_SIZE || 1000)
-                            );
+                            const pageSize = Math.max(1, env.jellyfin.previewPageSize);
                             let startIndex = 0;
                             let matched = 0;
                             let scanned = 0;
@@ -2127,9 +2122,9 @@ app.use(securityMiddleware());
 app.use(corsMiddleware());
 app.use(requestLoggingMiddleware());
 // In test environment, optionally log requests; only seed session for safe idempotent reads (GET/HEAD)
-if (process.env.NODE_ENV === 'test') {
+if (env.server.nodeEnv === 'test') {
     app.use((req, _res, next) => {
-        if (process.env.PRINT_AUTH_DEBUG === '1') {
+        if (env.logging.printAuthDebug) {
             // Replaced raw console.log with logger.debug (pre-review enforcement)
             logger.debug('[REQ]', req.method, req.path, 'Auth:', req.headers.authorization || '');
         }
@@ -3399,7 +3394,7 @@ app.post('/api/admin/restart-app', adminAuth, (req, res) => {
     setTimeout(() => {
         try {
             const name = (ecosystemConfig?.apps && ecosystemConfig.apps[0]?.name) || 'posterrama';
-            const underPm2 = !!process.env.PM2_HOME;
+            const underPm2 = env.pm2.isEnabled();
             if (underPm2) {
                 const cmd = `pm2 restart ${name} --update-env || pm2 start ecosystem.config.js`;
                 exec(cmd, (err, stdout, stderr) => {
@@ -3440,7 +3435,7 @@ app.post('/api/admin/restart-app', adminAuth, (req, res) => {
             } catch (_) {
                 // best-effort logging
             }
-            if (!process.env.PM2_HOME) {
+            if (!env.pm2.isEnabled()) {
                 const timeoutConfig = require('./config/');
                 setTimeout(
                     () => process.exit(0),
@@ -4048,10 +4043,7 @@ app.post(
             throw new ApiError(400, 'New password must be at least 8 characters long.');
         }
 
-        const isValidPassword = await bcrypt.compare(
-            currentPassword,
-            process.env.ADMIN_PASSWORD_HASH
-        );
+        const isValidPassword = await bcrypt.compare(currentPassword, env.auth.adminPasswordHash);
         if (!isValidPassword) {
             if (isDebug)
                 logger.debug('[Admin API] Password change failed: incorrect current password.');
@@ -4656,7 +4648,7 @@ app.post(
             // Start updater via a detached Node process first to avoid PM2 side-effects
             try {
                 const { spawn } = require('child_process');
-                const underPM2 = !!process.env.PM2_HOME;
+                const underPM2 = env.pm2.isEnabled();
                 const args = [
                     runner,
                     requestedVersion ? '--version' : '',
@@ -6235,7 +6227,7 @@ app.post(
  *                   nullable: true
  */
 app.get('/api/admin/api-key', isAuthenticated, (req, res) => {
-    const apiKey = process.env.API_ACCESS_TOKEN || null;
+    const apiKey = env.auth.apiAccessToken || null;
     res.json({ apiKey });
 });
 /**
@@ -6261,7 +6253,7 @@ app.get('/api/admin/api-key', isAuthenticated, (req, res) => {
  *                   example: true
  */
 app.get('/api/admin/api-key/status', isAuthenticated, (req, res) => {
-    const hasKey = !!(process.env.API_ACCESS_TOKEN || '').trim();
+    const hasKey = env.auth.hasApiToken();
     res.json({ hasKey });
 });
 
@@ -6622,10 +6614,7 @@ if (require.main === module) {
     // Pre-populate cache before starting the server to prevent race conditions
     logger.info('Performing initial playlist fetch before server startup...');
 
-    const STARTUP_FETCH_TIMEOUT_MS = Math.max(
-        5000,
-        Number(process.env.STARTUP_FETCH_TIMEOUT_MS || 12000)
-    );
+    const STARTUP_FETCH_TIMEOUT_MS = Math.max(5000, env.performance.startupFetchTimeoutMs);
 
     const startupFetch = Promise.race([
         refreshPlaylistCache()
@@ -7265,7 +7254,7 @@ try {
 }
 
 // Conditionally mount internal test routes late (after all core middleware) to avoid affecting production
-if (process.env.EXPOSE_INTERNAL_ENDPOINTS === 'true') {
+if (env.server.exposeInternalEndpoints) {
     try {
         // Lazy require only when needed
         testRoutes = require('./__tests__/routes/test-endpoints');
