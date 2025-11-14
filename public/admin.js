@@ -20023,20 +20023,31 @@
                     localStorage.getItem('jf_apikey_temp');
                 // Check if it's a masked value (all bullet points) or EXISTING_TOKEN marker
                 const isMaskedKey = jfKey && (/^[•]+$/.test(jfKey) || jfKey === 'EXISTING_TOKEN');
-                // Check if key actually changed (compare with current env value)
-                const currentJfKey = base?.env?.[jf.tokenEnvVar];
-                const keyChanged = jfKey && !isMaskedKey && jfKey !== currentJfKey;
-                // Only update API key if it's a NEW value (not empty, not masked, AND changed)
-                if (keyChanged) {
+                // Check if key came from user input (actualToken or input field), not localStorage
+                const keyFromUserInput =
+                    jfKeyInput?.dataset?.actualToken || jfKeyInput?.value?.trim();
+                const keyFromStorage = !keyFromUserInput && localStorage.getItem('jf_apikey_temp');
+                // Only send to env if:
+                // 1. Key is not masked AND
+                // 2. Key came from user input (not localStorage)
+                const shouldUpdateEnv = jfKey && !isMaskedKey && keyFromUserInput;
+
+                if (shouldUpdateEnv) {
                     setIfProvided(jf.tokenEnvVar, jfKey);
                     localStorage.setItem('jf_apikey_temp', jfKey);
                     console.log(
-                        '[Jellyfin Save] Key changed - saved to localStorage:',
+                        '[Jellyfin Save] New key from input - updating env:',
                         jfKey.length,
                         'chars'
                     );
-                } else if (jfKey && !isMaskedKey) {
-                    console.log('[Jellyfin Save] Key unchanged - skipping env update');
+                } else if (keyFromStorage) {
+                    console.log(
+                        '[Jellyfin Save] Using stored key - skipping env update (no restart needed)'
+                    );
+                } else if (isMaskedKey) {
+                    console.log(
+                        '[Jellyfin Save] Masked key detected - preserving existing env value'
+                    );
                 }
                 // If empty or masked, key is intentionally omitted so backend preserves existing value
                 // Only add JELLYFIN_INSECURE_HTTPS to envPatch if it changed (to avoid unnecessary restart)
