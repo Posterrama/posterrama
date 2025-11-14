@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const logger = require('./logger');
+const ErrorLogger = require('./errorLogger');
 const { validateMessage, MessageRateLimiter, MAX_MESSAGE_SIZE } = require('./wsMessageValidator');
 
 // In-memory maps
@@ -447,10 +448,10 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
                             }
                         } catch (e) {
                             authState = 'failed';
-                            logger.error('[WS] Auth error', {
-                                error: e.message,
+                            // Use standardized error logging (Issue #6 fix)
+                            ErrorLogger.logWebSocketError(e, deviceId || 'unknown', {
                                 ip,
-                                stack: e.stack,
+                                action: 'authentication',
                             });
                             return closeSocket(ws, 1011, 'Auth error');
                         } finally {
@@ -482,12 +483,11 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
                     processAuthenticatedMessage(msg);
                 }
             } catch (e) {
-                logger.error('[WS] Message handling error', {
-                    error: e.message,
-                    stack: e.stack,
+                // Use standardized error logging (Issue #6 fix)
+                ErrorLogger.logWebSocketError(e, deviceId || 'unknown', {
                     ip,
                     authState,
-                    deviceId,
+                    action: 'message_handling',
                 });
                 if (authState !== 'authenticated') {
                     return closeSocket(ws, 1011, 'Message processing error');

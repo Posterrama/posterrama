@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs').promises;
+const ErrorLogger = require('./errorLogger');
 
 // Logger will be passed in during initialization to avoid circular dependencies
 let logger = {
@@ -524,7 +525,8 @@ class CacheManager {
             return entry;
         } catch (error) {
             this.stats.errors++;
-            logger.error('Failed to set cache entry', { key, error: error.message });
+            // Use standardized error logging (Issue #6 fix)
+            ErrorLogger.logCacheError(error, 'set', { key });
             return null;
         }
     }
@@ -585,7 +587,8 @@ class CacheManager {
             return entry;
         } catch (error) {
             this.stats.errors++;
-            logger.error('Failed to get cache entry', { key, error: error.message });
+            // Use standardized error logging (Issue #6 fix)
+            ErrorLogger.logCacheError(error, 'get', { key });
             return null;
         }
     }
