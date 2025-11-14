@@ -21331,6 +21331,27 @@
                     /* validation helper unavailable; proceed */
                 }
 
+                // Only send SERVER_PORT to env if it actually changed (to avoid unnecessary PM2 restart)
+                const originalPort = portEl?.dataset?.originalPort;
+                const portChanged = originalPort && String(serverPort) !== originalPort;
+                const envPatch = portChanged ? { SERVER_PORT: String(serverPort) } : {};
+
+                if (portChanged) {
+                    console.log(
+                        '[Operations Save] Port changed:',
+                        originalPort,
+                        '→',
+                        serverPort,
+                        '- will restart'
+                    );
+                } else if (originalPort) {
+                    console.log(
+                        '[Operations Save] Port unchanged (',
+                        serverPort,
+                        ') - skipping env update (no restart needed)'
+                    );
+                }
+
                 await saveConfigPatch(
                     {
                         serverPort: serverPort,
@@ -21358,7 +21379,7 @@
                             bypassParam: rrBypassParam || 'landing',
                         },
                     },
-                    { SERVER_PORT: String(serverPort) }
+                    envPatch
                 );
 
                 // Check if restart is needed (port change OR MQTT settings change)
