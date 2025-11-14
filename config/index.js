@@ -88,6 +88,26 @@ class Config {
         return this.mediaServers.filter(s => s.enabled);
     }
 
+    // Local directory settings
+    get localDirectory() {
+        return this.config.localDirectory || null;
+    }
+
+    // TMDB settings
+    get tmdbSource() {
+        return this.config.tmdbSource || null;
+    }
+
+    // Streaming sources
+    get streamingSources() {
+        return this.config.streamingSources || [];
+    }
+
+    // MQTT settings
+    get mqtt() {
+        return this.config.mqtt || null;
+    }
+
     // Security settings
     get sessionSecret() {
         return this.get('SESSION_SECRET');
