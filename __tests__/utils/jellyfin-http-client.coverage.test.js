@@ -1,6 +1,16 @@
 const axios = require('axios');
 
 jest.mock('axios');
+jest.mock('../../config', () => ({
+    getTimeout: jest.fn(key => {
+        const timeouts = {
+            externalApiJellyfin: 15000,
+            externalApiMaxRetries: 2,
+            externalApiRetryDelay: 1000,
+        };
+        return timeouts[key] || 15000;
+    }),
+}));
 
 // Defer require until after axios mock is set up
 const { JellyfinHttpClient } = require('../../utils/jellyfin-http-client');

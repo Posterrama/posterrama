@@ -9,12 +9,12 @@ const os = require('os');
 const crypto = require('crypto');
 const logger = require('./logger');
 const config = require('../config');
+const UserAgentBuilder = require('./userAgent');
 
 let pkgVersion = '1.0.0';
 try {
-    // Resolve version for User-Agent / authorization metadata
+    // Resolve version for authorization metadata (Emby auth header)
     // Falls back silently if package.json cannot be loaded
-
     pkgVersion = require('../package.json').version || pkgVersion;
 } catch (_) {
     // package.json not available; keep default version
@@ -115,7 +115,7 @@ class JellyfinHttpClient {
                 'X-Emby-Authorization': embyAuthHeader,
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                'User-Agent': `Posterrama/${pkgVersion}`,
+                'User-Agent': UserAgentBuilder.forJellyfin(),
             },
         });
 

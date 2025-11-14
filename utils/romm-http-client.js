@@ -6,13 +6,7 @@
 const axios = require('axios');
 const https = require('https');
 const config = require('../config');
-
-let pkgVersion = '1.0.0';
-try {
-    pkgVersion = require('../package.json').version || pkgVersion;
-} catch (_) {
-    // package.json not available; keep default version
-}
+const UserAgentBuilder = require('./userAgent');
 
 class RommHttpClient {
     constructor({
@@ -212,7 +206,7 @@ class RommHttpClient {
             url,
             timeout: this.timeout,
             headers: {
-                'User-Agent': `Posterrama/${pkgVersion}`,
+                'User-Agent': UserAgentBuilder.forRomM(),
                 ...this._getAuthHeader(),
                 ...options.headers,
             },
