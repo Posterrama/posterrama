@@ -78,27 +78,14 @@ module.exports = function createAdminLibrariesRouter({
         isAuthenticated,
         asyncHandler(async (req, res) => {
             if (isDebug) logger.debug('[Admin API] Received request to fetch Jellyfin libraries.');
-            let { hostname, port, apiKey } = req.body;
-
-            // Sanitize hostname
-            if (hostname) {
-                hostname = hostname.trim().replace(/^https?:\/\//, '');
-            }
-
-            // Fallback to configured values if not provided in the request
-            const config = await readConfig();
-            const jellyfinServerConfig = config.mediaServers.find(s => s.type === 'jellyfin');
-            if (!jellyfinServerConfig) {
-                throw new ApiError(500, 'Jellyfin server is not configured in config.json.');
-            }
-
-            if (!hostname && jellyfinServerConfig.hostname) {
-                hostname = jellyfinServerConfig.hostname.trim().replace(/^https?:\/\//, '');
-            }
-            if (!port && typeof jellyfinServerConfig.port !== 'undefined') {
-                port = jellyfinServerConfig.port;
-            }
-            apiKey = apiKey || process.env[jellyfinServerConfig.tokenEnvVar];
+            // Get server configuration with fallbacks
+            const currentConfig = await readConfig();
+            const { hostname, port, token: apiKey, serverConfig: jellyfinServerConfig } = 
+                require('../lib/config-helpers').getServerConfig({
+                    config: currentConfig,
+                    serverType: 'jellyfin',
+                    requestBody: { ...req.body, token: req.body.apiKey }
+                });
 
             if (!hostname || !port || !apiKey) {
                 throw new ApiError(
@@ -639,30 +626,16 @@ module.exports = function createAdminLibrariesRouter({
             if (isDebug)
                 logger.debug('[Admin API] Request received for /api/admin/jellyfin-genres.');
 
-            let { hostname, port, apiKey } = req.body;
             const { libraries: selectedLibraries } = req.body;
 
-            // Sanitize hostname
-            if (hostname) {
-                hostname = hostname.trim().replace(/^https?:\/\//, '');
-            }
-
-            // Fallback to configured values if not provided
+            // Get server configuration with fallbacks
             const currentConfig = await readConfig();
-            const jellyfinServerConfig = currentConfig.mediaServers.find(
-                s => s.type === 'jellyfin'
-            );
-            if (!jellyfinServerConfig) {
-                throw new ApiError(500, 'Jellyfin server is not configured in config.json.');
-            }
-
-            if (!hostname && jellyfinServerConfig.hostname) {
-                hostname = jellyfinServerConfig.hostname.trim().replace(/^https?:\/\//, '');
-            }
-            if (!port && typeof jellyfinServerConfig.port !== 'undefined') {
-                port = jellyfinServerConfig.port;
-            }
-            apiKey = apiKey || process.env[jellyfinServerConfig.tokenEnvVar];
+            const { hostname, port, token: apiKey, serverConfig: jellyfinServerConfig } = 
+                require('../lib/config-helpers').getServerConfig({
+                    config: currentConfig,
+                    serverType: 'jellyfin',
+                    requestBody: { ...req.body, token: req.body.apiKey }
+                });
 
             if (!hostname || !port || !apiKey) {
                 throw new ApiError(
@@ -781,30 +754,16 @@ module.exports = function createAdminLibrariesRouter({
                     '[Admin API] Request received for /api/admin/jellyfin-genres-with-counts.'
                 );
 
-            let { hostname, port, apiKey } = req.body;
             let { libraries: selectedLibraries } = req.body;
 
-            // Sanitize hostname
-            if (hostname) {
-                hostname = hostname.trim().replace(/^https?:\/\//, '');
-            }
-
-            // Fallback to configured values if not provided
+            // Get server configuration with fallbacks
             const currentConfig = await readConfig();
-            const jellyfinServerConfig = currentConfig.mediaServers.find(
-                s => s.type === 'jellyfin'
-            );
-            if (!jellyfinServerConfig) {
-                throw new ApiError(500, 'Jellyfin server is not configured in config.json.');
-            }
-
-            if (!hostname && jellyfinServerConfig.hostname) {
-                hostname = jellyfinServerConfig.hostname.trim().replace(/^https?:\/\//, '');
-            }
-            if (!port && typeof jellyfinServerConfig.port !== 'undefined') {
-                port = jellyfinServerConfig.port;
-            }
-            apiKey = apiKey || process.env[jellyfinServerConfig.tokenEnvVar];
+            const { hostname, port, token: apiKey, serverConfig: jellyfinServerConfig } = 
+                require('../lib/config-helpers').getServerConfig({
+                    config: currentConfig,
+                    serverType: 'jellyfin',
+                    requestBody: { ...req.body, token: req.body.apiKey }
+                });
             
             // Fallback to config libraries if none provided or empty
             if (!selectedLibraries || selectedLibraries.length === 0) {
