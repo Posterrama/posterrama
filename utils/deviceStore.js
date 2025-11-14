@@ -1,40 +1,12 @@
-const fs = require('fs');
-const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 const EventEmitter = require('events');
 const logger = require('./logger');
 const deepMerge = require('./deep-merge');
+const SafeFileStore = require('./safeFileStore');
 
 // Event emitter for device changes
 const deviceEvents = new EventEmitter();
-
-// Helper function for mkdir with recursive option (compatible with older Node versions)
-async function ensureDir(dirPath) {
-    try {
-        // Try using the synchronous version for better compatibility
-        if (!fs.existsSync(dirPath)) {
-            fs.mkdirSync(dirPath, { recursive: true });
-        }
-    } catch (error) {
-        // If recursive option not supported, try creating parent directories manually
-        try {
-            const parentDir = path.dirname(dirPath);
-            if (parentDir !== dirPath && !fs.existsSync(parentDir)) {
-                await ensureDir(parentDir);
-            }
-            if (!fs.existsSync(dirPath)) {
-                fs.mkdirSync(dirPath);
-            }
-        } catch (fallbackError) {
-            // Directory might already exist, check if it's accessible
-            if (!fs.existsSync(dirPath)) {
-                logger.error(`[Devices] Failed to create directory ${dirPath}:`, fallbackError);
-                throw fallbackError;
-            }
-        }
-    }
-}
 
 // In tests, isolate the device store per worker to avoid concurrent write contention
 const testSuffix = process.env.NODE_ENV === 'test' ? `.test.${process.pid}` : '';
@@ -45,42 +17,25 @@ const storePath = process.env.DEVICES_STORE_PATH
         : path.join(__dirname, '..', process.env.DEVICES_STORE_PATH)
     : defaultStore;
 
+// Initialize SafeFileStore for atomic writes and backup
+const fileStore = new SafeFileStore(storePath, {
+    createBackup: true,
+    indent: 2,
+});
+
 let writeQueue = Promise.resolve();
 let cache = null; // in-memory cache of devices
-
-async function ensureStore() {
-    try {
-        // Ensure the directory exists first
-        const storeDir = path.dirname(storePath);
-        await ensureDir(storeDir);
-
-        // Check if store exists
-        await fsp.access(storePath);
-    } catch (e) {
-        try {
-            await fsp.writeFile(storePath, '[]', 'utf8');
-            logger.info(`[Devices] Created store at ${storePath}`);
-        } catch (writeError) {
-            logger.error(`[Devices] Failed to create store at ${storePath}:`, writeError);
-            throw writeError;
-        }
-    }
-}
 
 async function readAll() {
     if (cache) return cache;
 
     try {
-        await ensureStore();
-        const raw = await fsp.readFile(storePath, 'utf8');
-        try {
-            cache = JSON.parse(raw);
-            if (!Array.isArray(cache)) {
-                logger.warn(`[Devices] Store content is not an array, resetting`);
-                cache = [];
-            }
-        } catch (parseError) {
-            logger.warn(`[Devices] Failed to parse store, resetting:`, parseError);
+        // SafeFileStore handles corruption detection and backup recovery
+        const data = await fileStore.read();
+        cache = data || [];
+
+        if (!Array.isArray(cache)) {
+            logger.warn(`[Devices] Store content is not an array, resetting`);
             cache = [];
         }
     } catch (error) {
@@ -95,13 +50,8 @@ async function writeAll(devices) {
     cache = devices;
     writeQueue = writeQueue.then(async () => {
         try {
-            // Ensure directory exists
-            const storeDir = path.dirname(storePath);
-            await ensureDir(storeDir);
-
-            const tmp = storePath + '.tmp';
-            await fsp.writeFile(tmp, JSON.stringify(devices, null, 2), 'utf8');
-            await fsp.rename(tmp, storePath);
+            // SafeFileStore handles atomic writes, backup, and directory creation
+            await fileStore.write(devices);
         } catch (error) {
             logger.error(`[Devices] Failed to write store:`, error);
             throw error;

@@ -38,11 +38,19 @@ function createFsMock() {
         writeFileSync: jest.fn((p, d) => store.set(p, d)),
         promises: {
             access: jest.fn(async p => {
-                if (!store.has(p)) throw new Error('ENOENT');
+                if (!store.has(p)) {
+                    const error = new Error('ENOENT');
+                    error.code = 'ENOENT';
+                    throw error;
+                }
             }),
             readFile: jest.fn(async p => {
                 const v = store.get(p);
-                if (!v) throw new Error('ENOENT');
+                if (!v) {
+                    const error = new Error('ENOENT');
+                    error.code = 'ENOENT';
+                    throw error;
+                }
                 return v;
             }),
             writeFile: jest.fn(async (p, d) => {
@@ -54,6 +62,39 @@ function createFsMock() {
                     store.set(n, v);
                     store.delete(o);
                 }
+            }),
+            mkdir: jest.fn(async p => {
+                store.set(p, '__DIR__');
+            }),
+            copyFile: jest.fn(async (src, dest) => {
+                const v = store.get(src);
+                if (!v) {
+                    const error = new Error('ENOENT');
+                    error.code = 'ENOENT';
+                    throw error;
+                }
+                store.set(dest, v);
+            }),
+            unlink: jest.fn(async p => {
+                if (!store.has(p)) {
+                    const error = new Error('ENOENT');
+                    error.code = 'ENOENT';
+                    throw error;
+                }
+                store.delete(p);
+            }),
+            stat: jest.fn(async p => {
+                if (!store.has(p)) {
+                    const error = new Error('ENOENT');
+                    error.code = 'ENOENT';
+                    throw error;
+                }
+                const v = store.get(p);
+                return {
+                    size: v ? v.length : 0,
+                    mtime: new Date(),
+                    birthtime: new Date(),
+                };
             }),
         },
     };

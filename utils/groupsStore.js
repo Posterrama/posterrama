@@ -1,7 +1,6 @@
-const fs = require('fs');
-const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
+const SafeFileStore = require('./safeFileStore');
 
 // Determine store path with test isolation: if NODE_ENV=test and no explicit override, use groups.test.json
 let resolvedGroupsPath;
@@ -16,37 +15,39 @@ if (process.env.GROUPS_STORE_PATH) {
 }
 const storePath = resolvedGroupsPath;
 
+// Initialize SafeFileStore for atomic writes and backup
+const fileStore = new SafeFileStore(storePath, {
+    createBackup: true,
+    indent: 2,
+});
+
 let writeQueue = Promise.resolve();
 let cache = null; // in-memory cache of groups
 
-async function ensureStore() {
-    try {
-        await fsp.access(storePath);
-    } catch (e) {
-        await fsp.writeFile(storePath, '[]', 'utf8');
-    }
-}
-
 async function readAll() {
     if (cache) return cache;
-    await ensureStore();
-    const raw = await fsp.readFile(storePath, 'utf8');
+
     try {
-        const parsed = JSON.parse(raw);
+        // SafeFileStore handles corruption detection and backup recovery
+        const data = await fileStore.read();
+        cache = data || [];
+
         // Ensure we always return an array, even if the file contains an object
-        cache = Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
+        if (!Array.isArray(cache)) {
+            cache = [];
+        }
+    } catch (error) {
         cache = [];
     }
+
     return cache;
 }
 
 async function writeAll(groups) {
     cache = groups;
     writeQueue = writeQueue.then(async () => {
-        const tmp = storePath + '.tmp';
-        await fsp.writeFile(tmp, JSON.stringify(groups, null, 2), 'utf8');
-        await fsp.rename(tmp, storePath);
+        // SafeFileStore handles atomic writes, backup, and directory creation
+        await fileStore.write(groups);
     });
     return writeQueue;
 }
