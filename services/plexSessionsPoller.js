@@ -56,6 +56,17 @@ class PlexSessionsPoller extends EventEmitter {
     }
 
     /**
+     * Restart polling (e.g., after Plex server comes back online)
+     */
+    restart() {
+        logger.info('Restarting Plex sessions poller');
+        this.errorCount = 0;
+        if (!this.isRunning) {
+            this.start();
+        }
+    }
+
+    /**
      * Poll Plex for active sessions
      */
     async poll() {
@@ -157,7 +168,12 @@ class PlexSessionsPoller extends EventEmitter {
             }
 
             if (this.errorCount === this.maxErrors) {
-                logger.warn('Plex sessions poller reached max errors, will continue silently');
+                logger.error('Plex sessions poller: max errors reached, stopping', {
+                    totalErrors: this.errorCount,
+                    interval: this.pollInterval,
+                });
+                this.stop();
+                return;
             }
         }
 
