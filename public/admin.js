@@ -17333,10 +17333,13 @@
                 // Priority: localStorage key > existing key marker > empty
                 if (savedKey && savedKey !== 'EXISTING_TOKEN') {
                     el.dataset.actualToken = savedKey;
+                    el.dataset.originalToken = savedKey; // Track original for change detection
                 } else if (hasKey) {
                     el.dataset.actualToken = 'EXISTING_TOKEN';
+                    el.dataset.originalToken = 'EXISTING_TOKEN';
                 } else {
                     el.dataset.actualToken = '';
+                    el.dataset.originalToken = '';
                 }
 
                 if (hasKey) {
@@ -20023,31 +20026,37 @@
                     localStorage.getItem('jf_apikey_temp');
                 // Check if it's a masked value (all bullet points) or EXISTING_TOKEN marker
                 const isMaskedKey = jfKey && (/^[•]+$/.test(jfKey) || jfKey === 'EXISTING_TOKEN');
-                // Check if key came from user input (actualToken or input field), not localStorage
-                const keyFromUserInput =
-                    jfKeyInput?.dataset?.actualToken || jfKeyInput?.value?.trim();
-                const keyFromStorage = !keyFromUserInput && localStorage.getItem('jf_apikey_temp');
-                // Only send to env if:
-                // 1. Key is not masked AND
-                // 2. Key came from user input (not localStorage)
-                const shouldUpdateEnv = jfKey && !isMaskedKey && keyFromUserInput;
+                // Get original token value that was set when page loaded
+                const originalToken = jfKeyInput?.dataset?.originalToken || '';
+                // Check if key actually changed from the original value
+                const keyChanged = jfKey && jfKey !== originalToken && !isMaskedKey;
+                // Only send to env if key actually changed from original
+                const shouldUpdateEnv = keyChanged;
 
                 if (shouldUpdateEnv) {
                     setIfProvided(jf.tokenEnvVar, jfKey);
                     localStorage.setItem('jf_apikey_temp', jfKey);
+                    // Update original token to new value
+                    if (jfKeyInput) jfKeyInput.dataset.originalToken = jfKey;
                     console.log(
-                        '[Jellyfin Save] New key from input - updating env:',
+                        '[Jellyfin Save] Key changed - updating env:',
                         jfKey.length,
-                        'chars'
-                    );
-                } else if (keyFromStorage) {
-                    console.log(
-                        '[Jellyfin Save] Using stored key - skipping env update (no restart needed)'
+                        'chars (was:',
+                        originalToken.length,
+                        'chars)'
                     );
                 } else if (isMaskedKey) {
                     console.log(
                         '[Jellyfin Save] Masked key detected - preserving existing env value'
                     );
+                } else if (jfKey) {
+                    console.log(
+                        '[Jellyfin Save] Key unchanged (',
+                        jfKey.length,
+                        'chars) - skipping env update (no restart needed)'
+                    );
+                } else {
+                    console.log('[Jellyfin Save] No key provided - preserving existing env value');
                 }
                 // If empty or masked, key is intentionally omitted so backend preserves existing value
                 // Only add JELLYFIN_INSECURE_HTTPS to envPatch if it changed (to avoid unnecessary restart)
