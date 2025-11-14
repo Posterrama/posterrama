@@ -17096,10 +17096,13 @@
                 // ALWAYS set dataset.actualToken from localStorage if available
                 if (savedToken && savedToken !== 'EXISTING_TOKEN') {
                     el.dataset.actualToken = savedToken;
+                    el.dataset.originalToken = savedToken; // Track original for change detection
                 } else if (hasToken) {
                     el.dataset.actualToken = 'EXISTING_TOKEN';
+                    el.dataset.originalToken = 'EXISTING_TOKEN';
                 } else {
                     el.dataset.actualToken = '';
+                    el.dataset.originalToken = '';
                 }
 
                 if (hasToken) {
@@ -17491,6 +17494,7 @@
                 // Priority: localStorage key > existing key marker > empty
                 if (savedKey && savedKey !== 'EXISTING_TOKEN') {
                     el.dataset.actualToken = savedKey;
+                    el.dataset.originalToken = savedKey; // Track original for change detection
                     console.log(
                         '[TMDB Init] ✓ Restored from localStorage:',
                         savedKey.length,
@@ -17498,8 +17502,10 @@
                     );
                 } else if (tmdb.apiKey) {
                     el.dataset.actualToken = 'EXISTING_TOKEN';
+                    el.dataset.originalToken = 'EXISTING_TOKEN';
                 } else {
                     el.dataset.actualToken = '';
+                    el.dataset.originalToken = '';
                 }
 
                 if (tmdb.apiKey) {
@@ -19310,9 +19316,10 @@
                 const j = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(j?.error || 'Connection failed');
 
-                // SUCCESS! Save the token to dataset and localStorage
+                // SUCCESS! Save the token to dataset, localStorage, and originalToken
                 if (token && tokenInput) {
                     tokenInput.dataset.actualToken = token;
+                    tokenInput.dataset.originalToken = token;
                     localStorage.setItem('plex_token_temp', token);
                     console.log(
                         '[Plex Test] Success! Token saved to dataset and localStorage:',
@@ -19475,9 +19482,10 @@
                 const j = await res.json().catch(() => ({}));
                 if (!res.ok || !j?.success) throw new Error(j?.error || 'TMDB test failed');
 
-                // SUCCESS! Save the API key to dataset and localStorage
+                // SUCCESS! Save the API key to dataset, localStorage, and originalToken
                 if (apiKey && apiKeyInput) {
                     apiKeyInput.dataset.actualToken = apiKey;
+                    apiKeyInput.dataset.originalToken = apiKey;
                     localStorage.setItem('tmdb_apikey_temp', apiKey);
                     console.log(
                         '[TMDB Test] Success! Key saved to dataset and localStorage:',
@@ -19889,6 +19897,8 @@
                     setIfProvided(plex.tokenEnvVar, actualToken);
                     // Save token to localStorage so it persists after page reload
                     localStorage.setItem('plex_token_temp', actualToken);
+                    // Update original token to new value
+                    if (plexTokenEl) plexTokenEl.dataset.originalToken = actualToken;
                     console.log(
                         '[PLEX SAVE DEBUG] Token added to envPatch with key:',
                         plex.tokenEnvVar
@@ -20169,6 +20179,8 @@
                 if (tmdbApiKeyVal && !isMaskedApiKey) {
                     tmdb.apiKey = tmdbApiKeyVal;
                     localStorage.setItem('tmdb_apikey_temp', tmdbApiKeyVal);
+                    // Update original token to new value
+                    if (tmdbApiKeyInput) tmdbApiKeyInput.dataset.originalToken = tmdbApiKeyVal;
                     console.log(
                         '[TMDB Save] Key saved to localStorage:',
                         tmdbApiKeyVal.length,
