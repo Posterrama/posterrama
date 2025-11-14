@@ -838,26 +838,12 @@ module.exports = function createAdminLibrariesRouter({
                 // Get all libraries to verify selected ones
                 const allLibraries = await fetchJellyfinLibraries(client);
                 
-                logger.info('[Admin API] Jellyfin genres - raw library objects', {
-                    libraries: allLibraries.map(l => ({
-                        Name: l.Name,
-                        Id: l.Id,
-                        ItemId: l.ItemId,
-                        CollectionType: l.CollectionType,
-                        allKeys: Object.keys(l)
-                    }))
-                });
-                
+                // Virtual folders use ItemId, not Id
                 const libraryIds = selectedLibraries?.length
                     ? allLibraries
-                          .filter(lib => selectedLibraries.includes(lib.Id))
-                          .map(lib => lib.Id)
-                    : allLibraries.map(lib => lib.Id);
-
-                logger.info('[Admin API] Jellyfin genres - resolved library IDs', {
-                    libraryIds,
-                    count: libraryIds.length
-                });
+                          .filter(lib => selectedLibraries.includes(lib.Name))
+                          .map(lib => lib.ItemId)
+                    : allLibraries.map(lib => lib.ItemId);
 
                 if (libraryIds.length === 0) {
                     logger.warn('[Admin API] No library IDs found, returning empty genres');
