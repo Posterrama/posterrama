@@ -20,6 +20,15 @@ class MetricsManager {
             collectInterval: 60000,
             retentionPeriod: 86400000,
             maxHistoryPoints: 1440, // 24 hours of minute-by-minute data
+            aggregationInterval: 60000, // 1 minute aggregation
+        };
+
+        // Aggregated time-series data
+        this.aggregatedMetrics = {
+            responseTime: [], // { timestamp, avg, median, p95, p99, count }
+            requestRate: [], // { timestamp, count, rate }
+            errorRate: [], // { timestamp, errors, rate }
+            systemLoad: [], // { timestamp, cpu, memory }
         };
 
         // Internal samplers for CPU calculations
@@ -30,6 +39,7 @@ class MetricsManager {
         // Avoid background timers automatically in test environment to prevent noisy failures & open handles
         if (process.env.NODE_ENV !== 'test') {
             this.startMetricsCollection();
+            this.startAggregation();
         }
     }
 
@@ -538,6 +548,257 @@ class MetricsManager {
         }, this.config.collectInterval);
     }
 
+    // Start aggregation timer
+    startAggregation() {
+        if (this.aggregationTimer) {
+            clearInterval(this.aggregationTimer);
+        }
+
+        // Skip in test environment unless explicitly started
+        if (process.env.NODE_ENV === 'test') {
+            return;
+        }
+
+        this.aggregationTimer = setInterval(() => {
+            if (this.config.enabled) {
+                this.aggregateMetrics();
+                this.cleanupOldAggregatedData();
+            }
+        }, this.config.aggregationInterval);
+    }
+
+    // Aggregate raw metrics into time-series data points
+    aggregateMetrics(timestamp = null) {
+        const now = timestamp || Date.now();
+        const oneMinuteAgo = now - 60000;
+
+        // Get recent requests for aggregation
+        const recentRequests = this.systemMetrics.responseTimeHistory.filter(
+            r => r.timestamp >= oneMinuteAgo
+        );
+
+        if (recentRequests.length === 0) {
+            return; // No data to aggregate
+        }
+
+        // Response time aggregation with percentiles
+        const responseTimes = recentRequests.map(r => r.responseTime).sort((a, b) => a - b);
+
+        const avg = responseTimes.reduce((sum, t) => sum + t, 0) / responseTimes.length;
+        const median = this._percentile(responseTimes, 50);
+        const p95 = this._percentile(responseTimes, 95);
+        const p99 = this._percentile(responseTimes, 99);
+
+        this.aggregatedMetrics.responseTime.push({
+            timestamp: now,
+            avg: Math.round(avg * 100) / 100,
+            median: Math.round(median * 100) / 100,
+            p95: Math.round(p95 * 100) / 100,
+            p99: Math.round(p99 * 100) / 100,
+            count: responseTimes.length,
+            min: responseTimes[0],
+            max: responseTimes[responseTimes.length - 1],
+        });
+
+        // Request rate aggregation
+        const requestRate = recentRequests.length / 60; // requests per second
+        this.aggregatedMetrics.requestRate.push({
+            timestamp: now,
+            count: recentRequests.length,
+            rate: Math.round(requestRate * 100) / 100,
+        });
+
+        // Error rate aggregation
+        const errors = recentRequests.filter(r => r.statusCode >= 400).length;
+        const errorRate = (errors / recentRequests.length) * 100;
+        this.aggregatedMetrics.errorRate.push({
+            timestamp: now,
+            errors,
+            rate: Math.round(errorRate * 100) / 100,
+            count: recentRequests.length,
+        });
+
+        // System load aggregation
+        try {
+            const systemMetrics = this.getSystemMetrics();
+            this.aggregatedMetrics.systemLoad.push({
+                timestamp: now,
+                cpu: systemMetrics.cpu.process,
+                memory: systemMetrics.memory.percentage,
+                memoryMB: systemMetrics.memory.used,
+            });
+        } catch (err) {
+            // Skip system metrics if unavailable
+        }
+    }
+
+    // Calculate percentile from sorted array
+    _percentile(sortedArray, percentile) {
+        if (sortedArray.length === 0) return 0;
+        if (sortedArray.length === 1) return sortedArray[0];
+
+        const index = (percentile / 100) * (sortedArray.length - 1);
+        const lower = Math.floor(index);
+        const upper = Math.ceil(index);
+        const weight = index - lower;
+
+        if (lower === upper) {
+            return sortedArray[lower];
+        }
+
+        return sortedArray[lower] * (1 - weight) + sortedArray[upper] * weight;
+    }
+
+    // Clean up old aggregated data beyond retention period
+    cleanupOldAggregatedData(timestamp = null) {
+        const now = timestamp || Date.now();
+        const cutoff = now - this.config.retentionPeriod;
+
+        this.aggregatedMetrics.responseTime = this.aggregatedMetrics.responseTime.filter(
+            d => d.timestamp > cutoff
+        );
+        this.aggregatedMetrics.requestRate = this.aggregatedMetrics.requestRate.filter(
+            d => d.timestamp > cutoff
+        );
+        this.aggregatedMetrics.errorRate = this.aggregatedMetrics.errorRate.filter(
+            d => d.timestamp > cutoff
+        );
+        this.aggregatedMetrics.systemLoad = this.aggregatedMetrics.systemLoad.filter(
+            d => d.timestamp > cutoff
+        );
+    }
+
+    // Get aggregated metrics for a time period
+    getAggregatedMetrics(period = '1h', timestamp = null) {
+        const now = timestamp || Date.now();
+        let timeRange;
+
+        switch (period) {
+            case '15m':
+                timeRange = 15 * 60 * 1000;
+                break;
+            case '1h':
+                timeRange = 60 * 60 * 1000;
+                break;
+            case '6h':
+                timeRange = 6 * 60 * 60 * 1000;
+                break;
+            case '24h':
+                timeRange = 24 * 60 * 60 * 1000;
+                break;
+            default:
+                timeRange = 60 * 60 * 1000;
+        }
+
+        const startTime = now - timeRange;
+
+        return {
+            period,
+            responseTime: this.aggregatedMetrics.responseTime.filter(d => d.timestamp >= startTime),
+            requestRate: this.aggregatedMetrics.requestRate.filter(d => d.timestamp >= startTime),
+            errorRate: this.aggregatedMetrics.errorRate.filter(d => d.timestamp >= startTime),
+            systemLoad: this.aggregatedMetrics.systemLoad.filter(d => d.timestamp >= startTime),
+        };
+    }
+
+    // Get moving averages for key metrics
+    getMovingAverages(windowMinutes = 5, timestamp = null) {
+        const now = timestamp || Date.now();
+        const windowMs = windowMinutes * 60 * 1000;
+        const cutoff = now - windowMs;
+
+        // Response time moving average
+        const recentResponseTimes = this.aggregatedMetrics.responseTime.filter(
+            d => d.timestamp >= cutoff
+        );
+        const avgResponseTime =
+            recentResponseTimes.length > 0
+                ? recentResponseTimes.reduce((sum, d) => sum + d.avg, 0) /
+                  recentResponseTimes.length
+                : 0;
+
+        // Request rate moving average
+        const recentRequestRates = this.aggregatedMetrics.requestRate.filter(
+            d => d.timestamp >= cutoff
+        );
+        const avgRequestRate =
+            recentRequestRates.length > 0
+                ? recentRequestRates.reduce((sum, d) => sum + d.rate, 0) / recentRequestRates.length
+                : 0;
+
+        // Error rate moving average
+        const recentErrorRates = this.aggregatedMetrics.errorRate.filter(
+            d => d.timestamp >= cutoff
+        );
+        const avgErrorRate =
+            recentErrorRates.length > 0
+                ? recentErrorRates.reduce((sum, d) => sum + d.rate, 0) / recentErrorRates.length
+                : 0;
+
+        // System load moving average
+        const recentSystemLoad = this.aggregatedMetrics.systemLoad.filter(
+            d => d.timestamp >= cutoff
+        );
+        const avgCpu =
+            recentSystemLoad.length > 0
+                ? recentSystemLoad.reduce((sum, d) => sum + d.cpu, 0) / recentSystemLoad.length
+                : 0;
+        const avgMemory =
+            recentSystemLoad.length > 0
+                ? recentSystemLoad.reduce((sum, d) => sum + d.memory, 0) / recentSystemLoad.length
+                : 0;
+
+        return {
+            windowMinutes,
+            responseTime: Math.round(avgResponseTime * 100) / 100,
+            requestRate: Math.round(avgRequestRate * 100) / 100,
+            errorRate: Math.round(avgErrorRate * 100) / 100,
+            cpu: Math.round(avgCpu * 100) / 100,
+            memory: Math.round(avgMemory * 100) / 100,
+            dataPoints: {
+                responseTime: recentResponseTimes.length,
+                requestRate: recentRequestRates.length,
+                errorRate: recentErrorRates.length,
+                systemLoad: recentSystemLoad.length,
+            },
+        };
+    }
+
+    // Get time-series data for visualization
+    getTimeSeriesData(metric = 'responseTime', period = '1h', timestamp = null) {
+        const aggregated = this.getAggregatedMetrics(period, timestamp);
+
+        switch (metric) {
+            case 'responseTime':
+                return aggregated.responseTime.map(d => ({
+                    timestamp: d.timestamp,
+                    value: d.avg,
+                    p95: d.p95,
+                    p99: d.p99,
+                }));
+            case 'requestRate':
+                return aggregated.requestRate.map(d => ({
+                    timestamp: d.timestamp,
+                    value: d.rate,
+                    count: d.count,
+                }));
+            case 'errorRate':
+                return aggregated.errorRate.map(d => ({
+                    timestamp: d.timestamp,
+                    value: d.rate,
+                    errors: d.errors,
+                }));
+            case 'systemLoad':
+                return aggregated.systemLoad.map(d => ({
+                    timestamp: d.timestamp,
+                    cpu: d.cpu,
+                    memory: d.memory,
+                }));
+            default:
+                return [];
+        }
+    }
+
     // Reset all metrics
     reset() {
         this.requestMetrics.clear();
@@ -550,6 +811,12 @@ class MetricsManager {
         };
         this.endpointStats.clear();
         this.historicalData = [];
+        this.aggregatedMetrics = {
+            responseTime: [],
+            requestRate: [],
+            errorRate: [],
+            systemLoad: [],
+        };
     }
 
     // Get metrics for specific endpoint
@@ -560,6 +827,7 @@ class MetricsManager {
     // Shutdown helper for graceful test teardown
     shutdown() {
         if (this.collectionInterval) clearInterval(this.collectionInterval);
+        if (this.aggregationTimer) clearInterval(this.aggregationTimer);
     }
 
     // Testing helper to realign start time with mocked Date.now
