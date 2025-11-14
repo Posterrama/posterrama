@@ -782,7 +782,7 @@ module.exports = function createAdminLibrariesRouter({
                 );
 
             let { hostname, port, apiKey } = req.body;
-            const { libraries: selectedLibraries } = req.body;
+            let { libraries: selectedLibraries } = req.body;
 
             // Sanitize hostname
             if (hostname) {
@@ -805,6 +805,14 @@ module.exports = function createAdminLibrariesRouter({
                 port = jellyfinServerConfig.port;
             }
             apiKey = apiKey || process.env[jellyfinServerConfig.tokenEnvVar];
+            
+            // Fallback to config libraries if none provided or empty
+            if (!selectedLibraries || selectedLibraries.length === 0) {
+                selectedLibraries = [
+                    ...(jellyfinServerConfig.movieLibraryNames || []),
+                    ...(jellyfinServerConfig.showLibraryNames || [])
+                ];
+            }
 
             if (!hostname || !port || !apiKey) {
                 throw new ApiError(
