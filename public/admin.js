@@ -20023,15 +20023,20 @@
                     localStorage.getItem('jf_apikey_temp');
                 // Check if it's a masked value (all bullet points) or EXISTING_TOKEN marker
                 const isMaskedKey = jfKey && (/^[•]+$/.test(jfKey) || jfKey === 'EXISTING_TOKEN');
-                // Only update API key if user entered a new value (not empty, not masked)
-                if (jfKey && !isMaskedKey) {
+                // Check if key actually changed (compare with current env value)
+                const currentJfKey = base?.env?.[jf.tokenEnvVar];
+                const keyChanged = jfKey && !isMaskedKey && jfKey !== currentJfKey;
+                // Only update API key if it's a NEW value (not empty, not masked, AND changed)
+                if (keyChanged) {
                     setIfProvided(jf.tokenEnvVar, jfKey);
                     localStorage.setItem('jf_apikey_temp', jfKey);
                     console.log(
-                        '[Jellyfin Save] Key saved to localStorage:',
+                        '[Jellyfin Save] Key changed - saved to localStorage:',
                         jfKey.length,
                         'chars'
                     );
+                } else if (jfKey && !isMaskedKey) {
+                    console.log('[Jellyfin Save] Key unchanged - skipping env update');
                 }
                 // If empty or masked, key is intentionally omitted so backend preserves existing value
                 // Only add JELLYFIN_INSECURE_HTTPS to envPatch if it changed (to avoid unnecessary restart)
