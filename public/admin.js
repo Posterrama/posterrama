@@ -19155,7 +19155,14 @@
             const optsEl = document.getElementById('jf-ms-genres-options');
             const control = document.querySelector('#jf-ms-genres .ms-control');
             const root = document.getElementById('jf-ms-genres');
-            if (!chips || !optsEl || !control) return;
+            if (!chips || !optsEl || !control) {
+                console.warn('[loadJellyfinGenres] Missing elements:', { 
+                    chips: !!chips, 
+                    optsEl: !!optsEl, 
+                    control: !!control 
+                });
+                return;
+            }
             chips.innerHTML = '<div class="subtle">Loading genres…</div>';
             try {
                 const hostname = getInput('jf.hostname')?.value;
@@ -19168,6 +19175,12 @@
                 const apiKey = (apiKeyRaw && !isMaskedKey) ? apiKeyRaw : undefined;
                 const movieLibraries = getMultiSelectValues('jf.movies');
                 const showLibraries = getMultiSelectValues('jf.shows');
+                console.log('[loadJellyfinGenres] Calling API with:', { 
+                    hostname, 
+                    port, 
+                    hasApiKey: !!apiKey,
+                    libraries: [...movieLibraries, ...showLibraries] 
+                });
                 // Always call the API - backend will return empty array if no libraries selected
                 const res = await window.dedupJSON('/api/admin/jellyfin-genres-with-counts', {
                     method: 'POST',
@@ -19181,6 +19194,11 @@
                     }),
                 });
                 const data = await res.json().catch(() => ({}));
+                console.log('[loadJellyfinGenres] API response:', { 
+                    ok: res.ok, 
+                    status: res.status,
+                    genreCount: data?.genres?.length || 0 
+                });
                 if (!res.ok) throw new Error(data?.error || 'Failed');
                 const names = (data?.genres || [])
                     .map(g => g.genre || g.name || g.value || String(g))
@@ -19233,6 +19251,7 @@
                     );
                 }
             } catch (e) {
+                console.error('[loadJellyfinGenres] Error:', e);
                 chips.innerHTML = '<div class="subtle">Failed to load genres</div>';
             }
         }
