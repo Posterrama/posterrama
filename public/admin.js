@@ -17750,12 +17750,21 @@
                 const pwdEl = getInput('romm.password');
                 if (pwdEl) {
                     const savedPwd = localStorage.getItem('romm_password_temp');
+                    // Priority: localStorage password > existing password marker > empty
                     if (savedPwd && savedPwd !== 'EXISTING_PASSWORD') {
                         pwdEl.dataset.actualToken = savedPwd;
+                        pwdEl.dataset.originalToken = savedPwd; // Track original for change detection
+                        console.log(
+                            '[RomM Init] ✓ Restored password from localStorage:',
+                            savedPwd.length,
+                            'chars'
+                        );
                     } else if (romm.password || romm.url) {
                         pwdEl.dataset.actualToken = 'EXISTING_PASSWORD';
+                        pwdEl.dataset.originalToken = 'EXISTING_PASSWORD';
                     } else {
                         pwdEl.dataset.actualToken = '';
+                        pwdEl.dataset.originalToken = '';
                     }
 
                     if (romm.password || (romm.url && romm.username)) {
@@ -17775,6 +17784,7 @@
                             if (val && !/^[•]+$/.test(val)) {
                                 pwdEl.dataset.actualToken = val;
                                 localStorage.setItem('romm_password_temp', val);
+                                console.log('[RomM Input] Password updated:', val.length, 'chars');
                             }
                         },
                         { once: false }
@@ -19580,10 +19590,12 @@
                 const j = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(j?.error || 'Connection failed');
 
-                // Success! Save password to dataset and localStorage
+                // Success! Save password to dataset, localStorage, and originalToken
                 if (password && passwordEl) {
                     passwordEl.dataset.actualToken = password;
+                    passwordEl.dataset.originalToken = password;
                     localStorage.setItem('romm_password_temp', password);
+                    console.log('[RomM Test] Success! Password saved:', password.length, 'chars');
                 }
 
                 window.notify?.toast({
@@ -20260,6 +20272,11 @@
                 if (passwordVal && !isMasked) {
                     romm.password = passwordVal;
                     localStorage.setItem('romm_password_temp', passwordVal);
+                    // Update original token to new value
+                    if (passwordEl) passwordEl.dataset.originalToken = passwordVal;
+                    console.log('[RomM Save] Password updated:', passwordVal.length, 'chars');
+                } else if (isMasked) {
+                    console.log('[RomM Save] Using existing password (masked)');
                 }
 
                 if (rommIdx >= 0) servers[rommIdx] = romm;
