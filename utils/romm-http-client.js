@@ -5,6 +5,7 @@
 
 const axios = require('axios');
 const https = require('https');
+const config = require('../config');
 
 let pkgVersion = '1.0.0';
 try {
@@ -19,12 +20,12 @@ class RommHttpClient {
         port = 80,
         username,
         password,
-        timeout = 15000,
+        timeout = config.getTimeout('externalApiRomm'),
         basePath = '',
         insecure = false,
         insecureHttps = false,
-        retryMaxRetries = 2,
-        retryBaseDelay = 1000,
+        retryMaxRetries = config.getTimeout('externalApiMaxRetries'),
+        retryBaseDelay = config.getTimeout('externalApiRetryDelay'),
     }) {
         this.hostname = hostname;
         this.port = port;

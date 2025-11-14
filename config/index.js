@@ -22,6 +22,17 @@ class Config {
             httpDefault: 15000, // Default HTTP request timeout (Jellyfin, ROMM clients)
             httpHealthCheck: 5000, // Health check requests (TMDB, upstream servers)
 
+            // External API timeouts (Issue #3 fix: standardized configuration)
+            externalApiBase: 15000, // Base timeout for all external API calls
+            externalApiPlex: 15000, // Plex API timeout
+            externalApiJellyfin: 15000, // Jellyfin API timeout
+            externalApiTmdb: 10000, // TMDB API timeout (usually faster)
+            externalApiRomm: 15000, // ROMM API timeout
+            externalApiTestConnection: 8000, // Connection test timeout
+            externalApiQuickTest: 5000, // Quick test timeout
+            externalApiMaxRetries: 2, // Max retry attempts for external APIs
+            externalApiRetryDelay: 1000, // Base delay between retries (ms)
+
             // WebSocket timeouts
             wsCommandAck: 3000, // WebSocket command acknowledgement timeout
             wsCommandAckMin: 500, // Minimum enforced WebSocket ack timeout

@@ -8,6 +8,7 @@ const https = require('https');
 const os = require('os');
 const crypto = require('crypto');
 const logger = require('./logger');
+const config = require('../config');
 
 let pkgVersion = '1.0.0';
 try {
@@ -24,12 +25,12 @@ class JellyfinHttpClient {
         hostname,
         port,
         apiKey,
-        timeout = 15000,
+        timeout = config.getTimeout('externalApiJellyfin'),
         basePath = '',
         insecure = false,
         insecureHttps = false,
-        retryMaxRetries = 2,
-        retryBaseDelay = 1000,
+        retryMaxRetries = config.getTimeout('externalApiMaxRetries'),
+        retryBaseDelay = config.getTimeout('externalApiRetryDelay'),
     }) {
         this.hostname = hostname;
         this.port = port;

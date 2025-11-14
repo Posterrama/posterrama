@@ -247,11 +247,39 @@ if (typeof __fileStore.get === 'function') {
     };
 }
 
+// Validate session secret BEFORE initializing session middleware (Security Fix: Issue #2)
+const sessionSecret = env.auth.sessionSecret;
+
+if (!sessionSecret || sessionSecret === 'test-secret-fallback') {
+    if (env.server.nodeEnv === 'production') {
+        logger.error('FATAL: SESSION_SECRET not configured in production');
+        logger.error('Set SESSION_SECRET environment variable and restart');
+        logger.error('Generate a strong secret: openssl rand -base64 48');
+        process.exit(1);
+    } else if (env.server.nodeEnv !== 'test') {
+        logger.warn('⚠️  WARNING: Using development fallback for SESSION_SECRET');
+        logger.warn('⚠️  DO NOT use in production! Set SESSION_SECRET environment variable');
+        logger.warn('⚠️  Generate one with: openssl rand -base64 48');
+    }
+}
+
+// Validate secret strength in non-test environments
+if (env.server.nodeEnv !== 'test' && sessionSecret && sessionSecret.length < 32) {
+    logger.error('FATAL: SESSION_SECRET must be at least 32 characters');
+    logger.error('Current length:', sessionSecret.length);
+    logger.error('Generate a strong secret: openssl rand -base64 48');
+    if (env.server.nodeEnv === 'production') {
+        process.exit(1);
+    } else {
+        logger.warn('⚠️  Continuing in development, but this is INSECURE!');
+    }
+}
+
 app.use(
     session({
         store: __fileStore,
         name: 'posterrama.sid',
-        secret: env.auth.sessionSecret || 'test-secret-fallback',
+        secret: sessionSecret || 'test-secret-fallback', // Fallback only for tests
         resave: false,
         saveUninitialized: false,
         rolling: true, // Extend session lifetime on each request

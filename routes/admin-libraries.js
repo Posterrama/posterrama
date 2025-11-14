@@ -18,6 +18,7 @@ module.exports = function createAdminLibrariesRouter({
     getPlexGenresWithCounts,
 }) {
     const express = require('express');
+    const config = require('../config');
     const router = express.Router();
 
     /**
@@ -675,7 +676,7 @@ module.exports = function createAdminLibrariesRouter({
                     hostname,
                     port,
                     apiKey,
-                    timeout: 8000,
+                    timeout: config.getTimeout('externalApiTestConnection'),
                     insecureHttps:
                         typeof req.body.insecureHttps !== 'undefined'
                             ? !!req.body.insecureHttps
@@ -817,7 +818,7 @@ module.exports = function createAdminLibrariesRouter({
                     hostname,
                     port,
                     apiKey,
-                    timeout: 8000,
+                    timeout: config.getTimeout('externalApiTestConnection'),
                     insecureHttps:
                         typeof req.body.insecureHttps !== 'undefined'
                             ? !!req.body.insecureHttps
@@ -904,7 +905,7 @@ module.exports = function createAdminLibrariesRouter({
                     hostname: jellyfinServerConfig.hostname.trim().replace(/^https?:\/\//, ''),
                     port: jellyfinServerConfig.port,
                     apiKey: process.env[jellyfinServerConfig.tokenEnvVar] || '',
-                    timeout: 8000,
+                    timeout: config.getTimeout('externalApiTestConnection'),
                     insecureHttps: process.env.JELLYFIN_INSECURE_HTTPS === 'true',
                     retryMaxRetries: 0,
                     retryBaseDelay: 300,

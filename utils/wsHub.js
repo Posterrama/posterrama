@@ -240,88 +240,207 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
             (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
         logger.debug('[WS] connection from', ip);
 
-        let authed = false;
+        // State machine: pending -> authenticating -> authenticated -> failed
+        let authState = 'pending';
+        let deviceId = null;
+        let messageQueue = [];
+        let isProcessingAuth = false;
+        let authTimeout = null;
+
+        // Set authentication timeout (10 seconds)
+        authTimeout = setTimeout(() => {
+            if (authState !== 'authenticated') {
+                logger.warn('[WS] Authentication timeout', {
+                    ip,
+                    authState,
+                    queuedMessages: messageQueue.length,
+                });
+                authState = 'failed';
+                messageQueue = [];
+                closeSocket(ws, 1008, 'Authentication timeout');
+            }
+        }, 10000);
+
+        /**
+         * Process authenticated messages
+         */
+        function processAuthenticatedMessage(msg) {
+            // Ack from device for a previously sent command
+            if (msg && msg.kind === 'ack' && msg.id) {
+                const p = pendingAcks.get(msg.id);
+                if (p && p.deviceId === deviceId) {
+                    pendingAcks.delete(msg.id);
+                    try {
+                        clearTimeout(p.timer);
+                    } catch (e) {
+                        logger.debug('clearTimeout failed on ack receive', {
+                            error: e.message,
+                            ackId: msg.id,
+                            deviceId,
+                        });
+                    }
+                    try {
+                        p.resolve({
+                            status: msg.status || 'ok',
+                            info: msg.info || null,
+                        });
+                    } catch (e) {
+                        logger.debug('Promise resolve handler threw error', {
+                            error: e.message,
+                            ackId: msg.id,
+                            deviceId,
+                            status: msg.status,
+                        });
+                    }
+                }
+                return;
+            }
+
+            // Handle ping/pong for connection health
+            if (msg && msg.kind === 'ping') {
+                sendJson(ws, { kind: 'pong', t: Date.now() });
+                return;
+            }
+
+            // Future: handle other client->server messages (e.g., state reports)
+        }
 
         ws.on('message', async data => {
             try {
                 const msg = JSON.parse(data.toString());
-                if (!authed) {
+
+                // Immediate rejection if auth failed
+                if (authState === 'failed') {
+                    return closeSocket(ws, 1008, 'Authentication failed');
+                }
+
+                // Queue messages during authentication
+                if (authState === 'pending' || authState === 'authenticating') {
                     if (msg && msg.kind === 'hello') {
+                        // Prevent duplicate auth attempts
+                        if (isProcessingAuth) {
+                            logger.warn('[WS] Duplicate auth attempt', { ip });
+                            return closeSocket(ws, 1008, 'Duplicate auth attempt');
+                        }
+
+                        isProcessingAuth = true;
+                        authState = 'authenticating';
+
                         const { deviceId: id, secret } = msg;
-                        if (!id || !secret) return closeSocket(ws, 1008, 'Missing credentials');
+                        if (!id || !secret) {
+                            authState = 'failed';
+                            return closeSocket(ws, 1008, 'Missing credentials');
+                        }
+
                         try {
                             const ok = await verifyDevice(id, secret);
-                            if (!ok) return closeSocket(ws, 1008, 'Unauthorized');
-                            authed = true;
+
+                            if (!ok) {
+                                authState = 'failed';
+                                return closeSocket(ws, 1008, 'Unauthorized');
+                            }
+
+                            // Authentication successful
+                            authState = 'authenticated';
+                            deviceId = id;
+                            clearTimeout(authTimeout);
+                            authTimeout = null;
+
                             registerConnection(ws, id);
 
                             // Log successful WebSocket device connection
                             const userAgent = req.headers['user-agent'] || 'Unknown';
                             logger.debug(
-                                `[WS] Device connected: ${ip} (${userAgent.substring(0, 40)}) - ${id.substring(0, 8)}...`,
+                                `[WS] Device authenticated: ${ip} (${userAgent.substring(0, 40)}) - ${id.substring(0, 8)}...`,
                                 {
                                     deviceId: id,
                                     ip,
                                     userAgent: userAgent.substring(0, 100),
                                     timestamp: new Date().toISOString(),
+                                    queuedMessages: messageQueue.length,
                                 }
                             );
 
                             sendJson(ws, { kind: 'hello-ack', serverTime: Date.now() });
-                            return;
+
+                            // Process queued messages
+                            while (messageQueue.length > 0 && authState === 'authenticated') {
+                                const queuedMsg = messageQueue.shift();
+                                try {
+                                    processAuthenticatedMessage(queuedMsg);
+                                } catch (e) {
+                                    logger.debug('[WS] Error processing queued message', {
+                                        error: e.message,
+                                        deviceId,
+                                        messageKind: queuedMsg?.kind,
+                                    });
+                                }
+                            }
                         } catch (e) {
+                            authState = 'failed';
+                            logger.error('[WS] Auth error', {
+                                error: e.message,
+                                ip,
+                                stack: e.stack,
+                            });
                             return closeSocket(ws, 1011, 'Auth error');
+                        } finally {
+                            isProcessingAuth = false;
+                        }
+                    } else {
+                        // Queue non-hello messages (limit queue size to prevent memory exhaustion)
+                        if (messageQueue.length < 10) {
+                            messageQueue.push(msg);
+                            logger.debug('[WS] Message queued during auth', {
+                                ip,
+                                messageKind: msg?.kind,
+                                queueSize: messageQueue.length,
+                            });
+                        } else {
+                            logger.warn('[WS] Message queue overflow', {
+                                ip,
+                                queueSize: messageQueue.length,
+                            });
+                            authState = 'failed';
+                            return closeSocket(ws, 1008, 'Message queue overflow');
                         }
                     }
-                    return closeSocket(ws, 1008, 'Authenticate first');
+                    return;
                 }
-                // Ack from device for a previously sent command
-                if (msg && msg.kind === 'ack' && msg.id) {
-                    const deviceId = socketToDevice.get(ws);
-                    const p = pendingAcks.get(msg.id);
-                    if (p && p.deviceId === deviceId) {
-                        pendingAcks.delete(msg.id);
-                        try {
-                            clearTimeout(p.timer);
-                        } catch (e) {
-                            logger.debug('clearTimeout failed on ack receive', {
-                                error: e.message,
-                                ackId: msg.id,
-                                deviceId,
-                            });
-                        }
-                        try {
-                            p.resolve({
-                                status: msg.status || 'ok',
-                                info: msg.info || null,
-                            });
-                        } catch (e) {
-                            logger.debug('Promise resolve handler threw error', {
-                                error: e.message,
-                                ackId: msg.id,
-                                deviceId,
-                                status: msg.status,
-                            });
-                        }
-                    }
-                    return; // nothing else to do for ack
-                }
-                // Future: handle client->server messages (e.g., state reports)
-                if (msg && msg.kind === 'ping') {
-                    sendJson(ws, { kind: 'pong', t: Date.now() });
+
+                // Only authenticated messages reach here
+                if (authState === 'authenticated') {
+                    processAuthenticatedMessage(msg);
                 }
             } catch (e) {
-                logger.debug('WebSocket message parse/handle failed', {
+                logger.error('[WS] Message handling error', {
                     error: e.message,
-                    rawDataLength: data?.toString()?.length || 0,
+                    stack: e.stack,
+                    ip,
+                    authState,
+                    deviceId,
                 });
+                if (authState !== 'authenticated') {
+                    return closeSocket(ws, 1011, 'Message processing error');
+                }
             }
         });
 
         ws.on('close', () => {
+            if (authTimeout) {
+                clearTimeout(authTimeout);
+                authTimeout = null;
+            }
+            messageQueue = [];
             unregister(ws);
         });
+
         ws.on('error', () => {
+            if (authTimeout) {
+                clearTimeout(authTimeout);
+                authTimeout = null;
+            }
+            messageQueue = [];
             unregister(ws);
         });
     });

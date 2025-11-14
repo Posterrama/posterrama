@@ -548,7 +548,7 @@ module.exports = function createAdminConfigRouter({
                     hostname,
                     port: portValue,
                     token,
-                    timeout: 5000,
+                    timeout: config.getTimeout('externalApiQuickTest'),
                 });
                 // Querying the root is a lightweight way to check credentials and reachability.
                 const result = await testClient.query('/');
@@ -666,7 +666,7 @@ module.exports = function createAdminConfigRouter({
                     hostname,
                     port,
                     token,
-                    timeout: 10000,
+                    timeout: config.getTimeout('externalApiTestConnection'),
                 });
                 const sectionsResponse = await client.query('/library/sections');
                 const allSections = sectionsResponse?.MediaContainer?.Directory || [];
