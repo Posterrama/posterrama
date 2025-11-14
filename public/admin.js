@@ -17807,18 +17807,20 @@
                     // Use cached platforms with full details
                     setMultiSelect('romm.platforms', window.__rommPlatforms, selectedPlatforms);
                     initMsForSelect('romm-ms-platforms', 'romm.platforms');
-                } else {
-                    // Don't show placeholders if we're about to auto-fetch
-                    const willAutoFetch = romm.enabled && romm.url && romm.username;
-                    if (!willAutoFetch && selectedPlatforms.length > 0) {
-                        // Only show placeholders if we won't auto-fetch
-                        const placeholderOptions = selectedPlatforms.map(p => ({
-                            value: p,
-                            label: p,
-                        }));
-                        setMultiSelect('romm.platforms', placeholderOptions, selectedPlatforms);
-                        initMsForSelect('romm-ms-platforms', 'romm.platforms');
-                    }
+                } else if (selectedPlatforms.length > 0) {
+                    // Show placeholders for selected platforms until real platforms are fetched
+                    // This preserves selections after page reload when cache is empty
+                    const placeholderOptions = selectedPlatforms.map(p => ({
+                        value: p,
+                        label: p,
+                    }));
+                    setMultiSelect('romm.platforms', placeholderOptions, selectedPlatforms);
+                    initMsForSelect('romm-ms-platforms', 'romm.platforms');
+                    console.log(
+                        '[RomM Init] Showing',
+                        selectedPlatforms.length,
+                        'saved platforms as placeholders until fetch completes'
+                    );
                 }
 
                 // Filters
