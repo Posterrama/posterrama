@@ -100,12 +100,12 @@ class ErrorLogger {
 
         const sanitized = JSON.parse(JSON.stringify(metadata)); // Deep clone
 
-        // List of sensitive keys to redact
+        // List of sensitive keys to redact (all lowercase for case-insensitive matching)
         const sensitiveKeys = [
             'password',
             'secret',
             'token',
-            'apiKey',
+            'apikey',
             'api_key',
             'authorization',
             'cookie',
