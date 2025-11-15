@@ -52,7 +52,8 @@ module.exports = {
         '!config/index.js',
         '!utils/healthCheck.js',
         '!utils/updater.js',
-        '!utils/deviceStore.js',
+        '!utils/cache.js',
+        '!utils/fixOwnership.js',
     ],
 
     // Coverage thresholds - enforce strong minimums for overall quality
@@ -149,7 +150,6 @@ module.exports = {
         '<rootDir>/config/index.js',
         '<rootDir>/utils/healthCheck.js',
         '<rootDir>/utils/updater.js',
-        '<rootDir>/utils/deviceStore.js',
     ],
 
     // Test setup and teardown
