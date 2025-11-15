@@ -29,6 +29,11 @@
         "build": "vite build",
         "preview": "vite preview",
         "test": "jest",
+        "test:frontend": "vitest run",
+        "test:frontend:watch": "vitest",
+        "test:frontend:ui": "vitest --ui",
+        "test:frontend:coverage": "vitest run --coverage",
+        "test:all": "npm run test && npm run test:frontend",
         "test:stress": "bash -c 'for i in {1..5}; do echo Run $i; npx jest --runInBand || exit 1; done'",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
@@ -98,7 +103,6 @@
         "helmet": "^8.1.0",
         "ipaddr.js": "^2.1.0",
         "joi": "^17.13.3",
-        "jsdom": "^26.1.0",
         "jszip": "^3.10.1",
         "mime-types": "^3.0.1",
         "mqtt": "^5.14.1",
@@ -117,6 +121,10 @@
     },
     "devDependencies": {
         "@jellyfin/sdk": "^0.11.0",
+        "@testing-library/dom": "^10.4.1",
+        "@testing-library/user-event": "^14.6.1",
+        "@vitest/coverage-v8": "^4.0.9",
+        "@vitest/ui": "^4.0.9",
         "ajv-formats": "^3.0.1",
         "audit-ci": "^7.1.0",
         "depcheck": "^1.4.7",
@@ -124,12 +132,15 @@
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.4",
         "glob": "^11.0.3",
+        "happy-dom": "^20.0.10",
         "jest": "^29.7.0",
+        "jsdom": "^27.2.0",
         "nock": "^13.5.6",
         "prettier": "^3.6.2",
         "supertest": "^7.0.0",
         "terser": "^5.44.1",
-        "vite": "^7.2.2"
+        "vite": "^7.2.2",
+        "vitest": "^4.0.9"
     },
     "overrides": {
         "js-yaml": "^4.1.1"
