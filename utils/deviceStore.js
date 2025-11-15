@@ -1,3 +1,19 @@
+/**
+ * Device Store
+ *
+ * Persistent storage for registered devices with atomic writes and backup.
+ * Manages device registration, authentication, and settings persistence.
+ *
+ * Features:
+ * - Atomic writes with automatic backup
+ * - In-memory caching for performance
+ * - Event emitter for device change notifications
+ * - Hardware ID and Install ID tracking for device identity
+ * - Secret-based authentication with SHA-256 hashing
+ *
+ * @module utils/deviceStore
+ */
+
 const path = require('path');
 const crypto = require('crypto');
 const EventEmitter = require('events');
@@ -64,16 +80,35 @@ function hashSecret(secret) {
     return 'sha256:' + crypto.createHash('sha256').update(secret).digest('hex');
 }
 
+/**
+ * Get all registered devices
+ * @returns {Promise<Array>} Array of all device objects
+ */
 async function getAll() {
     const all = await readAll();
     return all;
 }
 
+/**
+ * Get device by ID
+ * @param {string} id - Device identifier
+ * @returns {Promise<Object|null>} Device object or null if not found
+ */
 async function getById(id) {
     const all = await readAll();
     return all.find(d => d.id === id) || null;
 }
 
+/**
+ * Register new device or re-register existing device
+ * Matches devices by hardwareId (preferred) or installId to avoid duplicates.
+ * @param {Object} params - Registration parameters
+ * @param {string} [params.name=''] - Device display name
+ * @param {string} [params.location=''] - Device physical location
+ * @param {string} [params.installId=null] - Browser installation ID
+ * @param {string} [params.hardwareId=null] - Hardware identifier
+ * @returns {Promise<Object>} Object with {device, secret}
+ */
 async function registerDevice({
     name = '',
     location = '',
@@ -274,6 +309,16 @@ async function getActivePairings() {
     return list;
 }
 
+/**
+ * Update device heartbeat and status information
+ * @param {string} id - Device identifier
+ * @param {Object} params - Heartbeat parameters
+ * @param {Object} [params.clientInfo] - Client information (browser, screen resolution, etc.)
+ * @param {Object} [params.currentState] - Current device state
+ * @param {string} [params.installId] - Installation ID
+ * @param {string} [params.hardwareId] - Hardware ID
+ * @returns {Promise<Object|null>} Updated device or null if not found
+ */
 async function updateHeartbeat(id, { clientInfo, currentState, installId, hardwareId } = {}) {
     const all = await readAll();
     const idx = all.findIndex(d => d.id === id);
@@ -320,6 +365,11 @@ async function updateHeartbeat(id, { clientInfo, currentState, installId, hardwa
     return all[idx];
 }
 
+/**
+ * Delete device and emit event
+ * @param {string} id - Device identifier
+ * @returns {Promise<boolean>} True if device was deleted
+ */
 async function deleteDevice(id) {
     const all = await readAll();
     const device = all.find(d => d.id === id);

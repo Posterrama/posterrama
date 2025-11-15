@@ -1,3 +1,18 @@
+/**
+ * WebSocket Hub
+ *
+ * Central hub for WebSocket device communication. Manages persistent connections
+ * to display devices, handles command/response flow, and provides admin broadcast.
+ *
+ * Features:
+ * - Single active connection per device (auto-replacement)
+ * - Command acknowledgement with timeout
+ * - Rate limiting and message validation
+ * - Admin SSE integration for real-time UI updates
+ *
+ * @module utils/wsHub
+ */
+
 const WebSocket = require('ws');
 const logger = require('./logger');
 const ErrorLogger = require('./errorLogger');
@@ -15,11 +30,22 @@ const pendingAcks = new Map();
 // Rate limiter for WebSocket messages (Issue #5 fix)
 const rateLimiter = new MessageRateLimiter();
 
+/**
+ * Generate unique message/command ID
+ * @private
+ * @returns {string} Unique identifier (timestamp + random)
+ */
 function genId() {
     // Simple unique id: timestamp + random
     return Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e9).toString(36);
 }
 
+/**
+ * Send JSON message over WebSocket
+ * @private
+ * @param {WebSocket} ws - WebSocket connection
+ * @param {Object} obj - Object to send as JSON
+ */
 function sendJson(ws, obj) {
     try {
         ws.send(JSON.stringify(obj));
@@ -32,6 +58,13 @@ function sendJson(ws, obj) {
     }
 }
 
+/**
+ * Close WebSocket connection with optional code and reason
+ * @private
+ * @param {WebSocket} ws - WebSocket connection to close
+ * @param {number} [code=1008] - WebSocket close code
+ * @param {string} [reason='Policy violation'] - Close reason
+ */
 function closeSocket(ws, code = 1008, reason = 'Policy violation') {
     try {
         ws.close(code, reason);
@@ -45,6 +78,13 @@ function closeSocket(ws, code = 1008, reason = 'Policy violation') {
     }
 }
 
+/**
+ * Register WebSocket connection for a device
+ * Enforces single active connection policy per device.
+ * @private
+ * @param {WebSocket} ws - WebSocket connection
+ * @param {string} deviceId - Device identifier
+ */
 function registerConnection(ws, deviceId) {
     // Drop existing connection for this device (single active connection policy)
     const existing = deviceToSocket.get(deviceId);
@@ -92,6 +132,12 @@ function registerConnection(ws, deviceId) {
     }
 }
 
+/**
+ * Unregister WebSocket connection and clean up resources
+ * Cancels pending command acknowledgements for this device.
+ * @private
+ * @param {WebSocket} ws - WebSocket connection to unregister
+ */
 function unregister(ws) {
     const deviceId = socketToDevice.get(ws);
     if (deviceId) {
@@ -156,11 +202,22 @@ function unregister(ws) {
     }
 }
 
+/**
+ * Check if device has active WebSocket connection
+ * @param {string} deviceId - Device identifier
+ * @returns {boolean} True if device is connected
+ */
 function isConnected(deviceId) {
     const ws = deviceToSocket.get(deviceId);
-    return !!(ws && ws.readyState === WebSocket.OPEN);
+    return ws && ws.readyState === WebSocket.OPEN;
 }
 
+/**
+ * Send message to specific device
+ * @param {string} deviceId - Target device identifier
+ * @param {Object} message - Message object to send
+ * @returns {boolean} True if message was sent successfully
+ */
 function sendToDevice(deviceId, message) {
     const ws = deviceToSocket.get(deviceId);
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -180,13 +237,31 @@ function sendToDevice(deviceId, message) {
         hasPayload: !!message.payload,
         payloadSize: message.payload ? JSON.stringify(message.payload).length : 0,
     });
-    return true;
+    return false;
 }
 
+/**
+ * Send command to device (fire-and-forget)
+ * @param {string} deviceId - Target device identifier
+ * @param {Object} command - Command object
+ * @param {string} command.type - Command type
+ * @param {*} command.payload - Command payload
+ * @returns {boolean} True if command was sent
+ */
 function sendCommand(deviceId, { type, payload }) {
-    return sendToDevice(deviceId, { kind: 'command', type, payload: payload || {} });
+    return sendToDevice(deviceId, { kind: 'command', type, payload });
 }
 
+/**
+ * Send command to device and wait for acknowledgement
+ * @param {string} deviceId - Target device identifier
+ * @param {Object} command - Command object
+ * @param {string} command.type - Command type
+ * @param {*} command.payload - Command payload
+ * @param {number} [command.timeoutMs=5000] - Acknowledgement timeout in ms
+ * @returns {Promise<Object>} Resolves with acknowledgement payload
+ * @throws {Error} If device not connected or acknowledgement times out
+ */
 function sendCommandAwait(deviceId, { type, payload, timeoutMs }) {
     const timeoutConfig = require('../config/');
     const defaultTimeout = timeoutConfig.getTimeout('wsCommandAck');
@@ -215,29 +290,43 @@ function sendCommandAwait(deviceId, { type, payload, timeoutMs }) {
     });
 }
 
+/**
+ * Send settings update command to device
+ * @param {string} deviceId - Target device identifier
+ * @param {Object} settingsOverride - Settings to apply
+ * @returns {boolean} True if command was sent
+ */
 function sendApplySettings(deviceId, settingsOverride) {
-    return sendToDevice(deviceId, {
-        kind: 'apply-settings',
+    return sendCommand(deviceId, {
+        type: 'apply-settings',
         payload: settingsOverride || {},
     });
 }
 
+/**
+ * Broadcast message to all connected devices
+ * @param {Object} message - Message object to broadcast
+ * @returns {number} Number of devices that received the message
+ */
 function broadcast(message) {
-    try {
-        for (const [, ws] of deviceToSocket) {
-            if (ws && ws.readyState === WebSocket.OPEN) sendJson(ws, message);
+    let count = 0;
+    for (const [, ws] of deviceToSocket) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            sendJson(ws, message);
+            count++;
         }
-        return true;
-    } catch (e) {
-        logger.debug('WebSocket broadcast failed', {
-            error: e.message,
-            messageType: message.kind || message.type,
-            totalDevices: deviceToSocket.size,
-        });
-        return false;
     }
+    return count;
 }
 
+/**
+ * Initialize WebSocket server
+ * @param {http.Server} httpServer - HTTP server instance
+ * @param {Object} options - Configuration options
+ * @param {string} [options.path='/ws/devices'] - WebSocket endpoint path
+ * @param {Function} options.verifyDevice - Device verification callback
+ * @returns {WebSocket.Server} WebSocket server instance
+ */
 function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
     if (wss) return wss;
     wss = new WebSocket.Server({ server: httpServer, path });
