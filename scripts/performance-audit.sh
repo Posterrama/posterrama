@@ -9,6 +9,10 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUTPUT_DIR="$PROJECT_ROOT/lighthouse-reports"
 SERVER_URL="${SERVER_URL:-http://localhost:4000}"
 
+# Get Puppeteer Chrome path
+CHROME_PATH=$(node -e "const puppeteer = require('puppeteer'); console.log(puppeteer.executablePath());")
+export CHROME_PATH
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -42,7 +46,7 @@ declare -a PAGES=(
 )
 
 # Lighthouse configuration
-LIGHTHOUSE_FLAGS="--chrome-flags='--headless --no-sandbox' --only-categories=performance,accessibility,best-practices,seo"
+LIGHTHOUSE_FLAGS="--chrome-flags='--headless --no-sandbox --disable-gpu' --only-categories=performance,accessibility,best-practices,seo"
 
 echo "🚀 Running Lighthouse audits..."
 echo ""
@@ -52,13 +56,14 @@ for page_info in "${PAGES[@]}"; do
     
     echo -e "${YELLOW}📊 Auditing: $page_name ($SERVER_URL/$page_path)${NC}"
     
-    # Run Lighthouse
-    npx lighthouse "$SERVER_URL/$page_path" \
+    # Run Lighthouse (use eval to properly handle flags with quotes)
+    CHROME_PATH="$CHROME_PATH" npx lighthouse "$SERVER_URL/$page_path" \
         --output=json \
         --output=html \
         --output-path="$OUTPUT_DIR/lighthouse-$page_path" \
-        $LIGHTHOUSE_FLAGS \
-        --quiet 2>&1 | grep -E "Performance|Accessibility|Best Practices|SEO" || true
+        --chrome-flags='--headless --no-sandbox --disable-gpu' \
+        --only-categories=performance,accessibility,best-practices,seo \
+        --quiet 2>&1 || echo "  Warning: Lighthouse execution had errors"
     
     # Extract scores from JSON report
     if [ -f "$OUTPUT_DIR/lighthouse-$page_path.report.json" ]; then

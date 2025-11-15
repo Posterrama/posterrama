@@ -208,54 +208,113 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 ---
 
-## Loading Performance (Estimated)
+## Loading Performance (Actual Measurements)
 
-**Note:** These are estimates based on file sizes. Actual measurements require Lighthouse audit on live server.
+**Data Source:** Lighthouse audits (Nov 15, 2025)
 
-### Desktop (Cable, ~10 Mbps)
+### Core Web Vitals Summary
 
-| Page            | Estimated Load Time | Notes                      |
-| --------------- | ------------------- | -------------------------- |
-| **Admin**       | ~3-4 seconds        | admin.js (1.3MB) dominates |
-| **Wallart**     | ~1-2 seconds        | Smaller bundle             |
-| **Cinema**      | ~1-2 seconds        | Smaller bundle             |
-| **Screensaver** | ~1-2 seconds        | Smaller bundle             |
+| Page        | FCP (Fast) | LCP (Good)  | TTI (Fast)  | Status |
+| ----------- | ---------- | ----------- | ----------- | ------ |
+| Admin       | 3.6s (⚠️)  | 4.5s (⚠️)   | 4.5s (⚠️)   | OK     |
+| Wallart     | 4.0s (⚠️)  | 96.7s (🚨)  | 96.8s (🚨)  | POOR   |
+| Cinema      | 5.0s (⚠️)  | 100.2s (🚨) | 100.2s (🚨) | POOR   |
+| Screensaver | 3.0s (✅)  | 94.3s (🚨)  | 94.3s (🚨)  | POOR   |
+| Login       | 3.5s (✅)  | 4.5s (⚠️)   | 4.5s (⚠️)   | OK     |
 
-### Mobile (3G, ~400 Kbps)
+**Thresholds:** FCP < 1.8s (Good), LCP < 2.5s (Good), TTI < 3.8s (Good)
 
-| Page            | Estimated Load Time | Notes                  |
-| --------------- | ------------------- | ---------------------- |
-| **Admin**       | ~10-15 seconds      | admin.js transfer time |
-| **Wallart**     | ~4-6 seconds        | Better performance     |
-| **Cinema**      | ~4-6 seconds        | Better performance     |
-| **Screensaver** | ~4-6 seconds        | Better performance     |
+### Performance by Connection Type
+
+**Desktop (Fast 3G, ~1.6 Mbps):**
+
+| Page        | Transfer Time | FCP  | LCP    | Notes                        |
+| ----------- | ------------- | ---- | ------ | ---------------------------- |
+| Admin       | ~6-8s         | 3.6s | 4.5s   | admin.js (1.3MB) dominates   |
+| Wallart     | ~3-4s         | 4.0s | 96.7s  | 🚨 Lazy-loaded poster images |
+| Cinema      | ~3-4s         | 5.0s | 100.2s | 🚨 Lazy-loaded poster images |
+| Screensaver | ~3-4s         | 3.0s | 94.3s  | 🚨 Lazy-loaded poster images |
+| Login       | ~2-3s         | 3.5s | 4.5s   | Smallest bundle              |
+
+**Mobile (Slow 3G, ~400 Kbps):**
+
+| Page        | Estimated Transfer | Estimated FCP | Status |
+| ----------- | ------------------ | ------------- | ------ |
+| Admin       | ~26s               | ~8-10s        | POOR   |
+| Wallart     | ~10-12s            | ~6-8s         | POOR   |
+| Cinema      | ~10-12s            | ~8-10s        | POOR   |
+| Screensaver | ~10-12s            | ~5-7s         | OK     |
+| Login       | ~8-10s             | ~5-6s         | OK     |
 
 ---
 
-## Lighthouse Metrics (To Be Measured)
+## Lighthouse Metrics (Actual Results)
 
-**Status:** Lighthouse audit pending (server needs to be accessible for audit)
+**Status:** ✅ Audits completed on Nov 15, 2025
 
-**Metrics to Capture:**
+**Audit Command:** `npm run perf:audit`
 
-- Performance Score (0-100)
-- First Contentful Paint (FCP)
-- Largest Contentful Paint (LCP)
-- Time to Interactive (TTI)
-- Total Blocking Time (TBT)
-- Cumulative Layout Shift (CLS)
-- Accessibility Score
-- Best Practices Score
-- SEO Score
+**Reports:** See `lighthouse-reports/*.report.html` for detailed analysis
 
-**Expected Current Scores (Based on File Sizes):**
+### Summary Table
 
-- Performance: 60-70 (admin page), 80-90 (other pages)
-- Accessibility: 40-50 (no ARIA labels, keyboard nav issues)
-- Best Practices: 80-90 (HTTPS, security headers)
-- SEO: 70-80 (meta tags present, but improvements needed)
+| Page        | Performance | Accessibility | Best Practices | SEO | FCP  | LCP    | TTI    | TBT  | CLS   |
+| ----------- | ----------- | ------------- | -------------- | --- | ---- | ------ | ------ | ---- | ----- |
+| Admin       | 76/100      | 95/100        | 93/100         | 100 | 3.6s | 4.5s   | 4.5s   | 0ms  | 0     |
+| Wallart     | 65/100      | 100/100       | 100/100        | 100 | 4.0s | 96.7s  | 96.8s  | 80ms | 0     |
+| Cinema      | 62/100      | 100/100       | 100/100        | 91  | 5.0s | 100.2s | 100.2s | 0ms  | 0.004 |
+| Screensaver | 69/100      | 100/100       | 100/100        | 91  | 3.0s | 94.3s  | 94.3s  | 0ms  | 0.002 |
+| Login       | 77/100      | 95/100        | 93/100         | 100 | 3.5s | 4.5s   | 4.5s   | 0ms  | 0     |
 
-**Action Item:** Run Lighthouse audit on live server and update this section.
+### Key Observations
+
+**Performance (62-77/100):**
+
+- ✅ Admin and Login pages perform best (76-77/100)
+- ⚠️ Display modes (Wallart/Cinema/Screensaver) have lower scores (62-69/100)
+- 🚨 **Critical Issue:** LCP is 90-100s on display modes due to lazy-loaded poster images
+- ✅ TBT is excellent (0-80ms) - JavaScript execution is not blocking
+- ✅ CLS is excellent (0-0.004) - no layout shifts
+
+**Accessibility (95-100/100):**
+
+- ✅ Excellent scores across all pages
+- Display modes score perfect 100/100
+- Admin/Login at 95/100 (minor ARIA improvements needed)
+
+**Best Practices (93-100/100):**
+
+- ✅ Near-perfect scores
+- Display modes score 100/100
+- Admin/Login at 93/100 (likely HTTPS/CSP headers)
+
+**SEO (91-100/100):**
+
+- ✅ Excellent scores
+- Admin/Wallart/Login at 100/100
+- Cinema/Screensaver at 91/100 (meta description missing?)
+
+### Performance Bottlenecks Identified
+
+1. **LCP on Display Modes (90-100s)** 🚨 **CRITICAL**
+    - Root Cause: Poster images lazy-load after page load
+    - Impact: 65-69 Performance score
+    - Fix: Preload hero poster or use low-res placeholder
+    - Expected Improvement: +10-15 points → 75-80/100
+
+2. **FCP Times (3.0-5.0s)** ⚠️ **MEDIUM**
+    - Root Cause: Large JavaScript bundles (admin.js 1.3MB)
+    - Impact: Slower initial paint
+    - Fix: Code splitting, tree shaking, async loading
+    - Expected Improvement: FCP → 1.5-2.5s
+
+3. **TTI on Display Modes (94-100s)** ⚠️ **MEDIUM**
+    - Root Cause: Waiting for image loading to complete
+    - Impact: Page not fully interactive until images load
+    - Fix: Separate image loading from interactive state
+    - Expected Improvement: TTI → 5-10s
+
+**Action Items:** Prioritize LCP fix for display modes (90-100s → <2.5s target)
 
 ---
 
@@ -388,18 +447,60 @@ du -h dist/public/ | sort -h -r | head -20
 find public -name "*.js" -o -name "*.css" -o -name "*.html" | xargs ls -lh | sort -k5 -h -r | head -20
 ```
 
-### Lighthouse Audit (TODO)
+### Lighthouse Audit
 
 ```bash
-# Install Lighthouse CLI
-npm install --save-dev lighthouse
+# Run full audit on all pages (admin, wallart, cinema, screensaver, login)
+npm run perf:audit
 
-# Run audit on admin page
-npx lighthouse http://localhost:4000/admin --output=json --output-path=./lighthouse-admin.json --chrome-flags="--headless"
+# View HTML reports
+open lighthouse-reports/lighthouse-admin.report.html
 
-# Run audit on wallart page
-npx lighthouse http://localhost:4000/wallart --output=json --output-path=./lighthouse-wallart.json
+# Check scores with jq
+jq -r '.categories | to_entries[] | "\(.key): \(.value.score * 100)"' lighthouse-reports/lighthouse-admin.report.json
 ```
+
+### Memory Profiling (Chrome DevTools)
+
+**Manual Process:**
+
+1. **Start Server**
+
+    ```bash
+    npm start
+    ```
+
+2. **Open Chrome DevTools**
+    - Navigate to `http://localhost:4000/admin`
+    - Press F12 → Performance tab
+    - Click "Record" → Interact with page → Stop
+    - Analyze heap snapshots, event listeners, DOM nodes
+
+3. **Take Heap Snapshot**
+    - Memory tab → "Take snapshot"
+    - Compare snapshots before/after actions
+    - Look for detached DOM nodes (memory leaks)
+
+4. **Key Metrics to Capture**
+    - **Heap Size:** Total memory used by JavaScript objects
+    - **DOM Nodes:** Number of DOM elements (target: <1500)
+    - **Event Listeners:** Number of registered listeners (target: <50)
+    - **Detached Nodes:** Memory leaks from removed DOM elements
+
+**Expected Baselines (Estimates):**
+
+- Admin page: ~15-25 MB heap, ~800-1200 DOM nodes
+- Wallart/Cinema: ~8-12 MB heap, ~200-400 DOM nodes
+- Screensaver: ~8-12 MB heap, ~200-400 DOM nodes
+
+**Known Issues to Profile:**
+
+- admin.js IIFE scope retention (potential closure leaks)
+- Device polling intervals (check cleanup)
+- WebSocket connection memory usage
+- Image caching in wallart/cinema/screensaver modes
+
+**Action Item:** Run manual profiling session and document actual results
 
 ### Test Coverage
 
