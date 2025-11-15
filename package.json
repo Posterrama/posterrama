@@ -81,7 +81,10 @@
         "openapi:export": "node scripts/export-openapi.js",
         "openapi:validate": "node scripts/validate-openapi.js",
         "openapi:sync": "npm run openapi:export",
-        "release:summary": "node scripts/generate-release-summary.js"
+        "release:summary": "node scripts/generate-release-summary.js",
+        "perf:audit": "./scripts/performance-audit.sh",
+        "perf:bundle-size": "npm run build && du -sh dist/public/ public/ && du -h dist/public/ | tail -1",
+        "perf:largest-files": "find public -name '*.js' -o -name '*.css' -o -name '*.html' | xargs ls -lh | sort -k5 -h -r | head -20"
     },
     "dependencies": {
         "@ctrl/plex": "^3.11.0",
@@ -135,6 +138,7 @@
         "happy-dom": "^20.0.10",
         "jest": "^29.7.0",
         "jsdom": "^27.2.0",
+        "lighthouse": "^12.8.2",
         "nock": "^13.5.6",
         "prettier": "^3.6.2",
         "supertest": "^7.0.0",

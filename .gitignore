@@ -18,6 +18,11 @@ config.json
 dist/
 *.local
 
+# Performance reports
+lighthouse-reports/
+*.lighthouse.report.json
+*.lighthouse.report.html
+
 # Log files
 *.log
 npm-debug.log*
