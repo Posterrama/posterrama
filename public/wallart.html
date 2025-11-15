@@ -126,6 +126,9 @@
                 ]
             }
         </script>
+        
+        <!-- Global Error Handler -->
+        <script type="module" src="/error-handler.js"></script>
     </head>
     <body data-mode="wallart" class="wallart-mode">
         <div id="loader">
@@ -219,92 +222,19 @@
         </div>
 
     <!-- Mode-based redirect: automatically redirect to mode-specific page -->
-    <script>
-        (async function() {
-            window.debugLog && window.debugLog('REDIRECT_SCRIPT_START', { pathname: window.location.pathname });
-            
-            // Skip redirect if already on a mode-specific page or in preview mode
-            // Skip mode checks if running in preview mode (iframe or ?preview=1)
-            const params = new URLSearchParams(window.location.search);
-            const isPreview = params.get('preview') === '1' || window.self !== window.top || window.IS_PREVIEW;
-            
-            // Also skip if server hints a specific mode (MODE_HINT)
-            if (isPreview || window.MODE_HINT || window.location.pathname.includes('/cinema') || 
-                window.location.pathname.includes('/wallart') || 
-                window.location.pathname.includes('/screensaver')) {
-                window.debugLog && window.debugLog('REDIRECT_SKIP', { reason: 'already on mode page', isPreview, modeHint: window.MODE_HINT });
-                window.__wallartModeVerified = true; // Mark as verified to prevent auto-exit poll from reloading
-                return;
-            }
-
-            try {
-                window.debugLog && window.debugLog('REDIRECT_FETCH_CONFIG', {});
-                
-                // Fetch config to determine which mode is active
-                const response = await fetch('/get-config', { cache: 'no-cache' });
-                if (!response.ok) {
-                    window.debugLog && window.debugLog('REDIRECT_CONFIG_FAIL', { status: response.status });
-                    window.__wallartModeVerified = true; // Allow page to continue even if config fails
-                    return;
-                }
-
-                const config = await response.json();
-                window.debugLog && window.debugLog('REDIRECT_CONFIG_LOADED', { 
-                    cinemaMode: config.cinemaMode, 
-                    wallartEnabled: config.wallartMode?.enabled 
-                });
-
-                // Redirect to cinema if cinema mode is enabled
-                if (config.cinemaMode === true) {
-                    window.debugLog && window.debugLog('REDIRECT_TO_CINEMA', {});
-                    console.log('[Posterrama] Cinema mode detected, redirecting to /cinema');
-                    if (window.PosterramaCore && window.PosterramaCore.buildUrlForMode) {
-                        window.location.replace(window.PosterramaCore.buildUrlForMode('cinema'));
-                    } else {
-                        var base = (function(p){ p=(p||'/').replace(/\/+/, '/'); p=p.replace(/\/+/g,'/'); if(p.length>1&&p.endsWith('/')) p=p.slice(0,-1); p=p.replace(/[^/]+$/,'/'); return p; })(window.location.pathname);
-                        var abs = new URL(base + 'cinema', window.location.origin).toString();
-                        window.location.replace(abs);
-                    }
-                    return;
-                }
-
-                // If wallart is enabled, we are already on /wallart; keep initializing.
-                if (config.wallartMode && config.wallartMode.enabled === true) {
-                    window.debugLog && window.debugLog('REDIRECT_WALLART_VERIFIED', {});
-                    console.log('[Posterrama] Wallart mode detected, continue on /wallart');
-                    document.body.classList.add('wallart-mode');
-                    window.__wallartModeVerified = true; // Mark as verified
-                    return;
-                }
-
-                // No wallart: auto-exit polling will navigate to cinema/screensaver if needed
-                window.debugLog && window.debugLog('REDIRECT_NO_MODE', {});
-                window.__wallartModeVerified = true;
-            } catch (err) {
-                // Failed to check config, continue loading index.html
-                window.debugLog && window.debugLog('REDIRECT_ERROR', { error: err.message });
-                console.warn('[Posterrama] Failed to check mode config, loading index.html', err);
-                window.__wallartModeVerified = true; // Allow page to continue
-            }
-        })();
+    <script type="module">
+        import { checkModeRedirect, loadPromoOverlayIfEnabled } from './mode-redirect.js';
+        
+        // Check if we should redirect to another mode
+        await checkModeRedirect('wallart', '__wallartModeVerified');
+        
+        // Load promo overlay if enabled
+        await loadPromoOverlayIfEnabled();
     </script>
 
     <script src="lazy-loading.js?v=20250825a"></script>
     <script src="device-mgmt.js?v=20250901a"></script>
     <script src="/core.js?v={{ASSET_VERSION}}"></script>
-    <script>
-        // Load promo overlay if enabled (typically port 4001 promo site)
-        (async function() {
-            try {
-                const cfg = await window.PosterramaCore.fetchConfig();
-                if (cfg && cfg.promoBoxEnabled === true) {
-                    window.PosterramaCore.loadPromoOverlay(cfg);
-                }
-            } catch (e) {
-                /* ignore */
-            }
-        })();
-    </script>
     <script src="/wallart/artist-cards.js?v={{ASSET_VERSION}}"></script>
     <script src="/wallart/wallart-display.js?v={{ASSET_VERSION}}"></script>
     <script>

@@ -14,6 +14,10 @@ config.json
 # These are installed via `npm install`
 /node_modules
 
+# Build outputs
+dist/
+*.local
+
 # Log files
 *.log
 npm-debug.log*

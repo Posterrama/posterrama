@@ -17,9 +17,12 @@
         <link rel="stylesheet" href="cinema/cinema-display.css?v=20251012c" />
 
         <!-- Client-side Logger -->
-        <script src="/client-logger.js"></script>
+        <script src=\"/client-logger.js\"></script>
+        
+        <!-- Global Error Handler -->
+        <script type=\"module\" src=\"/error-handler.js\"></script>
     </head>
-    <body data-mode="cinema">
+    <body data-mode=\"cinema\">
         <script>
             // Early guard: if cinema mode is not enabled anymore, immediately go back to root
             // Skip this check in preview mode (iframe or ?preview=1)
@@ -62,42 +65,25 @@
         <!-- Scripts -->
     <script src="device-mgmt.js?v=20250901a"></script>
     <script src="/core.js?v={{ASSET_VERSION}}"></script>
-        <script>
-            // Load promo overlay if enabled (typically port 4001 promo site)
-            (async function() {
-                try {
-                    const cfg = await window.PosterramaCore.fetchConfig();
-                    if (cfg && cfg.promoBoxEnabled === true) {
-                        window.PosterramaCore.loadPromoOverlay(cfg);
-                    }
-                } catch (e) {
-                    /* ignore */
-                }
-            })();
-        </script>
         <script src="cinema/cinema-display.js?v=20251012c"></script>
         <script src="/cinema/cinema-bootstrap.js?v={{ASSET_VERSION}}"></script>
-        <script>
-            // Server-independent hint for mode-specific behaviors
+        
+        <!-- Mode initialization -->
+        <script type="module">
+            import { initDevice, startAutoExitPoll } from './display-mode-init.js';
+            import { loadPromoOverlayIfEnabled } from './mode-redirect.js';
+            
+            // Set mode hint for mode-specific behaviors
             window.MODE_HINT = 'cinema';
-        </script>
-        <script>
-            // Start device management initialization (non-blocking)
-            // Device identity will be available from localStorage immediately if registered
-            (async function() {
-                try {
-                    if (window.PosterramaDevice && window.PosterramaDevice.init) {
-                        const cfg = await window.PosterramaCore.fetchConfig();
-                        window.PosterramaDevice.init(cfg || {}); // Don't await - let it run in background
-                    }
-                } catch (e) {
-                    console.warn('[Cinema] Device init failed:', e);
-                }
-            })();
-        </script>
-        <script>
-            // Start auto-exit poll immediately (device ID from localStorage if available)
-            try { window.PosterramaCore && window.PosterramaCore.startAutoExitPoll({ currentMode: 'cinema', intervalMs: 15000 }); } catch (e) {}
+            
+            // Initialize device management (non-blocking)
+            initDevice();
+            
+            // Start auto-exit polling
+            startAutoExitPoll('cinema', 15000);
+            
+            // Load promo overlay if enabled
+            await loadPromoOverlayIfEnabled();
         </script>
     </body>
 </html>

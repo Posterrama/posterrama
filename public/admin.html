@@ -64,6 +64,9 @@
     }
   </style>
   
+  <!-- Global Error Handler -->
+  <script type="module" src="/error-handler.js"></script>
+  
 </head>
 <body>
   <!-- Top navbar -->
@@ -3270,7 +3273,7 @@
         </div>
         
         <div class="override-helper override-layout">
-          <div class="override-row"
+          <div class="override-row">
             <div class="mode-segment" id="mode-segment" role="radiogroup" aria-label="Display mode">
               <span class="seg-indicator" aria-hidden="true"></span>
               <button type="button" role="radio" aria-checked="false" data-mode="general" class="seg-btn">Screensaver</button>
@@ -3319,7 +3322,7 @@
               <button type="button" class="btn btn-outline btn-sm" id="override-clean" title="Reduce to current mode keys"><i class="fas fa-broom"></i></button>
             </div>
           </div>
-          <textarea id="override-json" rows="12" class="override-json" placeholder="{\n  \"wallart\": { \"duration\": 30 }\n}"></textarea>
+          <textarea id="override-json" rows="12" class="override-json" placeholder='{"wallart": {"duration": 30}}'></textarea>
         </div>
         <div id="override-json-status" class="override-status" aria-live="polite"></div>
       </div>

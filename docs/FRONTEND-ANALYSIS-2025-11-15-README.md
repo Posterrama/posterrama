@@ -321,7 +321,7 @@ The backend analysis (completed earlier) identified similar patterns:
 
 ## 🚀 Quick Wins (Week 1 Gains)
 
-For immediate impact, prioritize these **5 quick wins** (<8 hours total):
+For immediate impact, prioritize these **4 quick wins** (<7 hours total):
 
 1. **Enable Minification** (2h)
     - Add Vite config, deploy minified bundles
@@ -335,15 +335,11 @@ For immediate impact, prioritize these **5 quick wins** (<8 hours total):
     - Catch uncaught errors, log to server
     - **Result:** Better debugging visibility
 
-4. **Fix Top 3 Accessibility Issues** (1h)
-    - Add ARIA labels to buttons, improve contrast
-    - **Result:** +10% accessibility score
-
-5. **Document Architecture** (4h)
+4. **Document Architecture** (4h)
     - Create ARCHITECTURE.md for onboarding
     - **Result:** Faster team ramp-up
 
-**Total:** 8 hours, massive immediate impact
+**Total:** 7 hours, massive immediate impact
 
 ---
 

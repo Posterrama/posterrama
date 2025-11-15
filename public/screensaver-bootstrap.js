@@ -1,0 +1,177 @@
+/**
+ * Screensaver Bootstrap Module
+ *
+ * Handles initialization logic for screensaver display mode
+ */
+
+/**
+ * Force service worker update if available
+ */
+async function forceServiceWorkerUpdate() {
+    try {
+        if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) {
+                await registration.update();
+                console.log('[Screensaver] SW update requested');
+            }
+        }
+    } catch (e) {
+        console.warn('[Screensaver] SW update error:', e.message);
+    }
+}
+
+/**
+ * Ensure config is loaded into window.appConfig
+ */
+async function ensureConfig() {
+    try {
+        if (window.appConfig) return true;
+
+        const useCore = !!(window.PosterramaCore && window.PosterramaCore.fetchConfig);
+        const cfg = useCore
+            ? await window.PosterramaCore.fetchConfig()
+            : await (
+                  await fetch('/get-config', {
+                      cache: 'no-cache',
+                      headers: { 'Cache-Control': 'no-cache' },
+                  })
+              ).json();
+
+        try {
+            if (!Object.getOwnPropertyDescriptor(window, 'appConfig')) {
+                Object.defineProperty(window, 'appConfig', {
+                    value: cfg,
+                    writable: true,
+                });
+            } else {
+                window.appConfig = cfg;
+            }
+        } catch (_) {
+            window.appConfig = cfg;
+        }
+
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+/**
+ * Ensure media queue is loaded into window.mediaQueue
+ */
+async function ensureMediaQueue() {
+    try {
+        if (Array.isArray(window.mediaQueue) && window.mediaQueue.length > 0) return true;
+
+        const count = 12; // fetch multiple items so screensaver can rotate
+        const type = (window.appConfig && window.appConfig.type) || 'movies';
+
+        // Build absolute URL for better Safari/iOS compatibility
+        const baseUrl = window.location.origin;
+        const url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}&excludeGames=1`;
+
+        const res = await fetch(url, {
+            method: 'GET',
+            cache: 'no-cache',
+            headers: {
+                'Cache-Control': 'no-cache',
+                Accept: 'application/json',
+            },
+            credentials: 'same-origin',
+            mode: 'cors',
+        });
+
+        if (!res.ok) return false;
+
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+
+        if (!items.length) return false;
+
+        try {
+            if (!Object.getOwnPropertyDescriptor(window, 'mediaQueue')) {
+                Object.defineProperty(window, 'mediaQueue', {
+                    value: items,
+                    writable: true,
+                });
+            } else {
+                window.mediaQueue = items;
+            }
+        } catch (_) {
+            window.mediaQueue = items;
+        }
+
+        return true;
+    } catch (err) {
+        console.error('[Screensaver] Fetch media failed:', err.message, err.name);
+        return false;
+    }
+}
+
+/**
+ * Start screensaver initialization sequence
+ */
+export async function startScreensaver() {
+    try {
+        // Force SW update first
+        await forceServiceWorkerUpdate();
+
+        // Load config and media
+        await ensureConfig();
+
+        // Initialize device management (optional)
+        try {
+            if (window.PosterramaDevice && window.PosterramaDevice.init) {
+                window.PosterramaDevice.init(window.appConfig || {});
+            }
+        } catch (_) {
+            // Device init is optional
+        }
+
+        await ensureMediaQueue();
+
+        // Debug log
+        try {
+            if (window.logger && window.logger.debug) {
+                window.logger.debug('[Screensaver] bootstrap: config+media ready', {
+                    count: (Array.isArray(window.mediaQueue) && window.mediaQueue.length) || 0,
+                });
+            }
+        } catch (_) {
+            // Debug logging is optional
+        }
+
+        // Start screensaver display
+        if (
+            window.PosterramaScreensaver &&
+            typeof window.PosterramaScreensaver.start === 'function'
+        ) {
+            window.PosterramaScreensaver.start();
+
+            // Hide loader
+            try {
+                const loader = document.getElementById('loader');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    loader.style.display = 'none';
+                }
+            } catch (_) {
+                // Loader hiding is optional
+            }
+        }
+    } catch (_) {
+        // Silently fail - screensaver will show error state
+    }
+}
+
+/**
+ * Initialize screensaver when DOM is ready
+ */
+export function initScreensaver() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startScreensaver);
+    } else {
+        startScreensaver();
+    }
+}
