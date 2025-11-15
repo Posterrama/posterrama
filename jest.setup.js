@@ -70,6 +70,10 @@ global.cleanupTimers = function () {
 process.env.NODE_ENV = 'test';
 process.env.TEST_SILENT = 'true'; // Suppress logger output
 
+// Increase MaxListeners for tests that start multiple servers
+// This prevents warnings when tests run in parallel
+require('events').EventEmitter.defaultMaxListeners = 20;
+
 // Ensure config.json exists for tests (copy from example if missing)
 const fs = require('fs');
 const path = require('path');
