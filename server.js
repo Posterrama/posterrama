@@ -2155,10 +2155,73 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
 const isProduction = process.env.NODE_ENV === 'production';
 let publicDir = isProduction ? path.join(__dirname, 'dist/public') : path.join(__dirname, 'public');
 
-// Fallback to public/ if dist/public doesn't exist (safety check)
-if (isProduction && !fs.existsSync(publicDir)) {
-    logger.warn(`[Server] Production build not found at ${publicDir}, falling back to public/`);
-    publicDir = path.join(__dirname, 'public');
+// Auto-build in production if dist/ is missing or outdated
+if (isProduction) {
+    const crypto = require('crypto');
+    const { execSync } = require('child_process');
+
+    const distDir = path.join(__dirname, 'dist/public');
+    const sourceDir = path.join(__dirname, 'public');
+    const hashFile = path.join(__dirname, 'dist/.build-hash');
+
+    // Calculate hash of public/ directory (exclude dist itself)
+    function calculateDirectoryHash(dir) {
+        const files = [];
+        function walkDir(currentPath) {
+            const entries = fs.readdirSync(currentPath, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(currentPath, entry.name);
+                if (entry.isDirectory()) {
+                    if (entry.name !== 'dist' && entry.name !== 'node_modules') {
+                        walkDir(fullPath);
+                    }
+                } else {
+                    // Include file path and mtime for hash
+                    const stat = fs.statSync(fullPath);
+                    files.push(`${fullPath}:${stat.mtimeMs}`);
+                }
+            }
+        }
+        walkDir(dir);
+        files.sort();
+        return crypto.createHash('sha256').update(files.join('|')).digest('hex');
+    }
+
+    const currentHash = calculateDirectoryHash(sourceDir);
+    let needsBuild = false;
+
+    if (!fs.existsSync(distDir)) {
+        logger.info('[Server] dist/public/ not found, building frontend...');
+        needsBuild = true;
+    } else if (!fs.existsSync(hashFile)) {
+        logger.info('[Server] Build hash not found, rebuilding to ensure consistency...');
+        needsBuild = true;
+    } else {
+        const savedHash = fs.readFileSync(hashFile, 'utf8').trim();
+        if (savedHash !== currentHash) {
+            logger.info('[Server] public/ directory changed, rebuilding frontend...');
+            needsBuild = true;
+        }
+    }
+
+    if (needsBuild) {
+        try {
+            logger.info('[Server] Running npm run build...');
+            execSync('npm run build', { stdio: 'inherit', cwd: __dirname });
+
+            // Save hash after successful build
+            fs.mkdirSync(path.dirname(hashFile), { recursive: true });
+            fs.writeFileSync(hashFile, currentHash, 'utf8');
+
+            logger.info('[Server] Frontend build completed successfully');
+        } catch (err) {
+            logger.error('[Server] Frontend build failed:', err.message);
+            logger.warn('[Server] Falling back to public/ directory');
+            publicDir = sourceDir;
+        }
+    } else {
+        logger.info('[Server] dist/public/ is up-to-date, skipping build');
+    }
 }
 
 logger.info(
