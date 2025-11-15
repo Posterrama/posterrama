@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 
 // Small helper to wait real time without fake timers
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -6,7 +7,6 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 describe('utils/deviceStore coverage', () => {
     let tmpStore;
     let deviceStore;
-    let mockFs;
 
     beforeAll(() => {
         // Create a unique temp file per worker to avoid collisions
@@ -16,123 +16,47 @@ describe('utils/deviceStore coverage', () => {
         tmpStore = path.join(require('os').tmpdir(), unique);
     });
 
-    beforeEach(() => {
-        // Create a completely isolated in-memory fs mock to prevent interference
-        mockFs = {
-            data: new Map(),
-            existsSync: jest.fn(filePath => mockFs.data.has(filePath)),
-            mkdirSync: jest.fn((_dirPath, _options) => {
-                // Mock mkdir - just mark the directory as existing
-                mockFs.data.set(_dirPath, ''); // Empty string to indicate directory
-            }),
-            readFileSync: jest.fn((filePath, _encoding) => {
-                const content = mockFs.data.get(filePath);
-                if (!content)
-                    throw new Error(`ENOENT: no such file or directory, open '${filePath}'`);
-                return content;
-            }),
-            writeFileSync: jest.fn((filePath, data) => {
-                mockFs.data.set(filePath, data);
-            }),
-            promises: {
-                access: jest.fn(async filePath => {
-                    if (!mockFs.data.has(filePath)) {
-                        const error = new Error(
-                            `ENOENT: no such file or directory, access '${filePath}'`
-                        );
-                        error.code = 'ENOENT';
-                        throw error;
-                    }
-                }),
-                readFile: jest.fn(async (filePath, _encoding) => {
-                    const content = mockFs.data.get(filePath);
-                    if (!content) {
-                        const error = new Error(
-                            `ENOENT: no such file or directory, open '${filePath}'`
-                        );
-                        error.code = 'ENOENT';
-                        throw error;
-                    }
-                    return content;
-                }),
-                writeFile: jest.fn(async (filePath, data) => {
-                    mockFs.data.set(filePath, data);
-                }),
-                rename: jest.fn(async (oldPath, newPath) => {
-                    const content = mockFs.data.get(oldPath);
-                    if (content) {
-                        mockFs.data.set(newPath, content);
-                        mockFs.data.delete(oldPath);
-                    }
-                }),
-                mkdir: jest.fn(async (_dirPath, _options) => {
-                    // Mock mkdir - just mark the directory as existing
-                    mockFs.data.set(_dirPath, '');
-                }),
-                copyFile: jest.fn(async (src, dest) => {
-                    const content = mockFs.data.get(src);
-                    if (!content) {
-                        const error = new Error(
-                            `ENOENT: no such file or directory, copyFile '${src}'`
-                        );
-                        error.code = 'ENOENT';
-                        throw error;
-                    }
-                    mockFs.data.set(dest, content);
-                }),
-                unlink: jest.fn(async filePath => {
-                    if (!mockFs.data.has(filePath)) {
-                        const error = new Error(
-                            `ENOENT: no such file or directory, unlink '${filePath}'`
-                        );
-                        error.code = 'ENOENT';
-                        throw error;
-                    }
-                    mockFs.data.delete(filePath);
-                }),
-                stat: jest.fn(async filePath => {
-                    if (!mockFs.data.has(filePath)) {
-                        const error = new Error(
-                            `ENOENT: no such file or directory, stat '${filePath}'`
-                        );
-                        error.code = 'ENOENT';
-                        throw error;
-                    }
-                    const content = mockFs.data.get(filePath);
-                    return {
-                        size: content ? content.length : 0,
-                        mtime: new Date(),
-                        birthtime: new Date(),
-                    };
-                }),
-            },
-        };
+    beforeEach(async () => {
+        // Clean up any existing test file
+        if (fs.existsSync(tmpStore)) {
+            fs.unlinkSync(tmpStore);
+        }
 
-        // Fresh module instance with complete isolation
-        jest.resetModules();
-        jest.isolateModules(() => {
-            const prev = process.env.DEVICES_STORE_PATH;
-            process.env.DEVICES_STORE_PATH = tmpStore;
+        // Remove lock files if they exist
+        const lockFile = tmpStore + '.lock';
+        if (fs.existsSync(lockFile)) {
+            try {
+                fs.unlinkSync(lockFile);
+            } catch (e) {
+                // Ignore errors removing lock files
+            }
+        }
+        // Set up deviceStore with real fs operations
+        const prev = process.env.DEVICES_STORE_PATH;
+        process.env.DEVICES_STORE_PATH = tmpStore;
 
-            // Mock fs completely to prevent any file system interference
-            jest.doMock('fs', () => mockFs);
-            jest.doMock('../../utils/logger', () => ({
-                info: jest.fn(),
-                warn: jest.fn(),
-                error: jest.fn(),
-                debug: jest.fn(),
-            }));
+        // Clear module cache to get fresh instance
+        delete require.cache[require.resolve('../../utils/deviceStore')];
+        deviceStore = require('../../utils/deviceStore');
 
-            deviceStore = require('../../utils/deviceStore');
-
-            // Restore env
-            if (prev === undefined) delete process.env.DEVICES_STORE_PATH;
-            else process.env.DEVICES_STORE_PATH = prev;
-        });
+        // Restore env
+        if (prev === undefined) delete process.env.DEVICES_STORE_PATH;
+        else process.env.DEVICES_STORE_PATH = prev;
     });
 
     afterAll(() => {
-        // Cleanup handled by in-memory mock, no real files to remove
+        // Clean up test file and lock files
+        if (fs.existsSync(tmpStore)) {
+            fs.unlinkSync(tmpStore);
+        }
+        const lockFile = tmpStore + '.lock';
+        if (fs.existsSync(lockFile)) {
+            try {
+                fs.unlinkSync(lockFile);
+            } catch (e) {
+                // Ignore
+            }
+        }
     });
 
     test('fresh store initializes empty', async () => {
