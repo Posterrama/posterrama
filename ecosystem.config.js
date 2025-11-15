@@ -47,10 +47,11 @@ module.exports = {
             watch: false, // Disabled auto-restart to prevent conflicts during config saves
             ignore_watch: ['node_modules', 'public', 'README.md', 'sessions', '.env', 'logs'],
             env: {
+                // Default to production if not set in .env
                 NODE_ENV: 'production',
                 APP_VERSION: pkg.version,
                 NODE_OPTIONS: '--max-old-space-size=8192', // 8GB heap limit
-                ...loadEnvFile(), // Always load fresh .env values
+                ...loadEnvFile(), // Load .env (overrides defaults including NODE_ENV)
             },
             // Force environment update on restart
             restart_delay: 1000,
