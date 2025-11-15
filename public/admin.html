@@ -2678,12 +2678,31 @@
                   </div>
                 </div>
                 <div class="inline-field" style="display:flex;align-items:center;gap:12px;">
-                  <label style="margin:0;min-width:110px;font-weight:500;">Retention <span title="Backups are deleted if EITHER condition is met: exceeds Keep count OR exceeds Max age" style="cursor:help;display:inline-block;"><i class="fas fa-info-circle" style="font-size:0.8em;opacity:0.6;"></i></span></label>
+                  <label style="margin:0;min-width:110px;font-weight:500;position:relative;">
+                    Retention 
+                    <span class="retention-info-icon" style="cursor:help;display:inline-block;position:relative;">
+                      <i class="fas fa-info-circle" style="font-size:0.8em;opacity:0.6;"></i>
+                      <span class="retention-tooltip" style="display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 8px);background:var(--color-bg-elevated,#2a2d3a);color:var(--color-text-primary,#e8e9ed);padding:8px 12px;border-radius:8px;font-size:0.85rem;font-weight:400;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;line-height:1.4;">
+                        Deletes if EITHER: exceeds Keep count OR exceeds Max age
+                        <span style="position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--color-bg-elevated,#2a2d3a);"></span>
+                      </span>
+                    </span>
+                  </label>
                   <label for="input-cfg-backup-retention-count" style="font-size:0.9em;margin:0;">Keep</label>
-                  <input type="number" id="input-cfg-backup-retention-count" min="1" max="60" value="5" style="width:70px;height:40px;padding:8px 12px;" title="Keep this many most recent backups" />
+                  <input type="number" id="input-cfg-backup-retention-count" min="1" max="60" value="5" style="width:70px;height:40px;padding:8px 12px;" />
                   <label for="input-cfg-backup-retention-days" style="font-size:0.9em;margin:0;margin-left:8px;">Max age (days)</label>
-                  <input type="number" id="input-cfg-backup-retention-days" min="0" max="365" value="0" style="width:70px;height:40px;padding:8px 12px;" title="Delete backups older than X days (0 = disabled). Works independently from Keep count." />
+                  <input type="number" id="input-cfg-backup-retention-days" min="0" max="365" value="0" style="width:70px;height:40px;padding:8px 12px;" />
                 </div>
+                <script>
+                  (function() {
+                    const icon = document.querySelector('.retention-info-icon');
+                    const tooltip = document.querySelector('.retention-tooltip');
+                    if (icon && tooltip) {
+                      icon.addEventListener('mouseenter', () => tooltip.style.display = 'block');
+                      icon.addEventListener('mouseleave', () => tooltip.style.display = 'none');
+                    }
+                  })();
+                </script>
               </div>
 
               <div id="cfg-backup-list" class="compact-backup-list"></div>
