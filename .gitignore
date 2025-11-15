@@ -67,7 +67,6 @@ jest-results.json
 
 # Development/test files
 test-*.html
-test-*.js
 list-*.js
 *test*.html
 *-review.md
