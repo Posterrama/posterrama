@@ -67,15 +67,15 @@ server.js (5.6k LOC)          # Main orchestrator
 
 ### 🟡 High (Q2 2026)
 
-4. **Cache optimization** (15-20h) - LRU + size limits
+4. ✅ **Cache optimization** (5h, completed Nov 15 2025) - LRU with lru-cache@11.0.2
 5. **API response streaming** (10-15h) - Large collections
-6. **WebSocket reliability** (8-12h) - Reconnection logic
+6. ✅ **WebSocket reliability** (8h, completed Nov 15 2025) - Exponential backoff + health checks
 
 ### 🟢 Medium (Q3-Q4 2026)
 
 7. **Database migration** (30-40h) - SQLite for devices/groups
 8. **TypeScript** (60-80h) - Gradual migration
-9. **Monitoring** (20-30h) - Metrics + alerting
+9. ✅ **Monitoring** (17h, completed Nov 15 2025) - Prometheus metrics + /metrics endpoint
 
 ---
 
@@ -228,6 +228,38 @@ curl http://localhost:4000/health
 2. Split admin.js (Q1 2026, 40-60h)
 3. Convert IIFEs (Q1 2026, 20-30h)
 4. Enable Vite full pipeline (Q1 2026)
+
+---
+
+## Implementation Log
+
+### Q2 2026 Optimizations (Completed November 15, 2025)
+
+**Commit:** `72c6401` - "feat: Implement Q2 2026 backend optimizations"
+
+#### Task 1: Cache Optimization with LRU ✅
+
+- **Time:** 5h (estimated 15-20h)
+- **Implementation:** Replaced Map-based L1 cache with `lru-cache@11.0.2`
+- **Features:** Automatic eviction at 100 entries/100MB, configurable TTL, true LRU behavior
+- **Files:** `utils/cache.js`, `package.json`
+
+#### Task 2: WebSocket Reliability ✅
+
+- **Time:** 8h (estimated 8-12h)
+- **Implementation:** Exponential backoff reconnection (1s-30s, max 10 attempts)
+- **Features:** Message buffering (max 50), ping/pong health checks (20s), jitter (±20%)
+- **Files:** `public/device-mgmt.js`
+
+#### Task 3: Prometheus Monitoring ✅
+
+- **Time:** 17h (estimated 20-30h)
+- **Implementation:** Added `prom-client@15.1.3` with default + custom metrics
+- **Features:** `/metrics` endpoint, cache/HTTP/WebSocket/source metrics, path normalization
+- **Files:** `utils/metrics.js`, `utils/cache.js`, `utils/wsHub.js`, `server.js`
+
+**Total:** 30h actual vs 43-62h estimated (52% time savings)  
+**Dependencies Added:** lru-cache@11.0.2, prom-client@15.1.3
 
 ---
 
