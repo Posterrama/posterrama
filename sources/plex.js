@@ -4,6 +4,7 @@
  */
 const logger = require('../utils/logger');
 const { RequestDeduplicator } = require('../utils/request-deduplicator');
+const { logSourceError, metadataExtractors } = require('../utils/source-error-context');
 
 // Initialize deduplicator for Plex requests
 const deduplicator = new RequestDeduplicator({ keyPrefix: 'plex' });
@@ -331,19 +332,22 @@ class PlexSource {
             return finalItems;
         } catch (error) {
             this.metrics.errorCount++;
+            // Log with enhanced context
+            logSourceError(logger, {
+                source: `plex:${this.server.name}`,
+                operation: 'fetchMedia',
+                error,
+                metadata: {
+                    ...metadataExtractors.fetchMedia({ libraryNames, type, count }),
+                    serverUrl: this.server.url,
+                    includeRatings: this.server.includeRatings,
+                },
+            });
             // Preserve console.error for backward compatibility with existing tests/spies
             // server.js wraps console.error to forward to logger as well
             console.error(
                 `[PlexSource:${this.server.name}] Error fetching media: ${error.message}`
             );
-            // Also emit via logger for file/memory transports
-            try {
-                logger.error(
-                    `[PlexSource:${this.server.name}] Error fetching media: ${error.message}`
-                );
-            } catch (_) {
-                /* ignore */
-            }
             return [];
         }
     }
@@ -486,16 +490,21 @@ class PlexSource {
             return finalAlbums;
         } catch (error) {
             this.metrics.errorCount++;
+            // Log with enhanced context
+            logSourceError(logger, {
+                source: `plex:${this.server.name}`,
+                operation: 'fetchMusic',
+                error,
+                metadata: {
+                    ...metadataExtractors.fetchMedia({ libraryNames, count, filters }),
+                    musicMode: true,
+                    serverUrl: this.server.url,
+                },
+            });
+            // Preserve console.error for backward compatibility
             console.error(
                 `[PlexSource:${this.server.name}] Error fetching music: ${error.message}`
             );
-            try {
-                logger.error(
-                    `[PlexSource:${this.server.name}] Error fetching music: ${error.message}`
-                );
-            } catch (_) {
-                /* ignore */
-            }
             return [];
         }
     }

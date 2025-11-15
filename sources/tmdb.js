@@ -3,6 +3,7 @@
  * Handles fetching and processing media from The Movie Database API.
  */
 const logger = require('../utils/logger');
+const { logSourceError } = require('../utils/source-error-context');
 
 class TMDBSource {
     constructor(sourceConfig, shuffleArray, isDebug) {
@@ -156,9 +157,12 @@ class TMDBSource {
 
             return genreMap;
         } catch (error) {
-            logger.error(
-                `[TMDBSource:${this.source.name}] Error fetching genres for ${type}: ${error.message}`
-            );
+            logSourceError(logger, {
+                source: `tmdb:${this.source.name}`,
+                operation: 'loadGenres',
+                error,
+                metadata: { type, apiKey: this.source.apiKey ? '***' : 'missing' },
+            });
             return new Map(); // Return empty map on error
         }
     }
@@ -279,9 +283,16 @@ class TMDBSource {
             }
 
             // Enhanced error logging
-            logger.error(
-                `[TMDBSource:${this.source.name}] API request failed for ${url}: ${error.message}`
-            );
+            logSourceError(logger, {
+                source: `tmdb:${this.source.name}`,
+                operation: 'cachedApiRequest',
+                error,
+                metadata: {
+                    url: url.replace(/api_key=[^&]+/, 'api_key=***'),
+                    retryCount,
+                    maxRetries: this.maxRetries,
+                },
+            });
             throw error;
         }
     }
@@ -415,7 +426,17 @@ class TMDBSource {
 
             return processedItems;
         } catch (error) {
-            logger.error(`[TMDBSource:${this.source.name}] Error fetching media: ${error.message}`);
+            logSourceError(logger, {
+                source: `tmdb:${this.source.name}`,
+                operation: 'fetchMedia',
+                error,
+                metadata: {
+                    type,
+                    count,
+                    category: this.source.category || 'popular',
+                    apiKey: this.source.apiKey ? '***' : 'missing',
+                },
+            });
             return [];
         }
     }
@@ -639,9 +660,17 @@ class TMDBSource {
             return data;
         } catch (error) {
             if (this.isDebug) {
-                logger.debug(
-                    `[TMDBSource:${this.source.name}] Error fetching streaming providers: ${error.message}`
-                );
+                logSourceError(logger, {
+                    source: `tmdb:${this.source.name}`,
+                    operation: 'fetchStreamingProviders',
+                    error,
+                    metadata: {
+                        mediaType,
+                        tmdbId: itemId,
+                        watchRegion: this.source.watchRegion || 'not configured',
+                    },
+                    level: 'debug',
+                });
             }
             return null;
         }
@@ -872,9 +901,17 @@ class TMDBSource {
                 }
             } catch (error) {
                 if (this.isDebug) {
-                    logger.debug(
-                        `[TMDBSource:${this.source.name}] Failed to fetch streaming data for ${title}: ${error.message}`
-                    );
+                    logSourceError(logger, {
+                        source: `tmdb:${this.source.name}`,
+                        operation: 'processItem:streamingData',
+                        error,
+                        metadata: {
+                            title,
+                            mediaType: processedItem.type,
+                            tmdbId: item.id,
+                        },
+                        level: 'debug',
+                    });
                 }
                 processedItem.streaming = { available: false, providers: [] };
             }
@@ -901,9 +938,14 @@ class TMDBSource {
 
             return Array.from(allGenres).sort();
         } catch (error) {
-            logger.error(
-                `[TMDBSource:${this.source.name}] Error getting available genres: ${error.message}`
-            );
+            logSourceError(logger, {
+                source: `tmdb:${this.source.name}`,
+                operation: 'getAvailableGenres',
+                error,
+                metadata: {
+                    apiKey: this.source.apiKey ? '***' : 'missing',
+                },
+            });
             return [];
         }
     }

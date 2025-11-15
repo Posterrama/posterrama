@@ -4,6 +4,7 @@
  */
 const logger = require('../utils/logger');
 const { RequestDeduplicator } = require('../utils/request-deduplicator');
+const { logSourceError, metadataExtractors } = require('../utils/source-error-context');
 
 // Initialize deduplicator for Jellyfin requests
 const deduplicator = new RequestDeduplicator({ keyPrefix: 'jellyfin' });
@@ -641,11 +642,15 @@ class JellyfinSource {
             return validItems;
         } catch (error) {
             this.metrics.errorCount++;
-            logger.error(`[JellyfinSource:${this.server.name}] Error fetching media:`, {
-                error: error.message,
-                libraryNames,
-                type,
-                count,
+            logSourceError(logger, {
+                source: `jellyfin:${this.server.name}`,
+                operation: 'fetchMedia',
+                error,
+                metadata: {
+                    ...metadataExtractors.fetchMedia({ libraryNames, type, count }),
+                    serverUrl: this.server.url,
+                    userId: this.server.userId ? '***' : undefined,
+                },
             });
             throw error;
         }
@@ -669,10 +674,12 @@ class JellyfinSource {
                 metrics: this.getMetrics(),
             };
         } catch (error) {
-            logger.error(
-                `[JellyfinSource:${this.server.name}] Error getting server info:`,
-                error.message
-            );
+            logSourceError(logger, {
+                source: `jellyfin:${this.server.name}`,
+                operation: 'getServerInfo',
+                error,
+                metadata: metadataExtractors.connection(this.server),
+            });
             throw error;
         }
     }

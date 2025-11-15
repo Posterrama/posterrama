@@ -186,9 +186,14 @@ describe('JellyfinSource Integration Coverage', () => {
 
         await expect(failingSource.getServerInfo()).rejects.toThrow('Server error');
 
+        // Updated to match new structured error logging format
         expect(logger.error).toHaveBeenCalledWith(
-            expect.stringContaining('Error getting server info'),
-            'Server error'
+            expect.stringContaining('getServerInfo failed'),
+            expect.objectContaining({
+                error: expect.objectContaining({
+                    message: 'Server error',
+                }),
+            })
         );
     });
 

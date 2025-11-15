@@ -260,9 +260,14 @@ describe('JellyfinSource Complete Coverage', () => {
 
             await expect(jellyfinSource.getServerInfo()).rejects.toThrow('Connection timeout');
 
+            // Updated to match new structured error logging format
             expect(logger.error).toHaveBeenCalledWith(
-                expect.stringContaining('Error getting server info'),
-                'Connection timeout'
+                expect.stringContaining('getServerInfo failed'),
+                expect.objectContaining({
+                    error: expect.objectContaining({
+                        message: 'Connection timeout',
+                    }),
+                })
             );
         });
     });

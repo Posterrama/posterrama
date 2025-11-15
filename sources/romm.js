@@ -4,6 +4,7 @@
  */
 const logger = require('../utils/logger');
 const RommHttpClient = require('../utils/romm-http-client');
+const { logSourceError, metadataExtractors } = require('../utils/source-error-context');
 
 class RommSource {
     constructor(serverConfig, shuffleArray, isDebug) {
@@ -68,10 +69,12 @@ class RommSource {
             logger.info(`[RommSource:${this.server.name}] Client initialized and authenticated`);
             return this.client;
         } catch (error) {
-            logger.error(
-                `[RommSource:${this.server.name}] Failed to initialize client:`,
-                error.message
-            );
+            logSourceError(logger, {
+                source: `romm:${this.server.name}`,
+                operation: 'getClient',
+                error,
+                metadata: metadataExtractors.connection(this.server),
+            });
             throw error;
         }
     }
@@ -130,10 +133,12 @@ class RommSource {
                 romCount: platform.rom_count || 0,
             }));
         } catch (error) {
-            logger.error(
-                `[RommSource:${this.server.name}] Failed to fetch platforms:`,
-                error.message
-            );
+            logSourceError(logger, {
+                source: `romm:${this.server.name}`,
+                operation: 'getPlatforms',
+                error,
+                metadata: metadataExtractors.connection(this.server),
+            });
             return [];
         }
     }
@@ -497,10 +502,17 @@ class RommSource {
                         );
                     }
                 } catch (error) {
-                    logger.warn(
-                        `[RommSource:${this.server.name}] Failed to fetch platform ${platformId}:`,
-                        error.message
-                    );
+                    logSourceError(logger, {
+                        source: `romm:${this.server.name}`,
+                        operation: 'fetchMedia:platform',
+                        error,
+                        metadata: {
+                            platformId,
+                            platformsFetched,
+                            totalPlatforms: platformsToFetch.length,
+                        },
+                        level: 'warn',
+                    });
                     this.metrics.errorCount++;
                 }
             }
@@ -541,7 +553,16 @@ class RommSource {
             return processedItems;
         } catch (error) {
             this.metrics.errorCount++;
-            logger.error(`[RommSource:${this.server.name}] Error fetching media:`, error);
+            logSourceError(logger, {
+                source: `romm:${this.server.name}`,
+                operation: 'fetchMedia',
+                error,
+                metadata: {
+                    count,
+                    type,
+                    platforms: platforms === 'all' ? 'all' : platforms?.length || 0,
+                },
+            });
             throw error;
         }
     }
@@ -555,7 +576,12 @@ class RommSource {
             const client = await this.getClient();
             return await client.testConnection();
         } catch (error) {
-            logger.error(`[RommSource:${this.server.name}] Connection test failed:`, error.message);
+            logSourceError(logger, {
+                source: `romm:${this.server.name}`,
+                operation: 'testConnection',
+                error,
+                metadata: metadataExtractors.connection(this.server),
+            });
             return false;
         }
     }
