@@ -192,13 +192,13 @@ describe('utils/configBackup coverage', () => {
             time: '01:15',
             retention: 100,
         });
-        expect(cfg).toEqual({ enabled: false, time: '01:15', retention: 60 });
+        expect(cfg).toEqual({ enabled: false, time: '01:15', retention: 60, retentionDays: 0 });
         // read back
         const read = await mod.readScheduleConfig();
-        expect(read).toEqual({ enabled: false, time: '01:15', retention: 60 });
+        expect(read).toEqual({ enabled: false, time: '01:15', retention: 60, retentionDays: 0 });
         // write with partial
         const cfg2 = await mod.writeScheduleConfig({ time: '03:00' });
-        expect(cfg2).toEqual({ enabled: true, time: '03:00', retention: 5 });
+        expect(cfg2).toEqual({ enabled: true, time: '03:00', retention: 5, retentionDays: 0 });
     });
 
     test('restoreFile handles missing current file (no safety copy needed)', async () => {
@@ -232,7 +232,7 @@ describe('utils/configBackup coverage', () => {
         // Delete config.json to trigger catch block
         fsMock.data.delete(path.resolve(path.join(ROOT, 'config.json')));
         const cfg = await mod.readScheduleConfig();
-        expect(cfg).toEqual({ enabled: true, time: '02:30', retention: 5 });
+        expect(cfg).toEqual({ enabled: true, time: '02:30', retention: 5, retentionDays: 0 });
     });
 
     test('writeScheduleConfig clamps retention to valid range (1-60)', async () => {
@@ -245,5 +245,62 @@ describe('utils/configBackup coverage', () => {
         // Test valid value
         const cfg3 = await mod.writeScheduleConfig({ retention: 30 });
         expect(cfg3.retention).toBe(30);
+    });
+
+    test('writeScheduleConfig clamps retentionDays to valid range (0-365)', async () => {
+        // Test upper bound
+        const cfg1 = await mod.writeScheduleConfig({ retentionDays: 500 });
+        expect(cfg1.retentionDays).toBe(365);
+        // Test lower bound (negative becomes 0)
+        const cfg2 = await mod.writeScheduleConfig({ retentionDays: -10 });
+        expect(cfg2.retentionDays).toBe(0);
+        // Test valid value
+        const cfg3 = await mod.writeScheduleConfig({ retentionDays: 90 });
+        expect(cfg3.retentionDays).toBe(90);
+    });
+
+    test('cleanupOldBackups deletes backups older than maxAgeDays', async () => {
+        // Create backup at time 1
+        jest.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+        await mod.createBackup();
+        // Create backup at time 2 (31 days later)
+        jest.setSystemTime(new Date('2025-02-01T00:00:00Z'));
+        const recent = await mod.createBackup();
+        // Cleanup with maxAgeDays=30, should delete only the old one
+        const res = await mod.cleanupOldBackups(10, 30);
+        expect(res.deleted).toBe(1);
+        expect(res.kept).toBe(1);
+        // Verify old backup deleted, recent kept
+        const list = await mod.listBackups();
+        expect(list.length).toBe(1);
+        expect(list[0].id).toBe(recent.id);
+    });
+
+    test('cleanupOldBackups with maxAgeDays=0 disables age-based deletion', async () => {
+        // Create backup at time 1
+        jest.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+        await mod.createBackup();
+        // Create backup at time 2 (100 days later)
+        jest.setSystemTime(new Date('2025-04-11T00:00:00Z'));
+        await mod.createBackup();
+        // Cleanup with maxAgeDays=0 (disabled), keep=10, should keep both
+        const res = await mod.cleanupOldBackups(10, 0);
+        expect(res.deleted).toBe(0);
+        expect(res.kept).toBe(2);
+    });
+
+    test('cleanupOldBackups combines count and age retention (OR logic)', async () => {
+        // Create 3 backups: 1 old, 2 recent
+        jest.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+        await mod.createBackup();
+        jest.setSystemTime(new Date('2025-02-01T00:00:00Z'));
+        await mod.createBackup();
+        jest.setSystemTime(new Date('2025-02-02T00:00:00Z'));
+        await mod.createBackup();
+        // Cleanup with keep=2 and maxAgeDays=30
+        // Should delete: first backup (too old) but keep both recent ones
+        const res = await mod.cleanupOldBackups(2, 30);
+        expect(res.deleted).toBe(1);
+        expect(res.kept).toBe(2);
     });
 });

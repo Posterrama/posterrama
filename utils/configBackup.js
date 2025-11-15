@@ -107,10 +107,35 @@ async function listBackups() {
     return items;
 }
 
-async function cleanupOldBackups(keep = 5) {
+async function cleanupOldBackups(keep = 5, maxAgeDays = 0) {
     ensureDirSync(BACKUP_DIR);
     const list = await listBackups();
-    const toDelete = list.slice(keep);
+
+    // Determine backups to delete based on count and/or age
+    const toDelete = [];
+    const now = Date.now();
+    const maxAgeMs = Number(maxAgeDays) > 0 ? Number(maxAgeDays) * 24 * 60 * 60 * 1000 : 0;
+
+    for (let i = 0; i < list.length; i++) {
+        const backup = list[i];
+        const shouldDeleteByCount = i >= keep; // Beyond keep threshold
+
+        let shouldDeleteByAge = false;
+        if (maxAgeMs > 0) {
+            try {
+                const createdAt = new Date(backup.createdAt).getTime();
+                shouldDeleteByAge = now - createdAt > maxAgeMs;
+            } catch (_) {
+                /* invalid date; skip age check */
+            }
+        }
+
+        // Delete if either condition is met
+        if (shouldDeleteByCount || shouldDeleteByAge) {
+            toDelete.push(backup);
+        }
+    }
+
     let deleted = 0;
     for (const b of toDelete) {
         const dir = path.join(BACKUP_DIR, b.id);
@@ -203,9 +228,10 @@ async function readScheduleConfig() {
             enabled: backups.enabled !== false,
             time: backups.time || '02:30',
             retention: Number.isFinite(backups.retention) ? backups.retention : 5,
+            retentionDays: Number.isFinite(backups.retentionDays) ? backups.retentionDays : 0,
         };
     } catch (_) {
-        return { enabled: true, time: '02:30', retention: 5 };
+        return { enabled: true, time: '02:30', retention: 5, retentionDays: 0 };
     }
 }
 
@@ -216,6 +242,10 @@ async function writeScheduleConfig(cfg) {
         retention: Math.max(
             1,
             Math.min(60, Number(cfg && cfg.retention != null ? cfg.retention : 5))
+        ),
+        retentionDays: Math.max(
+            0,
+            Math.min(365, Number(cfg && cfg.retentionDays != null ? cfg.retentionDays : 0))
         ),
     };
 

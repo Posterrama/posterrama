@@ -124,7 +124,7 @@ module.exports = function createConfigBackupsRouter({
      * /api/admin/config-backups/cleanup:
      *   post:
      *     summary: Cleanup old backups
-     *     description: Deletes older backups while keeping the most recent N backups (default 5).
+     *     description: Deletes older backups based on count (keep N most recent) and/or age (older than X days). Both conditions work together.
      *     tags: ['Admin']
      *     security:
      *       - sessionAuth: []
@@ -140,6 +140,13 @@ module.exports = function createConfigBackupsRouter({
      *                 minimum: 1
      *                 maximum: 60
      *                 default: 5
+     *                 description: Number of most recent backups to keep
+     *               maxAgeDays:
+     *                 type: integer
+     *                 minimum: 0
+     *                 maximum: 365
+     *                 default: 0
+     *                 description: Delete backups older than this many days (0 = disabled)
      *     responses:
      *       200:
      *         description: Cleanup result
@@ -151,13 +158,14 @@ module.exports = function createConfigBackupsRouter({
     router.post('/api/admin/config-backups/cleanup', isAuthenticated, async (req, res) => {
         try {
             const keep = Math.max(1, Math.min(60, Number(req.body?.keep || 5)));
-            const result = await cfgCleanupOld(keep);
+            const maxAgeDays = Math.max(0, Math.min(365, Number(req.body?.maxAgeDays || 0)));
+            const result = await cfgCleanupOld(keep, maxAgeDays);
             try {
-                broadcastAdminEvent?.('backup-cleanup', { keep, ...result });
+                broadcastAdminEvent?.('backup-cleanup', { keep, maxAgeDays, ...result });
             } catch (_) {
                 /* best-effort admin event */
             }
-            res.json({ keep, ...result });
+            res.json({ keep, maxAgeDays, ...result });
         } catch (e) {
             res.status(500).json({ error: e?.message || 'Cleanup failed' });
         }
@@ -386,6 +394,12 @@ module.exports = function createConfigBackupsRouter({
      *                 maximum: 60
      *                 description: Number of backups to retain
      *                 example: 5
+     *               retentionDays:
+     *                 type: integer
+     *                 minimum: 0
+     *                 maximum: 365
+     *                 description: Delete backups older than this many days (0 = disabled)
+     *                 example: 30
      */
     router.post('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) => {
         try {
@@ -433,7 +447,7 @@ module.exports = function createConfigBackupsRouter({
             try {
                 const meta = await cfgCreateBackup();
                 try {
-                    await cfgCleanupOld(cfg.retention || 5);
+                    await cfgCleanupOld(cfg.retention || 5, cfg.retentionDays || 0);
                 } catch (_) {
                     /* ignore cleanup errors; proceed */
                 }

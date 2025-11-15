@@ -404,11 +404,24 @@ function generateSwaggerSpec(req = null) {
                         type: 'object',
                         properties: {
                             enabled: { type: 'boolean' },
-                            cron: {
+                            time: {
                                 type: 'string',
-                                description: 'Cron expression for automated backups',
+                                pattern: '^\\d{1,2}:\\d{2}$',
+                                description: 'Daily backup time in HH:MM format (24-hour)',
                             },
-                            retain: { type: 'integer', description: 'How many backups to retain' },
+                            retention: {
+                                type: 'integer',
+                                minimum: 1,
+                                maximum: 60,
+                                description: 'Number of backups to retain',
+                            },
+                            retentionDays: {
+                                type: 'integer',
+                                minimum: 0,
+                                maximum: 365,
+                                description:
+                                    'Delete backups older than this many days (0 = disabled)',
+                            },
                         },
                     },
                     BackupScheduleResponse: {
@@ -421,8 +434,9 @@ function generateSwaggerSpec(req = null) {
                             ok: true,
                             schedule: {
                                 enabled: true,
-                                cron: '0 2 * * *',
-                                retain: 10,
+                                time: '02:30',
+                                retention: 5,
+                                retentionDays: 30,
                             },
                         },
                     },
