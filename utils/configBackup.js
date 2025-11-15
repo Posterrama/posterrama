@@ -92,9 +92,13 @@ async function listBackups() {
             const fst = await statIfExists(fp);
             if (fst && fst.isFile()) files.push({ name, size: fst.size });
         }
+        // Calculate total size from all files
+        const sizeBytes = files.reduce((sum, f) => sum + (f.size || 0), 0);
+
         const item = {
             id,
             createdAt: meta?.createdAt || new Date(st.mtimeMs).toISOString(),
+            sizeBytes,
             files,
         };
         // Include label and note if present (backwards compatible)
