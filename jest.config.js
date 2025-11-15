@@ -52,7 +52,6 @@ module.exports = {
         '!config/index.js',
         '!utils/healthCheck.js',
         '!utils/updater.js',
-        '!sources/tmdb.js',
         '!utils/deviceStore.js',
     ],
 
@@ -150,7 +149,6 @@ module.exports = {
         '<rootDir>/config/index.js',
         '<rootDir>/utils/healthCheck.js',
         '<rootDir>/utils/updater.js',
-        '<rootDir>/sources/tmdb.js',
         '<rootDir>/utils/deviceStore.js',
     ],
 
