@@ -2678,11 +2678,11 @@
                   </div>
                 </div>
                 <div class="inline-field" style="display:flex;align-items:center;gap:12px;">
-                  <label style="margin:0;min-width:110px;font-weight:500;">Retention</label>
+                  <label style="margin:0;min-width:110px;font-weight:500;" title="Backups are deleted if they exceed EITHER the count OR the age limit">Retention <i class="fas fa-info-circle" style="font-size:0.8em;opacity:0.6;"></i></label>
                   <label for="input-cfg-backup-retention-count" style="font-size:0.9em;margin:0;">Keep</label>
-                  <input type="number" id="input-cfg-backup-retention-count" min="1" max="60" value="5" class="w-60" title="Number of most recent backups to keep" />
+                  <input type="number" id="input-cfg-backup-retention-count" min="1" max="60" value="5" class="w-110" title="Keep this many most recent backups" />
                   <label for="input-cfg-backup-retention-days" style="font-size:0.9em;margin:0;margin-left:8px;">Max age (days)</label>
-                  <input type="number" id="input-cfg-backup-retention-days" min="0" max="365" value="0" class="w-60" title="Delete backups older than X days (0 = disabled)" />
+                  <input type="number" id="input-cfg-backup-retention-days" min="0" max="365" value="0" class="w-110" title="Delete backups older than X days (0 = disabled). Works independently from Keep count." />
                 </div>
               </div>
 
