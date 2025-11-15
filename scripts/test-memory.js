@@ -37,7 +37,7 @@ async function profileMemory(url, name) {
 
     // Get detailed memory info via CDP
     const client = await page.target().createCDPSession();
-    const { documents, jsEventListeners, nodes } = await client.send('DOM.getDocument');
+    const { jsEventListeners, nodes } = await client.send('DOM.getDocument');
 
     console.log(`  ✓ Heap Size: ${(metrics.JSHeapUsedSize / 1024 / 1024).toFixed(2)} MB`);
     console.log(`  ✓ DOM Nodes: ${metrics.Nodes || nodes || 'N/A'}`);
