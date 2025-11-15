@@ -52,9 +52,7 @@ module.exports = {
         '!config/index.js',
         '!utils/healthCheck.js',
         '!utils/updater.js',
-        '!sources/jellyfin.js',
         '!sources/tmdb.js',
-        '!utils/jellyfin-http-client.js',
         '!utils/deviceStore.js',
     ],
 
@@ -152,9 +150,7 @@ module.exports = {
         '<rootDir>/config/index.js',
         '<rootDir>/utils/healthCheck.js',
         '<rootDir>/utils/updater.js',
-        '<rootDir>/sources/jellyfin.js',
         '<rootDir>/sources/tmdb.js',
-        '<rootDir>/utils/jellyfin-http-client.js',
         '<rootDir>/utils/deviceStore.js',
     ],
 
