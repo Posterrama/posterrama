@@ -14,20 +14,21 @@
 | --------- | ---------------------------------- | ----------- | -------- | ------ | ---------------------- |
 | **#1-10** | Previous Issues                    | Various     | -        | -      | ✅ **RESOLVED**        |
 | #11       | Debug Code Consolidation           | Quality     | LOW      | 2h     | ✅ **DONE (Sprint 1)** |
-| #12       | Technical Debt Marker Audit        | Quality     | LOW      | 3h     | 🔵 Backlog             |
-| #13       | Refactor Large Route Handlers      | Quality     | MEDIUM   | 6h     | 🔵 Backlog             |
+| #12       | Technical Debt Marker Audit        | Quality     | LOW      | 0.5h   | ✅ **DONE (Sprint 3)** |
+| #13       | Refactor Large Route Handlers      | Quality     | MEDIUM   | 6h     | ✅ **DONE (Sprint 3)** |
 | #14       | Improve Error Context in Sources   | Quality     | LOW      | 4h     | ✅ **DONE (Sprint 2)** |
 | #15       | Add XSS Attack Vector Tests        | Security    | MEDIUM   | 3h     | ✅ **DONE (Sprint 1)** |
-| #16       | Extract Common HTTP Client Base    | Quality     | LOW      | 4h     | 🔵 Backlog             |
+| #16       | Extract Common HTTP Client Base    | Quality     | LOW      | 5h     | ✅ **DONE (Sprint 3)** |
 | #17       | Create Server Config Helper        | Quality     | LOW      | 2h     | ✅ **DONE (Sprint 1)** |
-| #18       | Add JSDoc Comments                 | Quality     | LOW      | 6h     | 🔵 Backlog             |
+| #18       | Add JSDoc Comments                 | Quality     | LOW      | 3h     | ✅ **DONE (Sprint 3)** |
 | #19       | Add Cache Hit Ratio Monitoring     | Performance | MEDIUM   | 4h     | ✅ **DONE (Sprint 2)** |
 | #20       | Parallel Playlist Source Fetching  | Performance | HIGH     | 3h     | ✅ **DONE (Sprint 1)** |
 | #21       | File Locking for Concurrent Writes | Reliability | MEDIUM   | 5h     | ✅ **DONE (Sprint 2)** |
-| #22       | Add Cluster Mode Support           | Scalability | LOW      | 12h    | 🔵 Backlog             |
+| #22       | Add Cluster Mode Support           | Scalability | LOW      | 12h    | 🔵 Future              |
 | #23       | Monitor Playlist Cache Memory      | Performance | LOW      | 2h     | ✅ **DONE (Sprint 1)** |
 | #24       | Optimize HTTP Client Config        | Performance | LOW      | 3h     | ✅ **DONE (Sprint 2)** |
-| #25       | Stream Image Processing            | Performance | LOW      | 4h     | 🔵 Backlog             |
+| #25       | Stream Image Processing            | Performance | LOW      | 2h     | ✅ **DONE (Sprint 3)** |
+| #64       | Config Backup Unit Tests           | Testing     | MEDIUM   | 2h     | ✅ **DONE (Sprint 3)** |
 
 ### 1.2 Issues by Priority
 
@@ -213,46 +214,60 @@ npm update winston@3.18.3
 
 ---
 
-### 3.3 Sprint 3: Code Quality (Week 4-5)
+### 3.3 Sprint 3: Code Quality ✅ COMPLETED
 
-**Goal:** Technical debt reduction  
-**Duration:** 2 weeks  
-**Effort:** 21 hours
+**Goal:** Technical debt reduction & maintainability  
+**Duration:** 2 weeks (completed November 2025)  
+**Effort:** 16.5h estimated → **18.5h actual**  
+**Commits:** 6 commits (4bf2019, 6fcf337, ae9629c, b5b37f5, 3d91ddd, 4032f53)  
+**Files:** 8 files changed, +1,127/-118 lines
 
 #### Issues:
 
-1. **#13: Refactor Route Handlers** (6h) - MEDIUM
-    - Better code organization
-    - Improved testability
-    - Cleaner architecture
+1. **#1: Technical Debt Audit** (0.5h) - MEDIUM
+    - Comprehensive analysis completed
+    - Created Gitea issues for all findings
+    - Prioritized remaining work
 
-2. **#16: HTTP Client Base Class** (4h) - LOW
-    - Reduces duplication
-    - Easier maintenance
-    - Consistent patterns
+2. **#2: Refactor Route Handlers** (6h) - MEDIUM
+    - Created lib/device-operations.js (292 lines)
+    - Extracted business logic from routes/devices.js
+    - 4 handlers reduced by 67% average
+    - Added 24 unit tests (all passing)
 
-3. **#18: JSDoc Comments** (6h) - LOW
-    - Better documentation
-    - IDE support
-    - Onboarding easier
+3. **#3: HTTP Client Base Class** (5h) - LOW
+    - Created lib/http-client-base.js (236 lines)
+    - Refactored JellyfinHttpClient (~160 lines removed)
+    - Eliminates duplicate retry/logging/agent code
+    - Added 31 unit tests (all passing)
+    - All 103 Jellyfin integration tests passing
 
-4. **#12: Technical Debt Audit** (3h) - LOW
-    - Clean up TODO/FIXME
-    - Create GitHub issues
-    - Prioritize remaining work
+4. **#4: JSDoc Comments** (3h) - LOW
+    - utils/wsHub.js: 1 → 12 JSDoc blocks (+1100%)
+    - utils/deviceStore.js: 2 → 8 JSDoc blocks (+300%)
+    - Comprehensive @param, @returns, @throws annotations
+    - Better IDE autocomplete and inline docs
 
-5. **#25: Stream Image Processing** (4h) - LOW
-    - Memory optimization
-    - Better performance
-    - Scalability improvement
+5. **#5: Stream Image Processing** (2h) - LOW
+    - Enhanced PassThrough error handling in image proxy
+    - Documented existing zero-copy streaming
+    - 20 media tests passing
+    - Maintains memory-efficient image serving
+
+6. **#64: Config Backup Tests** (2h) - MEDIUM
+    - Added 5 edge case tests (7 → 12 total)
+    - Coverage: 96.29% statements, 83.33% branches, 100% lines
+    - Exceeds 80% coverage requirement
+    - Closed #73 as duplicate
 
 **Deliverables:**
 
-- Cleaner, more maintainable code
-- Reduced code duplication
-- Better documentation
-- Resolved technical debt markers
-- Optimized image processing
+- Cleaner, more maintainable code structure
+- Significantly reduced code duplication
+- Enhanced documentation (JSDoc)
+- Comprehensive test coverage
+- Optimized image processing with error handling
+- All technical debt tracked in Gitea
 
 ---
 
