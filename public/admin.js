@@ -2066,11 +2066,24 @@
                 return;
             }
             list.innerHTML = '';
+            // Calculate total size
+            const totalBytes = arr.reduce((sum, b) => sum + (b.sizeBytes || 0), 0);
+            const totalSize = formatBytes(totalBytes);
+
+            // Show total at top
+            const header = document.createElement('div');
+            header.className = 'backup-header';
+            header.innerHTML = `<div class="subtle"><i class="fas fa-database"></i> Total: ${totalSize} (${arr.length} backups)</div>`;
+            header.style.cssText =
+                'padding:8px 12px;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1);';
+            list.appendChild(header);
+
             arr.forEach(b => {
                 const item = document.createElement('div');
                 item.className = 'backup-item';
                 const created = new Date(b.createdAt || Date.now());
                 const count = (b.files || []).length;
+                const size = formatBytes(b.sizeBytes || 0);
                 const summary = document.createElement('div');
                 summary.className = 'backup-summary';
                 summary.innerHTML = `
@@ -2078,7 +2091,7 @@
                     <i class="fas fa-archive"></i>
                     <strong>${b.id}</strong>
                                         <span class="subtle">${created.toLocaleString()}</span>
-                                        <span class="subtle">• ${count} files</span>
+                                        <span class="subtle">• ${count} files • ${size}</span>
                   </div>
                   <div class="right">
                                         <button class="btn btn-link btn-sm" title="Toggle details"><i class="fas fa-chevron-down"></i></button>
@@ -2323,9 +2336,15 @@
                 retDays.value = String(j.retentionDays || 0);
             if (pill) {
                 const enabled = j.enabled !== false;
-                pill.textContent = enabled ? `Daily • ${String(j.time || '02:30')}` : 'Disabled';
+                const scheduleTime = String(j.time || '02:30');
+                pill.textContent = enabled ? `Daily • ${scheduleTime}` : 'Disabled';
                 pill.classList.toggle('status-success', enabled);
                 pill.classList.toggle('status-warning', !enabled);
+
+                // Start countdown timer if enabled
+                if (enabled) {
+                    updateBackupCountdown(pill, scheduleTime);
+                }
             }
         } catch (_) {
             /* loadCfgBackupSchedule: UI pill render fallback if elements missing */
@@ -2372,6 +2391,40 @@
             throw e;
         }
     }
+
+    // Backup countdown timer
+    let backupCountdownInterval = null;
+    function updateBackupCountdown(pill, scheduleTime) {
+        // Clear existing interval
+        if (backupCountdownInterval) clearInterval(backupCountdownInterval);
+
+        function update() {
+            const now = new Date();
+            const [hours, minutes] = scheduleTime.split(':').map(Number);
+
+            // Calculate next run time
+            const nextRun = new Date();
+            nextRun.setHours(hours, minutes, 0, 0);
+
+            // If scheduled time already passed today, move to tomorrow
+            if (nextRun <= now) {
+                nextRun.setDate(nextRun.getDate() + 1);
+            }
+
+            const diff = nextRun - now;
+            const hoursLeft = Math.floor(diff / (1000 * 60 * 60));
+            const minutesLeft = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+            const countdown = hoursLeft > 0 ? `${hoursLeft}h ${minutesLeft}m` : `${minutesLeft}m`;
+
+            pill.textContent = `Daily • ${scheduleTime} | Next in ${countdown}`;
+        }
+
+        // Update immediately and then every minute
+        update();
+        backupCountdownInterval = setInterval(update, 60000);
+    }
+
     // Local button removed; schedule is saved via global Operations Save
     // Load list and schedule when Operations becomes visible
     (function observeOpsForBackups() {
