@@ -19,6 +19,7 @@ module.exports = {
         '**/__tests__/**/*.spec.js',
         '**/__tests__/**/test-*.js',
         '!**/__tests__/routes/**', // Exclude route definitions
+        '!**/__tests__/frontend/**', // Exclude frontend tests (browser JS, not Node.js compatible)
     ],
 
     // Add timeout and force exit to prevent hanging

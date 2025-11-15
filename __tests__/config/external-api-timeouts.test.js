@@ -2,7 +2,7 @@
  * Tests for Standardized External API Timeouts (Issue #3)
  */
 
-const config = require('../../config');
+const config = require('../../config/index');
 
 describe('External API Timeout Configuration (Issue #3)', () => {
     describe('timeout configuration', () => {
