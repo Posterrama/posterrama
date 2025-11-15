@@ -1046,12 +1046,29 @@ module.exports = function createMediaRouter({
                 res.setHeader('Content-Type', contentType || 'image/jpeg');
 
                 // 3. Pipe the response to both the client and the cache file
+                // Use PassThrough to tee the stream to multiple destinations without buffering
                 const passthrough = new PassThrough();
                 mediaServerResponse.body.pipe(passthrough);
 
                 const fileStream = fs.createWriteStream(cachedFilePath);
                 passthrough.pipe(fileStream);
                 passthrough.pipe(res);
+
+                // Handle stream errors gracefully
+                fileStream.on('error', err => {
+                    logger.warn('[Image Cache] Failed to write cache file', {
+                        path: cachedFilePath,
+                        error: err.message,
+                    });
+                    // Don't interrupt the response stream to client
+                });
+
+                passthrough.on('error', err => {
+                    logger.error('[Image Proxy] Passthrough stream error', {
+                        error: err.message,
+                        imagePath,
+                    });
+                });
 
                 fileStream.on('finish', async () => {
                     if (isDebug)
