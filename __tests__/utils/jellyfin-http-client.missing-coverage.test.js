@@ -153,7 +153,7 @@ describe('utils/jellyfin-http-client - Missing Coverage', () => {
 
         test('interceptor handles URL parsing failure and adds api_key to params', async () => {
             const http = makeAxios();
-            const client = new JellyfinHttpClient({
+            new JellyfinHttpClient({
                 hostname: 'h',
                 port: 8096,
                 apiKey: 'FALLBACK',
@@ -190,7 +190,7 @@ describe('utils/jellyfin-http-client - Missing Coverage', () => {
     describe('retryRequest with Logging', () => {
         test('logs retry attempts when __jfDebug and __retryLogEnabled are true', async () => {
             process.env.JELLYFIN_HTTP_DEBUG = 'true';
-            const http = makeAxios();
+            makeAxios(); // Setup axios mock
             const client = new JellyfinHttpClient({
                 hostname: 'h',
                 port: 8096,
