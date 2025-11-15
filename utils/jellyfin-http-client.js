@@ -3,13 +3,11 @@
  * A lightweight alternative to the official Jellyfin SDK using direct HTTP calls
  */
 
-const axios = require('axios');
-const https = require('https');
 const os = require('os');
 const crypto = require('crypto');
 const logger = require('./logger');
 const config = require('../config/');
-const UserAgentBuilder = require('./userAgent');
+const BaseHttpClient = require('../lib/http-client-base');
 
 let pkgVersion = '1.0.0';
 try {
@@ -20,7 +18,7 @@ try {
     // package.json not available; keep default version
 }
 
-class JellyfinHttpClient {
+class JellyfinHttpClient extends BaseHttpClient {
     constructor({
         hostname,
         port,
@@ -32,65 +30,24 @@ class JellyfinHttpClient {
         retryMaxRetries = config.getTimeout('externalApiMaxRetries'),
         retryBaseDelay = config.getTimeout('externalApiRetryDelay'),
     }) {
-        this.hostname = hostname;
-        this.port = port;
+        // Call base constructor with Jellyfin-specific configuration
+        super({
+            hostname,
+            port,
+            timeout,
+            basePath,
+            insecure: insecure || insecureHttps || process.env.JELLYFIN_INSECURE_HTTPS === 'true',
+            retryMaxRetries,
+            retryBaseDelay,
+            httpsPorts: new Set([443, '443', 8920, '8920']), // Jellyfin defaults: 8096 http, 8920 https
+            debugEnvVar: 'JELLYFIN_HTTP_DEBUG',
+            clientName: 'JellyfinHttpClient',
+        });
+
         this.apiKey = apiKey;
-        this.timeout = timeout;
-        this.basePath = basePath;
-        this.retryMaxRetries = retryMaxRetries;
-        this.retryBaseDelay = retryBaseDelay;
-        // Honor explicit flags and fall back to env var
-        this.insecure = Boolean(
-            insecureHttps || insecure || process.env.JELLYFIN_INSECURE_HTTPS === 'true'
-        );
 
-        // Build base URL with protocol detection
-        // Build base URL with protocol detection (Jellyfin defaults: 8096 http, 8920 https)
-        const httpsPorts = new Set([443, '443', 8920, '8920']);
-        const protocol = httpsPorts.has(port) ? 'https' : 'http';
-        // Normalize optional basePath
-        let normalizedBasePath = '';
-        if (this.basePath && this.basePath !== '/') {
-            normalizedBasePath = this.basePath.startsWith('/')
-                ? this.basePath
-                : `/${this.basePath}`;
-            // remove trailing slash
-            if (normalizedBasePath.length > 1 && normalizedBasePath.endsWith('/')) {
-                normalizedBasePath = normalizedBasePath.slice(0, -1);
-            }
-        }
-        this.baseUrl = `${protocol}://${hostname}:${port}${normalizedBasePath}`;
-        // Dedicated debug flag for the Jellyfin HTTP client
-        const jfDebug =
-            process.env.JELLYFIN_HTTP_DEBUG === 'true' || process.env.DEBUG_JELLYFIN === 'true';
-        this.__jfDebug = jfDebug;
-        // Opt-in flag specifically for retry attempt logging (very noisy)
-        this.__retryLogEnabled = process.env.JELLYFIN_RETRY_LOGS === 'true';
-        if (jfDebug) {
-            const logger = require('./logger');
-            logger.debug(`[JellyfinHttpClient] baseUrl=${this.baseUrl}, insecure=${this.insecure}`);
-        }
-
-        // Simple throttled warning tracker to avoid log spam per-key
-        this.__lastWarnAt = new Map();
-        this.__warnIntervalMs = 60_000; // default 60s throttle window
-
-        const logger = require('./logger');
-        this.debug = (...args) => {
-            if (this.__jfDebug) {
-                logger.debug(...args);
-            }
-        };
-
-        this.warnThrottled = (key, ...args) => {
-            const now = Date.now();
-            const last = this.__lastWarnAt.get(key) || 0;
-            if (now - last >= this.__warnIntervalMs) {
-                this.__lastWarnAt.set(key, now);
-
-                console.warn(...args);
-            }
-        };
+        // Legacy compatibility: expose __jfDebug for existing code
+        this.__jfDebug = this.__debug;
 
         // Compose Jellyfin/Emby authorization metadata header
         const deviceName = process.env.POSTERRAMA_DEVICE_NAME || os.hostname() || 'Posterrama';
@@ -99,31 +56,10 @@ class JellyfinHttpClient {
             `posterrama-${crypto.createHash('md5').update(deviceName).digest('hex').slice(0, 12)}`;
         const embyAuthHeader = `MediaBrowser Client="Posterrama", Device="${deviceName}", DeviceId="${deviceId}", Version="${pkgVersion}", Token="${this.apiKey}"`;
 
-        // Create axios instance with connection pooling for better performance
-        const http = require('http');
-        const agentOptions = {
-            keepAlive: true,
-            keepAliveMsecs: 30000,
-            maxSockets: 10,
-            maxFreeSockets: 5,
-            timeout: this.timeout,
-        };
-
-        // Configure HTTPS agent with optional insecure mode
-        const httpsAgent = new https.Agent({
-            ...agentOptions,
-            rejectUnauthorized: !(this.insecure && protocol === 'https'),
-        });
-
-        const httpAgent = new http.Agent(agentOptions);
-
-        this.http = axios.create({
-            baseURL: this.baseUrl,
-            timeout: this.timeout,
-            httpAgent,
-            httpsAgent,
+        // Create axios instance with Jellyfin-specific headers (base class handles agents)
+        const UserAgentBuilder = require('./userAgent');
+        this.http = this.createAxiosInstance({
             headers: {
-                // Both headers are accepted by Jellyfin/Emby; include for compatibility
                 'X-Emby-Token': this.apiKey,
                 'X-MediaBrowser-Token': this.apiKey,
                 'X-Emby-Authorization': embyAuthHeader,
