@@ -99,14 +99,28 @@ class JellyfinHttpClient {
             `posterrama-${crypto.createHash('md5').update(deviceName).digest('hex').slice(0, 12)}`;
         const embyAuthHeader = `MediaBrowser Client="Posterrama", Device="${deviceName}", DeviceId="${deviceId}", Version="${pkgVersion}", Token="${this.apiKey}"`;
 
-        // Create axios instance with default config
-        const httpsAgent =
-            this.insecure && protocol === 'https'
-                ? new https.Agent({ rejectUnauthorized: false })
-                : undefined;
+        // Create axios instance with connection pooling for better performance
+        const http = require('http');
+        const agentOptions = {
+            keepAlive: true,
+            keepAliveMsecs: 30000,
+            maxSockets: 10,
+            maxFreeSockets: 5,
+            timeout: this.timeout,
+        };
+
+        // Configure HTTPS agent with optional insecure mode
+        const httpsAgent = new https.Agent({
+            ...agentOptions,
+            rejectUnauthorized: !(this.insecure && protocol === 'https'),
+        });
+
+        const httpAgent = new http.Agent(agentOptions);
+
         this.http = axios.create({
             baseURL: this.baseUrl,
             timeout: this.timeout,
+            httpAgent,
             httpsAgent,
             headers: {
                 // Both headers are accepted by Jellyfin/Emby; include for compatibility

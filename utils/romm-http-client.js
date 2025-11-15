@@ -4,6 +4,7 @@
  */
 
 const axios = require('axios');
+const http = require('http');
 const https = require('https');
 const config = require('../config/');
 const UserAgentBuilder = require('./userAgent');
@@ -73,6 +74,23 @@ class RommHttpClient {
         if (rommDebug) {
             logger.debug(`[RommHttpClient] baseUrl=${this.baseUrl}, insecure=${this.insecure}`);
         }
+
+        // Configure connection pooling agents for better performance
+        const agentOptions = {
+            keepAlive: true,
+            keepAliveMsecs: 30000,
+            maxSockets: 10,
+            maxFreeSockets: 5,
+            timeout: this.timeout,
+        };
+
+        // Configure HTTPS agent with optional insecure mode
+        this.httpsAgent = new https.Agent({
+            ...agentOptions,
+            rejectUnauthorized: !this.insecure,
+        });
+
+        this.httpAgent = new http.Agent(agentOptions);
     }
 
     /**
@@ -210,7 +228,8 @@ class RommHttpClient {
                 ...this._getAuthHeader(),
                 ...options.headers,
             },
-            httpsAgent: this.insecure ? new https.Agent({ rejectUnauthorized: false }) : undefined,
+            httpAgent: this.httpAgent,
+            httpsAgent: this.httpsAgent,
             ...options,
         };
 
