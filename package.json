@@ -84,7 +84,8 @@
         "release:summary": "node scripts/generate-release-summary.js",
         "perf:audit": "./scripts/performance-audit.sh",
         "perf:bundle-size": "npm run build && du -sh dist/public/ public/ && du -h dist/public/ | tail -1",
-        "perf:largest-files": "find public -name '*.js' -o -name '*.css' -o -name '*.html' | xargs ls -lh | sort -k5 -h -r | head -20"
+        "perf:largest-files": "find public -name '*.js' -o -name '*.css' -o -name '*.html' | xargs ls -lh | sort -k5 -h -r | head -20",
+        "perf:memory": "node scripts/test-memory.js"
     },
     "dependencies": {
         "@ctrl/plex": "^3.11.0",
