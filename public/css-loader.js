@@ -9,17 +9,6 @@
     'use strict';
 
     /**
-     * Load CSS asynchronously
-     * @param {string} href - CSS file path
-     */
-    function loadCSS(href) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = href;
-        document.head.appendChild(link);
-    }
-
-    /**
      * Check if CSS file should be deferred
      * @param {HTMLLinkElement} link - Link element to check
      * @returns {boolean} True if should be deferred

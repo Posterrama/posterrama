@@ -513,7 +513,7 @@ describe('Wallart Display - Error Handling', () => {
 
     it('should handle cross-origin canvas errors', () => {
         const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        canvas.getContext('2d', { willReadFrequently: true });
 
         expect(() => {
             try {
