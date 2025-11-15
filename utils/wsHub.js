@@ -17,6 +17,7 @@ const WebSocket = require('ws');
 const logger = require('./logger');
 const ErrorLogger = require('./errorLogger');
 const { validateMessage, MessageRateLimiter, MAX_MESSAGE_SIZE } = require('./wsMessageValidator');
+const metrics = require('./metrics');
 
 // In-memory maps
 const deviceToSocket = new Map(); // deviceId -> ws
@@ -106,6 +107,11 @@ function registerConnection(ws, deviceId) {
     deviceToSocket.set(deviceId, ws);
     socketToDevice.set(ws, deviceId);
 
+    // Record WebSocket connection metrics (Q2 2026 optimization)
+    if (metrics && metrics.recordWsConnectionChange) {
+        metrics.recordWsConnectionChange(1);
+    }
+
     logger.debug('🟢 WebSocket: Device connected', {
         deviceId,
         totalConnections: deviceToSocket.size,
@@ -143,6 +149,11 @@ function unregister(ws) {
     if (deviceId) {
         deviceToSocket.delete(deviceId);
         socketToDevice.delete(ws);
+
+        // Record WebSocket disconnection metrics (Q2 2026 optimization)
+        if (metrics && metrics.recordWsConnectionChange) {
+            metrics.recordWsConnectionChange(-1);
+        }
 
         // Clean up any pending acks for this device (fail them fast)
         let cleanedUpAcks = 0;

@@ -1,5 +1,6 @@
 const os = require('os');
 const process = require('process');
+const promClient = require('prom-client');
 
 class MetricsManager {
     constructor(startTime) {
@@ -22,6 +23,20 @@ class MetricsManager {
             maxHistoryPoints: 1440, // 24 hours of minute-by-minute data
             aggregationInterval: 60000, // 1 minute aggregation
         };
+
+        // ===== Prometheus Integration (Q2 2026 Optimization) =====
+        this.prometheusRegistry = new promClient.Registry();
+
+        // Enable default metrics (CPU, memory, event loop lag)
+        if (process.env.PROMETHEUS_METRICS_ENABLED !== 'false') {
+            promClient.collectDefaultMetrics({
+                register: this.prometheusRegistry,
+                prefix: 'posterrama_',
+            });
+        }
+
+        // Custom Prometheus metrics
+        this.prometheusMetrics = this._initPrometheusMetrics();
 
         // Aggregated time-series data
         this.aggregatedMetrics = {
@@ -836,6 +851,203 @@ class MetricsManager {
     }
     _setStartTime(ts) {
         this.startTime = ts;
+    }
+
+    // ===== Prometheus Integration Methods (Q2 2026 Optimization) =====
+
+    /**
+     * Initialize Prometheus metrics
+     * @private
+     */
+    _initPrometheusMetrics() {
+        const reg = this.prometheusRegistry;
+
+        return {
+            // HTTP metrics
+            httpRequestsTotal: new promClient.Counter({
+                name: 'posterrama_http_requests_total',
+                help: 'Total HTTP requests',
+                labelNames: ['method', 'path', 'status'],
+                registers: [reg],
+            }),
+
+            httpRequestDuration: new promClient.Histogram({
+                name: 'posterrama_http_request_duration_seconds',
+                help: 'HTTP request duration',
+                labelNames: ['method', 'path', 'status'],
+                buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10],
+                registers: [reg],
+            }),
+
+            // Cache metrics
+            cacheHitsTotal: new promClient.Counter({
+                name: 'posterrama_cache_hits_total',
+                help: 'Total cache hits',
+                labelNames: ['tier'],
+                registers: [reg],
+            }),
+
+            cacheMissesTotal: new promClient.Counter({
+                name: 'posterrama_cache_misses_total',
+                help: 'Total cache misses',
+                registers: [reg],
+            }),
+
+            cacheEntriesGauge: new promClient.Gauge({
+                name: 'posterrama_cache_entries',
+                help: 'Current cache entries',
+                labelNames: ['tier'],
+                registers: [reg],
+            }),
+
+            cacheMemoryBytesGauge: new promClient.Gauge({
+                name: 'posterrama_cache_memory_bytes',
+                help: 'Cache memory usage in bytes',
+                labelNames: ['tier'],
+                registers: [reg],
+            }),
+
+            // WebSocket metrics
+            wsConnectionsGauge: new promClient.Gauge({
+                name: 'posterrama_ws_connections',
+                help: 'Active WebSocket connections',
+                registers: [reg],
+            }),
+
+            wsMessagesTotal: new promClient.Counter({
+                name: 'posterrama_ws_messages_total',
+                help: 'Total WebSocket messages',
+                labelNames: ['direction', 'type'],
+                registers: [reg],
+            }),
+
+            // Source API metrics
+            sourceApiCallsTotal: new promClient.Counter({
+                name: 'posterrama_source_api_calls_total',
+                help: 'Total source API calls',
+                labelNames: ['source', 'endpoint', 'status'],
+                registers: [reg],
+            }),
+
+            sourceApiDuration: new promClient.Histogram({
+                name: 'posterrama_source_api_duration_seconds',
+                help: 'Source API call duration',
+                labelNames: ['source', 'endpoint'],
+                buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
+                registers: [reg],
+            }),
+        };
+    }
+
+    /**
+     * Record Prometheus HTTP request metric
+     */
+    recordPrometheusHttpRequest(method, path, status, duration) {
+        if (!this.prometheusMetrics) return;
+
+        const normalizedPath = this._normalizePath(path);
+
+        this.prometheusMetrics.httpRequestsTotal.inc({
+            method,
+            path: normalizedPath,
+            status: String(status),
+        });
+
+        this.prometheusMetrics.httpRequestDuration.observe(
+            {
+                method,
+                path: normalizedPath,
+                status: String(status),
+            },
+            duration
+        );
+    }
+
+    /**
+     * Normalize path to avoid high cardinality
+     */
+    _normalizePath(path) {
+        return path
+            .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '/:uuid')
+            .replace(/\/\d+/g, '/:id')
+            .replace(/\/[0-9a-f]{32}/gi, '/:hash');
+    }
+
+    /**
+     * Record cache hit for Prometheus
+     */
+    recordPrometheusCacheHit(tier = 'L1') {
+        if (!this.prometheusMetrics) return;
+        this.prometheusMetrics.cacheHitsTotal.inc({ tier });
+    }
+
+    /**
+     * Record cache miss for Prometheus
+     */
+    recordPrometheusCacheMiss() {
+        if (!this.prometheusMetrics) return;
+        this.prometheusMetrics.cacheMissesTotal.inc();
+    }
+
+    /**
+     * Update cache entries gauge
+     */
+    setCacheEntriesGauge(tier, count) {
+        if (!this.prometheusMetrics) return;
+        this.prometheusMetrics.cacheEntriesGauge.set({ tier }, count);
+    }
+
+    /**
+     * Update cache memory gauge
+     */
+    setCacheMemoryGauge(tier, bytes) {
+        if (!this.prometheusMetrics) return;
+        this.prometheusMetrics.cacheMemoryBytesGauge.set({ tier }, bytes);
+    }
+
+    /**
+     * Record WebSocket connection change
+     */
+    recordWsConnectionChange(delta) {
+        if (!this.prometheusMetrics) return;
+        this.prometheusMetrics.wsConnectionsGauge.inc(delta);
+    }
+
+    /**
+     * Record WebSocket message
+     */
+    recordWsMessage(direction, type) {
+        if (!this.prometheusMetrics) return;
+        this.prometheusMetrics.wsMessagesTotal.inc({ direction, type });
+    }
+
+    /**
+     * Record source API call
+     */
+    recordSourceApiCall(source, endpoint, status, duration) {
+        if (!this.prometheusMetrics) return;
+
+        this.prometheusMetrics.sourceApiCallsTotal.inc({
+            source,
+            endpoint,
+            status: String(status),
+        });
+
+        this.prometheusMetrics.sourceApiDuration.observe({ source, endpoint }, duration);
+    }
+
+    /**
+     * Get Prometheus metrics in text format
+     */
+    async getPrometheusMetrics() {
+        return await this.prometheusRegistry.metrics();
+    }
+
+    /**
+     * Get Prometheus content type
+     */
+    getPrometheusContentType() {
+        return this.prometheusRegistry.contentType;
     }
 }
 

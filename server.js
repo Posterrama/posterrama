@@ -203,7 +203,11 @@ const {
     initializeCache,
     CacheDiskManager,
 } = require('./utils/cache');
-initializeCache(logger);
+
+// Metrics system (needs to be initialized before cache for integration)
+const metricsManager = require('./utils/metrics');
+
+initializeCache(logger, metricsManager);
 
 // --- Global pre-routing middleware ---
 // Attach bypass flag ASAP so downstream handlers and config responses can react.
@@ -227,8 +231,7 @@ const jobQueue = localDirInit.jobQueue;
 const localDirectorySource = localDirInit.localDirectorySource;
 const uploadMiddleware = localDirInit.uploadMiddleware;
 
-// Metrics system
-const metricsManager = require('./utils/metrics');
+// Metrics middleware
 const { metricsMiddleware } = require('./middleware/metrics');
 
 // GitHub integration
@@ -880,6 +883,40 @@ const frontendPagesRouter = createFrontendPagesRouter({
     getConfig: () => config,
 });
 app.use('/', frontendPagesRouter);
+
+/**
+ * @openapi
+ * /metrics:
+ *   get:
+ *     tags:
+ *       - Monitoring
+ *     summary: Prometheus metrics endpoint
+ *     description: |
+ *       Exposes server metrics in Prometheus format for monitoring and alerting.
+ *       Includes default metrics (CPU, memory, event loop) and custom metrics
+ *       (cache, HTTP, WebSocket, source APIs, devices).
+ *     responses:
+ *       200:
+ *         description: Prometheus metrics in text format
+ *         content:
+ *           text/plain:
+ *             example: |
+ *               # HELP posterrama_http_requests_total Total HTTP requests
+ *               # TYPE posterrama_http_requests_total counter
+ *               posterrama_http_requests_total{method="GET",path="/api/media",status="200"} 42
+ */
+app.get('/metrics', async (req, res) => {
+    try {
+        const contentType = metricsManager.getPrometheusContentType();
+        const metricsText = await metricsManager.getPrometheusMetrics();
+
+        res.setHeader('Content-Type', contentType);
+        res.send(metricsText);
+    } catch (err) {
+        logger.error('Failed to generate Prometheus metrics:', err);
+        res.status(500).send('Error generating metrics');
+    }
+});
 
 // Lightweight route to serve the preview page (friendly URL)
 // EXTRACTED to routes/frontend-pages.js

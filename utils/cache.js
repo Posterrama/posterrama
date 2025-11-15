@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs').promises;
+const { LRUCache } = require('lru-cache');
 const ErrorLogger = require('./errorLogger');
 
 // Logger will be passed in during initialization to avoid circular dependencies
@@ -11,14 +12,28 @@ let logger = {
     error: () => {},
 };
 
+// Metrics will be injected during initialization to avoid circular dependencies
+let metrics = null;
+
 /**
  * In-memory cache with TTL and storage capabilities
- * Phase 3: Extended with tiered caching (L1/L2/L3)
+ * Phase 4: LRU-based caching with smart eviction (Q2 2026 optimization)
  */
 class CacheManager {
     constructor(options = {}) {
-        // L1: Hot tier - frequently accessed, in-memory
-        this.l1Cache = new Map();
+        // L1: Hot tier - LRU cache with automatic eviction
+        this.l1Cache = new LRUCache({
+            max: options.l1MaxSize || 100,
+            maxSize: options.maxTotalMemoryBytes || 100 * 1024 * 1024,
+            sizeCalculation: entry => {
+                return entry?.sizeBytes || this.calculateEntrySize(entry?.value || entry);
+            },
+            ttl: options.defaultTTL || 300000, // 5 minutes
+            updateAgeOnGet: true, // LRU behavior
+            updateAgeOnHas: false,
+            allowStale: false,
+        });
+
         // L2: Warm tier - moderately accessed, in-memory
         this.l2Cache = new Map();
         // L3: Cold tier - rarely accessed, disk-backed
@@ -445,6 +460,7 @@ class CacheManager {
 
     /**
      * Set cache entry with optional TTL
+     * Uses LRU-cache for L1 tier with automatic eviction
      */
     set(key, value, ttl) {
         try {
@@ -464,16 +480,6 @@ class CacheManager {
                 this.memoryUsage.totalBytes -= existingEntry.sizeBytes;
             }
 
-            // Check cache size limit - use LRU eviction
-            if (this.cache.size >= this.config.maxSize && !this.cache.has(key)) {
-                this.evictLRU();
-            }
-
-            // Clear existing timer if updating
-            if (this.timers.has(key)) {
-                clearTimeout(this.timers.get(key));
-            }
-
             const ttlMs = typeof ttl === 'number' ? ttl : this.config.defaultTTL;
             const expiresAt = Date.now() + ttlMs;
             const etag = this.generateETag(value);
@@ -489,18 +495,23 @@ class CacheManager {
                 sizeBytes: entrySize, // Track size (Issue #4 fix)
             };
 
-            this.cache.set(key, entry);
+            // LRU cache handles eviction automatically when maxSize is reached
+            this.cache.set(key, entry, { ttl: ttlMs > 0 ? ttlMs : undefined });
             this.memoryUsage.totalBytes += entrySize;
             this.memoryUsage.largestEntry = Math.max(this.memoryUsage.largestEntry, entrySize);
 
-            // Set expiration timer
-            if (ttlMs > 0) {
+            // Manual timer for backward compatibility (LRU has built-in TTL)
+            if (ttlMs > 0 && this.timers) {
+                // Clear existing timer if updating
+                if (this.timers.has(key)) {
+                    clearTimeout(this.timers.get(key));
+                }
                 const timer = setTimeout(() => {
                     this.delete(key);
                     logger.debug('Cache entry expired', { key });
                 }, ttlMs);
                 this.timers.set(key, timer);
-            } else {
+            } else if (ttlMs <= 0) {
                 // Immediate expiration
                 this.delete(key);
                 return null;
@@ -545,21 +556,26 @@ class CacheManager {
                     entry = this.l1Cache.get(key);
                     tier = 'L1';
                     this.stats.l1Hits++;
+                    if (metrics) metrics.recordPrometheusCacheHit('L1');
                 } else if (this.l2Cache.has(key)) {
                     entry = this.l2Cache.get(key);
                     tier = 'L2';
                     this.stats.l2Hits++;
+                    if (metrics) metrics.recordPrometheusCacheHit('L2');
                 } else if (this.l3Cache.has(key)) {
                     entry = this.l3Cache.get(key);
                     tier = 'L3';
                     this.stats.l3Hits++;
+                    if (metrics) metrics.recordPrometheusCacheHit('L3');
                 }
             } else {
                 entry = this.cache.get(key);
+                if (entry && metrics) metrics.recordPrometheusCacheHit('L1');
             }
 
             if (!entry) {
                 this.stats.misses++;
+                if (metrics) metrics.recordPrometheusCacheMiss();
                 logger.debug('Cache miss', { key });
                 return null;
             }
@@ -568,6 +584,7 @@ class CacheManager {
             if (Date.now() >= entry.expiresAt) {
                 this.delete(key);
                 this.stats.misses++;
+                if (metrics) metrics.recordPrometheusCacheMiss();
                 logger.debug('Cache entry expired on access', { key });
                 return null;
             }
@@ -1045,8 +1062,9 @@ const cacheManager = new CacheManager({
 /**
  * Initialize cache system with logger
  */
-function initializeCache(loggerInstance) {
+function initializeCache(loggerInstance, metricsInstance = null) {
     logger = loggerInstance;
+    metrics = metricsInstance;
     return cacheManager;
 }
 

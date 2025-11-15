@@ -1251,7 +1251,23 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         document.body.appendChild(btn);
     }
 
-    // --- WebSocket live control ---
+    // --- WebSocket live control with reliability (Q2 2026 optimization) ---
+    // Reconnection state management
+    const reconnection = {
+        attempts: 0,
+        maxAttempts: 10,
+        baseDelay: 1000, // 1 second
+        maxDelay: 30000, // 30 seconds
+        backoffMultiplier: 1.5,
+        reconnectTimer: null,
+        messageBuffer: [], // Buffer messages during disconnect
+        maxBufferSize: 50,
+        pingInterval: null,
+        lastPong: null,
+        missedPongs: 0,
+        maxMissedPongs: 3,
+    };
+
     // Debug logger (toggle with window.__POSTERRAMA_LIVE_DEBUG = false to silence)
     function liveDbg() {
         try {
@@ -1288,6 +1304,116 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             // ignore logger fallback
         }
     }
+
+    // Calculate exponential backoff delay
+    function getReconnectDelay() {
+        const delay = Math.min(
+            reconnection.baseDelay *
+                Math.pow(reconnection.backoffMultiplier, reconnection.attempts),
+            reconnection.maxDelay
+        );
+        // Add jitter (±20%) to prevent thundering herd
+        const jitter = delay * 0.2 * (Math.random() - 0.5);
+        return Math.floor(delay + jitter);
+    }
+
+    // Schedule reconnection with exponential backoff
+    function scheduleReconnect() {
+        if (reconnection.reconnectTimer) return; // Already scheduled
+
+        if (reconnection.attempts >= reconnection.maxAttempts) {
+            liveDbg('[Live] Max reconnection attempts reached', {
+                attempts: reconnection.attempts,
+                maxAttempts: reconnection.maxAttempts,
+            });
+            return;
+        }
+
+        const delay = getReconnectDelay();
+        liveDbg('[Live] Scheduling reconnect', {
+            attempt: reconnection.attempts + 1,
+            delay: `${delay}ms`,
+        });
+
+        reconnection.reconnectTimer = setTimeout(() => {
+            reconnection.reconnectTimer = null;
+            reconnection.attempts++;
+            connectWS();
+        }, delay);
+    }
+
+    // Start ping/pong health checks
+    function startPingPongCheck(ws) {
+        stopPingPongCheck(); // Clear any existing interval
+
+        reconnection.lastPong = Date.now();
+        reconnection.missedPongs = 0;
+
+        reconnection.pingInterval = setInterval(() => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                stopPingPongCheck();
+                return;
+            }
+
+            // Check if we missed too many pongs
+            const timeSinceLastPong = Date.now() - reconnection.lastPong;
+            if (timeSinceLastPong > 60000) {
+                // 1 minute without pong
+                reconnection.missedPongs++;
+                liveDbg('[Live] Missed pong', {
+                    missedPongs: reconnection.missedPongs,
+                    timeSinceLastPong: `${Math.floor(timeSinceLastPong / 1000)}s`,
+                });
+
+                if (reconnection.missedPongs >= reconnection.maxMissedPongs) {
+                    liveDbg('[Live] Connection unhealthy, forcing reconnect');
+                    ws.close(1000, 'Health check failed');
+                    return;
+                }
+            }
+
+            // Send ping
+            try {
+                ws.send(JSON.stringify({ kind: 'ping', ts: Date.now() }));
+            } catch (err) {
+                liveDbg('[Live] Failed to send ping', { error: err.message });
+            }
+        }, 20000); // Ping every 20 seconds
+    }
+
+    // Stop ping/pong health checks
+    function stopPingPongCheck() {
+        if (reconnection.pingInterval) {
+            clearInterval(reconnection.pingInterval);
+            reconnection.pingInterval = null;
+        }
+    }
+
+    // Flush buffered messages
+    function flushBuffer(ws) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        if (reconnection.messageBuffer.length === 0) return;
+
+        liveDbg('[Live] Flushing message buffer', {
+            count: reconnection.messageBuffer.length,
+        });
+
+        const now = Date.now();
+        const messages = reconnection.messageBuffer.filter(
+            item => now - item.ts < 30000 // Only send messages <30s old
+        );
+
+        messages.forEach(item => {
+            try {
+                ws.send(JSON.stringify(item.msg));
+            } catch (err) {
+                liveDbg('[Live] Failed to send buffered message', { error: err.message });
+            }
+        });
+
+        reconnection.messageBuffer = [];
+    }
+
     function connectWS() {
         if (!state.enabled || !state.deviceId || !state.deviceSecret) return;
         // Don't create duplicate connections
@@ -1307,6 +1433,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 hasDeviceId: !!state.deviceId,
                 hasSecret: !!state.deviceSecret,
                 enabled: state.enabled,
+                reconnectAttempt: reconnection.attempts,
             });
         try {
             const ws = new WebSocket(url);
@@ -1317,6 +1444,17 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 liveDbg('[Live] WS open', { url });
                 window.debugLog &&
                     window.debugLog('DEVICE_MGMT_WS_OPEN', { url, readyState: ws.readyState });
+
+                // Reset reconnection state on successful connection
+                reconnection.attempts = 0;
+                if (reconnection.reconnectTimer) {
+                    clearTimeout(reconnection.reconnectTimer);
+                    reconnection.reconnectTimer = null;
+                }
+
+                // Start health checks
+                startPingPongCheck(ws);
+
                 try {
                     ws.send(
                         JSON.stringify({
@@ -1326,6 +1464,9 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         })
                     );
                     liveDbg('[Live] WS hello sent', { deviceId: state.deviceId });
+
+                    // Flush any buffered messages
+                    setTimeout(() => flushBuffer(ws), 100);
                 } catch (_) {
                     /* ignore initial hello send errors */
                 }
@@ -1334,6 +1475,15 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 try {
                     const msg = JSON.parse(ev.data);
                     if (!msg || !msg.kind) return;
+
+                    // Handle pong response
+                    if (msg.kind === 'pong') {
+                        reconnection.lastPong = Date.now();
+                        reconnection.missedPongs = 0;
+                        liveDbg('[Live] WS pong received');
+                        return;
+                    }
+
                     if (msg.kind === 'hello-ack') {
                         liveDbg('[Live] WS hello-ack');
                         return;
@@ -1566,17 +1716,26 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             };
             ws.onclose = ev => {
                 state.ws = null;
+                stopPingPongCheck(); // Stop health checks
+
                 window.debugLog &&
                     window.debugLog('DEVICE_MGMT_WS_CLOSE', {
                         code: ev?.code,
                         reason: ev?.reason,
                         wasClean: ev?.wasClean,
+                        reconnectAttempt: reconnection.attempts,
                     });
                 try {
-                    liveDbg('[Live] WS close', { code: ev?.code, reason: ev?.reason });
+                    liveDbg('[Live] WS close', {
+                        code: ev?.code,
+                        reason: ev?.reason,
+                        wasClean: ev?.wasClean,
+                    });
                 } catch (_) {
                     // ignore parse or handling errors
                 }
+
+                // Schedule reconnect with exponential backoff
                 scheduleReconnect();
             };
             ws.onerror = err => {
@@ -1585,40 +1744,34 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         error: err?.message || 'WebSocket error',
                         type: err?.type,
                         readyState: ws?.readyState,
+                        reconnectAttempt: reconnection.attempts,
                     });
                 try {
-                    liveDbg('[Live] WS error', err);
+                    liveDbg('[Live] WS error', {
+                        error: err?.message || 'WebSocket error',
+                        reconnectAttempt: reconnection.attempts,
+                    });
                 } catch (_) {
                     // ignore logging errors
                 }
-                try {
-                    ws.close();
-                } catch (_) {
-                    /* ignore ws close errors */
-                }
+                // Note: onclose will be called automatically after onerror
             };
         } catch (err) {
             window.debugLog &&
                 window.debugLog('DEVICE_MGMT_WS_CONNECT_EXCEPTION', {
                     error: err?.message,
                     stack: err?.stack,
+                    reconnectAttempt: reconnection.attempts,
                 });
-            liveDbg('[Live] WS connect exception, scheduling reconnect');
+            liveDbg('[Live] WS connect exception, scheduling reconnect', {
+                error: err?.message,
+            });
             scheduleReconnect();
         }
     }
 
-    function scheduleReconnect() {
-        if (state.wsTimer) return;
-        state.wsTimer = setTimeout(
-            () => {
-                state.wsTimer = null;
-                connectWS();
-            },
-            3000 + Math.floor(Math.random() * 2000)
-        );
-    }
-
+    // Legacy scheduleReconnect for backward compatibility (now uses new reconnection system)
+    // This function might be called from other parts of the code
     async function handleCommand(cmd) {
         const type = cmd?.type || '';
         const payload = cmd?.payload;
