@@ -2289,6 +2289,18 @@ const adminLibrariesRouter = createAdminLibrariesRouter({
 });
 app.use('/', adminLibrariesRouter);
 
+// === ADMIN CACHE ROUTES ===
+// Extracted to routes/admin-cache.js
+const createAdminCacheRouter = require('./routes/admin-cache');
+const adminCacheRouter = createAdminCacheRouter({
+    logger,
+    asyncHandler,
+    adminAuth,
+});
+app.use('/', adminCacheRouter);
+// Initialize cache references (must be done after apiCache is created)
+adminCacheRouter.initCacheReferences(cacheManager, apiCache);
+
 // Minimal CSP violation report endpoint
 // Accepts both deprecated report-uri (application/csp-report) and modern report-to (application/reports+json)
 const cspReportJson = express.json({

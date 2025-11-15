@@ -777,14 +777,179 @@ class CacheManager {
     }
 
     /**
+     * Get cache hit ratio as percentage
+     * @returns {number} Hit ratio (0-100)
+     */
+    getHitRatio() {
+        const total = this.stats.hits + this.stats.misses;
+        return total > 0 ? (this.stats.hits / total) * 100 : 0;
+    }
+
+    /**
+     * Get detailed cache statistics with performance insights
+     * @returns {Object} Detailed stats including hit ratio, efficiency, and recommendations
+     */
+    getDetailedStats() {
+        const baseStats = this.getStats();
+        const hitRatio = this.getHitRatio();
+        const uptime = Date.now() - this.stats.lastReset;
+        const uptimeSeconds = uptime / 1000;
+
+        return {
+            ...baseStats,
+            // Performance metrics
+            hitRatio: {
+                percentage: Math.round(hitRatio * 100) / 100,
+                formatted: `${Math.round(hitRatio * 100) / 100}%`,
+                rating:
+                    hitRatio >= 80
+                        ? 'excellent'
+                        : hitRatio >= 60
+                          ? 'good'
+                          : hitRatio >= 40
+                            ? 'fair'
+                            : 'poor',
+            },
+            efficiency: {
+                hitsPerSecond: Math.round((this.stats.hits / uptimeSeconds) * 100) / 100,
+                missesPerSecond: Math.round((this.stats.misses / uptimeSeconds) * 100) / 100,
+                setsPerSecond: Math.round((this.stats.sets / uptimeSeconds) * 100) / 100,
+                requestsPerSecond:
+                    Math.round(((this.stats.hits + this.stats.misses) / uptimeSeconds) * 100) / 100,
+            },
+            uptime: {
+                milliseconds: uptime,
+                seconds: Math.round(uptimeSeconds),
+                formatted: this.formatUptime(uptime),
+            },
+            recommendations: this.getCacheRecommendations(),
+        };
+    }
+
+    /**
+     * Get cache optimization recommendations based on current metrics
+     * @returns {Array<Object>} Array of recommendation objects
+     */
+    getCacheRecommendations() {
+        const recommendations = [];
+        const hitRatio = this.getHitRatio();
+        const memPercent = (this.memoryUsage.totalBytes / this.config.maxTotalMemoryBytes) * 100;
+
+        // Hit ratio recommendations
+        if (hitRatio < 40) {
+            recommendations.push({
+                severity: 'high',
+                category: 'performance',
+                message: 'Low cache hit ratio (< 40%)',
+                suggestion: 'Consider increasing TTL or reviewing cache key strategy',
+                metric: `${Math.round(hitRatio)}%`,
+            });
+        } else if (hitRatio < 60) {
+            recommendations.push({
+                severity: 'medium',
+                category: 'performance',
+                message: 'Moderate cache hit ratio (< 60%)',
+                suggestion: 'Cache is working but could be optimized',
+                metric: `${Math.round(hitRatio)}%`,
+            });
+        }
+
+        // Memory usage recommendations
+        if (memPercent > 90) {
+            recommendations.push({
+                severity: 'high',
+                category: 'memory',
+                message: 'Cache memory usage critical (> 90%)',
+                suggestion: 'Increase maxTotalMemoryBytes or reduce entry sizes',
+                metric: `${Math.round(memPercent)}%`,
+            });
+        } else if (memPercent > 75) {
+            recommendations.push({
+                severity: 'medium',
+                category: 'memory',
+                message: 'Cache memory usage high (> 75%)',
+                suggestion: 'Monitor memory usage and consider increasing limits',
+                metric: `${Math.round(memPercent)}%`,
+            });
+        }
+
+        // Size recommendations
+        if (this.cache.size > this.config.maxSize * 0.9) {
+            recommendations.push({
+                severity: 'medium',
+                category: 'capacity',
+                message: 'Cache near capacity (> 90%)',
+                suggestion: 'Consider increasing maxSize to prevent evictions',
+                metric: `${this.cache.size}/${this.config.maxSize}`,
+            });
+        }
+
+        // Rejected entries warning
+        if (this.memoryUsage.entriesRejected > 0) {
+            recommendations.push({
+                severity: 'high',
+                category: 'memory',
+                message: `${this.memoryUsage.entriesRejected} entries rejected due to size limits`,
+                suggestion: 'Increase maxEntrySizeBytes or reduce data sizes',
+                metric: `${this.memoryUsage.entriesRejected} rejected`,
+            });
+        }
+
+        // Excellent performance
+        if (hitRatio >= 80 && memPercent < 75 && recommendations.length === 0) {
+            recommendations.push({
+                severity: 'info',
+                category: 'performance',
+                message: 'Cache performing optimally',
+                suggestion: 'Current configuration is working well',
+                metric: `${Math.round(hitRatio)}% hit ratio`,
+            });
+        }
+
+        return recommendations;
+    }
+
+    /**
+     * Format uptime duration into human-readable string
+     * @param {number} milliseconds - Uptime in milliseconds
+     * @returns {string} Formatted uptime
+     */
+    formatUptime(milliseconds) {
+        const seconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (days > 0) {
+            return `${days}d ${hours % 24}h ${minutes % 60}m`;
+        } else if (hours > 0) {
+            return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+        } else if (minutes > 0) {
+            return `${minutes}m ${seconds % 60}s`;
+        } else {
+            return `${seconds}s`;
+        }
+    }
+
+    /**
      * Reset cache statistics
      */
     resetStats() {
         this.stats = {
             hits: 0,
             misses: 0,
+            sets: 0,
+            deletes: 0,
+            errors: 0,
             cleanups: 0,
             lastCleanup: null,
+            lastReset: Date.now(),
+            // Tiered cache stats
+            l1Hits: 0,
+            l2Hits: 0,
+            l3Hits: 0,
+            promotions: 0,
+            demotions: 0,
         };
 
         // Reset access counts for all entries
