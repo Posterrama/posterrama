@@ -2151,41 +2151,41 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
     });
 });
 
+// Helper function for auto-building frontend in production
+function calculateDirectoryHash(dir) {
+    const crypto = require('crypto');
+    const files = [];
+    function walkDir(currentPath) {
+        const entries = fs.readdirSync(currentPath, { withFileTypes: true });
+        for (const entry of entries) {
+            const fullPath = path.join(currentPath, entry.name);
+            if (entry.isDirectory()) {
+                if (entry.name !== 'dist' && entry.name !== 'node_modules') {
+                    walkDir(fullPath);
+                }
+            } else {
+                // Include file path and mtime for hash
+                const stat = fs.statSync(fullPath);
+                files.push(`${fullPath}:${stat.mtimeMs}`);
+            }
+        }
+    }
+    walkDir(dir);
+    files.sort();
+    return crypto.createHash('sha256').update(files.join('|')).digest('hex');
+}
+
 // Serve static files - use built version in production, raw files in development
 const isProduction = process.env.NODE_ENV === 'production';
 let publicDir = isProduction ? path.join(__dirname, 'dist/public') : path.join(__dirname, 'public');
 
 // Auto-build in production if dist/ is missing or outdated
 if (isProduction) {
-    const crypto = require('crypto');
     const { execSync } = require('child_process');
 
     const distDir = path.join(__dirname, 'dist/public');
     const sourceDir = path.join(__dirname, 'public');
     const hashFile = path.join(__dirname, 'dist/.build-hash');
-
-    // Calculate hash of public/ directory (exclude dist itself)
-    function calculateDirectoryHash(dir) {
-        const files = [];
-        function walkDir(currentPath) {
-            const entries = fs.readdirSync(currentPath, { withFileTypes: true });
-            for (const entry of entries) {
-                const fullPath = path.join(currentPath, entry.name);
-                if (entry.isDirectory()) {
-                    if (entry.name !== 'dist' && entry.name !== 'node_modules') {
-                        walkDir(fullPath);
-                    }
-                } else {
-                    // Include file path and mtime for hash
-                    const stat = fs.statSync(fullPath);
-                    files.push(`${fullPath}:${stat.mtimeMs}`);
-                }
-            }
-        }
-        walkDir(dir);
-        files.sort();
-        return crypto.createHash('sha256').update(files.join('|')).digest('hex');
-    }
 
     const currentHash = calculateDirectoryHash(sourceDir);
     let needsBuild = false;
