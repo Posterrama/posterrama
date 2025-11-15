@@ -2661,12 +2661,7 @@
 
               <div class="actions main-actions">
                 <button type="button" id="btn-create-cfg-backup" class="btn btn-success btn-sm"><i class="fas fa-plus-circle"></i><span>Backup now</span></button>
-                <div class="input-row">
-                  <div class="form-group" style="margin:0;">
-                    <input type="number" id="input-keep-cfg-backups" min="1" max="60" value="5" class="w-90" title="Number of backups to keep" />
-                  </div>
-                  <button type="button" id="btn-cleanup-cfg-backups" class="btn btn-secondary btn-sm"><i class="fas fa-broom"></i><span>Cleanup</span></button>
-                </div>
+                <button type="button" id="btn-cleanup-cfg-backups" class="btn btn-secondary btn-sm"><i class="fas fa-broom"></i><span>Cleanup old backups</span></button>
               </div>
 
               <div class="actions sub-actions">
@@ -2682,6 +2677,15 @@
                     <input type="time" id="input-cfg-backup-time" value="02:30" class="w-110" aria-label="Backup time" />
                   </div>
                   
+                </div>
+                <div class="inline-field" style="margin-top:8px;">
+                  <label for="input-cfg-backup-retention-days" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Retention</label>
+                  <div class="form-group" style="margin:0;display:inline-flex;align-items:center;gap:8px;">
+                    <label for="input-cfg-backup-retention-count" style="font-size:0.9em;margin:0;">Keep</label>
+                    <input type="number" id="input-cfg-backup-retention-count" min="1" max="60" value="5" class="w-60" title="Number of most recent backups to keep" />
+                    <label for="input-cfg-backup-retention-days" style="font-size:0.9em;margin:0;">Max age (days)</label>
+                    <input type="number" id="input-cfg-backup-retention-days" min="0" max="365" value="0" class="w-60" title="Delete backups older than X days (0 = disabled)" />
+                  </div>
                 </div>
               </div>
 

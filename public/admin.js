@@ -2265,15 +2265,19 @@
         }
     });
     btnCleanupCfgBackups?.addEventListener('click', async () => {
-        const keepEl = document.getElementById('input-keep-cfg-backups');
+        const keepEl =
+            document.getElementById('input-cfg-backup-retention-count') ||
+            document.getElementById('input-keep-cfg-backups');
+        const daysEl = document.getElementById('input-cfg-backup-retention-days');
         const keep = Math.max(1, Math.min(60, Number(keepEl?.value || 5)));
+        const maxAgeDays = Math.max(0, Math.min(365, Number(daysEl?.value || 0)));
         try {
             btnCleanupCfgBackups.classList.add('btn-loading');
             const r = await fetch('/api/admin/config-backups/cleanup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ keep }),
+                body: JSON.stringify({ keep, maxAgeDays }),
             });
             const j = await r.json().catch(() => ({}));
             if (!r.ok) throw new Error(j?.error || 'Cleanup failed');
@@ -2301,14 +2305,22 @@
                 credentials: 'include',
                 cache: 'no-store',
             });
-            const j = r.ok ? await r.json() : { enabled: true, time: '02:30', retention: 5 };
+            const j = r.ok
+                ? await r.json()
+                : { enabled: true, time: '02:30', retention: 5, retentionDays: 0 };
             const en = document.getElementById('input-cfg-backup-enabled');
             const time = document.getElementById('input-cfg-backup-time');
             const ret = document.getElementById('input-keep-cfg-backups');
+            const retCount = document.getElementById('input-cfg-backup-retention-count');
+            const retDays = document.getElementById('input-cfg-backup-retention-days');
             const pill = document.getElementById('cfg-backup-schedule-pill');
             if (en) en.checked = j.enabled !== false;
             if (time) time.value = String(j.time || '02:30');
             if (ret && (j.retention || j.retention === 0)) ret.value = String(j.retention);
+            if (retCount && (j.retention || j.retention === 0))
+                retCount.value = String(j.retention);
+            if (retDays !== null && (j.retentionDays || j.retentionDays === 0))
+                retDays.value = String(j.retentionDays || 0);
             if (pill) {
                 const enabled = j.enabled !== false;
                 pill.textContent = enabled ? `Daily • ${String(j.time || '02:30')}` : 'Disabled';
@@ -2323,12 +2335,15 @@
         const en = document.getElementById('input-cfg-backup-enabled');
         const time = document.getElementById('input-cfg-backup-time');
         const ret = document.getElementById('input-keep-cfg-backups');
+        const retCount = document.getElementById('input-cfg-backup-retention-count');
+        const retDays = document.getElementById('input-cfg-backup-retention-days');
         const silent = !!(opts && opts.silent);
         try {
             const payload = {
                 enabled: !!en?.checked,
                 time: (time?.value || '02:30').slice(0, 5),
-                retention: Math.max(1, Math.min(60, Number(ret?.value || 5))),
+                retention: Math.max(1, Math.min(60, Number((retCount || ret)?.value || 5))),
+                retentionDays: Math.max(0, Math.min(365, Number(retDays?.value || 0))),
             };
             const r = await fetch('/api/admin/config-backups/schedule', {
                 method: 'POST',
