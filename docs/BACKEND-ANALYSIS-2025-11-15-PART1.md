@@ -359,12 +359,12 @@ app.use(requestLoggingMiddleware());
 
 | Package              | Current  | Latest   | Risk   | Priority |
 | -------------------- | -------- | -------- | ------ | -------- |
-| `@ctrl/plex`         | 3.10.0   | 3.11.0   | Low    | High     |
-| `axios`              | 1.12.2   | 1.13.2   | Low    | High     |
-| `dompurify`          | 3.2.7    | 3.3.0    | Low    | Medium   |
-| `semver`             | 7.7.2    | 7.7.3    | Low    | Medium   |
-| `validator`          | 13.15.20 | 13.15.23 | Low    | Medium   |
-| `winston`            | 3.18.2   | 3.18.3   | Low    | Medium   |
+| `@ctrl/plex`         | 3.11.0   | 3.11.0   | Low    | ✅ Done  |
+| `axios`              | 1.13.2   | 1.13.2   | Low    | ✅ Done  |
+| `dompurify`          | 3.3.0    | 3.3.0    | Low    | ✅ Done  |
+| `semver`             | 7.7.3    | 7.7.3    | Low    | ✅ Done  |
+| `validator`          | 13.15.23 | 13.15.23 | Low    | ✅ Done  |
+| `winston`            | 3.18.3   | 3.18.3   | Low    | ✅ Done  |
 | `sharp`              | 0.33.5   | 0.34.5   | Medium | Low      |
 | `express-rate-limit` | 7.5.1    | 8.2.1    | Medium | Low      |
 | `@jellyfin/sdk`      | 0.11.0   | 0.13.0   | Medium | Low      |
