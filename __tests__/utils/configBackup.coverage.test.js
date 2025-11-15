@@ -200,4 +200,50 @@ describe('utils/configBackup coverage', () => {
         const cfg2 = await mod.writeScheduleConfig({ time: '03:00' });
         expect(cfg2).toEqual({ enabled: true, time: '03:00', retention: 5 });
     });
+
+    test('restoreFile handles missing current file (no safety copy needed)', async () => {
+        const meta = await mod.createBackup();
+        // Delete the current config.json so restore happens without safety copy
+        fsMock.data.delete(path.resolve(path.join(ROOT, 'config.json')));
+        const out = await mod.restoreFile(meta.id, 'config.json');
+        expect(out.ok).toBe(true);
+        // File should now exist after restore
+        expect(fsMock.existsSync(path.join(ROOT, 'config.json'))).toBe(true);
+    });
+
+    test('listBackups returns empty array when no backups exist', async () => {
+        // Don't create any backups
+        const list = await mod.listBackups();
+        expect(list).toEqual([]);
+    });
+
+    test('cleanupOldBackups handles zero retention gracefully', async () => {
+        await mod.createBackup();
+        jest.setSystemTime(new Date('2025-01-01T00:00:01Z'));
+        await mod.createBackup();
+        const res = await mod.cleanupOldBackups(0);
+        // Should delete all backups when retention is 0
+        expect(res.deleted).toBe(2);
+        const remaining = await mod.listBackups();
+        expect(remaining.length).toBe(0);
+    });
+
+    test('readScheduleConfig returns defaults when config.json missing', async () => {
+        // Delete config.json to trigger catch block
+        fsMock.data.delete(path.resolve(path.join(ROOT, 'config.json')));
+        const cfg = await mod.readScheduleConfig();
+        expect(cfg).toEqual({ enabled: true, time: '02:30', retention: 5 });
+    });
+
+    test('writeScheduleConfig clamps retention to valid range (1-60)', async () => {
+        // Test upper bound
+        const cfg1 = await mod.writeScheduleConfig({ retention: 200 });
+        expect(cfg1.retention).toBe(60);
+        // Test lower bound
+        const cfg2 = await mod.writeScheduleConfig({ retention: -5 });
+        expect(cfg2.retention).toBe(1);
+        // Test valid value
+        const cfg3 = await mod.writeScheduleConfig({ retention: 30 });
+        expect(cfg3.retention).toBe(30);
+    });
 });
