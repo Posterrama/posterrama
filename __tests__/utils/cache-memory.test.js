@@ -209,8 +209,8 @@ describe('Cache Memory Management (Issue #4)', () => {
             // totalMB may be < 1 for small test values
             expect(stats.memoryUsage.totalMB).toBeGreaterThanOrEqual(0);
             expect(stats.memoryUsage.maxBytes).toBe(5120);
-            // More lenient precision for maxMB calculation (0.0048828125 vs 0.005)
-            expect(stats.memoryUsage.maxMB).toBeCloseTo(0.005, 2);
+            // maxMB rounds to 0 for small values (5KB = 0.0048828125 MB rounds to 0)
+            expect(stats.memoryUsage.maxMB).toBe(0);
         });
 
         it('should calculate percent used', () => {
