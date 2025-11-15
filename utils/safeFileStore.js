@@ -5,6 +5,7 @@
  * - Atomic writes (write-then-rename to avoid corruption)
  * - Automatic backup before overwrite
  * - Corruption detection and recovery from backup
+ * - File locking to prevent concurrent write conflicts
  * - Graceful error handling
  *
  * @module utils/safeFileStore
@@ -13,6 +14,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const logger = require('./logger');
+const lockfile = require('proper-lockfile');
 
 /**
  * Safe file store with atomic writes and backup/recovery
@@ -27,6 +29,9 @@ class SafeFileStore {
      * @param {string} [options.tempPath] - Custom temp file path (default: filePath + '.tmp')
      * @param {boolean} [options.createBackup=true] - Whether to create backups before write
      * @param {number} [options.indent=4] - JSON indentation spaces
+     * @param {boolean} [options.useLocking=true] - Whether to use file locking (default: true)
+     * @param {number} [options.lockStale=5000] - Time in ms before lock is considered stale (default: 5000)
+     * @param {Object} [options.lockRetries] - Lock retry configuration
      *
      * @example
      * const store = new SafeFileStore('/data/devices.json');
@@ -39,6 +44,14 @@ class SafeFileStore {
         this.tempPath = options.tempPath || `${filePath}.tmp`;
         this.createBackup = options.createBackup !== false;
         this.indent = options.indent !== undefined ? options.indent : 4;
+        this.useLocking = options.useLocking !== false;
+        this.lockStale = options.lockStale || 5000;
+        this.lockRetries = options.lockRetries || {
+            retries: 5,
+            minTimeout: 100,
+            maxTimeout: 1000,
+            factor: 2,
+        };
 
         // Ensure directory exists
         this.directory = path.dirname(filePath);
@@ -111,33 +124,71 @@ class SafeFileStore {
     }
 
     /**
-     * Write data to file with atomic operation and optional backup
+     * Write data to file with atomic operation, file locking, and optional backup
      *
      * Process:
-     * 1. Serialize data to JSON
-     * 2. Write to temporary file
-     * 3. Create backup of existing file (if enabled)
-     * 4. Atomically rename temp file to main file
+     * 1. Acquire file lock to prevent concurrent writes
+     * 2. Serialize data to JSON
+     * 3. Write to temporary file
+     * 4. Create backup of existing file (if enabled)
+     * 5. Atomically rename temp file to main file
+     * 6. Release lock
      *
      * @param {*} data - Data to write (will be JSON.stringify'd)
      * @returns {Promise<void>}
-     * @throws {Error} If write operation fails
+     * @throws {Error} If write operation fails or lock cannot be acquired
      *
      * @example
      * await store.write({ device1: { name: 'TV' } });
      */
     async write(data) {
+        let release = null;
+
         try {
             // Ensure directory exists
             await fs.mkdir(this.directory, { recursive: true });
 
-            // Serialize data
+            // Ensure main file exists before locking (proper-lockfile requires it)
+            try {
+                await fs.access(this.filePath);
+            } catch (error) {
+                if (error.code === 'ENOENT') {
+                    await fs.writeFile(this.filePath, '{}', 'utf8');
+                    logger.debug(
+                        `[SafeFileStore] Created initial file for locking: ${this.filePath}`
+                    );
+                }
+            }
+
+            // 1. Acquire file lock (if enabled)
+            if (this.useLocking) {
+                try {
+                    release = await lockfile.lock(this.filePath, {
+                        retries: this.lockRetries,
+                        stale: this.lockStale,
+                        realpath: false, // Don't resolve symlinks
+                    });
+                    logger.debug(`[SafeFileStore] Acquired lock: ${this.filePath}`);
+                } catch (error) {
+                    if (error.code === 'ELOCKED') {
+                        const lockError = new Error(
+                            `File is locked by another process: ${this.filePath}`
+                        );
+                        lockError.code = 'ELOCKED';
+                        lockError.statusCode = 409;
+                        throw lockError;
+                    }
+                    throw error;
+                }
+            }
+
+            // 2. Serialize data
             const jsonData = JSON.stringify(data, null, this.indent);
 
-            // 1. Write to temporary file first
+            // 3. Write to temporary file first
             await fs.writeFile(this.tempPath, jsonData, 'utf8');
 
-            // 2. Create backup of existing file (if it exists and backup is enabled)
+            // 4. Create backup of existing file (if it exists and backup is enabled)
             if (this.createBackup) {
                 try {
                     await fs.copyFile(this.filePath, this.backupPath);
@@ -150,7 +201,7 @@ class SafeFileStore {
                 }
             }
 
-            // 3. Atomically rename temp file to main file
+            // 5. Atomically rename temp file to main file
             // This is atomic on most filesystems, preventing corruption
             await fs.rename(this.tempPath, this.filePath);
 
@@ -166,6 +217,16 @@ class SafeFileStore {
             }
 
             throw error;
+        } finally {
+            // 6. Always release lock, even on error
+            if (release) {
+                try {
+                    await release();
+                    logger.debug(`[SafeFileStore] Released lock: ${this.filePath}`);
+                } catch (releaseError) {
+                    logger.warn(`[SafeFileStore] Failed to release lock: ${releaseError.message}`);
+                }
+            }
         }
     }
 

@@ -19164,8 +19164,9 @@
                 const apiKeyInput = getInput('jf.apikey');
                 const apiKeyRaw = apiKeyInput?.dataset?.actualToken || apiKeyInput?.value;
                 // Only use apiKey if it's real (not masked or EXISTING_TOKEN marker)
-                const isMaskedKey = apiKeyRaw && (/^[•]+$/.test(apiKeyRaw) || apiKeyRaw === 'EXISTING_TOKEN');
-                const apiKey = (apiKeyRaw && !isMaskedKey) ? apiKeyRaw : undefined;
+                const isMaskedKey =
+                    apiKeyRaw && (/^[•]+$/.test(apiKeyRaw) || apiKeyRaw === 'EXISTING_TOKEN');
+                const apiKey = apiKeyRaw && !isMaskedKey ? apiKeyRaw : undefined;
                 const movieLibraries = getMultiSelectValues('jf.movies');
                 const showLibraries = getMultiSelectValues('jf.shows');
                 // Always call the API - backend will return empty array if no libraries selected

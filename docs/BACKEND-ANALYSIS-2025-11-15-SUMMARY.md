@@ -90,7 +90,7 @@ Focus: Quick wins with high impact
 
 **Status:** Sprint 1 COMPLETED (13h actual vs 12h estimated)
 **Commits:** 21 commits pushed to main (Nov 14-15, 2025)
-**Files Added:** lib/config-helpers.js, utils/debug.js, __tests__/middleware/validate.xss.test.js
+**Files Added:** lib/config-helpers.js, utils/debug.js, **tests**/middleware/validate.xss.test.js
 
 ### Sprint 2 (Week 2-3 - 18h)
 
