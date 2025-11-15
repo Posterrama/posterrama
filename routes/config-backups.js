@@ -19,6 +19,7 @@ let __cfgBackupTimer = null;
  * @param {Function} deps.cfgCleanupOld - Cleanup old backups function
  * @param {Function} deps.cfgRestoreFile - Restore file function
  * @param {Function} deps.cfgDeleteBackup - Delete backup function
+ * @param {Function} deps.cfgUpdateBackupMeta - Update backup metadata function
  * @param {Function} deps.cfgReadSchedule - Read schedule config function
  * @param {Function} deps.cfgWriteSchedule - Write schedule config function
  * @param {Function} deps.broadcastAdminEvent - Broadcast admin event function
@@ -33,6 +34,7 @@ module.exports = function createConfigBackupsRouter({
     cfgCleanupOld,
     cfgRestoreFile,
     cfgDeleteBackup,
+    cfgUpdateBackupMeta,
     cfgReadSchedule,
     cfgWriteSchedule,
     broadcastAdminEvent,
@@ -71,10 +73,27 @@ module.exports = function createConfigBackupsRouter({
      * /api/admin/config-backups:
      *   post:
      *     summary: Create a new configuration backup
-     *     description: Creates a new backup of whitelisted configuration files (config.json, .env, devices/groups, presets).
+     *     description: Creates a new backup of whitelisted configuration files (config.json, .env, devices/groups, presets). Optionally include a label and note for documentation.
      *     tags: ['Admin']
      *     security:
      *       - sessionAuth: []
+     *     requestBody:
+     *       required: false
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               label:
+     *                 type: string
+     *                 maxLength: 100
+     *                 description: Optional label for the backup (e.g., "Before v2.9.5 update")
+     *                 example: "Before major config change"
+     *               note:
+     *                 type: string
+     *                 maxLength: 500
+     *                 description: Optional detailed note about this backup
+     *                 example: "Created before enabling MQTT integration"
      *     responses:
      *       200:
      *         description: Backup metadata
@@ -85,7 +104,10 @@ module.exports = function createConfigBackupsRouter({
      */
     router.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
         try {
-            const meta = await cfgCreateBackup();
+            const options = {};
+            if (req.body?.label) options.label = req.body.label;
+            if (req.body?.note) options.note = req.body.note;
+            const meta = await cfgCreateBackup(options);
             try {
                 broadcastAdminEvent?.('backup-created', meta);
             } catch (_) {
@@ -240,6 +262,69 @@ module.exports = function createConfigBackupsRouter({
             res.json({ ok: true, id });
         } catch (e) {
             res.status(400).json({ error: e?.message || 'Delete failed' });
+        }
+    });
+
+    /**
+     * @swagger
+     * /api/admin/config-backups/{id}:
+     *   patch:
+     *     summary: Update backup label and note
+     *     description: Edit the label and/or note of an existing backup. Pass null or empty string to remove a field.
+     *     tags: ['Admin']
+     *     security:
+     *       - sessionAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               label:
+     *                 type: string
+     *                 maxLength: 100
+     *                 description: New label (null/empty to remove)
+     *                 nullable: true
+     *                 example: "Pre-v2.9.5 stable"
+     *               note:
+     *                 type: string
+     *                 maxLength: 500
+     *                 description: New note (null/empty to remove)
+     *                 nullable: true
+     *                 example: "Backup before MQTT integration testing"
+     *     responses:
+     *       200:
+     *         description: Updated metadata
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/BackupUpdateResponse'
+     *       400:
+     *         description: Invalid ID or update failed
+     */
+    router.patch('/api/admin/config-backups/:id', isAuthenticated, async (req, res) => {
+        const id = String(req.params.id || '');
+        try {
+            if (!id) throw new Error('Missing id');
+            const updates = {};
+            if ('label' in req.body) updates.label = req.body.label;
+            if ('note' in req.body) updates.note = req.body.note;
+            const meta = await cfgUpdateBackupMeta(id, updates);
+            try {
+                broadcastAdminEvent?.('backup-updated', { id, ...updates });
+            } catch (_) {
+                /* best-effort admin event */
+            }
+            res.json(meta);
+        } catch (e) {
+            res.status(400).json({ error: e?.message || 'Update failed' });
         }
     });
 

@@ -42,7 +42,7 @@ async function statIfExists(filePath) {
     }
 }
 
-async function createBackup() {
+async function createBackup(options = {}) {
     ensureDirSync(BACKUP_DIR);
     const id = nowId();
     const dir = path.join(BACKUP_DIR, id);
@@ -57,7 +57,16 @@ async function createBackup() {
         await fsp.copyFile(src, dst);
         files.push({ name, size: st.size });
     }
-    const meta = { id, createdAt: new Date().toISOString(), files };
+    const meta = {
+        id,
+        createdAt: new Date().toISOString(),
+        files,
+        label: options.label ? String(options.label).slice(0, 100) : undefined,
+        note: options.note ? String(options.note).slice(0, 500) : undefined,
+    };
+    // Remove undefined fields for cleaner JSON
+    if (meta.label === undefined) delete meta.label;
+    if (meta.note === undefined) delete meta.note;
     await fsp.writeFile(path.join(dir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf8');
     return meta;
 }
@@ -83,7 +92,15 @@ async function listBackups() {
             const fst = await statIfExists(fp);
             if (fst && fst.isFile()) files.push({ name, size: fst.size });
         }
-        items.push({ id, createdAt: meta?.createdAt || new Date(st.mtimeMs).toISOString(), files });
+        const item = {
+            id,
+            createdAt: meta?.createdAt || new Date(st.mtimeMs).toISOString(),
+            files,
+        };
+        // Include label and note if present (backwards compatible)
+        if (meta?.label) item.label = meta.label;
+        if (meta?.note) item.note = meta.note;
+        items.push(item);
     }
     // Newest first
     items.sort((a, b) => String(b.id).localeCompare(String(a.id)));
@@ -142,6 +159,41 @@ async function deleteBackup(backupId) {
     return { ok: true };
 }
 
+async function updateBackupMetadata(backupId, updates = {}) {
+    const dir = path.join(BACKUP_DIR, String(backupId));
+    const st = await statIfExists(dir);
+    if (!st || !st.isDirectory()) throw new Error('Backup not found');
+
+    const metaPath = path.join(dir, 'meta.json');
+    let meta = {};
+    try {
+        const raw = await fsp.readFile(metaPath, 'utf8');
+        meta = JSON.parse(raw);
+    } catch (_) {
+        // If meta.json doesn't exist, create minimal metadata
+        meta = { id: backupId, createdAt: new Date(st.mtimeMs).toISOString(), files: [] };
+    }
+
+    // Update label and note (null/empty removes them)
+    if ('label' in updates) {
+        if (updates.label && String(updates.label).trim()) {
+            meta.label = String(updates.label).slice(0, 100);
+        } else {
+            delete meta.label;
+        }
+    }
+    if ('note' in updates) {
+        if (updates.note && String(updates.note).trim()) {
+            meta.note = String(updates.note).slice(0, 500);
+        } else {
+            delete meta.note;
+        }
+    }
+
+    await fsp.writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf8');
+    return meta;
+}
+
 async function readScheduleConfig() {
     try {
         const raw = await fsp.readFile(CONFIG_FILE, 'utf8');
@@ -188,6 +240,7 @@ module.exports = {
     cleanupOldBackups,
     restoreFile,
     deleteBackup,
+    updateBackupMetadata,
     readScheduleConfig,
     writeScheduleConfig,
 };

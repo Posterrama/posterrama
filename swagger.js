@@ -271,6 +271,8 @@ function generateSwaggerSpec(req = null) {
                                 createdAt: '2025-10-25T12:00:00.000Z',
                                 sizeBytes: 4096,
                                 type: 'manual',
+                                label: 'Pre-upgrade backup',
+                                note: 'Created before testing new features',
                             },
                         },
                     },
@@ -286,6 +288,16 @@ function generateSwaggerSpec(req = null) {
                             type: {
                                 type: 'string',
                                 description: 'backup type (manual|auto|upgrade)',
+                            },
+                            label: {
+                                type: 'string',
+                                maxLength: 100,
+                                description: 'Optional custom label for this backup',
+                            },
+                            note: {
+                                type: 'string',
+                                maxLength: 500,
+                                description: 'Optional detailed note about this backup',
                             },
                         },
                     },
@@ -306,6 +318,8 @@ function generateSwaggerSpec(req = null) {
                                     createdAt: '2025-10-25T12:00:00.000Z',
                                     sizeBytes: 4096,
                                     type: 'manual',
+                                    label: 'Before v2.9.5 update',
+                                    note: 'Stable configuration before major update',
                                 },
                                 {
                                     id: 'config-backup-1729950000000',
@@ -358,6 +372,32 @@ function generateSwaggerSpec(req = null) {
                             ok: true,
                             deleted: true,
                             id: 'config-backup-1730000000000',
+                        },
+                    },
+                    BackupUpdateResponse: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string' },
+                            createdAt: { type: 'string', format: 'date-time' },
+                            files: {
+                                type: 'array',
+                                items: {
+                                    type: 'object',
+                                    properties: {
+                                        name: { type: 'string' },
+                                        size: { type: 'integer' },
+                                    },
+                                },
+                            },
+                            label: { type: 'string', maxLength: 100 },
+                            note: { type: 'string', maxLength: 500 },
+                        },
+                        example: {
+                            id: 'config-backup-1730000000000',
+                            createdAt: '2025-10-25T12:00:00.000Z',
+                            files: [{ name: 'config.json', size: 4096 }],
+                            label: 'Updated label',
+                            note: 'Updated note with more details',
                         },
                     },
                     BackupSchedule: {

@@ -145,6 +145,7 @@ const {
     cleanupOldBackups: cfgCleanupOld,
     restoreFile: cfgRestoreFile,
     deleteBackup: cfgDeleteBackup,
+    updateBackupMetadata: cfgUpdateBackupMeta,
     readScheduleConfig: cfgReadSchedule,
     writeScheduleConfig: cfgWriteSchedule,
 } = require('./utils/configBackup');
@@ -3424,6 +3425,7 @@ const configBackupsRouter = createConfigBackupsRouter({
     cfgCleanupOld,
     cfgRestoreFile,
     cfgDeleteBackup,
+    cfgUpdateBackupMeta,
     cfgReadSchedule,
     cfgWriteSchedule,
     broadcastAdminEvent,
