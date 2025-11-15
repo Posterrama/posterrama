@@ -1,8 +1,9 @@
 /**
  * Intent: Cover edge branches in deviceStore (updateHeartbeat pruning, pruneLikelyDuplicates paths, metrics hook)
- * Determinism: In-memory fs mock, manual control of timestamps.
+ * Determinism: Real temp file with cleanup between tests.
  */
 const path = require('path');
+const fs = require('fs');
 
 jest.mock('../../utils/logger', () => ({
     info: jest.fn(),
@@ -21,109 +22,48 @@ jest.mock('../../utils/metrics', () => {
     };
 });
 
-// In-memory fs mock
-function createFsMock() {
-    const store = new Map();
-    return {
-        data: store,
-        existsSync: jest.fn(p => store.has(p)),
-        mkdirSync: jest.fn(p => {
-            store.set(p, '__DIR__');
-        }),
-        readFileSync: jest.fn(p => {
-            const v = store.get(p);
-            if (!v) throw new Error('ENOENT');
-            return v;
-        }),
-        writeFileSync: jest.fn((p, d) => store.set(p, d)),
-        promises: {
-            access: jest.fn(async p => {
-                if (!store.has(p)) {
-                    const error = new Error('ENOENT');
-                    error.code = 'ENOENT';
-                    throw error;
-                }
-            }),
-            readFile: jest.fn(async p => {
-                const v = store.get(p);
-                if (!v) {
-                    const error = new Error('ENOENT');
-                    error.code = 'ENOENT';
-                    throw error;
-                }
-                return v;
-            }),
-            writeFile: jest.fn(async (p, d) => {
-                store.set(p, d);
-            }),
-            rename: jest.fn(async (o, n) => {
-                const v = store.get(o);
-                if (v) {
-                    store.set(n, v);
-                    store.delete(o);
-                }
-            }),
-            mkdir: jest.fn(async p => {
-                store.set(p, '__DIR__');
-            }),
-            copyFile: jest.fn(async (src, dest) => {
-                const v = store.get(src);
-                if (!v) {
-                    const error = new Error('ENOENT');
-                    error.code = 'ENOENT';
-                    throw error;
-                }
-                store.set(dest, v);
-            }),
-            unlink: jest.fn(async p => {
-                if (!store.has(p)) {
-                    const error = new Error('ENOENT');
-                    error.code = 'ENOENT';
-                    throw error;
-                }
-                store.delete(p);
-            }),
-            stat: jest.fn(async p => {
-                if (!store.has(p)) {
-                    const error = new Error('ENOENT');
-                    error.code = 'ENOENT';
-                    throw error;
-                }
-                const v = store.get(p);
-                return {
-                    size: v ? v.length : 0,
-                    mtime: new Date(),
-                    birthtime: new Date(),
-                };
-            }),
-        },
-    };
-}
-
 describe('deviceStore edge branches', () => {
     let deviceStore;
-    let fsMock;
     let storePath;
 
-    function loadFresh() {
-        jest.resetModules();
-        fsMock = createFsMock();
+    beforeAll(() => {
         const unique = `edge-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
         storePath = path.join(require('os').tmpdir(), unique);
-        process.env.DEVICES_STORE_PATH = storePath;
-        jest.doMock('fs', () => fsMock);
-        deviceStore = require('../../utils/deviceStore');
-        delete process.env.DEVICES_STORE_PATH;
-    }
+    });
 
     beforeEach(() => {
-        loadFresh();
+        // Clean up any existing store file
+        try {
+            if (fs.existsSync(storePath)) fs.unlinkSync(storePath);
+            const lockFile = `${storePath}.lock`;
+            if (fs.existsSync(lockFile)) fs.unlinkSync(lockFile);
+        } catch (_) {
+            /* ignore cleanup errors */
+        }
+
+        // Load fresh deviceStore with real file
+        jest.resetModules();
+        process.env.DEVICES_STORE_PATH = storePath;
+        deviceStore = require('../../utils/deviceStore');
+        delete process.env.DEVICES_STORE_PATH;
+
         // Reset metrics mock
         try {
             const metrics = require('../../utils/metrics');
             if (metrics && metrics._recordFn && metrics._recordFn.mockReset) {
                 metrics._recordFn.mockReset();
             }
+        } catch (_) {
+            /* ignore */
+        }
+    });
+
+    afterAll(() => {
+        // Final cleanup
+        try {
+            if (fs.existsSync(storePath)) fs.unlinkSync(storePath);
+            const lockFile = `${storePath}.lock`;
+            if (fs.existsSync(lockFile)) fs.unlinkSync(lockFile);
         } catch (_) {
             /* ignore */
         }
@@ -182,10 +122,15 @@ describe('deviceStore edge branches', () => {
     });
 
     test('pruneLikelyDuplicates returns {deleted:0} on error path', async () => {
-        // Force internal error by mocking readAll via fs to throw unreadable JSON
-        loadFresh();
-        // Overwrite underlying fs read to throw
-        fsMock.promises.readFile.mockRejectedValue(new Error('boom'));
+        // Force internal error by writing invalid JSON to the store file
+        fs.writeFileSync(storePath, 'invalid{json}', 'utf8');
+
+        // Reload deviceStore to pick up corrupted file
+        jest.resetModules();
+        process.env.DEVICES_STORE_PATH = storePath;
+        deviceStore = require('../../utils/deviceStore');
+        delete process.env.DEVICES_STORE_PATH;
+
         const res = await deviceStore.pruneLikelyDuplicates({ keepId: 'nope' });
         expect(res).toEqual({ deleted: 0 });
     });

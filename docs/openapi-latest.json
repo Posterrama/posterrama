@@ -2574,6 +2574,24 @@
                 }
             }
         },
+        "/metrics": {
+            "get": {
+                "tags": ["Monitoring"],
+                "summary": "Prometheus metrics endpoint",
+                "description": "Exposes server metrics in Prometheus format for monitoring and alerting.\nIncludes default metrics (CPU, memory, event loop) and custom metrics\n(cache, HTTP, WebSocket, source APIs, devices).\n",
+                "responses": {
+                    "200": {
+                        "description": "Prometheus metrics in text format",
+                        "content": {
+                            "text/plain": {
+                                "example": "# HELP posterrama_http_requests_total Total HTTP requests\n# TYPE posterrama_http_requests_total counter\nposterrama_http_requests_total{method=\"GET\",path=\"/api/media\",status=\"200\"} 42\n"
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
         "/": {
             "get": {
                 "summary": "Main index/landing page",
@@ -5632,12 +5650,13 @@
         },
         "/api/admin/cache/clear": {
             "post": {
-                "summary": "Clear cache entries",
-                "description": "Clear all cache entries or specific tier. Supports query parameter 'tier' to clear specific cache tier (veryShort, short, medium, long, veryLong, mediaFiltered, config).",
-                "tags": ["Admin"],
+                "summary": "Clear all cached data",
+                "description": "Removes all entries from memory and API caches",
+                "tags": ["Admin", "Cache"],
                 "security": [
                     {
-                        "sessionAuth": []
+                        "sessionAuth": [],
+                        "basicAuth": []
                     }
                 ],
                 "parameters": [
@@ -5691,19 +5710,7 @@
                         "description": "Invalid tier specified"
                     },
                     "401": {
-                        "description": "Unauthorized - Authentication required",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Unauthorized",
-                                    "message": "Authentication required to access this endpoint",
-                                    "statusCode": 401
-                                }
-                            }
-                        }
+                        "description": "Unauthorized"
                     },
                     "500": {
                         "description": "Internal server error",
@@ -6528,6 +6535,165 @@
                     },
                     "401": {
                         "description": "Unauthorized - admin session required"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/cache/metrics": {
+            "get": {
+                "summary": "Get detailed cache metrics",
+                "description": "Returns comprehensive cache statistics including hit ratios, memory usage, and performance recommendations",
+                "tags": ["Admin", "Cache"],
+                "security": [
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cache metrics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "metrics": {
+                                            "type": "object",
+                                            "properties": {
+                                                "memory": {
+                                                    "type": "object",
+                                                    "description": "Memory cache metrics"
+                                                },
+                                                "api": {
+                                                    "type": "object",
+                                                    "description": "API cache metrics"
+                                                },
+                                                "combined": {
+                                                    "type": "object",
+                                                    "description": "Combined cache statistics"
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - authentication required"
+                    },
+                    "500": {
+                        "description": "Server error retrieving cache metrics"
+                    }
+                }
+            }
+        },
+        "/api/admin/cache/metrics/summary": {
+            "get": {
+                "summary": "Get cache metrics summary",
+                "description": "Returns a simplified view of cache performance",
+                "tags": ["Admin", "Cache"],
+                "security": [
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cache summary retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/cache/recommendations": {
+            "get": {
+                "summary": "Get cache optimization recommendations",
+                "description": "Returns actionable recommendations for cache optimization",
+                "tags": ["Admin", "Cache"],
+                "security": [
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Recommendations retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/cache/reset": {
+            "post": {
+                "summary": "Reset cache statistics",
+                "description": "Resets hit/miss counters and access counts (does not clear cached data)",
+                "tags": ["Admin", "Cache"],
+                "security": [
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cache statistics reset successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
                     },
                     "500": {
                         "description": "Internal server error",

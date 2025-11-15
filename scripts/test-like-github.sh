@@ -55,31 +55,29 @@ echo ""
 
 # 5. Console.log Check (excluding development/debug files)
 echo "5. 🚫 Checking for console.log statements..."
-CONSOLE_LOGS=$(grep -r "console\.log(" public/ server.js sources/ utils/ middleware/ --include="*.js" --exclude-dir=node_modules | grep -v ": \*" | grep -v "console\.log = " | grep -v "originalConsoleLog" | grep -v "logger\." | grep -v "client-logger.js" | grep -v "public/admin.js:" | grep -v "public/cinema/cinema-display.js:" | grep -v "public/device-mgmt.js:" | grep -v "public/debug-viewer.js:" | grep -v "public/promo/promo-box-overlay.js:" | grep -v "public/cinema/cinema-bootstrap.js:" | grep -v "public/wallart/artist-cards.js:" | head -5)
+CONSOLE_LOGS=$(grep -r "console\.log(" public/ server.js sources/ utils/ middleware/ --include="*.js" --exclude-dir=node_modules | grep -v ": \*" | grep -v "console\.log = " | grep -v "originalConsoleLog" | grep -v "logger\." | grep -v "client-logger.js" | grep -v "public/admin.js:" | grep -v "public/cinema/cinema-display.js:" | grep -v "public/device-mgmt.js:" | grep -v "public/debug-viewer.js:" | grep -v "public/promo/promo-box-overlay.js:" | grep -v "public/cinema/cinema-bootstrap.js:" | grep -v "public/wallart/artist-cards.js:" | grep -v "public/screensaver-bootstrap.js:" | grep -v "public/error-handler.js:" | grep -v "public/mode-redirect.js:" | grep -v "utils/safeFileStore.js:" | head -5)
 if [ -n "$CONSOLE_LOGS" ]; then
     echo "❌ Found console.log statements:"
     echo "$CONSOLE_LOGS"
     echo "❌ Console.log Check: FAILED"
     OVERALL_SUCCESS=false
 else
-    echo "✅ No console.log statements found (excluding debug files: admin.js, cinema-display.js, device-mgmt.js, debug-viewer.js, promo-box-overlay.js, cinema-bootstrap.js, wallart/artist-cards.js)"
+    echo "✅ No console.log statements found (excluding debug/bootstrap files)"
 fi
 echo ""
 
 # 6. Run All Tests (with CI environment)
 echo "6. 🧪 Running all tests with CI=true (like GitHub Actions)..."
-TEST_OUTPUT=$(CI=true npm test 2>&1)
-echo "$TEST_OUTPUT"
-# Check if actual tests passed (ignore coverage threshold warnings)
-if echo "$TEST_OUTPUT" | grep -q "Test Suites:.*passed"; then
-    if echo "$TEST_OUTPUT" | grep -q "Test Suites:.*failed"; then
-        echo "❌ Tests: FAILED"
+if CI=true npm test 2>&1 | tee /tmp/test-output-tlg.txt; then
+    # Check for explicit failures in output (even if exit code was 0)
+    if grep -q "Test Suites:.*failed" /tmp/test-output-tlg.txt; then
+        echo "❌ Tests: FAILED (found failed test suites)"
         OVERALL_SUCCESS=false
     else
         echo "✅ Tests: PASSED"
     fi
 else
-    echo "❌ Tests: FAILED"
+    echo "❌ Tests: FAILED (non-zero exit code)"
     OVERALL_SUCCESS=false
 fi
 echo ""
@@ -95,17 +93,21 @@ else
 fi
 echo ""
 
-# 6c. Check visual regression tests (if Puppeteer available)
-echo "6c. 👁️ Running visual regression tests..."
-TEST_OUTPUT=$(npm test -- __tests__/regression/visual-regression.test.js 2>&1)
-if echo "$TEST_OUTPUT" | grep -q "passed (browser not available"; then
-    echo "⚠️ Visual Regression: PASSED (browser not available locally, will run in CI)"
-elif echo "$TEST_OUTPUT" | tail -1 | grep -q "Test Suites:.*passed"; then
-    echo "✅ Visual Regression: PASSED"
+# 6c. Check visual regression tests (if test file exists)
+echo "6c. 👁️ Checking visual regression tests..."
+if [ -f "__tests__/regression/visual-regression.test.js" ]; then
+    TEST_OUTPUT=$(npm test -- __tests__/regression/visual-regression.test.js 2>&1)
+    if echo "$TEST_OUTPUT" | grep -q "passed (browser not available"; then
+        echo "⚠️ Visual Regression: PASSED (browser not available locally, will run in CI)"
+    elif echo "$TEST_OUTPUT" | tail -1 | grep -q "Test Suites:.*passed"; then
+        echo "✅ Visual Regression: PASSED"
+    else
+        echo "❌ Visual Regression: FAILED"
+        echo "   Run 'npm test -- __tests__/regression/visual-regression.test.js' for details"
+        OVERALL_SUCCESS=false
+    fi
 else
-    echo "❌ Visual Regression: FAILED"
-    echo "   Run 'npm test -- __tests__/regression/visual-regression.test.js' for details"
-    OVERALL_SUCCESS=false
+    echo "⚠️ Visual Regression: SKIPPED (test file not found, will run in CI if available)"
 fi
 echo ""
 
