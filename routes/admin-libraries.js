@@ -80,12 +80,15 @@ module.exports = function createAdminLibrariesRouter({
             if (isDebug) logger.debug('[Admin API] Received request to fetch Jellyfin libraries.');
             // Get server configuration with fallbacks
             const currentConfig = await readConfig();
-            const { hostname, port, token: apiKey, serverConfig: jellyfinServerConfig } = 
-                require('../lib/config-helpers').getServerConfig({
-                    config: currentConfig,
-                    serverType: 'jellyfin',
-                    requestBody: { ...req.body, token: req.body.apiKey }
-                });
+            const {
+                hostname,
+                port,
+                token: apiKey,
+            } = require('../lib/config-helpers').getServerConfig({
+                config: currentConfig,
+                serverType: 'jellyfin',
+                requestBody: { ...req.body, token: req.body.apiKey },
+            });
 
             if (!hostname || !port || !apiKey) {
                 throw new ApiError(
@@ -410,12 +413,16 @@ module.exports = function createAdminLibrariesRouter({
 
             // Get server configuration with fallbacks
             const currentConfig = await readConfig();
-            const { hostname, port, token, serverConfig: plexServerConfig } = 
-                require('../lib/config-helpers').getServerConfig({
-                    config: currentConfig,
-                    serverType: 'plex',
-                    requestBody: req.body
-                });
+            const {
+                hostname,
+                port,
+                token,
+                serverConfig: plexServerConfig,
+            } = require('../lib/config-helpers').getServerConfig({
+                config: currentConfig,
+                serverType: 'plex',
+                requestBody: req.body,
+            });
 
             if (!hostname || !port || !token) {
                 throw new ApiError(
@@ -501,12 +508,16 @@ module.exports = function createAdminLibrariesRouter({
 
             // Get server configuration with fallbacks
             const currentConfig = await readConfig();
-            const { hostname, port, token, serverConfig: plexServerConfig } = 
-                require('../lib/config-helpers').getServerConfig({
-                    config: currentConfig,
-                    serverType: 'plex',
-                    requestBody: req.body
-                });
+            const {
+                hostname,
+                port,
+                token,
+                serverConfig: plexServerConfig,
+            } = require('../lib/config-helpers').getServerConfig({
+                config: currentConfig,
+                serverType: 'plex',
+                requestBody: req.body,
+            });
 
             if (!hostname || !port || !token) {
                 throw new ApiError(
@@ -602,12 +613,15 @@ module.exports = function createAdminLibrariesRouter({
 
             // Get server configuration with fallbacks
             const currentConfig = await readConfig();
-            const { hostname, port, token: apiKey, serverConfig: jellyfinServerConfig } = 
-                require('../lib/config-helpers').getServerConfig({
-                    config: currentConfig,
-                    serverType: 'jellyfin',
-                    requestBody: { ...req.body, token: req.body.apiKey }
-                });
+            const {
+                hostname,
+                port,
+                token: apiKey,
+            } = require('../lib/config-helpers').getServerConfig({
+                config: currentConfig,
+                serverType: 'jellyfin',
+                requestBody: { ...req.body, token: req.body.apiKey },
+            });
 
             if (!hostname || !port || !apiKey) {
                 throw new ApiError(
@@ -730,18 +744,22 @@ module.exports = function createAdminLibrariesRouter({
 
             // Get server configuration with fallbacks
             const currentConfig = await readConfig();
-            const { hostname, port, token: apiKey, serverConfig: jellyfinServerConfig } = 
-                require('../lib/config-helpers').getServerConfig({
-                    config: currentConfig,
-                    serverType: 'jellyfin',
-                    requestBody: { ...req.body, token: req.body.apiKey }
-                });
-            
+            const {
+                hostname,
+                port,
+                token: apiKey,
+                serverConfig: jellyfinServerConfig,
+            } = require('../lib/config-helpers').getServerConfig({
+                config: currentConfig,
+                serverType: 'jellyfin',
+                requestBody: { ...req.body, token: req.body.apiKey },
+            });
+
             // Fallback to config libraries if none provided or empty
             if (!selectedLibraries || selectedLibraries.length === 0) {
                 selectedLibraries = [
                     ...(jellyfinServerConfig.movieLibraryNames || []),
-                    ...(jellyfinServerConfig.showLibraryNames || [])
+                    ...(jellyfinServerConfig.showLibraryNames || []),
                 ];
             }
 
@@ -768,7 +786,7 @@ module.exports = function createAdminLibrariesRouter({
 
                 // Get all libraries to verify selected ones
                 const allLibraries = await fetchJellyfinLibraries(client);
-                
+
                 // Virtual folders use ItemId, not Id
                 const libraryIds = selectedLibraries?.length
                     ? allLibraries
