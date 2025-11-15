@@ -325,6 +325,19 @@
             mediaQueue = await fetchMediaQueue();
             if (mediaQueue.length > 0) {
                 log('Media queue loaded', { count: mediaQueue.length });
+
+                // Preload first poster for better LCP (Largest Contentful Paint)
+                try {
+                    const firstPoster = mediaQueue[0];
+                    const posterUrl = firstPoster?.posterUrl || firstPoster?.poster_path;
+                    if (posterUrl) {
+                        const preloadImg = new Image();
+                        preloadImg.fetchPriority = 'high';
+                        preloadImg.src = posterUrl;
+                    }
+                } catch (_) {
+                    /* optional performance optimization */
+                }
             }
         })();
 

@@ -414,6 +414,24 @@
                     _state.usedPosters = usedPosters;
                     window.debugLog && window.debugLog('WALLART_STATE_PERSISTED', {});
 
+                    // Preload first visible posters for better LCP (Largest Contentful Paint)
+                    try {
+                        if (currentPosters && currentPosters.length > 0) {
+                            const preloadCount = Math.min(6, currentPosters.length);
+                            for (let i = 0; i < preloadCount; i++) {
+                                const poster = currentPosters[i];
+                                const posterUrl = poster?.posterUrl || poster?.poster_path;
+                                if (posterUrl) {
+                                    const preloadImg = new Image();
+                                    preloadImg.fetchPriority = i === 0 ? 'high' : 'low';
+                                    preloadImg.src = posterUrl;
+                                }
+                            }
+                        }
+                    } catch (_) {
+                        /* optional performance optimization */
+                    }
+
                     // Expose read-only getter for device-mgmt heartbeats
                     try {
                         if (!Object.getOwnPropertyDescriptor(window, '__wallartCurrentPosters')) {

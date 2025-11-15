@@ -1025,7 +1025,8 @@ body.promo-site #promo-box.is-hidden {
     height: 270px;
     background-size: cover;
     background-position: center center;
-    background-color: #2a2a2a; /* Fallback background color */
+    /* Gradient placeholder for instant LCP paint - improves perceived performance */
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%);
     border-radius: 8px;
     position: relative;
     z-index: 1;

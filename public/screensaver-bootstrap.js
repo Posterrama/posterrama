@@ -131,6 +131,24 @@ export async function startScreensaver() {
 
         await ensureMediaQueue();
 
+        // Preload first poster for better LCP (Largest Contentful Paint)
+        try {
+            if (Array.isArray(window.mediaQueue) && window.mediaQueue.length > 0) {
+                const firstPoster = window.mediaQueue[0];
+                const posterUrl = firstPoster?.posterUrl || firstPoster?.poster_path;
+
+                if (posterUrl) {
+                    // Create hidden image to trigger browser preload with high priority
+                    const preloadImg = new Image();
+                    preloadImg.fetchPriority = 'high';
+                    preloadImg.src = posterUrl;
+                    // No need to wait - browser will cache it
+                }
+            }
+        } catch (_) {
+            // Preload is optional performance optimization
+        }
+
         // Debug log
         try {
             if (window.logger && window.logger.debug) {
