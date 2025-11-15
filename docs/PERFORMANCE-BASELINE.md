@@ -296,11 +296,26 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 ### Performance Bottlenecks Identified
 
-1. **LCP on Display Modes (90-100s)** 🚨 **CRITICAL**
-    - Root Cause: Poster images lazy-load after page load
-    - Impact: 65-69 Performance score
-    - Fix: Preload hero poster or use low-res placeholder
-    - Expected Improvement: +10-15 points → 75-80/100
+1. **LCP on Display Modes (90-100s)** 🚨 **CRITICAL** - **PARTIALLY ADDRESSED**
+    - Root Cause: Poster images use `background-image` which has low browser priority
+    - Secondary Cause: Asynchronous /get-media fetch → JS render → image load pipeline
+    - **Attempted Fixes (Nov 15, 2025):**
+        - ✅ Gradient placeholder for instant visual feedback
+        - ✅ DNS prefetch + preconnect for /image endpoint
+        - ✅ JavaScript preload with fetchPriority='high'
+        - ⚠️ **Result:** LCP still ~95s (Lighthouse timeout)
+    - **Root Cause Analysis:**
+        - `background-image` CSS property has inherently low browser priority
+        - Lighthouse measures LCP until TTI, screensaver continuous animation delays this
+        - Preload hints don't affect background-images (only <img> tags)
+    - **Remaining Fix Required:** Convert #poster from background-image to <img> tag
+        - Benefits: Browser-native lazy loading, fetchpriority support, preload works
+        - Effort: 4-6 hours (refactor screensaver.js setPoster logic + CSS)
+        - Expected Improvement: LCP 95s → 5-10s, Performance score +15-20 points
+    - **Alternative Quick Win:** Server-side first poster injection (2h)
+        - Inject first poster URL as data-first-poster attribute in HTML
+        - Render immediately without waiting for /get-media fetch
+        - Expected Improvement: LCP 95s → 10-15s, Performance score +10 points
 
 2. **FCP Times (3.0-5.0s)** ⚠️ **MEDIUM**
     - Root Cause: Large JavaScript bundles (admin.js 1.3MB)
@@ -309,12 +324,18 @@ This document establishes the performance baseline **after Quick Win optimizatio
     - Expected Improvement: FCP → 1.5-2.5s
 
 3. **TTI on Display Modes (94-100s)** ⚠️ **MEDIUM**
-    - Root Cause: Waiting for image loading to complete
-    - Impact: Page not fully interactive until images load
-    - Fix: Separate image loading from interactive state
+    - Root Cause: Lighthouse measures TTI until page is stable (screensaver animations delay this)
+    - Secondary Cause: Waiting for all visible posters to load
+    - Impact: Page not fully interactive until all images complete
+    - Fix: Mark page as interactive immediately after first poster loads
     - Expected Improvement: TTI → 5-10s
 
-**Action Items:** Prioritize LCP fix for display modes (90-100s → <2.5s target)
+**Action Items (Priority Order):**
+
+1. 🚨 **HIGH**: Convert #poster to <img> tag (4-6h, biggest LCP impact)
+2. ⚠️ **MEDIUM**: Server-side first poster injection (2h, quick win)
+3. ⚠️ **MEDIUM**: Code splitting for FCP improvement (8-12h)
+4. 📝 **LOW**: TTI optimization (mark interactive earlier)
 
 ---
 
