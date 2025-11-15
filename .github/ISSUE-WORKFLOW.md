@@ -52,18 +52,28 @@ Posterrama now uses **Gitea Issues** as the single source of truth for all tasks
 ### Milestones
 
 1. **Sprint 3 - Code Quality** (Due: Nov 30, 2025)
-    - Refactoring, JSDoc, technical debt
+    - Current sprint: Refactoring, JSDoc, technical debt cleanup
+    - Note: Backend sprint from BACKEND-ANALYSIS docs
 
-2. **Sprint 4 - Display Enhancements** (Due: Dec 15, 2025)
-    - Wallart, Cinema, Screensaver improvements
+2. **v2.9.5 - Quick Wins** (Due: Nov 25, 2025)
+    - Easy improvements and fixes (1-2h each)
+    - Context-aware settings, faster transitions, etc.
 
-3. **v3.0 - Major Features** (Due: Jan 31, 2026)
+3. **v2.9.6 - Display Polish** (Due: Dec 5, 2025)
+    - Display mode improvements (2-4h each)
+    - Wallart, Cinema, Screensaver enhancements
+
+4. **v2.9.7 - Content Features** (Due: Dec 15, 2025)
+    - Content and media enhancements (4-8h each)
+    - Playlists, per-device sources
+
+5. **v3.0.0 - Major Features** (Due: Jan 31, 2026)
     - Platform apps, plugins, user management
+    - Major architecture changes (8h+ each)
 
-4. **Future - Nice to Have** (No deadline)
-    - Long-term ideas and wishlist
-
----
+6. **Future - Nice to Have** (No deadline)
+    - Experimental features and research
+    - Long-term wishlist items---
 
 ## AI Agent Workflow
 
