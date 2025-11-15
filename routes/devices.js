@@ -4,24 +4,7 @@
  */
 
 const express = require('express');
-
-/**
- * Lightweight cookie parsing to bind an install identifier across tabs
- */
-function parseCookies(header) {
-    const out = {};
-    if (!header) return out;
-    const parts = header.split(';');
-    for (const part of parts) {
-        const eq = part.indexOf('=');
-        if (eq > 0) {
-            const k = part.slice(0, eq).trim();
-            const v = part.slice(eq + 1).trim();
-            out[k] = v;
-        }
-    }
-    return out;
-}
+const deviceOps = require('../lib/device-operations');
 
 /**
  * Create devices router with dependency injection
@@ -174,66 +157,20 @@ module.exports = function createDevicesRouter({
      */
     router.post('/register', deviceRegisterLimiter, express.json(), async (req, res) => {
         try {
-            const {
-                name = '',
-                location = '',
-                installId = null,
-                hardwareId: bodyHw = null,
-            } = req.body || {};
+            const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
 
-            // Skip logging if this is from a whitelisted admin IP
-            if (!req.deviceBypass) {
-                // Log device registration attempt (with IP info)
-                const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
-                const userAgent = req.headers['user-agent'] || 'Unknown';
-                const deviceName = name?.substring(0, 30) || 'unnamed';
-                const deviceLocation = location?.substring(0, 30) || '';
-                logger.info(
-                    `[Device] Registration: ${ip} (${userAgent.substring(0, 40)}) - "${deviceName}"${deviceLocation ? ' in ' + deviceLocation : ''}`,
-                    {
-                        name: name?.substring(0, 50) || 'unnamed',
-                        location: location?.substring(0, 50) || '',
-                        installId: installId?.substring(0, 20) || 'none',
-                        hardwareId:
-                            (bodyHw || req.headers['x-hardware-id'] || '')
-                                ?.toString()
-                                .substring(0, 20) || 'none',
-                        ip,
-                        userAgent: userAgent.substring(0, 100),
-                        timestamp: new Date().toISOString(),
-                    }
-                );
-            }
-
-            const cookies = parseCookies(req.headers['cookie']);
-            const hdrIid = req.headers['x-install-id'] || null;
-            const hdrHw = req.headers['x-hardware-id'] || null;
-            const cookieIid = cookies['pr_iid'] || null;
-            // Prefer cookie over header/body to keep identity stable across concurrent tabs
-            // If no cookie yet, fall back to header/body and set cookie below
-            const stableInstallId =
-                cookieIid || hdrIid || installId || require('crypto').randomUUID();
-            const hardwareId = (hdrHw || bodyHw || '').toString().slice(0, 256) || null;
-            let finalName = (name || '').trim();
-            if (!finalName) {
-                finalName = `Device ${new Date().toISOString().slice(0, 10)}`;
-            }
-
-            // registerDevice handles re-registration automatically
-            const { device, secret } = await deviceStore.registerDevice({
-                name: finalName,
-                location: location || '',
-                installId: stableInstallId,
-                hardwareId: hardwareId || null,
+            const result = await deviceOps.processDeviceRegistration(deviceStore, {
+                body: req.body,
+                headers: req.headers,
+                ip,
+                deviceBypass: req.deviceBypass,
             });
 
-            // Send the result
-            res.json({ deviceId: device.id, secret, message: 'registered' });
-
-            if (isDebug)
-                logger.debug(
-                    `[Device] New device registered: ${device.id} (installId: ${stableInstallId})`
-                );
+            res.json({
+                deviceId: result.device.id,
+                secret: result.secret,
+                message: 'registered',
+            });
         } catch (e) {
             logger.error('[Device Register] Unexpected error', {
                 error: e.message,
@@ -311,57 +248,24 @@ module.exports = function createDevicesRouter({
             const hardwareId = req.headers['x-hardware-id'];
             const installId = req.headers['x-install-id'];
 
-            // Allow check without secret for unregistered devices (returns device_not_found)
-            if (!deviceId && !hardwareId && !installId) {
-                return res.status(400).json({ error: 'missing_device_identifier' });
-            }
-
-            // Try to find device by deviceId, hardwareId, or installId
-            let device = null;
-            if (deviceId) {
-                device = await deviceStore.getById(deviceId);
-            }
-            if (!device && hardwareId) {
-                const allDevices = await deviceStore.getAll();
-                device = allDevices.find(d => d.hardwareId === hardwareId);
-            }
-            if (!device && installId) {
-                const allDevices = await deviceStore.getAll();
-                device = allDevices.find(d => d.installId === installId);
-            }
-
-            if (!device) {
-                // Not an error - just means device needs to register
-                return res.status(200).json({
-                    valid: false,
-                    isRegistered: false,
-                    reason: 'device_not_found',
-                });
-            }
-
-            // If device exists but no secret provided, return registered status only
-            if (!secret) {
-                return res.status(200).json({
-                    valid: false,
-                    isRegistered: true,
-                    deviceId: device.id,
-                    reason: 'secret_required',
-                });
-            }
-
-            // Verify secret
-            const isValid = await deviceStore.verifyDevice(device.id, secret);
-            if (!isValid) {
-                return res.status(401).json({ valid: false, error: 'invalid_secret' });
-            }
-
-            // Update last seen
-            await deviceStore.patchDevice(device.id, {
-                lastSeenAt: new Date().toISOString(),
+            const result = await deviceOps.checkDeviceStatus(deviceStore, {
+                deviceId,
+                secret,
+                hardwareId,
+                installId,
             });
 
-            res.json({ valid: true, isRegistered: true, deviceId: device.id });
+            // Handle error responses from business logic
+            if (result.error === 'invalid_secret') {
+                return res.status(401).json(result);
+            }
+
+            res.json(result);
         } catch (e) {
+            if (e.message === 'missing_device_identifier') {
+                return res.status(400).json({ error: e.message });
+            }
+
             logger.error('[Device Check] Unexpected error', {
                 error: e.message,
                 stack: e.stack,
@@ -417,60 +321,15 @@ module.exports = function createDevicesRouter({
      */
     router.post('/heartbeat', express.json(), async (req, res) => {
         try {
-            const {
-                deviceId,
-                secret,
-                status = null,
-                userAgent,
-                hardwareId,
-                screen,
-                mode,
-            } = req.body || {};
-            if (!deviceId || !secret) {
-                return res.status(401).json({ error: 'missing_credentials' });
-            }
-
-            const device = await deviceStore.getById(deviceId);
-            if (!device) {
-                return res.status(401).json({ error: 'device_not_found' });
-            }
-
-            const isValid = await deviceStore.verifyDevice(deviceId, secret);
-            if (!isValid) {
-                return res.status(401).json({ error: 'invalid_secret' });
-            }
-
-            // Check reload flag
-            const shouldReload = device.reload === true;
-
-            // Retrieve and clear any queued commands (popCommands clears automatically)
-            const queuedCommands = deviceStore.popCommands(deviceId);
-
-            // Extract clientInfo from payload
-            // Support both formats: top-level screen/mode AND status.screen/status.mode
-            const clientInfo = {};
-            if (userAgent) clientInfo.userAgent = userAgent;
-            if (status?.screen || screen) clientInfo.screen = status?.screen || screen;
-            if (status?.mode || mode) clientInfo.mode = status?.mode || mode;
-
-            // Use updateHeartbeat which properly handles clientInfo and currentState
-            await deviceStore.updateHeartbeat(deviceId, {
-                clientInfo,
-                currentState: status,
-                hardwareId,
-            });
-
-            // Clear reload flag if needed
-            if (shouldReload) {
-                await deviceStore.patchDevice(device.id, { reload: false });
-            }
-
-            res.json({
-                ok: true,
-                reload: shouldReload,
-                queuedCommands: queuedCommands || [],
-            });
+            const result = await deviceOps.processDeviceHeartbeat(deviceStore, req.body || {});
+            res.json(result);
         } catch (e) {
+            // Handle known authentication errors
+            const authErrors = ['missing_credentials', 'device_not_found', 'invalid_secret'];
+            if (authErrors.includes(e.message)) {
+                return res.status(401).json({ error: e.message });
+            }
+
             logger.error('[Device Heartbeat] Unexpected error', {
                 error: e.message,
                 stack: e.stack,
@@ -1094,66 +953,22 @@ module.exports = function createDevicesRouter({
     router.patch('/:id', testSessionShim, adminAuthDevices, express.json(), async (req, res) => {
         try {
             const deviceId = req.params.id;
-            const device = await deviceStore.getById(deviceId);
-
-            if (!device) {
-                return res.status(404).json({ error: 'device_not_found' });
-            }
-
-            const updates = {};
-
-            // Handle name update
-            if (req.body.name !== undefined) {
-                updates.name = req.body.name;
-            }
-
-            // Handle location assignment
-            if (req.body.location !== undefined) {
-                updates.location = req.body.location;
-            }
-
-            // Handle groups assignment
-            if (req.body.groups !== undefined) {
-                updates.groups = req.body.groups;
-            }
-
-            // Handle preset assignment
-            if (req.body.preset !== undefined) {
-                updates.preset = req.body.preset;
-
-                if (isDebug) {
-                    logger.debug(
-                        `[Device PATCH] Applying preset '${req.body.preset}' to device ${deviceId}`
-                    );
-                }
-            }
-
-            // Handle settings override
-            if (req.body.settingsOverride !== undefined) {
-                updates.settingsOverride = req.body.settingsOverride;
-            }
-
-            // Handle Plex username (for Cinema Now Playing integration)
-            if (req.body.plexUsername !== undefined) {
-                updates.plexUsername = req.body.plexUsername;
-            }
-
-            // Update device in store
-            await deviceStore.patchDevice(deviceId, updates);
-
-            // Get updated device
-            const updatedDevice = await deviceStore.getById(deviceId);
+            const updatedDevice = await deviceOps.processDeviceUpdate(
+                deviceStore,
+                deviceId,
+                req.body
+            );
 
             res.json({
                 success: true,
                 message: 'Device updated',
                 device: updatedDevice,
             });
-
-            if (isDebug) {
-                logger.debug(`[Device PATCH] Device ${deviceId} updated:`, updates);
-            }
         } catch (e) {
+            if (e.message === 'device_not_found') {
+                return res.status(404).json({ error: e.message });
+            }
+
             logger.error('[Device PATCH] Unexpected error', { error: e.message, stack: e.stack });
             res.status(500).json({ error: 'update_failed', message: e.message });
         }
