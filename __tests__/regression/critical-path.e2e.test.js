@@ -6,8 +6,6 @@
  */
 
 const request = require('supertest');
-// const WebSocket = require('ws');  // TODO: Add WebSocket tests later
-// const { spawn } = require('child_process');  // TODO: Add process spawn tests later
 
 let app;
 let server;
