@@ -130,6 +130,7 @@
         "@vitest/ui": "^4.0.9",
         "ajv-formats": "^3.0.1",
         "audit-ci": "^7.1.0",
+        "csso-cli": "^4.0.2",
         "depcheck": "^1.4.7",
         "eslint": "^8.57.1",
         "eslint-config-prettier": "^10.1.8",
