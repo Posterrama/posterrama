@@ -2151,7 +2151,20 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
     });
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files - use built version in production, raw files in development
+const isProduction = process.env.NODE_ENV === 'production';
+let publicDir = isProduction ? path.join(__dirname, 'dist/public') : path.join(__dirname, 'public');
+
+// Fallback to public/ if dist/public doesn't exist (safety check)
+if (isProduction && !fs.existsSync(publicDir)) {
+    logger.warn(`[Server] Production build not found at ${publicDir}, falling back to public/`);
+    publicDir = path.join(__dirname, 'public');
+}
+
+logger.info(
+    `[Server] Static files served from: ${publicDir} (NODE_ENV=${process.env.NODE_ENV || 'development'})`
+);
+app.use(express.static(publicDir));
 
 // Ensure cache-busted assets are not cached by proxies and mark as must-revalidate
 app.use((req, res, next) => {
@@ -7058,8 +7071,8 @@ if (require.main === module) {
             next();
         });
 
-        // Serve static files (CSS, JS, etc.) from the 'public' directory
-        siteApp.use(express.static(path.join(__dirname, 'public')));
+        // Serve static files (CSS, JS, etc.) - use built version in production
+        siteApp.use(express.static(publicDir));
 
         // Fallback for unmatched routes - redirect to root
         /**
