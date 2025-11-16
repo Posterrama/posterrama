@@ -89,6 +89,12 @@ if (!fs.existsSync(configPath) && fs.existsSync(configExamplePath)) {
             ...exampleConfig,
             port: 4000,
             mediaServers: [],
+            // Ensure backups config is complete with all required fields
+            backups: {
+                enabled: false,
+                time: '02:00',
+                retention: 7,
+            },
         };
         fs.writeFileSync(configPath, JSON.stringify(testConfig, null, 4));
         console.log('✅ Created config.json from example for tests');

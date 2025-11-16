@@ -1,58 +1,47 @@
-name: Coverage Docs
+name: Coverage Docs (Disabled - Fake Data)
+
+# ℹ️ This workflow is disabled because:
+# - Coverage reports on GitHub use fake test data
+# - Tests run without real API credentials
+# - Coverage metrics are meaningless without real integration tests
+# 
+# Real coverage can be generated locally with:
+#   npm run test:coverage
+# 
+# This requires private/test-credentials.json with real credentials.
 
 on:
-    push:
-        branches: [main]
-        paths-ignore:
-            - 'docs/**'
-            - 'README.md'
-            - 'coverage/**'
-    workflow_dispatch: {}
+    workflow_dispatch:
+        inputs:
+            note:
+                description: 'Why generate fake coverage? (Disabled - use local coverage instead)'
+                required: true
 
 permissions:
-    contents: write
+    contents: read
 
 jobs:
-    build-and-update-coverage:
+    notice:
         runs-on: ubuntu-latest
+
         steps:
-            - name: Skip if actor is actions bot
-              if: github.actor == 'github-actions[bot]'
-              run: echo "Skipping run triggered by actions bot" && exit 0
-            - name: Checkout
-              uses: actions/checkout@v4
-              with:
-                  persist-credentials: true
-
-            - name: Setup Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version: '18'
-
-            - name: Install dependencies
+            - name: Display Notice
               run: |
-                  npm ci
-
-            - name: Run tests with coverage
-              run: |
-                  npm run test:coverage --silent
-
-            - name: Generate per-file coverage table
-              run: |
-                  node scripts/generate-coverage-table.js
-
-            - name: Update badges
-              run: |
-                  node scripts/update-badges.js
-
-            - name: Commit changes
-              run: |
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git add docs/COVERAGE.md README.md coverage/coverage-final.json coverage/lcov.info coverage/lcov-report || true
-                  if ! git diff --cached --quiet; then
-                    git commit -m "chore(ci): update coverage docs and badges [skip ci]"
-                    git push
-                  else
-                    echo "No changes to commit"
-                  fi
+                  echo "⚠️  COVERAGE DOCS DISABLED ON GITHUB"
+                  echo ""
+                  echo "GitHub coverage reports are meaningless because:"
+                  echo "  - Tests run with fake credentials"
+                  echo "  - No real Plex/Jellyfin/TMDB connections"
+                  echo "  - Integration tests skip actual API calls"
+                  echo ""
+                  echo "✅ To generate real coverage locally:"
+                  echo "   1. Ensure private/test-credentials.json is configured"
+                  echo "   2. Run: npm run test:coverage"
+                  echo "   3. Open: coverage/lcov-report/index.html"
+                  echo ""
+                  echo "Real coverage metrics with actual integration tests:"
+                  echo "  Target: 60-70% (realistic)"
+                  echo "  Not: 92% (fake GitHub metrics)"
+                  echo ""
+                  echo "📝 See private/README.md for credential setup"
+                  exit 1
