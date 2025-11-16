@@ -800,27 +800,42 @@ module.exports = function createAdminConfigRouter({
                 const sectionsResponse = await client.query('/library/sections');
                 const allSections = sectionsResponse?.MediaContainer?.Directory || [];
 
-                // Fetch item counts for each library
+                // Fetch item counts for each library with timeout and parallel execution
                 const libraries = await Promise.all(
                     allSections.map(async dir => {
                         let itemCount = 0;
-                        try {
-                            // Only fetch count for movie and show libraries
-                            if (dir.type === 'movie' || dir.type === 'show') {
-                                const sectionResponse = await client.query(
+
+                        // Only fetch count for movie and show libraries
+                        if (dir.type === 'movie' || dir.type === 'show') {
+                            try {
+                                // Add timeout wrapper for individual library count queries (1.5 seconds per library)
+                                const countPromise = client.query(
                                     `/library/sections/${dir.key}/all?X-Plex-Container-Start=0&X-Plex-Container-Size=1`
                                 );
+
+                                const timeoutPromise = new Promise((_, reject) =>
+                                    setTimeout(
+                                        () => reject(new Error('Library count timeout')),
+                                        1500
+                                    )
+                                );
+
+                                const sectionResponse = await Promise.race([
+                                    countPromise,
+                                    timeoutPromise,
+                                ]);
+
                                 itemCount = parseInt(
                                     sectionResponse?.MediaContainer?.totalSize || 0
                                 );
+                            } catch (countError) {
+                                if (isDebug)
+                                    logger.debug(
+                                        `[Plex Lib Count] Failed to get count for ${dir.title}:`,
+                                        countError.message
+                                    );
+                                // Continue without count - this is non-critical
                             }
-                        } catch (countError) {
-                            if (isDebug)
-                                logger.debug(
-                                    `[Plex Lib Count] Failed to get count for ${dir.title}:`,
-                                    countError.message
-                                );
-                            // Continue without count
                         }
 
                         return {

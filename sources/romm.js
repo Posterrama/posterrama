@@ -53,11 +53,16 @@ class RommSource {
             const hostname = url.hostname;
             const port = url.port || (url.protocol === 'https:' ? 443 : 80);
 
+            // Resolve password from direct value or environment variable (like Plex tokenEnvVar)
+            const password =
+                this.server.password ||
+                (this.server.passwordEnvVar ? process.env[this.server.passwordEnvVar] : undefined);
+
             this.client = new RommHttpClient({
                 hostname,
                 port,
                 username: this.server.username,
-                password: this.server.password,
+                password: password,
                 basePath: url.pathname !== '/' ? url.pathname : '',
                 insecureHttps: this.server.insecureHttps || false,
                 timeout: this.server.timeout || 15000,

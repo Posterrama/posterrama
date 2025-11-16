@@ -37,12 +37,22 @@ module.exports = function createFrontendPagesRouter({
      * @returns {string} HTML with debug viewer injected (if enabled)
      */
     function injectDebugViewer(html, config) {
+        // Debug logging
+        logger.debug('[DebugViewer] Inject check:', {
+            hasConfig: !!config,
+            hasClientDebugViewer: !!(config && config.clientDebugViewer),
+            enabled: !!(config && config.clientDebugViewer && config.clientDebugViewer.enabled),
+            fullConfig: config ? config.clientDebugViewer : null,
+        });
+
         if (!config || !config.clientDebugViewer || !config.clientDebugViewer.enabled) {
             return html;
         }
 
         const versions = getAssetVersions(path.dirname(publicDir));
         const debugViewerScript = `\n    <script src="/debug-viewer.js?v=${versions['debug-viewer.js'] || ASSET_VERSION}"></script>`;
+
+        logger.info('[DebugViewer] Injecting debug-viewer.js script');
 
         // Inject before closing </head> tag
         return html.replace('</head>', `${debugViewerScript}\n</head>`);

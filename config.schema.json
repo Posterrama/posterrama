@@ -1150,6 +1150,13 @@
                     "minimum": 1,
                     "maximum": 60,
                     "default": 5
+                },
+                "retentionDays": {
+                    "description": "Maximum age of backups in days (0-365). Backups older than this are deleted regardless of retention count. 0 = disabled (only count-based cleanup).",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 365,
+                    "default": 0
                 }
             },
             "required": ["enabled", "time", "retention"],

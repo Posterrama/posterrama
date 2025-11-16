@@ -448,22 +448,28 @@ class JellyfinHttpClient extends BaseHttpClient {
 
     /**
      * Get all unique genres with counts from specified libraries
+     * @param {Array<string>} libraryIds - Array of library IDs to scan
+     * @param {boolean} [fullScan=false] - If true, scan all items; if false, use 50-item sample
+     * @returns {Promise<{genres: Array, partial: boolean}>} Genre counts with partial flag
      */
-    async getGenresWithCounts(libraryIds) {
+    async getGenresWithCounts(libraryIds, fullScan = false) {
         try {
             const genreCounts = new Map();
+            const sampleSize = fullScan ? 10000 : 50;
 
-            // Get all movies and series from the selected libraries
-            for (const libraryId of libraryIds) {
+            // Process all libraries in parallel for faster response
+            const libraryPromises = libraryIds.map(async libraryId => {
+                const libraryGenres = new Map();
+
                 try {
-                    // Use a broader approach to get all items from the library
+                    // Reduced limit from 1000 to 50 for faster genre detection
                     const response = await this.http.get('/Items', {
                         params: {
                             ParentId: libraryId,
                             IncludeItemTypes: 'Movie,Series',
                             Fields: 'Genres',
                             Recursive: true,
-                            Limit: 1000, // Increase limit to get more items
+                            Limit: sampleSize,
                         },
                     });
 
@@ -473,30 +479,43 @@ class JellyfinHttpClient extends BaseHttpClient {
                                 item.Genres.forEach(genre => {
                                     if (genre && genre.trim()) {
                                         const cleanGenre = genre.trim();
-                                        genreCounts.set(
+                                        libraryGenres.set(
                                             cleanGenre,
-                                            (genreCounts.get(cleanGenre) || 0) + 1
+                                            (libraryGenres.get(cleanGenre) || 0) + 1
                                         );
                                     }
                                 });
                             }
                         });
                     }
+
+                    return libraryGenres;
                 } catch (error) {
                     this.warnThrottled(
                         `genresCounts:${libraryId}`,
                         `Failed to fetch genres from library ${libraryId}:`,
                         error.message
                     );
+                    return new Map();
                 }
-            }
+            });
+
+            // Wait for all library queries in parallel
+            const libraryResults = await Promise.all(libraryPromises);
+
+            // Merge all library genre counts
+            libraryResults.forEach(libraryGenres => {
+                libraryGenres.forEach((count, genre) => {
+                    genreCounts.set(genre, (genreCounts.get(genre) || 0) + count);
+                });
+            });
 
             // Convert to array of objects and sort by genre name
             const result = Array.from(genreCounts.entries())
                 .map(([genre, count]) => ({ genre, count }))
                 .sort((a, b) => a.genre.localeCompare(b.genre));
 
-            return result;
+            return { genres: result, partial: !fullScan };
         } catch (error) {
             throw new Error(`Failed to fetch genres with counts: ${error.message}`);
         }
@@ -659,20 +678,31 @@ class JellyfinHttpClient extends BaseHttpClient {
 
     /**
      * Get all unique quality/resolution values with counts from specified libraries
+     * @param {Array<string>} libraryIds - Array of library IDs to scan
+     * @param {boolean} [fullScan=false] - If true, scan all items; if false, use 50-item sample
+     * @returns {Promise<{qualities: Array, partial: boolean}>} Quality counts with partial flag
      */
-    async getQualitiesWithCounts(libraryIds) {
+    async getQualitiesWithCounts(libraryIds, fullScan = false) {
         try {
             const qualityCounts = new Map();
+            const sampleSize = fullScan ? 10000 : 50;
 
-            for (const libraryId of libraryIds) {
+            this.debug(
+                `[JellyfinHttpClient] Starting ${fullScan ? 'FULL' : 'SAMPLE'} quality scan (limit: ${sampleSize})`
+            );
+
+            // Process all libraries in parallel for faster response
+            const libraryPromises = libraryIds.map(async libraryId => {
+                const libraryQualities = new Map();
+
                 try {
                     // Get items with media stream information
-                    // Use 'Movie' and 'Series' instead of 'Episode' to avoid counting all episodes individually
+                    // Only scan Movies - Series don't have MediaStreams at series level
                     const response = await this.getItems({
                         parentId: libraryId,
-                        includeItemTypes: ['Movie', 'Series'], // Fixed: was ['Movie', 'Episode']
-                        fields: ['MediaStreams', 'MediaSources'], // Get both for maximum compatibility
-                        limit: 1000, // Increase limit for better coverage (matches Plex side)
+                        includeItemTypes: ['Movie'],
+                        fields: ['MediaStreams', 'MediaSources'],
+                        limit: sampleSize,
                         recursive: true,
                     });
 
@@ -726,7 +756,10 @@ class JellyfinHttpClient extends BaseHttpClient {
                                     quality = `${height}p`;
                                 }
 
-                                qualityCounts.set(quality, (qualityCounts.get(quality) || 0) + 1);
+                                libraryQualities.set(
+                                    quality,
+                                    (libraryQualities.get(quality) || 0) + 1
+                                );
                             }
                         });
                     }
@@ -737,7 +770,19 @@ class JellyfinHttpClient extends BaseHttpClient {
                         error.message
                     );
                 }
-            }
+
+                return libraryQualities;
+            });
+
+            // Wait for all library queries in parallel
+            const libraryResults = await Promise.all(libraryPromises);
+
+            // Merge all library quality counts
+            libraryResults.forEach(libraryQualities => {
+                libraryQualities.forEach((count, quality) => {
+                    qualityCounts.set(quality, (qualityCounts.get(quality) || 0) + count);
+                });
+            });
 
             this.debug(
                 `[JellyfinHttpClient] Final quality counts across all libraries: ${JSON.stringify(Array.from(qualityCounts.entries()))}`
@@ -762,7 +807,7 @@ class JellyfinHttpClient extends BaseHttpClient {
                     return a.quality.localeCompare(b.quality);
                 });
 
-            return result;
+            return { qualities: result, partial: !fullScan };
         } catch (error) {
             throw new Error(`Failed to fetch qualities with counts: ${error.message}`);
         }

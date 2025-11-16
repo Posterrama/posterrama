@@ -717,6 +717,95 @@
             const mediaServers = config.mediaServers || [];
             const plex = mediaServers.find(s => s.type === 'plex');
             const jf = mediaServers.find(s => s.type === 'jellyfin');
+            const romm = mediaServers.find(s => s.type === 'romm');
+
+            // Fast initial count from cached playlist if global counts not yet available
+            const hasGlobalCounts =
+                window.__lastPlexFilteredCount > 0 ||
+                window.__lastJellyfinFilteredCount > 0 ||
+                window.__lastRommCount > 0 ||
+                window.__lastTmdbCount > 0;
+
+            if (!hasGlobalCounts) {
+                // Quick estimate from cached playlist while waiting for accurate counts
+                try {
+                    const res = await window.dedupJSON('/get-media', { credentials: 'include' });
+                    if (res && res.ok) {
+                        const items = (await res.json().catch(() => [])) || [];
+                        if (Array.isArray(items) && items.length > 0) {
+                            const inferSource = it => {
+                                const s = (it.source || it.serverType || '').toLowerCase();
+                                if (s) return s;
+                                if (it.tmdbId != null) return 'tmdb';
+                                const k = (it.key || '').toLowerCase();
+                                if (k.startsWith('plex-')) return 'plex';
+                                if (k.startsWith('jellyfin_')) return 'jellyfin';
+                                if (k.startsWith('romm-')) return 'romm';
+                                if (k.startsWith('local-')) return 'local';
+                                return '';
+                            };
+
+                            // Quick count from playlist
+                            if (plex?.enabled) {
+                                const count = items.filter(it => inferSource(it) === 'plex').length;
+                                if (count > 0) {
+                                    total += count;
+                                    breakdown.push(`Plex: ${formatNumber(count)}`);
+                                }
+                            }
+                            if (jf?.enabled) {
+                                const count = items.filter(
+                                    it => inferSource(it) === 'jellyfin'
+                                ).length;
+                                if (count > 0) {
+                                    total += count;
+                                    breakdown.push(`Jellyfin: ${formatNumber(count)}`);
+                                }
+                            }
+                            if (romm?.enabled) {
+                                const count = items.filter(it => inferSource(it) === 'romm').length;
+                                if (count > 0) {
+                                    total += count;
+                                    breakdown.push(`RomM: ${formatNumber(count)}`);
+                                }
+                            }
+                            if (config.tmdbSource?.enabled) {
+                                const count = items.filter(it => inferSource(it) === 'tmdb').length;
+                                if (count > 0) {
+                                    total += count;
+                                    breakdown.push(`TMDB: ${formatNumber(count)}`);
+                                }
+                            }
+                            if (config.localDirectory?.enabled) {
+                                const count = items.filter(
+                                    it => inferSource(it) === 'local'
+                                ).length;
+                                if (count > 0) {
+                                    total += count;
+                                    breakdown.push(`Local: ${formatNumber(count)}`);
+                                }
+                            }
+
+                            // Show fast estimate immediately
+                            setText('metric-media-items', formatNumber(total));
+                            const mediaItemsEl = document.getElementById('metric-media-items');
+                            if (mediaItemsEl) {
+                                mediaItemsEl.setAttribute(
+                                    'title',
+                                    breakdown.join(' | ') + ' (cached)' || 'No items'
+                                );
+                            }
+                            return total;
+                        }
+                    }
+                } catch (e) {
+                    // Fall through to use global counts (which may be 0)
+                }
+            }
+
+            // Use accurate counts from global variables (set by refreshOverviewCounts)
+            total = 0;
+            breakdown.length = 0;
 
             // Plex: filtered count from playlist
             if (plex?.enabled) {
@@ -737,7 +826,6 @@
             }
 
             // RomM: filtered count from playlist
-            const romm = mediaServers.find(s => s.type === 'romm');
             if (romm?.enabled) {
                 const rommCount = window.__lastRommCount || 0;
                 if (rommCount > 0) {
@@ -764,7 +852,7 @@
                 }
             }
 
-            // Update dashboard display
+            // Update dashboard display with accurate counts
             setText('metric-media-items', formatNumber(total));
 
             // Store breakdown for tooltip/debugging
@@ -19895,8 +19983,6 @@
 
             const url = getInput('romm.url')?.value?.trim();
             const username = getInput('romm.username')?.value?.trim();
-            const passwordEl = getInput('romm.password');
-            const password = passwordEl?.dataset?.actualToken || passwordEl?.value?.trim();
 
             // Auto-fetch if URL and username are configured
             // Backend will use config password if not provided in request

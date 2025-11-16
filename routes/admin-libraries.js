@@ -325,18 +325,21 @@ module.exports = function createAdminLibrariesRouter({
             const currentConfig = await readConfig();
             const { getAllEnabledServers } = require('../lib/config-helpers');
             const enabledServers = getAllEnabledServers(currentConfig, 'plex');
+            const fullScan = req.query.full === 'true';
 
             if (enabledServers.length === 0) {
-                return res.json({ genres: [] });
+                return res.json({ genres: [], partial: false });
             }
 
             const allGenreCounts = new Map();
+            let isPartial = false;
 
             for (const server of enabledServers) {
                 try {
-                    const genresWithCounts = await getPlexGenresWithCounts(server);
+                    const result = await getPlexGenresWithCounts(server, fullScan);
+                    if (result.partial) isPartial = true;
                     // Accumulate counts across servers
-                    genresWithCounts.forEach(({ genre, count }) => {
+                    result.genres.forEach(({ genre, count }) => {
                         allGenreCounts.set(genre, (allGenreCounts.get(genre) || 0) + count);
                     });
                 } catch (error) {
@@ -355,10 +358,10 @@ module.exports = function createAdminLibrariesRouter({
 
             if (isDebug)
                 logger.debug(
-                    `[Admin API] Found ${sortedGenresWithCounts.length} unique genres with counts.`
+                    `[Admin API] Found ${sortedGenresWithCounts.length} unique genres with counts (${isPartial ? 'SAMPLE' : 'FULL'}).`
                 );
 
-            res.json({ genres: sortedGenresWithCounts });
+            res.json({ genres: sortedGenresWithCounts, partial: isPartial });
         })
     );
 

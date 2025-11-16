@@ -152,6 +152,10 @@ function requestLoggingMiddleware() {
             if (res.statusCode >= 500) {
                 logger.warn('Request completed with error', logData);
             } else if (res.statusCode >= 400) {
+                // Skip 401 errors for SSE endpoint - these are normal when admin is not logged in
+                if (res.statusCode === 401 && req.url === '/api/admin/events') {
+                    return;
+                }
                 logger.warn('Request completed with error', logData);
             } else if (duration > 5000) {
                 logger.warn('Slow request detected', logData);

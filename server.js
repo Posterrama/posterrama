@@ -384,7 +384,8 @@ app.use((req, res, next) => {
                 req.path.startsWith('/api/v1/metrics') ||
                 req.path.startsWith('/api/admin/metrics') ||
                 req.path.startsWith('/api/admin/logs') ||
-                req.path.startsWith('/api/admin/status'));
+                req.path.startsWith('/api/admin/status') ||
+                req.path === '/api/admin/events'); // SSE endpoint for admin real-time updates
 
         // Skip logging for routine browser requests
         const isRoutineRequest =
@@ -2302,13 +2303,14 @@ app.use('/', profilePhotoRouter);
 // Helper functions for admin endpoints that use ratings utilities
 const ratingsUtil = require('./utils/ratings');
 
-async function getJellyfinQualitiesWithCounts(serverConfig) {
+async function getJellyfinQualitiesWithCounts(serverConfig, fullScan = false) {
     return ratingsUtil.getJellyfinQualitiesWithCounts({
         serverConfig,
         getJellyfinClient,
         getJellyfinLibraries,
         isDebug,
         logger,
+        fullScan,
     });
 }
 

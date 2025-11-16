@@ -276,12 +276,13 @@
 
         window.__updateDebugViewer = updateDebugViewer;
 
-        // Auto-open after 2 seconds if logs exist
+        // Auto-open debug viewer after 2 seconds (regardless of log count)
         setTimeout(() => {
-            if (window.__debugLogs && window.__debugLogs.length > 0) {
-                viewer.style.display = 'block';
-                updateDebugViewer();
-            }
+            viewer.style.display = 'block';
+            updateDebugViewer();
+            window.debugLog('DEBUG_VIEWER_AUTO_OPENED', {
+                logCount: window.__debugLogs ? window.__debugLogs.length : 0,
+            });
         }, 2000);
     }
 

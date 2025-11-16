@@ -77,6 +77,7 @@ class Config {
             this._tmdbSource = this.config.tmdbSource;
             this._streamingSources = this.config.streamingSources;
             this._mqtt = this.config.mqtt;
+            this._clientDebugViewer = this.config.clientDebugViewer;
         }
     }
 
@@ -199,6 +200,15 @@ class Config {
     set cinema(value) {
         this._cinema = value;
         if (this.config) this.config.cinema = value;
+    }
+
+    // Client debug viewer settings
+    get clientDebugViewer() {
+        return this._clientDebugViewer || this.config?.clientDebugViewer || { enabled: false };
+    }
+    set clientDebugViewer(value) {
+        this._clientDebugViewer = value;
+        if (this.config) this.config.clientDebugViewer = value;
     }
 
     // Security settings

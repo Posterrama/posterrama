@@ -42,18 +42,21 @@ module.exports = function createQualityRatingsRouter({
             const enabledServers = currentConfig.mediaServers.filter(
                 s => s.enabled && s.type === 'plex'
             );
+            const fullScan = req.query.full === 'true';
 
             if (enabledServers.length === 0) {
-                return res.json({ qualities: [] });
+                return res.json({ qualities: [], partial: false });
             }
 
             const allQualityCounts = new Map();
+            let isPartial = false;
 
             for (const server of enabledServers) {
                 try {
-                    const qualitiesWithCounts = await getPlexQualitiesWithCounts(server);
+                    const result = await getPlexQualitiesWithCounts(server, fullScan);
+                    if (result.partial) isPartial = true;
                     // Accumulate counts across servers
-                    qualitiesWithCounts.forEach(({ quality, count }) => {
+                    result.qualities.forEach(({ quality, count }) => {
                         allQualityCounts.set(quality, (allQualityCounts.get(quality) || 0) + count);
                     });
                 } catch (error) {
@@ -83,10 +86,10 @@ module.exports = function createQualityRatingsRouter({
 
             if (isDebug)
                 logger.debug(
-                    `[Admin API] Found ${sortedQualitiesWithCounts.length} unique qualities with counts.`
+                    `[Admin API] Found ${sortedQualitiesWithCounts.length} unique qualities with counts (${isPartial ? 'SAMPLE' : 'FULL'}).`
                 );
 
-            res.json({ qualities: sortedQualitiesWithCounts });
+            res.json({ qualities: sortedQualitiesWithCounts, partial: isPartial });
         })
     );
 
@@ -111,18 +114,21 @@ module.exports = function createQualityRatingsRouter({
             const enabledServers = currentConfig.mediaServers.filter(
                 s => s.enabled && s.type === 'jellyfin'
             );
+            const fullScan = req.query.full === 'true';
 
             if (enabledServers.length === 0) {
-                return res.json({ qualities: [] });
+                return res.json({ qualities: [], partial: false });
             }
 
             const allQualityCounts = new Map();
+            let isPartial = false;
 
             for (const server of enabledServers) {
                 try {
-                    const qualitiesWithCounts = await getJellyfinQualitiesWithCounts(server);
+                    const result = await getJellyfinQualitiesWithCounts(server, fullScan);
+                    if (result.partial) isPartial = true;
                     // Accumulate counts across servers
-                    qualitiesWithCounts.forEach(({ quality, count }) => {
+                    result.qualities.forEach(({ quality, count }) => {
                         allQualityCounts.set(quality, (allQualityCounts.get(quality) || 0) + count);
                     });
                 } catch (error) {
@@ -152,10 +158,10 @@ module.exports = function createQualityRatingsRouter({
 
             if (isDebug)
                 logger.debug(
-                    `[Admin API] Found ${sortedQualitiesWithCounts.length} unique qualities with counts.`
+                    `[Admin API] Found ${sortedQualitiesWithCounts.length} unique qualities with counts (${isPartial ? 'SAMPLE' : 'FULL'}).`
                 );
 
-            res.json({ qualities: sortedQualitiesWithCounts });
+            res.json({ qualities: sortedQualitiesWithCounts, partial: isPartial });
         })
     );
 

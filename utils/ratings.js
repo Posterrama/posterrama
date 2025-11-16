@@ -275,6 +275,7 @@ async function getJellyfinQualitiesWithCounts({
     getJellyfinLibraries,
     isDebug,
     logger,
+    fullScan = false,
 }) {
     try {
         const jellyfinClient = await getJellyfinClient(serverConfig);
@@ -282,9 +283,9 @@ async function getJellyfinQualitiesWithCounts({
         // Use the existing getJellyfinLibraries function that properly handles ItemId
         const allLibrariesMap = await getJellyfinLibraries(serverConfig);
 
-        // Filter for movie and show libraries and extract IDs
+        // Filter for ONLY movie libraries - TV shows don't have quality info at series level
         const selectedLibraries = Array.from(allLibrariesMap.values()).filter(library => {
-            return library.type === 'movies' || library.type === 'tvshows';
+            return library.type === 'movies';
         });
 
         const libraryIds = selectedLibraries.map(library => library.id);
@@ -298,21 +299,21 @@ async function getJellyfinQualitiesWithCounts({
 
         if (libraryIds.length === 0) {
             console.warn('[getJellyfinQualitiesWithCounts] No movie or TV show libraries found');
-            return [];
+            return { qualities: [], partial: false };
         }
 
         // Use the HTTP client method to get qualities with counts
-        const result = await jellyfinClient.getQualitiesWithCounts(libraryIds);
+        const result = await jellyfinClient.getQualitiesWithCounts(libraryIds, fullScan);
 
         if (isDebug)
             logger.debug(
-                `[getJellyfinQualitiesWithCounts] Found ${result.length} unique qualities with counts from ${selectedLibraries.length} libraries`
+                `[getJellyfinQualitiesWithCounts] Found ${result.qualities.length} unique qualities with counts from ${selectedLibraries.length} libraries (${result.partial ? 'SAMPLE' : 'FULL'})`
             );
 
         return result;
     } catch (error) {
         console.error(`[getJellyfinQualitiesWithCounts] Error: ${error.message}`);
-        return [];
+        return { qualities: [], partial: false };
     }
 }
 
