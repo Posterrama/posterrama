@@ -16,9 +16,11 @@ if (process.env.GROUPS_STORE_PATH) {
 const storePath = resolvedGroupsPath;
 
 // Initialize SafeFileStore for atomic writes and backup
+// Disable locking in test environment to prevent test hangs
 const fileStore = new SafeFileStore(storePath, {
     createBackup: true,
     indent: 2,
+    useLocking: process.env.NODE_ENV !== 'test',
 });
 
 let writeQueue = Promise.resolve();

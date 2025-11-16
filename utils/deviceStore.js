@@ -34,9 +34,11 @@ const storePath = process.env.DEVICES_STORE_PATH
     : defaultStore;
 
 // Initialize SafeFileStore for atomic writes and backup
+// Disable locking in test environment to prevent test hangs
 const fileStore = new SafeFileStore(storePath, {
     createBackup: true,
     indent: 2,
+    useLocking: process.env.NODE_ENV !== 'test',
 });
 
 let writeQueue = Promise.resolve();

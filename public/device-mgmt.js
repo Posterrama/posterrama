@@ -1670,7 +1670,9 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                                 'pr_just_navigated_mode',
                                                 Date.now().toString()
                                             );
-                                        } catch (_) {}
+                                        } catch (_) {
+                                            /* localStorage may not be available in some contexts */
+                                        }
                                         window.PosterramaCore.navigateToMode(newMode);
                                         return;
                                     }
