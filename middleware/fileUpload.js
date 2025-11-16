@@ -264,7 +264,7 @@ async function handleUploadComplete(req, res, _next) {
                 // Generate metadata for non-ZIP media only. ZIPs (posterpack uploads) do not get sidecar metadata.
                 let metadata = null;
                 if (!(targetDir === 'complete' || ext === 'zip')) {
-                    metadata = await generateFileMetadata(file, originalName);
+                    metadata = await generateFileMetadata(file, originalName, req);
                     const metadataPath = getMetadataPath(file.path);
                     await fs.outputJson(metadataPath, metadata, { spaces: 2 });
                 }
@@ -387,9 +387,10 @@ async function validateFileTypeFromHeader(filePath) {
  * Generate metadata for uploaded file
  * @param {Object} file - Multer file object
  * @param {string} originalName - Original filename
+ * @param {Object} req - Express request object (for auth context)
  * @returns {Object} Generated metadata
  */
-async function generateFileMetadata(file, originalName) {
+async function generateFileMetadata(file, originalName, req) {
     const nameWithoutExt = path.parse(originalName).name;
 
     // Try to parse title and year from filename
@@ -399,6 +400,9 @@ async function generateFileMetadata(file, originalName) {
 
     // Generate clean title
     const cleanTitle = generateCleanFilename(nameWithoutExt);
+
+    // Extract username from auth context
+    const uploadedBy = req?.session?.username || req?.user?.username || 'admin';
 
     return {
         originalTitle: nameWithoutExt,
@@ -412,7 +416,7 @@ async function generateFileMetadata(file, originalName) {
         created: new Date().toISOString(),
         lastModified: new Date().toISOString(),
         fileSize: file.size,
-        uploadedBy: 'admin', // TODO: Get from auth context
+        uploadedBy: uploadedBy,
         resolution: null,
         usage: {
             cinema: true,
