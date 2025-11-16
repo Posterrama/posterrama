@@ -1872,6 +1872,22 @@ function generateSwaggerSpec(req = null) {
 
     const spec = swaggerJSDoc(options);
 
+    // Replace localhost:4000 with actual server URL in all code examples
+    if (spec && spec.paths && primaryServerUrl) {
+        const localhostPattern = /http:\/\/localhost:4000/g;
+        const replaceInObject = obj => {
+            if (!obj || typeof obj !== 'object') return;
+            for (const [key, value] of Object.entries(obj)) {
+                if (typeof value === 'string') {
+                    obj[key] = value.replace(localhostPattern, primaryServerUrl);
+                } else if (typeof value === 'object') {
+                    replaceInObject(value);
+                }
+            }
+        };
+        replaceInObject(spec.paths);
+    }
+
     // Internal endpoint filtering (x-internal) can be disabled via EXPOSE_INTERNAL_ENDPOINTS=true
     try {
         const exposeInternal = process.env.EXPOSE_INTERNAL_ENDPOINTS === 'true';
