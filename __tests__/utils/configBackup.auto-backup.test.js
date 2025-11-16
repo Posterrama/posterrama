@@ -3,8 +3,6 @@
  */
 
 const request = require('supertest');
-const path = require('path');
-const fs = require('fs').promises;
 
 describe('Config Auto-Backup on Save (#68/#59)', () => {
     let app;
