@@ -76,15 +76,15 @@ const metricsMiddleware = (req, res, next) => {
             } else if (statusCode >= 500) {
                 logger.error('💥 Server error', performanceData);
             } else if (statusCode >= 400) {
-                // Skip 401 errors for admin endpoints - normal when not logged in
+                // Skip logging 401 errors for admin endpoints - normal when not logged in
+                // But still need to call originalEnd below!
                 if (
-                    statusCode === 401 &&
-                    performanceData.path &&
-                    performanceData.path.startsWith('/api/admin')
+                    statusCode !== 401 ||
+                    !performanceData.path ||
+                    !performanceData.path.startsWith('/api/admin')
                 ) {
-                    return;
+                    logger.warn('⚠️ Client error', performanceData);
                 }
-                logger.warn('⚠️ Client error', performanceData);
             }
             // Removed routine "Request performance" logging
 
