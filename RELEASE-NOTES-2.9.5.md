@@ -88,7 +88,9 @@ This is a major maintenance and quality release with significant improvements to
 - **RFC 8594 deprecation signaling** - Proper API lifecycle management
 - **Enhanced Swagger/OpenAPI docs** - Code samples, examples, better theme
 - **Multiple API doc renderers** - Scalar (default), ReDoc, Swagger UI options
-- **Auto-detect server URL** - Dynamic server URL in API documentation
+- **Dynamic server URL detection** - All API documentation and code examples automatically use the actual server URL instead of hardcoded localhost
+- **Smart code example generation** - cURL, JavaScript, and Python examples are dynamically generated with the correct server URL based on the request
+- **Disabled GitHub Actions workflows** - All CI/CD checks now run via pre-commit/pre-push hooks and master-test.sh locally
 - **Cache clear API endpoint** - `/api/admin/cache/clear` for cache management
 - **Metrics aggregation** - Percentiles and moving averages for performance monitoring
 
