@@ -4,10 +4,10 @@ name: Coverage Docs (Disabled - Fake Data)
 # - Coverage reports on GitHub use fake test data
 # - Tests run without real API credentials
 # - Coverage metrics are meaningless without real integration tests
-# 
+#
 # Real coverage can be generated locally with:
 #   npm run test:coverage
-# 
+#
 # This requires private/test-credentials.json with real credentials.
 
 on:

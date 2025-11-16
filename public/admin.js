@@ -3176,31 +3176,43 @@
         setIf('cinemaNowPlayingPriority', c.cinema?.nowPlaying?.priority || 'first');
         setIf('cinemaNowPlayingInterval', c.cinema?.nowPlaying?.updateIntervalSeconds || 15);
 
-        // Load Plex users for filterUser dropdown
+        // Load Plex users for filterUser dropdown (only if Plex is enabled)
         const filterUserSelect = document.getElementById('cinemaNowPlayingFilterUser');
         if (filterUserSelect) {
-            // Load users from Plex
-            fetchJSON('/api/plex/users')
-                .then(data => {
-                    const users = data?.users || [];
-                    const savedUser = c.cinema?.nowPlaying?.filterUser || '';
+            // Check if Plex is enabled in mediaServers
+            const mediaServers = c.mediaServers || [];
+            const plexServer = mediaServers.find(s => s?.type === 'plex');
+            const plexEnabled = plexServer?.enabled === true;
 
-                    filterUserSelect.innerHTML = '<option value="">Select a user</option>';
-                    users.forEach(user => {
-                        const username = user.username || user.title;
-                        if (username) {
-                            const opt = document.createElement('option');
-                            opt.value = username;
-                            opt.textContent = username;
-                            if (username === savedUser) opt.selected = true;
-                            filterUserSelect.appendChild(opt);
-                        }
+            if (plexEnabled) {
+                // Load users from Plex
+                fetchJSON('/api/plex/users')
+                    .then(data => {
+                        const users = data?.users || [];
+                        const savedUser = c.cinema?.nowPlaying?.filterUser || '';
+
+                        filterUserSelect.innerHTML = '<option value="">Select a user</option>';
+                        users.forEach(user => {
+                            const username = user.username || user.title;
+                            if (username) {
+                                const opt = document.createElement('option');
+                                opt.value = username;
+                                opt.textContent = username;
+                                if (username === savedUser) opt.selected = true;
+                                filterUserSelect.appendChild(opt);
+                            }
+                        });
+                    })
+                    .catch(err => {
+                        console.warn('Failed to load Plex users:', err);
+                        filterUserSelect.innerHTML =
+                            '<option value="">Failed to load users</option>';
                     });
-                })
-                .catch(err => {
-                    console.warn('Failed to load Plex users:', err);
-                    filterUserSelect.innerHTML = '<option value="">Failed to load users</option>';
-                });
+            } else {
+                // Plex is not enabled, show appropriate message
+                filterUserSelect.innerHTML = '<option value="">Plex not enabled</option>';
+                filterUserSelect.disabled = true;
+            }
         }
 
         // Show/hide filterUser field based on priority selection
@@ -24524,16 +24536,21 @@ if (!document.__niwDelegatedFallback) {
         // Resolve library IDs same as generate (Posterpack section picks; empty = all)
         let libraryIds = [];
         if (source === 'plex') {
-            // Ensure Plex map is populated
-            try {
-                const ok =
-                    window.__plexLibraryNameToId instanceof Map &&
-                    window.__plexLibraryNameToId.size > 0;
-                if (!ok && typeof fetchPlexLibraries === 'function') {
-                    await Promise.resolve(fetchPlexLibraries(false, true)).catch(() => {});
+            // Check if Plex is enabled before making API calls
+            const plexEnabled = !!document.getElementById('plex.enabled')?.checked;
+
+            // Ensure Plex map is populated (only if Plex is enabled)
+            if (plexEnabled) {
+                try {
+                    const ok =
+                        window.__plexLibraryNameToId instanceof Map &&
+                        window.__plexLibraryNameToId.size > 0;
+                    if (!ok && typeof fetchPlexLibraries === 'function') {
+                        await Promise.resolve(fetchPlexLibraries(false, true)).catch(() => {});
+                    }
+                } catch (_) {
+                    /* multiselect rebuild is optional */
                 }
-            } catch (_) {
-                /* multiselect rebuild is optional */
             }
             const mvSel =
                 typeof getMultiSelectValues === 'function'
@@ -24732,6 +24749,9 @@ if (!document.__niwDelegatedFallback) {
         }
         // Populate library lists lazily; the populate function will rebuild widgets after options are filled
         if (source === 'plex') {
+            // Check if Plex is enabled before making API calls
+            const plexEnabled = !!document.getElementById('plex.enabled')?.checked;
+
             // Ensure widgets are initialized; actual rebuild occurs inside populate after options are written
             try {
                 if (typeof initMsForSelect === 'function') {
@@ -24757,22 +24777,26 @@ if (!document.__niwDelegatedFallback) {
             } catch (_) {
                 /* show qualities is cosmetic; ignore */
             }
-            try {
-                loadPosterpackServerFilterOptions().catch(() => {});
-            } catch (_) {
-                /* server filter options are optional; ignore */
-            }
-            // Proactively fetch Plex libraries using the main fetcher (reads config/inputs), then populate
-            try {
-                Promise.resolve(fetchPlexLibraries(false, true)).finally(() => {
-                    try {
-                        populatePosterpackLibraries('plex');
-                    } catch (_) {
-                        /* populate fallback failed; another retry will occur */
-                    }
-                });
-            } catch (_) {
-                populatePosterpackLibraries('plex');
+
+            // Only fetch libraries and filters if Plex is enabled
+            if (plexEnabled) {
+                try {
+                    loadPosterpackServerFilterOptions().catch(() => {});
+                } catch (_) {
+                    /* server filter options are optional; ignore */
+                }
+                // Proactively fetch Plex libraries using the main fetcher (reads config/inputs), then populate
+                try {
+                    Promise.resolve(fetchPlexLibraries(false, true)).finally(() => {
+                        try {
+                            populatePosterpackLibraries('plex');
+                        } catch (_) {
+                            /* populate fallback failed; another retry will occur */
+                        }
+                    });
+                } catch (_) {
+                    populatePosterpackLibraries('plex');
+                }
             }
             // If still empty shortly after, copy from main selects as a last resort for instant UX
             setTimeout(() => {
@@ -25235,6 +25259,13 @@ if (!document.__niwDelegatedFallback) {
             }
         };
         const fetchAndFillPlex = async () => {
+            // Check if Plex is enabled before making any API calls
+            const plexEnabled = !!document.getElementById('plex.enabled')?.checked;
+            if (!plexEnabled) {
+                // If Plex is disabled, don't make API calls and clear any cached data
+                return;
+            }
+
             try {
                 const { map, libs } = await (async () => {
                     if (

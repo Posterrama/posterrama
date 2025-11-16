@@ -115,15 +115,9 @@ echo ""
 
 echo -e "${BLUE}📖 Documentation${NC}"
 run_check "README.md exists" "test -f README.md" true
-# Disabled: Documentation guides not required for this project
-# run_check "Dependency guide" "test -f docs/DEPENDENCY-MANAGEMENT.md" false
-# run_check "Code review guide" "test -f docs/CODE-REVIEW-PROCESS.md" false
-run_check "Branch protection script" "test -f scripts/setup-branch-protection.sh" false
 echo ""
 
 echo -e "${BLUE}🚀 Deployment Readiness${NC}"
-# Disabled: console.log check not required (debug infrastructure managed via pre-push hook)
-# run_check "No console.log in production" "! grep -r 'console\\.log' public/ server.js sources/ utils/ middleware/ --include='*.js' --exclude-dir=node_modules" false
 run_check "No .env files committed" "! find . -name '.env*' -not -name '.env.example' -not -path './node_modules/*'" false
 run_check "Large files check" "! find . -name '*.js' -size +500k -not -path './node_modules/*'" false
 echo ""
@@ -134,7 +128,7 @@ echo ""
 echo "Next steps:"
 echo "  • Run tests: npm test"
 echo "  • Check security: npm run deps:security-audit"
-echo "  • Setup branch protection: ./scripts/setup-branch-protection.sh"
+echo "  • Full release check: npm run release:ready"
 echo "  • Commit changes: git add . && git commit"
 echo ""
 # Documentation references disabled - guides not required for this project

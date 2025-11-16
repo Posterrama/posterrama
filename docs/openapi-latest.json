@@ -233,7 +233,9 @@
                         "id": "config-backup-1730000000000",
                         "createdAt": "2025-10-25T12:00:00.000Z",
                         "sizeBytes": 4096,
-                        "type": "manual"
+                        "type": "manual",
+                        "label": "Pre-upgrade backup",
+                        "note": "Created before testing new features"
                     }
                 }
             },
@@ -254,6 +256,16 @@
                     "type": {
                         "type": "string",
                         "description": "backup type (manual|auto|upgrade)"
+                    },
+                    "label": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "description": "Optional custom label for this backup"
+                    },
+                    "note": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "description": "Optional detailed note about this backup"
                     }
                 }
             },
@@ -277,7 +289,9 @@
                             "id": "config-backup-1730000000000",
                             "createdAt": "2025-10-25T12:00:00.000Z",
                             "sizeBytes": 4096,
-                            "type": "manual"
+                            "type": "manual",
+                            "label": "Before v2.9.5 update",
+                            "note": "Stable configuration before major update"
                         },
                         {
                             "id": "config-backup-1729950000000",
@@ -350,19 +364,74 @@
                     "id": "config-backup-1730000000000"
                 }
             },
+            "BackupUpdateResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "size": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "label": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "note": {
+                        "type": "string",
+                        "maxLength": 500
+                    }
+                },
+                "example": {
+                    "id": "config-backup-1730000000000",
+                    "createdAt": "2025-10-25T12:00:00.000Z",
+                    "files": [
+                        {
+                            "name": "config.json",
+                            "size": 4096
+                        }
+                    ],
+                    "label": "Updated label",
+                    "note": "Updated note with more details"
+                }
+            },
             "BackupSchedule": {
                 "type": "object",
                 "properties": {
                     "enabled": {
                         "type": "boolean"
                     },
-                    "cron": {
+                    "time": {
                         "type": "string",
-                        "description": "Cron expression for automated backups"
+                        "pattern": "^\\d{1,2}:\\d{2}$",
+                        "description": "Daily backup time in HH:MM format (24-hour)"
                     },
-                    "retain": {
+                    "retention": {
                         "type": "integer",
-                        "description": "How many backups to retain"
+                        "minimum": 1,
+                        "maximum": 60,
+                        "description": "Number of backups to retain"
+                    },
+                    "retentionDays": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 365,
+                        "description": "Delete backups older than this many days (0 = disabled)"
                     }
                 }
             },
@@ -380,8 +449,9 @@
                     "ok": true,
                     "schedule": {
                         "enabled": true,
-                        "cron": "0 2 * * *",
-                        "retain": 10
+                        "time": "02:30",
+                        "retention": 5,
+                        "retentionDays": 30
                     }
                 }
             },
@@ -6511,48 +6581,6 @@
                 "security": []
             }
         },
-        "/api/admin/events": {
-            "get": {
-                "summary": "Admin SSE stream for real-time updates",
-                "description": "Server-Sent Events stream that pushes real-time updates to the admin UI including log events, config changes, device updates, and backup operations.\n",
-                "tags": ["Admin"],
-                "security": [
-                    {
-                        "sessionAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "SSE stream established",
-                        "content": {
-                            "text/event-stream": {
-                                "schema": {
-                                    "type": "string",
-                                    "example": ": connected\\n\\n\nevent: hello\\n\ndata: {\"t\": 1700000000000}\\n\\n\nevent: ping\\n\ndata: {\"t\": 1700000002500}\\n\\n\nevent: log\\n\ndata: {\"level\":\"info\",\"message\":\"Started\"}\\n\\n\n"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized - admin session required"
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Internal server error",
-                                    "statusCode": 500
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/admin/cache/metrics": {
             "get": {
                 "summary": "Get detailed cache metrics",
@@ -8006,6 +8034,48 @@
                 }
             }
         },
+        "/api/admin/events": {
+            "get": {
+                "summary": "Admin SSE stream for real-time updates",
+                "description": "Server-Sent Events stream that pushes real-time updates to the admin UI including log events, config changes, device updates, and backup operations.\n",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "sessionAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream established",
+                        "content": {
+                            "text/event-stream": {
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "Binary data"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - admin session required"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/admin/setup": {
             "get": {
                 "summary": "Admin setup page",
@@ -8479,13 +8549,37 @@
             },
             "post": {
                 "summary": "Create a new configuration backup",
-                "description": "Creates a new backup of whitelisted configuration files (config.json, .env, devices/groups, presets).",
+                "description": "Creates a new backup of whitelisted configuration files (config.json, .env, devices/groups, presets). Optionally include a label and note for documentation.",
                 "tags": ["Admin"],
                 "security": [
                     {
                         "sessionAuth": []
                     }
                 ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "label": {
+                                        "type": "string",
+                                        "maxLength": 100,
+                                        "description": "Optional label for the backup (e.g., \"Before v2.9.5 update\")",
+                                        "example": "Before major config change"
+                                    },
+                                    "note": {
+                                        "type": "string",
+                                        "maxLength": 500,
+                                        "description": "Optional detailed note about this backup",
+                                        "example": "Created before enabling MQTT integration"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Backup metadata",
@@ -8497,6 +8591,20 @@
                                 "example": {
                                     "ok": true,
                                     "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
                                 }
                             }
                         }
@@ -8536,7 +8644,7 @@
         "/api/admin/config-backups/cleanup": {
             "post": {
                 "summary": "Cleanup old backups",
-                "description": "Deletes older backups while keeping the most recent N backups (default 5).",
+                "description": "Deletes older backups based on count (keep N most recent) and/or age (older than X days). Both conditions work together.",
                 "tags": ["Admin"],
                 "security": [
                     {
@@ -8554,7 +8662,15 @@
                                         "type": "integer",
                                         "minimum": 1,
                                         "maximum": 60,
-                                        "default": 5
+                                        "default": 5,
+                                        "description": "Number of most recent backups to keep"
+                                    },
+                                    "maxAgeDays": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 365,
+                                        "default": 0,
+                                        "description": "Delete backups older than this many days (0 = disabled)"
                                     }
                                 }
                             }
@@ -8791,6 +8907,115 @@
                         }
                     }
                 }
+            },
+            "patch": {
+                "summary": "Update backup label and note",
+                "description": "Edit the label and/or note of an existing backup. Pass null or empty string to remove a field.",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "sessionAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "label": {
+                                        "type": "string",
+                                        "maxLength": 100,
+                                        "description": "New label (null/empty to remove)",
+                                        "nullable": true,
+                                        "example": "Pre-v2.9.5 stable"
+                                    },
+                                    "note": {
+                                        "type": "string",
+                                        "maxLength": 500,
+                                        "description": "New note (null/empty to remove)",
+                                        "nullable": true,
+                                        "example": "Backup before MQTT integration testing"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated metadata",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BackupUpdateResponse"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID or update failed"
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required to access this endpoint",
+                                    "statusCode": 401
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Not found",
+                                    "message": "The requested resource does not exist",
+                                    "statusCode": 404
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/admin/config-backups/schedule": {
@@ -8882,6 +9107,13 @@
                                         "maximum": 60,
                                         "description": "Number of backups to retain",
                                         "example": 5
+                                    },
+                                    "retentionDays": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 365,
+                                        "description": "Delete backups older than this many days (0 = disabled)",
+                                        "example": 30
                                     }
                                 }
                             }

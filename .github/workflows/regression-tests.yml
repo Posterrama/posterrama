@@ -2,12 +2,12 @@ name: Regression Tests (Disabled - Requires Real Credentials)
 
 # ℹ️ This workflow is disabled because regression tests require:
 # - Real Plex API tokens
-# - Real Jellyfin API keys  
+# - Real Jellyfin API keys
 # - Real TMDB API keys
 # - Real MQTT brokers
-# 
+#
 # These tests should be run LOCALLY with private/test-credentials.json
-# 
+#
 # To run locally:
 #   npm run test:regression:contracts
 #   npm run test:regression:config
