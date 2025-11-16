@@ -319,89 +319,7 @@ body {
 }
 
 /* --- Loader & Error Message --- */
-/* --- Modern Dual-Ring Spinner Loader --- */
-#loader {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 100;
-    transition: opacity 0.5s;
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    gap: 2rem;
-}
-
-/* Dual-ring spinner */
-.poster-loader {
-    position: relative;
-    width: 60px;
-    height: 60px;
-}
-
-.poster-loader::before,
-.poster-loader::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    border: 3px solid transparent;
-}
-
-/* Outer ring - clockwise */
-.poster-loader::before {
-    width: 60px;
-    height: 60px;
-    border-top: 3px solid #667eea;
-    border-right: 3px solid #667eea;
-    animation: spinClockwise 1.2s linear infinite;
-}
-
-/* Inner ring - counter-clockwise */
-.poster-loader::after {
-    width: 40px;
-    height: 40px;
-    top: 10px;
-    left: 10px;
-    border-bottom: 3px solid #764ba2;
-    border-left: 3px solid #764ba2;
-    animation: spinCounterClockwise 1s linear infinite;
-}
-
-/* Clean loading text */
-.loader-text {
-    color: rgba(255, 255, 255, 0.8);
-    font-family:
-        'Inter',
-        -apple-system,
-        BlinkMacSystemFont,
-        'Segoe UI',
-        Roboto,
-        sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    animation: textPulse 2.5s ease-in-out infinite;
-    display: none; /* Hide textual loading indicator; spinner only */
-}
-
-@keyframes spinClockwise {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes spinCounterClockwise {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(-360deg);
-    }
-}
+/* Loader removed - no longer needed */
 
 @keyframes textPulse {
     0%,
@@ -1012,27 +930,30 @@ body.promo-site #promo-box.is-hidden {
     display: flex;
     align-items: flex-end; /* Align poster to bottom of wrapper */
     justify-content: flex-start; /* Align poster to left of wrapper */
-    min-height: 270px; /* Minimum height to accommodate base poster size */
-    height: calc(270px * var(--content-scale)); /* Dynamic height based on scaling */
-    min-width: 180px; /* Minimum width for base poster */
-    width: calc(180px * var(--content-scale)); /* Dynamic width to accommodate scaling */
+    /* Use viewport height for responsive sizing */
+    height: min(
+        calc(70vh - 100px),
+        calc(270px * var(--content-scale))
+    ); /* 70% viewport minus margins, max scaled size */
+    width: min(
+        calc((70vh - 100px) * 0.667),
+        calc(180px * var(--content-scale))
+    ); /* Maintain 2:3 aspect ratio */
     padding-left: 15px; /* Extra space for left shadow */
-    width: calc(180px * var(--content-scale)); /* Dynamic width to accommodate scaling */
 }
 
 #poster {
-    width: 180px;
-    height: 270px;
-    background-size: cover;
+    width: 100%; /* Fill container width */
+    height: 100%; /* Fill container height */
+    background-size: contain; /* FIX: Use contain instead of cover to show full poster */
     background-position: center center;
+    background-repeat: no-repeat; /* Prevent tiling */
     /* Gradient placeholder for instant LCP paint - improves perceived performance */
     background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%);
     border-radius: 8px;
     position: relative;
     z-index: 1;
     box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45);
-    transform: scale(var(--content-scale));
-    transform-origin: bottom left;
 }
 
 /* Enhanced drop shadow for screensaver mode */
@@ -1248,8 +1169,9 @@ body.screensaver-mode #poster-wrapper {
     #poster {
         width: 180px !important;
         height: 270px !important;
-        transform: scale(var(--content-scale));
+        transform: scale(var(--content-scale)) !important;
         transform-origin: bottom left !important;
+        background-size: contain !important;
         position: relative !important;
         top: auto !important;
         left: auto !important;

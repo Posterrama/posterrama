@@ -20,7 +20,7 @@
         <script src="/client-logger.js"></script>
 
         <!-- Critical CSS inline for instant FCP (~1KB) -->
-        <style>@keyframes spin{to{transform:rotate(360deg)}}*{box-sizing:border-box}#loader,#poster,body,html{background:linear-gradient(135deg,#1a1a1a 0,#2a2a2a 100%)}*,body,html{margin:0;padding:0}body,html{width:100vw;height:100vh;overflow:hidden;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e2e8f0;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.is-hidden{display:none!important}#loader,#poster{width:100%;height:100%}#loader{position:fixed;top:0;left:0;display:flex;justify-content:center;align-items:center;z-index:9999;opacity:1;transition:opacity .3s ease-out}.poster-loader{width:60px;height:60px;border:4px solid rgba(102,126,234,.2);border-top-color:#667eea;border-radius:50%;animation:spin 1s linear infinite}#poster{background-size:cover;background-position:center;background-repeat:no-repeat;position:relative}#error-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(239,68,68,.95);color:#fff;padding:1rem 1.5rem;border-radius:8px;z-index:10000;max-width:90%;text-align:center}</style>
+        <style>*{box-sizing:border-box}body,html{background:linear-gradient(135deg,#1a1a1a 0,#2a2a2a 100%)}*,body,html{margin:0;padding:0}body,html{width:100vw;height:100vh;overflow:hidden;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e2e8f0;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.is-hidden{display:none!important}#poster{width:100%;height:100%;background-size:cover;background-position:center;background-repeat:no-repeat;position:relative}#error-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(239,68,68,.95);color:#fff;padding:1rem 1.5rem;border-radius:8px;z-index:10000;max-width:90%;text-align:center}</style>
 
         <!-- Preload non-critical CSS (deferred) -->
         <link rel="preload" href="style.css?v={{ASSET_VERSION}}" as="style" onload="this.onload=null;this.rel='stylesheet'" />
@@ -35,8 +35,7 @@
         <!-- Global Error Handler -->
         <script type="module" src="/error-handler.js"></script>
     </head>
-    <body data-mode=\"screensaver\">
-        <div id="loader"><div class="poster-loader"></div></div>
+    <body data-mode="screensaver">
         <div id="error-message" class="is-hidden"></div>
         <div id="layer-a" class="screensaver-layer"></div>
         <div id="layer-b" class="screensaver-layer"></div>
@@ -87,43 +86,39 @@
         </div>
         <div id="branding-container" style="display:none"></div>
     <script defer src="lazy-loading.js?v={{ASSET_VERSION}}"></script>
+    <!-- Mode-based redirect: automatically redirect to mode-specific page -->
+    <script type="module">
+        import { checkModeRedirect, loadPromoOverlayIfEnabled, startPeriodicModeCheck } from './mode-redirect.js';
+        import { initScreensaver } from './screensaver-bootstrap.js';
+        
+        // Check if we should redirect to another mode
+        await checkModeRedirect('screensaver', '__screensaverModeVerified');
+        
+        // Mode verified - set hint to prevent further checks
+        window.MODE_HINT = 'screensaver';
+        
+        // Start periodic mode checking (auto-navigate on config changes)
+        startPeriodicModeCheck('screensaver');
+        
+        // Load promo overlay if enabled
+        await loadPromoOverlayIfEnabled();
+        
+        // Start screensaver when DOM ready
+        initScreensaver();
+    </script>
+
     <script defer src="device-mgmt.js?v={{ASSET_VERSION}}"></script>
     <script defer src="/core.js?v={{ASSET_VERSION}}"></script>
-    <script>
-        // Load promo overlay if enabled (typically port 4001 promo site)
-        (async function() {
-            try {
-                const cfg = await window.PosterramaCore.fetchConfig();
-                if (cfg && cfg.promoBoxEnabled === true) {
-                    window.PosterramaCore.loadPromoOverlay(cfg);
-                }
-            } catch (e) {
-                /* ignore */
-            }
-        })();
-    </script>
     <script defer src="/screensaver/screensaver.js?v={{ASSET_VERSION}}"></script>
     <script>
                 // Hint for SW stamping: server stamps this path in routed responses
         try { window.__swUrl = '/sw.js?v={{ASSET_VERSION}}'; } catch (e) {}
-    </script>
-    
-    <!-- Screensaver initialization -->
-    <script type="module">
-        import { initScreensaver } from './screensaver-bootstrap.js';
-        
-        // Set mode hint
-        window.MODE_HINT = 'screensaver';
-        
-        // Start screensaver when DOM ready
-        initScreensaver();
     </script>
     </script>
     <script>
         // start is now invoked by the bootstrap above
     </script>
         <script>
-            window.MODE_HINT='screensaver';
             try { window.PosterramaCore && window.PosterramaCore.startAutoExitPoll({ currentMode: 'screensaver', intervalMs: 15000 }); } catch (e) {}
         </script>
     </body>

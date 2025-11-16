@@ -74,14 +74,28 @@ export function getActiveMode(config) {
  * @param {string} [verifiedFlag] - Global flag to set when mode is verified (e.g., '__wallartModeVerified')
  */
 export async function checkModeRedirect(currentMode, verifiedFlag) {
+    console.log('[MODE-REDIRECT] Starting check', {
+        currentMode,
+        verifiedFlag,
+        isPreview: isPreviewMode(),
+        MODE_HINT: window.MODE_HINT,
+        pathname: window.location.pathname,
+    });
+
     window.debugLog &&
         window.debugLog('MODE_REDIRECT_CHECK', { currentMode, isPreview: isPreviewMode() });
 
-    // Skip redirect if in preview mode, server hints a mode, or already on a mode page
-    if (isPreviewMode() || window.MODE_HINT || isOnModePage()) {
+    // Skip redirect only if in preview mode or server explicitly hints a mode
+    if (isPreviewMode() || window.MODE_HINT) {
+        console.log('[MODE-REDIRECT] Skipping redirect', {
+            reason: isPreviewMode() ? 'preview mode' : 'mode hint',
+            isPreview: isPreviewMode(),
+            modeHint: window.MODE_HINT,
+        });
+
         window.debugLog &&
             window.debugLog('MODE_REDIRECT_SKIP', {
-                reason: 'already on mode page',
+                reason: isPreviewMode() ? 'preview mode' : 'mode hint',
                 isPreview: isPreviewMode(),
                 modeHint: window.MODE_HINT,
             });
@@ -94,10 +108,19 @@ export async function checkModeRedirect(currentMode, verifiedFlag) {
     }
 
     try {
+        console.log('[MODE-REDIRECT] Fetching config...');
         window.debugLog && window.debugLog('MODE_REDIRECT_FETCH_CONFIG', {});
 
         const config = await fetchConfig();
         const activeMode = getActiveMode(config);
+
+        console.log('[MODE-REDIRECT] Config loaded', {
+            activeMode,
+            currentMode,
+            cinemaMode: config.cinemaMode,
+            wallartEnabled: config.wallartMode?.enabled,
+            needsRedirect: activeMode !== currentMode,
+        });
 
         window.debugLog &&
             window.debugLog('MODE_REDIRECT_CONFIG_LOADED', {
@@ -109,15 +132,23 @@ export async function checkModeRedirect(currentMode, verifiedFlag) {
 
         // If active mode doesn't match current page, redirect
         if (activeMode !== currentMode) {
+            const targetUrl = buildModeUrl(activeMode);
+            console.log('[MODE-REDIRECT] REDIRECTING!', {
+                from: currentMode,
+                to: activeMode,
+                targetUrl,
+            });
+
             window.debugLog && window.debugLog('MODE_REDIRECT_TO', { targetMode: activeMode });
             console.log(
                 `[Posterrama] ${activeMode} mode detected, redirecting from ${currentMode}`
             );
-            window.location.replace(buildModeUrl(activeMode));
+            window.location.replace(targetUrl);
             return;
         }
 
         // Mode matches, mark as verified and add body class
+        console.log('[MODE-REDIRECT] Mode verified - staying on page', { currentMode });
         window.debugLog && window.debugLog('MODE_REDIRECT_VERIFIED', { currentMode });
         console.log(`[Posterrama] ${currentMode} mode verified`);
         document.body.classList.add(`${currentMode}-mode`);
@@ -127,6 +158,11 @@ export async function checkModeRedirect(currentMode, verifiedFlag) {
         }
     } catch (err) {
         // Failed to check config, allow page to continue
+        console.error('[MODE-REDIRECT] Error checking mode', {
+            error: err.message,
+            stack: err.stack,
+        });
+
         window.debugLog &&
             window.debugLog('MODE_REDIRECT_ERROR', { error: err.message, currentMode });
         console.warn(`[Posterrama] Failed to check mode config for ${currentMode}`, err);
@@ -135,6 +171,58 @@ export async function checkModeRedirect(currentMode, verifiedFlag) {
             window[verifiedFlag] = true;
         }
     }
+}
+
+/**
+ * Start periodic mode checking for non-device-management displays
+ * Checks every 30 seconds if the active mode has changed and auto-navigates
+ * @param {string} currentMode - The current mode (screensaver, wallart, cinema)
+ */
+export function startPeriodicModeCheck(currentMode) {
+    // Only run on actual mode pages, not preview or landing
+    if (!currentMode || isPreviewMode() || window.location.pathname === '/') {
+        return;
+    }
+
+    const CHECK_INTERVAL = 30000; // 30 seconds
+    const lastCheckedMode = currentMode;
+
+    const checkMode = async () => {
+        try {
+            // Skip check if navigating away
+            if (window.MODE_HINT !== currentMode && window.MODE_HINT) {
+                console.log('[MODE-REDIRECT] Skipping periodic check - already navigating');
+                return;
+            }
+
+            const config = await fetchConfig();
+            const activeMode = getActiveMode(config);
+
+            if (activeMode !== lastCheckedMode) {
+                console.log('[MODE-REDIRECT] Periodic check detected mode change', {
+                    from: lastCheckedMode,
+                    to: activeMode,
+                });
+
+                // Navigate to new mode
+                const targetUrl = buildModeUrl(activeMode);
+                console.log('[MODE-REDIRECT] Auto-navigating to new mode', { targetUrl });
+                window.location.replace(targetUrl);
+            }
+        } catch (err) {
+            console.warn('[MODE-REDIRECT] Periodic mode check failed', err.message);
+        }
+    };
+
+    // Start periodic checking
+    const intervalId = setInterval(checkMode, CHECK_INTERVAL);
+    console.log('[MODE-REDIRECT] Started periodic mode checking', {
+        currentMode,
+        intervalSeconds: CHECK_INTERVAL / 1000,
+    });
+
+    // Store interval ID for cleanup if needed
+    window.__modeCheckIntervalId = intervalId;
 }
 
 /**

@@ -23,6 +23,7 @@ module.exports = function createAdminConfigRouter({
     writeEnvFile,
     restartPM2ForEnvUpdate,
     wsHub,
+    apiCache,
     ApiError,
     asyncHandler,
     isAuthenticated,
@@ -158,6 +159,11 @@ module.exports = function createAdminConfigRouter({
                 currentConfig.mediaServers.forEach(server => {
                     // Ensure server is a valid object before processing to prevent crashes
                     if (server && typeof server === 'object') {
+                        // Strip plaintext passwords from RomM config (security)
+                        if (server.type === 'romm' && server.password) {
+                            server.password = !!server.password; // Replace with boolean indicator
+                        }
+
                         // Find all keys ending in 'EnvVar' and get their values from process.env
                         Object.keys(server).forEach(key => {
                             if (key.endsWith('EnvVar')) {
@@ -302,11 +308,26 @@ module.exports = function createAdminConfigRouter({
                 const oldMode = oldCinema ? 'cinema' : oldWallart ? 'wallart' : 'screensaver';
                 const newMode = newCinema ? 'cinema' : newWallart ? 'wallart' : 'screensaver';
 
+                // Debug logging for mode detection
+                logger.debug('[Admin API] Mode change detection', {
+                    oldCinema,
+                    newCinema,
+                    oldWallart,
+                    newWallart,
+                    oldMode,
+                    newMode,
+                    changed: oldMode !== newMode,
+                });
+
                 if (oldMode !== newMode) {
                     broadcastModeChange = newMode;
                     logger.info('[Admin API] Display mode changed, will broadcast navigation', {
                         from: oldMode,
                         to: newMode,
+                    });
+                } else {
+                    logger.debug('[Admin API] No mode change detected', {
+                        mode: oldMode,
                     });
                 }
 
@@ -396,20 +417,47 @@ module.exports = function createAdminConfigRouter({
             if (broadcastModeChange && wsHub) {
                 try {
                     const mode = broadcastModeChange;
+                    const connectedDevices = wsHub.getConnectedDeviceCount
+                        ? wsHub.getConnectedDeviceCount()
+                        : 'unknown';
+                    logger.info('[WS] Broadcasting mode.navigate', {
+                        mode,
+                        connectedDevices,
+                    });
                     const ok = wsHub.broadcast({
                         kind: 'command',
                         type: 'mode.navigate',
                         payload: { mode },
                     });
-                    logger.info('[WS] Broadcast mode.navigate to devices', { mode, success: ok });
+                    logger.info('[WS] Broadcast mode.navigate completed', {
+                        mode,
+                        success: ok,
+                        connectedDevices,
+                    });
                 } catch (e) {
                     logger.warn('[WS] mode.navigate broadcast failed:', e?.message || e);
                 }
+            } else if (broadcastModeChange && !wsHub) {
+                logger.warn('[WS] Cannot broadcast mode.navigate - wsHub not available', {
+                    mode: broadcastModeChange,
+                });
+            } else if (!broadcastModeChange) {
+                logger.debug('[WS] No mode change to broadcast');
             }
 
             // Update in-memory config so routes see latest values
-            // config is a Config class instance, update its internal config object
-            Object.assign(config.config, mergedConfig);
+            // config is a Config class instance, reload to update all private fields
+            config.reload();
+
+            // Invalidate /get-config cache so changes are immediately visible
+            try {
+                if (apiCache && typeof apiCache.clearPattern === 'function') {
+                    apiCache.clearPattern('/get-config');
+                    logger.debug('Cleared /get-config cache after config update');
+                }
+            } catch (cacheErr) {
+                logger.warn('Cache invalidation failed', { error: cacheErr?.message });
+            }
 
             // Send response BEFORE PM2 restart to prevent 502 errors
             res.json({
@@ -721,22 +769,24 @@ module.exports = function createAdminConfigRouter({
 
             // Fallback to configured values if not provided in the request
             const plexServerConfig = config.mediaServers.find(s => s.type === 'plex');
-            if (!plexServerConfig) {
-                throw new ApiError(500, 'Plex server is not configured in config.json.');
-            }
 
-            if (!hostname && plexServerConfig.hostname) {
+            // Only use config fallback if request didn't provide values
+            if (!hostname && plexServerConfig?.hostname) {
                 hostname = plexServerConfig.hostname.trim().replace(/^https?:\/\//, '');
             }
-            if (!port && typeof plexServerConfig.port !== 'undefined') {
+            if (!port && typeof plexServerConfig?.port !== 'undefined') {
                 port = plexServerConfig.port;
             }
-            token = token || process.env[plexServerConfig.tokenEnvVar];
+            if (!token && plexServerConfig?.tokenEnvVar) {
+                token = process.env[plexServerConfig.tokenEnvVar];
+            }
 
+            // Final validation: ensure we have all required connection details
             if (!hostname || !port || !token) {
                 throw new ApiError(
                     400,
-                    'Plex connection details (hostname, port, token) are missing.'
+                    'Plex connection details (hostname, port, token) are missing. ' +
+                        'Either provide them in the request or configure Plex in config.json.'
                 );
             }
 
@@ -1080,17 +1130,35 @@ module.exports = function createAdminConfigRouter({
         '/api/admin/test-romm',
         isAuthenticated,
         asyncHandler(async (req, res) => {
-            const { url, username, password, insecureHttps } = req.body;
+            let { url, username, password, insecureHttps } = req.body;
+
+            // Fallback to configured values if not provided in the request
+            const config = await readConfig();
+            const rommServerConfig = config.mediaServers?.find(s => s.type === 'romm');
+
+            if (!url && rommServerConfig?.url) {
+                url = rommServerConfig.url;
+            }
+            if (!username && rommServerConfig?.username) {
+                username = rommServerConfig.username;
+            }
+            if (!password && rommServerConfig?.password) {
+                password = rommServerConfig.password;
+            }
+            if (typeof insecureHttps === 'undefined' && rommServerConfig?.insecureHttps) {
+                insecureHttps = rommServerConfig.insecureHttps;
+            }
 
             logger.info('[RomM Test] Request received:', {
                 url,
                 username: username ? '***' : undefined,
                 hasPassword: !!password,
                 insecureHttps,
+                usedFallback: !req.body.password && !!password,
             });
 
             if (!url || !username || !password) {
-                logger.warn('[RomM Test] Missing required fields');
+                logger.warn('[RomM Test] Missing required fields even after config fallback');
                 throw new ApiError(400, 'URL, username, and password are required');
             }
 

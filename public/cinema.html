@@ -26,33 +26,15 @@
         <script type="module" src="/error-handler.js"></script>
     </head>
     <body data-mode="cinema">
-        <script>
-            // Early guard: if cinema mode is not enabled anymore, immediately go back to root
-            // Skip this check in preview mode (iframe or ?preview=1)
-            (async function () {
-                try {
-                    // Check if in preview mode
-                    const params = new URLSearchParams(window.location.search);
-                    const isPreview = params.get('preview') === '1' || window.self !== window.top;
-                    if (isPreview) return; // Skip guard in preview mode
-                    
-                    const resp = await fetch('/get-config?_t=' + Date.now(), { cache: 'no-cache' });
-                    if (!resp.ok) return; // fail open
-                    const cfg = await resp.json();
-                    if (!cfg || cfg.cinemaMode !== true) {
-                        // Use absolute origin to avoid proxy/base tag quirks
-                        window.location.replace(window.location.origin + '/');
-                    }
-                } catch (e) {
-                    // silent; normal runtime will handle later
-                }
-            })();
+        <!-- Mode-based redirect: automatically redirect to mode-specific page -->
+                <script type="module">
+            import { checkModeRedirect, loadPromoOverlayIfEnabled, startPeriodicModeCheck } from './mode-redirect.js';
+            
+            await checkModeRedirect('cinema', '__cinemaModeVerified');
+            window.MODE_HINT = 'cinema';
+            startPeriodicModeCheck('cinema');
+            await loadPromoOverlayIfEnabled();
         </script>
-        <!-- Loader -->
-        <div id="loader">
-            <div class="poster-loader"></div>
-        </div>
-
         <!-- Error message -->
         <div id="error-message" class="is-hidden"></div>
 
@@ -75,9 +57,6 @@
         <script type="module">
             import { initDevice, startAutoExitPoll } from './display-mode-init.js';
             import { loadPromoOverlayIfEnabled } from './mode-redirect.js';
-            
-            // Set mode hint for mode-specific behaviors
-            window.MODE_HINT = 'cinema';
             
             // Initialize device management (non-blocking)
             initDevice();

@@ -536,9 +536,9 @@
                 },
                 "orientation": {
                     "type": "string",
-                    "enum": ["auto", "portrait", "landscape"],
+                    "enum": ["auto", "portrait", "portrait-flipped", "landscape"],
                     "default": "auto",
-                    "description": "Cinema mode orientation override (auto = follow device, portrait/landscape = force orientation)"
+                    "description": "Cinema mode orientation override (auto = follow device, portrait/landscape/portrait-flipped = force orientation)"
                 }
             },
             "additionalProperties": false,
@@ -852,7 +852,12 @@
                     },
                     "password": {
                         "type": "string",
-                        "description": "Password for RomM authentication (for type=romm only).",
+                        "description": "Password for RomM authentication (for type=romm only). Use passwordEnvVar for environment variable reference.",
+                        "minLength": 1
+                    },
+                    "passwordEnvVar": {
+                        "type": "string",
+                        "description": "Environment variable name containing RomM password (for type=romm only). Alternative to password field.",
                         "minLength": 1
                     },
                     "selectedPlatforms": {
@@ -1267,6 +1272,25 @@
             "type": "string",
             "default": "landscape",
             "description": "Default orientation for preview mode (landscape or portrait)"
+        },
+        "dashboardCards": {
+            "description": "Selected dashboard cards for the admin panel overview page",
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "media-items",
+                    "active-devices",
+                    "now-playing",
+                    "system-health",
+                    "recent-activity",
+                    "library-stats",
+                    "active-mode"
+                ]
+            },
+            "minItems": 4,
+            "maxItems": 4,
+            "default": ["media-items", "active-devices", "now-playing", "system-health"]
         }
     },
     "required": [

@@ -890,13 +890,28 @@
         },
     ];
 
-    // Load saved card configuration from localStorage
+    // Load card configuration from server config (with localStorage fallback for migration)
     function loadCardConfig() {
         try {
+            // Priority: server config > localStorage (for migration)
+            if (
+                window.__serverConfig?.dashboardCards &&
+                Array.isArray(window.__serverConfig.dashboardCards)
+            ) {
+                const serverCards = window.__serverConfig.dashboardCards;
+                if (serverCards.length === 4) {
+                    return serverCards;
+                }
+            }
+
+            // Fallback: localStorage (for migration from old version)
             const saved = localStorage.getItem('dashboardCards');
             if (saved) {
-                const config = JSON.parse(saved);
-                return config;
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length === 4) {
+                    // Migrate to server on next save
+                    return parsed;
+                }
             }
         } catch (e) {
             console.warn('Failed to load card config:', e);
@@ -905,12 +920,39 @@
         return AVAILABLE_CARDS.slice(0, 4).map(c => c.id);
     }
 
-    // Save card configuration to localStorage
-    function saveCardConfig(selectedIds) {
+    // Save card configuration to server
+    async function saveCardConfig(selectedIds) {
         try {
-            localStorage.setItem('dashboardCards', JSON.stringify(selectedIds));
+            // Save to server (env required by endpoint even if empty)
+            const res = await fetch('/api/admin/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    config: { dashboardCards: selectedIds },
+                    env: {}, // Required by endpoint
+                }),
+            });
+
+            if (!res.ok) {
+                throw new Error('Failed to save dashboard cards to server');
+            }
+
+            // Update local cache
+            if (window.__serverConfig) {
+                window.__serverConfig.dashboardCards = selectedIds;
+            }
+
+            // Clean up old localStorage (migration)
+            localStorage.removeItem('dashboardCards');
+
+            console.log('[Dashboard Cards] Saved to server:', selectedIds);
         } catch (e) {
             console.error('Failed to save card config:', e);
+            // Show error to user
+            if (typeof window.notify !== 'undefined' && window.notify.error) {
+                window.notify.error('Failed to save dashboard configuration');
+            }
         }
     }
 
@@ -920,6 +962,11 @@
         if (!container) return;
 
         const selectedIds = loadCardConfig();
+        console.log('[Dashboard Cards] Rendering cards:', selectedIds);
+        console.log(
+            '[Dashboard Cards] window.__serverConfig.dashboardCards:',
+            window.__serverConfig?.dashboardCards
+        );
         container.innerHTML = '';
 
         selectedIds.forEach(id => {
@@ -1111,7 +1158,7 @@
     }
 
     // Save card configuration from modal
-    function saveCardConfigFromModal() {
+    async function saveCardConfigFromModal() {
         const cards = Array.from(
             document.querySelectorAll('#cards-selection-grid .card-selection-item')
         );
@@ -1137,7 +1184,10 @@
             selected = selected.slice(0, 4);
         }
 
-        saveCardConfig(selected);
+        // Save to server (async) - this updates window.__serverConfig
+        await saveCardConfig(selected);
+
+        // Render with updated config
         renderDashboardCards();
 
         // Close modal
@@ -1164,8 +1214,18 @@
         initDashboardCards();
     }
 
-    function initDashboardCards() {
+    async function initDashboardCards() {
         try {
+            // Load server config first if not already loaded
+            if (!window.__serverConfig) {
+                try {
+                    const cfg = await loadAdminConfig();
+                    window.__serverConfig = cfg?.config || cfg;
+                } catch (e) {
+                    console.warn('[Dashboard Cards] Failed to load config, using defaults:', e);
+                }
+            }
+
             // Initialize dashboard cards
             renderDashboardCards();
 
@@ -4650,6 +4710,8 @@
         try {
             // Prefill
             const cfg = await loadAdminConfig();
+            // Store config globally for dashboard cards and other features
+            window.__serverConfig = cfg?.config || cfg;
             hydrateDisplayForm(cfg);
 
             // Trigger Music Mode visibility update after config is loaded
@@ -16938,7 +17000,10 @@
                 const legacyHost = document.getElementById('plex_hostname');
                 const legacyPort = document.getElementById('plex_port');
                 if (legacyHost && plex.hostname) legacyHost.value = plex.hostname;
-                if (legacyPort && (plex.port || plex.port === 0)) legacyPort.value = plex.port;
+                // Always set port value - use configured port or default 32400
+                if (legacyPort) {
+                    legacyPort.value = plex.port != null ? plex.port : '32400';
+                }
                 // Inject a one-time small badge to visually confirm script executed & values loaded
                 if (!document.getElementById('plex-loaded-badge')) {
                     const badge = document.createElement('span');
@@ -17285,20 +17350,34 @@
                 const hasToken = !!env[plexTokenVar];
                 const el = getInput('plex.token') || getInput('plex_token');
 
-                // ALWAYS try to restore token from localStorage first (more persistent than sessionStorage)
+                // Try to restore token from localStorage, but only if server doesn't already have one
                 const savedToken = localStorage.getItem('plex_token_temp');
 
-                // Priority: localStorage token > existing token marker > empty
-                // ALWAYS set dataset.actualToken from localStorage if available
-                if (savedToken && savedToken !== 'EXISTING_TOKEN') {
-                    el.dataset.actualToken = savedToken;
-                    el.dataset.originalToken = savedToken; // Track original for change detection
-                } else if (hasToken) {
+                // Validate localStorage token format (Plex tokens are 15-50 chars alphanumeric)
+                const isValidToken = savedToken && /^[a-zA-Z0-9_-]{15,50}$/.test(savedToken);
+
+                // Priority: server token > localStorage token (if valid) > empty
+                // If server has token, always use that (don't trust localStorage which may be stale)
+                if (hasToken) {
                     el.dataset.actualToken = 'EXISTING_TOKEN';
                     el.dataset.originalToken = 'EXISTING_TOKEN';
+                    // Clear localStorage to prevent stale data
+                    localStorage.removeItem('plex_token_temp');
+                } else if (isValidToken) {
+                    // Only use localStorage token if it looks valid
+                    el.dataset.actualToken = savedToken;
+                    el.dataset.originalToken = savedToken;
                 } else {
                     el.dataset.actualToken = '';
                     el.dataset.originalToken = '';
+                    // Clear invalid localStorage data
+                    if (savedToken) {
+                        console.warn(
+                            '[Plex Init] Clearing invalid localStorage token:',
+                            savedToken.substring(0, 50)
+                        );
+                        localStorage.removeItem('plex_token_temp');
+                    }
                 }
 
                 if (hasToken) {
@@ -17318,7 +17397,11 @@
                     'input',
                     e => {
                         const val = e.target.value.trim();
-                        if (val && !/^[•]+$/.test(val)) {
+                        // Validate: not masked, looks like a token (alphanumeric, 15-30 chars typical)
+                        const isMasked = /^[•]+$/.test(val);
+                        const looksLikeToken = /^[a-zA-Z0-9_-]{15,50}$/.test(val);
+
+                        if (val && !isMasked && looksLikeToken) {
                             // User entered a real token, store it
                             el.dataset.actualToken = val;
                             // Save to localStorage for persistence across reloads
@@ -17330,6 +17413,11 @@
                                 '[Token Input] Saved to dataset, localStorage, and token store:',
                                 val.length,
                                 'chars'
+                            );
+                        } else if (val && !isMasked && !looksLikeToken) {
+                            console.warn(
+                                '[Token Input] Invalid token format ignored:',
+                                val.substring(0, 50)
                             );
                         }
                     },
@@ -17526,19 +17614,33 @@
                 const hasKey = !!env[jfKeyVar];
                 const el = getInput('jf.apikey');
 
-                // ALWAYS try to restore API key from localStorage first
+                // Try to restore API key from localStorage, but only if server doesn't already have one
                 const savedKey = localStorage.getItem('jf_apikey_temp');
 
-                // Priority: localStorage key > existing key marker > empty
-                if (savedKey && savedKey !== 'EXISTING_TOKEN') {
-                    el.dataset.actualToken = savedKey;
-                    el.dataset.originalToken = savedKey; // Track original for change detection
-                } else if (hasKey) {
+                // Validate localStorage token format (Jellyfin API keys are 32 chars alphanumeric)
+                const isValidToken = savedKey && /^[a-zA-Z0-9]{32}$/.test(savedKey);
+
+                // Priority: server token > localStorage token (if valid) > empty
+                if (hasKey) {
                     el.dataset.actualToken = 'EXISTING_TOKEN';
                     el.dataset.originalToken = 'EXISTING_TOKEN';
+                    // Clear localStorage to prevent stale data
+                    localStorage.removeItem('jf_apikey_temp');
+                } else if (isValidToken) {
+                    // Only use localStorage token if it looks valid
+                    el.dataset.actualToken = savedKey;
+                    el.dataset.originalToken = savedKey;
                 } else {
                     el.dataset.actualToken = '';
                     el.dataset.originalToken = '';
+                    // Clear invalid localStorage data
+                    if (savedKey) {
+                        console.warn(
+                            '[Jellyfin Init] Clearing invalid localStorage token:',
+                            savedKey.substring(0, 50)
+                        );
+                        localStorage.removeItem('jf_apikey_temp');
+                    }
                 }
 
                 if (hasKey) {
@@ -17558,7 +17660,11 @@
                     'input',
                     e => {
                         const val = e.target.value.trim();
-                        if (val && !/^[•]+$/.test(val)) {
+                        // Validate: not masked, looks like a Jellyfin API key (32 chars alphanumeric)
+                        const isMasked = /^[•]+$/.test(val);
+                        const looksLikeToken = /^[a-zA-Z0-9]{32}$/.test(val);
+
+                        if (val && !isMasked && looksLikeToken) {
                             el.dataset.actualToken = val;
                             localStorage.setItem('jf_apikey_temp', val);
                             // Also update the global token store immediately
@@ -17568,6 +17674,11 @@
                                 '[Jellyfin Input] Saved to dataset, localStorage, and token store:',
                                 val.length,
                                 'chars'
+                            );
+                        } else if (val && !isMasked && !looksLikeToken) {
+                            console.warn(
+                                '[Jellyfin Input] Invalid API key format ignored:',
+                                val.substring(0, 50)
                             );
                         }
                     },
@@ -17952,7 +18063,9 @@
                 const pwdEl = getInput('romm.password');
                 if (pwdEl) {
                     const savedPwd = localStorage.getItem('romm_password_temp');
-                    // Priority: localStorage password > existing password marker > empty
+                    const serverHasPassword = !!romm.password; // Server sends boolean indicator
+
+                    // Priority: valid localStorage > server password marker > empty
                     if (savedPwd && savedPwd !== 'EXISTING_PASSWORD') {
                         pwdEl.dataset.actualToken = savedPwd;
                         pwdEl.dataset.originalToken = savedPwd; // Track original for change detection
@@ -17961,15 +18074,17 @@
                             savedPwd.length,
                             'chars'
                         );
-                    } else if (romm.password || romm.url) {
+                    } else if (serverHasPassword) {
+                        // Server has password but not in localStorage (different browser/cleared storage)
                         pwdEl.dataset.actualToken = 'EXISTING_PASSWORD';
                         pwdEl.dataset.originalToken = 'EXISTING_PASSWORD';
+                        console.log('[RomM Init] ✓ Using server password (not in localStorage)');
                     } else {
                         pwdEl.dataset.actualToken = '';
                         pwdEl.dataset.originalToken = '';
                     }
 
-                    if (romm.password || (romm.url && romm.username)) {
+                    if (serverHasPassword || savedPwd) {
                         pwdEl.value = '••••••••••••';
                         pwdEl.setAttribute('placeholder', 'Password already set');
                         pwdEl.classList.add('token-masked');
@@ -19523,16 +19638,30 @@
                 const j = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(j?.error || 'Connection failed');
 
-                // SUCCESS! Save the token to dataset, localStorage, and originalToken
+                // SUCCESS! Save the token to dataset (and localStorage only if new)
                 if (token && tokenInput) {
                     tokenInput.dataset.actualToken = token;
-                    tokenInput.dataset.originalToken = token;
-                    localStorage.setItem('plex_token_temp', token);
-                    console.log(
-                        '[Plex Test] Success! Token saved to dataset and localStorage:',
-                        token.length,
-                        'chars'
-                    );
+                    // Only update originalToken if it wasn't set before (first-time configuration)
+                    // This prevents marking existing tokens as "changed" after test connection
+                    const isFirstTime =
+                        !tokenInput.dataset.originalToken ||
+                        tokenInput.dataset.originalToken === '';
+                    if (isFirstTime) {
+                        tokenInput.dataset.originalToken = token;
+                        // Only save to localStorage if this is first-time setup
+                        localStorage.setItem('plex_token_temp', token);
+                        console.log(
+                            '[Plex Test] Success! New token saved to dataset and localStorage:',
+                            token.length,
+                            'chars'
+                        );
+                    } else {
+                        console.log(
+                            '[Plex Test] Success! Existing token verified:',
+                            token.length,
+                            'chars (not saved to localStorage)'
+                        );
+                    }
                 }
 
                 window.notify?.toast({
@@ -19608,15 +19737,29 @@
                 const j = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(j?.error || 'Connection failed');
 
-                // SUCCESS! Save the API key to dataset and localStorage
+                // SUCCESS! Save the API key to dataset (and localStorage only if new)
                 if (apiKey && apiKeyInput) {
                     apiKeyInput.dataset.actualToken = apiKey;
-                    localStorage.setItem('jf_apikey_temp', apiKey);
-                    console.log(
-                        '[Jellyfin Test] Success! Key saved to dataset and localStorage:',
-                        apiKey.length,
-                        'chars'
-                    );
+                    // Only update originalToken if it wasn't set before (first-time configuration)
+                    const isFirstTime =
+                        !apiKeyInput.dataset.originalToken ||
+                        apiKeyInput.dataset.originalToken === '';
+                    if (isFirstTime) {
+                        apiKeyInput.dataset.originalToken = apiKey;
+                        // Only save to localStorage if this is first-time setup
+                        localStorage.setItem('jf_apikey_temp', apiKey);
+                        console.log(
+                            '[Jellyfin Test] Success! New key saved to dataset and localStorage:',
+                            apiKey.length,
+                            'chars'
+                        );
+                    } else {
+                        console.log(
+                            '[Jellyfin Test] Success! Existing key verified:',
+                            apiKey.length,
+                            'chars (not saved to localStorage)'
+                        );
+                    }
                 }
 
                 window.notify?.toast({
@@ -19753,30 +19896,20 @@
             const url = getInput('romm.url')?.value?.trim();
             const username = getInput('romm.username')?.value?.trim();
             const passwordEl = getInput('romm.password');
-            let password = passwordEl?.dataset?.actualToken || passwordEl?.value?.trim();
+            const password = passwordEl?.dataset?.actualToken || passwordEl?.value?.trim();
 
-            // If password is placeholder, try to get from localStorage (like Plex token)
-            if (password === 'EXISTING_PASSWORD') {
-                const savedPassword = localStorage.getItem('romm_password_temp');
-                if (savedPassword && savedPassword !== 'EXISTING_PASSWORD') {
-                    password = savedPassword;
-                    console.log('[RomM] Using password from localStorage for auto-fetch');
-                } else {
-                    // Silently skip auto-fetch when password is not available
-                    // (user can manually click "Fetch Platforms" button)
-                    return;
-                }
-            }
-
-            // Only auto-fetch if credentials are configured
-            if (url && username && password) {
-                // Auto-fetching platforms
+            // Auto-fetch if URL and username are configured
+            // Backend will use config password if not provided in request
+            if (url && username) {
+                console.log(
+                    '[RomM] Auto-fetching platforms (backend will use config password if needed)'
+                );
                 fetchRommPlatforms().catch(() => {
                     // Silent fail on auto-fetch
                     console.log('[RomM] Auto-fetch failed silently');
                 });
             } else {
-                console.log('[RomM] Auto-fetch skipped: missing credentials');
+                console.log('[RomM] Auto-fetch skipped: missing URL or username');
             }
         };
 
@@ -20043,7 +20176,8 @@
                     ? [...currentCfg.mediaServers]
                     : [];
                 const plexIdx = servers.findIndex(s => s.type === 'plex');
-                const plex = plexIdx >= 0 ? { ...servers[plexIdx] } : { type: 'plex' };
+                const plex =
+                    plexIdx >= 0 ? { ...servers[plexIdx] } : { type: 'plex', name: 'Plex' };
                 // Update Plex fields
                 plex.enabled = !!getInput('plex.enabled')?.checked;
                 plex.recentlyAddedOnly = !!getInput('plex.recentOnlyHeader')?.checked;
@@ -20077,12 +20211,13 @@
                 };
                 const plexTokenEl = getInput('plex.token');
                 const plexToken = plexTokenEl?.value?.trim();
-                // Try to get token from data attribute, then localStorage, then field value
+                // Try to get token from data attribute, then field value, then token store
+                // Don't use localStorage directly - it's only used at page load
                 const actualToken =
                     plexTokenEl?.dataset?.actualToken ||
                     plexToken ||
                     window.__tokenStore?.plexToken ||
-                    localStorage.getItem('plex_token_temp');
+                    '';
 
                 // DEBUG: Log token state for troubleshooting
                 console.log(
@@ -20101,12 +20236,19 @@
                 const isMaskedToken =
                     actualToken && (/^[•]+$/.test(actualToken) || actualToken === 'EXISTING_TOKEN');
                 console.log('[PLEX SAVE DEBUG] Is masked token:', isMaskedToken);
+
+                // Check if token has actually changed from original
+                const originalToken = plexTokenEl?.dataset?.originalToken;
+                const tokenChanged = actualToken && actualToken !== originalToken;
+                console.log('[PLEX SAVE DEBUG] Original token exists:', !!originalToken);
+                console.log('[PLEX SAVE DEBUG] Token changed:', tokenChanged);
                 console.log(
                     '[PLEX SAVE DEBUG] Will send token:',
-                    !!(actualToken && !isMaskedToken)
+                    !!(actualToken && !isMaskedToken && tokenChanged)
                 );
-                // Only update token if user entered a new value (not empty, not masked)
-                if (actualToken && !isMaskedToken) {
+
+                // Only update token if user entered a NEW value (not empty, not masked, and actually changed)
+                if (actualToken && !isMaskedToken && tokenChanged) {
                     setIfProvided(plex.tokenEnvVar, actualToken);
                     // Save token to localStorage so it persists after page reload
                     localStorage.setItem('plex_token_temp', actualToken);
@@ -20137,6 +20279,18 @@
                 console.log('[PLEX SAVE DEBUG] envPatch keys:', Object.keys(envPatch));
                 console.log('[PLEX SAVE DEBUG] envPatch:', envPatch);
                 await saveConfigPatch({ mediaServers: servers }, envPatch);
+
+                // After successful save, clear localStorage token and update originalToken marker
+                if (Object.keys(envPatch).length > 0) {
+                    // Token was saved to server, clear localStorage and mark as saved
+                    localStorage.removeItem('plex_token_temp');
+                    if (plexTokenEl) {
+                        plexTokenEl.dataset.actualToken = 'EXISTING_TOKEN';
+                        plexTokenEl.dataset.originalToken = 'EXISTING_TOKEN';
+                    }
+                    console.log('[PLEX SAVE DEBUG] Token saved to server, localStorage cleared');
+                }
+
                 window.notify?.toast({
                     type: 'success',
                     title: 'Saved',
@@ -20228,7 +20382,8 @@
                     ? [...currentCfg.mediaServers]
                     : [];
                 const jfIdx = servers.findIndex(s => s.type === 'jellyfin');
-                const jf = jfIdx >= 0 ? { ...servers[jfIdx] } : { type: 'jellyfin' };
+                const jf =
+                    jfIdx >= 0 ? { ...servers[jfIdx] } : { type: 'jellyfin', name: 'Jellyfin' };
                 jf.enabled = !!getInput('jf.enabled')?.checked;
                 jf.recentlyAddedOnly = !!getInput('jf.recentOnlyHeader')?.checked;
                 jf.recentlyAddedDays = toInt(getInput('jf.recentDays')?.value) ?? 30;
@@ -20253,12 +20408,13 @@
                         envPatch[key] = String(val).trim();
                 };
                 // Get API key from dataset first (actual key), fallback to input value
+                // Don't use localStorage directly - it's only used at page load
                 const jfKeyInput = getInput('jf.apikey');
                 const jfKey =
                     jfKeyInput?.dataset?.actualToken ||
                     jfKeyInput?.value?.trim() ||
                     window.__tokenStore?.jfApiKey ||
-                    localStorage.getItem('jf_apikey_temp');
+                    '';
                 // Check if it's a masked value (all bullet points) or EXISTING_TOKEN marker
                 const isMaskedKey = jfKey && (/^[•]+$/.test(jfKey) || jfKey === 'EXISTING_TOKEN');
                 // Get original token value that was set when page loaded
@@ -20270,9 +20426,7 @@
 
                 if (shouldUpdateEnv) {
                     setIfProvided(jf.tokenEnvVar, jfKey);
-                    localStorage.setItem('jf_apikey_temp', jfKey);
-                    // Update original token to new value
-                    if (jfKeyInput) jfKeyInput.dataset.originalToken = jfKey;
+                    // Don't save to localStorage - it will be set to EXISTING_TOKEN after successful save
                     console.log(
                         '[Jellyfin Save] Key changed - updating env:',
                         jfKey.length,
@@ -20308,6 +20462,18 @@
                 const jfPortRaw = getInput('jf.port')?.value?.trim();
                 if (jfPortRaw && !Number.isNaN(Number(jfPortRaw))) jf.port = Number(jfPortRaw);
                 await saveConfigPatch({ mediaServers: servers }, envPatch);
+
+                // After successful save, clear localStorage token and update originalToken marker
+                if (Object.keys(envPatch).some(k => k === jf.tokenEnvVar)) {
+                    // Token was saved to server, clear localStorage and mark as saved
+                    localStorage.removeItem('jf_apikey_temp');
+                    if (jfKeyInput) {
+                        jfKeyInput.dataset.actualToken = 'EXISTING_TOKEN';
+                        jfKeyInput.dataset.originalToken = 'EXISTING_TOKEN';
+                    }
+                    console.log('[Jellyfin Save] Token saved to server, localStorage cleared');
+                }
+
                 window.notify?.toast({
                     type: 'success',
                     title: 'Saved',

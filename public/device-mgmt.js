@@ -1188,27 +1188,31 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 
         const btn = document.createElement('button');
         btn.id = 'pr-setup-btn';
-        btn.innerHTML = '<i class="fas fa-cog"></i>';
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 18px; height: 18px;">
+            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.47.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </svg>`;
         btn.title = 'Set up device management';
         btn.style.cssText = `
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background-color: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(5px);
-            border: none;
-            color: rgba(255, 255, 255, 0.7);
-            cursor: pointer;
-            padding: 6px 10px;
-            border-radius: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s, color 0.2s;
-            z-index: 9999;
-            min-width: 36px;
-            min-height: 36px;
-            font-size: 14px;
+            position: fixed !important;
+            top: 10px !important;
+            left: 10px !important;
+            background-color: rgba(0, 0, 0, 0.3) !important;
+            backdrop-filter: blur(5px) !important;
+            border: none !important;
+            color: rgba(255, 255, 255, 0.7) !important;
+            cursor: pointer !important;
+            padding: 8px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: background-color 0.2s, color 0.2s !important;
+            z-index: 9999999 !important;
+            width: 40px !important;
+            height: 40px !important;
+            pointer-events: auto !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         `;
 
         btn.addEventListener('mouseenter', () => {
@@ -1249,6 +1253,25 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         });
 
         document.body.appendChild(btn);
+
+        // Ensure button stays on top after wallart grid is created
+        // Re-append after a delay to ensure it's above any dynamically created elements
+        setTimeout(() => {
+            if (btn.parentElement && document.getElementById('pr-setup-btn')) {
+                document.body.appendChild(btn); // Re-append to move to end (top of z-order)
+            }
+        }, 1000);
+
+        // Watch for the button being removed or hidden
+        const observer = new MutationObserver(() => {
+            if (!document.getElementById('pr-setup-btn') || !btn.parentElement) {
+                // Button was removed, add it back
+                if (document.body) {
+                    document.body.appendChild(btn);
+                }
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: false });
     }
 
     // --- WebSocket live control with reliability (Q2 2026 optimization) ---
@@ -1618,11 +1641,40 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                         msg.payload.cinemaMode !== undefined);
 
                                 // Also skip reload if ONLY wallartMode.enabled is changing (mode flag)
+                                // But we still need to navigate if mode actually changed
                                 const isWallartModeToggle =
                                     Object.keys(msg.payload).length === 1 &&
                                     msg.payload.wallartMode &&
                                     Object.keys(msg.payload.wallartMode).length === 1 &&
                                     msg.payload.wallartMode.enabled !== undefined;
+
+                                // If wallartMode toggled, check if we need to navigate
+                                if (isWallartModeToggle) {
+                                    const newWallartEnabled = msg.payload.wallartMode.enabled;
+                                    const newMode = window.appConfig?.cinemaMode
+                                        ? 'cinema'
+                                        : newWallartEnabled
+                                          ? 'wallart'
+                                          : 'screensaver';
+                                    const curr = currentMode();
+                                    if (curr !== newMode && window.PosterramaCore?.navigateToMode) {
+                                        liveDbg(
+                                            '[Live] wallartMode toggled, navigating to new mode',
+                                            {
+                                                from: curr,
+                                                to: newMode,
+                                            }
+                                        );
+                                        try {
+                                            localStorage.setItem(
+                                                'pr_just_navigated_mode',
+                                                Date.now().toString()
+                                            );
+                                        } catch (_) {}
+                                        window.PosterramaCore.navigateToMode(newMode);
+                                        return;
+                                    }
+                                }
 
                                 if (!isModeOnlyChange && !isWallartModeToggle) {
                                     liveDbg('[Live] settings.apply triggering debounced reload', {

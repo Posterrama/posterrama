@@ -39,7 +39,26 @@
                 const poster = $('poster');
                 if (!poster) return;
                 if (url) {
-                    poster.style.backgroundImage = `url('${url}')`;
+                    // PROGRESSIVE LOADING: Show thumbnail first for instant feedback
+                    const thumbUrl = url.includes('?')
+                        ? `${url}&quality=30&width=400`
+                        : `${url}?quality=30&width=400`;
+
+                    poster.style.backgroundImage = `url('${thumbUrl}')`;
+                    poster.style.filter = 'blur(3px)';
+                    poster.style.transition = 'filter 0.5s ease-out';
+
+                    // Load full quality in background
+                    const fullImg = new Image();
+                    fullImg.onload = () => {
+                        poster.style.backgroundImage = `url('${url}')`;
+                        poster.style.filter = 'none';
+                    };
+                    fullImg.onerror = () => {
+                        // Keep thumbnail, remove blur
+                        poster.style.filter = 'none';
+                    };
+                    fullImg.src = url;
                 } else {
                     poster.style.backgroundImage = '';
                 }
@@ -158,15 +177,32 @@
                     if (
                         allowRt &&
                         item?.rottenTomatoes &&
-                        (item.rottenTomatoes.score || item.rottenTomatoes.icon) &&
+                        (item.rottenTomatoes.score ||
+                            item.rottenTomatoes.icon ||
+                            item.rottenTomatoes.rating) &&
                         badge &&
                         _rtIcon
                     ) {
+                        // Backwards compatibility: fallback to 'rating' if 'score' is missing (old Jellyfin exports)
+                        const score = Number(
+                            item.rottenTomatoes.score || item.rottenTomatoes.rating || 0
+                        );
+
+                        // Calculate icon from score if missing (old Jellyfin exports)
+                        let icon = String(item.rottenTomatoes.icon || '').toLowerCase();
+                        if (!icon && score > 0) {
+                            if (score >= 85) {
+                                icon = 'certified-fresh';
+                            } else if (score >= 60) {
+                                icon = 'fresh';
+                            } else {
+                                icon = 'rotten';
+                            }
+                        }
+
                         // Optional minimum score filter
                         const min = Number(window.appConfig?.rottenTomatoesMinimumScore || 0);
-                        const score = Number(item.rottenTomatoes.score || 0);
                         if (!Number.isFinite(min) || score >= min) {
-                            const icon = String(item.rottenTomatoes.icon || '').toLowerCase();
                             let iconUrl = '';
                             switch (icon) {
                                 case 'fresh':

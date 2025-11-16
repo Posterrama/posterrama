@@ -1578,7 +1578,7 @@
                             position: fixed !important;
                             width: ${layoutInfo.columns * layoutInfo.actualPosterWidth}px !important;
                             height: ${layoutInfo.totalGridHeight}px !important;
-                            z-index: 999999 !important;
+                            z-index: 100 !important;
                             background: transparent !important;
                             display: grid !important;
                             grid-template-columns: repeat(${layoutInfo.columns}, ${layoutInfo.actualPosterWidth}px) !important;
@@ -1590,6 +1590,7 @@
                             overflow: visible !important;
                             opacity: 1 !important;
                             align-content: start !important;
+                            pointer-events: none !important;
                         `;
                         grid.style.transform = `translate(${layoutInfo.gridLeft}px, ${layoutInfo.gridTop}px)`;
                         // datasets consumed by refresh/update logic
@@ -1628,6 +1629,7 @@
                             width: 100%;
                             height: 100%;
                             position: relative;
+                            pointer-events: auto;
                             ${isMobile ? 'will-change: opacity;' : ''}
                         `;
 
@@ -1639,17 +1641,36 @@
                             isMusicItem && displayStyle === 'artist-cards' && item.backdropUrl;
                         const imageUrl = useArtistPhoto ? item.backdropUrl : item.posterUrl;
 
-                        // Eagerly set src to avoid intersection/lazy race on initial grid
-                        img.src =
-                            imageUrl ||
-                            'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-                        // Optionally wire lazy helper for future updates
-                        try {
-                            if (imageUrl && window.makeLazy) {
-                                window.makeLazy(img, imageUrl);
-                            }
-                        } catch (_) {
-                            /* noop */
+                        // PROGRESSIVE LOADING: Show low-quality thumbnail first, then upgrade to full quality
+                        if (imageUrl) {
+                            // Extract base URL and add quality parameter for thumbnail
+                            const thumbUrl = imageUrl.includes('?')
+                                ? `${imageUrl}&quality=30&width=200`
+                                : `${imageUrl}?quality=30&width=200`;
+
+                            // Show thumbnail immediately
+                            img.src = thumbUrl;
+                            img.style.filter = 'blur(2px)';
+                            img.style.transition = 'filter 0.3s ease-out';
+
+                            // Load full quality in background
+                            const fullImg = new Image();
+                            fullImg.onload = () => {
+                                img.src = imageUrl;
+                                img.style.filter = 'none';
+                            };
+                            fullImg.onerror = () => {
+                                // Thumbnail is better than nothing, remove blur anyway
+                                img.style.filter = 'none';
+                            };
+                            // Stagger full quality loading: first 12 immediately, rest delayed
+                            const isFirstBatch = index < 12;
+                            const delay = isFirstBatch ? 0 : (index - 12) * 50; // First 12 instant, rest 50ms apart
+                            setTimeout(() => {
+                                fullImg.src = imageUrl;
+                            }, delay);
+                        } else {
+                            img.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
                         }
                         img.alt = item.title || 'Movie Poster';
 
@@ -1759,16 +1780,6 @@
                             }
                         }
 
-                        // Hide the global loader when first tile is created
-                        try {
-                            const loader = document.getElementById('loader');
-                            if (loader) {
-                                loader.style.opacity = '0';
-                                loader.style.display = 'none';
-                            }
-                        } catch (_) {
-                            /* noop */
-                        }
                         return posterItem;
                     } catch (err) {
                         // createPosterElement failed; throw error for debugging

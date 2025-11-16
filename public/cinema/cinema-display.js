@@ -386,16 +386,30 @@
             };
         }
 
-        // Hide loader when content is ready
-        const loader = document.getElementById('loader');
-        if (loader) {
-            loader.style.display = 'none';
-        }
-
-        // Update poster
+        // PROGRESSIVE LOADING: Show thumbnail first, then upgrade to full quality
         const posterEl = document.getElementById('poster');
         if (posterEl && media && media.posterUrl) {
-            posterEl.style.backgroundImage = `url('${media.posterUrl}')`;
+            const url = media.posterUrl;
+            // Show low-quality thumbnail immediately
+            const thumbUrl = url.includes('?')
+                ? `${url}&quality=30&width=400`
+                : `${url}?quality=30&width=400`;
+
+            posterEl.style.backgroundImage = `url('${thumbUrl}')`;
+            posterEl.style.filter = 'blur(3px)';
+            posterEl.style.transition = 'filter 0.5s ease-out';
+
+            // Load full quality in background
+            const fullImg = new Image();
+            fullImg.onload = () => {
+                posterEl.style.backgroundImage = `url('${url}')`;
+                posterEl.style.filter = 'none';
+            };
+            fullImg.onerror = () => {
+                // Keep thumbnail, just remove blur
+                posterEl.style.filter = 'none';
+            };
+            fullImg.src = url;
         }
 
         // Map Plex/Jellyfin/TMDB properties to cinema format

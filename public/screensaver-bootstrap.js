@@ -166,17 +166,6 @@ export async function startScreensaver() {
             typeof window.PosterramaScreensaver.start === 'function'
         ) {
             window.PosterramaScreensaver.start();
-
-            // Hide loader
-            try {
-                const loader = document.getElementById('loader');
-                if (loader) {
-                    loader.style.opacity = '0';
-                    loader.style.display = 'none';
-                }
-            } catch (_) {
-                // Loader hiding is optional
-            }
         }
     } catch (_) {
         // Silently fail - screensaver will show error state

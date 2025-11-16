@@ -90,7 +90,7 @@
         <script src="/debug-logger.js"></script>
 
         <!-- Critical CSS inline for instant FCP (~1KB) -->
-        <style>@keyframes spin{to{transform:rotate(360deg)}}*{box-sizing:border-box}#loader,#poster,body,html{background:linear-gradient(135deg,#1a1a1a 0,#2a2a2a 100%)}*,body,html{margin:0;padding:0}body,html{width:100vw;height:100vh;overflow:hidden;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e2e8f0;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.is-hidden{display:none!important}#loader,#poster{width:100%;height:100%}#loader{position:fixed;top:0;left:0;display:flex;justify-content:center;align-items:center;z-index:9999;opacity:1;transition:opacity .3s ease-out}.poster-loader{width:60px;height:60px;border:4px solid rgba(102,126,234,.2);border-top-color:#667eea;border-radius:50%;animation:spin 1s linear infinite}#poster{background-size:cover;background-position:center;background-repeat:no-repeat;position:relative}#error-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(239,68,68,.95);color:#fff;padding:1rem 1.5rem;border-radius:8px;z-index:10000;max-width:90%;text-align:center}</style>
+        <style>*{box-sizing:border-box}body,html{background:linear-gradient(135deg,#1a1a1a 0,#2a2a2a 100%)}*,body,html{margin:0;padding:0}body,html{width:100vw;height:100vh;overflow:hidden;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e2e8f0;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.is-hidden{display:none!important}#poster{width:100%;height:100%;background-size:cover;background-position:center;background-repeat:no-repeat;position:relative}#error-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(239,68,68,.95);color:#fff;padding:1rem 1.5rem;border-radius:8px;z-index:10000;max-width:90%;text-align:center}</style>
 
         <!-- Preload non-critical CSS (deferred) -->
         <link rel="preload" href="style.css?v=20250828a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
@@ -235,17 +235,23 @@
 
     <!-- Mode-based redirect: automatically redirect to mode-specific page -->
     <script type="module">
-        import { checkModeRedirect, loadPromoOverlayIfEnabled } from './mode-redirect.js';
+        import { checkModeRedirect, loadPromoOverlayIfEnabled, startPeriodicModeCheck } from './mode-redirect.js';
         
         // Check if we should redirect to another mode
         await checkModeRedirect('wallart', '__wallartModeVerified');
+        
+        // Mode verified - set hint to prevent further checks
+        window.MODE_HINT = 'wallart';
+        
+        // Start periodic mode checking (auto-navigate on config changes)
+        startPeriodicModeCheck('wallart');
         
         // Load promo overlay if enabled
         await loadPromoOverlayIfEnabled();
     </script>
 
     <script defer src="lazy-loading.js?v=20250825a"></script>
-    <script defer src="device-mgmt.js?v=20250901a"></script>
+    <script defer src="device-mgmt.js?v=20250825a"></script>
     <script defer src="/core.js?v={{ASSET_VERSION}}"></script>
     <script defer src="/wallart/artist-cards.js?v={{ASSET_VERSION}}"></script>
     <script defer src="/wallart/wallart-display.js?v={{ASSET_VERSION}}"></script>
@@ -444,7 +450,6 @@
                     if (window.PosterramaWallart && typeof window.PosterramaWallart.start === 'function') {
                         window.PosterramaWallart.start(window.wallartConfig || {});
                         try { window.logger && window.logger.debug && window.logger.debug('[WALLART] module start invoked'); } catch(_) {}
-                        try { const loader = document.getElementById('loader'); if (loader) { loader.style.opacity='0'; loader.style.display='none'; } } catch(_) {}
                     }
                     window.debugLog && window.debugLog('WALLART_BOOTSTRAP_COMPLETE', {});
                 } catch (e) {

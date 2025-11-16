@@ -145,6 +145,7 @@ module.exports = function createConfigPublicRouter({
 
             // Base public config
             // Ensure wallartMode has required defaults even if config.wallartMode exists without them
+            // Note: Config class now proxies all config.json properties directly via getters
             const wallartDefaults = {
                 enabled: false,
                 // legacy list/grid parameters

@@ -128,11 +128,6 @@
                         el.textContent = 'No media available';
                         el.classList.remove('is-hidden');
                     }
-                    const loader = document.getElementById('loader');
-                    if (loader) {
-                        loader.style.opacity = '0';
-                        loader.style.display = 'none';
-                    }
                 } catch (_) {
                     // ignore: cleanup failure is non-critical
                 }

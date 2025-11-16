@@ -2345,6 +2345,7 @@ const adminConfigRouter = createAdminConfigRouter({
     writeEnvFile,
     restartPM2ForEnvUpdate,
     wsHub,
+    apiCache,
     ApiError,
     asyncHandler,
     isAuthenticated,
@@ -4215,12 +4216,17 @@ app.post(
         const newPasswordHash = await bcrypt.hash(newPassword, 10);
         await writeEnvFile({ ADMIN_PASSWORD_HASH: newPasswordHash });
 
-        // Restart PM2 to clear environment cache
-        restartPM2ForEnvUpdate('password changed');
+        // Update in-memory cache immediately - no restart needed
+        process.env.ADMIN_PASSWORD_HASH = newPasswordHash;
+        // Also update the env module cache
+        const envModule = require('./config/environment');
+        if (envModule && envModule.auth) {
+            envModule.auth.adminPasswordHash = newPasswordHash;
+        }
 
         if (isDebug)
             logger.debug(
-                '[Admin API] Password changed successfully. Invalidating current session for security.'
+                '[Admin API] Password changed successfully (no restart required). Invalidating current session for security.'
             );
 
         // For security, destroy the current session after a password change,

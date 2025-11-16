@@ -435,7 +435,7 @@ module.exports = function createAdminLibrariesRouter({
                 const testServerConfig = {
                     hostname,
                     port,
-                    tokenEnvVar: plexServerConfig.tokenEnvVar,
+                    tokenEnvVar: plexServerConfig?.tokenEnvVar,
                 };
 
                 const genres = await getPlexGenres(testServerConfig);
@@ -530,7 +530,7 @@ module.exports = function createAdminLibrariesRouter({
                 const testServerConfig = {
                     hostname,
                     port,
-                    tokenEnvVar: plexServerConfig.tokenEnvVar,
+                    tokenEnvVar: plexServerConfig?.tokenEnvVar,
                 };
 
                 const genresWithCounts = await getPlexGenresWithCounts(testServerConfig);
@@ -758,8 +758,8 @@ module.exports = function createAdminLibrariesRouter({
             // Fallback to config libraries if none provided or empty
             if (!selectedLibraries || selectedLibraries.length === 0) {
                 selectedLibraries = [
-                    ...(jellyfinServerConfig.movieLibraryNames || []),
-                    ...(jellyfinServerConfig.showLibraryNames || []),
+                    ...(jellyfinServerConfig?.movieLibraryNames || []),
+                    ...(jellyfinServerConfig?.showLibraryNames || []),
                 ];
             }
 
@@ -862,9 +862,11 @@ module.exports = function createAdminLibrariesRouter({
                 }
 
                 const client = await createJellyfinClient({
-                    hostname: jellyfinServerConfig.hostname.trim().replace(/^https?:\/\//, ''),
-                    port: jellyfinServerConfig.port,
-                    apiKey: process.env[jellyfinServerConfig.tokenEnvVar] || '',
+                    hostname: (jellyfinServerConfig?.hostname || '')
+                        .trim()
+                        .replace(/^https?:\/\//, ''),
+                    port: jellyfinServerConfig?.port,
+                    apiKey: process.env[jellyfinServerConfig?.tokenEnvVar] || '',
                     timeout: config.getTimeout('externalApiTestConnection'),
                     insecureHttps: process.env.JELLYFIN_INSECURE_HTTPS === 'true',
                     retryMaxRetries: 0,

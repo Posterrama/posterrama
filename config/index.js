@@ -2,11 +2,14 @@ const { validate } = require('./validate-env');
 
 class Config {
     constructor() {
-        this.config = require('../config.json');
+        // Set env first to avoid circular dependency issues
         this.env = process.env;
 
         // Validate environment variables
         validate();
+
+        // Then load config
+        this.loadConfig();
 
         // Set default values
         this.defaults = {
@@ -52,6 +55,39 @@ class Config {
         };
     }
 
+    /**
+     * Load or reload config.json, bypassing Node's require cache
+     */
+    loadConfig() {
+        const configPath = require.resolve('../config.json');
+        delete require.cache[configPath];
+        this.config = require('../config.json');
+
+        // CRITICAL FIX: Copy all config.json properties to private backing fields
+        // This ensures config.wallartMode, config.mediaServers etc. work correctly
+        // without needing to access config.config.xxx
+        if (this.config && typeof this.config === 'object') {
+            // Store direct references to avoid double-nesting issues
+            this._wallartMode = this.config.wallartMode;
+            this._cinemaMode = this.config.cinemaMode;
+            this._cinemaOrientation = this.config.cinemaOrientation;
+            this._cinema = this.config.cinema;
+            this._mediaServers = this.config.mediaServers;
+            this._localDirectory = this.config.localDirectory;
+            this._tmdbSource = this.config.tmdbSource;
+            this._streamingSources = this.config.streamingSources;
+            this._mqtt = this.config.mqtt;
+        }
+    }
+
+    /**
+     * Reload configuration from disk (for runtime updates)
+     */
+    reload() {
+        this.loadConfig();
+        this.env = process.env;
+    }
+
     get(key) {
         return this.env[key] || this.config[key] || this.defaults[key];
     }
@@ -81,7 +117,12 @@ class Config {
 
     // Media server settings
     get mediaServers() {
-        return this.config.mediaServers || [];
+        // Check both direct property (from proxy) and config object
+        return this._mediaServers || this.config?.mediaServers || [];
+    }
+    set mediaServers(value) {
+        this._mediaServers = value;
+        if (this.config) this.config.mediaServers = value;
     }
 
     get enabledMediaServers() {
@@ -90,22 +131,74 @@ class Config {
 
     // Local directory settings
     get localDirectory() {
-        return this.config.localDirectory || null;
+        return this._localDirectory || this.config?.localDirectory || null;
+    }
+    set localDirectory(value) {
+        this._localDirectory = value;
+        if (this.config) this.config.localDirectory = value;
     }
 
     // TMDB settings
     get tmdbSource() {
-        return this.config.tmdbSource || null;
+        return this._tmdbSource || this.config?.tmdbSource || null;
+    }
+    set tmdbSource(value) {
+        this._tmdbSource = value;
+        if (this.config) this.config.tmdbSource = value;
     }
 
     // Streaming sources
     get streamingSources() {
-        return this.config.streamingSources || [];
+        return this._streamingSources || this.config?.streamingSources || [];
+    }
+    set streamingSources(value) {
+        this._streamingSources = value;
+        if (this.config) this.config.streamingSources = value;
     }
 
     // MQTT settings
     get mqtt() {
-        return this.config.mqtt || null;
+        return this._mqtt || this.config?.mqtt || null;
+    }
+    set mqtt(value) {
+        this._mqtt = value;
+        if (this.config) this.config.mqtt = value;
+    }
+
+    // Wallart mode settings
+    get wallartMode() {
+        return this._wallartMode || this.config?.wallartMode || { enabled: false };
+    }
+    set wallartMode(value) {
+        this._wallartMode = value;
+        if (this.config) this.config.wallartMode = value;
+    }
+
+    // Cinema mode settings
+    get cinemaMode() {
+        return this._cinemaMode !== undefined ? this._cinemaMode : this.config?.cinemaMode || false;
+    }
+    set cinemaMode(value) {
+        this._cinemaMode = value;
+        if (this.config) this.config.cinemaMode = value;
+    }
+
+    // Cinema orientation
+    get cinemaOrientation() {
+        return this._cinemaOrientation || this.config?.cinemaOrientation || 'auto';
+    }
+    set cinemaOrientation(value) {
+        this._cinemaOrientation = value;
+        if (this.config) this.config.cinemaOrientation = value;
+    }
+
+    // Cinema config object
+    get cinema() {
+        return this._cinema || this.config?.cinema || {};
+    }
+    set cinema(value) {
+        this._cinema = value;
+        if (this.config) this.config.cinema = value;
     }
 
     // Security settings
