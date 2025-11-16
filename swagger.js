@@ -55,24 +55,6 @@ function generateSwaggerSpec(req = null) {
                     url: primaryServerUrl,
                     description: primaryServerDescription,
                 },
-                {
-                    url: 'http://localhost:4000',
-                    description: 'Development server (default port 4000)',
-                },
-                {
-                    url: 'http://{host}:{port}',
-                    description: 'Custom deployment',
-                    variables: {
-                        host: {
-                            default: 'localhost',
-                            description: 'Server hostname or IP address',
-                        },
-                        port: {
-                            default: '4000',
-                            description: 'Server port (configured via PORT env variable)',
-                        },
-                    },
-                },
             ],
             tags: [
                 {
