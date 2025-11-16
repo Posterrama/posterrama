@@ -123,6 +123,7 @@
         "swagger-jsdoc": "^6.2.8",
         "validator": "^13.15.23",
         "winston": "^3.18.3",
+        "winston-daily-rotate-file": "^5.0.0",
         "ws": "^8.18.0"
     },
     "devDependencies": {

@@ -223,6 +223,10 @@ module.exports = function createAdminConfigRouter({
      *       401:
      *         description: Unauthorized
      */
+    // Auto-backup throttling tracker (in-memory, resets on server restart)
+    let lastAutoBackupTime = 0;
+    const AUTO_BACKUP_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+
     router.post(
         '/api/admin/config',
         isAuthenticated,
@@ -331,6 +335,32 @@ module.exports = function createAdminConfigRouter({
                 logger.warn('[Admin API] Mode change detection failed:', e?.message || e);
             }
 
+            // Auto-backup on config save (if enabled and not throttled)
+            let autoBackupCreated = false;
+            try {
+                const backupsEnabled = mergedConfig.backups?.enabled ?? true;
+                const now = Date.now();
+                const throttled = now - lastAutoBackupTime < AUTO_BACKUP_THROTTLE_MS;
+
+                if (backupsEnabled && !throttled) {
+                    const configBackup = require('../utils/configBackup');
+                    await configBackup.createBackup({
+                        label: 'Auto-backup (config save)',
+                        note: 'Automatically created before config save',
+                    });
+                    lastAutoBackupTime = now;
+                    autoBackupCreated = true;
+                    logger.info('[Admin API] Auto-backup created before config save');
+                } else if (throttled) {
+                    const timeUntilNext = Math.ceil(
+                        (AUTO_BACKUP_THROTTLE_MS - (now - lastAutoBackupTime)) / 1000
+                    );
+                    logger.debug(`[Admin API] Auto-backup throttled (${timeUntilNext}s remaining)`);
+                }
+            } catch (err) {
+                logger.warn('[Admin API] Auto-backup failed (non-critical):', err.message);
+            }
+
             // Write config.json
             await writeConfig(mergedConfig, config);
             logger.info('[Admin API] Successfully wrote config.json');
@@ -387,6 +417,7 @@ module.exports = function createAdminConfigRouter({
                 message: 'Configuration saved successfully',
                 modeChanged: !!broadcastModeChange,
                 targetMode: broadcastModeChange || undefined,
+                autoBackupCreated,
             });
 
             // Restart PM2 after response if environment variables changed

@@ -4,6 +4,7 @@
  */
 
 const express = require('express');
+const { getAuditContext } = require('../utils/auditLogger');
 
 // Backup scheduler timer
 let __cfgBackupTimer = null;
@@ -104,7 +105,7 @@ module.exports = function createConfigBackupsRouter({
      */
     router.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
         try {
-            const options = {};
+            const options = { auditContext: getAuditContext(req) };
             if (req.body?.label) options.label = req.body.label;
             if (req.body?.note) options.note = req.body.note;
             const meta = await cfgCreateBackup(options);
@@ -209,7 +210,8 @@ module.exports = function createConfigBackupsRouter({
         try {
             if (!id) throw new Error('Missing backupId');
             if (!CFG_FILES.includes(file)) throw new Error('Invalid file');
-            await cfgRestoreFile(id, file);
+            const auditContext = getAuditContext(req);
+            await cfgRestoreFile(id, file, auditContext);
             try {
                 broadcastAdminEvent?.('backup-restored', { id, file });
             } catch (_) {
@@ -261,7 +263,8 @@ module.exports = function createConfigBackupsRouter({
         const id = String(req.params.id || '');
         try {
             if (!id) throw new Error('Missing id');
-            await cfgDeleteBackup(id);
+            const auditContext = getAuditContext(req);
+            await cfgDeleteBackup(id, auditContext);
             try {
                 broadcastAdminEvent?.('backup-deleted', { id });
             } catch (_) {

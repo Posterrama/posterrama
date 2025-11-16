@@ -2179,6 +2179,10 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
             .replace(
                 /\/client-logger\.js\?v=\{\{ASSET_VERSION\}\}/g,
                 `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /\/admin\.js\?v=\{\{ASSET_VERSION\}\}/g,
+                `/admin.js?v=${versions['admin.js'] || ASSET_VERSION}`
             );
 
         res.setHeader('Content-Type', 'text/html');

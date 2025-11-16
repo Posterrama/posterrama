@@ -2156,13 +2156,10 @@
                             </div>`;
                         const btn = row.querySelector('button');
                         btn.addEventListener('click', async () => {
-                            const ok = await confirmAction({
-                                title: 'Restore file',
-                                message: `Restore ${label}?`,
-                                okText: 'Restore',
-                                okClass: 'btn-secondary',
-                            });
-                            if (!ok) return;
+                            // Enhanced restore confirmation with "Type RESTORE" validation
+                            const confirmed = await showEnhancedRestoreConfirmation(b, f, label);
+                            if (!confirmed) return;
+
                             btn.disabled = true;
                             try {
                                 const r2 = await fetch('/api/admin/config-backups/restore', {
@@ -6171,6 +6168,125 @@
         window.confirmAction = confirmAction;
     } catch (_) {
         /* expose confirmAction is best-effort; ignore in hardened environments */
+    }
+
+    /**
+     * Enhanced restore confirmation with "Type RESTORE" validation
+     * @param {Object} backup - Backup metadata
+     * @param {Object} file - File metadata
+     * @param {string} label - Human-readable file label
+     * @returns {Promise<boolean>} True if confirmed
+     */
+    async function showEnhancedRestoreConfirmation(backup, file, label) {
+        return new Promise(resolve => {
+            // Create custom modal
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.style.cssText =
+                'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10000;';
+
+            const dialog = document.createElement('div');
+            dialog.className = 'modal-dialog';
+            dialog.style.cssText =
+                'background:#1a1a1a;border:1px solid rgba(220,38,38,0.5);border-radius:8px;padding:24px;max-width:500px;width:90%;box-shadow:0 4px 20px rgba(220,38,38,0.3);';
+
+            dialog.innerHTML = `
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                    <i class="fas fa-exclamation-triangle" style="color:#dc2626;font-size:24px;"></i>
+                    <h3 style="margin:0;color:#dc2626;font-size:18px;">Restore Configuration File</h3>
+                </div>
+                <div style="background:rgba(220,38,38,0.1);border-left:3px solid #dc2626;padding:12px;margin-bottom:16px;border-radius:4px;">
+                    <p style="margin:0 0 8px 0;color:#fca5a5;font-weight:600;">⚠️ Warning: Destructive Action</p>
+                    <p style="margin:0;color:#fecaca;font-size:14px;">
+                        This will <strong>overwrite</strong> your current ${label} with the backup from <strong>${backup.id}</strong>. 
+                        Your existing configuration will be automatically backed up before restore.
+                    </p>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <div style="color:#94a3b8;font-size:14px;margin-bottom:8px;">
+                        <i class="fas fa-info-circle"></i> Backup Details:
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05);padding:12px;border-radius:4px;font-size:13px;color:#cbd5e1;">
+                        <div><strong>ID:</strong> ${backup.id}</div>
+                        <div><strong>Created:</strong> ${new Date(backup.createdAt).toLocaleString()}</div>
+                        <div><strong>File:</strong> ${label}</div>
+                        ${backup.label ? `<div><strong>Label:</strong> ${backup.label}</div>` : ''}
+                    </div>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label style="display:block;color:#94a3b8;font-size:14px;margin-bottom:8px;font-weight:600;">
+                        Type <span style="color:#dc2626;font-family:monospace;">RESTORE</span> to confirm:
+                    </label>
+                    <input type="text" id="restore-confirm-input" autocomplete="off" spellcheck="false"
+                        style="width:100%;padding:10px;background:#000;border:1px solid #374151;border-radius:4px;color:#fff;font-family:monospace;font-size:16px;"
+                        placeholder="Type RESTORE">
+                </div>
+                <div style="display:flex;gap:12px;justify-content:flex-end;">
+                    <button id="restore-cancel-btn" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-times"></i><span>Cancel</span>
+                    </button>
+                    <button id="restore-confirm-btn" class="btn btn-error btn-sm" disabled>
+                        <i class="fas fa-undo"></i><span>Restore File</span>
+                    </button>
+                </div>
+            `;
+
+            modal.appendChild(dialog);
+            document.body.appendChild(modal);
+
+            const input = document.getElementById('restore-confirm-input');
+            const confirmBtn = document.getElementById('restore-confirm-btn');
+            const cancelBtn = document.getElementById('restore-cancel-btn');
+
+            // Validate input
+            input.addEventListener('input', () => {
+                const isValid = input.value.trim().toUpperCase() === 'RESTORE';
+                confirmBtn.disabled = !isValid;
+                confirmBtn.style.opacity = isValid ? '1' : '0.5';
+            });
+
+            // Confirm button
+            confirmBtn.addEventListener('click', () => {
+                if (input.value.trim().toUpperCase() === 'RESTORE') {
+                    modal.remove();
+                    resolve(true);
+                }
+            });
+
+            // Cancel button
+            cancelBtn.addEventListener('click', () => {
+                modal.remove();
+                resolve(false);
+            });
+
+            // Escape key
+            const handleEscape = e => {
+                if (e.key === 'Escape') {
+                    modal.remove();
+                    resolve(false);
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+
+            // Enter key in input
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter' && !confirmBtn.disabled) {
+                    confirmBtn.click();
+                }
+            });
+
+            // Focus input
+            setTimeout(() => input.focus(), 100);
+
+            // Cleanup on modal removal
+            modal.addEventListener('click', e => {
+                if (e.target === modal) {
+                    modal.remove();
+                    resolve(false);
+                }
+            });
+        });
     }
 
     function wireEvents() {

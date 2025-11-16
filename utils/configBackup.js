@@ -2,6 +2,7 @@
 const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
+const { auditLog } = require('./auditLogger');
 
 const ROOT = path.join(__dirname, '..');
 const BACKUP_DIR = path.join(ROOT, 'backups', 'config');
@@ -68,6 +69,19 @@ async function createBackup(options = {}) {
     if (meta.label === undefined) delete meta.label;
     if (meta.note === undefined) delete meta.note;
     await fsp.writeFile(path.join(dir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf8');
+
+    // Audit log
+    auditLog(
+        'backup.created',
+        {
+            backupId: id,
+            label: meta.label,
+            files: files.length,
+            trigger: options.label?.includes('Auto-backup') ? 'auto' : 'manual',
+        },
+        options.auditContext
+    );
+
     return meta;
 }
 
@@ -146,14 +160,20 @@ async function cleanupOldBackups(keep = 5, maxAgeDays = 0) {
         try {
             await fsp.rm(dir, { recursive: true, force: true });
             deleted++;
+            auditLog('backup.deleted', { backupId: b.id, reason: 'cleanup' });
         } catch (_) {
             /* ignore delete failure; continue */
         }
     }
+
+    if (deleted > 0) {
+        auditLog('backup.cleanup', { deleted, kept: list.length - deleted, keep, maxAgeDays });
+    }
+
     return { deleted, kept: list.length - deleted };
 }
 
-async function restoreFile(backupId, fileName) {
+async function restoreFile(backupId, fileName, auditContext) {
     if (!FILE_WHITELIST.includes(fileName)) {
         throw new Error('File not allowed');
     }
@@ -177,17 +197,21 @@ async function restoreFile(backupId, fileName) {
         }
     }
     await fsp.copyFile(src, dst);
+
+    auditLog('backup.restored', { backupId, fileName }, auditContext);
+
     return { ok: true };
 }
-
-async function deleteBackup(backupId) {
+async function deleteBackup(backupId, auditContext) {
     const dir = path.join(BACKUP_DIR, String(backupId));
     const st = await statIfExists(dir);
     if (!st || !st.isDirectory()) throw new Error('Backup not found');
     await fsp.rm(dir, { recursive: true, force: true });
+
+    auditLog('backup.deleted', { backupId, reason: 'manual' }, auditContext);
+
     return { ok: true };
 }
-
 async function updateBackupMetadata(backupId, updates = {}) {
     const dir = path.join(BACKUP_DIR, String(backupId));
     const st = await statIfExists(dir);
