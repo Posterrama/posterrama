@@ -23,6 +23,8 @@ const {
     getAvatarPath,
     isDeviceMgmtEnabled,
 } = require('./lib/utils-helpers');
+const { calculateDirectoryHash } = require('./lib/build-helpers');
+const { cleanup: cleanupHelper } = require('./lib/server-helpers');
 const {
     asyncHandler,
     createIsAuthenticated,
@@ -2192,30 +2194,6 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
         res.send(stamped);
     });
 });
-
-// Helper function for auto-building frontend in production
-function calculateDirectoryHash(dir) {
-    const crypto = require('crypto');
-    const files = [];
-    function walkDir(currentPath) {
-        const entries = fs.readdirSync(currentPath, { withFileTypes: true });
-        for (const entry of entries) {
-            const fullPath = path.join(currentPath, entry.name);
-            if (entry.isDirectory()) {
-                if (entry.name !== 'dist' && entry.name !== 'node_modules') {
-                    walkDir(fullPath);
-                }
-            } else {
-                // Include file path and mtime for hash
-                const stat = fs.statSync(fullPath);
-                files.push(`${fullPath}:${stat.mtimeMs}`);
-            }
-        }
-    }
-    walkDir(dir);
-    files.sort();
-    return crypto.createHash('sha256').update(files.join('|')).digest('hex');
-}
 
 // Serve static files - use built version in production, raw files in development
 const isProduction = process.env.NODE_ENV === 'production';
@@ -7235,61 +7213,7 @@ if (require.main === module) {
 
 // Cleanup function for proper shutdown and test cleanup
 function cleanup() {
-    logger.info('Cleaning up server resources...');
-
-    // Clear global intervals
-    if (global.memoryCheckInterval) {
-        clearInterval(global.memoryCheckInterval);
-    }
-    // Always normalize to null so tests can assert strict null
-    global.memoryCheckInterval = null;
-
-    if (global.tmdbCacheCleanupInterval) {
-        clearInterval(global.tmdbCacheCleanupInterval);
-        global.tmdbCacheCleanupInterval = null;
-    }
-
-    //
-
-    if (global.playlistRefreshInterval) {
-        clearInterval(global.playlistRefreshInterval);
-        global.playlistRefreshInterval = null;
-    }
-
-    if (global.cacheCleanupInterval) {
-        clearInterval(global.cacheCleanupInterval);
-        global.cacheCleanupInterval = null;
-    }
-
-    // Cleanup source instances
-    if (global.tmdbSourceInstance && typeof global.tmdbSourceInstance.cleanup === 'function') {
-        global.tmdbSourceInstance.cleanup();
-        global.tmdbSourceInstance = null;
-    }
-
-    //
-
-    // Cleanup cache and auth managers
-    if (cacheManager && typeof cacheManager.cleanup === 'function') {
-        cacheManager.cleanup();
-    }
-
-    if (cacheDiskManager && typeof cacheDiskManager.cleanup === 'function') {
-        cacheDiskManager.cleanup();
-    }
-
-    // Cleanup API cache middleware
-    if (global.apiCacheInstance && typeof global.apiCacheInstance.destroy === 'function') {
-        global.apiCacheInstance.destroy();
-        global.apiCacheInstance = null;
-    }
-
-    // Cleanup metrics manager
-    if (metricsManager && typeof metricsManager.shutdown === 'function') {
-        metricsManager.shutdown();
-    }
-
-    logger.info('Server cleanup completed');
+    cleanupHelper({ logger, cacheManager, cacheDiskManager, metricsManager });
 }
 
 // Export cleanup function for tests
