@@ -6594,11 +6594,17 @@ app.get(
                 sessions: [],
                 lastUpdate: null,
                 isActive: false,
+                serverName: 'Plex Server',
             });
         }
 
         const data = poller.getSessions();
-        res.json(data);
+
+        // Add Plex server name from config for Cinema display image proxy
+        const plexServer = (config.mediaServers || []).find(s => s.enabled && s.type === 'plex');
+        const serverName = plexServer?.name || 'Plex Server';
+
+        res.json({ ...data, serverName });
     })
 );
 

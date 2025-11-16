@@ -873,6 +873,12 @@
             });
             if (!res.ok) return null;
             const data = await res.json();
+
+            // Cache server name for image proxy URLs
+            if (data?.serverName) {
+                window.__plexServerName = data.serverName;
+            }
+
             return data?.sessions || [];
         } catch (e) {
             error('Failed to fetch Plex sessions', e);
@@ -956,8 +962,8 @@
             }
 
             // Convert Plex thumb URL to use our image proxy
-            // Plex Server name should match the mediaServer config name
-            const serverName = 'Plex Server'; // TODO: make this dynamic from config
+            // Use dynamic server name from API (cached in window.__plexServerName)
+            const serverName = window.__plexServerName || 'Plex Server';
             const posterUrl = thumbPath
                 ? `/image?server=${encodeURIComponent(serverName)}&path=${encodeURIComponent(thumbPath)}`
                 : null;
