@@ -76,8 +76,12 @@ const metricsMiddleware = (req, res, next) => {
             } else if (statusCode >= 500) {
                 logger.error('💥 Server error', performanceData);
             } else if (statusCode >= 400) {
-                // Skip 401 errors for SSE endpoint - normal when admin not logged in
-                if (statusCode === 401 && performanceData.path === '/api/admin/events') {
+                // Skip 401 errors for admin endpoints - normal when not logged in
+                if (
+                    statusCode === 401 &&
+                    performanceData.path &&
+                    performanceData.path.startsWith('/api/admin')
+                ) {
                     return;
                 }
                 logger.warn('⚠️ Client error', performanceData);

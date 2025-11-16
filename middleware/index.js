@@ -152,8 +152,8 @@ function requestLoggingMiddleware() {
             if (res.statusCode >= 500) {
                 logger.warn('Request completed with error', logData);
             } else if (res.statusCode >= 400) {
-                // Skip 401 errors for SSE endpoint - these are normal when admin is not logged in
-                if (res.statusCode === 401 && req.url === '/api/admin/events') {
+                // Skip 401 errors for admin endpoints - these are normal when not logged in
+                if (res.statusCode === 401 && req.url && req.url.startsWith('/api/admin')) {
                     return;
                 }
                 logger.warn('Request completed with error', logData);

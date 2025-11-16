@@ -808,7 +808,7 @@ module.exports = function createAdminConfigRouter({
                         // Only fetch count for movie and show libraries
                         if (dir.type === 'movie' || dir.type === 'show') {
                             try {
-                                // Add timeout wrapper for individual library count queries (1.5 seconds per library)
+                                // Add timeout wrapper for individual library count queries (5 seconds per library)
                                 const countPromise = client.query(
                                     `/library/sections/${dir.key}/all?X-Plex-Container-Start=0&X-Plex-Container-Size=1`
                                 );
@@ -816,7 +816,7 @@ module.exports = function createAdminConfigRouter({
                                 const timeoutPromise = new Promise((_, reject) =>
                                     setTimeout(
                                         () => reject(new Error('Library count timeout')),
-                                        1500
+                                        5000
                                     )
                                 );
 

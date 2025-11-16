@@ -360,7 +360,9 @@ app.use((req, res, next) => {
         const authHeader = req.headers.authorization || '';
         const hasBearer = authHeader.startsWith('Bearer ');
         // Only warn for modifying requests with neither a session nor a bearer token
-        if (!hasSessionUser && !hasBearer && req.method !== 'GET') {
+        // Skip test-* endpoints as frontend routinely calls these before login
+        const isTestEndpoint = req.path.includes('/test-');
+        if (!hasSessionUser && !hasBearer && req.method !== 'GET' && !isTestEndpoint) {
             logger.warn('Unauthorized admin API modification attempt', {
                 method: req.method,
                 path: req.path,

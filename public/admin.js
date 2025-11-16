@@ -16653,7 +16653,8 @@
                     const sum = arr =>
                         (arr || []).reduce((acc, name) => acc + (map.get(name)?.itemCount || 0), 0);
                     totalPlex = sum(movies) + sum(shows);
-                } catch (_) {
+                } catch (err) {
+                    console.error('[Plex Count Debug] Error:', err);
                     /* filter-preview fetch failed (falling back to cached playlist counts) */
                 }
                 try {
