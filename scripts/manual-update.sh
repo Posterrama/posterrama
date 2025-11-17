@@ -77,10 +77,11 @@ unzip -q "posterrama-${VERSION}.zip"
 # Backup current config
 cd "$INSTALL_DIR"
 echo -e "${YELLOW}Backing up configuration...${NC}"
-cp config.json config.json.backup.$(date +%Y%m%d_%H%M%S)
-[ -f devices.json ] && cp devices.json devices.json.backup.$(date +%Y%m%d_%H%M%S)
-[ -f groups.json ] && cp groups.json groups.json.backup.$(date +%Y%m%d_%H%M%S)
-[ -f .env ] && cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
+BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+cp config.json "config.json.backup.${BACKUP_TIMESTAMP}"
+[ -f devices.json ] && cp devices.json "devices.json.backup.${BACKUP_TIMESTAMP}"
+[ -f groups.json ] && cp groups.json "groups.json.backup.${BACKUP_TIMESTAMP}"
+[ -f .env ] && cp .env ".env.backup.${BACKUP_TIMESTAMP}"
 
 # Remove old code (keep data directories)
 echo -e "${YELLOW}Removing old code...${NC}"
@@ -92,10 +93,10 @@ cp -r "/tmp/posterrama-${VERSION#v}"/* .
 
 # Restore configs
 echo -e "${YELLOW}Restoring configuration files...${NC}"
-cp config.json.backup.$(date +%Y%m%d_%H%M%S | head -1) config.json 2>/dev/null || true
-[ -f devices.json.backup.$(date +%Y%m%d_%H%M%S | head -1) ] && cp devices.json.backup.$(date +%Y%m%d_%H%M%S | head -1) devices.json 2>/dev/null || true
-[ -f groups.json.backup.$(date +%Y%m%d_%H%M%S | head -1) ] && cp groups.json.backup.$(date +%Y%m%d_%H%M%S | head -1) groups.json 2>/dev/null || true
-[ -f .env.backup.$(date +%Y%m%d_%H%M%S | head -1) ] && cp .env.backup.$(date +%Y%m%d_%H%M%S | head -1) .env 2>/dev/null || true
+cp "config.json.backup.${BACKUP_TIMESTAMP}" config.json
+[ -f "devices.json.backup.${BACKUP_TIMESTAMP}" ] && cp "devices.json.backup.${BACKUP_TIMESTAMP}" devices.json
+[ -f "groups.json.backup.${BACKUP_TIMESTAMP}" ] && cp "groups.json.backup.${BACKUP_TIMESTAMP}" groups.json
+[ -f ".env.backup.${BACKUP_TIMESTAMP}" ] && cp ".env.backup.${BACKUP_TIMESTAMP}" .env
 
 # Install dependencies
 echo -e "${YELLOW}Installing dependencies...${NC}"
