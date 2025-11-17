@@ -78,6 +78,7 @@ class Config {
             this._streamingSources = this.config.streamingSources;
             this._mqtt = this.config.mqtt;
             this._clientDebugViewer = this.config.clientDebugViewer;
+            this._siteServer = this.config.siteServer;
         }
     }
 
@@ -164,6 +165,15 @@ class Config {
     set mqtt(value) {
         this._mqtt = value;
         if (this.config) this.config.mqtt = value;
+    }
+
+    // Site server settings
+    get siteServer() {
+        return this._siteServer || this.config?.siteServer || null;
+    }
+    set siteServer(value) {
+        this._siteServer = value;
+        if (this.config) this.config.siteServer = value;
     }
 
     // Wallart mode settings
