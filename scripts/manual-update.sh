@@ -30,6 +30,19 @@ fi
 echo -e "${BLUE}=== Posterrama Manual Update ===${NC}"
 echo "Installation directory: $INSTALL_DIR"
 
+# Detect the user that should own the files
+# Check who owns the config.json file (if exists), or use posterrama user if available
+if [ -f "$INSTALL_DIR/config.json" ]; then
+    INSTALL_USER=$(stat -c '%U' "$INSTALL_DIR/config.json")
+    echo "Detected installation user: $INSTALL_USER"
+elif id -u posterrama &>/dev/null; then
+    INSTALL_USER="posterrama"
+    echo "Using default user: posterrama"
+else
+    INSTALL_USER=$(whoami)
+    echo "Using current user: $INSTALL_USER"
+fi
+
 # Get version to install
 if [ -n "$1" ]; then
     VERSION="$1"
@@ -100,7 +113,11 @@ cp "config.json.backup.${BACKUP_TIMESTAMP}" config.json
 
 # Install dependencies
 echo -e "${YELLOW}Installing dependencies...${NC}"
-npm install --production
+npm install
+
+# Fix file ownership - ensure all files are owned by the installation user
+echo -e "${YELLOW}Setting file ownership to $INSTALL_USER...${NC}"
+chown -R "$INSTALL_USER:$INSTALL_USER" "$INSTALL_DIR"
 
 # Restart PM2
 echo -e "${YELLOW}Restarting Posterrama...${NC}"
