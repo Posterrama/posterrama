@@ -69,23 +69,16 @@ else
     fi
 fi
 
-# Ensure unzip is installed
-if ! command -v unzip &> /dev/null; then
-    echo -e "${YELLOW}Installing unzip...${NC}"
-    apt-get update -qq
-    apt-get install -y unzip
-fi
-
-# Download release
+# Download release (using tarball to avoid GitHub ZIP cache issues)
 cd /tmp
 echo -e "${YELLOW}Downloading Posterrama $VERSION...${NC}"
-rm -f posterrama-*.zip
-wget -q --show-progress "https://github.com/Posterrama/posterrama/archive/refs/tags/${VERSION}.zip" -O "posterrama-${VERSION}.zip"
+rm -f posterrama-*.tar.gz
+wget -q --show-progress "https://github.com/Posterrama/posterrama/archive/refs/tags/${VERSION}.tar.gz" -O "posterrama-${VERSION}.tar.gz"
 
 # Extract
 echo -e "${YELLOW}Extracting archive...${NC}"
 rm -rf "posterrama-${VERSION#v}"  # Remove v prefix if present
-unzip -q "posterrama-${VERSION}.zip"
+tar xzf "posterrama-${VERSION}.tar.gz"
 
 # Backup current config
 cd "$INSTALL_DIR"
@@ -134,7 +127,7 @@ fi
 
 # Cleanup
 echo -e "${YELLOW}Cleaning up temporary files...${NC}"
-rm -f "/tmp/posterrama-${VERSION}.zip"
+rm -f "/tmp/posterrama-${VERSION}.tar.gz"
 rm -rf "/tmp/posterrama-${VERSION#v}"
 
 echo -e "${GREEN}✅ Update to $VERSION complete!${NC}"
