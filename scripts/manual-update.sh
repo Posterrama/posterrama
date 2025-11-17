@@ -36,14 +36,24 @@ if [ -n "$1" ]; then
     echo -e "${YELLOW}Installing specific version: $VERSION${NC}"
 else
     echo -e "${YELLOW}Fetching latest release version...${NC}"
-    VERSION=$(curl -s https://api.github.com/repos/Posterrama/posterrama/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     
+    # Try GitHub API first
+    VERSION=$(curl -s -f https://api.github.com/repos/Posterrama/posterrama/releases/latest 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+    
+    # Fallback: scrape releases page
     if [ -z "$VERSION" ]; then
-        echo -e "${RED}Error: Could not determine latest version${NC}"
-        exit 1
+        echo -e "${YELLOW}API unavailable, trying releases page...${NC}"
+        VERSION=$(curl -sL https://github.com/Posterrama/posterrama/releases/latest 2>/dev/null | grep -oP '(?<=releases/tag/)[^"]+' | head -1)
     fi
     
-    echo -e "${GREEN}Latest version: $VERSION${NC}"
+    # Fallback: use hardcoded latest known version
+    if [ -z "$VERSION" ]; then
+        VERSION="v2.9.5"
+        echo -e "${YELLOW}Using fallback version: $VERSION${NC}"
+        echo -e "${YELLOW}(Could not fetch from GitHub - network or rate limit issue)${NC}"
+    else
+        echo -e "${GREEN}Latest version: $VERSION${NC}"
+    fi
 fi
 
 # Ensure unzip is installed
