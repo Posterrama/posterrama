@@ -281,8 +281,9 @@ const sessionSecret = env.auth.sessionSecret;
 
 if (!sessionSecret || sessionSecret === 'test-secret-fallback') {
     if (env.server.nodeEnv === 'production') {
+        // This should never happen now due to auto-generation in environment.js
         logger.error('FATAL: SESSION_SECRET not configured in production');
-        logger.error('Set SESSION_SECRET environment variable and restart');
+        logger.error('Auto-generation failed - please manually set SESSION_SECRET');
         logger.error('Generate a strong secret: openssl rand -base64 48');
         process.exit(1);
     } else if (env.server.nodeEnv !== 'test') {

@@ -18,6 +18,62 @@
  */
 
 const logger = require('../utils/logger');
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Auto-generate SESSION_SECRET if missing in production
+ * This ensures backward compatibility for existing installations
+ */
+function ensureSessionSecret() {
+    if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+        logger.info('SESSION_SECRET missing - auto-generating for backward compatibility');
+
+        const newSecret = crypto.randomBytes(48).toString('base64');
+        const envPath = path.resolve(process.cwd(), '.env');
+
+        try {
+            // Create or append to .env file
+            let envContent = '';
+            if (fs.existsSync(envPath)) {
+                envContent = fs.readFileSync(envPath, 'utf8');
+                if (!envContent.endsWith('\n')) {
+                    envContent += '\n';
+                }
+            }
+
+            envContent += `SESSION_SECRET="${newSecret}"\n`;
+            fs.writeFileSync(envPath, envContent, 'utf8');
+
+            // Set in current process
+            process.env.SESSION_SECRET = newSecret;
+
+            logger.info('✅ SESSION_SECRET generated and saved to .env');
+
+            // If running under PM2, schedule restart to load .env properly
+            if (process.env.PM2_HOME) {
+                logger.info('PM2 detected - triggering restart to reload .env');
+                const { exec } = require('child_process');
+                setTimeout(() => {
+                    exec('pm2 restart posterrama', error => {
+                        if (error) {
+                            logger.warn('PM2 restart failed:', error.message);
+                        }
+                    });
+                }, 100);
+            }
+        } catch (err) {
+            logger.error('Failed to generate SESSION_SECRET:', err.message);
+            logger.error('Please manually set SESSION_SECRET in .env file');
+            logger.error('Generate with: openssl rand -base64 48');
+            process.exit(1);
+        }
+    }
+}
+
+// Auto-generate SESSION_SECRET if needed (before any config access)
+ensureSessionSecret();
 
 /**
  * Parse boolean environment variable
