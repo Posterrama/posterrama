@@ -34,7 +34,10 @@ function ensureSessionSecret() {
         const envPath = path.resolve(process.cwd(), '.env');
 
         try {
-            // Create or append to .env file
+            // Set in current process FIRST (prevents restart loop)
+            process.env.SESSION_SECRET = newSecret;
+
+            // Then save to .env file for future restarts
             let envContent = '';
             if (fs.existsSync(envPath)) {
                 envContent = fs.readFileSync(envPath, 'utf8');
@@ -46,28 +49,12 @@ function ensureSessionSecret() {
             envContent += `SESSION_SECRET="${newSecret}"\n`;
             fs.writeFileSync(envPath, envContent, 'utf8');
 
-            // Set in current process
-            process.env.SESSION_SECRET = newSecret;
-
             logger.info('✅ SESSION_SECRET generated and saved to .env');
-
-            // If running under PM2, schedule restart to load .env properly
-            if (process.env.PM2_HOME) {
-                logger.info('PM2 detected - triggering restart to reload .env');
-                const { exec } = require('child_process');
-                setTimeout(() => {
-                    exec('pm2 restart posterrama', error => {
-                        if (error) {
-                            logger.warn('PM2 restart failed:', error.message);
-                        }
-                    });
-                }, 100);
-            }
+            logger.info('✅ Using auto-generated SESSION_SECRET for this session');
         } catch (err) {
-            logger.error('Failed to generate SESSION_SECRET:', err.message);
-            logger.error('Please manually set SESSION_SECRET in .env file');
-            logger.error('Generate with: openssl rand -base64 48');
-            process.exit(1);
+            logger.error('Failed to save SESSION_SECRET to .env:', err.message);
+            logger.warn('⚠️  Continuing with in-memory SESSION_SECRET (not persisted)');
+            // Don't exit - use the in-memory secret
         }
     }
 }
