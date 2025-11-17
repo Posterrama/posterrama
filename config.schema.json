@@ -1268,9 +1268,31 @@
                             "minimum": 100,
                             "maximum": 5000,
                             "default": 250
+                        },
+                        "plex": {
+                            "description": "Legacy Plex posterpack generation settings (deprecated, kept for backwards compatibility).",
+                            "type": "object"
+                        },
+                        "jellyfin": {
+                            "description": "Legacy Jellyfin posterpack generation settings (deprecated, kept for backwards compatibility).",
+                            "type": "object"
+                        },
+                        "includeAssets": {
+                            "description": "Legacy includeAssets setting (deprecated, kept for backwards compatibility).",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "outputNaming": {
+                            "description": "Legacy outputNaming setting (deprecated, kept for backwards compatibility).",
+                            "type": "string"
+                        },
+                        "concurrentJobs": {
+                            "description": "Legacy concurrentJobs setting (deprecated, kept for backwards compatibility).",
+                            "type": "integer"
                         }
-                    },
-                    "additionalProperties": false
+                    }
                 }
             },
             "additionalProperties": false
