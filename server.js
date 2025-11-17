@@ -2200,54 +2200,8 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
     });
 });
 
-// Serve static files - use built version in production, raw files in development
-const isProduction = process.env.NODE_ENV === 'production';
-let publicDir = isProduction ? path.join(__dirname, 'dist/public') : path.join(__dirname, 'public');
-
-// Auto-build in production if dist/ is missing or outdated
-if (isProduction) {
-    const { execSync } = require('child_process');
-
-    const distDir = path.join(__dirname, 'dist/public');
-    const sourceDir = path.join(__dirname, 'public');
-    const hashFile = path.join(__dirname, 'dist/.build-hash');
-
-    const currentHash = calculateDirectoryHash(sourceDir);
-    let needsBuild = false;
-
-    if (!fs.existsSync(distDir)) {
-        logger.info('[Server] dist/public/ not found, building frontend...');
-        needsBuild = true;
-    } else if (!fs.existsSync(hashFile)) {
-        logger.info('[Server] Build hash not found, rebuilding to ensure consistency...');
-        needsBuild = true;
-    } else {
-        const savedHash = fs.readFileSync(hashFile, 'utf8').trim();
-        if (savedHash !== currentHash) {
-            logger.info('[Server] public/ directory changed, rebuilding frontend...');
-            needsBuild = true;
-        }
-    }
-
-    if (needsBuild) {
-        try {
-            logger.info('[Server] Running npm run build...');
-            execSync('npm run build', { stdio: 'inherit', cwd: __dirname });
-
-            // Save hash after successful build
-            fs.mkdirSync(path.dirname(hashFile), { recursive: true });
-            fs.writeFileSync(hashFile, currentHash, 'utf8');
-
-            logger.info('[Server] Frontend build completed successfully');
-        } catch (err) {
-            logger.error('[Server] Frontend build failed:', err.message);
-            logger.warn('[Server] Falling back to public/ directory');
-            publicDir = sourceDir;
-        }
-    } else {
-        logger.info('[Server] dist/public/ is up-to-date, skipping build');
-    }
-}
+// Serve static files - always use public/ directory for now (vite build disabled for troubleshooting)
+const publicDir = path.join(__dirname, 'public');
 
 logger.info(
     `[Server] Static files served from: ${publicDir} (NODE_ENV=${process.env.NODE_ENV || 'development'})`
