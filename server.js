@@ -23,7 +23,6 @@ const {
     getAvatarPath,
     isDeviceMgmtEnabled,
 } = require('./lib/utils-helpers');
-const { calculateDirectoryHash } = require('./lib/build-helpers');
 const { cleanup: cleanupHelper } = require('./lib/server-helpers');
 const { initializeWebSocketServer, initializeSSEServer } = require('./lib/realtime-server');
 const {
