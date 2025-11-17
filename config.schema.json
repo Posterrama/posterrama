@@ -1230,6 +1230,37 @@
                     },
                     "default": []
                 },
+                "autoImportPosterpacks": {
+                    "description": "Legacy autoImportPosterpacks setting (deprecated, kept for backwards compatibility).",
+                    "type": "boolean"
+                },
+                "scanInterval": {
+                    "description": "Legacy scanInterval setting (deprecated, kept for backwards compatibility).",
+                    "type": "integer"
+                },
+                "generateThumbnails": {
+                    "description": "Legacy generateThumbnails setting (deprecated, kept for backwards compatibility).",
+                    "type": "boolean"
+                },
+                "maxFileSize": {
+                    "description": "Legacy maxFileSize setting (deprecated, kept for backwards compatibility).",
+                    "type": "integer"
+                },
+                "supportedFormats": {
+                    "description": "Legacy supportedFormats setting (deprecated, kept for backwards compatibility).",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "security": {
+                    "description": "Legacy security settings (deprecated, kept for backwards compatibility).",
+                    "type": "object"
+                },
+                "performance": {
+                    "description": "Legacy performance settings (deprecated, kept for backwards compatibility).",
+                    "type": "object"
+                },
                 "posterpackGeneration": {
                     "description": "Configuration for automatic posterpack generation from Plex/Jellyfin.",
                     "type": "object",
@@ -1269,6 +1300,14 @@
                             "maximum": 5000,
                             "default": 250
                         },
+                        "generateThumbnail": {
+                            "description": "Legacy generateThumbnail setting (deprecated, kept for backwards compatibility).",
+                            "type": "boolean"
+                        },
+                        "enabled": {
+                            "description": "Legacy enabled setting (deprecated, kept for backwards compatibility).",
+                            "type": "boolean"
+                        },
                         "plex": {
                             "description": "Legacy Plex posterpack generation settings (deprecated, kept for backwards compatibility).",
                             "type": "object"
@@ -1294,8 +1333,7 @@
                         }
                     }
                 }
-            },
-            "additionalProperties": false
+            }
         },
         "previewOrientation": {
             "type": "string",
