@@ -6991,6 +6991,9 @@ if (require.main === module) {
     // This server runs on a separate port and is controlled by config.json.
     // It's intended for public viewing without exposing the main application's admin panel.
     if (config.siteServer && config.siteServer.enabled) {
+        logger.info(
+            `[Site Server] Initializing site server on port ${config.siteServer.port || 4001}...`
+        );
         const siteApp = express();
         const sitePort = config.siteServer.port || 4001;
         const mainAppUrl = `http://localhost:${port}`; // 'port' is the main app's port
@@ -7144,8 +7147,8 @@ if (require.main === module) {
         let siteServerInstance;
         try {
             siteServerInstance = siteApp.listen(sitePort, () => {
-                logger.debug(
-                    `Public site server is enabled and running on http://localhost:${sitePort}`
+                logger.info(
+                    `[Site Server] Public site server is running on http://localhost:${sitePort}`
                 );
             });
             // Also handle async errors emitted by the server after listen
