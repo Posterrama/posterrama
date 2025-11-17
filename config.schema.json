@@ -1209,7 +1209,7 @@
             "description": "Test integer value (for testing purposes only)"
         },
         "localDirectory": {
-            "description": "Local directory support for managing poster collections and generating posterpacks.",
+            "description": "Local directory support for managing poster collections and generating posterpacks. Accepts legacy configuration properties for backwards compatibility.",
             "type": "object",
             "properties": {
                 "enabled": {
@@ -1230,39 +1230,8 @@
                     },
                     "default": []
                 },
-                "autoImportPosterpacks": {
-                    "description": "Legacy autoImportPosterpacks setting (deprecated, kept for backwards compatibility).",
-                    "type": "boolean"
-                },
-                "scanInterval": {
-                    "description": "Legacy scanInterval setting (deprecated, kept for backwards compatibility).",
-                    "type": "integer"
-                },
-                "generateThumbnails": {
-                    "description": "Legacy generateThumbnails setting (deprecated, kept for backwards compatibility).",
-                    "type": "boolean"
-                },
-                "maxFileSize": {
-                    "description": "Legacy maxFileSize setting (deprecated, kept for backwards compatibility).",
-                    "type": "integer"
-                },
-                "supportedFormats": {
-                    "description": "Legacy supportedFormats setting (deprecated, kept for backwards compatibility).",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "security": {
-                    "description": "Legacy security settings (deprecated, kept for backwards compatibility).",
-                    "type": "object"
-                },
-                "performance": {
-                    "description": "Legacy performance settings (deprecated, kept for backwards compatibility).",
-                    "type": "object"
-                },
                 "posterpackGeneration": {
-                    "description": "Configuration for automatic posterpack generation from Plex/Jellyfin.",
+                    "description": "Configuration for automatic posterpack generation from Plex/Jellyfin. Accepts legacy configuration properties for backwards compatibility.",
                     "type": "object",
                     "properties": {
                         "itemConcurrency": {
@@ -1299,41 +1268,12 @@
                             "minimum": 100,
                             "maximum": 5000,
                             "default": 250
-                        },
-                        "generateThumbnail": {
-                            "description": "Legacy generateThumbnail setting (deprecated, kept for backwards compatibility).",
-                            "type": "boolean"
-                        },
-                        "enabled": {
-                            "description": "Legacy enabled setting (deprecated, kept for backwards compatibility).",
-                            "type": "boolean"
-                        },
-                        "plex": {
-                            "description": "Legacy Plex posterpack generation settings (deprecated, kept for backwards compatibility).",
-                            "type": "object"
-                        },
-                        "jellyfin": {
-                            "description": "Legacy Jellyfin posterpack generation settings (deprecated, kept for backwards compatibility).",
-                            "type": "object"
-                        },
-                        "includeAssets": {
-                            "description": "Legacy includeAssets setting (deprecated, kept for backwards compatibility).",
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "outputNaming": {
-                            "description": "Legacy outputNaming setting (deprecated, kept for backwards compatibility).",
-                            "type": "string"
-                        },
-                        "concurrentJobs": {
-                            "description": "Legacy concurrentJobs setting (deprecated, kept for backwards compatibility).",
-                            "type": "integer"
                         }
-                    }
+                    },
+                    "additionalProperties": true
                 }
-            }
+            },
+            "additionalProperties": true
         },
         "previewOrientation": {
             "type": "string",
