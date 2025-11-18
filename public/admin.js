@@ -1544,9 +1544,12 @@
             const configData = await fetchJSON('/api/admin/config').catch(() => null);
             if (configData) {
                 const config = configData.config || {};
-                const enabledSources = 0;
 
-                // Check each source type
+                // Check each source type for posterpack label marking
+                const mediaServers = config.mediaServers || [];
+                const plex = mediaServers.find(s => s.type === 'plex');
+                const jf = mediaServers.find(s => s.type === 'jellyfin');
+
                 // Dashboard media items count is now handled by updateMediaItemsCount()
                 // which sums all enabled sources with proper filtering and shows
                 // playlist count in the secondary line (e.g., "585 cached")
