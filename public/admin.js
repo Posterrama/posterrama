@@ -960,29 +960,18 @@
             const isMusicMode = wallartMode.musicMode === true;
 
             if (isGamesMode) {
-                // Games mode: calculate RomM count from config
+                // Games mode: use RomM count that was already calculated for primary display
                 playlistCount = 0;
                 playlistLabel = 'in playlist';
 
-                // Get RomM count from selected platforms
-                if (romm?.enabled && romm.selectedPlatforms) {
-                    // Try to use cached platform data if available
-                    if (window.__rommPlatforms && Array.isArray(window.__rommPlatforms)) {
-                        const selected = romm.selectedPlatforms;
-                        const selectedPlatforms = window.__rommPlatforms.filter(p =>
-                            selected.includes(p.value)
-                        );
-                        playlistCount = selectedPlatforms.reduce((sum, p) => {
-                            // Use count field directly if available, otherwise parse from label
-                            if (p.count != null) {
-                                return sum + p.count;
-                            }
-                            const match = (p.label || '').match(/\((\d+)\s+games?\)/i);
-                            return sum + (match ? parseInt(match[1], 10) : 0);
-                        }, 0);
-                    } else {
-                        // Fallback to global variable (set by refreshOverviewCounts)
-                        playlistCount = window.__lastRommCount || 0;
+                // The RomM count is the same as what's shown in the primary total for games mode
+                // It was calculated earlier in this function and added to breakdown
+                const rommBreakdownItem = breakdown.find(item => item.startsWith('RomM:'));
+                if (rommBreakdownItem) {
+                    // Parse "RomM: 680" -> 680
+                    const match = rommBreakdownItem.match(/RomM:\s*([0-9,]+)/);
+                    if (match) {
+                        playlistCount = parseInt(match[1].replace(/,/g, ''), 10);
                     }
                 }
             } else if (isMusicMode) {
