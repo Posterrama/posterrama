@@ -27,6 +27,26 @@
     referrerpolicy="no-referrer"
   />
   <link rel="stylesheet" href="/admin.css?v={{ASSET_VERSION}}" />
+  <script>
+    // Remove any dynamically injected _next/static links from old caches or extensions
+    if (typeof MutationObserver !== 'undefined') {
+      new MutationObserver(mutations => {
+        mutations.forEach(m => {
+          m.addedNodes.forEach(node => {
+            if (node.tagName === 'LINK' && node.href && node.href.includes('_next/static')) {
+              try { node.remove(); } catch(_) {}
+            }
+          });
+        });
+      }).observe(document.documentElement, { childList: true, subtree: true });
+    }
+    // Also scan and remove any existing _next links on DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('link[href*="_next/static"]').forEach(link => {
+        try { link.remove(); } catch(_) {}
+      });
+    });
+  </script>
   <style id="multiselect-overrides">
     /* Multiselect dropdown visibility & layering fixes */
     .multiselect { position: relative; }
