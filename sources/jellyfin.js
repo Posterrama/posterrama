@@ -5,6 +5,7 @@
 const logger = require('../utils/logger');
 const { RequestDeduplicator } = require('../utils/request-deduplicator');
 const { logSourceError, metadataExtractors } = require('../utils/source-error-context');
+const { executeWithRetry } = require('../utils/source-error-handler');
 
 // Initialize deduplicator for Jellyfin requests
 const deduplicator = new RequestDeduplicator({ keyPrefix: 'jellyfin' });
@@ -142,8 +143,19 @@ class JellyfinSource {
         this.metrics.lastRequestTime = new Date();
 
         try {
-            const client = await this.getJellyfinClient(this.server);
-            const allLibraries = await this.getJellyfinLibraries(this.server);
+            const client = await executeWithRetry(() => this.getJellyfinClient(this.server), {
+                source: 'jellyfin',
+                operation: 'getJellyfinClient',
+                params: { serverName: this.server.name },
+            });
+            const allLibraries = await executeWithRetry(
+                () => this.getJellyfinLibraries(this.server),
+                {
+                    source: 'jellyfin',
+                    operation: 'getJellyfinLibraries',
+                    params: { serverName: this.server.name },
+                }
+            );
 
             // Fetch ALL items for selected libraries (paginated), then filter across the full set
             let allItems = [];
@@ -163,47 +175,55 @@ class JellyfinSource {
                     const libraryItems = [];
 
                     // Fetch first page to get total count
-                    const firstPage = await client.getItems({
-                        parentId: library.id,
-                        includeItemTypes: type === 'movie' ? ['Movie'] : ['Series'],
-                        recursive: true,
-                        fields: [
-                            'Genres',
-                            'Overview',
-                            'CommunityRating',
-                            'OfficialRating',
-                            'UserData',
-                            'ProductionYear',
-                            'RunTimeTicks',
-                            'Taglines',
-                            'OriginalTitle',
-                            'ImageTags',
-                            'BackdropImageTags',
-                            'MediaStreams',
-                            'MediaSources',
-                            'People',
-                            'Studios',
-                            'ProviderIds',
-                            'Path',
-                            'Chapters',
-                            'CriticRating',
-                            'ParentId',
-                            'SeriesId',
-                            'SeasonId',
-                            'IndexNumber',
-                            'ParentIndexNumber',
-                            'ChildCount',
-                            'RecursiveItemCount',
-                            'LockedFields',
-                            'Status',
-                            'AirTime',
-                            'AirDays',
-                            'EndDate',
-                        ],
-                        sortBy: [],
-                        limit: pageSize,
-                        startIndex: 0,
-                    });
+                    const firstPage = await executeWithRetry(
+                        () =>
+                            client.getItems({
+                                parentId: library.id,
+                                includeItemTypes: type === 'movie' ? ['Movie'] : ['Series'],
+                                recursive: true,
+                                fields: [
+                                    'Genres',
+                                    'Overview',
+                                    'CommunityRating',
+                                    'OfficialRating',
+                                    'UserData',
+                                    'ProductionYear',
+                                    'RunTimeTicks',
+                                    'Taglines',
+                                    'OriginalTitle',
+                                    'ImageTags',
+                                    'BackdropImageTags',
+                                    'MediaStreams',
+                                    'MediaSources',
+                                    'People',
+                                    'Studios',
+                                    'ProviderIds',
+                                    'Path',
+                                    'Chapters',
+                                    'CriticRating',
+                                    'ParentId',
+                                    'SeriesId',
+                                    'SeasonId',
+                                    'IndexNumber',
+                                    'ParentIndexNumber',
+                                    'ChildCount',
+                                    'RecursiveItemCount',
+                                    'LockedFields',
+                                    'Status',
+                                    'AirTime',
+                                    'AirDays',
+                                    'EndDate',
+                                ],
+                                sortBy: [],
+                                limit: pageSize,
+                                startIndex: 0,
+                            }),
+                        {
+                            source: 'jellyfin',
+                            operation: 'getItems',
+                            params: { libraryName: name, libraryId: library.id, type },
+                        }
+                    );
 
                     libraryItems.push(...(firstPage?.Items || []));
                     const totalItems = firstPage?.TotalRecordCount || 0;
@@ -217,51 +237,64 @@ class JellyfinSource {
                             const batchPromises = [];
                             for (let i = 0; i < maxParallel && batch + i < remainingPages; i++) {
                                 const startIndex = (batch + i + 1) * pageSize;
-                                // Wrap pagination request with deduplication
+                                // Wrap pagination request with deduplication and retry
                                 const fetchPage = () =>
-                                    client.getItems({
-                                        parentId: library.id,
-                                        includeItemTypes: type === 'movie' ? ['Movie'] : ['Series'],
-                                        recursive: true,
-                                        fields: firstPage.Items?.[0]
-                                            ? Object.keys(firstPage.Items[0])
-                                            : [
-                                                  'Genres',
-                                                  'Overview',
-                                                  'CommunityRating',
-                                                  'OfficialRating',
-                                                  'UserData',
-                                                  'ProductionYear',
-                                                  'RunTimeTicks',
-                                                  'Taglines',
-                                                  'OriginalTitle',
-                                                  'ImageTags',
-                                                  'BackdropImageTags',
-                                                  'MediaStreams',
-                                                  'MediaSources',
-                                                  'People',
-                                                  'Studios',
-                                                  'ProviderIds',
-                                                  'Path',
-                                                  'Chapters',
-                                                  'CriticRating',
-                                                  'ParentId',
-                                                  'SeriesId',
-                                                  'SeasonId',
-                                                  'IndexNumber',
-                                                  'ParentIndexNumber',
-                                                  'ChildCount',
-                                                  'RecursiveItemCount',
-                                                  'LockedFields',
-                                                  'Status',
-                                                  'AirTime',
-                                                  'AirDays',
-                                                  'EndDate',
-                                              ],
-                                        sortBy: [],
-                                        limit: pageSize,
-                                        startIndex,
-                                    });
+                                    executeWithRetry(
+                                        () =>
+                                            client.getItems({
+                                                parentId: library.id,
+                                                includeItemTypes:
+                                                    type === 'movie' ? ['Movie'] : ['Series'],
+                                                recursive: true,
+                                                fields: firstPage.Items?.[0]
+                                                    ? Object.keys(firstPage.Items[0])
+                                                    : [
+                                                          'Genres',
+                                                          'Overview',
+                                                          'CommunityRating',
+                                                          'OfficialRating',
+                                                          'UserData',
+                                                          'ProductionYear',
+                                                          'RunTimeTicks',
+                                                          'Taglines',
+                                                          'OriginalTitle',
+                                                          'ImageTags',
+                                                          'BackdropImageTags',
+                                                          'MediaStreams',
+                                                          'MediaSources',
+                                                          'People',
+                                                          'Studios',
+                                                          'ProviderIds',
+                                                          'Path',
+                                                          'Chapters',
+                                                          'CriticRating',
+                                                          'ParentId',
+                                                          'SeriesId',
+                                                          'SeasonId',
+                                                          'IndexNumber',
+                                                          'ParentIndexNumber',
+                                                          'ChildCount',
+                                                          'RecursiveItemCount',
+                                                          'LockedFields',
+                                                          'Status',
+                                                          'AirTime',
+                                                          'AirDays',
+                                                          'EndDate',
+                                                      ],
+                                                sortBy: [],
+                                                limit: pageSize,
+                                                startIndex,
+                                            }),
+                                        {
+                                            source: 'jellyfin',
+                                            operation: 'getItems',
+                                            params: {
+                                                libraryName: name,
+                                                libraryId: library.id,
+                                                startIndex,
+                                            },
+                                        }
+                                    );
                                 const dedupKey = this.deduplicator.generateKey(
                                     'page',
                                     library.id,
@@ -662,7 +695,11 @@ class JellyfinSource {
      */
     async getServerInfo() {
         try {
-            const client = await this.getJellyfinClient(this.server);
+            const client = await executeWithRetry(() => this.getJellyfinClient(this.server), {
+                source: 'jellyfin',
+                operation: 'getJellyfinClient',
+                params: { serverName: this.server.name },
+            });
             const info = await client.testConnection();
 
             return {
