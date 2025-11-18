@@ -1552,6 +1552,8 @@
             await refreshDashboardMetrics();
             // Update card data (including Now Playing if displayed)
             await updateDashboardCardsData();
+            // Update cache stats (including performance metrics)
+            await refreshCacheStatsV2();
         } catch (_) {
             /* ignore errors */
         } finally {
@@ -1866,10 +1868,22 @@
       <div class="size-bytes">Logs: ${formatBytes(logSize)} | Total: ${formatBytes(totalSize)}</div>
     `;
         const totalItems = data.itemCount?.total || 0;
-        itemEl.innerHTML = `
-      <div>${Number(totalItems).toLocaleString()}</div>
-      <div class="size-bytes">Active in RAM</div>
-    `;
+        itemEl.textContent = Number(totalItems).toLocaleString();
+
+        // Update cache hit/miss ratio
+        const hitRatioEl = document.getElementById('cache-hit-ratio');
+        const totalRequestsEl = document.getElementById('cache-total-requests');
+        if (hitRatioEl && totalRequestsEl) {
+            const hitRatio = data.cachePerformance?.combinedHitRatio ?? 0;
+            const totalRequests = data.cachePerformance?.totalRequests ?? 0;
+            const hits = data.cachePerformance?.totalHits ?? 0;
+            const misses = data.cachePerformance?.totalMisses ?? 0;
+
+            hitRatioEl.textContent = `${hitRatio.toFixed(1)}%`;
+            hitRatioEl.title = `${hits.toLocaleString()} hits / ${misses.toLocaleString()} misses`;
+            totalRequestsEl.textContent = totalRequests.toLocaleString();
+        }
+
         // Update image cache usage meter
         setMeter('meter-image-cache', usagePct, 'mem');
     }

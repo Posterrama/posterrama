@@ -363,12 +363,11 @@
                     
                     window.debugLog && window.debugLog('WALLART_FETCH_MEDIA', { url, gamesOnly, userAgent: navigator.userAgent });
                     
-                    // Safari-compatible fetch with explicit credentials and mode
+                    // Safari-compatible fetch - use short-term cache for faster reloads
                     const res = await fetch(url, { 
                         method: 'GET',
-                        cache: 'no-cache', 
+                        cache: 'default', // Use browser cache for 60s (faster reloads)
                         headers: { 
-                            'Cache-Control': 'no-cache',
                             'Accept': 'application/json'
                         },
                         credentials: 'same-origin',
@@ -405,6 +404,18 @@
                         window.debugLog && window.debugLog('WALLART_MEDIA_EMPTY', {});
                         return false;
                     }
+                    
+                    // OPTIMIZATION: Preload first 10 posters immediately for instant display
+                    const preloadCount = Math.min(10, items.length);
+                    for (let i = 0; i < preloadCount; i++) {
+                        const posterUrl = items[i]?.posterUrl || items[i]?.poster_path;
+                        if (posterUrl) {
+                            const img = new Image();
+                            img.fetchPriority = i < 3 ? 'high' : 'low';
+                            img.src = posterUrl;
+                        }
+                    }
+                    
                     try {
                         if (!Object.getOwnPropertyDescriptor(window, 'mediaQueue')) {
                             Object.defineProperty(window, 'mediaQueue', { value: items, writable: true });
@@ -415,7 +426,7 @@
                         window.debugLog && window.debugLog('WALLART_MEDIA_DEFINE_ERROR', { error: e.message });
                         window.mediaQueue = items;
                     }
-                    window.debugLog && window.debugLog('WALLART_ENSURE_MEDIA_SUCCESS', { count: items.length });
+                    window.debugLog && window.debugLog('WALLART_ENSURE_MEDIA_SUCCESS', { count: items.length, preloaded: preloadCount });
                     return true;
                 } catch (e) {
                     window.debugLog && window.debugLog('WALLART_ENSURE_MEDIA_FAIL', { 

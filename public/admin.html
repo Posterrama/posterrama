@@ -376,10 +376,23 @@
                 </div>
               </div>
               
-              <!-- Memory items -->
+              <!-- Cache Performance -->
               <div style="margin-bottom: 24px;">
-                <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 4px;">Memory Items</div>
-                <div style="font-size: 1.2rem; font-weight: 600; color: var(--color-text-primary);" id="cache-item-count">Loading…</div>
+                <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px;">Cache Performance</div>
+                <div style="display: flex; gap: 16px;">
+                  <div style="flex: 1;">
+                    <div style="font-size: 0.75rem; color: var(--color-text-tertiary); margin-bottom: 4px;">Hit Ratio</div>
+                    <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-success);" id="cache-hit-ratio">—</div>
+                  </div>
+                  <div style="flex: 1;">
+                    <div style="font-size: 0.75rem; color: var(--color-text-tertiary); margin-bottom: 4px;">Requests</div>
+                    <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary);" id="cache-total-requests">—</div>
+                  </div>
+                  <div style="flex: 1;">
+                    <div style="font-size: 0.75rem; color: var(--color-text-tertiary); margin-bottom: 4px;">Items (RAM)</div>
+                    <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary);" id="cache-item-count">—</div>
+                  </div>
+                </div>
               </div>
               
               <!-- Actions -->

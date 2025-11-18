@@ -95,7 +95,7 @@ const schemas = {
                     is: 'romm',
                     then: Joi.when('enabled', { is: true, then: Joi.required() }),
                 }),
-                password: Joi.string().optional(),
+                password: Joi.string().allow('').optional().default(''),
                 passwordEnvVar: Joi.string().optional(),
                 selectedPlatforms: Joi.array().items(Joi.string()).optional(),
                 filters: Joi.object({

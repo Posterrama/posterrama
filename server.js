@@ -3341,7 +3341,6 @@ app.use(
         validateMediaKeyParam,
         validateImageQuery,
         apiCacheMiddleware,
-        cacheMiddleware,
     })
 );
 
@@ -5784,6 +5783,15 @@ app.get(
                 }
             }
 
+            // Get API cache stats if available
+            const apiCacheStats = apiCache ? apiCache.getStats() : null;
+
+            // Calculate combined performance metrics
+            const totalHits = cacheStats.hits + (apiCacheStats?.hits || 0);
+            const totalMisses = cacheStats.misses + (apiCacheStats?.misses || 0);
+            const totalRequests = totalHits + totalMisses;
+            const combinedHitRatio = totalRequests > 0 ? (totalHits / totalRequests) * 100 : 0;
+
             const response = {
                 diskUsage,
                 itemCount,
@@ -5791,6 +5799,12 @@ app.get(
                     hits: cacheStats.hits,
                     misses: cacheStats.misses,
                     hitRate: cacheStats.hitRate,
+                },
+                cachePerformance: {
+                    totalHits,
+                    totalMisses,
+                    totalRequests,
+                    combinedHitRatio,
                 },
             };
 

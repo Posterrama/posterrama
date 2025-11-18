@@ -85,6 +85,32 @@ module.exports = function createAdminCacheRouter({ _logger, asyncHandler, adminA
             const memoryStats = cacheManager.getDetailedStats();
             const apiStats = apiCache ? apiCache.getDetailedStats() : null;
 
+            // Get image cache stats
+            const fs = require('fs');
+            const path = require('path');
+            const imageCacheDir = path.join(process.cwd(), 'image_cache');
+            const imageCacheStats = {
+                files: 0,
+                totalSizeMB: 0,
+                totalSizeBytes: 0,
+            };
+
+            try {
+                const files = fs.readdirSync(imageCacheDir);
+                imageCacheStats.files = files.length;
+
+                // Calculate total size
+                let totalBytes = 0;
+                for (const file of files) {
+                    const stats = fs.statSync(path.join(imageCacheDir, file));
+                    totalBytes += stats.size;
+                }
+                imageCacheStats.totalSizeBytes = totalBytes;
+                imageCacheStats.totalSizeMB = Math.round((totalBytes / 1024 / 1024) * 100) / 100;
+            } catch (err) {
+                // Image cache directory might not exist
+            }
+
             // Calculate combined metrics
             const combinedMetrics = {
                 totalHits: memoryStats.hits + (apiStats?.hits || 0),
@@ -108,6 +134,7 @@ module.exports = function createAdminCacheRouter({ _logger, asyncHandler, adminA
                 metrics: {
                     memory: memoryStats,
                     api: apiStats,
+                    imageCache: imageCacheStats,
                     combined: combinedMetrics,
                 },
                 timestamp: new Date().toISOString(),
@@ -146,6 +173,27 @@ module.exports = function createAdminCacheRouter({ _logger, asyncHandler, adminA
             const memStats = cacheManager.getStats();
             const apiStats = apiCache ? apiCache.getStats() : null;
 
+            // Get image cache stats
+            const fs = require('fs');
+            const path = require('path');
+            const imageCacheDir = path.join(process.cwd(), 'image_cache');
+            let imageCacheFiles = 0;
+            let imageCacheSizeMB = 0;
+
+            try {
+                const files = fs.readdirSync(imageCacheDir);
+                imageCacheFiles = files.length;
+
+                let totalBytes = 0;
+                for (const file of files) {
+                    const stats = fs.statSync(path.join(imageCacheDir, file));
+                    totalBytes += stats.size;
+                }
+                imageCacheSizeMB = Math.round((totalBytes / 1024 / 1024) * 100) / 100;
+            } catch (err) {
+                // Image cache directory might not exist
+            }
+
             const memHitRatio = Math.round(memStats.hitRate * 10000) / 100;
             const apiHitRatio = apiStats ? Math.round(apiStats.hitRate * 10000) / 100 : 0;
             const totalRequests = memStats.totalRequests + (apiStats?.totalRequests || 0);
@@ -160,6 +208,8 @@ module.exports = function createAdminCacheRouter({ _logger, asyncHandler, adminA
                 memoryHitRatio: memHitRatio,
                 apiHitRatio,
                 totalMemoryMB: memStats.memoryUsage.totalMB + (apiStats?.memoryUsage?.totalMB || 0),
+                imageCacheFiles,
+                imageCacheSizeMB,
                 timestamp: new Date().toISOString(),
             });
         })

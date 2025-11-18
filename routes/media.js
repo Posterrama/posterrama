@@ -178,7 +178,6 @@ async function enrichItemsWithExtras(items, config, logger, isDebug) {
  * @param {Function} deps.validateMediaKeyParam - Validate media key parameter
  * @param {Function} deps.validateImageQuery - Validate image query parameters
  * @param {Object} deps.apiCacheMiddleware - API cache middleware
- * @param {Function} deps.cacheMiddleware - Generic cache middleware factory
  * @returns {express.Router} Configured router
  */
 module.exports = function createMediaRouter({
@@ -205,7 +204,6 @@ module.exports = function createMediaRouter({
     validateMediaKeyParam,
     validateImageQuery,
     apiCacheMiddleware,
-    cacheMiddleware,
 }) {
     const router = express.Router();
 
@@ -891,13 +889,6 @@ module.exports = function createMediaRouter({
     router.get(
         '/image',
         validateImageQuery,
-        cacheMiddleware({
-            ttl: 86400000, // 24 hours
-            cacheControl: 'public, max-age=86400',
-            varyHeaders: ['Accept-Encoding'],
-            keyGenerator: req =>
-                `image:${req.query.server || 'url'}-${req.query.path || req.query.url}`,
-        }),
         asyncHandler(async (req, res) => {
             const imageCacheDir = path.join(process.cwd(), 'image_cache');
             const { server: serverName, path: imagePath, url: directUrl } = req.query;
@@ -935,6 +926,7 @@ module.exports = function createMediaRouter({
                         `[Image Cache] HIT: Serving "${directUrl || imagePath}" from cache file: ${cachedFilePath}`
                     );
                 res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
+                res.setHeader('X-Cache', 'HIT');
                 return res.sendFile(cachedFilePath);
             } catch (e) {
                 // File does not exist, proceed to fetch
@@ -1042,6 +1034,7 @@ module.exports = function createMediaRouter({
 
                 // Set headers on the client response
                 res.setHeader('Cache-Control', 'public, max-age=86400'); // 86400 seconds = 24 hours
+                res.setHeader('X-Cache', 'MISS');
                 const contentType = mediaServerResponse.headers.get('content-type');
                 res.setHeader('Content-Type', contentType || 'image/jpeg');
 
