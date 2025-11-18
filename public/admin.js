@@ -902,48 +902,58 @@
             total = 0;
             breakdown.length = 0;
 
-            // Plex: filtered count from playlist
-            if (plex?.enabled) {
-                const plexCount = window.__lastPlexFilteredCount || 0;
-                if (plexCount > 0) {
-                    total += plexCount;
-                    breakdown.push(`Plex: ${formatNumber(plexCount)}`);
-                }
-            }
+            // Check if we're in games-only mode
+            const wallartModeCheck = config.wallartMode || {};
+            const isGamesOnlyMode = wallartModeCheck.gamesOnly === true;
 
-            // Jellyfin: filtered count from playlist
-            if (jf?.enabled) {
-                const jfCount = window.__lastJellyfinFilteredCount || 0;
-                if (jfCount > 0) {
-                    total += jfCount;
-                    breakdown.push(`Jellyfin: ${formatNumber(jfCount)}`);
+            // In games mode, ONLY count RomM items
+            // In normal mode, count all sources
+            if (isGamesOnlyMode) {
+                // Games mode: only RomM counts
+                if (romm?.enabled) {
+                    const rommCount = window.__lastRommCount || 0;
+                    if (rommCount > 0) {
+                        total += rommCount;
+                        breakdown.push(`RomM: ${formatNumber(rommCount)}`);
+                    }
                 }
-            }
+            } else {
+                // Normal mode: count movies/shows from all sources
 
-            // RomM: filtered count from playlist
-            if (romm?.enabled) {
-                const rommCount = window.__lastRommCount || 0;
-                if (rommCount > 0) {
-                    total += rommCount;
-                    breakdown.push(`RomM: ${formatNumber(rommCount)}`);
+                // Plex: filtered count from playlist
+                if (plex?.enabled) {
+                    const plexCount = window.__lastPlexFilteredCount || 0;
+                    if (plexCount > 0) {
+                        total += plexCount;
+                        breakdown.push(`Plex: ${formatNumber(plexCount)}`);
+                    }
                 }
-            }
 
-            // TMDB: queue count
-            if (config.tmdbSource?.enabled) {
-                const tmdbCount = window.__lastTmdbCount || 0;
-                if (tmdbCount > 0) {
-                    total += tmdbCount;
-                    breakdown.push(`TMDB: ${formatNumber(tmdbCount)}`);
+                // Jellyfin: filtered count from playlist
+                if (jf?.enabled) {
+                    const jfCount = window.__lastJellyfinFilteredCount || 0;
+                    if (jfCount > 0) {
+                        total += jfCount;
+                        breakdown.push(`Jellyfin: ${formatNumber(jfCount)}`);
+                    }
                 }
-            }
 
-            // Local: total items count
-            if (config.localDirectory?.enabled) {
-                const localCount = await computeLocalTotalSafe();
-                if (localCount > 0) {
-                    total += localCount;
-                    breakdown.push(`Local: ${formatNumber(localCount)}`);
+                // TMDB: queue count
+                if (config.tmdbSource?.enabled) {
+                    const tmdbCount = window.__lastTmdbCount || 0;
+                    if (tmdbCount > 0) {
+                        total += tmdbCount;
+                        breakdown.push(`TMDB: ${formatNumber(tmdbCount)}`);
+                    }
+                }
+
+                // Local: total items count
+                if (config.localDirectory?.enabled) {
+                    const localCount = await computeLocalTotalSafe();
+                    if (localCount > 0) {
+                        total += localCount;
+                        breakdown.push(`Local: ${formatNumber(localCount)}`);
+                    }
                 }
             }
 
@@ -973,6 +983,15 @@
                         const gamesData = await gamesRes.json().catch(() => []);
                         if (Array.isArray(gamesData)) {
                             playlistCount = gamesData.length;
+
+                            // In games mode, the total should match the playlist
+                            // (since we're ONLY showing games, not movies)
+                            total = playlistCount;
+                            breakdown.length = 0;
+                            breakdown.push(`RomM: ${formatNumber(playlistCount)}`);
+
+                            // Update the main display with games count
+                            setText('metric-media-items', formatNumber(total));
                         }
                     }
                 } catch (e) {
