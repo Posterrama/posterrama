@@ -104,7 +104,7 @@
         {
             "name": "Plex Server",
             "type": "plex",
-            "enabled": true,
+            "enabled": false,
             "hostname": "your-server-address",
             "port": 32400,
             "tokenEnvVar": "PLEX_TOKEN",
@@ -208,7 +208,7 @@
     },
     "previewOrientation": "landscape",
     "mqtt": {
-        "enabled": true,
+        "enabled": false,
         "broker": {
             "host": "your-server-address",
             "port": 1883,
