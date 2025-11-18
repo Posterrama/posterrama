@@ -23739,8 +23739,14 @@ if (!document.__niwDelegatedFallback) {
             /* multiselect init is cosmetic; ignore failures */
         }
 
-        // Restore active jobs on page load
-        restoreActiveJobs();
+        // Restore active jobs on page load (only if local directory is enabled)
+        const localDirEnabled =
+            getInput('localDirectory.enabled')?.checked ||
+            document.getElementById('localDirectory_enabled')?.checked ||
+            false;
+        if (localDirEnabled) {
+            restoreActiveJobs();
+        }
 
         // Clear completed jobs
         const clearJobsBtn = document.getElementById('btn-clear-completed-jobs');
