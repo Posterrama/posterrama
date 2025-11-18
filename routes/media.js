@@ -538,8 +538,10 @@ module.exports = function createMediaRouter({
             const isRefreshing = isPlaylistRefreshing();
             const refreshStartTime = getRefreshStartTime();
             if (isRefreshing) {
-                // Check if refresh has been stuck for too long (over 20 seconds)
-                if (refreshStartTime && Date.now() - refreshStartTime > 20000) {
+                // Check if refresh has been stuck for too long (over 60 seconds)
+                // This threshold MUST be higher than the timeout in playlist-cache.js (45s)
+                // Otherwise we get infinite loops: timeout resets at 45s, stuck detection at 20s
+                if (refreshStartTime && Date.now() - refreshStartTime > 60000) {
                     logger.warn('Detected stuck refresh state - forcing reset', {
                         action: 'stuck_refresh_reset',
                         stuckDuration: `${Date.now() - refreshStartTime}ms`,
