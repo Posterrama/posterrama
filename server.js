@@ -7075,6 +7075,7 @@ if (require.main === module) {
         // Define the public API routes that need to be proxied
         siteApp.get('/get-config', proxyApiRequest);
         siteApp.get('/get-media', proxyApiRequest);
+        siteApp.get('/get-music-artists', proxyApiRequest);
         siteApp.get('/get-media-by-key/:key', proxyApiRequest);
         siteApp.get('/image', proxyApiRequest);
         siteApp.get('/local-posterpack', proxyApiRequest);
