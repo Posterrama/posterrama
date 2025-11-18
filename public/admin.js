@@ -776,6 +776,13 @@
                 const mediaSub = document.getElementById('metric-media-sub');
                 if (mediaSub && playlistCount != null) {
                     mediaSub.textContent = `${formatNumber(playlistCount)} in playlist`;
+                }
+
+                const mediaItemsEl = document.getElementById('metric-media-items');
+                if (mediaItemsEl) {
+                    const tooltipText =
+                        breakdown && breakdown.length > 0
+                            ? `${breakdown.join(' | ')} | Playlist: ${formatNumber(playlistCount || 0)} items (cached)`
                             : 'No items (cached)';
                     mediaItemsEl.setAttribute('title', tooltipText);
                 }
@@ -936,7 +943,7 @@
             // Get playlist count based on active mode
             let playlistCount = 0;
             let playlistLabel = 'in playlist';
-            
+
             // Check active mode to determine what to count
             const activeMode = config.activeMode || 'screensaver';
             const wallartMode = config.wallartMode || {};
