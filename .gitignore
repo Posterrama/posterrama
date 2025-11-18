@@ -124,3 +124,6 @@ private/
 devices.broadcast.*.json
 performance-baseline.json
 # Git setup test - Thu Nov 13 14:23:01 CET 2025
+
+# Copilot configuration (private)
+.copilot-config.json
