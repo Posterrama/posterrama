@@ -1,8 +1,8 @@
 // Posterrama PWA Service Worker
-// Version 2.2.6 - Debug viewer UI improvements
+// Version 2.2.7 - Force cache refresh to clear old Next.js assets
 
-const CACHE_NAME = 'posterrama-pwa-v2.2.6';
-const MEDIA_CACHE_NAME = 'posterrama-media-v1.1.0';
+const CACHE_NAME = 'posterrama-pwa-v2.2.7';
+const MEDIA_CACHE_NAME = 'posterrama-media-v1.1.1';
 
 // Cache limits to avoid QuotaExceededError
 const MEDIA_CACHE_MAX_ITEMS = 800; // cap media entries
@@ -51,14 +51,22 @@ self.addEventListener('activate', event => {
             .then(cacheNames => {
                 return Promise.all(
                     cacheNames.map(cacheName => {
+                        // Delete all old caches including any Next.js caches
                         if (cacheName !== CACHE_NAME && cacheName !== MEDIA_CACHE_NAME) {
+                            console.log('[SW] Deleting old cache:', cacheName);
                             return caches.delete(cacheName);
                         }
                     })
                 );
             })
             .then(() => {
-                return self.clients.claim();
+                // Force reload all clients to clear any stale HTML
+                return self.clients.matchAll().then(clients => {
+                    clients.forEach(client => {
+                        client.postMessage({ type: 'CACHE_CLEARED' });
+                    });
+                    return self.clients.claim();
+                });
             })
     );
 });
