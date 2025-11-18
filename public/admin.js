@@ -745,15 +745,7 @@
                         // Update secondary line with cached playlist count
                         const mediaSub = document.getElementById('metric-media-sub');
                         if (mediaSub && playlistCount != null) {
-                            mediaSub.textContent = `${formatNumber(playlistCount)} cached`;
-                        }
-
-                        const mediaItemsEl = document.getElementById('metric-media-items');
-                        if (mediaItemsEl) {
-                            const tooltipText =
-                                breakdown && breakdown.length > 0
-                                    ? `${breakdown.join(' | ')} | Playlist: ${formatNumber(playlistCount || 0)} items (cached)`
-                                    : 'No items (cached)';
+                            mediaSub.textContent = `${formatNumber(playlistCount)} in playlist`;
                             mediaItemsEl.setAttribute('title', tooltipText);
                         }
                         // Also restore to window for backwards compatibility
@@ -783,14 +775,7 @@
                 // Update secondary line with cached playlist count
                 const mediaSub = document.getElementById('metric-media-sub');
                 if (mediaSub && playlistCount != null) {
-                    mediaSub.textContent = `${formatNumber(playlistCount)} cached`;
-                }
-
-                const mediaItemsEl = document.getElementById('metric-media-items');
-                if (mediaItemsEl) {
-                    const tooltipText =
-                        breakdown && breakdown.length > 0
-                            ? `${breakdown.join(' | ')} | Playlist: ${formatNumber(playlistCount || 0)} items (cached)`
+                    mediaSub.textContent = `${formatNumber(playlistCount)} in playlist`;
                             : 'No items (cached)';
                     mediaItemsEl.setAttribute('title', tooltipText);
                 }
@@ -948,37 +933,67 @@
             // Update dashboard display with accurate counts
             setText('metric-media-items', formatNumber(total));
 
-            // Get playlist count for secondary display
-            // Use the same playlist data we already fetched for quick estimate earlier
+            // Get playlist count based on active mode
             let playlistCount = 0;
-            try {
-                // First check if we already have the playlist in memory from earlier fetch
-                if (
-                    window.__cachedPlaylistForCount &&
-                    Array.isArray(window.__cachedPlaylistForCount)
-                ) {
-                    playlistCount = window.__cachedPlaylistForCount.length;
-                } else {
-                    // Fetch minimal data - just need to count array length
-                    const plRes = await window.dedupJSON('/get-media', {
-                        credentials: 'include',
-                    });
-                    if (plRes && plRes.ok) {
-                        const plData = await plRes.json().catch(() => []);
-                        if (Array.isArray(plData)) {
-                            playlistCount = plData.length;
-                            window.__cachedPlaylistForCount = plData; // Cache for next time
+            let playlistLabel = 'in playlist';
+            
+            // Check active mode to determine what to count
+            const activeMode = config.activeMode || 'screensaver';
+            const wallartMode = config.wallartMode || {};
+            const isGamesMode = wallartMode.gamesOnly === true;
+            const isMusicMode = wallartMode.musicMode === true;
+
+            if (isGamesMode) {
+                // Games mode: show RomM count
+                playlistCount = window.__lastRommCount || 0;
+                playlistLabel = 'in playlist';
+            } else if (isMusicMode) {
+                // Music mode: show album count (if available)
+                // TODO: Get actual album count from music library
+                playlistCount = 0;
+                playlistLabel = 'albums';
+                // For now show "unknown" if music mode but no count
+                if (playlistCount === 0) {
+                    const mediaSub = document.getElementById('metric-media-sub');
+                    if (mediaSub) {
+                        mediaSub.textContent = 'playlist unknown';
+                    }
+                    // Skip the rest of playlist count logic
+                    playlistCount = null;
+                }
+            } else {
+                // Movies/Shows mode: count from regular playlist
+                try {
+                    // Use cached playlist if available
+                    if (
+                        window.__cachedPlaylistForCount &&
+                        Array.isArray(window.__cachedPlaylistForCount)
+                    ) {
+                        playlistCount = window.__cachedPlaylistForCount.length;
+                    } else {
+                        // Fetch playlist count
+                        const plRes = await window.dedupJSON('/get-media', {
+                            credentials: 'include',
+                        });
+                        if (plRes && plRes.ok) {
+                            const plData = await plRes.json().catch(() => []);
+                            if (Array.isArray(plData)) {
+                                playlistCount = plData.length;
+                                window.__cachedPlaylistForCount = plData;
+                            }
                         }
                     }
+                } catch (e) {
+                    // Ignore playlist fetch errors
                 }
-            } catch (e) {
-                // Ignore playlist fetch errors
             }
 
-            // Update secondary line with playlist count (like Now Playing card style)
-            const mediaSub = document.getElementById('metric-media-sub');
-            if (mediaSub) {
-                mediaSub.textContent = `${formatNumber(playlistCount)} cached`;
+            // Update secondary line with playlist count
+            if (playlistCount !== null) {
+                const mediaSub = document.getElementById('metric-media-sub');
+                if (mediaSub) {
+                    mediaSub.textContent = `${formatNumber(playlistCount)} ${playlistLabel}`;
+                }
             }
 
             // Store breakdown for tooltip/debugging
