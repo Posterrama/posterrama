@@ -5,6 +5,7 @@
 const logger = require('../utils/logger');
 const { RequestDeduplicator } = require('../utils/request-deduplicator');
 const { logSourceError, metadataExtractors } = require('../utils/source-error-context');
+const { executeWithRetry } = require('../utils/source-error-handler');
 
 // Initialize deduplicator for Plex requests
 const deduplicator = new RequestDeduplicator({ keyPrefix: 'plex' });
@@ -80,7 +81,11 @@ class PlexSource {
     async ensurePlexClient() {
         if (!this.plex) {
             if (!this.plexPromise) {
-                this.plexPromise = this.getPlexClient(this.server);
+                this.plexPromise = executeWithRetry(() => this.getPlexClient(this.server), {
+                    source: 'plex',
+                    operation: 'ensurePlexClient',
+                    params: { serverName: this.server.name },
+                });
             }
             this.plex = await this.plexPromise;
         }
@@ -144,7 +149,11 @@ class PlexSource {
         }
 
         try {
-            const allLibraries = await this.getPlexLibraries(this.server);
+            const allLibraries = await executeWithRetry(() => this.getPlexLibraries(this.server), {
+                source: 'plex',
+                operation: 'getPlexLibraries',
+                params: { serverName: this.server.name },
+            });
             let allItems = [];
 
             // Parallelize library queries for better performance
@@ -156,9 +165,19 @@ class PlexSource {
                 }
 
                 try {
-                    // Wrap library query with deduplication
+                    // Wrap library query with deduplication and retry logic
                     const fetchLibrary = () =>
-                        this.plex.query(`/library/sections/${library.key}/all?includeExtras=1`);
+                        executeWithRetry(
+                            () =>
+                                this.plex.query(
+                                    `/library/sections/${library.key}/all?includeExtras=1`
+                                ),
+                            {
+                                source: 'plex',
+                                operation: 'fetchLibrary',
+                                params: { libraryName: name, libraryKey: library.key },
+                            }
+                        );
                     const dedupKey = this.deduplicator.generateKey(
                         'library',
                         library.key,
@@ -247,8 +266,13 @@ class PlexSource {
                             return item;
                         }
 
-                        const fullMetadata = await this.plex.query(
-                            `/library/metadata/${ratingKey}`
+                        const fullMetadata = await executeWithRetry(
+                            () => this.plex.query(`/library/metadata/${ratingKey}`),
+                            {
+                                source: 'plex',
+                                operation: 'fetchMetadata',
+                                params: { ratingKey, title: item.title },
+                            }
                         );
                         if (fullMetadata?.MediaContainer?.Metadata?.[0]) {
                             const metadata = fullMetadata.MediaContainer.Metadata[0];
@@ -380,7 +404,11 @@ class PlexSource {
         }
 
         try {
-            const allLibraries = await this.getPlexLibraries(this.server);
+            const allLibraries = await executeWithRetry(() => this.getPlexLibraries(this.server), {
+                source: 'plex',
+                operation: 'getPlexLibraries',
+                params: { serverName: this.server.name },
+            });
             let allAlbums = [];
 
             for (const name of libraryNames) {
@@ -394,8 +422,13 @@ class PlexSource {
 
                 try {
                     // Fetch all albums from the music library using the /albums endpoint
-                    const content = await this.plex.query(
-                        `/library/sections/${library.key}/albums`
+                    const content = await executeWithRetry(
+                        () => this.plex.query(`/library/sections/${library.key}/albums`),
+                        {
+                            source: 'plex',
+                            operation: 'fetchAlbums',
+                            params: { libraryName: name, libraryKey: library.key },
+                        }
                     );
 
                     if (content?.MediaContainer?.Metadata) {
