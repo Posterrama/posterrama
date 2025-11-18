@@ -976,9 +976,13 @@
 
                 try {
                     // Fetch actual games from RomM server
-                    const gamesRes = await window.dedupJSON('/get-media?gamesOnly=true', {
-                        credentials: 'include',
-                    });
+                    // Add cache-busting parameter to force fresh data
+                    const gamesRes = await window.dedupJSON(
+                        '/get-media?gamesOnly=true&_=' + Date.now(),
+                        {
+                            credentials: 'include',
+                        }
+                    );
                     if (gamesRes && gamesRes.ok) {
                         const gamesData = await gamesRes.json().catch(() => []);
                         if (Array.isArray(gamesData)) {
