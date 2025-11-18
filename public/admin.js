@@ -1345,6 +1345,7 @@
 
                 const countEl = document.getElementById('metric-now-playing-count');
                 const subEl = document.getElementById('metric-now-playing-sub');
+                const cardEl = document.getElementById('card-now-playing');
 
                 if (countEl) {
                     countEl.textContent = sessions.length;
@@ -1353,6 +1354,7 @@
                 if (subEl) {
                     if (sessions.length === 0) {
                         subEl.textContent = 'nobody watching';
+                        if (cardEl) cardEl.title = 'Currently playing on Plex';
                     } else if (sessions.length === 1) {
                         const session = sessions[0];
                         // For TV shows, use grandparentTitle (series name) instead of title (episode name)
@@ -1360,7 +1362,7 @@
                             session.type === 'episode'
                                 ? session.grandparentTitle || session.title
                                 : session.title;
-                        const user = session.User?.title || '';
+                        const user = session.username || '';
                         let text = '1 active session';
                         if (title && user) {
                             text += ` — ${escapeHtml(title)} (${escapeHtml(user)})`;
@@ -1370,8 +1372,24 @@
                             text += ` (${escapeHtml(user)})`;
                         }
                         subEl.textContent = text;
+                        // Tooltip shows user info
+                        let tooltip = '1 active session';
+                        if (user) {
+                            tooltip += `\nWatching: ${escapeHtml(user)}`;
+                        }
+                        if (cardEl) cardEl.title = tooltip;
                     } else {
                         subEl.textContent = `${sessions.length} active sessions`;
+                        // Build tooltip with user list (filter out Unknown and empty strings)
+                        const users = sessions
+                            .map(s => s.username || '')
+                            .filter(u => u && u.trim() !== '' && u !== 'Unknown');
+                        const uniqueUsers = [...new Set(users)];
+                        let tooltip = `${sessions.length} active sessions`;
+                        if (uniqueUsers.length > 0) {
+                            tooltip += `\nWatching: ${uniqueUsers.join(', ')}`;
+                        }
+                        if (cardEl) cardEl.title = tooltip;
                     }
                 }
             } catch (e) {

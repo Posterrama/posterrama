@@ -94,6 +94,55 @@ module.exports = function createPublicApiRouter({
     const { isSourceTypeEnabled: isSourceTypeEnabledUtil } = require('../lib/source-utils');
     const isSourceTypeEnabled = sourceType => isSourceTypeEnabledUtil(config, sourceType);
 
+    // In-memory cache for ratings-with-counts (1 hour TTL)
+    const ratingsWithCountsCache = new Map();
+    const ratingsWithCountsInFlight = new Map(); // Track in-flight requests
+    const RATINGS_WITH_COUNTS_TTL = 3600000; // 1 hour
+
+    function getCachedRatingsWithCounts(sourceType) {
+        const cached = ratingsWithCountsCache.get(sourceType);
+        if (!cached) return null;
+
+        const age = Date.now() - cached.timestamp;
+        if (age > RATINGS_WITH_COUNTS_TTL) {
+            ratingsWithCountsCache.delete(sourceType);
+            return null;
+        }
+
+        return cached.data;
+    }
+
+    function setCachedRatingsWithCounts(sourceType, data) {
+        ratingsWithCountsCache.set(sourceType, {
+            data,
+            timestamp: Date.now(),
+        });
+    }
+
+    async function getRatingsWithCountsDeduped(sourceType) {
+        // Check if request is already in flight
+        const inFlight = ratingsWithCountsInFlight.get(sourceType);
+        if (inFlight) {
+            logger.debug(`[RatingsWithCounts] Deduping request for ${sourceType}`);
+            return inFlight;
+        }
+
+        // Start new request
+        const promise = getRatingsWithCounts(sourceType)
+            .then(data => {
+                setCachedRatingsWithCounts(sourceType, data);
+                ratingsWithCountsInFlight.delete(sourceType);
+                return data;
+            })
+            .catch(err => {
+                ratingsWithCountsInFlight.delete(sourceType);
+                throw err;
+            });
+
+        ratingsWithCountsInFlight.set(sourceType, promise);
+        return promise;
+    }
+
     // ============================================================================
     // PUBLIC RATING ENDPOINTS
     // ============================================================================
@@ -176,16 +225,31 @@ module.exports = function createPublicApiRouter({
                         success: true,
                         data: [],
                         count: 0,
+                        cached: false,
                         message: `${sourceType} server is disabled`,
                     });
                 }
 
-                const ratingsWithCounts = await getRatingsWithCounts(sourceType);
+                // Check cache first
+                const cached = getCachedRatingsWithCounts(sourceType);
+
+                if (cached) {
+                    return res.json({
+                        success: true,
+                        data: cached,
+                        count: cached.length,
+                        cached: true,
+                    });
+                }
+
+                // Use deduped fetch (prevents parallel requests)
+                const ratingsWithCounts = await getRatingsWithCountsDeduped(sourceType);
 
                 return res.json({
                     success: true,
                     data: ratingsWithCounts,
                     count: ratingsWithCounts.length,
+                    cached: false,
                 });
             } catch (error) {
                 logger.error(

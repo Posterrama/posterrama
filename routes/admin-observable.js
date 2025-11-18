@@ -208,12 +208,16 @@ module.exports = function createAdminObservableRouter({
 
             const oldLevel = logger.level;
 
-            // Update Winston log level
+            // Update Winston log level and all transports
             logger.level = level;
+            logger.transports.forEach(transport => {
+                transport.level = level;
+            });
 
             logger.info('Log level updated', {
                 oldLevel,
                 newLevel: level,
+                transportCount: logger.transports.length,
                 adminUser: req.session?.user?.username || 'unknown',
             });
 
