@@ -720,9 +720,32 @@
      * - Plex/Jellyfin: Count items matching configured filters (from playlist)
      * - TMDB: Count items in queue
      * - Local: Total items count
+     *
+     * Uses smart caching: returns cached value if available and fresh (< 5min old)
      */
     async function updateMediaItemsCount() {
         try {
+            // Check if we have a fresh cached value (< 5 minutes old)
+            const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+            const now = Date.now();
+            if (
+                window.__mediaItemsCache &&
+                window.__mediaItemsCacheTime &&
+                now - window.__mediaItemsCacheTime < CACHE_TTL
+            ) {
+                // Use cached value
+                const { total, breakdown } = window.__mediaItemsCache;
+                setText('metric-media-items', formatNumber(total));
+                const mediaItemsEl = document.getElementById('metric-media-items');
+                if (mediaItemsEl) {
+                    mediaItemsEl.setAttribute(
+                        'title',
+                        breakdown.join(' | ') + ' (cached)' || 'No items'
+                    );
+                }
+                return total;
+            }
+
             const configData = await fetchJSON('/api/admin/config').catch(() => null);
             if (!configData) return 0;
 
@@ -878,11 +901,23 @@
                 mediaItemsEl.setAttribute('title', breakdown.join(' | ') || 'No items');
             }
 
+            // Cache the result for 5 minutes
+            window.__mediaItemsCache = { total, breakdown };
+            window.__mediaItemsCacheTime = Date.now();
+
             return total;
         } catch (err) {
             logger.error('Failed to update media items count:', err);
             return 0;
         }
+    }
+
+    /**
+     * Invalidate media items cache (call this after media refresh)
+     */
+    function invalidateMediaItemsCache() {
+        delete window.__mediaItemsCache;
+        delete window.__mediaItemsCacheTime;
     }
 
     /**
@@ -15202,6 +15237,10 @@
                     });
                     const j = await r.json().catch(() => ({}));
                     if (!r.ok) throw new Error(j?.error || 'Refresh failed');
+
+                    // Invalidate media items cache so next dashboard load fetches fresh counts
+                    invalidateMediaItemsCache();
+
                     window.notify?.toast({
                         type: 'success',
                         title: 'Media refreshed',
@@ -16485,6 +16524,9 @@
         // Compute live filtered counts per source; when filters are active, use server-side uncapped preview
         async function refreshOverviewCounts() {
             try {
+                // Invalidate media items cache when refreshing counts (fresh data available)
+                invalidateMediaItemsCache();
+
                 // Fetch cached playlist first (fast fallback & used when no filters)
                 const res = await window.dedupJSON('/get-media', { credentials: 'include' });
                 let items = [];
@@ -21149,6 +21191,9 @@
                             if (refreshRes.ok) {
                                 const data = await refreshRes.json().catch(() => ({}));
                                 console.log('[RomM] Playlist refresh complete:', data);
+
+                                // Invalidate media items cache
+                                invalidateMediaItemsCache();
 
                                 // Wait a moment then update counts
                                 setTimeout(() => {
