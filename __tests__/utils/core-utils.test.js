@@ -29,7 +29,7 @@ describe('PosterramaCore helpers (simulated)', () => {
 
         // Load and eval core.js in the simulated global context
         const src = fs.readFileSync(path.join(__dirname, '../../public/core.js'), 'utf8');
-        // eslint-disable-next-line no-new-func
+
         new Function('window', src)(global.window);
     });
 

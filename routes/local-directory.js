@@ -181,7 +181,6 @@ module.exports = function createLocalDirectoryRouter({
                 const results = [];
                 const maxResults = 100; // Limit results to prevent overwhelming the UI
 
-                // eslint-disable-next-line no-inner-declarations
                 async function searchRecursive(dir, relativePath = '') {
                     if (results.length >= maxResults) return;
 

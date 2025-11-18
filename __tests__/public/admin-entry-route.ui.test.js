@@ -23,10 +23,10 @@ describe('Entry Route UI wiring', () => {
         global.window = dom.window;
         global.document = dom.window.document;
         // attach utils
-        // eslint-disable-next-line global-require
+
         const utils = require('../../public/admin-utils.js');
         // expose for code that uses window
-        // eslint-disable-next-line no-underscore-dangle
+
         global.window = Object.assign(global.window || {}, { __adminUtils: utils });
         // Ensure admin.js runs fresh each test with this DOM
         try {

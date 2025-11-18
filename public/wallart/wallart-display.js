@@ -1,5 +1,5 @@
 // Wallart module: begin extracting wallart-specific helpers from script.js
-/* eslint-disable prettier/prettier */
+
 (function initWallartModule() {
     window.debugLog && window.debugLog('WALLART_MODULE_INIT', { timestamp: Date.now() });
     try {
@@ -2500,4 +2500,3 @@
         if (window && window.console) console.debug('[Wallart] module init error');
     }
 })();
-/* eslint-enable prettier/prettier */

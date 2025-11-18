@@ -345,7 +345,7 @@ describe('Performance Benchmarking Suite', () => {
                 const times = [];
                 for (let i = 0; i < 10000; i++) {
                     const start = performance.now();
-                    new URL(url, 'http://localhost:4000'); // eslint-disable-line no-new
+                    new URL(url, 'http://localhost:4000');
                     times.push(performance.now() - start);
                 }
                 return {
