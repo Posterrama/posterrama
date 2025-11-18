@@ -38,8 +38,8 @@ function generateSwaggerSpec(req = null) {
                     email: 'support@posterrama.app',
                 },
                 'x-logo': {
-                    url: 'https://github.com/Posterrama/posterrama',
-                    altText: 'GitHub Repository',
+                    url: '/logo.png',
+                    altText: 'Posterrama Logo',
                 },
                 license: {
                     name: 'GPL-3.0-or-later',
