@@ -546,6 +546,7 @@ module.exports = function createMediaRouter({
 
             // Special case: If games mode is active and request excludes games,
             // return empty array instead of "building" status (no movies needed in games mode)
+            // This check MUST come BEFORE isRefreshing() check
             const wallartModeCheck = config?.wallartMode || {};
             const isGamesOnlyActive = wallartModeCheck.gamesOnly === true;
             const isExcludingGames =

@@ -1568,28 +1568,23 @@ module.exports = function createAdminConfigRouter({
                 await client.authenticate();
                 logger.debug('[RomM Platforms] Authentication successful');
 
-                // Fetch platforms
-                const platforms = await client.getPlatforms();
-                logger.debug(`[RomM Platforms] Fetched ${platforms?.length || 0} platforms`);
-
                 // Create cache key from server URL
                 const cacheKey = `${hostname}:${port}`;
                 const now = Date.now();
                 const cached = rommPlatformCache.get(cacheKey);
 
-                // Use cached counts if available and fresh (< 30 minutes old)
+                // Use cached data if available and fresh (< 30 minutes old)
                 if (cached && now - cached.timestamp < ROMM_CACHE_TTL) {
                     logger.info(
-                        `[RomM Platforms] Using cached counts (${Math.round((now - cached.timestamp) / 1000 / 60)}min old)`
+                        `[RomM Platforms] Using cached data (${Math.round((now - cached.timestamp) / 1000 / 60)}min old)`
                     );
-                    const platformsWithCounts = platforms.map(p => ({
-                        value: p.slug,
-                        label: p.name,
-                        count: cached.counts[p.id] || 0,
-                    }));
-                    platformsWithCounts.sort((a, b) => b.count - a.count);
+                    const platformsWithCounts = cached.platforms || [];
                     return res.json({ success: true, platforms: platformsWithCounts });
                 }
+
+                // Fetch platforms (only if cache miss or expired)
+                const platforms = await client.getPlatforms();
+                logger.debug(`[RomM Platforms] Fetched ${platforms?.length || 0} platforms`);
 
                 // Fetch ROM count for each platform with batching (5 concurrent max)
                 const batchSize = 5;
@@ -1631,17 +1626,18 @@ module.exports = function createAdminConfigRouter({
                     platformsWithCounts.push(...batchResults);
                 }
 
-                // Cache the counts for next time
-                rommPlatformCache.set(cacheKey, {
-                    timestamp: now,
-                    counts,
-                });
-                logger.debug(
-                    `[RomM Platforms] Cached counts for ${Object.keys(counts).length} platforms`
-                );
-
                 // Sort by game count descending (most games first)
                 platformsWithCounts.sort((a, b) => b.count - a.count);
+
+                // Cache the complete platforms data for next time
+                rommPlatformCache.set(cacheKey, {
+                    timestamp: now,
+                    platforms: platformsWithCounts, // Cache the complete platform data
+                    counts, // Keep counts for backwards compatibility if needed
+                });
+                logger.debug(
+                    `[RomM Platforms] Cached ${platformsWithCounts.length} platforms with counts`
+                );
 
                 res.json({
                     success: true,

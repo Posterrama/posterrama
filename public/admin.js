@@ -20363,7 +20363,7 @@
 
         // Auto-fetch RomM platforms on panel open (once per session)
         window.admin2 = window.admin2 || {};
-        window.admin2.maybeFetchRommOnOpen = function () {
+        window.admin2.maybeFetchRommOnOpen = async function () {
             // Check if we really need to fetch
             const needsFetch = !window.__rommPlatforms || window.__rommPlatforms.length === 0;
 
@@ -20377,8 +20377,41 @@
                 return;
             }
 
-            const url = getInput('romm.url')?.value?.trim();
-            const username = getInput('romm.username')?.value?.trim();
+            // Try to get credentials from DOM inputs first, fallback to cached config
+            let url = getInput('romm.url')?.value?.trim();
+            let username = getInput('romm.username')?.value?.trim();
+
+            // If inputs are empty, try to get from cached RomM config
+            if ((!url || !username) && window.__lastRommConfig) {
+                url = url || window.__lastRommConfig.url;
+                username = username || window.__lastRommConfig.username;
+                console.log('[RomM] Using credentials from cached config (inputs were empty)');
+            }
+
+            // If still no credentials, config may not be loaded yet - fetch it
+            if (!url || !username) {
+                console.log('[RomM] Config not loaded yet, fetching...');
+                try {
+                    const configRes = await fetch('/api/admin/config', { credentials: 'include' });
+                    if (configRes.ok) {
+                        const configData = await configRes.json();
+                        const romm =
+                            (configData.config?.mediaServers || []).find(s => s.type === 'romm') ||
+                            {};
+                        url = url || romm.url;
+                        username = username || romm.username;
+                        // Cache it for next time
+                        window.__lastRommConfig = { ...romm };
+                        console.log(
+                            '[RomM] Loaded config from API:',
+                            url ? 'URL set' : 'no URL',
+                            username ? 'username set' : 'no username'
+                        );
+                    }
+                } catch (err) {
+                    console.warn('[RomM] Failed to fetch config:', err);
+                }
+            }
 
             // Auto-fetch if URL and username are configured
             // Backend will use config password if not provided in request
@@ -20474,8 +20507,18 @@
             const btn = document.getElementById('btn-romm-platforms');
             if (!silent) startBtnSpinner(btn);
             try {
-                const url = getInput('romm.url')?.value?.trim() || '';
-                const username = getInput('romm.username')?.value?.trim() || '';
+                let url = getInput('romm.url')?.value?.trim() || '';
+                let username = getInput('romm.username')?.value?.trim() || '';
+
+                // If inputs are empty, fallback to cached RomM config
+                if ((!url || !username) && window.__lastRommConfig) {
+                    url = url || window.__lastRommConfig.url || '';
+                    username = username || window.__lastRommConfig.username || '';
+                    console.log(
+                        '[RomM Fetch] Using credentials from cached config (inputs were empty)'
+                    );
+                }
+
                 const passwordEl = getInput('romm.password');
                 const passwordRaw =
                     passwordEl?.dataset?.actualToken || passwordEl?.value?.trim() || '';
