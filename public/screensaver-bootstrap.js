@@ -129,7 +129,12 @@ export async function startScreensaver() {
             // Device init is optional
         }
 
-        await ensureMediaQueue();
+        const hasMedia = await ensureMediaQueue();
+        if (!hasMedia) {
+            console.log('[Screensaver] No media available, redirecting to no-media page');
+            window.location.replace('/no-media.html');
+            return;
+        }
 
         // Preload first poster for better LCP (Largest Contentful Paint)
         try {

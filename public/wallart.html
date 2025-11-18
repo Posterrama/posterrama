@@ -444,7 +444,12 @@
                     } catch (e) { 
                         window.debugLog && window.debugLog('WALLART_DEVICE_MGMT_ERROR', { error: e.message });
                     }
-                    await ensureMediaQueue();
+                    const hasMedia = await ensureMediaQueue();
+                    if (!hasMedia) {
+                        console.log('[Wallart] No media available, redirecting to no-media page');
+                        window.location.replace('/no-media.html');
+                        return;
+                    }
                     try { window.logger && window.logger.debug && window.logger.debug('[WALLART] bootstrap: media ready', { count: (Array.isArray(window.mediaQueue) && window.mediaQueue.length) || 0 }); } catch(_) {}
                     window.debugLog && window.debugLog('WALLART_START_MODULE', { hasModule: !!(window.PosterramaWallart && typeof window.PosterramaWallart.start === 'function') });
                     if (window.PosterramaWallart && typeof window.PosterramaWallart.start === 'function') {

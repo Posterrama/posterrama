@@ -98,40 +98,33 @@
                 console.warn('[Cinema Bootstrap] Failed to init device management:', e);
             }
             const media = await fetchOneMedia();
-            if (media) {
-                try {
-                    // If media is an array, store it; otherwise wrap in array
-                    const mediaArray = Array.isArray(media) ? media : [media];
-
-                    if (!Object.getOwnPropertyDescriptor(window, 'mediaQueue')) {
-                        Object.defineProperty(window, 'mediaQueue', {
-                            value: mediaArray,
-                            writable: true,
-                        });
-                    } else {
-                        window.mediaQueue = mediaArray;
-                    }
-                } catch (_) {
-                    window.mediaQueue = Array.isArray(media) ? media : [media];
-                }
-
-                // Dispatch event with first media item
-                const firstMedia = Array.isArray(media) ? media[0] : media;
-                window.dispatchEvent(
-                    new CustomEvent('mediaUpdated', { detail: { media: firstMedia } })
-                );
-            } else {
-                // Show a minimal message when no media found, and hide loader to avoid spinner lock
-                try {
-                    const el = document.getElementById('error-message');
-                    if (el) {
-                        el.textContent = 'No media available';
-                        el.classList.remove('is-hidden');
-                    }
-                } catch (_) {
-                    // ignore: cleanup failure is non-critical
-                }
+            if (!media) {
+                console.log('[Cinema] No media available, redirecting to no-media page');
+                window.location.replace('/no-media.html');
+                return;
             }
+
+            try {
+                // If media is an array, store it; otherwise wrap in array
+                const mediaArray = Array.isArray(media) ? media : [media];
+
+                if (!Object.getOwnPropertyDescriptor(window, 'mediaQueue')) {
+                    Object.defineProperty(window, 'mediaQueue', {
+                        value: mediaArray,
+                        writable: true,
+                    });
+                } else {
+                    window.mediaQueue = mediaArray;
+                }
+            } catch (_) {
+                window.mediaQueue = Array.isArray(media) ? media : [media];
+            }
+
+            // Dispatch event with first media item
+            const firstMedia = Array.isArray(media) ? media[0] : media;
+            window.dispatchEvent(
+                new CustomEvent('mediaUpdated', { detail: { media: firstMedia } })
+            );
         } catch (_) {
             // ignore: loader hide attempt after start is non-critical
         }
