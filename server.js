@@ -2081,6 +2081,7 @@ app.post('/api/v1/admin/metrics/config', express.json(), (req, res) => {
 // Import optimized middleware
 const {
     securityMiddleware,
+    permissionsPolicyMiddleware,
     compressionMiddleware,
     corsMiddleware,
     requestLoggingMiddleware,
@@ -2230,6 +2231,7 @@ app.use(express.json({ limit: '10mb' })); // For parsing JSON payloads
 // Fixed compression middleware - now respects Accept-Encoding properly
 app.use(compressionMiddleware());
 app.use(securityMiddleware());
+app.use(permissionsPolicyMiddleware());
 app.use(corsMiddleware());
 app.use(requestLoggingMiddleware());
 // In test environment, optionally log requests; only seed session for safe idempotent reads (GET/HEAD)
@@ -6431,9 +6433,7 @@ app.post(
         const newApiKey = crypto.randomBytes(32).toString('hex');
         await writeEnvFile({ API_ACCESS_TOKEN: newApiKey });
 
-        // Restart PM2 to clear environment cache
-        restartPM2ForEnvUpdate('API key generated');
-
+        // No restart needed - .env file is updated and key is immediately available
         if (isDebug) logger.debug('[Admin API] New API Access Token generated and saved.');
         res.json({
             apiKey: newApiKey,
@@ -6466,9 +6466,7 @@ app.post(
     asyncHandler(async (req, res) => {
         await writeEnvFile({ API_ACCESS_TOKEN: '' });
 
-        // Restart PM2 to clear environment cache
-        restartPM2ForEnvUpdate('API key revoked');
-
+        // No restart needed - .env file is updated immediately
         if (isDebug) logger.debug('[Admin API] API Access Token has been revoked.');
         res.json({ success: true, message: 'API key has been revoked.' });
     })

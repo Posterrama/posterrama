@@ -35,7 +35,35 @@ function securityMiddleware() {
             includeSubDomains: true,
             preload: true,
         },
+        // Explicit frameguard to prevent clickjacking
+        frameguard: { action: 'deny' },
+        // XSS filter for legacy browser protection
+        xssFilter: true,
     });
+}
+
+/**
+ * Permissions-Policy middleware
+ * Disables unnecessary browser features for enhanced privacy and security
+ */
+function permissionsPolicyMiddleware() {
+    return (req, res, next) => {
+        res.setHeader(
+            'Permissions-Policy',
+            [
+                'camera=()',
+                'microphone=()',
+                'geolocation=()',
+                'payment=()',
+                'usb=()',
+                'accelerometer=()',
+                'gyroscope=()',
+                'magnetometer=()',
+                'interest-cohort=()', // Block FLoC
+            ].join(', ')
+        );
+        next();
+    };
 }
 
 /**
@@ -292,6 +320,7 @@ function healthCheckMiddleware() {
 
 module.exports = {
     securityMiddleware,
+    permissionsPolicyMiddleware,
     compressionMiddleware,
     corsMiddleware,
     requestLoggingMiddleware,
