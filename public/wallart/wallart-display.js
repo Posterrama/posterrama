@@ -1115,8 +1115,12 @@
                                 excludeId
                             );
 
-                        // Music mode uses the same layout as configured in wallart
-                        const effectiveLayoutVariant = layoutVariant;
+                        // Music mode: check if Grid display style is selected
+                        // Grid mode = uniform grid with same-size covers (like Classic layout)
+                        const isGridMode = isMusicMode && displayStyle === 'grid';
+
+                        // Music mode uses the same layout as configured in wallart, unless Grid mode
+                        const effectiveLayoutVariant = isGridMode ? 'classic' : layoutVariant;
 
                         if (effectiveLayoutVariant === 'heroGrid') {
                             // Determine hero settings

@@ -155,15 +155,25 @@ module.exports = function createAdminConfigRouter({
                 DEBUG: process.env.DEBUG,
             };
 
-            if (Array.isArray(currentConfig.mediaServers)) {
-                currentConfig.mediaServers.forEach(server => {
+            // Create a deep copy of config for response (to avoid mutating original config)
+            const configForResponse = JSON.parse(JSON.stringify(currentConfig));
+
+            if (Array.isArray(configForResponse.mediaServers)) {
+                configForResponse.mediaServers.forEach(server => {
                     // Ensure server is a valid object before processing to prevent crashes
                     if (server && typeof server === 'object') {
                         // Strip plaintext passwords from RomM config (security)
                         if (server.type === 'romm' && server.password) {
                             server.password = !!server.password; // Replace with boolean indicator
                         }
+                    }
+                });
+            }
 
+            // Collect env vars from original config (not the response copy)
+            if (Array.isArray(currentConfig.mediaServers)) {
+                currentConfig.mediaServers.forEach(server => {
+                    if (server && typeof server === 'object') {
                         // Find all keys ending in 'EnvVar' and get their values from process.env
                         Object.keys(server).forEach(key => {
                             if (key.endsWith('EnvVar')) {
@@ -191,7 +201,7 @@ module.exports = function createAdminConfigRouter({
                     '[Admin API] Sending config and selected environment variables to client.'
                 );
             res.json({
-                config: currentConfig,
+                config: configForResponse,
                 env: envVarsToExpose,
                 security: { is2FAEnabled: !!(process.env.ADMIN_2FA_SECRET || '').trim() },
                 server: { ipAddress: serverIPAddress },
@@ -250,6 +260,22 @@ module.exports = function createAdminConfigRouter({
             // Read existing config for merging and mode change detection
             const existingConfig = await readConfig();
             const mergedConfig = { ...existingConfig, ...newConfig };
+
+            // Fix RomM password corruption: if password is boolean (from masked GET response),
+            // restore it from existing config to prevent validation errors
+            if (Array.isArray(mergedConfig.mediaServers)) {
+                mergedConfig.mediaServers.forEach((server, index) => {
+                    if (server && server.type === 'romm' && typeof server.password === 'boolean') {
+                        const existingServer = existingConfig.mediaServers?.[index];
+                        if (existingServer && typeof existingServer.password === 'string') {
+                            server.password = existingServer.password;
+                            logger.debug(
+                                `[Admin API] Restored RomM password from boolean to string (server index ${index})`
+                            );
+                        }
+                    }
+                });
+            }
 
             // Convert streamingSources object back to array if needed (admin UI sends object)
             if (mergedConfig.streamingSources && !Array.isArray(mergedConfig.streamingSources)) {
@@ -1157,8 +1183,21 @@ module.exports = function createAdminConfigRouter({
             if (!username && rommServerConfig?.username) {
                 username = rommServerConfig.username;
             }
-            if (!password && rommServerConfig?.password) {
-                password = rommServerConfig.password;
+            if (!password) {
+                // Try environment variable first, then config password (if not a placeholder)
+                if (
+                    rommServerConfig?.passwordEnvVar &&
+                    process.env[rommServerConfig.passwordEnvVar]
+                ) {
+                    password = process.env[rommServerConfig.passwordEnvVar];
+                } else if (
+                    rommServerConfig?.password &&
+                    typeof rommServerConfig.password === 'string' &&
+                    rommServerConfig.password !== 'dummy' &&
+                    !rommServerConfig.password.includes('password')
+                ) {
+                    password = rommServerConfig.password;
+                }
             }
             if (typeof insecureHttps === 'undefined' && rommServerConfig?.insecureHttps) {
                 insecureHttps = rommServerConfig.insecureHttps;
@@ -1168,6 +1207,8 @@ module.exports = function createAdminConfigRouter({
                 url,
                 username: username ? '***' : undefined,
                 hasPassword: !!password,
+                passwordLength: password?.length || 0,
+                passwordType: typeof password,
                 insecureHttps,
                 usedFallback: !req.body.password && !!password,
             });
@@ -1295,8 +1336,21 @@ module.exports = function createAdminConfigRouter({
             if (!username && rommServerConfig?.username) {
                 username = rommServerConfig.username;
             }
-            if (!password && rommServerConfig?.password) {
-                password = rommServerConfig.password;
+            if (!password) {
+                // Try environment variable first, then config password (if not a placeholder)
+                if (
+                    rommServerConfig?.passwordEnvVar &&
+                    process.env[rommServerConfig.passwordEnvVar]
+                ) {
+                    password = process.env[rommServerConfig.passwordEnvVar];
+                } else if (
+                    rommServerConfig?.password &&
+                    typeof rommServerConfig.password === 'string' &&
+                    rommServerConfig.password !== 'dummy' &&
+                    !rommServerConfig.password.includes('password')
+                ) {
+                    password = rommServerConfig.password;
+                }
             }
             if (typeof insecureHttps === 'undefined' && rommServerConfig?.insecureHttps) {
                 insecureHttps = rommServerConfig.insecureHttps;

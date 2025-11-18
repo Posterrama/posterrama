@@ -192,6 +192,10 @@
          * @returns {HTMLElement} Card element
          */
         createArtistCard(artistData) {
+            // Detect portrait orientation (9:16 or similar)
+            const isPortrait = window.innerHeight > window.innerWidth;
+            const aspectRatio = window.innerWidth / window.innerHeight;
+
             const card = document.createElement('div');
             card.className = 'artist-card';
             card.style.cssText = `
@@ -203,6 +207,7 @@
                 position: relative;
                 box-sizing: border-box;
                 display: flex;
+                flex-direction: ${isPortrait ? 'column' : 'row'};
                 opacity: 0;
                 transform: scale(0.92);
                 animation: cardFadeIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -210,63 +215,129 @@
 
             // Background layer: Two versions of the same photo
             if (artistData.photo) {
-                // Left side: Container for blue monochrome effect
-                const blueContainer = document.createElement('div');
-                blueContainer.style.cssText = `
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 40%;
-                    height: 100%;
-                    overflow: hidden;
-                    z-index: 0;
-                `;
+                if (isPortrait) {
+                    // Portrait: Top section with blue monochrome effect
+                    const blueContainer = document.createElement('div');
+                    blueContainer.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 35%;
+                        overflow: hidden;
+                        z-index: 0;
+                    `;
 
-                // Grayscale photo
-                const bluePhoto = document.createElement('img');
-                bluePhoto.src = artistData.photo;
-                bluePhoto.style.cssText = `
-                    width: 250%;
-                    height: 100%;
-                    object-fit: cover;
-                    object-position: left center;
-                    filter: grayscale(100%) contrast(1.1);
-                `;
-                blueContainer.appendChild(bluePhoto);
+                    // Grayscale photo
+                    const bluePhoto = document.createElement('img');
+                    bluePhoto.src = artistData.photo;
+                    bluePhoto.style.cssText = `
+                        width: 100%;
+                        height: 285%;
+                        object-fit: cover;
+                        object-position: center top;
+                        filter: grayscale(100%) contrast(1.1);
+                    `;
+                    blueContainer.appendChild(bluePhoto);
 
-                // Blue overlay using ::after concept
-                const blueOverlay = document.createElement('div');
-                blueOverlay.style.cssText = `
-                    position: absolute;
-                    inset: 0;
-                    background: rgba(20, 60, 140, 0.75);
-                    mix-blend-mode: multiply;
-                    pointer-events: none;
-                `;
-                blueContainer.appendChild(blueOverlay);
+                    // Blue overlay
+                    const blueOverlay = document.createElement('div');
+                    blueOverlay.style.cssText = `
+                        position: absolute;
+                        inset: 0;
+                        background: rgba(20, 60, 140, 0.75);
+                        mix-blend-mode: multiply;
+                        pointer-events: none;
+                    `;
+                    blueContainer.appendChild(blueOverlay);
 
-                card.appendChild(blueContainer);
+                    card.appendChild(blueContainer);
 
-                // Right side: Original colors (60%)
-                const originalPhoto = document.createElement('img');
-                originalPhoto.src = artistData.photo;
-                originalPhoto.style.cssText = `
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                    object-position: center;
-                    clip-path: inset(0 0 0 40%);
-                    z-index: 0;
-                `;
-                card.appendChild(originalPhoto);
+                    // Bottom section: Original colors (65%)
+                    const originalPhoto = document.createElement('img');
+                    originalPhoto.src = artistData.photo;
+                    originalPhoto.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        object-position: center;
+                        clip-path: inset(35% 0 0 0);
+                        z-index: 0;
+                    `;
+                    card.appendChild(originalPhoto);
+                } else {
+                    // Landscape: Left side blue monochrome (40%), right side original (60%)
+                    const blueContainer = document.createElement('div');
+                    blueContainer.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 40%;
+                        height: 100%;
+                        overflow: hidden;
+                        z-index: 0;
+                    `;
+
+                    // Grayscale photo
+                    const bluePhoto = document.createElement('img');
+                    bluePhoto.src = artistData.photo;
+                    bluePhoto.style.cssText = `
+                        width: 250%;
+                        height: 100%;
+                        object-fit: cover;
+                        object-position: left center;
+                        filter: grayscale(100%) contrast(1.1);
+                    `;
+                    blueContainer.appendChild(bluePhoto);
+
+                    // Blue overlay
+                    const blueOverlay = document.createElement('div');
+                    blueOverlay.style.cssText = `
+                        position: absolute;
+                        inset: 0;
+                        background: rgba(20, 60, 140, 0.75);
+                        mix-blend-mode: multiply;
+                        pointer-events: none;
+                    `;
+                    blueContainer.appendChild(blueOverlay);
+
+                    card.appendChild(blueContainer);
+
+                    // Right side: Original colors (60%)
+                    const originalPhoto = document.createElement('img');
+                    originalPhoto.src = artistData.photo;
+                    originalPhoto.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        object-position: center;
+                        clip-path: inset(0 0 0 40%);
+                        z-index: 0;
+                    `;
+                    card.appendChild(originalPhoto);
+                }
             }
 
-            // LEFT SIDE - Info (40% width)
-            const leftSide = document.createElement('div');
-            leftSide.style.cssText = `
+            // INFO SECTION - Adapts to portrait/landscape
+            const infoSection = document.createElement('div');
+            infoSection.style.cssText = isPortrait
+                ? `
+                width: 100%;
+                height: 35%;
+                padding: 3vh 5vw;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                position: relative;
+                z-index: 1;
+            `
+                : `
                 width: 40%;
                 height: 100%;
                 padding: 3vh 3vw;
@@ -277,10 +348,22 @@
                 z-index: 1;
             `;
 
-            // TOP - Artist Name
+            // Artist Name - responsive font size
             const artistName = document.createElement('div');
             artistName.textContent = artistData.name;
-            artistName.style.cssText = `
+            artistName.style.cssText = isPortrait
+                ? `
+                font-size: 7vw;
+                font-weight: 900;
+                color: #fff;
+                line-height: 1;
+                text-shadow: 0 4px 20px rgba(0,0,0,0.7);
+                margin-bottom: 1.5vh;
+                letter-spacing: -0.03em;
+                position: relative;
+                z-index: 2;
+            `
+                : `
                 font-size: 4vw;
                 font-weight: 900;
                 color: #fff;
@@ -291,9 +374,9 @@
                 position: relative;
                 z-index: 2;
             `;
-            leftSide.appendChild(artistName);
+            infoSection.appendChild(artistName);
 
-            // MIDDLE - Metadata
+            // Metadata
             const metadata = document.createElement('div');
             metadata.style.cssText = `
                 display: flex;
@@ -304,11 +387,17 @@
                 z-index: 2;
             `;
 
-            // Genres
+            // Genres - responsive font size
             if (artistData.genres.size > 0) {
                 const genresArray = Array.from(artistData.genres).slice(0, 3);
                 const genresRow = document.createElement('div');
-                genresRow.style.cssText = `
+                genresRow.style.cssText = isPortrait
+                    ? `
+                    font-size: 3.5vw;
+                    color: rgba(255,255,255,0.7);
+                    font-weight: 500;
+                `
+                    : `
                     font-size: 1.3vw;
                     color: rgba(255,255,255,0.7);
                     font-weight: 500;
@@ -317,9 +406,15 @@
                 metadata.appendChild(genresRow);
             }
 
-            // Album count
+            // Album count - responsive font size
             const albumCountRow = document.createElement('div');
-            albumCountRow.style.cssText = `
+            albumCountRow.style.cssText = isPortrait
+                ? `
+                font-size: 3.5vw;
+                color: rgba(255,255,255,0.7);
+                font-weight: 500;
+            `
+                : `
                 font-size: 1.3vw;
                 color: rgba(255,255,255,0.7);
                 font-weight: 500;
@@ -328,58 +423,79 @@
             albumCountRow.textContent = `${artistData.albums.length} ${albumWord}`;
             metadata.appendChild(albumCountRow);
 
-            // Album list with comma separation
-            const albumList = document.createElement('div');
-            albumList.style.cssText = `
-                font-size: 1.1vw;
-                color: rgba(255,255,255,0.6);
-                line-height: 1.6;
-                font-style: italic;
-                margin-top: 1vh;
-                padding-right: 2vw;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-            `;
-            const albumTitles = artistData.albums
-                .slice(0, 5)
-                .map(a => a.title)
-                .join(', ');
-            albumList.textContent = `"${artistData.albums.length > 5 ? albumTitles + '...' : albumTitles}"`;
-            metadata.appendChild(albumList);
+            // Album list - responsive font size (skip on portrait to save space)
+            if (!isPortrait) {
+                const albumList = document.createElement('div');
+                albumList.style.cssText = `
+                    font-size: 1.1vw;
+                    color: rgba(255,255,255,0.6);
+                    line-height: 1.6;
+                    font-style: italic;
+                    margin-top: 1vh;
+                    padding-right: 2vw;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                `;
+                const albumTitles = artistData.albums
+                    .slice(0, 5)
+                    .map(a => a.title)
+                    .join(', ');
+                albumList.textContent = `"${artistData.albums.length > 5 ? albumTitles + '...' : albumTitles}"`;
+                metadata.appendChild(albumList);
+            }
 
-            leftSide.appendChild(metadata);
+            infoSection.appendChild(metadata);
+            card.appendChild(infoSection);
 
-            card.appendChild(leftSide);
-
-            // RIGHT SIDE - Original photo visible (60% width, transparent overlay)
-            const rightSide = document.createElement('div');
-            rightSide.style.cssText = `
+            // PHOTO SECTION - Original photo visible
+            const photoSection = document.createElement('div');
+            photoSection.style.cssText = isPortrait
+                ? `
+                width: 100%;
+                height: 65%;
+                position: relative;
+                z-index: 1;
+            `
+                : `
                 width: 60%;
                 height: 100%;
                 position: relative;
                 z-index: 1;
             `;
-
-            card.appendChild(rightSide);
+            card.appendChild(photoSection);
 
             // BOTTOM - Album Covers Grid (full width at bottom, over both panels)
             const albumGrid = document.createElement('div');
             albumGrid.className = 'artist-album-grid';
 
-            albumGrid.style.cssText = `
+            // Adjust album grid for portrait: fewer albums, larger covers
+            const maxAlbums = isPortrait ? 5 : 8;
+            const gridGap = isPortrait ? '2vw' : '1.5vw';
+
+            albumGrid.style.cssText = isPortrait
+                ? `
+                position: absolute;
+                bottom: 2vh;
+                left: 4vw;
+                right: 4vw;
+                display: flex;
+                gap: ${gridGap};
+                z-index: 3;
+            `
+                : `
                 position: absolute;
                 bottom: 2vh;
                 left: 2vw;
                 right: 2vw;
                 display: flex;
-                gap: 1.5vw;
+                gap: ${gridGap};
                 z-index: 3;
             `;
 
-            // Show up to 8 album covers (pick UNIQUE albums, randomized)
+            // Show up to maxAlbums covers (pick UNIQUE albums, randomized)
             const albumsToShow = [];
             const usedIds = new Set(); // Track unique IDs to prevent duplicates
-            const targetCount = Math.min(8, artistData.albums.length);
+            const targetCount = Math.min(maxAlbums, artistData.albums.length);
 
             if (artistData.albums.length === 0) {
                 // No albums - will show empty placeholders
@@ -404,12 +520,18 @@
                 const albumCover = document.createElement('img');
                 albumCover.src = album.posterUrl || '';
                 albumCover.alt = album.title || '';
+
+                // Calculate width based on number of albums and gaps
+                const gapsCount = maxAlbums - 1;
+                const gapValue = isPortrait ? 2 : 1.5;
+                const coverWidth = `calc((100% - (${gapsCount} * ${gapValue}vw)) / ${maxAlbums})`;
+
                 albumCover.style.cssText = `
-                    width: calc((100% - (7 * 1.5vw)) / 8);
+                    width: ${coverWidth};
                     aspect-ratio: 1;
                     flex-shrink: 0;
                     object-fit: cover;
-                    border-radius: 0.6vw;
+                    border-radius: ${isPortrait ? '1vw' : '0.6vw'};
                     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
                     opacity: 0;
                     animation: albumFadeIn 0.6s ease forwards;

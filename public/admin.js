@@ -3233,6 +3233,24 @@
                     if (musicSettings) {
                         musicSettings.style.display = musicModeCheckbox.checked ? '' : 'none';
                     }
+
+                    // Hide wallart cards that don't affect Music Mode
+                    const isMusicMode = musicModeCheckbox.checked;
+                    const tempoCard = document.querySelector('.mode-card[data-card-key="tempo"]');
+                    const animationCard = document.querySelector(
+                        '.mode-card[data-card-key="animation"]'
+                    );
+                    const layoutCard = document.querySelector('.mode-card[data-card-key="layout"]');
+                    const ambienceCard = document.querySelector(
+                        '.mode-card[data-card-key="ambience"]'
+                    );
+                    const heroCard = document.querySelector('.mode-card[data-card-key="hero"]');
+
+                    if (tempoCard) tempoCard.style.display = isMusicMode ? 'none' : '';
+                    if (animationCard) animationCard.style.display = isMusicMode ? 'none' : '';
+                    if (layoutCard) layoutCard.style.display = isMusicMode ? 'none' : '';
+                    if (ambienceCard) ambienceCard.style.display = isMusicMode ? 'none' : '';
+                    if (heroCard) heroCard.style.display = isMusicMode ? 'none' : '';
                 });
 
                 // Hide density and display options for artist-cards mode
@@ -3249,6 +3267,7 @@
                     const displayStyle = displayStyleSelect?.value;
                     const isArtistCards = displayStyle === 'artist-cards';
                     const isCoversOnly = displayStyle === 'covers-only';
+                    const isGrid = displayStyle === 'grid';
 
                     // Hide animation for artist-cards mode
                     if (animationRow) animationRow.style.display = isArtistCards ? 'none' : '';
@@ -3256,10 +3275,10 @@
                     // Hide density for artist-cards mode
                     if (densityRow) densityRow.style.display = isArtistCards ? 'none' : '';
 
-                    // Hide display options for both covers-only and artist-cards modes
+                    // Hide display options for covers-only, artist-cards, and grid modes
                     if (displayOptionsRow)
                         displayOptionsRow.style.display =
-                            isArtistCards || isCoversOnly ? 'none' : '';
+                            isArtistCards || isCoversOnly || isGrid ? 'none' : '';
 
                     // Show artist rotation slider only for artist-cards mode
                     if (artistRotationRow)
@@ -3296,6 +3315,27 @@
                 setupWeightSlider('wallartMode_musicMode_sortWeight_recent');
                 setupWeightSlider('wallartMode_musicMode_sortWeight_popular');
                 setupWeightSlider('wallartMode_musicMode_sortWeight_random');
+
+                // Initialize card visibility on page load
+                const initializeMusicModeCards = () => {
+                    const isMusicMode = musicModeCheckbox?.checked;
+                    const tempoCard = document.querySelector('.mode-card[data-card-key="tempo"]');
+                    const animationCard = document.querySelector(
+                        '.mode-card[data-card-key="animation"]'
+                    );
+                    const layoutCard = document.querySelector('.mode-card[data-card-key="layout"]');
+                    const ambienceCard = document.querySelector(
+                        '.mode-card[data-card-key="ambience"]'
+                    );
+                    const heroCard = document.querySelector('.mode-card[data-card-key="hero"]');
+
+                    if (tempoCard) tempoCard.style.display = isMusicMode ? 'none' : '';
+                    if (animationCard) animationCard.style.display = isMusicMode ? 'none' : '';
+                    if (layoutCard) layoutCard.style.display = isMusicMode ? 'none' : '';
+                    if (ambienceCard) ambienceCard.style.display = isMusicMode ? 'none' : '';
+                    if (heroCard) heroCard.style.display = isMusicMode ? 'none' : '';
+                };
+                initializeMusicModeCards();
             }
         } catch (_) {
             /* mutual exclusivity logic failed */
@@ -17250,11 +17290,16 @@
             // ---------------- Jellyfin auto wiring (mirror + auto test + libraries) ----------------
             try {
                 const jfEnabled = !!jf.enabled;
+                const jfKeyVar = jf.tokenEnvVar || 'JELLYFIN_API_KEY';
+                // Note: env[jfKeyVar] is boolean for security (not the actual key)
+                // Backend will use .env credentials automatically for Test/Fetch when apiKey is omitted
+                const hasApiKeyInEnv = !!env[jfKeyVar];
                 const jfDbg = {
                     hostname: jf.hostname,
                     port: jf.port,
                     enabled: jf.enabled,
                     tokenEnvVar: jf.tokenEnvVar,
+                    hasApiKey: hasApiKeyInEnv, // Boolean flag to indicate key exists in .env
                 };
                 window.__JELLYFIN_ENTRY = jfDbg;
                 // console.log removed: Loaded jellyfin entry
@@ -17342,73 +17387,6 @@
                 }
             } catch (e) {
                 console.warn('Jellyfin auto wiring failed', e);
-            }
-
-            // ---------------- Jellyfin health indicator ----------------
-            try {
-                let jfHealth = document.getElementById('jf-health-indicator');
-                if (!jfHealth) {
-                    jfHealth = document.createElement('div');
-                    jfHealth.id = 'jf-health-indicator';
-                    jfHealth.style.cssText = 'margin-top:4px;font-size:11px;opacity:0.85;';
-                    const jfPanel =
-                        document.getElementById('panel-jellyfin') ||
-                        document.getElementById('jellyfin-panel') ||
-                        document.body;
-                    jfPanel.appendChild(jfHealth);
-                }
-                const updateJfHealth = (status, extra = '') => {
-                    const ts = new Date().toLocaleTimeString();
-                    jfHealth.textContent = `Jellyfin health: ${status}${extra ? ' - ' + extra : ''} (${ts})`;
-                    jfHealth.style.color =
-                        status === 'OK' ? '#2d6a4f' : status === 'Testing' ? '#555' : '#c92a2a';
-                };
-                if (jf?.enabled && jf?.hostname && (jf.port || jf.port === 0)) {
-                    window.__jfHealthTimer && clearTimeout(window.__jfHealthTimer);
-                    const doJfCheck = () => {
-                        updateJfHealth('Testing');
-                        const body = { hostname: jf.hostname, port: jf.port };
-                        const apiKeyEl = getInput('jf.apikey');
-                        // Get API key with fallback chain (same as save logic)
-                        const apiKey =
-                            apiKeyEl?.dataset?.actualToken ||
-                            apiKeyEl?.value?.trim() ||
-                            window.__tokenStore?.jfApiKey ||
-                            localStorage.getItem('jf_apikey_temp');
-                        // Only add if not masked and not empty
-                        if (apiKey && !/^[•]+$/.test(apiKey) && apiKey !== 'EXISTING_TOKEN') {
-                            body.apiKey = apiKey;
-                        }
-                        const insecureHttps = !!(
-                            document.getElementById('jf.insecureHttps')?.checked ||
-                            document.getElementById('jf.insecureHttpsHeader')?.checked
-                        );
-                        if (insecureHttps) body.insecureHttps = true;
-                        fetch('/api/admin/test-jellyfin', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify(body),
-                        })
-                            .then(r =>
-                                r
-                                    .json()
-                                    .then(j => ({ r, j }))
-                                    .catch(() => ({ r, j: {} }))
-                            )
-                            .then(({ r, j }) => {
-                                if (r.ok) updateJfHealth('OK');
-                                else updateJfHealth('Error', j?.error || r.status);
-                            })
-                            .catch(err => updateJfHealth('Error', err?.message || 'network'))
-                            .finally(() => {
-                                window.__jfHealthTimer = setTimeout(doJfCheck, 60000);
-                            });
-                    };
-                    doJfCheck();
-                }
-            } catch (e) {
-                console.warn('Jellyfin health indicator init failed', e);
             }
 
             // === GLOBAL TOKEN STORE ===
@@ -19144,13 +19122,10 @@
                     const effHostname = hostname || window.__JELLYFIN_ENTRY?.hostname;
                     const effPort = port || window.__JELLYFIN_ENTRY?.port;
                     // Only use apiKey if it's a real key (not masked or EXISTING_TOKEN marker)
-                    // If not available, backend will use .env credentials automatically
+                    // If not available or masked, backend will use .env credentials automatically
                     const isMaskedKey =
                         apiKey && (/^[•]+$/.test(apiKey) || apiKey === 'EXISTING_TOKEN');
-                    const effApiKey =
-                        apiKey && !isMaskedKey
-                            ? apiKey
-                            : window.__JELLYFIN_ENTRY?.apiKey || undefined;
+                    const effApiKey = apiKey && !isMaskedKey ? apiKey : undefined;
 
                     // Skip enabled check when explicitly requested via button click (refreshFilters=true)
                     // This allows users to fetch libraries before enabling Jellyfin
@@ -19836,7 +19811,11 @@
                 const port = getInput('jf.port')?.value || '';
                 // Get API key from dataset first (actual key), fallback to input value
                 const apiKeyInput = getInput('jf.apikey');
-                const apiKey = apiKeyInput?.dataset?.actualToken || apiKeyInput?.value || '';
+                const rawApiKey = apiKeyInput?.dataset?.actualToken || apiKeyInput?.value || '';
+                // Don't send masked values - let backend use .env credentials
+                const isMaskedKey =
+                    rawApiKey && (/^[•]+$/.test(rawApiKey) || rawApiKey === 'EXISTING_TOKEN');
+                const apiKey = isMaskedKey ? undefined : rawApiKey || undefined;
                 const insecureHttps = !!(
                     document.getElementById('jf.insecureHttps')?.checked ||
                     document.getElementById('jf.insecureHttpsHeader')?.checked
@@ -20037,19 +20016,27 @@
                 const url = getInput('romm.url')?.value?.trim() || '';
                 const username = getInput('romm.username')?.value?.trim() || '';
                 const passwordEl = getInput('romm.password');
-                const password =
+                const rawPassword =
                     passwordEl?.dataset?.actualToken || passwordEl?.value?.trim() || '';
+
+                // Don't send masked password - let backend use environment variable
+                const isMaskedPassword = rawPassword && /^[•]+$/.test(rawPassword);
+                const password = isMaskedPassword ? undefined : rawPassword;
+
                 const insecureHttps = !!getInput('romm.insecureHttps')?.checked;
 
-                if (!url || !username || !password) {
-                    throw new Error('URL, username, and password are required');
+                if (!url || !username) {
+                    throw new Error('URL and username are required');
                 }
+
+                const body = { url, username, insecureHttps };
+                if (password) body.password = password;
 
                 const res = await fetch('/api/admin/test-romm', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({ url, username, password, insecureHttps }),
+                    body: JSON.stringify(body),
                 });
 
                 const j = await res.json().catch(() => ({}));
@@ -21434,7 +21421,7 @@
         document.getElementById('btn-romm-test')?.addEventListener('click', testRomM);
         document
             .getElementById('btn-romm-platforms')
-            ?.addEventListener('click', fetchRommPlatforms);
+            ?.addEventListener('click', () => fetchRommPlatforms());
         document.getElementById('btn-tmdb-test')?.addEventListener('click', testTMDB);
         document.getElementById('test-streaming-button')?.addEventListener('click', testStreaming);
         // (deduped) listener already set above near other source listeners

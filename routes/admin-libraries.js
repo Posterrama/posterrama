@@ -803,14 +803,15 @@ module.exports = function createAdminLibrariesRouter({
                 }
 
                 // Fetch genres with counts for the selected libraries
-                const genresWithCounts = await client.getGenresWithCounts(libraryIds);
+                const genresResult = await client.getGenresWithCounts(libraryIds);
+                const genresWithCounts = genresResult?.genres || [];
 
                 if (isDebug)
                     logger.debug(
                         `[Admin API] Found ${genresWithCounts.length} genres with counts.`
                     );
 
-                res.json({ genres: genresWithCounts });
+                res.json({ genres: genresWithCounts, partial: genresResult?.partial });
             } catch (error) {
                 logger.error(
                     '[Admin API] Failed to get Jellyfin genres with counts:',
