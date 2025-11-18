@@ -4,6 +4,7 @@
  */
 const logger = require('../utils/logger');
 const { logSourceError } = require('../utils/source-error-context');
+const { executeWithRetry } = require('../utils/source-error-handler');
 
 class TMDBSource {
     constructor(sourceConfig, shuffleArray, isDebug) {
@@ -118,8 +119,16 @@ class TMDBSource {
         try {
             await this.rateLimitDelay();
             const endpoint = type === 'movie' ? '/genre/movie/list' : '/genre/tv/list';
-            const response = await fetch(
-                `${this.baseUrl}${endpoint}?api_key=${this.source.apiKey}&language=en-US`
+            const response = await executeWithRetry(
+                () =>
+                    fetch(
+                        `${this.baseUrl}${endpoint}?api_key=${this.source.apiKey}&language=en-US`
+                    ),
+                {
+                    source: 'tmdb',
+                    operation: 'fetchGenreMapping',
+                    params: { type },
+                }
             );
 
             if (!response.ok) {
@@ -212,7 +221,15 @@ class TMDBSource {
 
         try {
             await this.rateLimitDelay();
-            const response = await fetch(url);
+            const response = await executeWithRetry(
+                () => fetch(url),
+                {
+                    source: 'tmdb',
+                    operation: 'cachedApiRequest',
+                    params: { url },
+                },
+                { maxRetries: 0 } // Disable retry here, use existing custom retry logic
+            );
 
             if (!response.ok) {
                 // Handle specific TMDB errors
@@ -632,7 +649,11 @@ class TMDBSource {
         try {
             await this.rateLimitDelay();
             const url = `${this.baseUrl}/${mediaType}/${itemId}/watch/providers?api_key=${this.source.apiKey}`;
-            const response = await fetch(url);
+            const response = await executeWithRetry(() => fetch(url), {
+                source: 'tmdb',
+                operation: 'fetchStreamingProviders',
+                params: { mediaType, itemId },
+            });
 
             if (!response.ok) {
                 if (this.isDebug) {
