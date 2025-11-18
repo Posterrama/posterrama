@@ -15513,4 +15513,35 @@ select:focus-visible {
     transform: translateY(0);
 }
 
-/* Cache bust: 2025-11-02-2 */
+/* ===================================================================
+   Input Validation Errors
+   =================================================================== */
+input.input-error,
+textarea.input-error,
+select.input-error {
+    border-color: #ef4444 !important;
+    background-color: rgba(239, 68, 68, 0.05) !important;
+    animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+input.input-error:focus,
+textarea.input-error:focus,
+select.input-error:focus {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Cache bust: 2025-11-18-validation */

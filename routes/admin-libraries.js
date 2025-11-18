@@ -19,6 +19,7 @@ module.exports = function createAdminLibrariesRouter({
 }) {
     const express = require('express');
     const config = require('../config/');
+    const { cacheManager } = require('../utils/cache');
     const router = express.Router();
 
     /**
@@ -102,7 +103,7 @@ module.exports = function createAdminLibrariesRouter({
                     hostname,
                     port,
                     apiKey,
-                    timeout: 6000,
+                    timeout: 30000, // 30s for VirtualFolders (can be slow)
                     insecureHttps:
                         typeof req.body.insecureHttps !== 'undefined'
                             ? !!req.body.insecureHttps
@@ -111,94 +112,93 @@ module.exports = function createAdminLibrariesRouter({
                     retryBaseDelay: 300,
                 });
 
-                // Step 1: Get user views (libraries)
-                // First try to get any user to use for the Views endpoint
-                let userViews = [];
-                try {
-                    // Try the general Views endpoint first
-                    const viewsResponse = await client.http.get('/Library/Views');
-                    userViews = viewsResponse?.data?.Items || [];
-                } catch (viewsError) {
+                // Step 1: Get VirtualFolders (cached for 5 minutes)
+                const cacheKey = `jellyfin:virtualfolders:${hostname}:${port}`;
+
+                let virtualFolders = cacheManager.get(cacheKey);
+
+                if (!virtualFolders) {
+                    if (isDebug) {
+                        logger.debug('[Jellyfin Libraries] Fetching /Library/VirtualFolders...');
+                    }
+                    const vfResponse = await client.http.get('/Library/VirtualFolders');
+                    virtualFolders = vfResponse?.data || [];
+
+                    // Cache for 5 minutes
+                    cacheManager.set(cacheKey, virtualFolders, 300);
                     if (isDebug) {
                         logger.debug(
-                            '[Jellyfin Libraries] Library/Views failed, trying Users endpoint:',
-                            viewsError.message
+                            `[Jellyfin Libraries] Cached ${virtualFolders.length} VirtualFolders`
                         );
                     }
-
-                    try {
-                        // Get users and use the first one
-                        const usersResponse = await client.http.get('/Users');
-                        const users = usersResponse?.data || [];
-
-                        if (users.length > 0) {
-                            const userId = users[0].Id;
-                            const userViewsResponse = await client.http.get(
-                                `/Users/${userId}/Views`
-                            );
-                            userViews = userViewsResponse?.data?.Items || [];
-                        }
-                    } catch (userError) {
-                        if (isDebug) {
-                            logger.debug(
-                                '[Jellyfin Libraries] Users approach also failed:',
-                                userError.message
-                            );
-                        }
-                        // Fallback to original virtual folders approach
-                        const libraries = await fetchJellyfinLibraries(client);
-                        userViews = libraries.map(lib => ({
-                            Id: lib.Id,
-                            Name: lib.Name,
-                            CollectionType: lib.CollectionType,
-                        }));
+                } else {
+                    if (isDebug) {
+                        logger.debug(
+                            `[Jellyfin Libraries] Using cached VirtualFolders (${virtualFolders.length})`
+                        );
                     }
                 }
 
+                // Step 2: Get counts in parallel for all libraries
                 if (isDebug) {
                     logger.debug(
-                        '[Jellyfin Libraries] Found user views:',
-                        userViews.map(view => `${view.Name} (${view.CollectionType || 'unknown'})`)
+                        '[Jellyfin Libraries] Fetching counts for all libraries in parallel'
                     );
                 }
 
-                // Step 2: For each library, get the item counts
                 const formattedLibraries = await Promise.all(
-                    userViews.map(async view => {
+                    virtualFolders.map(async folder => {
                         let itemCount = 0;
                         // Map Jellyfin CollectionType to frontend-expected format (movie/show, not movies/series)
                         const libType =
-                            view.CollectionType === 'movies'
+                            folder.CollectionType === 'movies'
                                 ? 'movie'
-                                : view.CollectionType === 'tvshows'
+                                : folder.CollectionType === 'tvshows'
                                   ? 'show'
-                                  : 'unknown';
+                                  : folder.CollectionType === 'boxsets'
+                                    ? 'collection'
+                                    : 'unknown';
 
                         try {
-                            // Get the count of items in this library
-                            const itemsResponse = await client.http.get('/Items', {
+                            // Use /Items with Limit=0 and Recursive=true
+                            // 30 second timeout per library
+                            const countClient = await createJellyfinClient({
+                                hostname,
+                                port,
+                                apiKey,
+                                timeout: 30000,
+                                insecureHttps:
+                                    typeof req.body.insecureHttps !== 'undefined'
+                                        ? !!req.body.insecureHttps
+                                        : process.env.JELLYFIN_INSECURE_HTTPS === 'true',
+                                retryMaxRetries: 0,
+                            });
+
+                            const itemsResponse = await countClient.http.get('/Items', {
                                 params: {
-                                    ParentId: view.Id,
+                                    ParentId: folder.ItemId,
                                     Recursive: true,
-                                    IncludeItemTypes: libType === 'movie' ? 'Movie' : 'Series',
-                                    Fields: 'Id',
-                                    Limit: 1, // We only need the count
+                                    Limit: 0,
                                 },
                             });
                             itemCount = itemsResponse?.data?.TotalRecordCount || 0;
-                        } catch (countError) {
                             if (isDebug) {
                                 logger.debug(
-                                    `[Jellyfin Libraries] Failed to get count for ${view.Name}:`,
-                                    countError.message
+                                    `[Jellyfin Libraries] ${folder.Name}: ${itemCount} items`
                                 );
                             }
+                        } catch (countError) {
+                            logger.warn(
+                                `[Jellyfin Libraries] Failed to get count for ${folder.Name}:`,
+                                countError.message
+                            );
+                            // Keep itemCount = 0, library will show (0)
                         }
 
                         return {
-                            id: view.Id,
-                            name: view.Name,
-                            itemCount: itemCount, // Use itemCount for consistency with Plex
+                            id: folder.ItemId,
+                            name: folder.Name,
+                            itemCount: itemCount,
                             type: libType,
                         };
                     })

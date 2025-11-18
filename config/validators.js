@@ -67,34 +67,17 @@ const schemas = {
                 name: Joi.string().required(),
                 type: Joi.string().valid('plex', 'jellyfin', 'romm').required(),
                 enabled: Joi.boolean(),
-                // Plex/Jellyfin fields
-                hostname: Joi.string().when('type', {
-                    is: Joi.valid('plex', 'jellyfin'),
-                    then: Joi.when('enabled', { is: true, then: Joi.required() }),
-                }),
-                port: Joi.number()
-                    .integer()
-                    .min(1)
-                    .when('type', {
-                        is: Joi.valid('plex', 'jellyfin'),
-                        then: Joi.when('enabled', { is: true, then: Joi.required() }),
-                    }),
+                // Plex/Jellyfin fields (allow empty/missing - runtime will disable if enabled but incomplete)
+                hostname: Joi.string().allow('').optional(),
+                port: Joi.number().integer().min(1).allow(null).optional(),
                 tokenEnvVar: Joi.string().when('type', {
                     is: Joi.valid('plex', 'jellyfin'),
                     then: Joi.required(),
                 }),
                 token: Joi.string().optional(),
-                // RomM-specific fields
-                url: Joi.string()
-                    .uri()
-                    .when('type', {
-                        is: 'romm',
-                        then: Joi.when('enabled', { is: true, then: Joi.required() }),
-                    }),
-                username: Joi.string().when('type', {
-                    is: 'romm',
-                    then: Joi.when('enabled', { is: true, then: Joi.required() }),
-                }),
+                // RomM-specific fields (allow empty strings - runtime will disable if enabled but incomplete)
+                url: Joi.string().allow('').optional(),
+                username: Joi.string().allow('').optional(),
                 password: Joi.string().allow('').optional().default(''),
                 passwordEnvVar: Joi.string().optional(),
                 selectedPlatforms: Joi.array().items(Joi.string()).optional(),

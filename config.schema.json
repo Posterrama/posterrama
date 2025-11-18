@@ -842,18 +842,15 @@
                     },
                     "url": {
                         "type": "string",
-                        "description": "Full URL for RomM server (for type=romm only). Example: http://romm-server:8080",
-                        "minLength": 1
+                        "description": "Full URL for RomM server (for type=romm only). Example: http://romm-server:8080"
                     },
                     "username": {
                         "type": "string",
-                        "description": "Username for RomM authentication (for type=romm only).",
-                        "minLength": 1
+                        "description": "Username for RomM authentication (for type=romm only)."
                     },
                     "password": {
                         "type": "string",
-                        "description": "Password for RomM authentication (for type=romm only). Use passwordEnvVar for environment variable reference.",
-                        "minLength": 1
+                        "description": "Password for RomM authentication (for type=romm only). Use passwordEnvVar for environment variable reference."
                     },
                     "passwordEnvVar": {
                         "type": "string",

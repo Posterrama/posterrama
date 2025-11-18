@@ -742,6 +742,59 @@ module.exports = function createAdminConfigRouter({
         })
     );
 
+    // Plex server status endpoint (retrieves server name)
+    router.get(
+        '/api/admin/plex-server-status',
+        isAuthenticated,
+        asyncHandler(async (req, res) => {
+            const config = await readConfig();
+            const plexServer = config.mediaServers?.find(s => s.type === 'plex');
+
+            if (!plexServer || !plexServer.enabled) {
+                return res.json({
+                    enabled: false,
+                });
+            }
+
+            const { hostname, port, tokenEnvVar } = plexServer;
+            const token = tokenEnvVar && process.env[tokenEnvVar] ? process.env[tokenEnvVar] : null;
+
+            if (!hostname || !token) {
+                return res.json({
+                    enabled: true,
+                    configured: false,
+                });
+            }
+
+            try {
+                const testClient = await createPlexClient({
+                    hostname,
+                    port: port || 32400,
+                    token,
+                    timeout: 5000,
+                    retryMaxRetries: 0,
+                });
+
+                const result = await testClient.query('/');
+                const serverName = result?.friendlyName || result?.MediaContainer?.friendlyName;
+                res.json({
+                    enabled: true,
+                    configured: true,
+                    connected: true,
+                    serverName: serverName,
+                });
+            } catch (error) {
+                logger.warn('[Plex Status] Failed to check server status:', error.message);
+                res.json({
+                    enabled: true,
+                    configured: true,
+                    connected: false,
+                    error: error.message,
+                });
+            }
+        })
+    );
+
     /**
      * @swagger
      * /api/admin/plex-libraries:

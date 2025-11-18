@@ -123,20 +123,18 @@ function validateEnvironment() {
             // RomM uses 'url' field instead of hostname/port
             if (server.type === 'romm') {
                 if (!server.url) {
-                    console.error(
-                        '[Config] Enabled RomM server missing mandatory url in config.json:',
-                        server.name
+                    console.warn(
+                        `[Config] WARNING: Enabled RomM server "${server.name}" missing mandatory url - will be disabled at runtime`
                     );
-                    process.exit(1);
+                    // Don't exit - let the server start and disable this source
                 }
             } else {
                 // Plex and Jellyfin require hostname and port
                 if (!server.hostname || !server.port) {
-                    console.error(
-                        '[Config] Enabled server missing mandatory hostname/port in config.json:',
-                        server.name
+                    console.warn(
+                        `[Config] WARNING: Enabled server "${server.name}" missing mandatory hostname/port - will be disabled at runtime`
                     );
-                    process.exit(1);
+                    // Don't exit - let the server start and disable this source
                 }
             }
         }

@@ -8988,9 +8988,12 @@
                     p.id === 'panel-local'
                 ) {
                     p.hidden = p.id !== panelId;
-                    // Stop Jellyfin status polling when leaving the panel
+                    // Stop status polling when leaving panels
                     if (p.id === 'panel-jellyfin' && p.hidden) {
                         window.stopJellyfinStatusPolling?.();
+                    }
+                    if (p.id === 'panel-plex' && p.hidden) {
+                        window.stopPlexStatusPolling?.();
                     }
                 } else {
                     p.hidden = true; // hide overview panel when selecting a specific source
@@ -9077,19 +9080,13 @@
                 // Ensure auto-fetch runs when panel becomes visible (covers all routes)
                 try {
                     if (panelId === 'panel-plex') {
-                        // Reset the auto-fetch flag so libraries are re-fetched each time panel opens
-                        if (window.__autoFetchedLibs) window.__autoFetchedLibs.plex = false;
                         window.admin2?.maybeFetchPlexOnOpen?.();
                     } else if (panelId === 'panel-jellyfin') {
-                        // Reset the auto-fetch flag so libraries are re-fetched each time panel opens
-                        if (window.__autoFetchedLibs) window.__autoFetchedLibs.jf = false;
                         window.admin2?.maybeFetchJellyfinOnOpen?.();
-                        window.startJellyfinStatusPolling?.();
                     } else if (panelId === 'panel-tmdb') {
                         window.admin2?.maybeFetchTmdbOnOpen?.();
                         window.admin2?.maybeFetchStreamingProvidersOnOpen?.();
                     } else if (panelId === 'panel-local') {
-                        if (window.__autoFetchedLibs) window.__autoFetchedLibs.local = false;
                         window.admin2?.maybeInitLocalDirectoryOnOpen?.();
                     }
                 } catch (_) {
@@ -18331,6 +18328,9 @@
         // Lazy fetch helpers: fire-and-forget conditional loads on panel open
         function maybeFetchPlexOnOpen() {
             try {
+                // Start polling for Plex server status immediately when panel opens
+                window.startPlexStatusPolling?.();
+
                 (async () => {
                     window.__autoFetchedLibs = window.__autoFetchedLibs || {
                         plex: false,
@@ -18368,6 +18368,9 @@
 
         function maybeFetchJellyfinOnOpen() {
             try {
+                // Start polling for Jellyfin server status immediately when panel opens
+                window.startJellyfinStatusPolling?.();
+
                 (async () => {
                     window.__autoFetchedLibs = window.__autoFetchedLibs || {
                         plex: false,
@@ -19318,8 +19321,6 @@
                             /* no-op */
                         }
                     }
-                    // Start polling for server status
-                    window.startJellyfinStatusPolling?.();
                 } catch (e) {
                     console.error('[Admin][Jellyfin][Fetch] failed', e); // keep errors
                     if (!silent) {
@@ -19965,6 +19966,24 @@
                 if (!res.ok) return;
                 const data = await res.json();
 
+                // Update section title with server name badge (show as soon as we have it)
+                if (data.serverName) {
+                    const sectionTitle = document.querySelector('#panel-jellyfin .section-title');
+                    if (sectionTitle) {
+                        let serverBadge = sectionTitle.querySelector('.jf-server-badge');
+                        if (!serverBadge) {
+                            serverBadge = document.createElement('span');
+                            serverBadge.className = 'badge badge-info jf-server-badge';
+                            serverBadge.style.marginLeft = '8px';
+                            sectionTitle.insertBefore(
+                                serverBadge,
+                                sectionTitle.querySelector('.section-actions')
+                            );
+                        }
+                        serverBadge.textContent = data.serverName;
+                    }
+                }
+
                 const pill = document.getElementById('jf-restart-pill');
                 const pillText = document.getElementById('jf-restart-text');
                 const pillIcon = pill?.querySelector('i');
@@ -19987,26 +20006,6 @@
                         if (pillIcon) pillIcon.className = 'fas fa-check-circle';
                         if (pillText) pillText.textContent = 'OK';
                     }
-
-                    // Update section title with server name badge
-                    if (data.serverName) {
-                        const sectionTitle = document.querySelector(
-                            '#panel-jellyfin .section-title'
-                        );
-                        if (sectionTitle) {
-                            let serverBadge = sectionTitle.querySelector('.jf-server-badge');
-                            if (!serverBadge) {
-                                serverBadge = document.createElement('span');
-                                serverBadge.className = 'badge badge-info jf-server-badge';
-                                serverBadge.style.marginLeft = '8px';
-                                sectionTitle.insertBefore(
-                                    serverBadge,
-                                    sectionTitle.querySelector('.section-actions')
-                                );
-                            }
-                            serverBadge.textContent = data.serverName;
-                        }
-                    }
                 } else {
                     pill.hidden = true;
                 }
@@ -20025,6 +20024,51 @@
             if (jellyfinStatusInterval) {
                 clearInterval(jellyfinStatusInterval);
                 jellyfinStatusInterval = null;
+            }
+        };
+
+        // Plex server status polling
+        let plexStatusInterval;
+        window.checkPlexServerStatus = async function checkPlexServerStatus() {
+            try {
+                const res = await fetch('/api/admin/plex-server-status', {
+                    credentials: 'include',
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // Update section title with server name badge
+                if (data.connected && data.serverName) {
+                    const sectionTitle = document.querySelector('#panel-plex .section-title');
+                    if (sectionTitle) {
+                        let serverBadge = sectionTitle.querySelector('.plex-server-badge');
+                        if (!serverBadge) {
+                            serverBadge = document.createElement('span');
+                            serverBadge.className = 'badge badge-info plex-server-badge';
+                            serverBadge.style.marginLeft = '8px';
+                            sectionTitle.insertBefore(
+                                serverBadge,
+                                sectionTitle.querySelector('.section-actions')
+                            );
+                        }
+                        serverBadge.textContent = data.serverName;
+                    }
+                }
+            } catch (err) {
+                console.warn('[Plex] Failed to check server status:', err.message);
+            }
+        };
+
+        window.startPlexStatusPolling = function startPlexStatusPolling() {
+            window.checkPlexServerStatus?.(); // immediate check
+            if (plexStatusInterval) clearInterval(plexStatusInterval);
+            plexStatusInterval = setInterval(() => window.checkPlexServerStatus?.(), 60000); // every 60s
+        };
+
+        window.stopPlexStatusPolling = function stopPlexStatusPolling() {
+            if (plexStatusInterval) {
+                clearInterval(plexStatusInterval);
+                plexStatusInterval = null;
             }
         };
 
@@ -20360,9 +20404,113 @@
             }
         }
 
+        // Validation helper
+        function validateSourceConfig(sourceType) {
+            const errors = [];
+
+            if (sourceType === 'plex') {
+                const enabled = getInput('plex.enabled')?.checked;
+                if (enabled) {
+                    const hostname = getInput('plex.hostname')?.value?.trim();
+                    const port = getInput('plex.port')?.value?.trim();
+                    const token = getInput('plex.token')?.value?.trim();
+
+                    if (!hostname) {
+                        errors.push('Hostname is required when Plex is enabled');
+                        getInput('plex.hostname')?.classList.add('input-error');
+                    } else {
+                        getInput('plex.hostname')?.classList.remove('input-error');
+                    }
+
+                    if (!port) {
+                        errors.push('Port is required when Plex is enabled');
+                        getInput('plex.port')?.classList.add('input-error');
+                    } else {
+                        getInput('plex.port')?.classList.remove('input-error');
+                    }
+
+                    if (!token || token === 'EXISTING_TOKEN' || /^[•]+$/.test(token)) {
+                        // Token is masked or placeholder - check if we have actual token
+                        const actualToken = getInput('plex.token')?.dataset?.actualToken;
+                        if (!actualToken || actualToken === 'EXISTING_TOKEN') {
+                            errors.push('Token is required when Plex is enabled');
+                            getInput('plex.token')?.classList.add('input-error');
+                        } else {
+                            getInput('plex.token')?.classList.remove('input-error');
+                        }
+                    } else {
+                        getInput('plex.token')?.classList.remove('input-error');
+                    }
+                }
+            } else if (sourceType === 'jellyfin') {
+                const enabled = getInput('jf.enabled')?.checked;
+                if (enabled) {
+                    const hostname = getInput('jf.hostname')?.value?.trim();
+                    const port = getInput('jf.port')?.value?.trim();
+                    const apiKey = getInput('jf.apikey')?.value?.trim();
+
+                    if (!hostname) {
+                        errors.push('Hostname is required when Jellyfin is enabled');
+                        getInput('jf.hostname')?.classList.add('input-error');
+                    } else {
+                        getInput('jf.hostname')?.classList.remove('input-error');
+                    }
+
+                    if (!port) {
+                        errors.push('Port is required when Jellyfin is enabled');
+                        getInput('jf.port')?.classList.add('input-error');
+                    } else {
+                        getInput('jf.port')?.classList.remove('input-error');
+                    }
+
+                    if (!apiKey || apiKey === 'EXISTING_TOKEN' || /^[•]+$/.test(apiKey)) {
+                        const actualKey = getInput('jf.apikey')?.dataset?.actualToken;
+                        if (!actualKey || actualKey === 'EXISTING_TOKEN') {
+                            errors.push('API Key is required when Jellyfin is enabled');
+                            getInput('jf.apikey')?.classList.add('input-error');
+                        } else {
+                            getInput('jf.apikey')?.classList.remove('input-error');
+                        }
+                    } else {
+                        getInput('jf.apikey')?.classList.remove('input-error');
+                    }
+                }
+            } else if (sourceType === 'romm') {
+                const enabled = getInput('romm.enabled')?.checked;
+                if (enabled) {
+                    const url = getInput('romm.url')?.value?.trim();
+                    const username = getInput('romm.username')?.value?.trim();
+
+                    if (!url) {
+                        errors.push('URL is required when RomM is enabled');
+                        getInput('romm.url')?.classList.add('input-error');
+                    } else {
+                        getInput('romm.url')?.classList.remove('input-error');
+                    }
+
+                    if (!username) {
+                        errors.push('Username is required when RomM is enabled');
+                        getInput('romm.username')?.classList.add('input-error');
+                    } else {
+                        getInput('romm.username')?.classList.remove('input-error');
+                    }
+                }
+            }
+
+            return errors;
+        }
+
         // Per-source save helpers
         async function savePlex() {
             const btn = document.getElementById('btn-save-plex');
+
+            // Validate before saving
+            const validationErrors = validateSourceConfig('plex');
+            if (validationErrors.length > 0) {
+                showToast(`Cannot save: ${validationErrors.join(', ')}`, 'error', 5000);
+                return;
+            }
+
             btn?.classList.add('btn-loading');
             try {
                 // Capture pre-click restart intent as a fallback
@@ -20570,6 +20718,14 @@
 
         async function saveJellyfin() {
             const btn = document.getElementById('btn-save-jellyfin');
+
+            // Validate before saving
+            const validationErrors = validateSourceConfig('jellyfin');
+            if (validationErrors.length > 0) {
+                showToast(`Cannot save: ${validationErrors.join(', ')}`, 'error', 5000);
+                return;
+            }
+
             btn?.classList.add('btn-loading');
             try {
                 // Capture pre-click restart intent as a fallback
@@ -20851,6 +21007,14 @@
 
         async function saveRomM() {
             const btn = document.getElementById('btn-save-romm');
+
+            // Validate before saving
+            const validationErrors = validateSourceConfig('romm');
+            if (validationErrors.length > 0) {
+                showToast(`Cannot save: ${validationErrors.join(', ')}`, 'error', 5000);
+                return;
+            }
+
             btn?.classList.add('btn-loading');
             try {
                 const cfgRes = await window.dedupJSON('/api/admin/config', {
@@ -20895,6 +21059,17 @@
 
                 if (rommIdx >= 0) servers[rommIdx] = romm;
                 else servers.push(romm);
+
+                // Debug: Log what we're about to save
+                console.log('[RomM Save] Saving RomM config:', {
+                    enabled: romm.enabled,
+                    url: romm.url,
+                    username: romm.username,
+                    hasPassword: !!romm.password,
+                    passwordLength: romm.password?.length,
+                    selectedPlatforms: romm.selectedPlatforms?.length,
+                    insecureHttps: romm.insecureHttps,
+                });
 
                 // If RomM is being disabled, also disable games-only mode
                 const patch = { mediaServers: servers };
@@ -21747,6 +21922,27 @@
         document.getElementById('btn-save-jellyfin')?.addEventListener('click', saveJellyfin);
         document.getElementById('btn-save-tmdb')?.addEventListener('click', saveTMDB);
         document.getElementById('btn-save-romm')?.addEventListener('click', saveRomM);
+
+        // Real-time validation - remove error styling when user types
+        const validationFields = [
+            'plex.hostname',
+            'plex.port',
+            'plex.token',
+            'jf.hostname',
+            'jf.port',
+            'jf.apikey',
+            'romm.url',
+            'romm.username',
+        ];
+        validationFields.forEach(fieldId => {
+            const field = getInput(fieldId);
+            if (field) {
+                field.addEventListener('input', () => {
+                    field.classList.remove('input-error');
+                });
+            }
+        });
+
         // No extra handlers needed here; dependent refresh is driven by fetchPlexLibraries(true)
 
         // Initial population
