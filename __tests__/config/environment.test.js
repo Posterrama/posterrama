@@ -101,7 +101,6 @@ describe('Environment Configuration Module', () => {
             expect(env.server.port).toBe(4000);
             expect(env.server.nodeEnv).toBe('development');
             expect(env.server.debug).toBe(false);
-            expect(env.server.slowRequestMs).toBe(3000);
             expect(env.server.exposeInternalEndpoints).toBe(false);
         });
 
@@ -109,7 +108,6 @@ describe('Environment Configuration Module', () => {
             process.env.SERVER_PORT = '8080';
             process.env.NODE_ENV = 'production';
             process.env.DEBUG = 'true';
-            process.env.SLOW_REQUEST_WARN_MS = '5000';
             process.env.EXPOSE_INTERNAL_ENDPOINTS = 'true';
 
             const env = require('../../config/environment');
@@ -117,7 +115,6 @@ describe('Environment Configuration Module', () => {
             expect(env.server.port).toBe(8080);
             expect(env.server.nodeEnv).toBe('production');
             expect(env.server.debug).toBe(true);
-            expect(env.server.slowRequestMs).toBe(5000);
             expect(env.server.exposeInternalEndpoints).toBe(true);
         });
     });

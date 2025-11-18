@@ -140,9 +140,6 @@ const server = {
     /** Enable debug mode */
     debug: getBoolean('DEBUG'),
 
-    /** Slow request warning threshold (ms) */
-    slowRequestMs: getNumber('SLOW_REQUEST_WARN_MS', 3000),
-
     /** Expose internal endpoints (development only) */
     exposeInternalEndpoints: getBoolean('EXPOSE_INTERNAL_ENDPOINTS'),
 };

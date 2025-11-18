@@ -157,10 +157,9 @@ function requestLoggingMiddleware() {
                     return;
                 }
                 logger.warn('Request completed with error', logData);
-            } else if (duration > 5000) {
-                logger.warn('Slow request detected', logData);
             } else {
                 // Skip routine browser requests (static files, favicon, etc.)
+                // Note: Slow request detection is handled by metrics.js middleware
                 const isRoutineRequest =
                     req.url &&
                     (req.url === '/favicon.ico' ||

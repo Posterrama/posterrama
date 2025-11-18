@@ -425,16 +425,7 @@ app.use((req, res, next) => {
             });
         }
 
-        // Log slow requests (configurable threshold)
-        const slowReqMs = env.server.slowRequestMs;
-        if (duration > slowReqMs) {
-            logger.warn('Slow request detected', {
-                ...requestLog,
-                duration: `${duration.toFixed(2)}ms`,
-                status: res.statusCode,
-                thresholdMs: slowReqMs,
-            });
-        }
+        // Note: Slow request detection is handled by metricsMiddleware
     });
 
     next();
