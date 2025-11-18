@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# Pre-push hook: Simplified quality checks
+echo "🔍 Pre-push: Running quality checks..."
+
+remote="$1"
+url="$2"
+
+while read local_ref local_sha remote_ref remote_sha; do
+    if [[ "$remote_ref" == "refs/heads/main" ]]; then
+        echo "📊 Pushing to main branch - running quality checks..."
+        
+        issues_found=false
+        
+        # 1. Basic syntax check with Node.js
+        echo ""
+        echo "1. � Basic syntax check..."
+        syntax_errors=0
+        for file in $(find . -name "*.js" -not -path "./node_modules/*" -not -path "./coverage/*" -not -path "./logs/*" -not -path "./image_cache/*" | head -20); do
+            if ! node -c "$file" 2>/dev/null; then
+                echo "⚠️  Syntax error in: $file"
+                syntax_errors=$((syntax_errors + 1))
+            fi
+        done
+        
+        if [ $syntax_errors -gt 0 ]; then
+            echo "⚠️  Found $syntax_errors syntax errors"
+            issues_found=true
+        else
+            echo "✅ Syntax check: OK"
+        fi
+        
+        # 2. Console.log check - DISABLED (frontend logs are acceptable)
+        echo ""
+        echo "2. � Console.log check: DISABLED (frontend debugging allowed)"
+        
+        # 3. Basic file structure check
+        echo ""
+        echo "3. 📁 Checking critical files..."
+        critical_files=("server.js" "package.json" "eslint.config.js")
+        missing_files=0
+        for file in "${critical_files[@]}"; do
+            if [ ! -f "$file" ]; then
+                echo "⚠️  Missing critical file: $file"
+                missing_files=$((missing_files + 1))
+            fi
+        done
+        
+        if [ $missing_files -gt 0 ]; then
+            echo "⚠️  Found $missing_files missing critical files"
+            issues_found=true
+        else
+            echo "✅ File structure: OK"
+        fi
+        
+        # 4. Quick regression check (optional, can be skipped)
+        echo ""
+        echo "4. 🧪 Quick regression check..."
+        if command -v npm >/dev/null 2>&1; then
+            # Run quick API contract tests (fast)
+            if timeout 30s npm run test:regression:contracts >/dev/null 2>&1; then
+                echo "✅ API contracts: OK"
+            else
+                echo "⚠️  API contract regression detected - consider running full tests"
+                issues_found=true
+            fi
+        else
+            echo "ℹ️  NPM not available - skipping regression check"
+        fi
+        
+        # 5. User choice if issues found
+        if [ "$issues_found" = true ]; then
+            echo ""
+            echo "⚠️  Quality issues detected!"
+            echo "Press Enter to continue anyway, or Ctrl+C to cancel and fix issues first."
+            read -p "❓ Continue? " response
+            echo "⚠️  Pushing with quality issues - consider fixing them soon!"
+        else
+            echo ""
+            echo "✅ All quality checks passed!"
+        fi
+        
+        echo "🚀 Proceeding with push..."
+        break
+    fi
+done
+
+exit 0
