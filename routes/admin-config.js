@@ -1250,19 +1250,33 @@ module.exports = function createAdminConfigRouter({
                 username = rommServerConfig.username;
             }
             if (!password) {
-                // Try environment variable first, then config password (if not a placeholder)
+                // Try environment variable first (preferred), then config password
                 if (
                     rommServerConfig?.passwordEnvVar &&
                     process.env[rommServerConfig.passwordEnvVar]
                 ) {
                     password = process.env[rommServerConfig.passwordEnvVar];
+                    logger.debug(
+                        `[RomM Test] Using password from env var: ${rommServerConfig.passwordEnvVar}`
+                    );
                 } else if (
                     rommServerConfig?.password &&
                     typeof rommServerConfig.password === 'string' &&
-                    rommServerConfig.password !== 'dummy' &&
-                    !rommServerConfig.password.includes('password')
+                    rommServerConfig.password.length > 0
                 ) {
-                    password = rommServerConfig.password;
+                    // Only skip obvious placeholders
+                    const lowerPass = rommServerConfig.password.toLowerCase();
+                    if (
+                        lowerPass !== 'dummy' &&
+                        lowerPass !== 'password' &&
+                        lowerPass !== 'changeme' &&
+                        lowerPass !== 'placeholder'
+                    ) {
+                        password = rommServerConfig.password;
+                        logger.debug('[RomM Test] Using password from config.json');
+                    } else {
+                        logger.warn(`[RomM Test] Ignoring placeholder password: ${lowerPass}`);
+                    }
                 }
             }
             if (typeof insecureHttps === 'undefined' && rommServerConfig?.insecureHttps) {
@@ -1403,19 +1417,33 @@ module.exports = function createAdminConfigRouter({
                 username = rommServerConfig.username;
             }
             if (!password) {
-                // Try environment variable first, then config password (if not a placeholder)
+                // Try environment variable first (preferred), then config password
                 if (
                     rommServerConfig?.passwordEnvVar &&
                     process.env[rommServerConfig.passwordEnvVar]
                 ) {
                     password = process.env[rommServerConfig.passwordEnvVar];
+                    logger.debug(
+                        `[RomM Platforms] Using password from env var: ${rommServerConfig.passwordEnvVar}`
+                    );
                 } else if (
                     rommServerConfig?.password &&
                     typeof rommServerConfig.password === 'string' &&
-                    rommServerConfig.password !== 'dummy' &&
-                    !rommServerConfig.password.includes('password')
+                    rommServerConfig.password.length > 0
                 ) {
-                    password = rommServerConfig.password;
+                    // Only skip obvious placeholders
+                    const lowerPass = rommServerConfig.password.toLowerCase();
+                    if (
+                        lowerPass !== 'dummy' &&
+                        lowerPass !== 'password' &&
+                        lowerPass !== 'changeme' &&
+                        lowerPass !== 'placeholder'
+                    ) {
+                        password = rommServerConfig.password;
+                        logger.debug('[RomM Platforms] Using password from config.json');
+                    } else {
+                        logger.warn(`[RomM Platforms] Ignoring placeholder password: ${lowerPass}`);
+                    }
                 }
             }
             if (typeof insecureHttps === 'undefined' && rommServerConfig?.insecureHttps) {
