@@ -1252,7 +1252,10 @@ module.exports = function createAdminConfigRouter({
 
             // Check if password is masked or placeholder
             const isMaskedPassword =
-                password && (/^[•]+$/.test(password) || password === 'EXISTING_TOKEN');
+                password &&
+                (/^[•]+$/.test(password) ||
+                    password === 'EXISTING_TOKEN' ||
+                    password === 'EXISTING_PASSWORD');
 
             if (!password || isMaskedPassword) {
                 // Try environment variable first (preferred), then config password
@@ -1424,7 +1427,10 @@ module.exports = function createAdminConfigRouter({
 
             // Check if password is masked or placeholder
             const isMaskedPassword =
-                password && (/^[•]+$/.test(password) || password === 'EXISTING_TOKEN');
+                password &&
+                (/^[•]+$/.test(password) ||
+                    password === 'EXISTING_TOKEN' ||
+                    password === 'EXISTING_PASSWORD');
 
             if (!password || isMaskedPassword) {
                 // Try environment variable first (preferred), then config password

@@ -54,10 +54,36 @@ class RommSource {
             const hostname = url.hostname;
             const port = url.port || (url.protocol === 'https:' ? 443 : 80);
 
-            // Resolve password from direct value or environment variable (like Plex tokenEnvVar)
-            const password =
-                this.server.password ||
-                (this.server.passwordEnvVar ? process.env[this.server.passwordEnvVar] : undefined);
+            // Resolve password from environment variable (preferred) or direct value
+            // Skip obvious placeholders in config password
+            let password;
+            const configPassword = this.server.password;
+            const isPlaceholder =
+                configPassword &&
+                (configPassword.toLowerCase() === 'dummy' ||
+                    configPassword.toLowerCase() === 'password' ||
+                    configPassword.toLowerCase() === 'changeme' ||
+                    configPassword.toLowerCase() === 'placeholder');
+
+            if (this.server.passwordEnvVar && process.env[this.server.passwordEnvVar]) {
+                // Prefer environment variable
+                password = process.env[this.server.passwordEnvVar];
+                if (this.isDebug) {
+                    logger.debug(
+                        `[RommSource:${this.server.name}] Using password from env var: ${this.server.passwordEnvVar}`
+                    );
+                }
+            } else if (configPassword && !isPlaceholder) {
+                // Fall back to config password if it's not a placeholder
+                password = configPassword;
+                if (this.isDebug) {
+                    logger.debug(`[RommSource:${this.server.name}] Using password from config`);
+                }
+            }
+
+            if (!password) {
+                throw new Error('No valid password found (env var or config)');
+            }
 
             this.client = new RommHttpClient({
                 hostname,
