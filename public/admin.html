@@ -33,17 +33,26 @@
       new MutationObserver(mutations => {
         mutations.forEach(m => {
           m.addedNodes.forEach(node => {
-            if (node.tagName === 'LINK' && node.href && node.href.includes('_next/static')) {
+            // Block <link>, <script>, and any element with _next in href/src
+            if (node.tagName === 'LINK' && node.href && node.href.includes('_next')) {
+              try { node.remove(); } catch(_) {}
+            }
+            if (node.tagName === 'SCRIPT' && node.src && node.src.includes('_next')) {
               try { node.remove(); } catch(_) {}
             }
           });
         });
       }).observe(document.documentElement, { childList: true, subtree: true });
     }
-    // Also scan and remove any existing _next links on DOMContentLoaded
+    // Also scan and remove any existing _next elements on DOMContentLoaded
     document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('link[href*="_next/static"]').forEach(link => {
+      // Remove all link tags (stylesheet, preload, prefetch, dns-prefetch, etc.)
+      document.querySelectorAll('link[href*="_next"]').forEach(link => {
         try { link.remove(); } catch(_) {}
+      });
+      // Remove all script tags with _next src
+      document.querySelectorAll('script[src*="_next"]').forEach(script => {
+        try { script.remove(); } catch(_) {}
       });
     });
   </script>

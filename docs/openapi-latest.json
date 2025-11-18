@@ -13337,6 +13337,247 @@
                 },
                 "security": []
             }
+        },
+        "/api/metrics/source-errors": {
+            "get": {
+                "summary": "Get error metrics for all media sources",
+                "description": "Returns comprehensive error metrics from the unified error handling system.\nIncludes retry attempts, failure rates, and error categorization for all sources.\n\nRaw format shows per-operation metrics: {source: {operation: {total, errors, retries}}}\n",
+                "tags": ["Source Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "Source error metrics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total": {
+                                                    "type": "number",
+                                                    "description": "Total operations attempted"
+                                                },
+                                                "errors": {
+                                                    "type": "number",
+                                                    "description": "Number of failed operations"
+                                                },
+                                                "retries": {
+                                                    "type": "number",
+                                                    "description": "Number of retry attempts"
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "examples": {
+                                    "allSources": {
+                                        "value": {
+                                            "plex": {
+                                                "fetchMedia": {
+                                                    "total": 10,
+                                                    "errors": 2,
+                                                    "retries": 3
+                                                },
+                                                "getLibraries": {
+                                                    "total": 5,
+                                                    "errors": 0,
+                                                    "retries": 1
+                                                }
+                                            },
+                                            "jellyfin": {
+                                                "fetchMedia": {
+                                                    "total": 8,
+                                                    "errors": 1,
+                                                    "retries": 2
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/metrics/source-errors/{source}": {
+            "get": {
+                "summary": "Get error metrics for a specific media source",
+                "description": "Returns error metrics for a single media source (plex, jellyfin, tmdb, romm).\nUseful for targeted monitoring and debugging of specific integrations.\n",
+                "tags": ["Source Metrics"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "source",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": ["plex", "jellyfin", "tmdb", "romm", "local"]
+                        },
+                        "description": "Source identifier"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Source-specific error metrics retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "totalAttempts": {
+                                            "type": "number"
+                                        },
+                                        "successfulRetries": {
+                                            "type": "number"
+                                        },
+                                        "failedOperations": {
+                                            "type": "number"
+                                        },
+                                        "lastError": {
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "errorsByType": {
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Source not found or no metrics available"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            },
+            "delete": {
+                "summary": "Reset error metrics for a specific media source",
+                "description": "Clears all error metrics and counters for the specified source.\nUseful for testing or after resolving persistent issues.\n",
+                "tags": ["Source Metrics"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "source",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": ["plex", "jellyfin", "tmdb", "romm", "local"]
+                        },
+                        "description": "Source identifier to reset"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Metrics reset successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "source": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid source identifier"
+                    },
+                    "404": {
+                        "description": "Resource not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Not found",
+                                    "message": "The requested resource does not exist",
+                                    "statusCode": 404
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
         }
     }
 }

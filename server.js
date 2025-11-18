@@ -2212,6 +2212,17 @@ logger.info(
 );
 app.use(express.static(publicDir));
 
+// Block Next.js routes early to prevent MIME type errors from JSON 404 responses
+// These routes are injected by browser extensions, service workers, or stale caches
+app.use((req, res, next) => {
+    if (req.path.startsWith('/_next')) {
+        logger.debug(`[Security] Blocked Next.js route attempt: ${req.path}`);
+        res.status(404).type('text/plain').send('Not Found');
+        return;
+    }
+    next();
+});
+
 // Ensure cache-busted assets are not cached by proxies and mark as must-revalidate
 app.use((req, res, next) => {
     if (/[?&]v=|[?&]cb=/.test(req.url)) {

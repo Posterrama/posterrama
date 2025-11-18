@@ -34,6 +34,29 @@
     
         <!-- Global Error Handler -->
         <script type="module" src="/error-handler.js"></script>
+        
+        <!-- Defense: Remove Next.js assets injected by extensions/cache -->
+        <script>
+            if (typeof MutationObserver !== 'undefined') {
+                new MutationObserver(mutations => {
+                    mutations.forEach(m => {
+                        m.addedNodes.forEach(node => {
+                            if (node.tagName === 'LINK' && node.href && node.href.includes('_next')) {
+                                try { node.remove(); } catch(_) {}
+                            }
+                            if (node.tagName === 'SCRIPT' && node.src && node.src.includes('_next')) {
+                                try { node.remove(); } catch(_) {}
+                            }
+                        });
+                    });
+                }).observe(document.documentElement, { childList: true, subtree: true });
+            }
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('link[href*="_next"], script[src*="_next"]').forEach(el => {
+                    try { el.remove(); } catch(_) {}
+                });
+            });
+        </script>
     </head>
     <body data-mode="screensaver">
         <div id="error-message" class="is-hidden"></div>
