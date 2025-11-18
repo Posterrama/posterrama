@@ -2011,6 +2011,11 @@ const createMetricsTestingRouter = require('./routes/metrics-testing');
 const metricsTestingRouter = createMetricsTestingRouter({ metricsManager });
 app.use('/', metricsTestingRouter);
 
+// Source error metrics routes (Issue #97)
+const createSourceErrorMetricsRouter = require('./routes/source-error-metrics');
+const sourceErrorMetricsRouter = createSourceErrorMetricsRouter();
+app.use('/', sourceErrorMetricsRouter);
+
 // Apply query parameter validation to media endpoints
 /**
  * @swagger
