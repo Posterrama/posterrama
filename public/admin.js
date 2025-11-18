@@ -960,9 +960,31 @@
             const isMusicMode = wallartMode.musicMode === true;
 
             if (isGamesMode) {
-                // Games mode: show RomM count
-                playlistCount = window.__lastRommCount || 0;
+                // Games mode: calculate RomM count from config
+                playlistCount = 0;
                 playlistLabel = 'in playlist';
+
+                // Get RomM count from selected platforms
+                if (romm?.enabled && romm.selectedPlatforms) {
+                    // Try to use cached platform data if available
+                    if (window.__rommPlatforms && Array.isArray(window.__rommPlatforms)) {
+                        const selected = romm.selectedPlatforms;
+                        const selectedPlatforms = window.__rommPlatforms.filter(p =>
+                            selected.includes(p.value)
+                        );
+                        playlistCount = selectedPlatforms.reduce((sum, p) => {
+                            // Use count field directly if available, otherwise parse from label
+                            if (p.count != null) {
+                                return sum + p.count;
+                            }
+                            const match = (p.label || '').match(/\((\d+)\s+games?\)/i);
+                            return sum + (match ? parseInt(match[1], 10) : 0);
+                        }, 0);
+                    } else {
+                        // Fallback to global variable (set by refreshOverviewCounts)
+                        playlistCount = window.__lastRommCount || 0;
+                    }
+                }
             } else if (isMusicMode) {
                 // Music mode: show album count (if available)
                 // TODO: Get actual album count from music library
