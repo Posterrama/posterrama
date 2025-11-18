@@ -20507,7 +20507,12 @@
             // Validate before saving
             const validationErrors = validateSourceConfig('plex');
             if (validationErrors.length > 0) {
-                showToast(`Cannot save: ${validationErrors.join(', ')}`, 'error', 5000);
+                window.notify?.toast({
+                    title: 'Validation Error',
+                    message: `Cannot save: ${validationErrors.join(', ')}`,
+                    severity: 'error',
+                    duration: 5000,
+                });
                 return;
             }
 
@@ -20722,7 +20727,12 @@
             // Validate before saving
             const validationErrors = validateSourceConfig('jellyfin');
             if (validationErrors.length > 0) {
-                showToast(`Cannot save: ${validationErrors.join(', ')}`, 'error', 5000);
+                window.notify?.toast({
+                    title: 'Validation Error',
+                    message: `Cannot save: ${validationErrors.join(', ')}`,
+                    severity: 'error',
+                    duration: 5000,
+                });
                 return;
             }
 
@@ -21011,7 +21021,12 @@
             // Validate before saving
             const validationErrors = validateSourceConfig('romm');
             if (validationErrors.length > 0) {
-                showToast(`Cannot save: ${validationErrors.join(', ')}`, 'error', 5000);
+                window.notify?.toast({
+                    title: 'Validation Error',
+                    message: `Cannot save: ${validationErrors.join(', ')}`,
+                    severity: 'error',
+                    duration: 5000,
+                });
                 return;
             }
 
