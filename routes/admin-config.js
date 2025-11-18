@@ -1109,7 +1109,12 @@ module.exports = function createAdminConfigRouter({
                 if (isDebug) console.error('[Jellyfin Test] Failed:', error.message);
                 let userMessage =
                     'Could not connect to Jellyfin. Please check the connection details.';
-                if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                if (error.isCloudflare || error.message?.includes('Cloudflare')) {
+                    userMessage = `⚠️ Cloudflare Proxy Error: ${error.message}. Check your Cloudflare Tunnel status.`;
+                } else if (
+                    error.message.includes('401') ||
+                    error.message.includes('Unauthorized')
+                ) {
                     userMessage = 'Unauthorized. Is the API key correct?';
                 } else if (error.code === 'EJELLYFIN_NOT_FOUND' || /404/.test(error.message)) {
                     userMessage =
@@ -1167,6 +1172,67 @@ module.exports = function createAdminConfigRouter({
      *       400:
      *         description: Connection failed
      */
+
+    // Jellyfin server status endpoint (checks if restart is pending)
+    router.get(
+        '/api/admin/jellyfin-server-status',
+        isAuthenticated,
+        asyncHandler(async (req, res) => {
+            const config = await readConfig();
+            const jellyfinServer = config.mediaServers?.find(s => s.type === 'jellyfin');
+
+            if (!jellyfinServer || !jellyfinServer.enabled) {
+                return res.json({
+                    enabled: false,
+                    hasPendingRestart: false,
+                });
+            }
+
+            const { hostname, port, apiKey, tokenEnvVar, insecureHttps } = jellyfinServer;
+            const actualApiKey =
+                tokenEnvVar && process.env[tokenEnvVar] ? process.env[tokenEnvVar] : apiKey;
+
+            if (!hostname || !actualApiKey) {
+                return res.json({
+                    enabled: true,
+                    configured: false,
+                    hasPendingRestart: false,
+                });
+            }
+
+            try {
+                const client = await createJellyfinClient({
+                    hostname,
+                    port: port || 443,
+                    apiKey: actualApiKey,
+                    timeout: 5000,
+                    insecureHttps: insecureHttps || process.env.JELLYFIN_INSECURE_HTTPS === 'true',
+                    retryMaxRetries: 0,
+                });
+
+                const info = await client.testConnection();
+
+                res.json({
+                    enabled: true,
+                    configured: true,
+                    connected: true,
+                    hasPendingRestart: info.hasPendingRestart || false,
+                    serverName: info.serverName,
+                    version: info.version,
+                });
+            } catch (error) {
+                logger.warn('[Jellyfin Status] Failed to check server status:', error.message);
+                res.json({
+                    enabled: true,
+                    configured: true,
+                    connected: false,
+                    hasPendingRestart: false,
+                    error: error.message,
+                });
+            }
+        })
+    );
+
     router.post(
         '/api/admin/test-romm',
         isAuthenticated,

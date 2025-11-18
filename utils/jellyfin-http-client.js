@@ -46,6 +46,52 @@ class JellyfinHttpClient extends BaseHttpClient {
 
         this.apiKey = apiKey;
 
+        // Helper: Detect Cloudflare errors
+        this._isCloudflareError = error => {
+            const status = error.response?.status;
+            const data = error.response?.data;
+
+            // Cloudflare error pages often return plain text "error code: XXX"
+            if (typeof data === 'string' && /^error code: \d+/i.test(data.trim())) {
+                return { isCloudflare: true, message: data.trim() };
+            }
+
+            // Cloudflare-specific status codes
+            if ([520, 521, 522, 523, 524, 525, 526, 527, 530].includes(status)) {
+                return {
+                    isCloudflare: true,
+                    message: `Cloudflare error ${status}: ${this._cloudflareErrorName(status)}`,
+                };
+            }
+
+            // Check for Cloudflare headers
+            const cfRay = error.response?.headers?.['cf-ray'];
+            if (cfRay) {
+                return {
+                    isCloudflare: true,
+                    message: `Cloudflare error (CF-Ray: ${cfRay})`,
+                    cfRay,
+                };
+            }
+
+            return { isCloudflare: false };
+        };
+
+        this._cloudflareErrorName = code => {
+            const names = {
+                520: 'Web Server Returned an Unknown Error',
+                521: 'Web Server Is Down',
+                522: 'Connection Timed Out',
+                523: 'Origin Is Unreachable',
+                524: 'A Timeout Occurred',
+                525: 'SSL Handshake Failed',
+                526: 'Invalid SSL Certificate',
+                527: 'Railgun Error',
+                530: 'Origin DNS Error',
+            };
+            return names[code] || 'Unknown Error';
+        };
+
         // Legacy compatibility: expose __jfDebug for existing code
         this.__jfDebug = this.__debug;
 
@@ -195,6 +241,20 @@ class JellyfinHttpClient extends BaseHttpClient {
                         version: serverInfo.Version,
                     });
                 } catch (e2) {
+                    const cfCheck = this._isCloudflareError(e2);
+                    if (cfCheck.isCloudflare) {
+                        logger.error('[JellyfinHttpClient] ⚠️ CLOUDFLARE ERROR DETECTED', {
+                            message: cfCheck.message,
+                            cfRay: cfCheck.cfRay,
+                            status: e2.response?.status,
+                            originalError: e2.message,
+                        });
+                        const cfError = new Error(`Cloudflare Proxy Error: ${cfCheck.message}`);
+                        cfError.isCloudflare = true;
+                        cfError.originalError = e2;
+                        throw cfError;
+                    }
+
                     logger.error('[JellyfinHttpClient] Both system info endpoints failed', {
                         error: e2.message,
                         status: e2.response?.status,

@@ -8971,6 +8971,10 @@
                     p.id === 'panel-local'
                 ) {
                     p.hidden = p.id !== panelId;
+                    // Stop Jellyfin status polling when leaving the panel
+                    if (p.id === 'panel-jellyfin' && p.hidden) {
+                        window.stopJellyfinStatusPolling?.();
+                    }
                 } else {
                     p.hidden = true; // hide overview panel when selecting a specific source
                 }
@@ -9063,6 +9067,7 @@
                         // Reset the auto-fetch flag so libraries are re-fetched each time panel opens
                         if (window.__autoFetchedLibs) window.__autoFetchedLibs.jf = false;
                         window.admin2?.maybeFetchJellyfinOnOpen?.();
+                        window.startJellyfinStatusPolling?.();
                     } else if (panelId === 'panel-tmdb') {
                         window.admin2?.maybeFetchTmdbOnOpen?.();
                         window.admin2?.maybeFetchStreamingProvidersOnOpen?.();
@@ -19281,6 +19286,8 @@
                             /* no-op */
                         }
                     }
+                    // Start polling for server status
+                    window.startJellyfinStatusPolling?.();
                 } catch (e) {
                     console.error('[Admin][Jellyfin][Fetch] failed', e); // keep errors
                     if (!silent) {
@@ -19896,6 +19903,8 @@
                 loadJellyfinGenres(getJfHidden('jf.genreFilter-hidden'));
                 // Jellyfin qualities disabled
                 loadJellyfinQualities('');
+                // Start polling for server status
+                window.startJellyfinStatusPolling?.();
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -19913,6 +19922,47 @@
                 stopBtnSpinner(btn);
             }
         }
+
+        // Jellyfin server status polling
+        let jellyfinStatusInterval;
+        window.checkJellyfinServerStatus = async function checkJellyfinServerStatus() {
+            try {
+                const res = await fetch('/api/admin/jellyfin-server-status', {
+                    credentials: 'include',
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+
+                const pill = document.getElementById('jf-restart-pill');
+                if (!pill) return;
+
+                if (data.connected && data.hasPendingRestart) {
+                    pill.hidden = false;
+                    console.log('[Jellyfin] Server requires restart', {
+                        serverName: data.serverName,
+                        version: data.version,
+                    });
+                } else {
+                    pill.hidden = true;
+                }
+            } catch (err) {
+                console.warn('[Jellyfin] Failed to check server status:', err.message);
+            }
+        };
+
+        window.startJellyfinStatusPolling = function startJellyfinStatusPolling() {
+            window.checkJellyfinServerStatus?.(); // immediate check
+            if (jellyfinStatusInterval) clearInterval(jellyfinStatusInterval);
+            jellyfinStatusInterval = setInterval(() => window.checkJellyfinServerStatus?.(), 60000); // every 60s
+        };
+
+        window.stopJellyfinStatusPolling = function stopJellyfinStatusPolling() {
+            if (jellyfinStatusInterval) {
+                clearInterval(jellyfinStatusInterval);
+                jellyfinStatusInterval = null;
+            }
+        };
+
         async function testTMDB() {
             const btn = document.getElementById('btn-tmdb-test');
             startBtnSpinner(btn);
