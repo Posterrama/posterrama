@@ -823,6 +823,8 @@
                     const res = await window.dedupJSON('/get-media', { credentials: 'include' });
                     if (res && res.ok) {
                         const items = (await res.json().catch(() => [])) || [];
+                        // Store for playlist count later (avoid double fetch)
+                        window.__cachedPlaylistForCount = items;
                         if (Array.isArray(items) && items.length > 0) {
                             const inferSource = it => {
                                 const s = (it.source || it.serverType || '').toLowerCase();
@@ -947,15 +949,26 @@
             setText('metric-media-items', formatNumber(total));
 
             // Get playlist count for secondary display
+            // Use the same playlist data we already fetched for quick estimate earlier
             let playlistCount = 0;
             try {
-                const plRes = await window.dedupJSON('/get-media?count=1', {
-                    credentials: 'include',
-                });
-                if (plRes && plRes.ok) {
-                    const plData = await plRes.json().catch(() => []);
-                    if (Array.isArray(plData)) {
-                        playlistCount = plData.length;
+                // First check if we already have the playlist in memory from earlier fetch
+                if (
+                    window.__cachedPlaylistForCount &&
+                    Array.isArray(window.__cachedPlaylistForCount)
+                ) {
+                    playlistCount = window.__cachedPlaylistForCount.length;
+                } else {
+                    // Fetch minimal data - just need to count array length
+                    const plRes = await window.dedupJSON('/get-media', {
+                        credentials: 'include',
+                    });
+                    if (plRes && plRes.ok) {
+                        const plData = await plRes.json().catch(() => []);
+                        if (Array.isArray(plData)) {
+                            playlistCount = plData.length;
+                            window.__cachedPlaylistForCount = plData; // Cache for next time
+                        }
                     }
                 }
             } catch (e) {
