@@ -85,7 +85,7 @@
             /* portal watchdog setup failed; resilience feature only */
         }
         // NOTE: portal watchdog is a resilience fallback. Can be removed once root cause of zero-size containment is permanently fixed.
-    } catch (diagErr) {
+    } catch (_diagErr) {
         /* admin diag helper init failed (suppressed) */
     }
 

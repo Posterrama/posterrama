@@ -101,6 +101,10 @@ module.exports = [
                 structuredClone: 'readonly',
                 queueMicrotask: 'readonly',
                 indexedDB: 'readonly',
+                HTMLSelectElement: 'readonly',
+                ResizeObserver: 'readonly',
+                EventSource: 'readonly',
+                DataTransfer: 'readonly',
 
                 // Jest globals
                 describe: 'readonly',

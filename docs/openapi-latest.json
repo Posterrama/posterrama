@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Posterrama API",
-        "version": "2.9.4",
+        "version": "2.9.5",
         "description": "Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.",
         "contact": {
             "name": "Posterrama Project",
@@ -10,8 +10,8 @@
             "email": "support@posterrama.app"
         },
         "x-logo": {
-            "url": "https://github.com/Posterrama/posterrama",
-            "altText": "GitHub Repository"
+            "url": "/logo.png",
+            "altText": "Posterrama Logo"
         },
         "license": {
             "name": "GPL-3.0-or-later",
@@ -26,24 +26,6 @@
         {
             "url": "http://localhost:4000",
             "description": "Development server (default port 4000)"
-        },
-        {
-            "url": "http://localhost:4000",
-            "description": "Development server (default port 4000)"
-        },
-        {
-            "url": "http://{host}:{port}",
-            "description": "Custom deployment",
-            "variables": {
-                "host": {
-                    "default": "localhost",
-                    "description": "Server hostname or IP address"
-                },
-                "port": {
-                    "default": "4000",
-                    "description": "Server port (configured via PORT env variable)"
-                }
-            }
         }
     ],
     "tags": [

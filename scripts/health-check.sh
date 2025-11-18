@@ -76,7 +76,7 @@ run_check "config.json valid" "node -e 'JSON.parse(require(\"fs\").readFileSync(
 echo ""
 
 echo -e "${BLUE}🧹 Code Quality${NC}"
-if run_check "ESLint configuration" "test -f .eslintrc.js || test -f .eslintrc.json" true; then
+if run_check "ESLint configuration" "test -f eslint.config.js || test -f .eslintrc.js || test -f .eslintrc.json" true; then
     run_check_with_output "Linting check" "npm run lint"
 fi
 
