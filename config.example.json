@@ -189,7 +189,7 @@
     "testKeyConfig": "fromConfig",
     "someInt": 42,
     "localDirectory": {
-        "enabled": true,
+        "enabled": false,
         "rootPath": "media",
         "watchDirectories": [],
         "posterpackGeneration": {
