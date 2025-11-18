@@ -1023,8 +1023,8 @@ body {
 }
 .nav-brand {
     display: flex;
-    align-items: center;
-    gap: var(--space-sm);
+    align-items: flex-end;
+    gap: 0;
     font-weight: var(--font-weight-semibold);
     font-size: var(--font-size-lg);
 }
@@ -1035,6 +1035,10 @@ body {
     -webkit-text-fill-color: transparent;
     background-clip: text;
     letter-spacing: -0.02em;
+    position: relative;
+    margin-left: -4px;
+    line-height: 1;
+    top: 2px;
 }
 
 .nav-logo {
@@ -1044,7 +1048,7 @@ body {
     max-height: 32px;
     display: block;
     object-fit: contain;
-    margin-right: 4px;
+    margin-right: 0;
 }
 
 .nav-brand i {

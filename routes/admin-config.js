@@ -7,6 +7,10 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 
+// Cache for RomM platform counts (30 minute TTL)
+const rommPlatformCache = new Map();
+const ROMM_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
 /**
  * Create admin configuration router
  * @param {Object} deps - Dependencies
@@ -1568,34 +1572,72 @@ module.exports = function createAdminConfigRouter({
                 const platforms = await client.getPlatforms();
                 logger.debug(`[RomM Platforms] Fetched ${platforms?.length || 0} platforms`);
 
-                // Fetch ROM count for each platform (in parallel for performance)
-                const platformsWithCounts = await Promise.all(
-                    platforms.map(async p => {
-                        try {
-                            // Fetch just the count by getting first page with limit 1
-                            const romsResponse = await client.getRoms({
-                                platform_id: p.id,
-                                limit: 1,
-                            });
-                            const count = romsResponse?.total || 0;
-                            return {
-                                value: p.slug,
-                                label: p.name,
-                                count,
-                            };
-                        } catch (error) {
-                            // If count fails, still include platform without count
-                            logger.warn(
-                                `[RomM Platforms] Failed to get count for ${p.name}:`,
-                                error.message
-                            );
-                            return {
-                                value: p.slug,
-                                label: p.name,
-                                count: 0,
-                            };
-                        }
-                    })
+                // Create cache key from server URL
+                const cacheKey = `${hostname}:${port}`;
+                const now = Date.now();
+                const cached = rommPlatformCache.get(cacheKey);
+
+                // Use cached counts if available and fresh (< 30 minutes old)
+                if (cached && now - cached.timestamp < ROMM_CACHE_TTL) {
+                    logger.info(
+                        `[RomM Platforms] Using cached counts (${Math.round((now - cached.timestamp) / 1000 / 60)}min old)`
+                    );
+                    const platformsWithCounts = platforms.map(p => ({
+                        value: p.slug,
+                        label: p.name,
+                        count: cached.counts[p.id] || 0,
+                    }));
+                    platformsWithCounts.sort((a, b) => b.count - a.count);
+                    return res.json({ success: true, platforms: platformsWithCounts });
+                }
+
+                // Fetch ROM count for each platform with batching (5 concurrent max)
+                const batchSize = 5;
+                const counts = {};
+                const platformsWithCounts = [];
+
+                for (let i = 0; i < platforms.length; i += batchSize) {
+                    const batch = platforms.slice(i, i + batchSize);
+                    const batchResults = await Promise.all(
+                        batch.map(async p => {
+                            try {
+                                // Fetch just the count by getting first page with limit 1
+                                const romsResponse = await client.getRoms({
+                                    platform_id: p.id,
+                                    limit: 1,
+                                });
+                                const count = romsResponse?.total || 0;
+                                counts[p.id] = count;
+                                return {
+                                    value: p.slug,
+                                    label: p.name,
+                                    count,
+                                };
+                            } catch (error) {
+                                // If count fails, still include platform without count
+                                logger.warn(
+                                    `[RomM Platforms] Failed to get count for ${p.name}:`,
+                                    error.message
+                                );
+                                counts[p.id] = 0;
+                                return {
+                                    value: p.slug,
+                                    label: p.name,
+                                    count: 0,
+                                };
+                            }
+                        })
+                    );
+                    platformsWithCounts.push(...batchResults);
+                }
+
+                // Cache the counts for next time
+                rommPlatformCache.set(cacheKey, {
+                    timestamp: now,
+                    counts,
+                });
+                logger.debug(
+                    `[RomM Platforms] Cached counts for ${Object.keys(counts).length} platforms`
                 );
 
                 // Sort by game count descending (most games first)
