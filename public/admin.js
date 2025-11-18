@@ -19987,6 +19987,26 @@
                         if (pillIcon) pillIcon.className = 'fas fa-check-circle';
                         if (pillText) pillText.textContent = 'OK';
                     }
+
+                    // Update section title with server name badge
+                    if (data.serverName) {
+                        const sectionTitle = document.querySelector(
+                            '#panel-jellyfin .section-title'
+                        );
+                        if (sectionTitle) {
+                            let serverBadge = sectionTitle.querySelector('.jf-server-badge');
+                            if (!serverBadge) {
+                                serverBadge = document.createElement('span');
+                                serverBadge.className = 'badge badge-info jf-server-badge';
+                                serverBadge.style.marginLeft = '8px';
+                                sectionTitle.insertBefore(
+                                    serverBadge,
+                                    sectionTitle.querySelector('.section-actions')
+                                );
+                            }
+                            serverBadge.textContent = data.serverName;
+                        }
+                    }
                 } else {
                     pill.hidden = true;
                 }
