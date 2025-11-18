@@ -1544,20 +1544,9 @@
             const configData = await fetchJSON('/api/admin/config').catch(() => null);
             if (configData) {
                 const config = configData.config || {};
-                let enabledSources = 0;
+                const enabledSources = 0;
 
                 // Check each source type
-                const mediaServers = config.mediaServers || [];
-                const plex = mediaServers.find(s => s.type === 'plex');
-                const jf = mediaServers.find(s => s.type === 'jellyfin');
-                const romm = mediaServers.find(s => s.type === 'romm');
-
-                if (plex?.enabled) enabledSources++;
-                if (jf?.enabled) enabledSources++;
-                if (romm?.enabled) enabledSources++;
-                if (config.tmdbSource?.enabled) enabledSources++;
-                if (config.localDirectory?.enabled) enabledSources++;
-
                 // Dashboard media items count is now handled by updateMediaItemsCount()
                 // which sums all enabled sources with proper filtering and shows
                 // playlist count in the secondary line (e.g., "585 cached")
