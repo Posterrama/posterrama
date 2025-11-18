@@ -15350,14 +15350,15 @@
                 window.notify?.toast({
                     type: 'success',
                     title: 'API key generated',
-                    message:
-                        'Server is restarting to apply changes. Page will reload in 3 seconds...',
+                    message: 'Your new API key is ready to use immediately.',
                     duration: 3000,
                 });
-                // Server is restarting - reload page after delay
-                setTimeout(() => {
-                    window.location.reload();
-                }, 3000);
+                btnApiGenerate.classList.remove('btn-loading');
+                // Show the API key input field
+                const displayEl = document.getElementById('api-key-display');
+                if (displayEl) displayEl.classList.remove('is-hidden');
+                // Enable revoke button
+                if (btnApiRevoke) btnApiRevoke.disabled = false;
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -15382,14 +15383,18 @@
                 window.notify?.toast({
                     type: 'success',
                     title: 'API key revoked',
-                    message: 'Server is restarting. Page will reload in 3 seconds...',
+                    message: 'Your API key has been removed.',
                     duration: 3000,
                 });
                 closeModal('modal-revoke-api-key');
-                // Server is restarting - reload page after delay
-                setTimeout(() => {
-                    window.location.reload();
-                }, 3000);
+                btnApiRevokeConfirm.classList.remove('btn-loading');
+                // Clear and hide the API key input
+                const input = document.getElementById('api-key-input');
+                if (input) input.value = '';
+                const displayEl = document.getElementById('api-key-display');
+                if (displayEl) displayEl.classList.add('is-hidden');
+                // Disable revoke button
+                if (btnApiRevoke) btnApiRevoke.disabled = true;
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
