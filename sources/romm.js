@@ -475,16 +475,16 @@ class RommSource {
                 return [];
             }
 
-            // Fetch ROMs from all selected platforms with pagination
+            // Fetch ROMs from all selected platforms with pagination (PARALLEL for performance)
             const allRoms = [];
-            let platformsFetched = 0;
 
-            for (const platformId of platformsToFetch) {
+            // Helper function to fetch all ROMs for a single platform
+            const fetchPlatformRoms = async platformId => {
+                const platformRoms = [];
                 try {
                     let offset = 0;
                     const limit = 500;
                     let hasMore = true;
-                    let platformRomCount = 0;
 
                     // Paginate through all ROMs for this platform
                     while (hasMore) {
@@ -501,8 +501,7 @@ class RommSource {
                         });
 
                         if (response.items && Array.isArray(response.items)) {
-                            allRoms.push(...response.items);
-                            platformRomCount += response.items.length;
+                            platformRoms.push(...response.items);
 
                             // Check if there are more pages
                             // If we got fewer items than limit, we've reached the end
@@ -513,26 +512,49 @@ class RommSource {
                         }
                     }
 
-                    platformsFetched++;
-                    if (this.isDebug && platformRomCount > 0) {
+                    if (this.isDebug && platformRoms.length > 0) {
                         logger.debug(
-                            `[RommSource:${this.server.name}] Fetched ${platformRomCount} ROMs from platform ${platformId} (${platformsFetched}/${platformsToFetch.length})`
+                            `[RommSource:${this.server.name}] Fetched ${platformRoms.length} ROMs from platform ${platformId}`
                         );
                     }
+
+                    return { platformId, roms: platformRoms, success: true };
                 } catch (error) {
                     logSourceError(logger, {
                         source: `romm:${this.server.name}`,
                         operation: 'fetchMedia:platform',
                         error,
-                        metadata: {
-                            platformId,
-                            platformsFetched,
-                            totalPlatforms: platformsToFetch.length,
-                        },
+                        metadata: { platformId },
                         level: 'warn',
                     });
                     this.metrics.errorCount++;
+                    return { platformId, roms: [], success: false, error };
                 }
+            };
+
+            // Fetch all platforms in parallel
+            const platformFetchStart = Date.now();
+            const platformResults = await Promise.allSettled(
+                platformsToFetch.map(platformId => fetchPlatformRoms(platformId))
+            );
+
+            // Collect results
+            let platformsFetched = 0;
+            let platformsFailed = 0;
+            for (const result of platformResults) {
+                if (result.status === 'fulfilled' && result.value.success) {
+                    allRoms.push(...result.value.roms);
+                    platformsFetched++;
+                } else {
+                    platformsFailed++;
+                }
+            }
+
+            const platformFetchTime = Date.now() - platformFetchStart;
+            if (this.isDebug) {
+                logger.debug(
+                    `[RommSource:${this.server.name}] Parallel fetch completed: ${platformsFetched} platforms succeeded, ${platformsFailed} failed in ${platformFetchTime}ms`
+                );
             }
 
             this.metrics.itemsProcessed = allRoms.length;
