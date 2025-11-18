@@ -1029,6 +1029,14 @@ body {
     font-size: var(--font-size-lg);
 }
 
+.nav-brand > span:first-of-type {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+}
+
 .nav-logo {
     height: 32px;
     width: 32px;
