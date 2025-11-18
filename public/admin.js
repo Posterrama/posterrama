@@ -960,18 +960,30 @@
             const isMusicMode = wallartMode.musicMode === true;
 
             if (isGamesMode) {
-                // Games mode: use RomM count that was already calculated for primary display
+                // Games mode: fetch games count directly from server
                 playlistCount = 0;
                 playlistLabel = 'in playlist';
 
-                // The RomM count is the same as what's shown in the primary total for games mode
-                // It was calculated earlier in this function and added to breakdown
-                const rommBreakdownItem = breakdown.find(item => item.startsWith('RomM:'));
-                if (rommBreakdownItem) {
-                    // Parse "RomM: 680" -> 680
-                    const match = rommBreakdownItem.match(/RomM:\s*([0-9,]+)/);
-                    if (match) {
-                        playlistCount = parseInt(match[1].replace(/,/g, ''), 10);
+                try {
+                    // Fetch actual games from RomM server
+                    const gamesRes = await window.dedupJSON('/get-media?gamesOnly=true', {
+                        credentials: 'include',
+                    });
+                    if (gamesRes && gamesRes.ok) {
+                        const gamesData = await gamesRes.json().catch(() => []);
+                        if (Array.isArray(gamesData)) {
+                            playlistCount = gamesData.length;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[Media Items] Failed to fetch games count:', e);
+                    // Fallback: try to parse from breakdown
+                    const rommBreakdownItem = breakdown.find(item => item.startsWith('RomM:'));
+                    if (rommBreakdownItem) {
+                        const match = rommBreakdownItem.match(/RomM:\s*([0-9,]+)/);
+                        if (match) {
+                            playlistCount = parseInt(match[1].replace(/,/g, ''), 10);
+                        }
                     }
                 }
             } else if (isMusicMode) {
