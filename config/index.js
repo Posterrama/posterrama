@@ -22,13 +22,13 @@ class Config {
         // Timeout constants (in milliseconds)
         this.timeouts = {
             // HTTP client timeouts
-            httpDefault: 15000, // Default HTTP request timeout (Jellyfin, ROMM clients)
+            httpDefault: 30000, // Default HTTP request timeout (Jellyfin, ROMM clients) - increased for large libraries
             httpHealthCheck: 5000, // Health check requests (TMDB, upstream servers)
 
             // External API timeouts (Issue #3 fix: standardized configuration)
-            externalApiBase: 15000, // Base timeout for all external API calls
+            externalApiBase: 30000, // Base timeout for all external API calls - increased for large libraries
             externalApiPlex: 15000, // Plex API timeout
-            externalApiJellyfin: 15000, // Jellyfin API timeout
+            externalApiJellyfin: 30000, // Jellyfin API timeout - increased for VirtualFolders + count fetching
             externalApiTmdb: 10000, // TMDB API timeout (usually faster)
             externalApiRomm: 15000, // ROMM API timeout
             externalApiTestConnection: 8000, // Connection test timeout
