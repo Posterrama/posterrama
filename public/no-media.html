@@ -274,6 +274,7 @@
             // Check if media is available
             async function checkMediaAvailability() {
                 try {
+                    console.log('[No-Media] Fetching /get-media?count=1...');
                     const response = await fetch('/get-media?count=1', {
                         cache: 'no-cache',
                         headers: {
@@ -281,15 +282,26 @@
                         },
                     });
 
+                    console.log('[No-Media] Response status:', response.status, response.statusText);
+                    
                     if (!response.ok) {
+                        console.error('[No-Media] Response not OK:', response.status);
                         throw new Error('Failed to fetch media');
                     }
 
                     const data = await response.json();
+                    console.log('[No-Media] Response data:', {
+                        type: Array.isArray(data) ? 'array' : typeof data,
+                        isArray: Array.isArray(data),
+                        length: Array.isArray(data) ? data.length : 'N/A',
+                        status: data?.status,
+                        keys: typeof data === 'object' ? Object.keys(data) : 'N/A',
+                        sample: Array.isArray(data) ? data[0] : data
+                    });
 
                     // Check if playlist is building (status object)
                     if (data && typeof data === 'object' && data.status === 'building') {
-                        console.log('[No-Media] Playlist is building, will retry in 5s...');
+                        console.log('[No-Media] ⏳ Playlist is building, will retry in 5s...');
                         document.getElementById('status-text').textContent = 
                             'Playlist is building, checking again in 5s...';
                         // Return 'building' so interval knows to wait
@@ -298,17 +310,20 @@
 
                     // If we have media (array with items), redirect back to main page
                     if (Array.isArray(data) && data.length > 0) {
-                        console.log('[No-Media] Media detected, redirecting to main page...');
+                        console.log('[No-Media] ✅ Media detected! Count:', data.length);
+                        console.log('[No-Media] First item:', data[0]);
                         document.getElementById('status-text').textContent = 'Media found! Redirecting...';
                         setTimeout(() => {
+                            console.log('[No-Media] Redirecting to /');
                             window.location.href = '/';
                         }, 500);
                         return true;
                     }
 
+                    console.log('[No-Media] ❌ No media found (empty array or invalid response)');
                     return false;
                 } catch (error) {
-                    console.error('[No-Media] Error checking media:', error);
+                    console.error('[No-Media] ⚠️ Error checking media:', error.message, error.stack);
                     return false;
                 }
             }
