@@ -361,11 +361,12 @@ module.exports = function createMediaRouter({
                     }
 
                     const rommSource = new RommSource(rommServer, shuffleArray, isDebug);
-                    const count = parseInt(req.query?.count) || 100;
+                    // Default to fetching all games (2000 max) instead of just 100
+                    const count = parseInt(req.query?.count) || 2000;
                     const ROMM_GAMES_LIMIT = 2000;
 
                     logger.info(
-                        `[Games Mode] Fetching ${count} games from platforms: ${platforms.join(', ')}`
+                        `[Games Mode] Fetching up to ${count} games from platforms: ${platforms.join(', ')}`
                     );
 
                     const games = await rommSource.fetchMedia(
