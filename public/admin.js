@@ -20413,7 +20413,9 @@
                 if (enabled) {
                     const hostname = getInput('plex.hostname')?.value?.trim();
                     const port = getInput('plex.port')?.value?.trim();
-                    const token = getInput('plex.token')?.value?.trim();
+                    const tokenInput = getInput('plex.token');
+                    const token = tokenInput?.value?.trim();
+                    const actualToken = tokenInput?.dataset?.actualToken;
 
                     if (!hostname) {
                         errors.push('Hostname is required when Plex is enabled');
@@ -20429,17 +20431,15 @@
                         getInput('plex.port')?.classList.remove('input-error');
                     }
 
-                    if (!token || token === 'EXISTING_TOKEN' || /^[•]+$/.test(token)) {
-                        // Token is masked or placeholder - check if we have actual token
-                        const actualToken = getInput('plex.token')?.dataset?.actualToken;
-                        if (!actualToken || actualToken === 'EXISTING_TOKEN') {
-                            errors.push('Token is required when Plex is enabled');
-                            getInput('plex.token')?.classList.add('input-error');
-                        } else {
-                            getInput('plex.token')?.classList.remove('input-error');
-                        }
+                    // Token validation: Accept if we have actualToken (existing), or a non-empty visible token
+                    const hasValidToken =
+                        (actualToken && actualToken !== '') || (token && !/^[•]+$/.test(token));
+
+                    if (!hasValidToken) {
+                        errors.push('Token is required when Plex is enabled');
+                        tokenInput?.classList.add('input-error');
                     } else {
-                        getInput('plex.token')?.classList.remove('input-error');
+                        tokenInput?.classList.remove('input-error');
                     }
                 }
             } else if (sourceType === 'jellyfin') {
@@ -20447,7 +20447,9 @@
                 if (enabled) {
                     const hostname = getInput('jf.hostname')?.value?.trim();
                     const port = getInput('jf.port')?.value?.trim();
-                    const apiKey = getInput('jf.apikey')?.value?.trim();
+                    const apiKeyInput = getInput('jf.apikey');
+                    const apiKey = apiKeyInput?.value?.trim();
+                    const actualKey = apiKeyInput?.dataset?.actualToken;
 
                     if (!hostname) {
                         errors.push('Hostname is required when Jellyfin is enabled');
@@ -20463,16 +20465,15 @@
                         getInput('jf.port')?.classList.remove('input-error');
                     }
 
-                    if (!apiKey || apiKey === 'EXISTING_TOKEN' || /^[•]+$/.test(apiKey)) {
-                        const actualKey = getInput('jf.apikey')?.dataset?.actualToken;
-                        if (!actualKey || actualKey === 'EXISTING_TOKEN') {
-                            errors.push('API Key is required when Jellyfin is enabled');
-                            getInput('jf.apikey')?.classList.add('input-error');
-                        } else {
-                            getInput('jf.apikey')?.classList.remove('input-error');
-                        }
+                    // API Key validation: Accept if we have actualKey (existing), or a non-empty visible key
+                    const hasValidKey =
+                        (actualKey && actualKey !== '') || (apiKey && !/^[•]+$/.test(apiKey));
+
+                    if (!hasValidKey) {
+                        errors.push('API Key is required when Jellyfin is enabled');
+                        apiKeyInput?.classList.add('input-error');
                     } else {
-                        getInput('jf.apikey')?.classList.remove('input-error');
+                        apiKeyInput?.classList.remove('input-error');
                     }
                 }
             } else if (sourceType === 'romm') {
