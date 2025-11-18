@@ -536,30 +536,10 @@ module.exports = function createMediaRouter({
             }
 
             const isRefreshing = isPlaylistRefreshing();
-            const refreshStartTime = getRefreshStartTime();
             if (isRefreshing) {
-                // Check if refresh has been stuck for too long (over 60 seconds)
-                // This threshold MUST be higher than the timeout in playlist-cache.js (45s)
-                // Otherwise we get infinite loops: timeout resets at 45s, stuck detection at 20s
-                if (refreshStartTime && Date.now() - refreshStartTime > 60000) {
-                    logger.warn('Detected stuck refresh state - forcing reset', {
-                        action: 'stuck_refresh_reset',
-                        stuckDuration: `${Date.now() - refreshStartTime}ms`,
-                    });
-                    resetRefreshState();
-
-                    // Start a new refresh
-                    refreshPlaylistCache();
-
-                    return res.status(202).json({
-                        status: 'building',
-                        message:
-                            'Playlist refresh was stuck and has been restarted. Please try again in a few seconds.',
-                        retryIn: 3000,
-                    });
-                }
-
                 // The full cache is being built. Tell the client to wait and try again.
+                // No need for stuck detection - the promise-based system in playlist-cache.js
+                // handles deduplication and proper state cleanup automatically
                 if (isDebug)
                     logger.debug('[Debug] Cache is empty but refreshing. Sending 202 Accepted.');
                 // 202 Accepted is appropriate here: the request is accepted, but processing is not complete.
