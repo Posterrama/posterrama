@@ -20411,24 +20411,24 @@
             if (sourceType === 'plex') {
                 const enabled = getInput('plex.enabled')?.checked;
                 if (enabled) {
-                    const hostname = getInput('plex.hostname')?.value?.trim();
-                    const port = getInput('plex.port')?.value?.trim();
-                    const tokenInput = getInput('plex.token');
+                    const hostname = getInput('plex_hostname')?.value?.trim();
+                    const port = getInput('plex_port')?.value?.trim();
+                    const tokenInput = getInput('plex_token');
                     const token = tokenInput?.value?.trim();
                     const actualToken = tokenInput?.dataset?.actualToken;
 
                     if (!hostname) {
                         errors.push('Hostname is required when Plex is enabled');
-                        getInput('plex.hostname')?.classList.add('input-error');
+                        getInput('plex_hostname')?.classList.add('input-error');
                     } else {
-                        getInput('plex.hostname')?.classList.remove('input-error');
+                        getInput('plex_hostname')?.classList.remove('input-error');
                     }
 
                     if (!port) {
                         errors.push('Port is required when Plex is enabled');
-                        getInput('plex.port')?.classList.add('input-error');
+                        getInput('plex_port')?.classList.add('input-error');
                     } else {
-                        getInput('plex.port')?.classList.remove('input-error');
+                        getInput('plex_port')?.classList.remove('input-error');
                     }
 
                     // Token validation: Accept if we have actualToken (existing), or a non-empty visible token
@@ -21941,9 +21941,9 @@
 
         // Real-time validation - remove error styling when user types
         const validationFields = [
-            'plex.hostname',
-            'plex.port',
-            'plex.token',
+            'plex_hostname',
+            'plex_port',
+            'plex_token',
             'jf.hostname',
             'jf.port',
             'jf.apikey',
