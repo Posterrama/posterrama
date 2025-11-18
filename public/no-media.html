@@ -77,8 +77,10 @@
             }
 
             .logo {
-                width: 80px;
+                width: auto;
                 height: 80px;
+                max-width: 80px;
+                object-fit: contain;
                 filter: drop-shadow(0 4px 12px rgba(0, 212, 170, 0.2));
             }
 
@@ -148,14 +150,6 @@
                 margin-bottom: 1.25rem;
                 color: var(--color-text-primary);
                 font-weight: var(--font-weight-semibold);
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            .suggestions h4::before {
-                content: '💡';
-                font-size: 1.3rem;
             }
 
             .suggestions ul {
@@ -199,31 +193,6 @@
                 color: var(--color-text-secondary);
             }
 
-            /* Admin link button */
-            .admin-link {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-                background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-                color: white;
-                text-decoration: none;
-                padding: 0.875rem 1.75rem;
-                border-radius: 8px;
-                font-weight: var(--font-weight-semibold);
-                font-size: 0.95rem;
-                transition: all 0.2s ease;
-                box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
-            }
-
-            .admin-link:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 16px rgba(0, 212, 170, 0.4);
-            }
-
-            .admin-link i {
-                font-size: 1.1rem;
-            }
-
             /* Responsive design */
             @media (max-width: 768px) {
                 .container {
@@ -236,8 +205,8 @@
                 }
 
                 .logo {
-                    width: 60px;
                     height: 60px;
+                    max-width: 60px;
                 }
 
                 .brand {
@@ -279,19 +248,14 @@
                 </div>
 
                 <div class="suggestions">
-                    <h4>How to get started:</h4>
+                    <h4>Configuration Required</h4>
                     <ul>
-                        <li>Configure a media source (Plex, Jellyfin, or TMDB) in the admin panel</li>
-                        <li>Verify your media server connection settings</li>
-                        <li>Enable at least one library with available content</li>
-                        <li>Check that your media server has accessible content</li>
+                        <li>Navigate to the admin panel to configure your media sources</li>
+                        <li>Connect at least one media server (Plex, Jellyfin, TMDB, or RomM)</li>
+                        <li>Enable the desired libraries and verify connection settings</li>
+                        <li>Ensure your media server contains accessible content</li>
                     </ul>
                 </div>
-
-                <a href="/admin" class="admin-link">
-                    <i class="fas fa-cog"></i>
-                    Open Admin Panel
-                </a>
             </div>
         </div>
 
