@@ -174,13 +174,20 @@ module.exports = function createAdminLibrariesRouter({
                                 retryMaxRetries: 0,
                             });
 
-                            const itemsResponse = await countClient.http.get('/Items', {
-                                params: {
-                                    ParentId: folder.ItemId,
-                                    Recursive: true,
-                                    Limit: 0,
-                                },
-                            });
+                            const params = {
+                                ParentId: folder.ItemId,
+                                Recursive: true,
+                                Limit: 0,
+                            };
+
+                            // For TV shows, only count Series (not episodes)
+                            if (folder.CollectionType === 'tvshows') {
+                                params.IncludeItemTypes = 'Series';
+                            } else if (folder.CollectionType === 'movies') {
+                                params.IncludeItemTypes = 'Movie';
+                            }
+
+                            const itemsResponse = await countClient.http.get('/Items', { params });
                             itemCount = itemsResponse?.data?.TotalRecordCount || 0;
                             if (isDebug) {
                                 logger.debug(
