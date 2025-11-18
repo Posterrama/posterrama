@@ -519,7 +519,24 @@
         // Render chips
         chipsEl.innerHTML = '';
         selected.forEach(v => {
-            const label = Array.from(sel.options).find(o => o.value === v)?.textContent || v;
+            // Try to get label with count from global library data first, fallback to option textContent
+            let label = Array.from(sel.options).find(o => o.value === v)?.textContent || v;
+
+            // Check if we have fresh library data with counts for this select
+            if (selectId === 'plex.movies' && window.__plexLibraries?.movies) {
+                const lib = window.__plexLibraries.movies.find(l => l.value === v);
+                if (lib && lib.count != null) label = `${lib.label} (${lib.count})`;
+            } else if (selectId === 'plex.shows' && window.__plexLibraries?.shows) {
+                const lib = window.__plexLibraries.shows.find(l => l.value === v);
+                if (lib && lib.count != null) label = `${lib.label} (${lib.count})`;
+            } else if (selectId === 'jf.movies' && window.__jellyfinLibraries?.movies) {
+                const lib = window.__jellyfinLibraries.movies.find(l => l.value === v);
+                if (lib && lib.count != null) label = `${lib.label} (${lib.count})`;
+            } else if (selectId === 'jf.shows' && window.__jellyfinLibraries?.shows) {
+                const lib = window.__jellyfinLibraries.shows.find(l => l.value === v);
+                if (lib && lib.count != null) label = `${lib.label} (${lib.count})`;
+            }
+
             const chip = document.createElement('span');
             chip.className = 'ms-chip';
             chip.dataset.value = v;
@@ -15995,7 +16012,11 @@
                 const o = document.createElement('option');
                 o.value = opt.value ?? opt.name ?? opt;
                 o.textContent = opt.label ?? opt.name ?? String(opt);
-                if (opt.count != null) o.textContent += ` (${opt.count})`;
+                if (opt.count != null) {
+                    // For RomM platforms, add "games" suffix; for others just show the count
+                    const suffix = id === 'romm.platforms' ? ' games' : '';
+                    o.textContent += ` (${opt.count}${suffix})`;
+                }
                 if (chosen.has(o.value)) o.selected = true;
                 sel.appendChild(o);
             });
@@ -16892,6 +16913,10 @@
                             selected.includes(p.value)
                         );
                         totalCount = selectedPlatforms.reduce((sum, p) => {
+                            // Use count field directly if available, otherwise parse from label
+                            if (p.count != null) {
+                                return sum + p.count;
+                            }
                             const match = (p.label || '').match(/\((\d+)\s+games?\)/i);
                             return sum + (match ? parseInt(match[1], 10) : 0);
                         }, 0);
@@ -18626,6 +18651,9 @@
                         .filter(l => l.type === 'artist')
                         .map(l => ({ value: l.name, label: l.name })); // No count for music libraries
 
+                    // Store libraries globally so rebuildMsForSelect can access counts
+                    window.__plexLibraries = { movies, shows, music };
+
                     // Use config-based selection as source of truth, fall back to DOM if not available
                     const configMovies = window.__plexConfigSelection?.movies || [];
                     const configShows = window.__plexConfigSelection?.shows || [];
@@ -19222,6 +19250,10 @@
                     const shows = libs
                         .filter(l => l.type === 'show')
                         .map(l => ({ value: l.name, label: l.name, count: l.itemCount }));
+
+                    // Store libraries globally so rebuildMsForSelect can access counts
+                    window.__jellyfinLibraries = { movies, shows };
+
                     // Use config-based selection as source of truth, fall back to DOM if not available
                     const configMovies = window.__jfConfigSelection?.movies || [];
                     const configShows = window.__jfConfigSelection?.shows || [];
@@ -19934,14 +19966,27 @@
                 const data = await res.json();
 
                 const pill = document.getElementById('jf-restart-pill');
+                const pillText = document.getElementById('jf-restart-text');
+                const pillIcon = pill?.querySelector('i');
                 if (!pill) return;
 
-                if (data.connected && data.hasPendingRestart) {
+                if (data.connected) {
                     pill.hidden = false;
-                    console.log('[Jellyfin] Server requires restart', {
-                        serverName: data.serverName,
-                        version: data.version,
-                    });
+                    if (data.hasPendingRestart) {
+                        pill.className = 'status-pill status-warning';
+                        pill.title = 'Jellyfin server needs to be restarted';
+                        if (pillIcon) pillIcon.className = 'fas fa-exclamation-triangle';
+                        if (pillText) pillText.textContent = 'Restart Pending';
+                        console.log('[Jellyfin] Server requires restart', {
+                            serverName: data.serverName,
+                            version: data.version,
+                        });
+                    } else {
+                        pill.className = 'status-pill status-success';
+                        pill.title = 'Jellyfin server is healthy';
+                        if (pillIcon) pillIcon.className = 'fas fa-check-circle';
+                        if (pillText) pillText.textContent = 'OK';
+                    }
                 } else {
                     pill.hidden = true;
                 }

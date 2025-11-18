@@ -1633,6 +1633,11 @@ body {
     border-color: rgba(232, 67, 147, 0.45);
     color: #fbcfe8;
 }
+.status-pill.status-warning {
+    background: rgba(251, 146, 60, 0.12); /* orange-400 */
+    border-color: rgba(251, 146, 60, 0.45);
+    color: #fed7aa; /* orange-200 */
+}
 
 /* Device status variants (worst -> best: unknown, offline, online, live) */
 .status-pill.status-unknown {

@@ -1527,7 +1527,7 @@ module.exports = function createAdminConfigRouter({
                             const count = romsResponse?.total || 0;
                             return {
                                 value: p.slug,
-                                label: `${p.name} (${count} games)`,
+                                label: p.name,
                                 count,
                             };
                         } catch (error) {
