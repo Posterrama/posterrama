@@ -911,7 +911,27 @@
             if (isGamesOnlyMode) {
                 // Games mode: only RomM counts
                 if (romm?.enabled) {
-                    const rommCount = window.__lastRommCount || 0;
+                    let rommCount = window.__lastRommCount || 0;
+
+                    // If __lastRommCount not yet set, fetch games directly
+                    if (rommCount === 0) {
+                        try {
+                            const gamesRes = await window.dedupJSON(
+                                '/get-media?gamesOnly=true&_=' + Date.now(),
+                                { credentials: 'include' }
+                            );
+                            if (gamesRes?.ok) {
+                                const gamesData = await gamesRes.json().catch(() => []);
+                                if (Array.isArray(gamesData)) {
+                                    rommCount = gamesData.length;
+                                    window.__lastRommCount = rommCount; // Cache for next time
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('[Media Items] Failed to fetch RomM count:', e);
+                        }
+                    }
+
                     if (rommCount > 0) {
                         total += rommCount;
                         breakdown.push(`RomM: ${formatNumber(rommCount)}`);
