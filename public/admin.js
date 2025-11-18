@@ -20007,7 +20007,7 @@
                 console.log(
                     '[RomM] Auto-fetching platforms (backend will use config password if needed)'
                 );
-                fetchRommPlatforms().catch(() => {
+                fetchRommPlatforms(true).catch(() => {
                     // Silent fail on auto-fetch
                     console.log('[RomM] Auto-fetch failed silently');
                 });
@@ -20083,9 +20083,9 @@
             }
         }
 
-        async function fetchRommPlatforms() {
+        async function fetchRommPlatforms(silent = false) {
             const btn = document.getElementById('btn-romm-platforms');
-            startBtnSpinner(btn);
+            if (!silent) startBtnSpinner(btn);
             try {
                 const url = getInput('romm.url')?.value?.trim() || '';
                 const username = getInput('romm.username')?.value?.trim() || '';
@@ -20160,21 +20160,25 @@
                     console.error('[RomM] Failed to refresh overview counts:', e);
                 }
 
-                window.notify?.toast({
-                    type: 'success',
-                    title: 'RomM',
-                    message: `Found ${platforms.length} platforms`,
-                    duration: 2200,
-                });
+                if (!silent) {
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'RomM',
+                        message: `Found ${platforms.length} platforms`,
+                        duration: 2200,
+                    });
+                }
             } catch (e) {
-                window.notify?.toast({
-                    type: 'error',
-                    title: 'RomM',
-                    message: e?.message || 'Failed to fetch platforms',
-                    duration: 4200,
-                });
+                if (!silent) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'RomM',
+                        message: e?.message || 'Failed to fetch platforms',
+                        duration: 4200,
+                    });
+                }
             } finally {
-                stopBtnSpinner(btn);
+                if (!silent) stopBtnSpinner(btn);
             }
         }
 
