@@ -354,6 +354,34 @@ class JellyfinSource {
                             type === 'movie' ? 'Movie' : 'Series'
                         } items. Names: ${libraryNames.join(', ')}`
                     );
+                } else if (allItems.length > 0) {
+                    // Log sample item to debug genre/metadata issues
+                    const sample = allItems[0];
+                    logger.debug(`[JellyfinSource:${this.server.name}] Sample item metadata:`, {
+                        name: sample.Name,
+                        hasGenres: !!sample.Genres,
+                        genresArray: Array.isArray(sample.Genres),
+                        genresCount: sample.Genres?.length || 0,
+                        genres: sample.Genres || 'NO GENRES FIELD',
+                        year: sample.ProductionYear || sample.PremiereDate || 'no year',
+                        rating: sample.OfficialRating || 'no rating',
+                        availableFields: Object.keys(sample).slice(0, 20),
+                    });
+                    // If genreFilter is set but no genres, log warning
+                    if (
+                        this.server.genreFilter &&
+                        this.server.genreFilter.trim() !== '' &&
+                        (!sample.Genres ||
+                            !Array.isArray(sample.Genres) ||
+                            sample.Genres.length === 0)
+                    ) {
+                        logger.warn(
+                            `[JellyfinSource:${this.server.name}] ⚠️  GENRE FILTER MISMATCH: genreFilter is set to "${this.server.genreFilter}" but sample item has no genres. This will filter out ALL items!`
+                        );
+                        logger.warn(
+                            `[JellyfinSource:${this.server.name}] 💡 Solution: Either remove genreFilter from config, or ensure Jellyfin items have genre metadata.`
+                        );
+                    }
                 }
             }
 
@@ -631,13 +659,33 @@ class JellyfinSource {
             }
 
             // If we ended up with zero after filters, emit a helpful debug line
-            if (this.isDebug && filteredItems.length === 0) {
-                logger.debug(
-                    `[JellyfinSource:${this.server.name}] All items filtered out. Check ratingFilter (current: ${JSON.stringify(
-                        this.server.ratingFilter || this.server.ratingFilters || 'none'
-                    )}) and qualityFilter (current: ${JSON.stringify(
-                        this.server.qualityFilter || 'none'
-                    )}).`
+            if (filteredItems.length === 0 && allItems.length > 0) {
+                logger.warn(
+                    `[JellyfinSource:${this.server.name}] ⚠️  ALL ${allItems.length} ITEMS FILTERED OUT! No media will be shown.`
+                );
+                logger.warn(`[JellyfinSource:${this.server.name}] Active filters:`);
+                if (this.server.genreFilter) {
+                    logger.warn(`  - genreFilter: "${this.server.genreFilter}"`);
+                }
+                if (this.server.yearFilter) {
+                    logger.warn(`  - yearFilter: "${this.server.yearFilter}"`);
+                }
+                if (this.server.qualityFilter) {
+                    logger.warn(`  - qualityFilter: "${this.server.qualityFilter}"`);
+                }
+                if (this.server.ratingFilter || this.server.ratingFilters) {
+                    logger.warn(
+                        `  - ratingFilter: ${JSON.stringify(this.server.ratingFilter || this.server.ratingFilters)}`
+                    );
+                }
+                if (this.rtMinScore > 0) {
+                    logger.warn(`  - rtMinScore: ${this.rtMinScore}`);
+                }
+                if (this.server.recentlyAddedOnly) {
+                    logger.warn(`  - recentlyAddedOnly: ${this.server.recentlyAddedDays} days`);
+                }
+                logger.warn(
+                    `[JellyfinSource:${this.server.name}] 💡 Solution: Remove or adjust filters in config.json for this server.`
                 );
             }
 
