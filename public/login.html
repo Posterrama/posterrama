@@ -74,10 +74,12 @@
         <div class="auth-container">
             <div class="auth-box panel">
                 <div class="panel-content">
-                <h1 class="auth-title">
-                    <i class="fas fa-user-lock" aria-hidden="true" style="opacity:.9; margin-right: 0.5rem;"></i>
-                    <span class="admin-text" style="color: var(--color-text-primary); font-weight: var(--font-weight-semibold);">Admin login</span>
-                    <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: 100;">posterrama</span>
+                <h1 class="auth-title" style="display: flex; flex-direction: column; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <img src="/logo.png" alt="Posterrama Logo" style="height: 32px; width: 32px; display: block; object-fit: contain;" />
+                        <span class="admin-text" style="color: var(--color-text-primary); font-weight: var(--font-weight-semibold);">Admin login</span>
+                    </div>
+                    <span style="margin-top: 0.25rem; background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: var(--font-weight-normal); letter-spacing: 0.02em; opacity: 0.9; font-size: var(--font-size-sm);">posterrama</span>
                 </h1>
 
                 <form id="loginForm" class="form-compact" method="POST" action="/admin/login">

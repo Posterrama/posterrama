@@ -50,8 +50,8 @@
 }
 
 #promo-box.promo-overlay h1 {
-    font-size: 2.2em;
-    font-weight: 800;
+    font-size: 1.9em;
+    font-weight: 600;
     margin-top: 0;
     margin-bottom: 15px;
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
@@ -60,21 +60,24 @@
 }
 
 #promo-box.promo-overlay p {
-    font-size: 1.1em;
+    font-size: 1em;
     color: #b8b8b8;
     margin-bottom: 30px;
     max-width: 450px;
     margin-left: auto;
     margin-right: auto;
     line-height: 1.5;
+    font-weight: 300;
 }
 
 .promo-brand-name {
-    font-weight: 700;
-    background: linear-gradient(90deg, #e0e0e0, #bb86fc, #53a8b6);
+    font-weight: 400;
+    background: linear-gradient(135deg, #14b8a6, #8b5cf6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    letter-spacing: 0.02em;
+    opacity: 0.9;
 }
 
 .movie-extensions {
@@ -137,8 +140,9 @@
 .oneliner-text {
     font-size: 1em;
     color: #ccc;
-    margin-bottom: 12px;
+    margin-bottom: 0;
     font-weight: normal;
+    line-height: 1.2;
 }
 
 .oneliner-command {
@@ -148,12 +152,13 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px;
     padding: 16px 50px 16px 20px;
-    margin: 12px auto;
+    margin: 0 auto 12px auto;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     max-width: 90%;
+    display: block;
 }
 
 .oneliner-command:hover {
@@ -211,13 +216,13 @@
     }
 
     #promo-box.promo-overlay h1 {
-        font-size: 2.6em;
+        font-size: 2.1em;
         margin-bottom: 20px;
     }
 
     #promo-box.promo-overlay p {
-        font-size: 1.2em;
-        margin-bottom: 35px;
+        font-size: 1.05em;
+        margin-bottom: 10px;
         max-width: 500px;
     }
 
@@ -240,11 +245,11 @@
     }
 
     #promo-box.promo-overlay h1 {
-        font-size: 2.8em;
+        font-size: 2.3em;
     }
 
     #promo-box.promo-overlay p {
-        font-size: 1.25em;
+        font-size: 1.1em;
         max-width: 550px;
     }
 
@@ -387,7 +392,8 @@ body.promo-site #promo-box.promo-overlay {
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
         border-radius: 12px !important;
         padding: 12px 40px 12px 15px !important;
-        margin: 10px 0 !important;
+        margin: 0 auto 10px auto !important;
+        display: block !important;
         cursor: pointer !important;
         transition: all 0.3s ease !important;
         position: relative !important;

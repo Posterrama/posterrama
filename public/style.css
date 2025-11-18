@@ -575,12 +575,18 @@ body.promo-site #promo-box.is-hidden {
 }
 
 .promo-brand-name {
-    font-weight: 700; /* Consistent with admin panel */
-    /* Gradient text effect to match the admin panel for a more striking look */
-    background: linear-gradient(90deg, #e0e0e0, #bb86fc, #53a8b6);
+    font-weight: 400; /* Match navbar normal weight */
+    /* Gradient text effect to match navbar (teal to purple) */
+    background: linear-gradient(
+        135deg,
+        var(--color-primary, #14b8a6),
+        var(--color-secondary, #8b5cf6)
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    letter-spacing: 0.02em;
+    opacity: 0.9;
 }
 
 .movie-extensions {
