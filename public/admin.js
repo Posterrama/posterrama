@@ -739,14 +739,22 @@
                     const age = now - timestamp;
                     if (age < CACHE_TTL) {
                         // Cache is still fresh - use it immediately
-                        const { total, breakdown } = parsedData;
+                        const { total, breakdown, playlistCount } = parsedData;
                         setText('metric-media-items', formatNumber(total));
+
+                        // Update secondary line with cached playlist count
+                        const mediaSub = document.getElementById('metric-media-sub');
+                        if (mediaSub && playlistCount != null) {
+                            mediaSub.textContent = `${formatNumber(playlistCount)} cached`;
+                        }
+
                         const mediaItemsEl = document.getElementById('metric-media-items');
                         if (mediaItemsEl) {
-                            mediaItemsEl.setAttribute(
-                                'title',
-                                breakdown.join(' | ') + ' (cached)' || 'No items'
-                            );
+                            const tooltipText =
+                                breakdown && breakdown.length > 0
+                                    ? `${breakdown.join(' | ')} | Playlist: ${formatNumber(playlistCount || 0)} items (cached)`
+                                    : 'No items (cached)';
+                            mediaItemsEl.setAttribute('title', tooltipText);
                         }
                         // Also restore to window for backwards compatibility
                         window.__mediaItemsCache = parsedData;
@@ -769,14 +777,22 @@
                 now - window.__mediaItemsCacheTime < CACHE_TTL
             ) {
                 // Use cached value
-                const { total, breakdown } = window.__mediaItemsCache;
+                const { total, breakdown, playlistCount } = window.__mediaItemsCache;
                 setText('metric-media-items', formatNumber(total));
+
+                // Update secondary line with cached playlist count
+                const mediaSub = document.getElementById('metric-media-sub');
+                if (mediaSub && playlistCount != null) {
+                    mediaSub.textContent = `${formatNumber(playlistCount)} cached`;
+                }
+
                 const mediaItemsEl = document.getElementById('metric-media-items');
                 if (mediaItemsEl) {
-                    mediaItemsEl.setAttribute(
-                        'title',
-                        breakdown.join(' | ') + ' (cached)' || 'No items'
-                    );
+                    const tooltipText =
+                        breakdown && breakdown.length > 0
+                            ? `${breakdown.join(' | ')} | Playlist: ${formatNumber(playlistCount || 0)} items (cached)`
+                            : 'No items (cached)';
+                    mediaItemsEl.setAttribute('title', tooltipText);
                 }
                 return total;
             }
@@ -930,14 +946,40 @@
             // Update dashboard display with accurate counts
             setText('metric-media-items', formatNumber(total));
 
+            // Get playlist count for secondary display
+            let playlistCount = 0;
+            try {
+                const plRes = await window.dedupJSON('/get-media?count=1', {
+                    credentials: 'include',
+                });
+                if (plRes && plRes.ok) {
+                    const plData = await plRes.json().catch(() => []);
+                    if (Array.isArray(plData)) {
+                        playlistCount = plData.length;
+                    }
+                }
+            } catch (e) {
+                // Ignore playlist fetch errors
+            }
+
+            // Update secondary line with playlist count (like Now Playing card style)
+            const mediaSub = document.getElementById('metric-media-sub');
+            if (mediaSub) {
+                mediaSub.textContent = `${formatNumber(playlistCount)} cached`;
+            }
+
             // Store breakdown for tooltip/debugging
             const mediaItemsEl = document.getElementById('metric-media-items');
             if (mediaItemsEl) {
-                mediaItemsEl.setAttribute('title', breakdown.join(' | ') || 'No items');
+                const tooltipText =
+                    breakdown.length > 0
+                        ? `${breakdown.join(' | ')} | Playlist cache: ${formatNumber(playlistCount)} items`
+                        : 'No items';
+                mediaItemsEl.setAttribute('title', tooltipText);
             }
 
             // Cache the result for 5 minutes (both in-memory and localStorage)
-            const cacheData = { total, breakdown };
+            const cacheData = { total, breakdown, playlistCount };
             const cacheTime = Date.now();
             window.__mediaItemsCache = cacheData;
             window.__mediaItemsCacheTime = cacheTime;
@@ -1517,18 +1559,8 @@
                 if (config.localDirectory?.enabled) enabledSources++;
 
                 // Dashboard media items count is now handled by updateMediaItemsCount()
-                // which sums all enabled sources with proper filtering
-
-                const mediaSub = document.getElementById('metric-media-sub');
-                if (mediaSub) {
-                    if (enabledSources === 0) {
-                        mediaSub.textContent = 'no sources configured';
-                    } else if (enabledSources === 1) {
-                        mediaSub.textContent = 'from 1 source';
-                    } else {
-                        mediaSub.textContent = `from ${enabledSources} sources`;
-                    }
-                }
+                // which sums all enabled sources with proper filtering and shows
+                // playlist count in the secondary line (e.g., "585 cached")
 
                 // Update Posterpack Content Source labels with (not configured) only when missing (disabled still counts as configured)
                 try {
@@ -1628,9 +1660,7 @@
                 }
             }
         } catch (_) {
-            // fallback to static text
-            const mediaSub = document.getElementById('metric-media-sub');
-            if (mediaSub) mediaSub.textContent = 'from sources';
+            // fallback handled by updateMediaItemsCount()
         }
 
         // Also refresh devices counts shown on this dashboard row
