@@ -362,6 +362,15 @@ module.exports = function createMediaRouter({
             const isGamesOnlyRequest =
                 req.query?.gamesOnly === '1' || req.query?.gamesOnly === 'true';
 
+            // Debug logging for games mode
+            logger.info('[Games Mode Debug]', {
+                gamesOnlyParam: req.query?.gamesOnly,
+                gamesOnlyParamType: typeof req.query?.gamesOnly,
+                isGamesOnlyEnabled,
+                isGamesOnlyRequest,
+                willFetchGames: isGamesOnlyEnabled && isGamesOnlyRequest,
+            });
+
             // If games mode is active, fetch and return games instead (bypass regular cache)
             if (isGamesOnlyEnabled && isGamesOnlyRequest) {
                 try {
