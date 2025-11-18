@@ -289,11 +289,10 @@
 
                     // Check if playlist is building (status object)
                     if (data && typeof data === 'object' && data.status === 'building') {
-                        console.log('[No-Media] Playlist is building, will retry soon...');
+                        console.log('[No-Media] Playlist is building, will retry in 5s...');
                         document.getElementById('status-text').textContent = 
-                            'Playlist is building, checking again in 3s...';
-                        // Retry faster when building (3s instead of 15s)
-                        setTimeout(() => checkMediaAvailability(), 3000);
+                            'Playlist is building, checking again in 5s...';
+                        // Return 'building' so interval knows to wait
                         return 'building';
                     }
 
@@ -332,26 +331,37 @@
             // Start automatic checking
             function startAutoCheck() {
                 // Initial check
-                checkMediaAvailability();
+                checkMediaAvailability().then(result => {
+                    if (result === 'building') {
+                        // Set shorter interval for building checks
+                        nextCheckTime = Date.now() + 5000;
+                    } else if (!result) {
+                        nextCheckTime = Date.now() + 15000;
+                    }
+                });
 
-                // Check every 15 seconds
+                // Check every 5 seconds (faster to catch when building completes)
                 if (checkInterval) clearInterval(checkInterval);
                 checkInterval = setInterval(async () => {
                     nextCheckTime = null;
                     document.getElementById('status-text').textContent = 'Checking for media...';
                     const result = await checkMediaAvailability();
-                    // Don't set next check time if building (handled by recursive call)
-                    if (result !== 'building' && !result) {
-                        nextCheckTime = Date.now() + 15000;
-                    } else if (result !== 'building') {
+                    
+                    if (result === true) {
                         // Media found, clear interval
                         clearInterval(checkInterval);
+                    } else if (result === 'building') {
+                        // Building - check again in 5s
+                        nextCheckTime = Date.now() + 5000;
+                    } else {
+                        // No media - check again in 15s
+                        nextCheckTime = Date.now() + 15000;
                     }
-                }, 15000);
+                }, 5000); // Check every 5s instead of 15s for better responsiveness
 
                 // Update countdown every second
                 setInterval(updateStatusText, 1000);
-                nextCheckTime = Date.now() + 15000;
+                nextCheckTime = Date.now() + 5000;
             }
 
             // Initialize
