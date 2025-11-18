@@ -23744,10 +23744,8 @@ if (!document.__niwDelegatedFallback) {
         }
 
         // Restore active jobs on page load (only if local directory is enabled)
-        const localDirEnabled =
-            getInput('localDirectory.enabled')?.checked ||
-            document.getElementById('localDirectory_enabled')?.checked ||
-            false;
+        const localDirEnabledCheckbox = document.getElementById('localDirectory_enabled');
+        const localDirEnabled = localDirEnabledCheckbox?.checked || false;
         if (localDirEnabled) {
             restoreActiveJobs();
         }
