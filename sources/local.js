@@ -802,7 +802,7 @@ class LocalDirectorySource {
         // Try to parse "Title (Year)" format
         const yearMatch = nameWithoutExt.match(/\((\d{4})\)/);
         const title = nameWithoutExt.replace(/\s*\(\d{4}\)\s*$/, '').trim() || nameWithoutExt;
-        const year = yearMatch ? parseInt(yearMatch[1]) : null;
+        const year = yearMatch ? parseInt(yearMatch[1], 10) : null;
 
         // Generate clean name for internal use
         const cleanTitle = this.generateCleanName(nameWithoutExt);

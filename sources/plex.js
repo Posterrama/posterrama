@@ -829,7 +829,7 @@ class PlexSource {
             const daysAgo = Date.now() - this.server.recentlyAddedDays * 24 * 60 * 60 * 1000;
             filteredItems = filteredItems.filter(item => {
                 if (!item.addedAt) return false;
-                const addedDate = new Date(parseInt(item.addedAt) * 1000);
+                const addedDate = new Date(parseInt(item.addedAt, 10) * 1000);
                 return addedDate.getTime() >= daysAgo;
             });
             if (this.isDebug)

@@ -11,7 +11,6 @@ const exampleEnvPath = path.join(__dirname, '..', 'config.example.env');
 if (!fs.existsSync(envPath)) {
     if (fs.existsSync(exampleEnvPath)) {
         fs.copyFileSync(exampleEnvPath, envPath);
-        console.log('[Config] .env aangemaakt op basis van config.example.env');
     } else {
         console.error('[Config] config.example.env ontbreekt, kan geen .env aanmaken!');
         process.exit(1);
@@ -23,7 +22,6 @@ const exampleConfigPath = path.join(__dirname, '..', 'config.example.json');
 if (!fs.existsSync(configPath)) {
     if (fs.existsSync(exampleConfigPath)) {
         fs.copyFileSync(exampleConfigPath, configPath);
-        console.log('[Config] config.json aangemaakt op basis van config.example.json');
     } else {
         console.error('[Config] config.example.json ontbreekt, kan geen config.json aanmaken!');
         process.exit(1);

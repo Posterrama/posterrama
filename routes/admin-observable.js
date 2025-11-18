@@ -64,8 +64,8 @@ module.exports = function createAdminObservableRouter({
         const { level, limit, offset, testOnly } = req.query;
         res.setHeader('Cache-Control', 'no-store'); // Prevent browser caching of log data
 
-        const parsedLimit = parseInt(limit) || 200;
-        const parsedOffset = parseInt(offset) || 0;
+        const parsedLimit = parseInt(limit, 10) || 200;
+        const parsedOffset = parseInt(offset, 10) || 0;
         const testOnlyMode = testOnly === 'true';
 
         // Base logger returns chronological (oldest->newest) for the selected window.

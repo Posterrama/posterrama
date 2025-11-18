@@ -228,7 +228,7 @@ check_code_quality() {
     CONSOLE_LOGS=$(grep -r "console\.log(" server.js sources/ utils/ middleware/ lib/ routes/ \
         --include="*.js" --exclude-dir=node_modules 2>/dev/null | \
         grep -v "process.env.CI" | grep -v "process.env.DEBUG" | \
-        grep -v ": \*" | grep -v "\/\/" | grep -v "JSDoc" | head -5)
+        grep -v " \*" | grep -v "\/\/" | grep -v "JSDoc" | head -5)
     
     # Frontend console.logs removed via production build (scripts/build-production.sh)
     # Development: 127+ console.logs in public/ (acceptable for debugging)

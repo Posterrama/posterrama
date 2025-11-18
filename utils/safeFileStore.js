@@ -143,6 +143,8 @@ class SafeFileStore {
      */
     async write(data) {
         let release = null;
+        // Use unique temp file per write to avoid race conditions in concurrent scenarios
+        const uniqueTempPath = `${this.tempPath}.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`;
 
         try {
             // Ensure directory exists
@@ -185,8 +187,8 @@ class SafeFileStore {
             // 2. Serialize data
             const jsonData = JSON.stringify(data, null, this.indent);
 
-            // 3. Write to temporary file first
-            await fs.writeFile(this.tempPath, jsonData, 'utf8');
+            // 3. Write to unique temporary file first
+            await fs.writeFile(uniqueTempPath, jsonData, 'utf8');
 
             // 4. Create backup of existing file (if it exists and backup is enabled)
             if (this.createBackup) {
@@ -203,15 +205,15 @@ class SafeFileStore {
 
             // 5. Atomically rename temp file to main file
             // This is atomic on most filesystems, preventing corruption
-            await fs.rename(this.tempPath, this.filePath);
+            await fs.rename(uniqueTempPath, this.filePath);
 
             logger.debug(`[SafeFileStore] Successfully wrote: ${this.filePath}`);
         } catch (error) {
             logger.error(`[SafeFileStore] Error writing ${this.filePath}:`, error.message);
 
-            // Clean up temp file if it exists
+            // Clean up unique temp file if it exists
             try {
-                await fs.unlink(this.tempPath);
+                await fs.unlink(uniqueTempPath);
             } catch (unlinkError) {
                 // Ignore if temp file doesn't exist
             }

@@ -362,7 +362,7 @@ module.exports = function createMediaRouter({
 
                     const rommSource = new RommSource(rommServer, shuffleArray, isDebug);
                     // Default to fetching all games (2000 max) instead of just 100
-                    const count = parseInt(req.query?.count) || 2000;
+                    const count = parseInt(req.query?.count, 10) || 2000;
                     const ROMM_GAMES_LIMIT = 2000;
 
                     logger.info(
@@ -460,7 +460,7 @@ module.exports = function createMediaRouter({
                     );
 
                     // Fetch music albums (default to 50, can be overridden by query param)
-                    const count = parseInt(req.query?.count) || 50;
+                    const count = parseInt(req.query?.count, 10) || 50;
 
                     logger.info(
                         `[Music Mode] Fetching ${count} albums from libraries: ${musicLibraries.join(', ')}`
@@ -611,7 +611,7 @@ module.exports = function createMediaRouter({
     router.get(
         '/get-music-artists',
         asyncHandler(async (req, res) => {
-            const artistCount = parseInt(req.query.count) || 50;
+            const artistCount = parseInt(req.query.count, 10) || 50;
 
             try {
                 const mediaServers = Array.isArray(config.mediaServers) ? config.mediaServers : [];
