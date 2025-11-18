@@ -194,7 +194,6 @@
         createArtistCard(artistData) {
             // Detect portrait orientation (9:16 or similar)
             const isPortrait = window.innerHeight > window.innerWidth;
-            const aspectRatio = window.innerWidth / window.innerHeight;
 
             const card = document.createElement('div');
             card.className = 'artist-card';
