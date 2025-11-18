@@ -304,10 +304,13 @@
                         } else {
                             window.wallartConfig = wcfg;
                         }
+                        // Also expose as __serverConfig for consistency with admin.js
+                        window.__serverConfig = cfg;
                     } catch (e) {
                         window.debugLog && window.debugLog('WALLART_CONFIG_DEFINE_ERROR', { error: e.message });
                         window.appConfig = cfg;
                         window.wallartConfig = (cfg && cfg.wallartMode) || {};
+                        window.__serverConfig = cfg;
                     }
                     window.debugLog && window.debugLog('WALLART_ENSURE_CONFIG_SUCCESS', {});
                     return true;

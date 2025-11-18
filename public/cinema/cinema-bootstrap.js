@@ -38,6 +38,12 @@
             } catch (_) {
                 window.appConfig = cfg;
             }
+            // Also expose as __serverConfig for consistency with admin.js
+            try {
+                window.__serverConfig = cfg;
+            } catch (_) {
+                // Ignore if readonly
+            }
             return cfg;
         } catch (e) {
             return null;

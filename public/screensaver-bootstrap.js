@@ -51,6 +51,13 @@ async function ensureConfig() {
             window.appConfig = cfg;
         }
 
+        // Also expose as __serverConfig for consistency with admin.js
+        try {
+            window.__serverConfig = cfg;
+        } catch (_) {
+            // Ignore if readonly
+        }
+
         return true;
     } catch (_) {
         return false;

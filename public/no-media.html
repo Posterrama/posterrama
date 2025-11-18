@@ -263,6 +263,23 @@
             let checkInterval = null;
             let nextCheckTime = null;
 
+            // Load config on page load
+            async function loadConfig() {
+                try {
+                    if (window.__serverConfig) return;
+                    const response = await fetch('/get-config', {
+                        cache: 'no-cache',
+                        headers: { 'Cache-Control': 'no-cache' }
+                    });
+                    if (response.ok) {
+                        window.__serverConfig = await response.json();
+                        console.log('[No-Media] Config loaded:', window.__serverConfig?.wallartMode);
+                    }
+                } catch (e) {
+                    console.warn('[No-Media] Failed to load config:', e);
+                }
+            }
+
             // Update clock every second
             function updateClock() {
                 const now = new Date();
@@ -274,6 +291,9 @@
             // Check if media is available
             async function checkMediaAvailability() {
                 try {
+                    // Ensure config is loaded
+                    await loadConfig();
+                    
                     // Check if games mode is active
                     const wallartMode = window.__serverConfig?.wallartMode || {};
                     const isGamesOnly = wallartMode.gamesOnly === true;
