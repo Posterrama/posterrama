@@ -9,6 +9,7 @@
         <title>No Media Available - Posterrama</title>
         <link rel="icon" type="image/svg+xml" href="/icons/posterrama-icon.svg?v=3" />
         <link rel="icon" type="image/x-icon" href="/favicon.ico?v=3" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
         <style>
             :root {
                 /* Admin theme colors - exact copy from admin.css */
@@ -67,42 +68,59 @@
                 text-align: center;
             }
 
-            .brand {
-                font-size: 2rem;
-                font-weight: 700;
+            .logo-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 1rem;
                 margin-bottom: 2rem;
-                background: linear-gradient(90deg, #e0e0e0, #bb86fc, #53a8b6);
+            }
+
+            .logo {
+                width: 80px;
+                height: 80px;
+                filter: drop-shadow(0 4px 12px rgba(0, 212, 170, 0.2));
+            }
+
+            .brand {
+                font-size: 2.5rem;
+                font-weight: 700;
+                background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
+                letter-spacing: -0.02em;
             }
 
             #message {
-                font-size: 2rem;
-                font-weight: 500;
+                font-size: 1.75rem;
+                font-weight: 600;
                 margin-bottom: 2rem;
                 color: var(--color-text-primary);
+                line-height: 1.3;
             }
 
             .status-indicator {
                 display: inline-flex;
                 align-items: center;
-                gap: 0.5rem;
-                background: var(--color-bg-card);
+                gap: 0.75rem;
+                background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(102, 126, 234, 0.1));
                 border: 1px solid var(--color-border);
-                border-radius: var(--border-radius-md);
-                padding: 0.75rem 1.25rem;
+                border-radius: 12px;
+                padding: 1rem 1.5rem;
                 margin-bottom: 2rem;
                 font-size: 0.95rem;
-                color: var(--color-text-muted);
+                color: var(--color-text-secondary);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             }
 
             .status-dot {
-                width: 8px;
-                height: 8px;
+                width: 10px;
+                height: 10px;
                 border-radius: 50%;
                 background: var(--color-primary);
                 animation: blink 2s ease-in-out infinite;
+                box-shadow: 0 0 12px var(--color-primary);
             }
 
             @keyframes blink {
@@ -118,17 +136,26 @@
             .suggestions {
                 background: var(--color-bg-card);
                 border: 1px solid var(--color-border);
-                border-radius: var(--border-radius-md);
-                padding: 1.5rem;
+                border-radius: 12px;
+                padding: 2rem;
                 text-align: left;
                 margin-bottom: 2rem;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
             }
 
             .suggestions h4 {
-                font-size: 1rem;
-                margin-bottom: 1rem;
+                font-size: 1.1rem;
+                margin-bottom: 1.25rem;
                 color: var(--color-text-primary);
                 font-weight: var(--font-weight-semibold);
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .suggestions h4::before {
+                content: '💡';
+                font-size: 1.3rem;
             }
 
             .suggestions ul {
@@ -138,19 +165,25 @@
 
             .suggestions li {
                 font-size: 0.95rem;
-                line-height: 1.6;
-                padding: 0.5rem 0;
+                line-height: 1.7;
+                padding: 0.75rem 0;
                 color: var(--color-text-secondary);
                 position: relative;
-                padding-left: 1.5rem;
+                padding-left: 2rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+            .suggestions li:last-child {
+                border-bottom: none;
             }
 
             .suggestions li:before {
-                content: '•';
+                content: '→';
                 position: absolute;
                 left: 0;
                 color: var(--color-primary);
                 font-weight: var(--font-weight-bold);
+                font-size: 1.2rem;
             }
 
             /* Clock for screensaver mode */
@@ -166,18 +199,57 @@
                 color: var(--color-text-secondary);
             }
 
+            /* Admin link button */
+            .admin-link {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+                color: white;
+                text-decoration: none;
+                padding: 0.875rem 1.75rem;
+                border-radius: 8px;
+                font-weight: var(--font-weight-semibold);
+                font-size: 0.95rem;
+                transition: all 0.2s ease;
+                box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
+            }
+
+            .admin-link:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(0, 212, 170, 0.4);
+            }
+
+            .admin-link i {
+                font-size: 1.1rem;
+            }
+
             /* Responsive design */
             @media (max-width: 768px) {
                 .container {
                     padding: 1.5rem;
                 }
 
+                .logo-container {
+                    flex-direction: column;
+                    gap: 0.75rem;
+                }
+
+                .logo {
+                    width: 60px;
+                    height: 60px;
+                }
+
                 .brand {
-                    font-size: 1.5rem;
+                    font-size: 1.75rem;
                 }
 
                 #message {
-                    font-size: 1.5rem !important;
+                    font-size: 1.35rem !important;
+                }
+
+                .suggestions {
+                    padding: 1.5rem;
                 }
 
                 .clock {
@@ -194,7 +266,10 @@
 
         <div class="container">
             <div class="content">
-                <div class="brand">Posterrama</div>
+                <div class="logo-container">
+                    <img src="/logo.png" alt="Posterrama Logo" class="logo" />
+                    <div class="brand">Posterrama</div>
+                </div>
 
                 <div id="message">Media library is empty</div>
 
@@ -204,14 +279,19 @@
                 </div>
 
                 <div class="suggestions">
-                    <h4>Possible solutions:</h4>
+                    <h4>How to get started:</h4>
                     <ul>
-                        <li>Check if your content source is enabled and configured</li>
-                        <li>Verify the connection to your media server</li>
-                        <li>Ensure there is media in your library</li>
-                        <li>Review the configuration settings in the admin panel</li>
+                        <li>Configure a media source (Plex, Jellyfin, or TMDB) in the admin panel</li>
+                        <li>Verify your media server connection settings</li>
+                        <li>Enable at least one library with available content</li>
+                        <li>Check that your media server has accessible content</li>
                     </ul>
                 </div>
+
+                <a href="/admin" class="admin-link">
+                    <i class="fas fa-cog"></i>
+                    Open Admin Panel
+                </a>
             </div>
         </div>
 
