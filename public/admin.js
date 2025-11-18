@@ -728,6 +728,41 @@
             // Check if we have a fresh cached value (< 5 minutes old)
             const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
             const now = Date.now();
+
+            // Try to restore cache from localStorage (survives page refresh)
+            try {
+                const cachedData = localStorage.getItem('__mediaItemsCache');
+                const cachedTime = localStorage.getItem('__mediaItemsCacheTime');
+                if (cachedData && cachedTime) {
+                    const parsedData = JSON.parse(cachedData);
+                    const timestamp = parseInt(cachedTime, 10);
+                    const age = now - timestamp;
+                    if (age < CACHE_TTL) {
+                        // Cache is still fresh - use it immediately
+                        const { total, breakdown } = parsedData;
+                        setText('metric-media-items', formatNumber(total));
+                        const mediaItemsEl = document.getElementById('metric-media-items');
+                        if (mediaItemsEl) {
+                            mediaItemsEl.setAttribute(
+                                'title',
+                                breakdown.join(' | ') + ' (cached)' || 'No items'
+                            );
+                        }
+                        // Also restore to window for backwards compatibility
+                        window.__mediaItemsCache = parsedData;
+                        window.__mediaItemsCacheTime = timestamp;
+                        return total;
+                    } else {
+                        // Cache expired - clean it up
+                        localStorage.removeItem('__mediaItemsCache');
+                        localStorage.removeItem('__mediaItemsCacheTime');
+                    }
+                }
+            } catch (e) {
+                // Ignore localStorage errors (might be disabled/full)
+            }
+
+            // Fallback to in-memory cache (for same-page calls)
             if (
                 window.__mediaItemsCache &&
                 window.__mediaItemsCacheTime &&
@@ -901,9 +936,19 @@
                 mediaItemsEl.setAttribute('title', breakdown.join(' | ') || 'No items');
             }
 
-            // Cache the result for 5 minutes
-            window.__mediaItemsCache = { total, breakdown };
-            window.__mediaItemsCacheTime = Date.now();
+            // Cache the result for 5 minutes (both in-memory and localStorage)
+            const cacheData = { total, breakdown };
+            const cacheTime = Date.now();
+            window.__mediaItemsCache = cacheData;
+            window.__mediaItemsCacheTime = cacheTime;
+
+            // Persist to localStorage so it survives page refreshes
+            try {
+                localStorage.setItem('__mediaItemsCache', JSON.stringify(cacheData));
+                localStorage.setItem('__mediaItemsCacheTime', cacheTime.toString());
+            } catch (e) {
+                // Ignore localStorage errors (might be disabled/full)
+            }
 
             return total;
         } catch (err) {
@@ -918,6 +963,13 @@
     function invalidateMediaItemsCache() {
         delete window.__mediaItemsCache;
         delete window.__mediaItemsCacheTime;
+        // Also clear localStorage cache
+        try {
+            localStorage.removeItem('__mediaItemsCache');
+            localStorage.removeItem('__mediaItemsCacheTime');
+        } catch (e) {
+            // Ignore localStorage errors
+        }
     }
 
     /**
@@ -1125,6 +1177,13 @@
     // Update data for currently displayed cards
     async function updateDashboardCardsData() {
         const selectedIds = loadCardConfig();
+
+        // Update Media Items card if it's displayed (loads from cache if available)
+        if (selectedIds.includes('media-items')) {
+            await updateMediaItemsCount().catch(err => {
+                console.warn('Failed to update media items count:', err);
+            });
+        }
 
         // Update Now Playing card if it's displayed
         if (selectedIds.includes('now-playing')) {
@@ -16524,8 +16583,10 @@
         // Compute live filtered counts per source; when filters are active, use server-side uncapped preview
         async function refreshOverviewCounts() {
             try {
-                // Invalidate media items cache when refreshing counts (fresh data available)
-                invalidateMediaItemsCache();
+                // Note: Cache invalidation is handled by explicit actions:
+                // - invalidateMediaItemsCache() is called by "Refresh Media" button
+                // - invalidateMediaItemsCache() is called by RomM platform changes
+                // This allows localStorage cache to persist across normal page refreshes
 
                 // Fetch cached playlist first (fast fallback & used when no filters)
                 const res = await window.dedupJSON('/get-media', { credentials: 'include' });
@@ -16889,10 +16950,9 @@
                 // TMDB header pill
                 setCount('tmdb-count-pill', displayTmdb, null, tmdbTooltip);
 
-                // Update dashboard media items count with filtered totals from all enabled sources
-                updateMediaItemsCount().catch(err => {
-                    logger.error('Failed to update dashboard media items count:', err);
-                });
+                // Note: Dashboard media items count is now updated separately via refreshDashboardMetrics()
+                // to avoid duplicate calls. This function (refreshOverviewCounts) focuses on the
+                // Media Sources section pills only.
 
                 // Local header pill — prefer directory totals if available, fallback to cached playlist
                 try {
@@ -18299,25 +18359,18 @@
                         !!romm.retroAchievementsEnabled;
                 }
 
-                // Auto-fetch platforms if configured and enabled
-                // Always fetch if no cached platforms exist, even if we have selected platforms saved
+                // Note: Auto-fetch platforms is now deferred until user navigates to RomM panel
+                // This avoids unnecessary API calls on page load when not viewing RomM section
+                // The panel click handler (line ~9386) will trigger maybeFetchRommOnOpen() when needed
                 if (romm.enabled && romm.url && romm.username && !forceFresh) {
                     const needsFetch =
                         !window.__rommPlatforms || window.__rommPlatforms.length === 0;
 
-                    // Only auto-fetch once per page load (not on every panel switch)
-                    if (needsFetch && !window.__rommAutoFetchTriggered) {
-                        window.__rommAutoFetchTriggered = true;
-                        // Auto-fetching platforms on first load
-                        // Delay slightly to let UI render first
-                        setTimeout(() => {
-                            window.admin2?.maybeFetchRommOnOpen?.();
-                        }, 500);
-                    } else if (!needsFetch) {
+                    if (!needsFetch) {
                         console.log(
-                            '[RomM] Skipping auto-fetch: platforms already loaded (' +
+                            '[RomM] Platforms already cached (' +
                                 (window.__rommPlatforms?.length || 0) +
-                                ' platforms)'
+                                ' platforms), will skip fetch unless user opens RomM panel'
                         );
                     }
                 }
