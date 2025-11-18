@@ -1249,7 +1249,12 @@ module.exports = function createAdminConfigRouter({
             if (!username && rommServerConfig?.username) {
                 username = rommServerConfig.username;
             }
-            if (!password) {
+
+            // Check if password is masked or placeholder
+            const isMaskedPassword =
+                password && (/^[•]+$/.test(password) || password === 'EXISTING_TOKEN');
+
+            if (!password || isMaskedPassword) {
                 // Try environment variable first (preferred), then config password
                 if (
                     rommServerConfig?.passwordEnvVar &&
@@ -1416,7 +1421,12 @@ module.exports = function createAdminConfigRouter({
             if (!username && rommServerConfig?.username) {
                 username = rommServerConfig.username;
             }
-            if (!password) {
+
+            // Check if password is masked or placeholder
+            const isMaskedPassword =
+                password && (/^[•]+$/.test(password) || password === 'EXISTING_TOKEN');
+
+            if (!password || isMaskedPassword) {
                 // Try environment variable first (preferred), then config password
                 if (
                     rommServerConfig?.passwordEnvVar &&
