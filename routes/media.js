@@ -324,6 +324,69 @@ module.exports = function createMediaRouter({
     router.get(
         '/get-media',
         validateGetMediaQuery,
+        // CRITICAL: Games mode middleware MUST run BEFORE cache middleware
+        // Otherwise cache will return cached movies instead of fetching games
+        asyncHandler(async (req, res, next) => {
+            const wallartMode = config?.wallartMode || {};
+            const isGamesOnlyEnabled = wallartMode.gamesOnly === true;
+            const isGamesOnlyRequest =
+                req.query?.gamesOnly === '1' ||
+                req.query?.gamesOnly === 'true' ||
+                req.query?.gamesOnly === true;
+
+            logger.info('[Games Mode Middleware]', {
+                gamesOnlyParam: req.query?.gamesOnly,
+                isGamesOnlyEnabled,
+                isGamesOnlyRequest,
+                willBypassCache: isGamesOnlyEnabled && isGamesOnlyRequest,
+            });
+
+            if (isGamesOnlyEnabled && isGamesOnlyRequest) {
+                // Games mode active - fetch games directly, bypass cache
+                try {
+                    const RommSource = require('../sources/romm');
+                    const rommServer = (config.mediaServers || []).find(
+                        s => s.enabled && s.type === 'romm'
+                    );
+
+                    if (!rommServer) {
+                        logger.warn('Games mode requested but no RomM server configured');
+                        return res.json([]);
+                    }
+
+                    const platforms = rommServer.selectedPlatforms || [];
+                    if (platforms.length === 0) {
+                        logger.warn('Games mode enabled but no platforms selected');
+                        return res.json([]);
+                    }
+
+                    const rommSource = new RommSource(rommServer, shuffleArray, isDebug);
+                    const count = parseInt(req.query?.count) || 100;
+                    const ROMM_GAMES_LIMIT = 2000;
+
+                    logger.info(
+                        `[Games Mode] Fetching ${count} games from platforms: ${platforms.join(', ')}`
+                    );
+
+                    const games = await rommSource.fetchMedia(
+                        platforms,
+                        'game',
+                        Math.min(count, ROMM_GAMES_LIMIT)
+                    );
+
+                    logger.info(`[Games Mode] Returning ${games.length} games`);
+                    return res.json(games);
+                } catch (err) {
+                    logger.error(`[Games Mode] Failed to fetch games: ${err.message}`, {
+                        error: err.stack,
+                    });
+                    return res.json([]);
+                }
+            }
+
+            // Not games mode - continue to normal cache middleware
+            next();
+        }),
         apiCacheMiddleware.media,
         asyncHandler(async (req, res) => {
             // Helper: apply optional source filter to cached playlist
@@ -352,74 +415,13 @@ module.exports = function createMediaRouter({
                 res.setHeader('Cache-Control', 'no-store');
             }
 
-            // Check if music mode or games mode is requested - handle this BEFORE cache check
+            // Check if music mode is requested
+            // (games mode is handled earlier by middleware before cache)
             const wallartMode = config?.wallartMode || {};
             const musicMode = wallartMode.musicMode || {};
             const isMusicModeEnabled = musicMode.enabled === true;
             const isMusicModeRequest =
                 req.query?.musicMode === '1' || req.query?.musicMode === 'true';
-            const isGamesOnlyEnabled = wallartMode.gamesOnly === true;
-            const isGamesOnlyRequest =
-                req.query?.gamesOnly === '1' || req.query?.gamesOnly === 'true';
-
-            // Debug logging for games mode
-            logger.info('[Games Mode Debug]', {
-                gamesOnlyParam: req.query?.gamesOnly,
-                gamesOnlyParamType: typeof req.query?.gamesOnly,
-                isGamesOnlyEnabled,
-                isGamesOnlyRequest,
-                willFetchGames: isGamesOnlyEnabled && isGamesOnlyRequest,
-            });
-
-            // If games mode is active, fetch and return games instead (bypass regular cache)
-            if (isGamesOnlyEnabled && isGamesOnlyRequest) {
-                try {
-                    // Find enabled RomM server
-                    const RommSource = require('../sources/romm');
-                    const rommServer = (config.mediaServers || []).find(
-                        s => s.enabled && s.type === 'romm'
-                    );
-
-                    if (!rommServer) {
-                        logger.warn('Games mode requested but no RomM server is configured');
-                        return res.json([]);
-                    }
-
-                    // Get platform selections from server config
-                    const platforms = rommServer.selectedPlatforms || [];
-                    if (platforms.length === 0) {
-                        logger.warn('Games mode enabled but no platforms selected');
-                        return res.json([]);
-                    }
-
-                    // Initialize RomM source
-                    const rommSource = new RommSource(rommServer, shuffleArray, isDebug);
-
-                    // Fetch games (default to 100, can be overridden by query param)
-                    const count = parseInt(req.query?.count) || 100;
-                    const ROMM_GAMES_LIMIT = 2000; // Maximum games to fetch
-
-                    logger.info(
-                        `[Games Mode] Fetching ${count} games from platforms: ${platforms.join(', ')}`
-                    );
-
-                    const games = await rommSource.fetchMedia(
-                        platforms,
-                        'game',
-                        Math.min(count, ROMM_GAMES_LIMIT)
-                    );
-
-                    logger.info(`[Games Mode] Returning ${games.length} games`);
-
-                    return res.json(games);
-                } catch (err) {
-                    logger.error(`[Games Mode] Failed to fetch games: ${err.message}`, {
-                        error: err.stack,
-                    });
-                    // Return empty array on error
-                    return res.json([]);
-                }
-            }
 
             // If music mode is active, fetch and return music albums instead (bypass regular cache)
             if (isMusicModeEnabled && isMusicModeRequest) {
