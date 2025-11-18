@@ -67,9 +67,20 @@ async function ensureMediaQueue() {
         const count = 12; // fetch multiple items so screensaver can rotate
         const type = (window.appConfig && window.appConfig.type) || 'movies';
 
+        // Check if games mode is active in config
+        const wallartMode = window.__serverConfig?.wallartMode || {};
+        const isGamesOnly = wallartMode.gamesOnly === true;
+
         // Build absolute URL for better Safari/iOS compatibility
         const baseUrl = window.location.origin;
-        const url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}&excludeGames=1`;
+        let url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+
+        // Add appropriate parameter based on games mode
+        if (isGamesOnly) {
+            url += '&gamesOnly=true';
+        } else {
+            url += '&excludeGames=1';
+        }
 
         const res = await fetch(url, {
             method: 'GET',

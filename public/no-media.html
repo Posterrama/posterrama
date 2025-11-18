@@ -274,8 +274,21 @@
             // Check if media is available
             async function checkMediaAvailability() {
                 try {
-                    console.log('[No-Media] Fetching /get-media?count=1...');
-                    const response = await fetch('/get-media?count=1', {
+                    // Check if games mode is active
+                    const wallartMode = window.__serverConfig?.wallartMode || {};
+                    const isGamesOnly = wallartMode.gamesOnly === true;
+                    
+                    // Build URL with appropriate parameter
+                    let url = '/get-media?count=1';
+                    if (isGamesOnly) {
+                        url += '&gamesOnly=true';
+                        console.log('[No-Media] Games mode detected, fetching games...');
+                    } else {
+                        url += '&excludeGames=1';
+                    }
+                    
+                    console.log('[No-Media] Fetching', url);
+                    const response = await fetch(url, {
                         cache: 'no-cache',
                         headers: {
                             'Cache-Control': 'no-cache, no-store, must-revalidate',

@@ -53,9 +53,20 @@
             const rotationEnabled = cfg.cinema?.rotationIntervalMinutes > 0;
             const count = rotationEnabled ? 50 : 1;
 
+            // Check if games mode is active
+            const wallartMode = window.__serverConfig?.wallartMode || {};
+            const isGamesOnly = wallartMode.gamesOnly === true;
+
             // Build absolute URL for better Safari/iOS compatibility
             const baseUrl = window.location.origin;
-            const url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+            let url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+
+            // Add appropriate parameter based on games mode
+            if (isGamesOnly) {
+                url += '&gamesOnly=true';
+            } else {
+                url += '&excludeGames=1';
+            }
 
             const res = await fetch(url, {
                 method: 'GET',

@@ -792,7 +792,19 @@
         try {
             const cfg = window.appConfig || {};
             const type = (cfg && cfg.type) || 'movies';
-            const url = `/get-media?count=50&type=${encodeURIComponent(type)}&excludeGames=1`;
+
+            // Check if games mode is active
+            const wallartMode = window.__serverConfig?.wallartMode || {};
+            const isGamesOnly = wallartMode.gamesOnly === true;
+
+            // Build URL with appropriate parameter
+            let url = `/get-media?count=50&type=${encodeURIComponent(type)}`;
+            if (isGamesOnly) {
+                url += '&gamesOnly=true';
+            } else {
+                url += '&excludeGames=1';
+            }
+
             const res = await fetch(url, {
                 cache: 'no-cache',
                 headers: { 'Cache-Control': 'no-cache' },
