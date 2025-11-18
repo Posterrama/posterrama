@@ -746,8 +746,18 @@
                         const mediaSub = document.getElementById('metric-media-sub');
                         if (mediaSub && playlistCount != null) {
                             mediaSub.textContent = `${formatNumber(playlistCount)} in playlist`;
+                        }
+
+                        // Update tooltip
+                        const mediaItemsEl = document.getElementById('metric-media-items');
+                        if (mediaItemsEl) {
+                            const tooltipText =
+                                breakdown && breakdown.length > 0
+                                    ? `${breakdown.join(' | ')} | Playlist: ${formatNumber(playlistCount || 0)} items (cached)`
+                                    : 'No items (cached)';
                             mediaItemsEl.setAttribute('title', tooltipText);
                         }
+
                         // Also restore to window for backwards compatibility
                         window.__mediaItemsCache = parsedData;
                         window.__mediaItemsCacheTime = timestamp;
@@ -944,8 +954,7 @@
             let playlistCount = 0;
             let playlistLabel = 'in playlist';
 
-            // Check active mode to determine what to count
-            const activeMode = config.activeMode || 'screensaver';
+            // Check wallart mode settings to determine what to count
             const wallartMode = config.wallartMode || {};
             const isGamesMode = wallartMode.gamesOnly === true;
             const isMusicMode = wallartMode.musicMode === true;
