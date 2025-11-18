@@ -18550,6 +18550,17 @@
                 }
             }
 
+            // Check if Plex is enabled before fetching
+            const enabledCheckbox =
+                getInput('plex.enabled') || document.getElementById('plex_enabled');
+            const isEnabled = enabledCheckbox?.checked || false;
+            if (!isEnabled) {
+                if (!silent) {
+                    console.log('[Plex] Skipping library fetch - Plex is disabled');
+                }
+                return;
+            }
+
             // If any caller requests dependent refresh, mark it globally for this flight
             if (refreshFilters) window.__plexLibsRefreshRequested = true;
             // Deduplicate concurrent calls so only one request + toast occurs
@@ -18728,6 +18739,11 @@
             setTimeout(() => {
                 try {
                     if (window.__plexAutoLibInit) return;
+                    // Check if Plex is enabled before auto-fetching
+                    const enabledCheckbox =
+                        getInput('plex.enabled') || document.getElementById('plex_enabled');
+                    const isEnabled = enabledCheckbox?.checked || false;
+                    if (!isEnabled) return; // Skip auto-fetch if Plex is disabled
                     const hostVal =
                         getInput('plex.hostname')?.value ||
                         document.getElementById('plex_hostname')?.value;
