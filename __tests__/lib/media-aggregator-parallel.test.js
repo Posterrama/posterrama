@@ -96,19 +96,22 @@ describe('Media Aggregator - Parallel Fetching (#20)', () => {
             }
 
             // Verify results were aggregated
-            expect(result.length).toBeGreaterThan(0);
+            expect(result.media).toBeDefined();
+            expect(result.media.length).toBeGreaterThan(0);
+            expect(result.errors).toBeDefined();
+            expect(Array.isArray(result.errors)).toBe(true);
         });
 
         test('should continue fetching if one server fails', async () => {
-            PlexSource.mockImplementation(server => ({
-                fetchMedia: jest.fn(async () => {
-                    if (server.name === 'Plex Server 1') {
-                        throw new Error('Server 1 failed');
-                    }
-                    return [{ id: 'movie1', title: 'Test Movie' }];
-                }),
-                getMetrics: jest.fn(() => ({ lastFetch: new Date().toISOString() })),
-            }));
+            PlexSource.mockImplementation(server => {
+                if (server.name === 'Plex Server 1') {
+                    throw new Error('Server 1 failed');
+                }
+                return {
+                    fetchMedia: jest.fn(async () => [{ id: 'movie1', title: 'Test Movie' }]),
+                    getMetrics: jest.fn(() => ({ lastFetch: new Date().toISOString() })),
+                };
+            });
 
             mockConfig.mediaServers = [
                 {
@@ -136,10 +139,21 @@ describe('Media Aggregator - Parallel Fetching (#20)', () => {
                 isDebug: false,
             });
 
-            // Verify server 2's media was still fetched
-            expect(result.length).toBeGreaterThan(0);
+            // Verify server 2's media was still fetched despite server 1 failure
+            expect(result.media).toBeDefined();
+            expect(result.media.length).toBeGreaterThan(0);
+
+            // Verify error was tracked
+            expect(result.errors).toBeDefined();
+            expect(result.errors.length).toBeGreaterThan(0);
+            expect(result.errors[0]).toMatchObject({
+                source: 'Plex Server 1',
+                type: 'plex',
+                operation: 'fetchMedia',
+            });
+
             expect(mockLogger.error).toHaveBeenCalledWith(
-                expect.stringContaining('Failed'),
+                expect.stringContaining('completely failed'),
                 expect.any(Object)
             );
         });
@@ -205,7 +219,9 @@ describe('Media Aggregator - Parallel Fetching (#20)', () => {
             expect(totalTime).toBeLessThan(110);
 
             // Verify both sources returned data
-            expect(result.length).toBeGreaterThanOrEqual(2);
+            expect(result.media).toBeDefined();
+            expect(result.media.length).toBeGreaterThanOrEqual(2);
+            expect(result.errors).toBeDefined();
         });
     });
 
@@ -296,7 +312,7 @@ describe('Media Aggregator - Parallel Fetching (#20)', () => {
                 apiKey: 'test-key',
             };
 
-            // Should not throw, should return empty array
+            // Should not throw, should return empty media with errors tracked
             const result = await getPlaylistMedia({
                 config: mockConfig,
                 processPlexItem: mockProcessPlexItem,
@@ -306,7 +322,9 @@ describe('Media Aggregator - Parallel Fetching (#20)', () => {
                 isDebug: false,
             });
 
-            expect(result).toEqual([]);
+            expect(result.media).toEqual([]);
+            expect(result.errors).toBeDefined();
+            expect(result.errors.length).toBeGreaterThan(0);
             expect(mockLogger.error).toHaveBeenCalled();
         });
     });
