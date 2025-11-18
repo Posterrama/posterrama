@@ -5,6 +5,7 @@
 const logger = require('../utils/logger');
 const RommHttpClient = require('../utils/romm-http-client');
 const { logSourceError, metadataExtractors } = require('../utils/source-error-context');
+const { executeWithRetry } = require('../utils/source-error-handler');
 
 class RommSource {
     constructor(serverConfig, shuffleArray, isDebug) {
@@ -68,8 +69,12 @@ class RommSource {
                 timeout: this.server.timeout || 15000,
             });
 
-            // Authenticate on first use
-            await this.client.authenticate();
+            // Authenticate on first use with retry
+            await executeWithRetry(() => this.client.authenticate(), {
+                source: 'romm',
+                operation: 'authenticate',
+                params: { serverName: this.server.name },
+            });
 
             logger.info(`[RommSource:${this.server.name}] Client initialized and authenticated`);
             return this.client;
@@ -129,7 +134,11 @@ class RommSource {
     async getAvailablePlatforms() {
         try {
             const client = await this.getClient();
-            const platforms = await client.getPlatforms();
+            const platforms = await executeWithRetry(() => client.getPlatforms(), {
+                source: 'romm',
+                operation: 'getPlatforms',
+                params: { serverName: this.server.name },
+            });
 
             return platforms.map(platform => ({
                 id: platform.id,
@@ -485,7 +494,11 @@ class RommSource {
                             offset: offset,
                         };
 
-                        const response = await client.getRoms(queryParams);
+                        const response = await executeWithRetry(() => client.getRoms(queryParams), {
+                            source: 'romm',
+                            operation: 'getRoms',
+                            params: { platformId, offset },
+                        });
 
                         if (response.items && Array.isArray(response.items)) {
                             allRoms.push(...response.items);
