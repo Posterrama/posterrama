@@ -544,6 +544,22 @@ module.exports = function createMediaRouter({
                 return res.json(filtered);
             }
 
+            // Special case: If games mode is active and request excludes games,
+            // return empty array instead of "building" status (no movies needed in games mode)
+            const wallartModeCheck = config?.wallartMode || {};
+            const isGamesOnlyActive = wallartModeCheck.gamesOnly === true;
+            const isExcludingGames =
+                req.query?.excludeGames === '1' ||
+                req.query?.excludeGames === 'true' ||
+                req.query?.excludeGames === true;
+
+            if (isGamesOnlyActive && isExcludingGames) {
+                logger.info(
+                    '[Games Mode] Request excludes games while in games mode - returning empty array'
+                );
+                return res.json([]);
+            }
+
             const isRefreshing = isPlaylistRefreshing();
             if (isRefreshing) {
                 // The full cache is being built. Tell the client to wait and try again.
