@@ -2315,8 +2315,8 @@
         </div>
         <div class="panel-content">
           <!-- KPI Cards -->
-          <div class="card-grid" id="perf-kpi-cards" style="margin-bottom: 32px;">
-            <div class="status-card">
+          <section class="card-grid" id="perf-kpi-cards" style="margin-bottom: 32px;">
+            <div class="status-card status-info" title="Current request rate per minute">
               <div class="card-icon"><i class="fas fa-clock"></i></div>
               <div class="card-content">
                 <h3>Requests/min</h3>
@@ -2324,7 +2324,7 @@
                 <span class="trend" id="perf-rpm-trend"></span>
               </div>
             </div>
-            <div class="status-card">
+            <div class="status-card status-success" title="Average response time in milliseconds">
               <div class="card-icon"><i class="fas fa-gauge-high"></i></div>
               <div class="card-content">
                 <h3>Avg Latency</h3>
@@ -2332,7 +2332,7 @@
                 <span class="trend" id="perf-latency-trend"></span>
               </div>
             </div>
-            <div class="status-card">
+            <div class="status-card status-warning" title="Percentage of cache hits vs misses">
               <div class="card-icon"><i class="fas fa-bolt"></i></div>
               <div class="card-content">
                 <h3>Cache Hit Rate</h3>
@@ -2340,7 +2340,7 @@
                 <span class="trend" id="perf-cache-trend"></span>
               </div>
             </div>
-            <div class="status-card">
+            <div class="status-card status-success" title="Number of connected devices via WebSocket">
               <div class="card-icon"><i class="fas fa-plug"></i></div>
               <div class="card-content">
                 <h3>Active Devices</h3>
@@ -2348,7 +2348,7 @@
                 <span class="trend" id="perf-ws-trend"></span>
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Charts Grid -->
           <div class="content-grid" style="grid-template-columns: 1fr 1fr; gap: 24px;">
@@ -2357,7 +2357,7 @@
               <div class="panel-header">
                 <div class="panel-title">
                   <i class="fas fa-clock"></i>
-                  <h3>Request Latency (7 days)</h3>
+                  <h3>Request Latency (24 hours)</h3>
                 </div>
               </div>
               <div class="panel-content">
@@ -2370,7 +2370,7 @@
               <div class="panel-header">
                 <div class="panel-title">
                   <i class="fas fa-chart-area"></i>
-                  <h3>Request Rate (7 days)</h3>
+                  <h3>Request Rate (24 hours)</h3>
                 </div>
               </div>
               <div class="panel-content">
@@ -2383,7 +2383,7 @@
               <div class="panel-header">
                 <div class="panel-title">
                   <i class="fas fa-bolt"></i>
-                  <h3>Cache Performance (7 days)</h3>
+                  <h3>Cache Performance (24 hours)</h3>
                 </div>
               </div>
               <div class="panel-content">
@@ -2396,7 +2396,7 @@
               <div class="panel-header">
                 <div class="panel-title">
                   <i class="fas fa-microchip"></i>
-                  <h3>System Load (7 days)</h3>
+                  <h3>System Load (24 hours)</h3>
                 </div>
               </div>
               <div class="panel-content">

@@ -324,7 +324,7 @@
 
     async function loadPerformanceData() {
         try {
-            const response = await fetch('/api/admin/performance/metrics?period=7d', {
+            const response = await fetch('/api/admin/performance/metrics?period=24h', {
                 credentials: 'same-origin',
             });
 
@@ -373,7 +373,7 @@
     function updateCharts(data) {
         // Update latency chart
         if (charts.latency && data.requests?.history) {
-            const history = data.requests.history.slice(-168); // Last 7 days hourly
+            const history = data.requests.history.slice(-24); // Last 24 hours
             charts.latency.data.datasets[0].data = history.map(d => ({
                 x: new Date(d.timestamp),
                 y: d.p95 || 0,
@@ -387,7 +387,7 @@
 
         // Update requests chart
         if (charts.requests && data.system?.history) {
-            const history = data.system.history.slice(-168);
+            const history = data.system.history.slice(-24);
             // Requests data would ideally come from dedicated metrics
             // For now, use system history timestamps with dummy data
             charts.requests.data.datasets[0].data = history.map((d, _i) => ({
@@ -409,8 +409,8 @@
             } else {
                 // Add new data point
                 charts.cache.data.datasets[0].data.push({ x: now, y: currentHitRate });
-                // Keep last 168 points (7 days)
-                if (charts.cache.data.datasets[0].data.length > 168) {
+                // Keep last 24 points (24 hours)
+                if (charts.cache.data.datasets[0].data.length > 24) {
                     charts.cache.data.datasets[0].data.shift();
                 }
             }
@@ -419,7 +419,7 @@
 
         // Update system chart
         if (charts.system && data.system?.history) {
-            const history = data.system.history.slice(-168);
+            const history = data.system.history.slice(-24);
             charts.system.data.datasets[0].data = history.map(d => ({
                 x: new Date(d.timestamp),
                 y: d.cpu || 0,
