@@ -11,6 +11,10 @@ const fs = require('fs');
 const rommPlatformCache = new Map();
 const ROMM_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
+// Cache for Plex libraries (5 minute TTL)
+const plexLibrariesCache = new Map();
+const PLEX_LIBRARIES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Create admin configuration router
  * @param {Object} deps - Dependencies
@@ -873,6 +877,14 @@ module.exports = function createAdminConfigRouter({
                 );
             }
 
+            // Check cache first (use hostname+port+token as key)
+            const cacheKey = `${hostname}:${port}:${token.substring(0, 10)}`;
+            const cached = plexLibrariesCache.get(cacheKey);
+            if (cached && Date.now() - cached.timestamp < PLEX_LIBRARIES_CACHE_TTL) {
+                if (isDebug) logger.debug('[Plex Libraries] Returning cached result');
+                return res.json({ success: true, libraries: cached.data, cached: true });
+            }
+
             try {
                 const client = await createPlexClient({
                     hostname,
@@ -943,7 +955,13 @@ module.exports = function createAdminConfigRouter({
                     );
                 }
 
-                res.json({ success: true, libraries });
+                // Cache the result
+                plexLibrariesCache.set(cacheKey, {
+                    data: libraries,
+                    timestamp: Date.now(),
+                });
+
+                res.json({ success: true, libraries, cached: false });
             } catch (error) {
                 if (isDebug) console.error('[Plex Lib Fetch] Failed:', error.message);
                 let userMessage = 'Could not fetch libraries. Please check the connection details.';

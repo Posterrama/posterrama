@@ -94,19 +94,33 @@ module.exports = function createPublicApiRouter({
     const { isSourceTypeEnabled: isSourceTypeEnabledUtil } = require('../lib/source-utils');
     const isSourceTypeEnabled = sourceType => isSourceTypeEnabledUtil(config, sourceType);
 
-    // In-memory cache for ratings-with-counts (1 hour TTL)
+    // In-memory cache for ratings-with-counts (1 hour TTL, 50 min soft)
     const ratingsWithCountsCache = new Map();
     const ratingsWithCountsInFlight = new Map(); // Track in-flight requests
-    const RATINGS_WITH_COUNTS_TTL = 3600000; // 1 hour
+    const RATINGS_WITH_COUNTS_TTL = 3600000; // 1 hour hard TTL
+    const RATINGS_WITH_COUNTS_SOFT_TTL = 3000000; // 50 minutes soft TTL (triggers background refresh)
 
     function getCachedRatingsWithCounts(sourceType) {
         const cached = ratingsWithCountsCache.get(sourceType);
         if (!cached) return null;
 
         const age = Date.now() - cached.timestamp;
+
+        // Hard expiry - data is too old, must refetch
         if (age > RATINGS_WITH_COUNTS_TTL) {
             ratingsWithCountsCache.delete(sourceType);
             return null;
+        }
+
+        // Soft expiry - return stale data but trigger background refresh
+        if (age > RATINGS_WITH_COUNTS_SOFT_TTL && !ratingsWithCountsInFlight.has(sourceType)) {
+            logger.debug(`[RatingsWithCounts] Triggering background refresh for ${sourceType}`);
+            getRatingsWithCountsDeduped(sourceType).catch(err =>
+                logger.warn(
+                    `[RatingsWithCounts] Background refresh failed for ${sourceType}:`,
+                    err.message
+                )
+            );
         }
 
         return cached.data;

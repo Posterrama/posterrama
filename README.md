@@ -2,7 +2,7 @@
   <img src="./public/logo.png" alt="Posterrama Logo" width="120">
   
   <h1 style="margin-bottom: 5px;">posterrama</h1>
-  <p style="margin-top: 0;"><em>Transform any screen into your personal gallery — self-hosted</em></p>
+  <p style="margin-top: 0;"><em>Transform any screen into your personal gallery</em></p>
   <br>
 </div>
 
