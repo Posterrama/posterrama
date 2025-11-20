@@ -111,7 +111,7 @@ module.exports = function createAdminPerformanceRouter({
                 }
 
                 // Get source health metrics
-                const sourceMetrics = getSourceHealth(config, logger);
+                const sourceMetrics = getSourceHealth(config, logger, metricsManager);
 
                 // Combine all metrics
                 const response = {
@@ -211,37 +211,59 @@ module.exports = function createAdminPerformanceRouter({
 };
 
 /**
- * Get source health status
+ * Get source health status from actual metrics
  * @private
  */
-function getSourceHealth(config, logger) {
+function getSourceHealth(config, logger, metricsManager) {
     const sources = {
         current: {},
         history: {},
     };
 
     try {
-        // Check each media server
+        const endpointMetrics = metricsManager.getEndpointMetrics();
+        const endpoints = endpointMetrics.endpoints || [];
+
+        // Helper to calculate metrics for a source type
+        const getSourceMetrics = sourcePrefix => {
+            const sourceEndpoints = endpoints.filter(
+                e =>
+                    e.path.includes(`/api/${sourcePrefix}/`) ||
+                    e.path.includes(`/api/sources/${sourcePrefix}/`)
+            );
+
+            if (sourceEndpoints.length === 0) {
+                return { healthy: true, errors: 0, avgLatency: 0, requests: 0 };
+            }
+
+            const totalRequests = sourceEndpoints.reduce((sum, e) => sum + e.requestCount, 0);
+            const totalErrors = sourceEndpoints.reduce((sum, e) => sum + (e.errorCount || 0), 0);
+            const avgLatency =
+                sourceEndpoints.reduce(
+                    (sum, e) => sum + e.averageResponseTime * e.requestCount,
+                    0
+                ) / totalRequests;
+
+            return {
+                healthy: totalErrors === 0 || totalErrors / totalRequests < 0.1,
+                errors: totalErrors,
+                avgLatency: Math.round(avgLatency),
+                requests: totalRequests,
+            };
+        };
+
+        // Check each enabled media server
         if (config && config.mediaServers) {
             for (const server of config.mediaServers) {
                 if (server.enabled) {
-                    const sourceType = server.type; // plex, jellyfin, romm
-                    sources.current[sourceType] = {
-                        healthy: true, // Assume healthy if enabled
-                        errors: 0,
-                        avgLatency: 0,
-                    };
+                    sources.current[server.type] = getSourceMetrics(server.type);
                 }
             }
         }
 
         // Check TMDB
         if (config && config.tmdbSource && config.tmdbSource.enabled) {
-            sources.current.tmdb = {
-                healthy: true,
-                errors: 0,
-                avgLatency: 0,
-            };
+            sources.current.tmdb = getSourceMetrics('tmdb');
         }
     } catch (error) {
         logger.warn('[Admin Performance] Failed to get source health:', error.message);
@@ -251,12 +273,45 @@ function getSourceHealth(config, logger) {
 }
 
 /**
- * Get top endpoints by request count
+ * Get top endpoints by request count, filtered for relevance
  * @private
  */
 function getTopEndpoints(endpoints, limit = 10) {
-    return endpoints
-        .sort((a, b) => b.requestCount - a.requestCount)
+    // Filter out uninteresting endpoints
+    const filtered = endpoints.filter(endpoint => {
+        const path = endpoint.path;
+
+        // Skip health checks, static assets, etc.
+        if (
+            path.includes('/health') ||
+            path.includes('/ping') ||
+            path.includes('/favicon') ||
+            path.includes('/robots.txt') ||
+            path.includes('.js') ||
+            path.includes('.css') ||
+            path.includes('.map')
+        ) {
+            return false;
+        }
+
+        // Skip admin UI pages (keep admin API)
+        if (path === '/admin' || path === '/admin.html') {
+            return false;
+        }
+
+        // Keep API endpoints and interesting routes
+        return true;
+    });
+
+    return filtered
+        .sort((a, b) => {
+            // Sort by: high error rate first, then slow latency, then high request count
+            if (a.errorRate > 0 && b.errorRate === 0) return -1;
+            if (b.errorRate > 0 && a.errorRate === 0) return 1;
+            if (a.averageResponseTime > 1000 && b.averageResponseTime < 1000) return -1;
+            if (b.averageResponseTime > 1000 && a.averageResponseTime < 1000) return 1;
+            return b.requestCount - a.requestCount;
+        })
         .slice(0, limit)
         .map(endpoint => ({
             path: endpoint.path,
