@@ -9393,17 +9393,19 @@
                     ind.className = 'seg-indicator';
                     container.appendChild(ind);
                 }
+                // Map sources to their parent categories
+                const sourceToCategory = {
+                    plex: 'seg-media',
+                    jellyfin: 'seg-media',
+                    romm: 'seg-game',
+                    local: 'seg-content',
+                    tmdb: 'seg-content',
+                };
+
                 const segs = [
-                    { id: 'seg-plex', val: 'plex', panel: 'panel-plex', hash: '#plex' },
-                    {
-                        id: 'seg-jellyfin',
-                        val: 'jellyfin',
-                        panel: 'panel-jellyfin',
-                        hash: '#jellyfin',
-                    },
-                    { id: 'seg-tmdb', val: 'tmdb', panel: 'panel-tmdb', hash: '#tmdb' },
-                    { id: 'seg-local', val: 'local', panel: 'panel-local', hash: '#local' },
-                    { id: 'seg-romm', val: 'romm', panel: 'panel-romm', hash: '#romm' },
+                    { id: 'seg-media', val: 'plex', panel: 'panel-plex', hash: '#plex' },
+                    { id: 'seg-game', val: 'romm', panel: 'panel-romm', hash: '#romm' },
+                    { id: 'seg-content', val: 'local', panel: 'panel-local', hash: '#local' },
                 ];
 
                 // Forward declaration so early calls can use a no-op until real impl assigned
@@ -9491,24 +9493,74 @@
                 };
 
                 const setActive = val => {
-                    segs.forEach(s => {
-                        const el = document.getElementById(s.id);
-                        if (el) {
-                            el.setAttribute('aria-checked', String(s.val === val));
-                            const radio = el.querySelector('input[type="radio"]');
-                            if (radio) radio.checked = s.val === val;
-                        }
-                        const panel = document.getElementById(s.panel);
-                        if (panel) panel.hidden = s.val !== val;
+                    // Find which category this source belongs to
+                    const categoryId = sourceToCategory[val];
+
+                    // Source display names
+                    const sourceNames = {
+                        plex: 'Plex',
+                        jellyfin: 'Jellyfin',
+                        romm: 'RomM',
+                        local: 'Local Directory',
+                        tmdb: 'TMDB',
+                    };
+
+                    // Hide all panels
+                    document
+                        .querySelectorAll(
+                            '#panel-plex, #panel-jellyfin, #panel-tmdb, #panel-local, #panel-romm'
+                        )
+                        .forEach(p => {
+                            p.hidden = true;
+                        });
+
+                    // Show the active panel
+                    const panelMap = {
+                        plex: 'panel-plex',
+                        jellyfin: 'panel-jellyfin',
+                        tmdb: 'panel-tmdb',
+                        local: 'panel-local',
+                        romm: 'panel-romm',
+                    };
+                    const activePanel = document.getElementById(panelMap[val]);
+                    if (activePanel) activePanel.hidden = false;
+
+                    // Set all category tabs to inactive and clear source names
+                    document.querySelectorAll('.seg.has-dropdown').forEach(seg => {
+                        seg.setAttribute('aria-checked', 'false');
+                        const radio = seg.querySelector('input[type="radio"]');
+                        if (radio) radio.checked = false;
+                        const sourceName = seg.querySelector('.seg-source-name');
+                        if (sourceName) sourceName.textContent = '';
                     });
-                    // Slide indicator
-                    const activeSeg = container.querySelector(`.seg[aria-checked="true"]`);
-                    if (activeSeg) {
-                        const cRect = container.getBoundingClientRect();
-                        const sRect = activeSeg.getBoundingClientRect();
-                        ind.style.left = `${sRect.left - cRect.left}px`;
-                        ind.style.width = `${sRect.width}px`;
+
+                    // Set active category tab and update source name
+                    if (categoryId) {
+                        const categorySeg = document.getElementById(categoryId);
+                        if (categorySeg) {
+                            categorySeg.setAttribute('aria-checked', 'true');
+                            const radio = categorySeg.querySelector('input[type="radio"]');
+                            if (radio) radio.checked = true;
+
+                            // Update source name in tab
+                            const sourceName = categorySeg.querySelector('.seg-source-name');
+                            if (sourceName) {
+                                sourceName.textContent = sourceNames[val] || '';
+                            }
+
+                            // Slide indicator to active category
+                            const cRect = container.getBoundingClientRect();
+                            const sRect = categorySeg.getBoundingClientRect();
+                            ind.style.left = `${sRect.left - cRect.left}px`;
+                            ind.style.width = `${sRect.width}px`;
+                        }
                     }
+
+                    // Update active dropdown item
+                    document.querySelectorAll('.seg-dropdown-item').forEach(item => {
+                        item.classList.toggle('active', item.dataset.source === val);
+                    });
+
                     // Mount header actions for the active source into the top header
                     mountSourceHeaderActions(val);
                     // After moving actions, force-refresh the header-toggle label text for this source
@@ -9528,32 +9580,76 @@
                     }
                 };
 
-                // Click handling
-                segs.forEach(s => {
-                    const el = document.getElementById(s.id);
-                    if (!el) return;
-                    el.addEventListener('click', e => {
-                        e.preventDefault();
-                        if (location.hash !== s.hash) location.hash = s.hash;
-                        // Show immediately as well
-                        setActive(s.val);
+                // Handle dropdown item clicks
+                container.querySelectorAll('.seg-dropdown-item:not(.coming-soon)').forEach(item => {
+                    item.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const source = item.dataset.source;
+                        if (!source) return;
+
+                        // Update hash and activate
+                        location.hash = `#${source}`;
+                        setActive(source);
+
+                        // Close all dropdowns after selection
+                        setTimeout(() => {
+                            container
+                                .querySelectorAll('.seg.has-dropdown.dropdown-open')
+                                .forEach(seg => {
+                                    seg.classList.remove('dropdown-open');
+                                });
+                        }, 150);
+
                         // Trigger auto-fetch on open
                         try {
-                            if (s.panel === 'panel-plex') window.admin2?.maybeFetchPlexOnOpen?.();
-                            else if (s.panel === 'panel-jellyfin')
+                            if (source === 'plex') window.admin2?.maybeFetchPlexOnOpen?.();
+                            else if (source === 'jellyfin')
                                 window.admin2?.maybeFetchJellyfinOnOpen?.();
-                            else if (s.panel === 'panel-tmdb') {
+                            else if (source === 'tmdb') {
                                 window.admin2?.maybeFetchTmdbOnOpen?.();
                                 window.admin2?.maybeFetchStreamingProvidersOnOpen?.();
-                            } else if (s.panel === 'panel-local') {
+                            } else if (source === 'local') {
                                 window.admin2?.maybeInitLocalDirectoryOnOpen?.();
-                            } else if (s.panel === 'panel-romm') {
+                            } else if (source === 'romm') {
                                 window.admin2?.maybeFetchRommOnOpen?.();
                             }
                         } catch (_) {
-                            /* wrapper dataset wiring failed (diagnostic only) */
+                            /* auto-fetch failed */
                         }
                     });
+                });
+
+                // Handle category tab clicks (toggle dropdown)
+                container.querySelectorAll('.seg.has-dropdown').forEach(seg => {
+                    seg.addEventListener('click', e => {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        if (seg.classList.contains('disabled')) return;
+
+                        const wasOpen = seg.classList.contains('dropdown-open');
+
+                        // Close all dropdowns
+                        container.querySelectorAll('.seg.has-dropdown.dropdown-open').forEach(s => {
+                            s.classList.remove('dropdown-open');
+                        });
+
+                        // Toggle this dropdown
+                        if (!wasOpen) {
+                            seg.classList.add('dropdown-open');
+                        }
+                    });
+                });
+
+                // Close dropdowns when clicking outside
+                document.addEventListener('click', e => {
+                    if (!e.target.closest('#section-media-sources .seg.has-dropdown')) {
+                        container
+                            .querySelectorAll('.seg.has-dropdown.dropdown-open')
+                            .forEach(seg => {
+                                seg.classList.remove('dropdown-open');
+                            });
+                    }
                 });
 
                 // Initialize default: Plex
