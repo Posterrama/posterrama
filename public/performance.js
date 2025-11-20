@@ -598,9 +598,16 @@
         }
     }
 
+    // State for table sorting
+    let endpointsData = [];
+    const currentSort = { column: 'avgLatency', direction: 'desc' };
+
     function updateEndpointsTable(endpoints) {
         const tbody = document.getElementById('perf-endpoints-tbody');
         if (!tbody) return;
+
+        // Store data for sorting
+        endpointsData = endpoints || [];
 
         if (!endpoints || endpoints.length === 0) {
             tbody.innerHTML = `
@@ -613,7 +620,78 @@
             return;
         }
 
-        tbody.innerHTML = endpoints
+        // Initialize sort handlers on first call
+        if (!tbody.dataset.sortInitialized) {
+            initializeTableSort();
+            tbody.dataset.sortInitialized = 'true';
+        }
+
+        renderEndpointsTable();
+    }
+
+    function initializeTableSort() {
+        const headers = document.querySelectorAll('#perf-endpoints-table th.sortable');
+        headers.forEach(th => {
+            th.style.cursor = 'pointer';
+            th.addEventListener('click', () => {
+                const column = th.dataset.sort;
+                if (currentSort.column === column) {
+                    // Toggle direction
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    // New column, default to descending (highest first) except for path
+                    currentSort.column = column;
+                    currentSort.direction = column === 'path' ? 'asc' : 'desc';
+                }
+                renderEndpointsTable();
+                updateSortIcons();
+            });
+        });
+        updateSortIcons();
+    }
+
+    function updateSortIcons() {
+        const headers = document.querySelectorAll('#perf-endpoints-table th.sortable');
+        headers.forEach(th => {
+            const icon = th.querySelector('.sort-icon');
+            if (!icon) return;
+
+            if (th.dataset.sort === currentSort.column) {
+                icon.className =
+                    currentSort.direction === 'asc'
+                        ? 'fas fa-sort-up sort-icon'
+                        : 'fas fa-sort-down sort-icon';
+            } else {
+                icon.className = 'fas fa-sort sort-icon';
+            }
+        });
+    }
+
+    function renderEndpointsTable() {
+        const tbody = document.getElementById('perf-endpoints-tbody');
+        if (!tbody || !endpointsData.length) return;
+
+        // Sort data
+        const sorted = [...endpointsData].sort((a, b) => {
+            let aVal = a[currentSort.column];
+            let bVal = b[currentSort.column];
+
+            // Handle string comparison for path
+            if (currentSort.column === 'path') {
+                aVal = String(aVal).toLowerCase();
+                bVal = String(bVal).toLowerCase();
+                return currentSort.direction === 'asc'
+                    ? aVal.localeCompare(bVal)
+                    : bVal.localeCompare(aVal);
+            }
+
+            // Numeric comparison for other columns
+            aVal = Number(aVal) || 0;
+            bVal = Number(bVal) || 0;
+            return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
+        });
+
+        tbody.innerHTML = sorted
             .map(
                 ep => `
             <tr>

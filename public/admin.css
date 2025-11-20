@@ -2894,6 +2894,34 @@ input[type='range']::-moz-range-thumb {
     letter-spacing: 0.05em;
 }
 
+.data-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    position: relative;
+}
+
+.data-table th.sortable:hover {
+    background: var(--color-bg-hover);
+}
+
+.data-table th.sortable .sort-icon {
+    margin-left: 8px;
+    font-size: 0.75em;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.data-table th.sortable:hover .sort-icon {
+    opacity: 1;
+}
+
+.data-table th.sortable .fa-sort-up,
+.data-table th.sortable .fa-sort-down {
+    opacity: 1;
+    color: var(--color-primary);
+}
+
 /* Enhanced hover effects for dark theme */
 .data-table tbody tr {
     position: relative;
