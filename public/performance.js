@@ -17,6 +17,8 @@
     const charts = {};
     let autoRefreshInterval = null;
     const AUTO_REFRESH_MS = 30000; // 30 seconds
+    const STORAGE_KEY = 'performance_metrics_history';
+    const STORAGE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
     function init() {
         // Only initialize when performance section is active
@@ -53,6 +55,60 @@
                 delete charts[key];
             }
         });
+    }
+
+    // LocalStorage functions for 24h data persistence
+    function saveMetricsToStorage(data) {
+        try {
+            const stored = {
+                timestamp: Date.now(),
+                data: data,
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+        } catch (e) {
+            console.warn('[Performance] Failed to save to localStorage:', e);
+        }
+    }
+
+    function loadMetricsFromStorage() {
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (!stored) return null;
+
+            const parsed = JSON.parse(stored);
+            const age = Date.now() - parsed.timestamp;
+
+            // Check if data is still valid (< 24 hours old)
+            if (age > STORAGE_EXPIRY) {
+                localStorage.removeItem(STORAGE_KEY);
+                return null;
+            }
+
+            return parsed.data;
+        } catch (e) {
+            console.warn('[Performance] Failed to load from localStorage:', e);
+            return null;
+        }
+    }
+
+    function mergeHistoricalData(newData, cachedData) {
+        if (!cachedData) return newData;
+
+        // Merge request history
+        if (newData.requests?.history && cachedData.requests?.history) {
+            const combined = [...cachedData.requests.history, ...newData.requests.history];
+            // Remove duplicates based on timestamp
+            const unique = Array.from(
+                new Map(combined.map(item => [item.timestamp, item])).values()
+            );
+            // Sort by timestamp and keep last 24 hours
+            newData.requests.history = unique
+                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+                .slice(-24);
+        }
+
+        // Similar for other metrics...
+        return newData;
     }
 
     function initializeCharts() {
@@ -105,9 +161,12 @@
                     type: 'time',
                     time: {
                         unit: 'hour',
+                        stepSize: 2,
                         displayFormats: {
-                            hour: 'MMM d, HH:mm',
+                            hour: 'HH:mm',
+                            day: 'MMM d',
                         },
+                        tooltipFormat: 'MMM d, HH:mm',
                     },
                     title: {
                         display: true,
@@ -117,6 +176,9 @@
                             .trim(),
                     },
                     ticks: {
+                        maxRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 12,
                         color: getComputedStyle(document.documentElement)
                             .getPropertyValue('--color-text-secondary')
                             .trim(),
@@ -200,20 +262,20 @@
             });
         }
 
-        // Request Rate Chart
+        // Request Rate Chart (Bar chart for better visual impact)
         const requestsCtx = document.getElementById('chart-requests');
         if (requestsCtx) {
             charts.requests = new Chart(requestsCtx, {
-                type: 'line',
+                type: 'bar',
                 data: {
                     datasets: [
                         {
                             label: 'Requests/min',
                             data: [],
                             borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            fill: true,
-                            tension: 0.4,
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                            borderWidth: 1,
+                            borderRadius: 4,
                         },
                     ],
                 },
@@ -236,9 +298,13 @@
             });
         }
 
-        // Cache Performance Chart
+        // Cache Performance Chart (Area chart with gradient)
         const cacheCtx = document.getElementById('chart-cache');
         if (cacheCtx) {
+            const gradient = cacheCtx.getContext('2d').createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
+            gradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
+
             charts.cache = new Chart(cacheCtx, {
                 type: 'line',
                 data: {
@@ -247,9 +313,11 @@
                             label: 'Hit Rate (%)',
                             data: [],
                             borderColor: '#8b5cf6',
-                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            backgroundColor: gradient,
                             fill: true,
                             tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
                             yAxisID: 'y',
                         },
                     ],
@@ -337,7 +405,14 @@
                 throw new Error(result.error || 'Failed to load metrics');
             }
 
-            updateDashboard(result.data);
+            // Load cached data and merge with new data
+            const cachedData = loadMetricsFromStorage();
+            const mergedData = mergeHistoricalData(result.data, cachedData);
+
+            // Save merged data back to storage
+            saveMetricsToStorage(mergedData);
+
+            updateDashboard(mergedData);
         } catch (error) {
             console.error('[Performance] Failed to load data:', error);
             showError('Failed to load performance metrics');

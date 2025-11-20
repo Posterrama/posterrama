@@ -84,13 +84,16 @@ module.exports = function createAdminPerformanceRouter({
 
                 if (cacheManager) {
                     const stats = cacheManager.getDetailedStats();
+                    const hitRatio = stats.hitRatio?.percentage || 0;
                     cacheMetrics = {
-                        hitRate: stats.totalHitRate || 0,
+                        hitRate: hitRatio,
                         memoryMB: Math.round((stats.memoryUsageBytes || 0) / 1024 / 1024),
                         diskMB: Math.round((stats.diskUsageBytes || 0) / 1024 / 1024),
                         entries: stats.totalEntries || 0,
                         memoryEntries: stats.memoryEntries || 0,
                         diskEntries: stats.diskEntries || 0,
+                        hits: stats.hits || 0,
+                        misses: stats.misses || 0,
                     };
                 }
 
