@@ -302,50 +302,75 @@
 
         // Cache chart removed - use KPI card instead
 
-        // System Load - Scatter Chart (CPU vs Memory correlation)
+        // System Resources - Line Chart (CPU and Memory over time)
         const systemCtx = document.getElementById('chart-system');
         if (systemCtx) {
             charts.system = new Chart(systemCtx, {
-                type: 'scatter',
+                type: 'line',
                 data: {
                     datasets: [
                         {
-                            label: 'System Load',
+                            label: 'CPU Usage',
                             data: [],
-                            backgroundColor: 'rgba(139, 92, 246, 0.6)',
                             borderColor: '#8b5cf6',
-                            pointRadius: 6,
-                            pointHoverRadius: 8,
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 5,
+                        },
+                        {
+                            label: 'Memory Usage',
+                            data: [],
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 5,
                         },
                     ],
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                     plugins: {
                         legend: {
-                            display: false,
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-text-primary')
+                                    .trim(),
+                                usePointStyle: true,
+                                padding: 15,
+                            },
                         },
                         tooltip: {
                             callbacks: {
                                 label: function (context) {
-                                    return `CPU: ${context.parsed.x.toFixed(1)}%, Memory: ${context.parsed.y.toFixed(1)}%`;
+                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}%`;
                                 },
                             },
                         },
                     },
                     scales: {
                         x: {
-                            type: 'linear',
-                            position: 'bottom',
-                            min: 0,
-                            max: 100,
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'HH:mm',
+                                },
+                            },
                             title: {
-                                display: true,
-                                text: 'CPU Usage (%)',
-                                color: getComputedStyle(document.documentElement)
-                                    .getPropertyValue('--color-text-secondary')
-                                    .trim(),
+                                display: false,
                             },
                             ticks: {
                                 color: getComputedStyle(document.documentElement)
@@ -364,7 +389,7 @@
                             max: 100,
                             title: {
                                 display: true,
-                                text: 'Memory Usage (%)',
+                                text: 'Usage (%)',
                                 color: getComputedStyle(document.documentElement)
                                     .getPropertyValue('--color-text-secondary')
                                     .trim(),
@@ -373,6 +398,9 @@
                                 color: getComputedStyle(document.documentElement)
                                     .getPropertyValue('--color-text-secondary')
                                     .trim(),
+                                callback: function (value) {
+                                    return value + '%';
+                                },
                             },
                             grid: {
                                 color: getComputedStyle(document.documentElement)
@@ -550,11 +578,15 @@
             charts.requests.update('none');
         }
 
-        // Update system scatter chart (CPU vs Memory correlation)
+        // Update system line chart (CPU and Memory over time)
         if (charts.system && data.system?.history) {
             const history = data.system.history.slice(-24);
             charts.system.data.datasets[0].data = history.map(d => ({
-                x: d.cpu || 0,
+                x: new Date(d.timestamp),
+                y: d.cpu || 0,
+            }));
+            charts.system.data.datasets[1].data = history.map(d => ({
+                x: new Date(d.timestamp),
                 y: d.memory || 0,
             }));
             charts.system.update('none');

@@ -145,11 +145,11 @@
           <div class="dropdown-heading">Monitoring</div>
           <a class="dropdown-item" href="#" id="menu-performance" data-nav="performance">
             <i class="fas fa-chart-line"></i>
-            <span>Performance Dashboard</span>
+            <span>Performance</span>
           </a>
           <a class="dropdown-item" href="/logs" target="_blank" rel="noopener" id="menu-logs">
             <i class="fas fa-terminal"></i>
-            <span>Logs Viewer</span>
+            <span>Logs</span>
           </a>
           <div class="dropdown-divider"></div>
           <div class="dropdown-heading">Server</div>
@@ -2309,7 +2309,7 @@
     <section id="section-performance" class="app-section" hidden>
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">
+          <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
             <i class="fas fa-chart-line"></i>
             <h2>Performance Dashboard</h2>
           </div>
@@ -2356,9 +2356,9 @@
             <!-- Request Latency Chart -->
             <div class="panel">
               <div class="panel-header">
-                <div class="panel-title">
+                <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
                   <i class="fas fa-clock"></i>
-                  <h3>Request Latency (24 hours)</h3>
+                  <h3>Request Latency</h3>
                 </div>
               </div>
               <div class="panel-content">
@@ -2369,9 +2369,9 @@
             <!-- Request Rate Chart -->
             <div class="panel">
               <div class="panel-header">
-                <div class="panel-title">
+                <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
                   <i class="fas fa-chart-area"></i>
-                  <h3>Request Rate (24 hours)</h3>
+                  <h3>Request Rate</h3>
                 </div>
               </div>
               <div class="panel-content">
@@ -2379,12 +2379,12 @@
               </div>
             </div>
 
-            <!-- System Load - Scatter Chart -->
+            <!-- System Resources Chart -->
             <div class="panel">
               <div class="panel-header">
-                <div class="panel-title">
+                <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
                   <i class="fas fa-microchip"></i>
-                  <h3>System Load Correlation</h3>
+                  <h3>System Resources</h3>
                 </div>
               </div>
               <div class="panel-content">
@@ -2395,7 +2395,7 @@
             <!-- Endpoint Performance - Bubble Chart (Full Width) -->
             <div class="panel" style="grid-column: 1 / -1;">
               <div class="panel-header">
-                <div class="panel-title">
+                <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
                   <i class="fas fa-bullseye"></i>
                   <h3>Endpoint Performance Analysis</h3>
                 </div>
@@ -2409,13 +2409,14 @@
           <!-- Top Endpoints Table -->
           <div class="panel" style="margin-top: 24px;">
             <div class="panel-header">
-              <div class="panel-title">
+              <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
                 <i class="fas fa-list"></i>
-                <h3>Top 10 Slowest Endpoints</h3>
+                <h3>Endpoint Performance Monitor</h3>
               </div>
             </div>
             <div class="panel-content">
-              <table class="data-table" id="perf-endpoints-table">
+              <div style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
+                <table class="data-table" id="perf-endpoints-table">
                 <thead>
                   <tr>
                     <th class="sortable" data-sort="path">
@@ -2444,22 +2445,6 @@
                   </tr>
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          <!-- Source Health Status -->
-          <div class="panel" style="margin-top: 24px;">
-            <div class="panel-header">
-              <div class="panel-title">
-                <i class="fas fa-server"></i>
-                <h3>Source Health</h3>
-              </div>
-            </div>
-            <div class="panel-content">
-              <div id="perf-sources" class="card-grid">
-                <p style="text-align: center; padding: 20px; color: var(--color-text-secondary);">
-                  <i class="fas fa-spinner fa-spin"></i> Loading...
-                </p>
               </div>
             </div>
           </div>
@@ -4408,12 +4393,13 @@
             // Hide/show dashboard controls based on section
             const configureBtn = document.getElementById('btn-configure-cards');
             const activityPill = document.getElementById('perf-activity');
-            if (targetSection === 'logs') {
-              if (configureBtn) configureBtn.style.display = 'none';
-              if (activityPill) activityPill.style.display = 'none';
-            } else {
+            // Only show dashboard controls on the main dashboard page
+            if (targetSection === 'dashboard') {
               if (configureBtn) configureBtn.style.display = 'block';
               if (activityPill) activityPill.style.display = 'flex';
+            } else {
+              if (configureBtn) configureBtn.style.display = 'none';
+              if (activityPill) activityPill.style.display = 'none';
             }
             
             // Initialize logs viewer when logs section becomes visible
@@ -4443,6 +4429,19 @@
           }
         });
       });
+    });
+    
+    // Handle hash navigation on page load (for direct links like /admin#performance)
+    window.addEventListener('DOMContentLoaded', function() {
+      const hash = window.location.hash.substring(1); // Remove # symbol
+      if (hash) {
+        const targetSection = hash;
+        const navItem = document.querySelector(`[data-nav="${targetSection}"]`);
+        if (navItem) {
+          // Trigger click on the nav item to activate the section
+          navItem.click();
+        }
+      }
     });
   </script>
   

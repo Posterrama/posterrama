@@ -119,13 +119,21 @@ module.exports = function createAdminPerformanceRouter({
                 const sourceMetrics = getSourceHealth(config, logger, metricsManager);
 
                 // Combine all metrics
-                // Map request rate history to include requestsPerMinute
-                const requestHistory = (aggregatedData.requestRate || []).map(d => ({
-                    timestamp: d.timestamp,
-                    requestsPerMinute: Math.round((d.rate || 0) * 60 * 100) / 100, // Convert rate/sec to rate/min
-                    avg: d.avg || 0,
-                    p95: d.p95 || 0,
-                }));
+                // Merge request rate and response time histories
+                const requestHistory = (aggregatedData.requestRate || []).map(rateData => {
+                    // Find matching response time data by timestamp
+                    const responseData = (aggregatedData.responseTime || []).find(
+                        rt => Math.abs(rt.timestamp - rateData.timestamp) < 30000 // Within 30 seconds
+                    );
+
+                    return {
+                        timestamp: rateData.timestamp,
+                        requestsPerMinute: Math.round((rateData.rate || 0) * 60 * 100) / 100, // Convert rate/sec to rate/min
+                        avg: responseData?.avg || 0,
+                        p95: responseData?.p95 || 0,
+                        p99: responseData?.p99 || 0,
+                    };
+                });
 
                 const response = {
                     timestamp: Date.now(),
@@ -143,7 +151,7 @@ module.exports = function createAdminPerformanceRouter({
                             errorRate: errorMetrics.errorRate || 0,
                         },
                         history: requestHistory,
-                        topEndpoints: getTopEndpoints(endpointMetrics.endpoints || []),
+                        topEndpoints: getTopEndpoints(endpointMetrics.endpoints || [], 999),
                     },
                     cache: {
                         current: cacheMetrics,
@@ -290,7 +298,24 @@ function getSourceHealth(config, logger, metricsManager) {
  * @private
  */
 function getTopEndpoints(endpoints, limit = 10) {
-    // Filter out uninteresting endpoints
+    // Priority endpoints we always want to monitor
+    const priorityEndpoints = [
+        '/api/get-media',
+        '/api/get-playlist',
+        '/api/get-music-artists',
+        '/api/image',
+        '/api/devices/heartbeat',
+        '/api/devices/command',
+        '/api/admin/config',
+        '/api/admin/dashboard',
+        '/api/admin/cache/invalidate',
+        '/api/admin/libraries',
+        '/api/admin/filter-preview',
+        '/api/plex/sessions',
+        '/api/get-media-by-key',
+    ];
+
+    // Filter and categorize endpoints
     const filtered = endpoints.filter(endpoint => {
         const path = endpoint.path;
 
@@ -300,6 +325,7 @@ function getTopEndpoints(endpoints, limit = 10) {
             path.includes('/ping') ||
             path.includes('/favicon') ||
             path.includes('/robots.txt') ||
+            path.includes('/logo.png') ||
             path.includes('.js') ||
             path.includes('.css') ||
             path.includes('.map')
@@ -308,7 +334,16 @@ function getTopEndpoints(endpoints, limit = 10) {
         }
 
         // Skip admin UI pages (keep admin API)
-        if (path === '/admin' || path === '/admin.html') {
+        if (path === '/admin' || path === '/admin.html' || path === '/logs') {
+            return false;
+        }
+
+        // Skip SSE/streaming endpoints (long-lived connections)
+        if (
+            path.includes('/stream') ||
+            path.includes('/api/admin/events') ||
+            path.includes('/ws/')
+        ) {
             return false;
         }
 
@@ -316,9 +351,26 @@ function getTopEndpoints(endpoints, limit = 10) {
         return true;
     });
 
-    return filtered
+    // Add priority scoring
+    const scored = filtered.map(endpoint => {
+        const isPriority = priorityEndpoints.some(
+            priority => endpoint.path === priority || endpoint.path.startsWith(priority + '/')
+        );
+
+        return {
+            ...endpoint,
+            priorityScore: isPriority ? 1000 : 0,
+        };
+    });
+
+    return scored
         .sort((a, b) => {
-            // Sort by: high error rate first, then slow latency, then high request count
+            // First, prioritize by priority list
+            if (a.priorityScore !== b.priorityScore) {
+                return b.priorityScore - a.priorityScore;
+            }
+
+            // Then sort by: high error rate first, then slow latency, then high request count
             if (a.errorRate > 0 && b.errorRate === 0) return -1;
             if (b.errorRate > 0 && a.errorRate === 0) return 1;
             if (a.averageResponseTime > 1000 && b.averageResponseTime < 1000) return -1;

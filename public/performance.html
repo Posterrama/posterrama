@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Dashboard - Posterrama</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="/admin.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+</head>
+<body>
+    <section id="section-performance" class="app-section">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
+            <i class="fas fa-chart-line"></i>
+            <h2>Performance Dashboard</h2>
+          </div>
+        </div>
+        <div class="panel-content">
+          <!-- KPI Cards -->
+          <section class="card-grid" id="perf-kpi-cards" style="margin-bottom: 32px;">
+            <div class="status-card status-info" title="Current request rate per minute">
+              <div class="card-icon"><i class="fas fa-clock"></i></div>
+              <div class="card-content">
+                <h3>Requests/min</h3>
+                <span class="metric" id="perf-rpm">—</span>
+                <span class="trend" id="perf-rpm-trend"></span>
+              </div>
+            </div>
+            <div class="status-card status-success" title="Average response time in milliseconds">
+              <div class="card-icon"><i class="fas fa-gauge-high"></i></div>
+              <div class="card-content">
+                <h3>Avg Latency</h3>
+                <span class="metric" id="perf-latency">—</span>
+                <span class="trend" id="perf-latency-trend"></span>
+              </div>
+            </div>
+            <div class="status-card status-warning" title="Percentage of API response cache hits vs misses">
+              <div class="card-icon"><i class="fas fa-bolt"></i></div>
+              <div class="card-content">
+                <h3>API Cache Hit Rate</h3>
+                <span class="metric" id="perf-cache-hit">—</span>
+                <span class="trend" id="perf-cache-trend"></span>
+              </div>
+            </div>
+            <div class="status-card status-success" title="Number of connected devices via WebSocket">
+              <div class="card-icon"><i class="fas fa-plug"></i></div>
+              <div class="card-content">
+                <h3>Active Devices</h3>
+                <span class="metric" id="perf-ws-devices">—</span>
+                <span class="trend" id="perf-ws-trend"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Charts Grid -->
+          <div class="content-grid" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+            <!-- Request Latency Chart -->
+            <div class="panel">
+              <div class="panel-header">
+                <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
+                  <i class="fas fa-clock"></i>
+                  <h3>Request Latency</h3>
+                </div>
+              </div>
+              <div class="panel-content">
+                <canvas id="chart-latency" style="max-height: 250px;"></canvas>
+              </div>
+            </div>
+
+            <!-- Request Rate Chart -->
+            <div class="panel">
+              <div class="panel-header">
+                <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
+                  <i class="fas fa-chart-area"></i>
+                  <h3>Request Rate</h3>
+                </div>
+              </div>
+              <div class="panel-content">
+                <canvas id="chart-requests" style="max-height: 250px;"></canvas>
+              </div>
+            </div>
+
+            <!-- System Resources Chart -->
+            <div class="panel">
+              <div class="panel-header">
+                <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
+                  <i class="fas fa-microchip"></i>
+                  <h3>System Resources</h3>
+                </div>
+              </div>
+              <div class="panel-content">
+                <canvas id="chart-system" style="max-height: 250px;"></canvas>
+              </div>
+            </div>
+
+            <!-- Endpoint Performance - Bubble Chart (Full Width) -->
+            <div class="panel" style="grid-column: 1 / -1;">
+              <div class="panel-header">
+                <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
+                  <i class="fas fa-bullseye"></i>
+                  <h3>Endpoint Performance Analysis</h3>
+                </div>
+              </div>
+              <div class="panel-content">
+                <canvas id="chart-endpoints" style="max-height: 350px;"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Endpoints Table -->
+          <div class="panel" style="margin-top: 24px;">
+            <div class="panel-header">
+              <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
+                <i class="fas fa-list"></i>
+                <h3>Endpoint Performance Monitor</h3>
+              </div>
+            </div>
+            <div class="panel-content">
+              <div style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
+                <table class="data-table" id="perf-endpoints-table">
+                <thead>
+                  <tr>
+                    <th class="sortable" data-sort="path">
+                      Endpoint
+                      <i class="fas fa-sort sort-icon"></i>
+                    </th>
+                    <th class="sortable" data-sort="count">
+                      Requests
+                      <i class="fas fa-sort sort-icon"></i>
+                    </th>
+                    <th class="sortable" data-sort="avgLatency">
+                      Avg Latency
+                      <i class="fas fa-sort sort-icon"></i>
+                    </th>
+                    <th class="sortable" data-sort="errorRate">
+                      Error Rate
+                      <i class="fas fa-sort sort-icon"></i>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="perf-endpoints-tbody">
+                  <tr>
+                    <td colspan="4" style="text-align: center; padding: 20px; color: var(--color-text-secondary);">
+                      <i class="fas fa-spinner fa-spin"></i> Loading...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Performance Dashboard Script -->
+    <script src="/performance.js"></script>
+</body>
+</html>

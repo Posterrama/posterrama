@@ -217,15 +217,24 @@ class MetricsManager {
     getSystemMetrics() {
         const memUsage = process.memoryUsage();
         const uptime = Date.now() - this.startTime;
+        const os = require('os');
 
         // CPU usage percentages (system and process) computed via time-delta sampling
         const cpuStats = this.getCpuUsage();
 
+        // Calculate system memory usage (not just Node.js heap)
+        const totalMemory = os.totalmem();
+        const freeMemory = os.freemem();
+        const usedMemory = totalMemory - freeMemory;
+        const memoryPercentage = Math.round((usedMemory / totalMemory) * 10000) / 100;
+
         return {
             memory: {
-                used: Math.round((memUsage.heapUsed / 1024 / 1024) * 100) / 100, // MB
-                total: Math.round((memUsage.heapTotal / 1024 / 1024) * 100) / 100, // MB
-                percentage: Math.round((memUsage.heapUsed / memUsage.heapTotal) * 10000) / 100,
+                used: Math.round((memUsage.heapUsed / 1024 / 1024) * 100) / 100, // MB (heap)
+                total: Math.round((memUsage.heapTotal / 1024 / 1024) * 100) / 100, // MB (heap)
+                percentage: memoryPercentage, // System memory percentage
+                systemUsed: Math.round((usedMemory / 1024 / 1024 / 1024) * 100) / 100, // GB
+                systemTotal: Math.round((totalMemory / 1024 / 1024 / 1024) * 100) / 100, // GB
             },
             cpu: {
                 // Keep backward compatibility: usage == overall system percent

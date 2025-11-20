@@ -201,6 +201,21 @@ module.exports = function createFrontendPagesRouter({
 
     /**
      * @swagger
+     * /performance:
+     *   get:
+     *     summary: Standalone Performance Dashboard
+     *     description: Displays the performance monitoring dashboard in a dedicated page (requires authentication)
+     *     tags: ['Frontend']
+     *     responses:
+     *       200:
+     *         description: Performance dashboard page rendered successfully
+     */
+    router.get('/performance', isAuthenticated, (req, res) => {
+        res.sendFile(path.join(__dirname, '..', 'public', 'performance.html'));
+    });
+
+    /**
+     * @swagger
      * /preview:
      *   get:
      *     summary: Preview page
