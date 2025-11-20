@@ -4401,26 +4401,51 @@
   <!-- Logs Viewer -->
   <script src="/js/admin-logs-viewer.js?v={{ASSET_VERSION}}"></script>
   <script>
-    // Initialize logs viewer when section becomes visible
+    // Navigation handler for dropdown menu items with data-nav attribute
     document.addEventListener('DOMContentLoaded', function() {
-      // Observe when logs section becomes visible
-      const logsSection = document.getElementById('section-logs');
-      if (logsSection) {
-        const observer = new MutationObserver(function(mutations) {
-          mutations.forEach(function(mutation) {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'hidden') {
-              if (!logsSection.hasAttribute('hidden')) {
-                // Section is now visible - initialize viewer
-                if (!window.logsViewer) {
-                  window.logsViewer = new LogsViewer('logs-viewer-container');
-                }
-              }
-            }
+      // Handle all navigation items with data-nav attribute
+      document.querySelectorAll('[data-nav]').forEach(function(navItem) {
+        navItem.addEventListener('click', function(e) {
+          e.preventDefault();
+          const targetSection = this.getAttribute('data-nav');
+          
+          // Hide all app sections
+          document.querySelectorAll('.app-section').forEach(function(section) {
+            section.setAttribute('hidden', '');
           });
+          
+          // Show target section
+          const target = document.getElementById('section-' + targetSection);
+          if (target) {
+            target.removeAttribute('hidden');
+            
+            // Initialize logs viewer when logs section becomes visible
+            if (targetSection === 'logs' && !window.logsViewer) {
+              setTimeout(function() {
+                window.logsViewer = new LogsViewer('logs-viewer-container');
+              }, 100);
+            }
+          }
+          
+          // Update active state on sidebar nav items
+          document.querySelectorAll('.nav-item').forEach(function(item) {
+            item.classList.remove('active');
+          });
+          if (this.classList.contains('nav-item')) {
+            this.classList.add('active');
+          }
+          
+          // Close dropdown if this was a dropdown item
+          const dropdown = this.closest('.dropdown');
+          if (dropdown) {
+            dropdown.classList.remove('show');
+            const overlay = document.getElementById('dropdown-overlay');
+            if (overlay) {
+              overlay.hidden = true;
+            }
+          }
         });
-        
-        observer.observe(logsSection, { attributes: true });
-      }
+      });
     });
   </script>
   
