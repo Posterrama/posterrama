@@ -2373,6 +2373,7 @@ const adminPerformanceRouter = createAdminPerformanceRouter({
     logger,
     metricsManager,
     cacheManager,
+    apiCache, // API response cache (for hit rate metrics)
     wsHub,
     config,
     asyncHandler,

@@ -13,6 +13,7 @@ const express = require('express');
  * @param {Object} deps.logger - Logger instance
  * @param {Object} deps.metricsManager - Metrics manager instance
  * @param {Object} deps.cacheManager - Cache manager instance
+ * @param {Object} deps.apiCache - API response cache instance
  * @param {Object} deps.wsHub - WebSocket hub instance
  * @param {Object} deps.config - Config instance
  * @param {Function} deps.asyncHandler - Async error handler middleware
@@ -23,6 +24,7 @@ module.exports = function createAdminPerformanceRouter({
     logger,
     metricsManager,
     cacheManager,
+    apiCache,
     wsHub,
     config,
     asyncHandler,
@@ -74,7 +76,7 @@ module.exports = function createAdminPerformanceRouter({
                 // Get aggregated time-series data
                 const aggregatedData = metricsManager.getAggregatedMetrics(period);
 
-                // Get cache metrics
+                // Get cache metrics from API response cache (the one users actually see)
                 let cacheMetrics = {
                     hitRate: 0,
                     memoryMB: 0,
@@ -82,18 +84,21 @@ module.exports = function createAdminPerformanceRouter({
                     entries: 0,
                 };
 
-                if (cacheManager) {
-                    const stats = cacheManager.getDetailedStats();
-                    const hitRatio = stats.hitRatio?.percentage || 0;
+                if (apiCache) {
+                    const stats = apiCache.getStats();
+                    const total = stats.hits + stats.misses;
+                    const hitRate = total > 0 ? (stats.hits / total) * 100 : 0;
+
                     cacheMetrics = {
-                        hitRate: hitRatio,
-                        memoryMB: stats.memoryUsage?.totalMB || 0,
-                        diskMB: 0, // Not tracked in detailed stats
+                        hitRate: Math.round(hitRate * 100) / 100,
+                        memoryMB: Math.round((stats.memoryUsage || 0) / 1024 / 1024),
+                        diskMB: 0, // API cache is memory-only
                         entries: stats.size || 0,
                         memoryEntries: stats.size || 0,
                         diskEntries: 0,
                         hits: stats.hits || 0,
                         misses: stats.misses || 0,
+                        totalRequests: total,
                     };
                 }
 
