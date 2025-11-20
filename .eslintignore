@@ -8,8 +8,10 @@ build/
 coverage/
 .nyc_output/
 
-# Vendor libraries (minified)
+# Vendor libraries (third-party minified code)
 public/vendor/
+public/vendor/*.min.js
+public/vendor/*.umd.js
 
 # Cache
 .cache/
