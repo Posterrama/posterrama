@@ -29,23 +29,6 @@
 
         // Check immediately in case section is already visible
         checkPerformanceSection();
-
-        // Setup auto-refresh toggle
-        const autoRefreshToggle = document.getElementById('perf-auto-refresh');
-        if (autoRefreshToggle) {
-            autoRefreshToggle.addEventListener('change', e => {
-                if (e.target.checked) {
-                    startAutoRefresh();
-                } else {
-                    stopAutoRefresh();
-                }
-            });
-
-            // Start auto-refresh if checked
-            if (autoRefreshToggle.checked) {
-                startAutoRefresh();
-            }
-        }
     }
 
     function checkPerformanceSection() {
@@ -54,9 +37,11 @@
             if (!charts.latency) {
                 initializeCharts();
                 loadPerformanceData();
+                startAutoRefresh();
             }
         } else {
             // Destroy charts when section is hidden to prevent canvas reuse errors
+            stopAutoRefresh();
             destroyCharts();
         }
     }
