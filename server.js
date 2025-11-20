@@ -2366,6 +2366,11 @@ app.use('/', adminCacheRouter);
 // Initialize cache references (must be done after apiCache is created)
 adminCacheRouter.initCacheReferences(cacheManager, apiCache);
 
+// === ADMIN LOGS ROUTES ===
+// Extracted to routes/admin-logs.js
+const adminLogsRouter = require('./routes/admin-logs');
+app.use('/api/admin', isAuthenticated, adminLogsRouter);
+
 // === ADMIN PERFORMANCE ROUTES ===
 // Extracted to routes/admin-performance.js
 const createAdminPerformanceRouter = require('./routes/admin-performance');

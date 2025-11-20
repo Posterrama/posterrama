@@ -1,0 +1,253 @@
+/**
+ * Admin Logs Viewer Styles
+ * Dark theme styling matching admin interface
+ */
+
+.logs-viewer {
+    font-family:
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.logs-controls {
+    background-color: #1a1d20 !important;
+    border: 1px solid #2d3239 !important;
+}
+
+.logs-controls .form-control,
+.logs-controls .form-select {
+    background-color: #2d3239 !important;
+    border-color: #3a3f47 !important;
+    color: #e8e9eb !important;
+}
+
+.logs-controls .form-control:focus,
+.logs-controls .form-select:focus {
+    background-color: #2d3239 !important;
+    border-color: #0d6efd !important;
+    color: #e8e9eb !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.logs-controls .form-control::placeholder {
+    color: #6c757d;
+}
+
+.logs-controls .input-group-text {
+    background-color: #2d3239 !important;
+    border-color: #3a3f47 !important;
+    color: #6c757d !important;
+}
+
+.logs-controls .btn {
+    border-color: #3a3f47;
+}
+
+.logs-controls .btn:hover {
+    background-color: #3a3f47;
+}
+
+.logs-controls .btn.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+
+.logs-container {
+    background-color: #0d1117 !important;
+    border: 1px solid #2d3239 !important;
+    position: relative;
+}
+
+.log-entry {
+    padding: 8px 12px;
+    border-bottom: 1px solid #1a1d20 !important;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    transition: background-color 0.15s ease;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.log-entry:hover {
+    background-color: #161b22 !important;
+}
+
+.log-entry:last-child {
+    border-bottom: none !important;
+}
+
+/* Level-specific styling */
+.log-entry[data-level='ERROR'],
+.log-entry[data-level='FATAL'] {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    border-left: 3px solid #dc3545;
+}
+
+.log-entry[data-level='WARN'] {
+    background-color: rgba(255, 193, 7, 0.05) !important;
+    border-left: 3px solid #ffc107;
+}
+
+.log-entry[data-level='INFO'] {
+    border-left: 3px solid transparent;
+}
+
+.log-entry[data-level='DEBUG'] {
+    border-left: 3px solid transparent;
+    opacity: 0.8;
+}
+
+.log-entry[data-level='TRACE'] {
+    border-left: 3px solid transparent;
+    opacity: 0.6;
+}
+
+/* Badge styling */
+.log-entry .badge {
+    font-family:
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 6px;
+    min-width: 55px;
+    text-align: center;
+}
+
+/* Timestamp styling */
+.log-entry .text-muted {
+    color: #6c757d !important;
+    font-size: 12px;
+}
+
+/* Message text */
+.log-entry .text-light {
+    color: #e8e9eb !important;
+}
+
+/* Stack trace / multiline styling */
+.log-entry .ms-4 {
+    margin-left: 1.5rem !important;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* Scrollbar styling for dark theme */
+.logs-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.logs-container::-webkit-scrollbar-track {
+    background: #0d1117;
+}
+
+.logs-container::-webkit-scrollbar-thumb {
+    background: #3a3f47;
+    border-radius: 5px;
+}
+
+.logs-container::-webkit-scrollbar-thumb:hover {
+    background: #4a5057;
+}
+
+/* Button group spacing */
+.logs-controls .btn-group .btn {
+    margin-left: -1px;
+}
+
+.logs-controls .btn-group .btn:first-child {
+    margin-left: 0;
+}
+
+/* Status indicator animation */
+.logs-controls .fa-circle {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Unread badge pulse */
+#logs-unread-badge .badge {
+    animation: badge-pulse 1s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* Loading state */
+.logs-container .fa-spinner {
+    color: #6c757d;
+}
+
+/* Empty state */
+.logs-container .fa-inbox {
+    color: #6c757d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .logs-controls .col-md-4,
+    .logs-controls .col-md-2,
+    .logs-controls .col-md-6 {
+        margin-bottom: 8px;
+    }
+
+    .logs-controls .text-end {
+        text-align: left !important;
+    }
+
+    .log-entry {
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+
+    .log-entry .badge {
+        font-size: 9px;
+        padding: 2px 4px;
+        min-width: 45px;
+    }
+
+    .logs-container {
+        height: 400px !important;
+    }
+}
+
+/* Focus states for accessibility */
+.logs-controls .form-control:focus,
+.logs-controls .form-select:focus,
+.logs-controls .btn:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+    .logs-controls {
+        display: none;
+    }
+
+    .logs-container {
+        height: auto !important;
+        overflow: visible !important;
+        border: 1px solid #000 !important;
+    }
+
+    .log-entry {
+        page-break-inside: avoid;
+    }
+}

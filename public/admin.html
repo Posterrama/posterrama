@@ -27,6 +27,7 @@
     referrerpolicy="no-referrer"
   />
   <link rel="stylesheet" href="/admin.css?v={{ASSET_VERSION}}" />
+  <link rel="stylesheet" href="/css/admin-logs-viewer.css?v={{ASSET_VERSION}}" />
   <script>
     // Remove any dynamically injected _next/static links from old caches or extensions
     if (typeof MutationObserver !== 'undefined') {
@@ -149,6 +150,10 @@
           <a class="dropdown-item" href="#" id="menu-performance" data-nav="performance">
             <i class="fas fa-chart-line"></i>
             <span>Performance Dashboard</span>
+          </a>
+          <a class="dropdown-item" href="#" id="menu-logs" data-nav="logs">
+            <i class="fas fa-terminal"></i>
+            <span>Logs Viewer</span>
           </a>
           <div class="dropdown-divider"></div>
           <div class="dropdown-heading">Server</div>
@@ -3006,6 +3011,18 @@
           </div>
         </div>
       </section>
+
+      <!-- Logs Viewer Section -->
+      <section class="panel" id="panel-logs-viewer" style="display: none; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-md);">
+        <header class="panel-header" style="background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); border-radius: 12px 12px 0 0; padding: 20px 24px;">
+          <h2 style="color: var(--color-text-primary); font-size: 1.25rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-terminal" style="color: var(--color-accent);"></i> Real-time Logs
+          </h2>
+        </header>
+        <div class="panel-content" style="padding: 24px;">
+          <div id="logs-viewer-container"></div>
+        </div>
+      </section>
     </section>
 
   </main>
@@ -4377,6 +4394,82 @@
   </script>
   <link rel="stylesheet" href="/cinema/cinema.css?v={{ASSET_VERSION}}" />
   <script src="/cinema/cinema-ui.js?v={{ASSET_VERSION}}"></script>
+  
+  <!-- Logs Viewer -->
+  <script src="/js/admin-logs-viewer.js?v={{ASSET_VERSION}}"></script>
+  <script>
+    // Initialize logs viewer when logs section is shown
+    document.addEventListener('DOMContentLoaded', function() {
+      const logsMenuItem = document.getElementById('menu-logs');
+      if (logsMenuItem) {
+        logsMenuItem.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          // Hide all panels
+          document.querySelectorAll('.panel').forEach(panel => {
+            panel.style.display = 'none';
+          });
+          
+          // Show logs panel
+          const logsPanel = document.getElementById('panel-logs-viewer');
+          if (logsPanel) {
+            logsPanel.style.display = 'block';
+            
+            // Initialize viewer if not already done
+            if (!window.logsViewer) {
+              window.logsViewer = new LogsViewer('logs-viewer-container');
+            }
+          }
+          
+          // Update active state in dropdown
+          document.querySelectorAll('[data-nav]').forEach(item => {
+            item.classList.remove('active');
+          });
+          this.classList.add('active');
+          
+          // Close dropdown
+          const dropdown = document.getElementById('settings-dropdown');
+          if (dropdown) {
+            dropdown.classList.remove('show');
+          }
+        });
+      }
+      
+      // Handle performance menu item (existing functionality)
+      const perfMenuItem = document.getElementById('menu-performance');
+      if (perfMenuItem) {
+        perfMenuItem.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          // Hide all panels except performance
+          document.querySelectorAll('.panel').forEach(panel => {
+            if (panel.id !== 'panel-perf-dashboard') {
+              panel.style.display = 'none';
+            }
+          });
+          
+          // Show performance panel
+          const perfPanel = document.getElementById('panel-perf-dashboard');
+          if (perfPanel) {
+            perfPanel.style.display = 'block';
+          }
+          
+          // Update active state
+          document.querySelectorAll('[data-nav]').forEach(item => {
+            item.classList.remove('active');
+          });
+          this.classList.add('active');
+          
+          // Close dropdown
+          const dropdown = document.getElementById('settings-dropdown');
+          if (dropdown) {
+            dropdown.classList.remove('show');
+          }
+        });
+      }
+    });
+  </script>
+  
   <!-- PWA Service Worker Registration (admin2) -->
   <script>
     // Register SW without forcing immediate reloads. We'll prompt the user instead.
