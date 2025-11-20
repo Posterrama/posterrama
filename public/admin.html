@@ -3011,18 +3011,21 @@
           </div>
         </div>
       </section>
+    </section>
 
-      <!-- Logs Viewer Section -->
-      <section class="panel" id="panel-logs-viewer" style="display: none; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-md);">
-        <header class="panel-header" style="background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); border-radius: 12px 12px 0 0; padding: 20px 24px;">
-          <h2 style="color: var(--color-text-primary); font-size: 1.25rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 12px;">
-            <i class="fas fa-terminal" style="color: var(--color-accent);"></i> Real-time Logs
-          </h2>
-        </header>
-        <div class="panel-content" style="padding: 24px;">
+    <!-- Logs Viewer Section -->
+    <section id="section-logs" class="app-section" hidden>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fas fa-terminal"></i>
+            <h2>Real-time Logs</h2>
+          </div>
+        </div>
+        <div class="panel-content">
           <div id="logs-viewer-container"></div>
         </div>
-      </section>
+      </div>
     </section>
 
   </main>
@@ -4398,74 +4401,25 @@
   <!-- Logs Viewer -->
   <script src="/js/admin-logs-viewer.js?v={{ASSET_VERSION}}"></script>
   <script>
-    // Initialize logs viewer when logs section is shown
+    // Initialize logs viewer when section becomes visible
     document.addEventListener('DOMContentLoaded', function() {
-      const logsMenuItem = document.getElementById('menu-logs');
-      if (logsMenuItem) {
-        logsMenuItem.addEventListener('click', function(e) {
-          e.preventDefault();
-          
-          // Hide all panels
-          document.querySelectorAll('.panel').forEach(panel => {
-            panel.style.display = 'none';
-          });
-          
-          // Show logs panel
-          const logsPanel = document.getElementById('panel-logs-viewer');
-          if (logsPanel) {
-            logsPanel.style.display = 'block';
-            
-            // Initialize viewer if not already done
-            if (!window.logsViewer) {
-              window.logsViewer = new LogsViewer('logs-viewer-container');
-            }
-          }
-          
-          // Update active state in dropdown
-          document.querySelectorAll('[data-nav]').forEach(item => {
-            item.classList.remove('active');
-          });
-          this.classList.add('active');
-          
-          // Close dropdown
-          const dropdown = document.getElementById('settings-dropdown');
-          if (dropdown) {
-            dropdown.classList.remove('show');
-          }
-        });
-      }
-      
-      // Handle performance menu item (existing functionality)
-      const perfMenuItem = document.getElementById('menu-performance');
-      if (perfMenuItem) {
-        perfMenuItem.addEventListener('click', function(e) {
-          e.preventDefault();
-          
-          // Hide all panels except performance
-          document.querySelectorAll('.panel').forEach(panel => {
-            if (panel.id !== 'panel-perf-dashboard') {
-              panel.style.display = 'none';
+      // Observe when logs section becomes visible
+      const logsSection = document.getElementById('section-logs');
+      if (logsSection) {
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'hidden') {
+              if (!logsSection.hasAttribute('hidden')) {
+                // Section is now visible - initialize viewer
+                if (!window.logsViewer) {
+                  window.logsViewer = new LogsViewer('logs-viewer-container');
+                }
+              }
             }
           });
-          
-          // Show performance panel
-          const perfPanel = document.getElementById('panel-perf-dashboard');
-          if (perfPanel) {
-            perfPanel.style.display = 'block';
-          }
-          
-          // Update active state
-          document.querySelectorAll('[data-nav]').forEach(item => {
-            item.classList.remove('active');
-          });
-          this.classList.add('active');
-          
-          // Close dropdown
-          const dropdown = document.getElementById('settings-dropdown');
-          if (dropdown) {
-            dropdown.classList.remove('show');
-          }
         });
+        
+        observer.observe(logsSection, { attributes: true });
       }
     });
   </script>
