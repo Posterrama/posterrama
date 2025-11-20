@@ -298,42 +298,131 @@
             });
         }
 
-        // Cache Performance Chart (Area chart with gradient)
+        // Cache Performance - Doughnut Chart (Hits vs Misses)
         const cacheCtx = document.getElementById('chart-cache');
         if (cacheCtx) {
-            const gradient = cacheCtx.getContext('2d').createLinearGradient(0, 0, 0, 250);
-            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
-            gradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
-
             charts.cache = new Chart(cacheCtx, {
-                type: 'line',
+                type: 'doughnut',
                 data: {
+                    labels: ['Cache Hits', 'Cache Misses'],
                     datasets: [
                         {
-                            label: 'Hit Rate (%)',
-                            data: [],
-                            borderColor: '#8b5cf6',
-                            backgroundColor: gradient,
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 3,
-                            pointHoverRadius: 5,
-                            yAxisID: 'y',
+                            data: [0, 0],
+                            backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(239, 68, 68, 0.8)'],
+                            borderColor: ['#10b981', '#ef4444'],
+                            borderWidth: 2,
                         },
                     ],
                 },
                 options: {
-                    ...commonOptions,
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-text-primary')
+                                    .trim(),
+                                padding: 15,
+                                font: {
+                                    size: 12,
+                                },
+                            },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage =
+                                        total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return `${label}: ${value.toLocaleString()} (${percentage}%)`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        }
+
+        // System Load - Scatter Chart (CPU vs Memory correlation)
+        const systemCtx = document.getElementById('chart-system');
+        if (systemCtx) {
+            charts.system = new Chart(systemCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'System Load',
+                            data: [],
+                            backgroundColor: 'rgba(139, 92, 246, 0.6)',
+                            borderColor: '#8b5cf6',
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false,
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return `CPU: ${context.parsed.x.toFixed(1)}%, Memory: ${context.parsed.y.toFixed(1)}%`;
+                                },
+                            },
+                        },
+                    },
                     scales: {
-                        ...commonOptions.scales,
-                        y: {
-                            ...commonOptions.scales.y,
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            min: 0,
                             max: 100,
                             title: {
                                 display: true,
-                                text: 'Hit Rate (%)',
+                                text: 'CPU Usage (%)',
                                 color: getComputedStyle(document.documentElement)
                                     .getPropertyValue('--color-text-secondary')
+                                    .trim(),
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-text-secondary')
+                                    .trim(),
+                            },
+                            grid: {
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-border')
+                                    .trim(),
+                            },
+                        },
+                        y: {
+                            type: 'linear',
+                            min: 0,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Memory Usage (%)',
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-text-secondary')
+                                    .trim(),
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-text-secondary')
+                                    .trim(),
+                            },
+                            grid: {
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-border')
                                     .trim(),
                             },
                         },
@@ -342,45 +431,82 @@
             });
         }
 
-        // System Load Chart
-        const systemCtx = document.getElementById('chart-system');
-        if (systemCtx) {
-            charts.system = new Chart(systemCtx, {
-                type: 'line',
+        // Endpoint Performance - Bubble Chart
+        const endpointsCtx = document.getElementById('chart-endpoints');
+        if (endpointsCtx) {
+            charts.endpoints = new Chart(endpointsCtx, {
+                type: 'bubble',
                 data: {
-                    datasets: [
-                        {
-                            label: 'CPU (%)',
-                            data: [],
-                            borderColor: '#ef4444',
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            yAxisID: 'y',
-                        },
-                        {
-                            label: 'Memory (%)',
-                            data: [],
-                            borderColor: '#06b6d4',
-                            backgroundColor: 'rgba(6, 182, 212, 0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            yAxisID: 'y',
-                        },
-                    ],
+                    datasets: [],
                 },
                 options: {
-                    ...commonOptions,
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-text-primary')
+                                    .trim(),
+                                usePointStyle: true,
+                                padding: 15,
+                            },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.raw.label || '';
+                                    return [
+                                        `Endpoint: ${label}`,
+                                        `Requests: ${context.parsed.x}`,
+                                        `Latency: ${context.parsed.y}ms`,
+                                        `Errors: ${context.raw.errors || 0}`,
+                                    ];
+                                },
+                            },
+                        },
+                    },
                     scales: {
-                        ...commonOptions.scales,
-                        y: {
-                            ...commonOptions.scales.y,
-                            max: 100,
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
                             title: {
                                 display: true,
-                                text: 'Usage (%)',
+                                text: 'Request Count',
                                 color: getComputedStyle(document.documentElement)
                                     .getPropertyValue('--color-text-secondary')
+                                    .trim(),
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-text-secondary')
+                                    .trim(),
+                            },
+                            grid: {
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-border')
+                                    .trim(),
+                            },
+                        },
+                        y: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Average Latency (ms)',
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-text-secondary')
+                                    .trim(),
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-text-secondary')
+                                    .trim(),
+                            },
+                            grid: {
+                                color: getComputedStyle(document.documentElement)
+                                    .getPropertyValue('--color-border')
                                     .trim(),
                             },
                         },
@@ -472,38 +598,59 @@
             charts.requests.update('none');
         }
 
-        // Update cache chart
+        // Update cache doughnut chart (Hits vs Misses)
         if (charts.cache && data.cache?.current) {
-            // For cache, we show current hit rate over time
-            // This would ideally be tracked separately
-            const currentHitRate = data.cache.current.hitRate || 0;
-            const now = new Date();
-            if (!charts.cache.data.datasets[0].data.length) {
-                // Initialize with current value
-                charts.cache.data.datasets[0].data = [{ x: now, y: currentHitRate }];
-            } else {
-                // Add new data point
-                charts.cache.data.datasets[0].data.push({ x: now, y: currentHitRate });
-                // Keep last 24 points (24 hours)
-                if (charts.cache.data.datasets[0].data.length > 24) {
-                    charts.cache.data.datasets[0].data.shift();
-                }
-            }
+            const hits = data.cache.current.hits || 0;
+            const misses = data.cache.current.misses || 0;
+            charts.cache.data.datasets[0].data = [hits, misses];
             charts.cache.update('none');
         }
 
-        // Update system chart
+        // Update system scatter chart (CPU vs Memory correlation)
         if (charts.system && data.system?.history) {
             const history = data.system.history.slice(-24);
             charts.system.data.datasets[0].data = history.map(d => ({
-                x: new Date(d.timestamp),
-                y: d.cpu || 0,
-            }));
-            charts.system.data.datasets[1].data = history.map(d => ({
-                x: new Date(d.timestamp),
+                x: d.cpu || 0,
                 y: d.memory || 0,
             }));
             charts.system.update('none');
+        }
+
+        // Update endpoint bubble chart
+        if (charts.endpoints && data.requests?.topEndpoints) {
+            const endpoints = data.requests.topEndpoints;
+
+            // Group by endpoint type for different colors
+            const apiEndpoints = endpoints.filter(e => e.path.includes('/api/'));
+            const otherEndpoints = endpoints.filter(e => !e.path.includes('/api/'));
+
+            charts.endpoints.data.datasets = [
+                {
+                    label: 'API Endpoints',
+                    data: apiEndpoints.map(e => ({
+                        x: e.count,
+                        y: e.avgLatency,
+                        r: Math.max(5, Math.min(30, (e.errorRate || 0) * 3 + 8)), // Size based on error rate
+                        label: e.path,
+                        errors: e.errorRate || 0,
+                    })),
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: '#3b82f6',
+                },
+                {
+                    label: 'Other Endpoints',
+                    data: otherEndpoints.map(e => ({
+                        x: e.count,
+                        y: e.avgLatency,
+                        r: Math.max(5, Math.min(30, (e.errorRate || 0) * 3 + 8)),
+                        label: e.path,
+                        errors: e.errorRate || 0,
+                    })),
+                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                    borderColor: '#10b981',
+                },
+            ];
+            charts.endpoints.update('none');
         }
     }
 

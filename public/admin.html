@@ -2378,29 +2378,42 @@
               </div>
             </div>
 
-            <!-- Cache Performance Chart -->
+            <!-- Cache Performance - Doughnut Chart -->
             <div class="panel">
               <div class="panel-header">
                 <div class="panel-title">
                   <i class="fas fa-bolt"></i>
-                  <h3>Cache Performance (24 hours)</h3>
+                  <h3>Cache Hit Ratio</h3>
                 </div>
               </div>
-              <div class="panel-content">
-                <canvas id="chart-cache" style="max-height: 250px;"></canvas>
+              <div class="panel-content" style="display: flex; justify-content: center; align-items: center; padding: 20px;">
+                <canvas id="chart-cache" style="max-height: 250px; max-width: 250px;"></canvas>
               </div>
             </div>
 
-            <!-- System Load Chart -->
+            <!-- System Load - Scatter Chart -->
             <div class="panel">
               <div class="panel-header">
                 <div class="panel-title">
                   <i class="fas fa-microchip"></i>
-                  <h3>System Load (24 hours)</h3>
+                  <h3>System Load Correlation</h3>
                 </div>
               </div>
               <div class="panel-content">
                 <canvas id="chart-system" style="max-height: 250px;"></canvas>
+              </div>
+            </div>
+
+            <!-- Endpoint Performance - Bubble Chart (Full Width) -->
+            <div class="panel" style="grid-column: 1 / -1;">
+              <div class="panel-header">
+                <div class="panel-title">
+                  <i class="fas fa-bullseye"></i>
+                  <h3>Endpoint Performance Analysis</h3>
+                </div>
+              </div>
+              <div class="panel-content">
+                <canvas id="chart-endpoints" style="max-height: 350px;"></canvas>
               </div>
             </div>
           </div>
