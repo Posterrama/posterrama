@@ -87,11 +87,11 @@ module.exports = function createAdminPerformanceRouter({
                     const hitRatio = stats.hitRatio?.percentage || 0;
                     cacheMetrics = {
                         hitRate: hitRatio,
-                        memoryMB: Math.round((stats.memoryUsageBytes || 0) / 1024 / 1024),
-                        diskMB: Math.round((stats.diskUsageBytes || 0) / 1024 / 1024),
-                        entries: stats.totalEntries || 0,
-                        memoryEntries: stats.memoryEntries || 0,
-                        diskEntries: stats.diskEntries || 0,
+                        memoryMB: stats.memoryUsage?.totalMB || 0,
+                        diskMB: 0, // Not tracked in detailed stats
+                        entries: stats.size || 0,
+                        memoryEntries: stats.size || 0,
+                        diskEntries: 0,
                         hits: stats.hits || 0,
                         misses: stats.misses || 0,
                     };
@@ -114,6 +114,14 @@ module.exports = function createAdminPerformanceRouter({
                 const sourceMetrics = getSourceHealth(config, logger, metricsManager);
 
                 // Combine all metrics
+                // Map request rate history to include requestsPerMinute
+                const requestHistory = (aggregatedData.requestRate || []).map(d => ({
+                    timestamp: d.timestamp,
+                    requestsPerMinute: Math.round((d.rate || 0) * 60 * 100) / 100, // Convert rate/sec to rate/min
+                    avg: d.avg || 0,
+                    p95: d.p95 || 0,
+                }));
+
                 const response = {
                     timestamp: Date.now(),
                     period,
@@ -129,7 +137,7 @@ module.exports = function createAdminPerformanceRouter({
                             slowRequestCount: 0, // Can be calculated from aggregated data
                             errorRate: errorMetrics.errorRate || 0,
                         },
-                        history: aggregatedData.responseTime || [],
+                        history: requestHistory,
                         topEndpoints: getTopEndpoints(endpointMetrics.endpoints || []),
                     },
                     cache: {

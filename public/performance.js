@@ -262,20 +262,21 @@
             });
         }
 
-        // Request Rate Chart (Bar chart for better visual impact)
+        // Request Rate Chart (Area chart for trend visualization)
         const requestsCtx = document.getElementById('chart-requests');
         if (requestsCtx) {
             charts.requests = new Chart(requestsCtx, {
-                type: 'bar',
+                type: 'line',
                 data: {
                     datasets: [
                         {
                             label: 'Requests/min',
                             data: [],
                             borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                            borderWidth: 1,
-                            borderRadius: 4,
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
                         },
                     ],
                 },
@@ -285,6 +286,7 @@
                         ...commonOptions.scales,
                         y: {
                             ...commonOptions.scales.y,
+                            beginAtZero: true,
                             title: {
                                 display: true,
                                 text: 'Requests/min',
@@ -298,55 +300,7 @@
             });
         }
 
-        // Cache Performance - Doughnut Chart (Hits vs Misses)
-        const cacheCtx = document.getElementById('chart-cache');
-        if (cacheCtx) {
-            charts.cache = new Chart(cacheCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Cache Hits', 'Cache Misses'],
-                    datasets: [
-                        {
-                            data: [0, 0],
-                            backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(239, 68, 68, 0.8)'],
-                            borderColor: ['#10b981', '#ef4444'],
-                            borderWidth: 2,
-                        },
-                    ],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'bottom',
-                            labels: {
-                                color: getComputedStyle(document.documentElement)
-                                    .getPropertyValue('--color-text-primary')
-                                    .trim(),
-                                padding: 15,
-                                font: {
-                                    size: 12,
-                                },
-                            },
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    const label = context.label || '';
-                                    const value = context.parsed || 0;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage =
-                                        total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                    return `${label}: ${value.toLocaleString()} (${percentage}%)`;
-                                },
-                            },
-                        },
-                    },
-                },
-            });
-        }
+        // Cache chart removed - use KPI card instead
 
         // System Load - Scatter Chart (CPU vs Memory correlation)
         const systemCtx = document.getElementById('chart-system');
@@ -586,24 +540,14 @@
             charts.latency.update('none'); // Update without animation
         }
 
-        // Update requests chart
-        if (charts.requests && data.system?.history) {
-            const history = data.system.history.slice(-24);
-            // Requests data would ideally come from dedicated metrics
-            // For now, use system history timestamps with dummy data
-            charts.requests.data.datasets[0].data = history.map((d, _i) => ({
+        // Update requests chart with actual request rate data
+        if (charts.requests && data.requests?.history) {
+            const history = data.requests.history.slice(-24);
+            charts.requests.data.datasets[0].data = history.map(d => ({
                 x: new Date(d.timestamp),
-                y: Math.random() * 50 + 10, // Placeholder
+                y: d.requestsPerMinute || 0,
             }));
             charts.requests.update('none');
-        }
-
-        // Update cache doughnut chart (Hits vs Misses)
-        if (charts.cache && data.cache?.current) {
-            const hits = data.cache.current.hits || 0;
-            const misses = data.cache.current.misses || 0;
-            charts.cache.data.datasets[0].data = [hits, misses];
-            charts.cache.update('none');
         }
 
         // Update system scatter chart (CPU vs Memory correlation)
