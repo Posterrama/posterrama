@@ -169,6 +169,22 @@ module.exports = function createFrontendPagesRouter({
 
     /**
      * @swagger
+     * /logs:
+     *   get:
+     *     summary: Redirect to admin logs
+     *     description: Redirects /logs requests to unified admin logs route (requires authentication)
+     *     tags: ['Frontend']
+     *     responses:
+     *       302:
+     *         description: Redirect to /admin/logs
+     */
+    router.get('/logs', isAuthenticated, (req, res) => {
+        // Redirect to admin/logs route instead
+        res.redirect('/admin/logs');
+    });
+
+    /**
+     * @swagger
      * /logs.html:
      *   get:
      *     summary: Redirect to admin logs

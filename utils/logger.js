@@ -99,7 +99,8 @@ function createMemoryTransport(inst) {
         log(info, next) {
             setImmediate(() => this.emit('logged', info));
             try {
-                const timestamp = new Date().toISOString();
+                // Use existing timestamp from Winston format (locale time), or fallback to ISO
+                const timestamp = info.timestamp || new Date().toISOString();
                 const entry = {
                     timestamp,
                     level: (info.level || '').toUpperCase(),

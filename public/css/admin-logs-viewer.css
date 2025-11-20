@@ -6,186 +6,467 @@
 .logs-viewer {
     font-family:
         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    padding: 24px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
+.logs-viewer h2 {
+    color: #e8e9eb;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logs-viewer h2 i {
+    color: #6366f1;
+}
+
+/* Remove all focus outlines and blue rings */
+.logs-viewer *:focus,
+.logs-viewer *:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Controls Bar - Match log container darkness */
 .logs-controls {
-    background-color: #1a1d20 !important;
-    border: 1px solid #2d3239 !important;
+    background: linear-gradient(135deg, #1a1f2e 0%, #1e2330 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 10px !important;
+    padding: 16px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
 }
 
-.logs-controls .form-control,
-.logs-controls .form-select {
-    background-color: #2d3239 !important;
-    border-color: #3a3f47 !important;
-    color: #e8e9eb !important;
+/* Override Bootstrap border colors */
+.logs-controls.bg-dark {
+    border-color: rgba(255, 255, 255, 0.06) !important;
 }
 
-.logs-controls .form-control:focus,
-.logs-controls .form-select:focus {
-    background-color: #2d3239 !important;
-    border-color: #0d6efd !important;
-    color: #e8e9eb !important;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+.logs-controls.border-bottom.border-secondary {
+    border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.logs-controls .row {
+    gap: 12px;
+}
+
+/* Search Input - Subtle dark style */
+.logs-controls .form-control {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #f0f1f3 !important;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.logs-controls .form-control:focus {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: #6366f1 !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 .logs-controls .form-control::placeholder {
-    color: #6c757d;
+    color: rgba(255, 255, 255, 0.5);
 }
 
+/* Level Filter Dropdown - Override Bootstrap classes with maximum specificity */
+.logs-viewer .logs-controls .form-select,
+.logs-viewer .logs-controls .form-select.form-select-sm,
+.logs-viewer .logs-controls .form-select.bg-dark.text-light,
+.logs-viewer .logs-controls .form-select.border-secondary,
+.logs-controls .form-select,
+.logs-controls .form-select.form-select-sm,
+.logs-controls .form-select.bg-dark,
+.logs-controls select {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2360a5fa' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: #e4e7ec !important;
+    border-radius: 8px !important;
+    padding: 8px 36px 8px 12px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+}
+
+.logs-viewer .logs-controls .form-select:hover,
+.logs-controls .form-select:hover,
+.logs-controls select:hover {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2360a5fa' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.logs-viewer .logs-controls .form-select:focus,
+.logs-controls .form-select:focus,
+.logs-controls select:focus {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2360a5fa' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    border-color: #6366f1 !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Dropdown option styling */
+.logs-controls .form-select option,
+.logs-controls select option {
+    background: #1e2230 !important;
+    color: #e4e7ec !important;
+    padding: 10px 12px !important;
+    font-weight: 500 !important;
+}
+
+.logs-controls .form-select option:hover,
+.logs-controls select option:hover {
+    background: #252938 !important;
+}
+
+.logs-controls .form-select option:checked,
+.logs-controls select option:checked {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+    color: #fff !important;
+}
+
+/* Input Group Styling */
 .logs-controls .input-group-text {
-    background-color: #2d3239 !important;
-    border-color: #3a3f47 !important;
-    color: #6c757d !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    border-radius: 6px 0 0 6px;
 }
 
+/* Buttons - Subtle dark style matching container */
 .logs-controls .btn {
-    border-color: #3a3f47;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.logs-controls .btn:focus {
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 .logs-controls .btn:hover {
-    background-color: #3a3f47;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
 }
 
 .logs-controls .btn.active {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border-color: #6366f1;
     color: #fff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
+.logs-controls .btn-outline-success {
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.logs-controls .btn-outline-success:hover,
+.logs-controls .btn-outline-success.active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: #10b981;
+    color: #10b981;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.logs-controls .btn-outline-warning {
+    border-color: rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+}
+
+.logs-controls .btn-outline-warning:hover,
+.logs-controls .btn-outline-warning.active {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: #fbbf24;
+    color: #fbbf24;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+}
+
+.logs-controls .btn-outline-info {
+    border-color: rgba(96, 165, 250, 0.3);
+    color: #60a5fa;
+}
+
+.logs-controls .btn-outline-info:hover {
+    background: rgba(96, 165, 250, 0.15);
+    border-color: #60a5fa;
+    color: #60a5fa;
+    box-shadow: 0 0 12px rgba(96, 165, 250, 0.2);
+}
+
+.logs-controls .btn-outline-danger {
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.logs-controls .btn-outline-danger:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+    color: #ef4444;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+/* Status Row - HIGH visibility */
+.logs-controls small,
+.logs-controls small.text-muted,
+.logs-controls .text-muted {
+    color: rgba(255, 255, 255, 0.95) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.3px !important;
+}
+
+.logs-controls small .fa-circle {
+    font-size: 8px;
+    margin-right: 4px;
+}
+
+/* Logs Container - Lighter terminal style */
 .logs-container {
-    background-color: #0d1117 !important;
-    border: 1px solid #2d3239 !important;
+    background: #1a1f2e !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    position: relative;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+    flex: 1;
+    overflow-y: auto;
+    min-height: 400px;
+}
+
+/* Log Entries - Lighter clean terminal style */
+.log-entry {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    transition: all 0.15s ease;
+    word-wrap: break-word;
+    word-break: break-word;
     position: relative;
 }
 
-.log-entry {
-    padding: 8px 12px;
-    border-bottom: 1px solid #1a1d20 !important;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    transition: background-color 0.15s ease;
-    word-wrap: break-word;
-    word-break: break-word;
-}
-
 .log-entry:hover {
-    background-color: #161b22 !important;
+    background: rgba(255, 255, 255, 0.05) !important;
 }
 
 .log-entry:last-child {
     border-bottom: none !important;
 }
 
-/* Level-specific styling */
+/* Level-specific styling with softer colors */
 .log-entry[data-level='ERROR'],
 .log-entry[data-level='FATAL'] {
-    background-color: rgba(220, 53, 69, 0.1) !important;
-    border-left: 3px solid #dc3545;
+    background: linear-gradient(
+        90deg,
+        rgba(239, 68, 68, 0.1) 0%,
+        rgba(239, 68, 68, 0.02) 100%
+    ) !important;
+    border-left: 3px solid #ef4444;
 }
 
 .log-entry[data-level='WARN'] {
-    background-color: rgba(255, 193, 7, 0.05) !important;
-    border-left: 3px solid #ffc107;
+    background: linear-gradient(
+        90deg,
+        rgba(251, 191, 36, 0.08) 0%,
+        rgba(251, 191, 36, 0.015) 100%
+    ) !important;
+    border-left: 3px solid #fbbf24;
 }
 
 .log-entry[data-level='INFO'] {
-    border-left: 3px solid transparent;
+    border-left: 3px solid rgba(96, 165, 250, 0.25);
 }
 
 .log-entry[data-level='DEBUG'] {
-    border-left: 3px solid transparent;
-    opacity: 0.8;
+    border-left: 3px solid rgba(148, 163, 184, 0.25);
+    opacity: 0.85;
 }
 
 .log-entry[data-level='TRACE'] {
     border-left: 3px solid transparent;
-    opacity: 0.6;
+    opacity: 0.65;
 }
 
-/* Badge styling */
+/* Badge styling - Modern pills */
 .log-entry .badge {
-    font-family:
-        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 10px;
     font-weight: 600;
-    padding: 3px 6px;
-    min-width: 55px;
+    padding: 4px 8px;
+    min-width: 60px;
     text-align: center;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-/* Timestamp styling */
+/* Softer badge colors */
+.log-entry .badge.bg-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+    animation: badge-pulse-error 2s ease-in-out infinite;
+}
+
+.log-entry .badge.bg-warning {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+    color: #1f2937 !important;
+    box-shadow: 0 2px 6px rgba(251, 191, 36, 0.25);
+    animation: badge-pulse-warning 2s ease-in-out infinite;
+}
+
+.log-entry .badge.bg-info {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%) !important;
+    box-shadow: 0 2px 6px rgba(96, 165, 250, 0.2);
+}
+
+.log-entry .badge.bg-secondary {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%) !important;
+    box-shadow: 0 2px 6px rgba(148, 163, 184, 0.2);
+}
+
+/* Pulse only for errors and warnings */
+@keyframes badge-pulse-error {
+    0%,
+    100% {
+        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+    }
+    50% {
+        box-shadow:
+            0 2px 12px rgba(239, 68, 68, 0.45),
+            0 0 20px rgba(239, 68, 68, 0.2);
+    }
+}
+
+@keyframes badge-pulse-warning {
+    0%,
+    100% {
+        box-shadow: 0 2px 6px rgba(251, 191, 36, 0.25);
+    }
+    50% {
+        box-shadow:
+            0 2px 12px rgba(251, 191, 36, 0.45),
+            0 0 20px rgba(251, 191, 36, 0.2);
+    }
+}
+
+/* Timestamp styling - More visible */
 .log-entry .text-muted {
-    color: #6c757d !important;
+    color: rgba(255, 255, 255, 0.6) !important;
     font-size: 12px;
+    font-weight: 500;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
 }
 
-/* Message text */
+/* Message text - High contrast */
 .log-entry .text-light {
-    color: #e8e9eb !important;
+    color: rgba(255, 255, 255, 0.98) !important;
+    font-weight: 400;
 }
 
-/* Stack trace / multiline styling */
+/* Stack trace / multiline styling - Indented and dimmed */
 .log-entry .ms-4 {
-    margin-left: 1.5rem !important;
+    margin-left: 2rem !important;
     font-size: 12px;
-    opacity: 0.8;
+    opacity: 0.7;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.5;
 }
 
-/* Scrollbar styling for dark theme */
+/* Scrollbar styling - Sleek modern */
 .logs-container::-webkit-scrollbar {
-    width: 10px;
+    width: 8px;
 }
 
 .logs-container::-webkit-scrollbar-track {
-    background: #0d1117;
+    background: transparent;
 }
 
 .logs-container::-webkit-scrollbar-thumb {
-    background: #3a3f47;
-    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
 }
 
 .logs-container::-webkit-scrollbar-thumb:hover {
-    background: #4a5057;
+    background: rgba(255, 255, 255, 0.25);
 }
 
-/* Button group spacing */
+/* Button group spacing - Compact */
+.logs-controls .btn-group {
+    gap: 4px;
+}
+
 .logs-controls .btn-group .btn {
-    margin-left: -1px;
+    border-radius: 6px !important;
 }
 
-.logs-controls .btn-group .btn:first-child {
-    margin-left: 0;
+/* Status indicator - Subtle glow */
+.logs-controls .fa-circle.text-success {
+    color: #10b981 !important;
+    filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.5));
 }
 
-/* Status indicator animation */
-.logs-controls .fa-circle {
-    animation: pulse 2s ease-in-out infinite;
+.logs-controls .fa-circle.text-danger {
+    color: #ef4444 !important;
+    filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.5));
 }
 
-@keyframes pulse {
-    0%,
-    100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
+/* Unread badge - Attention grabbing */
+#logs-unread-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
-/* Unread badge pulse */
 #logs-unread-badge .badge {
-    animation: badge-pulse 1s ease-in-out infinite;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    animation: badge-pulse-unread 1.5s ease-in-out infinite;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
 }
 
-@keyframes badge-pulse {
+@keyframes badge-pulse-unread {
     0%,
     100% {
         transform: scale(1);
+        box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
     }
     50% {
-        transform: scale(1.1);
+        transform: scale(1.08);
+        box-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
     }
 }
 
@@ -199,31 +480,46 @@
     color: #6c757d;
 }
 
-/* Responsive adjustments */
+/* Empty state styling */
+.logs-container:empty::before {
+    content: 'No logs to display';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Responsive adjustments - Better mobile experience */
 @media (max-width: 768px) {
-    .logs-controls .col-md-4,
-    .logs-controls .col-md-2,
-    .logs-controls .col-md-6 {
-        margin-bottom: 8px;
+    .logs-controls {
+        padding: 12px !important;
     }
 
-    .logs-controls .text-end {
-        text-align: left !important;
+    .logs-controls .row {
+        gap: 8px;
+    }
+
+    .logs-controls .btn {
+        padding: 6px 10px;
+        font-size: 12px;
     }
 
     .log-entry {
+        padding: 8px 12px;
         font-size: 12px;
-        padding: 6px 8px;
     }
 
     .log-entry .badge {
         font-size: 9px;
-        padding: 2px 4px;
-        min-width: 45px;
+        padding: 3px 6px;
+        min-width: 50px;
     }
 
-    .logs-container {
-        height: 400px !important;
+    .log-entry .text-muted {
+        font-size: 11px;
     }
 }
 
@@ -235,8 +531,12 @@
     outline-offset: 2px;
 }
 
-/* Print styles */
+/* Print styles - Clean and readable */
 @media print {
+    .logs-viewer {
+        background: #fff !important;
+    }
+
     .logs-controls {
         display: none;
     }
@@ -244,10 +544,56 @@
     .logs-container {
         height: auto !important;
         overflow: visible !important;
-        border: 1px solid #000 !important;
+        border: 1px solid #ddd !important;
+        background: #fff !important;
+        box-shadow: none !important;
     }
 
     .log-entry {
         page-break-inside: avoid;
+        color: #000 !important;
+        background: transparent !important;
+        border-bottom: 1px solid #eee !important;
     }
+
+    .log-entry .text-light,
+    .log-entry .text-muted {
+        color: #333 !important;
+    }
+
+    .log-entry .badge {
+        border: 1px solid #ddd;
+        color: #000 !important;
+    }
+}
+
+/* Loading state */
+.logs-container.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.logs-container.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #0d6efd;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Smooth transitions */
+* {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }

@@ -72,7 +72,7 @@ class LogsViewer {
                                 <option value="DEBUG">DEBUG+</option>
                             </select>
                         </div>
-                        <div class="col-md-6 text-end">
+                        <div class="col-md-6">
                             <div class="btn-group btn-group-sm" role="group">
                                 <button class="btn btn-outline-success" id="logs-auto-scroll" title="Auto-scroll (Space)">
                                     <i class="fas fa-arrow-down"></i>
@@ -82,13 +82,9 @@ class LogsViewer {
                                     <i class="fas fa-pause"></i>
                                     <span class="d-none d-lg-inline">Pause</span>
                                 </button>
-                                <button class="btn btn-outline-info" id="logs-export-txt" title="Export as .txt">
+                                <button class="btn btn-outline-info" id="logs-export-txt" title="Export Diagnostics">
                                     <i class="fas fa-file-download"></i>
-                                    <span class="d-none d-lg-inline">.txt</span>
-                                </button>
-                                <button class="btn btn-outline-info" id="logs-export-json" title="Export as .json">
-                                    <i class="fas fa-file-code"></i>
-                                    <span class="d-none d-lg-inline">.json</span>
+                                    <span class="d-none d-lg-inline">Export</span>
                                 </button>
                                 <button class="btn btn-outline-danger" id="logs-clear" title="Clear display">
                                     <i class="fas fa-trash"></i>
@@ -117,7 +113,7 @@ class LogsViewer {
                 </div>
 
                 <!-- Logs Container -->
-                <div class="logs-container bg-dark rounded-bottom" id="logs-display" style="height: 600px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 13px;">
+                <div class="logs-container bg-dark rounded-bottom" id="logs-display">
                     <div class="text-center text-muted p-4">
                         <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
                         <p>Loading logs...</p>
@@ -163,12 +159,9 @@ class LogsViewer {
             this.togglePause();
         });
 
-        // Export buttons
+        // Export button
         document.getElementById('logs-export-txt')?.addEventListener('click', () => {
             this.exportLogs('txt');
-        });
-        document.getElementById('logs-export-json')?.addEventListener('click', () => {
-            this.exportLogs('json');
         });
 
         // Clear button
@@ -315,6 +308,18 @@ class LogsViewer {
         const logsDisplay = document.getElementById('logs-display');
         if (!logsDisplay) return;
 
+        // Save expanded state before re-rendering (using timestamp as unique ID)
+        const expandedTimestamps = new Set();
+        document.querySelectorAll('.log-expandable').forEach(entry => {
+            const details = entry.querySelector('.log-details');
+            if (details && details.style.display === 'block') {
+                const timestampEl = entry.querySelector('.log-summary .text-muted');
+                if (timestampEl) {
+                    expandedTimestamps.add(timestampEl.textContent);
+                }
+            }
+        });
+
         if (this.filteredLogs.length === 0) {
             logsDisplay.innerHTML = `
                 <div class="text-center text-muted p-4">
@@ -326,9 +331,11 @@ class LogsViewer {
             return;
         }
 
-        // Build HTML for all logs
+        // Build HTML for all logs (newest first)
         const html = this.filteredLogs
-            .map(log => {
+            .slice()
+            .reverse()
+            .map((log, index) => {
                 const levelColor = this.levelColors[log.level] || 'secondary';
                 const timestamp = new Date(log.timestamp).toLocaleTimeString('en-GB', {
                     hour12: false,
@@ -338,6 +345,9 @@ class LogsViewer {
                     fractionalSecondDigits: 3,
                 });
 
+                // Full ISO timestamp for expanded view
+                const fullTimestamp = new Date(log.timestamp).toISOString();
+
                 // Handle multiline messages (e.g., stack traces)
                 const messageLines = log.message.split('\n');
                 const firstLine = this.escapeHtml(messageLines[0]);
@@ -346,12 +356,47 @@ class LogsViewer {
                     .map(line => `<div class="ms-4 text-muted">${this.escapeHtml(line)}</div>`)
                     .join('');
 
+                // Build metadata/details for expanded view (all properties except timestamp, level, message)
+                const metadata = [];
+                Object.entries(log).forEach(([key, value]) => {
+                    // Skip timestamp, level, message AND numeric keys (those are string character indices)
+                    if (
+                        !['timestamp', 'level', 'message'].includes(key) &&
+                        value !== undefined &&
+                        value !== null &&
+                        isNaN(parseInt(key))
+                    ) {
+                        // Skip numeric indices like "0", "1", "2"
+                        const valueStr =
+                            typeof value === 'object'
+                                ? JSON.stringify(value, null, 2)
+                                : String(value);
+                        metadata.push(
+                            `<div class="ms-4 text-muted"><strong>${this.escapeHtml(key)}:</strong> ${this.escapeHtml(valueStr)}</div>`
+                        );
+                    }
+                });
+
+                // Check if this log should be expanded (based on saved state)
+                const shouldExpand = expandedTimestamps.has(timestamp);
+                const detailsDisplay = shouldExpand ? 'block' : 'none';
+                const iconRotation = shouldExpand ? 'rotate(90deg)' : 'rotate(0deg)';
+
                 return `
-                    <div class="log-entry p-2 border-bottom border-secondary" data-level="${log.level}">
-                        <span class="text-muted">${timestamp}</span>
-                        <span class="badge bg-${levelColor} ms-2">${log.level}</span>
-                        <span class="ms-2 text-light">${firstLine}</span>
-                        ${additionalLines}
+                    <div class="log-entry log-expandable" data-level="${log.level}" data-log-index="${index}" style="cursor: pointer;">
+                        <div class="log-summary">
+                            <i class="fas fa-chevron-right expand-icon me-2" style="font-size: 10px; color: rgba(255,255,255,0.4); transition: transform 0.2s; transform: ${iconRotation};"></i>
+                            <span class="text-muted">${timestamp}</span>
+                            <span class="badge bg-${levelColor} ms-2">${log.level}</span>
+                            <span class="ms-2 text-light">${firstLine}</span>
+                        </div>
+                        <div class="log-details" style="display: ${detailsDisplay}; margin-top: 8px; padding-left: 24px; border-left: 2px solid rgba(255,255,255,0.1);">
+                            <div class="ms-4 text-muted"><strong>Timestamp:</strong> ${fullTimestamp}</div>
+                            <div class="ms-4 text-muted"><strong>Level:</strong> ${log.level}</div>
+                            <div class="ms-4 text-muted"><strong>Message:</strong> ${this.escapeHtml(log.message)}</div>
+                            ${metadata.join('')}
+                            ${additionalLines}
+                        </div>
                     </div>
                 `;
             })
@@ -359,18 +404,37 @@ class LogsViewer {
 
         logsDisplay.innerHTML = html;
 
-        // Auto-scroll to bottom if enabled
+        // Add click handlers for expandable logs
+        document.querySelectorAll('.log-expandable').forEach(logEntry => {
+            logEntry.addEventListener('click', e => {
+                // Don't expand if clicking on a link or button
+                if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
+
+                const details = logEntry.querySelector('.log-details');
+                const icon = logEntry.querySelector('.expand-icon');
+
+                if (details.style.display === 'none') {
+                    details.style.display = 'block';
+                    icon.style.transform = 'rotate(90deg)';
+                } else {
+                    details.style.display = 'none';
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            });
+        });
+
+        // Auto-scroll to top if enabled (newest logs are at top)
         if (this.autoScroll) {
-            this.scrollToBottom();
+            this.scrollToTop();
         }
 
         this.updateLogsCount();
     }
 
-    scrollToBottom() {
+    scrollToTop() {
         const logsDisplay = document.getElementById('logs-display');
         if (logsDisplay) {
-            logsDisplay.scrollTop = logsDisplay.scrollHeight;
+            logsDisplay.scrollTop = 0;
         }
     }
 
@@ -443,7 +507,15 @@ class LogsViewer {
             const downloadUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = downloadUrl;
-            a.download = `logs-export-${new Date().toISOString().split('T')[0]}.${format}`;
+
+            // Use descriptive filenames
+            const date = new Date().toISOString().split('T')[0];
+            if (format === 'json') {
+                a.download = `posterrama-logs-${date}.json`;
+            } else {
+                a.download = `posterrama-diagnostics-${date}.txt`;
+            }
+
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

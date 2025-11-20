@@ -228,13 +228,259 @@ router.get('/logs/download', async (req, res) => {
                     logs,
                 });
             } else {
-                // Plain text format
-                res.setHeader('Content-Type', 'text/plain');
-                res.setHeader('Content-Disposition', 'attachment; filename="logs-export.txt"');
-
-                const lines = logs.map(
-                    log => `${log.timestamp} ${log.level.padEnd(5)} ${log.message}`
+                // Enhanced diagnostics format
+                res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+                res.setHeader(
+                    'Content-Disposition',
+                    'attachment; filename="posterrama-diagnostics.txt"'
                 );
+
+                const os = require('os');
+                const packageJson = require('../package.json');
+                const config = require('../config');
+
+                // Helper function to format timestamps in locale time (matching logger format)
+                const formatLocaleTimestamp = date => {
+                    try {
+                        const timezone = config.config?.clockTimezone || 'auto';
+                        const baseOpts = {
+                            hour12: false,
+                            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        };
+                        if (timezone !== 'auto') baseOpts.timeZone = timezone;
+                        return date.toLocaleString('sv-SE', baseOpts);
+                    } catch (e) {
+                        return date.toLocaleString('sv-SE', {
+                            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                            hour12: false,
+                        });
+                    }
+                };
+
+                // Build comprehensive diagnostic report
+                const lines = [];
+                const separator = '='.repeat(80);
+                const divider = '-'.repeat(80);
+
+                // Header
+                lines.push(separator);
+                lines.push('                    POSTERRAMA - DIAGNOSTIC LOG EXPORT');
+                lines.push(separator);
+                lines.push(`Exported: ${formatLocaleTimestamp(new Date())}`);
+                lines.push('');
+
+                // System Information
+                lines.push('## SYSTEM INFORMATION');
+                lines.push(divider);
+                lines.push(`Posterrama Version:    ${packageJson.version}`);
+                lines.push(`Node.js Version:       ${process.version}`);
+                lines.push(`Platform:              ${os.platform()} (${os.arch()})`);
+                lines.push(`OS:                    ${os.type()} ${os.release()}`);
+                lines.push(`Hostname:              ${os.hostname()}`);
+                lines.push('');
+
+                // Server Runtime
+                lines.push('## SERVER RUNTIME');
+                lines.push(divider);
+                const uptime = process.uptime();
+                const uptimeStr =
+                    uptime < 60
+                        ? `${Math.floor(uptime)}s`
+                        : uptime < 3600
+                          ? `${Math.floor(uptime / 60)}m ${Math.floor(uptime % 60)}s`
+                          : `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`;
+                const startTime = formatLocaleTimestamp(new Date(Date.now() - uptime * 1000));
+                lines.push(`Server Uptime:         ${uptimeStr} (${startTime})`);
+                lines.push(`Process ID:            ${process.pid}`);
+                lines.push(`Working Directory:     ${process.cwd()}`);
+                lines.push(`Environment:           ${process.env.NODE_ENV || 'production'}`);
+                lines.push(`Debug Mode:            ${config.debug || false}`);
+                lines.push(`Log Level:             ${process.env.LOG_LEVEL || 'info'}`);
+                lines.push('');
+
+                // Resource Usage
+                lines.push('## RESOURCE USAGE');
+                lines.push(divider);
+                const cpus = os.cpus();
+                const totalMem = os.totalmem() / 1024 ** 3;
+                const freeMem = os.freemem() / 1024 ** 3;
+                const memUsage = process.memoryUsage();
+                lines.push(`CPU Cores:             ${cpus.length}x ${cpus[0].model}`);
+                lines.push(`Total Memory:          ${totalMem.toFixed(2)} GB`);
+                lines.push(`Free Memory:           ${freeMem.toFixed(2)} GB`);
+                lines.push(
+                    `Process Heap Used:     ${(memUsage.heapUsed / 1024 ** 2).toFixed(2)} MB`
+                );
+                lines.push(
+                    `Process Heap Total:    ${(memUsage.heapTotal / 1024 ** 2).toFixed(2)} MB`
+                );
+                lines.push(`Process RSS:           ${(memUsage.rss / 1024 ** 2).toFixed(2)} MB`);
+                lines.push(
+                    `Process External:      ${(memUsage.external / 1024 ** 2).toFixed(2)} MB`
+                );
+                lines.push('');
+
+                // Configuration Summary
+                lines.push('## CONFIGURATION');
+                lines.push(divider);
+                lines.push(`Admin Port:            ${config.port || 4000}`);
+                lines.push(`Site Port:             ${config.sitePort || 4001}`);
+                lines.push('');
+
+                // Media Sources Status
+                const mediaServers = config.mediaServers || [];
+                if (mediaServers.length > 0) {
+                    lines.push('## MEDIA SOURCES');
+                    lines.push(divider);
+
+                    const sourceLastFetch = global.sourceLastFetch || {};
+                    logger.debug('[Diagnostics Export] sourceLastFetch:', sourceLastFetch);
+                    logger.debug(
+                        '[Diagnostics Export] mediaServers:',
+                        mediaServers.map(s => ({ name: s.name, type: s.type, enabled: s.enabled }))
+                    );
+
+                    mediaServers.forEach(source => {
+                        if (!source || !source.type) return;
+
+                        const status = source.enabled !== false ? '\u2713' : '\u2717';
+                        const typeUpper = (source.type || 'unknown').toUpperCase().padEnd(10);
+                        const name = (source.name || 'Unnamed').padEnd(20);
+
+                        // Mask hostname/port for privacy
+                        let maskedUrl = 'N/A';
+
+                        // Handle different URL formats
+                        if (source.url) {
+                            // ROMM uses full URL
+                            try {
+                                const urlObj = new URL(source.url);
+                                const hostname = urlObj.hostname;
+                                const port = urlObj.port ? `:${urlObj.port}` : '';
+
+                                if (hostname.length > 10) {
+                                    maskedUrl =
+                                        hostname.substring(0, 3) +
+                                        '***' +
+                                        hostname.substring(hostname.length - 3) +
+                                        port;
+                                } else {
+                                    maskedUrl = hostname.substring(0, 3) + '***' + port;
+                                }
+
+                                if (urlObj.protocol !== 'https:') {
+                                    maskedUrl = urlObj.protocol + '//' + maskedUrl + '/';
+                                }
+                            } catch (err) {
+                                maskedUrl = 'invalid-url';
+                            }
+                        } else if (source.hostname) {
+                            // Plex/Jellyfin use hostname + port
+                            const hostname = source.hostname;
+                            const port = source.port || 443;
+
+                            if (hostname.length > 10) {
+                                maskedUrl = hostname.substring(0, 3) + '***';
+                                if (hostname.includes('.')) {
+                                    const parts = hostname.split('.');
+                                    maskedUrl += '.' + parts[parts.length - 1];
+                                }
+                            } else {
+                                maskedUrl = hostname.substring(0, 3) + '***';
+                            }
+                            maskedUrl += ':' + port;
+                        }
+
+                        lines.push(`  ${status} ${typeUpper} ${name} ${maskedUrl}`);
+
+                        // Show last fetch time if available
+                        // Try both exact match and case-insensitive match (type is lowercase in sourceLastFetch)
+                        let fetchInfo = sourceLastFetch[source.name];
+                        if (!fetchInfo && source.type) {
+                            // Fallback: try lowercase type key (plex, jellyfin, romm)
+                            fetchInfo = sourceLastFetch[source.type.toLowerCase()];
+                        }
+
+                        if (fetchInfo && fetchInfo.timestamp) {
+                            const fetchDate = new Date(fetchInfo.timestamp);
+                            const formattedDate = !isNaN(fetchDate)
+                                ? formatLocaleTimestamp(fetchDate)
+                                : fetchInfo.timestamp;
+                            lines.push(`    Last check: ${formattedDate}`);
+                        } else {
+                            lines.push(`    Last check: pending first check`);
+                        }
+                    });
+                    lines.push('');
+                }
+
+                // Integrations
+                lines.push('## INTEGRATIONS');
+                lines.push(divider);
+
+                if (config.localDirectory?.enabled) {
+                    const rootPath = config.localDirectory.rootPath || 'media';
+                    lines.push(`Local Directory:       enabled (${rootPath})`);
+                }
+
+                if (config.tmdbSource?.enabled && config.tmdbSource.apiKey) {
+                    const key = config.tmdbSource.apiKey;
+                    const maskedKey = key.substring(0, 3) + '...' + key.substring(key.length - 3);
+                    lines.push(`TMDB Integration:      enabled (${maskedKey})`);
+                }
+
+                if (config.mqtt?.enabled) {
+                    const mqttHost = config.mqtt.broker?.host || 'localhost';
+                    const mqttPort = config.mqtt.broker?.port || 1883;
+                    lines.push(`MQTT Integration:      enabled (${mqttHost}:${mqttPort})`);
+                }
+
+                lines.push('');
+
+                // Log Entries
+                lines.push(separator);
+                lines.push(`                    LOG ENTRIES (${logs.length} total)`);
+                lines.push(separator);
+                lines.push('');
+
+                // Format each log entry with details
+                logs.forEach((log, index) => {
+                    lines.push(`[${index + 1}/${logs.length}] ${log.timestamp}`);
+                    lines.push(`${log.level.padEnd(5)} | ${log.message}`);
+
+                    // Add metadata if present (excluding timestamp, level, message)
+                    const metaKeys = Object.keys(log).filter(
+                        key =>
+                            !['timestamp', 'level', 'message'].includes(key) &&
+                            !isNaN(parseInt(key)) === false
+                    );
+
+                    if (metaKeys.length > 0) {
+                        lines.push('       ├─ Details:');
+                        metaKeys.forEach((key, idx) => {
+                            const value = log[key];
+                            const prefix = idx === metaKeys.length - 1 ? '└─' : '├─';
+
+                            if (typeof value === 'object' && value !== null) {
+                                lines.push(`       ${prefix} ${key}:`);
+                                const jsonStr = JSON.stringify(value, null, 10);
+                                const jsonLines = jsonStr.split('\n');
+                                jsonLines.forEach(jl => {
+                                    lines.push(`       │  ${jl}`);
+                                });
+                            } else {
+                                lines.push(`       ${prefix} ${key}: ${value}`);
+                            }
+                        });
+                    }
+                    lines.push('');
+                });
+
+                // Footer
+                lines.push(separator);
+                lines.push('                         END OF LOG EXPORT');
+                lines.push(separator);
+
                 res.send(lines.join('\n'));
             }
         }

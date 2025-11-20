@@ -110,7 +110,9 @@ class Config {
     }
 
     get isDebug() {
-        return this.getBool('DEBUG');
+        // Default to true for better diagnostics
+        const value = this.get('DEBUG');
+        return value === undefined || value === null ? true : this.getBool('DEBUG');
     }
 
     get logLevel() {
