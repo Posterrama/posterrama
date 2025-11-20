@@ -204,11 +204,18 @@ function createCacheMiddleware(options = {}) {
         // Override res.json to cache response
         const originalJson = res.json;
         res.json = function (data) {
-            // Only cache successful responses
-            if (res.statusCode >= 200 && res.statusCode < 300) {
+            // Only cache successful responses that are not "building" or error states
+            const shouldCache =
+                res.statusCode >= 200 &&
+                res.statusCode < 300 &&
+                !(data && (data.status === 'building' || data.status === 'failed'));
+
+            if (shouldCache) {
                 apiCache.set(cacheKey, data, ttl);
                 res.set('X-Cache', 'MISS');
                 res.set('X-Cache-Key', cacheKey.substring(0, 32) + '...');
+            } else {
+                res.set('X-Cache', 'SKIP');
             }
             return originalJson.call(this, data);
         };
