@@ -2935,6 +2935,7 @@
                 'section-display': 'display',
                 'section-media-sources': 'media-sources',
                 'section-devices': 'devices',
+                'section-performance': 'performance',
                 'section-operations': 'operations',
             };
             const key = map[sectionId];
@@ -9154,6 +9155,18 @@
             el.classList.remove('disabled');
         });
 
+        // Performance dashboard navigation from settings menu
+        const performanceLink = document.getElementById('menu-performance');
+        performanceLink?.addEventListener('click', e => {
+            e.preventDefault();
+            try {
+                closeMenu();
+            } catch (_) {
+                /* menu already closed (non-critical) */
+            }
+            showSection('section-performance');
+        });
+
         // Sidebar section switching (single-level items)
         document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
             item.addEventListener('click', e => {
@@ -9186,6 +9199,8 @@
                     } catch (_) {
                         /* unable to update hash (history permissions / Safari quirk) */
                     }
+                } else if (nav === 'performance') {
+                    showSection('section-performance');
                 } else if (nav === 'operations') {
                     showSection('section-operations');
                     // ensure latest status/backups when entering
