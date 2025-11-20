@@ -9402,12 +9402,6 @@
                     tmdb: 'seg-content',
                 };
 
-                const segs = [
-                    { id: 'seg-media', val: 'plex', panel: 'panel-plex', hash: '#plex' },
-                    { id: 'seg-game', val: 'romm', panel: 'panel-romm', hash: '#romm' },
-                    { id: 'seg-content', val: 'local', panel: 'panel-local', hash: '#local' },
-                ];
-
                 // Forward declaration so early calls can use a no-op until real impl assigned
                 const forceUpdateHeaderToggleText = (..._args) => {};
 
