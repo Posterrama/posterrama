@@ -203,6 +203,10 @@
           <span class="nav-badge nav-badge-error">BETA</span>
         </span>
       </a>
+      <a href="#" class="nav-item" data-nav="performance">
+        <i class="fas fa-chart-line"></i>
+        <span>Performance</span>
+      </a>
       <a href="#" class="nav-item" data-nav="operations"><i class="fas fa-screwdriver-wrench"></i><span>Operations</span></a>
     </nav>
   <div class="sidebar-footer"></div>
@@ -2298,6 +2302,163 @@
       </div>
     </div>
 
+    <!-- Performance Section -->
+    <section id="section-performance" class="app-section" hidden>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fas fa-chart-line"></i>
+            <h2>Performance Dashboard</h2>
+          </div>
+          <div class="panel-actions">
+            <label class="switch" title="Auto-refresh metrics every 30 seconds">
+              <input type="checkbox" id="perf-auto-refresh" checked />
+              <span></span>
+              Auto-refresh
+            </label>
+          </div>
+        </div>
+        <div class="panel-content">
+          <!-- KPI Cards -->
+          <div class="card-grid" id="perf-kpi-cards" style="margin-bottom: 32px;">
+            <div class="status-card">
+              <div class="card-icon"><i class="fas fa-clock"></i></div>
+              <div class="card-content">
+                <h3>Requests/min</h3>
+                <span class="metric" id="perf-rpm">—</span>
+                <span class="trend" id="perf-rpm-trend"></span>
+              </div>
+            </div>
+            <div class="status-card">
+              <div class="card-icon"><i class="fas fa-gauge-high"></i></div>
+              <div class="card-content">
+                <h3>Avg Latency</h3>
+                <span class="metric" id="perf-latency">—</span>
+                <span class="trend" id="perf-latency-trend"></span>
+              </div>
+            </div>
+            <div class="status-card">
+              <div class="card-icon"><i class="fas fa-bolt"></i></div>
+              <div class="card-content">
+                <h3>Cache Hit Rate</h3>
+                <span class="metric" id="perf-cache-hit">—</span>
+                <span class="trend" id="perf-cache-trend"></span>
+              </div>
+            </div>
+            <div class="status-card">
+              <div class="card-icon"><i class="fas fa-plug"></i></div>
+              <div class="card-content">
+                <h3>Active Devices</h3>
+                <span class="metric" id="perf-ws-devices">—</span>
+                <span class="trend" id="perf-ws-trend"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Grid -->
+          <div class="content-grid" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+            <!-- Request Latency Chart -->
+            <div class="panel">
+              <div class="panel-header">
+                <div class="panel-title">
+                  <i class="fas fa-clock"></i>
+                  <h3>Request Latency (7 days)</h3>
+                </div>
+              </div>
+              <div class="panel-content">
+                <canvas id="chart-latency" style="max-height: 250px;"></canvas>
+              </div>
+            </div>
+
+            <!-- Request Rate Chart -->
+            <div class="panel">
+              <div class="panel-header">
+                <div class="panel-title">
+                  <i class="fas fa-chart-area"></i>
+                  <h3>Request Rate (7 days)</h3>
+                </div>
+              </div>
+              <div class="panel-content">
+                <canvas id="chart-requests" style="max-height: 250px;"></canvas>
+              </div>
+            </div>
+
+            <!-- Cache Performance Chart -->
+            <div class="panel">
+              <div class="panel-header">
+                <div class="panel-title">
+                  <i class="fas fa-bolt"></i>
+                  <h3>Cache Performance (7 days)</h3>
+                </div>
+              </div>
+              <div class="panel-content">
+                <canvas id="chart-cache" style="max-height: 250px;"></canvas>
+              </div>
+            </div>
+
+            <!-- System Load Chart -->
+            <div class="panel">
+              <div class="panel-header">
+                <div class="panel-title">
+                  <i class="fas fa-microchip"></i>
+                  <h3>System Load (7 days)</h3>
+                </div>
+              </div>
+              <div class="panel-content">
+                <canvas id="chart-system" style="max-height: 250px;"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Endpoints Table -->
+          <div class="panel" style="margin-top: 24px;">
+            <div class="panel-header">
+              <div class="panel-title">
+                <i class="fas fa-list"></i>
+                <h3>Top 10 Slowest Endpoints</h3>
+              </div>
+            </div>
+            <div class="panel-content">
+              <table class="data-table" id="perf-endpoints-table">
+                <thead>
+                  <tr>
+                    <th>Endpoint</th>
+                    <th>Requests</th>
+                    <th>Avg Latency</th>
+                    <th>Error Rate</th>
+                  </tr>
+                </thead>
+                <tbody id="perf-endpoints-tbody">
+                  <tr>
+                    <td colspan="4" style="text-align: center; padding: 20px; color: var(--color-text-secondary);">
+                      <i class="fas fa-spinner fa-spin"></i> Loading...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Source Health Status -->
+          <div class="panel" style="margin-top: 24px;">
+            <div class="panel-header">
+              <div class="panel-title">
+                <i class="fas fa-server"></i>
+                <h3>Source Health</h3>
+              </div>
+            </div>
+            <div class="panel-content">
+              <div id="perf-sources" class="card-grid">
+                <p style="text-align: center; padding: 20px; color: var(--color-text-secondary);">
+                  <i class="fas fa-spinner fa-spin"></i> Loading...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Devices Section (top-level sibling) -->
     <section id="section-devices" class="app-section" hidden>
       <!-- Device Management Tabs header (mirrors Media Sources/Display) -->
@@ -4152,7 +4313,9 @@
       }
     })();
   </script>
+  <script src="/vendor/chart.min.js"></script>
   <script src="/admin.js?v={{ASSET_VERSION}}"></script>
+  <script src="/performance.js?v={{ASSET_VERSION}}"></script>
   <script>
     // Fallback spinner wrapper bootstrap (runs after main admin.js). Safe + idempotent.
     (function(){

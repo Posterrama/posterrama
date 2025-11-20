@@ -2366,6 +2366,20 @@ app.use('/', adminCacheRouter);
 // Initialize cache references (must be done after apiCache is created)
 adminCacheRouter.initCacheReferences(cacheManager, apiCache);
 
+// === ADMIN PERFORMANCE ROUTES ===
+// Extracted to routes/admin-performance.js
+const createAdminPerformanceRouter = require('./routes/admin-performance');
+const adminPerformanceRouter = createAdminPerformanceRouter({
+    logger,
+    metricsManager,
+    cacheManager,
+    wsHub,
+    config,
+    asyncHandler,
+    adminAuth,
+});
+app.use('/', adminPerformanceRouter);
+
 // Minimal CSP violation report endpoint
 // Accepts both deprecated report-uri (application/csp-report) and modern report-to (application/reports+json)
 const cspReportJson = express.json({
