@@ -629,6 +629,22 @@ function broadcastAdmin(message) {
     return false;
 }
 
+/**
+ * Get list of connected device IDs
+ * @returns {string[]} Array of connected device IDs
+ */
+function getConnectedDevices() {
+    return Array.from(deviceToSocket.keys());
+}
+
+/**
+ * Get count of active WebSocket connections
+ * @returns {number} Number of active connections
+ */
+function getConnectionCount() {
+    return deviceToSocket.size;
+}
+
 module.exports = {
     init,
     isConnected,
@@ -638,4 +654,6 @@ module.exports = {
     sendApplySettings,
     broadcast,
     broadcastAdmin,
+    getConnectedDevices,
+    getConnectionCount,
 };
