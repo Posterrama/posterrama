@@ -55,7 +55,19 @@
                 initializeCharts();
                 loadPerformanceData();
             }
+        } else {
+            // Destroy charts when section is hidden to prevent canvas reuse errors
+            destroyCharts();
         }
+    }
+
+    function destroyCharts() {
+        Object.keys(charts).forEach(key => {
+            if (charts[key]) {
+                charts[key].destroy();
+                delete charts[key];
+            }
+        });
     }
 
     function initializeCharts() {
@@ -63,6 +75,9 @@
             console.warn('[Performance] Chart.js not loaded yet');
             return;
         }
+
+        // Destroy existing charts before creating new ones
+        destroyCharts();
 
         // Common chart options
         const commonOptions = {
@@ -106,8 +121,15 @@
                     time: {
                         unit: 'hour',
                         displayFormats: {
-                            hour: 'MMM D, HH:mm',
+                            hour: 'MMM d, HH:mm',
                         },
+                    },
+                    title: {
+                        display: true,
+                        text: 'Time',
+                        color: getComputedStyle(document.documentElement)
+                            .getPropertyValue('--color-text-secondary')
+                            .trim(),
                     },
                     ticks: {
                         color: getComputedStyle(document.documentElement)
@@ -125,6 +147,13 @@
                 },
                 y: {
                     beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Value',
+                        color: getComputedStyle(document.documentElement)
+                            .getPropertyValue('--color-text-secondary')
+                            .trim(),
+                    },
                     ticks: {
                         color: getComputedStyle(document.documentElement)
                             .getPropertyValue('--color-text-secondary')
