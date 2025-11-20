@@ -23,7 +23,7 @@ const express = require('express');
 module.exports = function createAdminPerformanceRouter({
     logger,
     metricsManager,
-    cacheManager,
+    cacheManager: _cacheManager, // Keep for backwards compatibility but use apiCache instead
     apiCache,
     wsHub,
     config,
