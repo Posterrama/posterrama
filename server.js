@@ -2381,20 +2381,6 @@ const adminPerformanceRouter = createAdminPerformanceRouter({
 });
 app.use('/', adminPerformanceRouter);
 
-// Winston Dashboard - Modern log viewer UI
-const winstonDashboard = require('winston-dashboard');
-app.use(
-    '/admin/logs/viewer',
-    isAuthenticated,
-    winstonDashboard(logger, {
-        path: '/admin/logs/viewer',
-        theme: 'dark',
-        stats: {
-            show: true,
-        },
-    })
-);
-
 // Minimal CSP violation report endpoint
 // Accepts both deprecated report-uri (application/csp-report) and modern report-to (application/reports+json)
 const cspReportJson = express.json({
