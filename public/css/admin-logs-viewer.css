@@ -41,6 +41,9 @@
     padding: 16px !important;
     margin-bottom: 16px !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
 }
 
 /* Override Bootstrap border colors */
@@ -494,8 +497,19 @@
 
 /* Responsive adjustments - Better mobile experience */
 @media (max-width: 768px) {
+    .logs-viewer {
+        padding: 12px !important;
+        max-width: 100vw !important;
+        margin: 0 -12px !important;
+    }
+
     .logs-controls {
         padding: 12px !important;
+        border-radius: 0 !important;
+    }
+
+    .logs-container {
+        border-radius: 0 !important;
     }
 
     .logs-controls .row {
