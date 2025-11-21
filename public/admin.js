@@ -16744,15 +16744,17 @@
                         tokenInput?.value?.trim() ||
                         window.__tokenStore?.plexToken ||
                         undefined;
-                    res = await fetch('/api/admin/plex-libraries', {
+                    // Use dedupJSON to prevent duplicate parallel requests
+                    const body = JSON.stringify({
+                        hostname: hostname || undefined,
+                        port: port || undefined,
+                        token: token || undefined,
+                    });
+                    const cacheKey = `/api/admin/plex-libraries|POST|${body}`;
+                    res = await window.dedupJSON('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            hostname: hostname || undefined,
-                            port: port || undefined,
-                            token: token || undefined,
-                        }),
+                        body,
                     });
                 } else if (kind === 'jf') {
                     const hostname = document.getElementById('jf.hostname')?.value?.trim();
@@ -16782,10 +16784,10 @@
                     if (!hostname) return new Map();
                     if (!isJellyfinEnabledCached()) return new Map();
                     try {
-                        res = await fetch('/api/admin/jellyfin-libraries', {
+                        // Use dedupJSON to prevent duplicate parallel requests
+                        res = await window.dedupJSON('/api/admin/jellyfin-libraries', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
                             body: JSON.stringify({
                                 hostname: hostname || undefined,
                                 port: port || undefined,
@@ -18974,10 +18976,10 @@
                     const isMaskedToken =
                         tokenRaw && (/^[•]+$/.test(tokenRaw) || tokenRaw === 'EXISTING_TOKEN');
                     const token = tokenRaw && !isMaskedToken ? tokenRaw : undefined;
-                    const res = await fetch('/api/admin/plex-libraries', {
+                    // Use dedupJSON to prevent duplicate parallel requests
+                    const res = await window.dedupJSON('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
                         body: JSON.stringify({ hostname, port, token }),
                     });
                     const j = await res.json().catch(() => ({}));
@@ -20662,10 +20664,10 @@
                     throw new Error('URL and username are required');
                 }
 
-                const res = await fetch('/api/admin/romm-platforms', {
+                // Use dedupJSON to prevent duplicate parallel requests
+                const res = await window.dedupJSON('/api/admin/romm-platforms', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
                     body: JSON.stringify({ url, username, password, insecureHttps }),
                 });
 
@@ -26299,10 +26301,10 @@ if (!document.__niwDelegatedFallback) {
                         window.__tokenStore?.plexToken ||
                         undefined;
 
-                    const r = await fetch('/api/admin/plex-libraries', {
+                    // Use dedupJSON to prevent duplicate parallel requests
+                    const r = await window.dedupJSON('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
                         body: JSON.stringify({ hostname, port, token }),
                     });
                     const j = r.ok ? await r.json().catch(() => ({})) : {};
