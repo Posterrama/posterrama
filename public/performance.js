@@ -476,7 +476,7 @@
                             type: 'linear',
                             title: {
                                 display: true,
-                                text: 'Average Latency (ms)',
+                                text: 'API Latency (ms)',
                                 color: getComputedStyle(document.documentElement)
                                     .getPropertyValue('--color-text-secondary')
                                     .trim(),

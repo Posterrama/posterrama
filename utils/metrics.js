@@ -125,8 +125,32 @@ class MetricsManager {
 
     // Get performance metrics
     getPerformanceMetrics() {
+        // Helper: Check if endpoint is relevant for latency calculation
+        const isRelevantEndpoint = endpoint => {
+            // Exclude SSE streams (long-lived connections skew latency)
+            if (endpoint.includes('/api/admin/events')) return false;
+            if (endpoint.includes('/logs/stream')) return false;
+
+            // Exclude static assets
+            if (endpoint.includes('.js') || endpoint.includes('.css')) return false;
+            if (endpoint.includes('.png') || endpoint.includes('.jpg')) return false;
+            if (endpoint.includes('.svg') || endpoint.includes('.ico')) return false;
+            if (endpoint.includes('.woff') || endpoint.includes('.ttf')) return false;
+
+            // Exclude health checks
+            if (endpoint.includes('/health')) return false;
+            if (endpoint.includes('/ping')) return false;
+
+            // Include all API endpoints and application routes
+            return true;
+        };
+
         const responseTimes = this.systemMetrics.responseTimeHistory
-            .filter(r => Date.now() - r.timestamp < 3600000) // Last hour
+            .filter(
+                r =>
+                    Date.now() - r.timestamp < 3600000 && // Last hour
+                    isRelevantEndpoint(r.endpoint) // Only relevant endpoints
+            )
             .map(r => r.responseTime)
             .sort((a, b) => a - b);
 
