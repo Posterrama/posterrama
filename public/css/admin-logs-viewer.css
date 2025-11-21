@@ -497,9 +497,13 @@
 
 /* Responsive adjustments - Better mobile experience */
 @media (max-width: 768px) {
+    /* Parent container padding on mobile */
+    #logs-viewer-container {
+        padding: 0 12px !important;
+    }
+
     .logs-viewer {
         padding: 0 !important;
-        max-width: 100vw !important;
         margin-left: 0 !important;
         margin-right: 0 !important;
         margin-top: 16px !important;
@@ -512,6 +516,7 @@
         padding: 12px !important;
         margin-left: 0 !important;
         margin-right: 0 !important;
+        margin-bottom: 0 !important;
         /* Keep rounded corners on mobile */
         border-radius: 10px !important;
     }
