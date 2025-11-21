@@ -1408,7 +1408,8 @@ app.post(
             const now = Date.now();
             if (cacheKey && adminFilterPreviewCache.has(cacheKey)) {
                 const cached = adminFilterPreviewCache.get(cacheKey);
-                if (cached && now - cached.ts < 15000) {
+                // Increased cache TTL from 15s to 60s to reduce repeated expensive queries
+                if (cached && now - cached.ts < 60000) {
                     try {
                         res.setHeader('X-Preview-Cache', 'hit');
                     } catch (_) {
@@ -1869,6 +1870,7 @@ app.post(
             }
             const payload = { success: true, counts: { plex: plexCount, jellyfin: jfCount } };
             if (cacheKey) {
+                // Cache for 60 seconds to reduce load during filter configuration
                 adminFilterPreviewCache.set(cacheKey, { ts: Date.now(), value: payload });
                 try {
                     res.setHeader('X-Preview-Cache', 'miss');
@@ -3190,6 +3192,16 @@ app.get('/admin/logs', isAuthenticated, (req, res) => {
         stamped = stamped.replace(
             /logs\.js\?v=[^"&\s]+/g,
             `logs.js?v=${versions['logs.js'] || ASSET_VERSION}`
+        );
+
+        stamped = stamped.replace(
+            /admin-logs-viewer\.js\?v=[^"&\s]+/g,
+            `admin-logs-viewer.js?v=${versions['js/admin-logs-viewer.js'] || ASSET_VERSION}`
+        );
+
+        stamped = stamped.replace(
+            /admin-logs-viewer\.css\?v=[^"&\s]+/g,
+            `admin-logs-viewer.css?v=${versions['css/admin-logs-viewer.css'] || ASSET_VERSION}`
         );
 
         res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell

@@ -86,10 +86,6 @@ class LogsViewer {
                                     <i class="fas fa-file-download"></i>
                                     <span class="d-none d-lg-inline">Export</span>
                                 </button>
-                                <button class="btn btn-outline-danger" id="logs-clear" title="Clear display">
-                                    <i class="fas fa-trash"></i>
-                                    <span class="d-none d-lg-inline">Clear</span>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -164,14 +160,6 @@ class LogsViewer {
             this.exportLogs('txt');
         });
 
-        // Clear button
-        document.getElementById('logs-clear')?.addEventListener('click', () => {
-            if (confirm('Clear all logs from display?')) {
-                this.logs = [];
-                this.applyFilters();
-            }
-        });
-
         // Keyboard shortcuts
         document.addEventListener('keydown', e => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -207,7 +195,7 @@ class LogsViewer {
 
     async loadHistoricalLogs() {
         try {
-            const response = await fetch('/api/admin/logs?limit=200');
+            const response = await fetch('/api/admin/logs?limit=1000');
             const data = await response.json();
 
             if (data.success && data.logs) {

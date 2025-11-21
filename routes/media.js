@@ -334,12 +334,15 @@ module.exports = function createMediaRouter({
                 req.query?.gamesOnly === 'true' ||
                 req.query?.gamesOnly === true;
 
-            logger.info('[Games Mode Middleware]', {
-                gamesOnlyParam: req.query?.gamesOnly,
-                isGamesOnlyEnabled,
-                isGamesOnlyRequest,
-                willBypassCache: isGamesOnlyEnabled && isGamesOnlyRequest,
-            });
+            // Only log when games mode is active or explicitly requested (avoid log spam)
+            if (isGamesOnlyEnabled || isGamesOnlyRequest) {
+                logger.info('[Games Mode Middleware]', {
+                    gamesOnlyParam: req.query?.gamesOnly,
+                    isGamesOnlyEnabled,
+                    isGamesOnlyRequest,
+                    willBypassCache: isGamesOnlyEnabled && isGamesOnlyRequest,
+                });
+            }
 
             if (isGamesOnlyEnabled && isGamesOnlyRequest) {
                 // Games mode active - fetch games directly, bypass cache

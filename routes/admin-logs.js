@@ -26,7 +26,7 @@ router.get('/logs', (req, res) => {
         const offset = parseInt(req.query.offset) || 0;
 
         // Get logs from memory buffer (already sorted chronologically)
-        let logs = logger.getRecentLogs(level, 2000, 0, false); // Get all from memory
+        let logs = logger.getRecentLogs(level, 1000, 0, false); // Get all from memory
 
         // Apply search filter if provided
         if (search) {

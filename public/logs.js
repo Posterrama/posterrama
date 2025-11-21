@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isLoadingOlderLogs = false;
     let hasMoreLogs = true;
     let currentOffset = 0;
-    const LOGS_PER_PAGE = 100;
+    const LOGS_PER_PAGE = 1000;
 
     // Detect user's locale and preferred time format for timestamp formatting
     const userLocale = navigator.language || navigator.languages?.[0] || 'en-US';

@@ -17059,29 +17059,35 @@
                 // For TMDB we don't have per-source filters here; show counts from cached playlist
                 const filteredTmdb = items.filter(it => inferSource(it) === 'tmdb').length;
 
-                // Always ask the server for full-library uncapped counts to ensure Plex/JF filters reflect immediately
-                try {
-                    const body = {
-                        plex: getSelectedLibraries('plex'),
-                        jellyfin: getSelectedLibraries('jellyfin'),
-                        // Send filters per source, matching server-side logic
-                        filtersPlex: plexFilters,
-                        filtersJellyfin: jfFilters,
-                    };
-                    const r = await fetch('/api/admin/filter-preview', {
-                        method: 'POST',
-                        credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body),
-                    });
-                    if (r.ok) {
-                        const j = await r.json().catch(() => ({}));
-                        const c = j?.counts || {};
-                        if (Number.isFinite(c.plex)) filteredPlex = c.plex;
-                        if (Number.isFinite(c.jellyfin)) filteredJf = c.jellyfin;
+                // Only ask the server for full-library uncapped counts when filters are active
+                // This prevents expensive library scans on every admin page refresh
+                const hasPlexFilters = isAnyFilterActive(plexFilters);
+                const hasJfFilters = isAnyFilterActive(jfFilters);
+
+                if (hasPlexFilters || hasJfFilters) {
+                    try {
+                        const body = {
+                            plex: getSelectedLibraries('plex'),
+                            jellyfin: getSelectedLibraries('jellyfin'),
+                            // Send filters per source, matching server-side logic
+                            filtersPlex: plexFilters,
+                            filtersJellyfin: jfFilters,
+                        };
+                        const r = await fetch('/api/admin/filter-preview', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body),
+                        });
+                        if (r.ok) {
+                            const j = await r.json().catch(() => ({}));
+                            const c = j?.counts || {};
+                            if (Number.isFinite(c.plex)) filteredPlex = c.plex;
+                            if (Number.isFinite(c.jellyfin)) filteredJf = c.jellyfin;
+                        }
+                    } catch (_) {
+                        /* filter-preview fetch failed (falling back to cached playlist counts) */
                     }
-                } catch (_) {
-                    /* filter-preview fetch failed (falling back to cached playlist counts) */
                 }
 
                 // Always compute true totals (sum of selected library counts)
@@ -19660,12 +19666,6 @@
                         /* counts refresh optional; ignore */
                     }
                     // Optionally refresh dependent filters now that libraries are known
-                    try {
-                        // Refresh overview item counts now that libraries are known (parity with Plex)
-                        refreshOverviewCounts();
-                    } catch (_) {
-                        /* counts refresh optional; ignore */
-                    }
                     if (window.__jfLibsRefreshRequested) {
                         try {
                             loadJellyfinRatings?.(getJfHidden?.('jf.ratingFilter-hidden'));

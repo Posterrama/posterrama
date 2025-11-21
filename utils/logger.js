@@ -115,7 +115,7 @@ function createMemoryTransport(inst) {
                     ),
                 };
                 if (!inst.shouldExcludeFromAdmin || !inst.shouldExcludeFromAdmin(entry.message)) {
-                    if (inst.memoryLogs.length >= 2000) inst.memoryLogs.shift();
+                    if (inst.memoryLogs.length >= 1000) inst.memoryLogs.shift();
                     inst.memoryLogs.push(entry);
                     events.emit('log', entry);
                 }

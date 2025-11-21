@@ -69,9 +69,15 @@ const metricsMiddleware = (req, res, next) => {
             };
 
             // Only log performance issues, not routine requests
-            if (responseTime > 3000) {
+            // Skip SSE/long-polling endpoints (intentionally long-lived connections)
+            const isSSE =
+                req.path === '/api/admin/events' ||
+                req.path === '/logs/stream' ||
+                req.path === '/api/admin/logs/stream';
+
+            if (responseTime > 3000 && !isSSE) {
                 logger.warn('🐌 Very slow request', performanceData);
-            } else if (responseTime > 1500) {
+            } else if (responseTime > 1500 && !isSSE) {
                 logger.info('⏱️ Slow request', performanceData);
             } else if (statusCode >= 500) {
                 logger.error('💥 Server error', performanceData);
