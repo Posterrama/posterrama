@@ -5,7 +5,7 @@
 
         // Allow JavaScript files
         "allowJs": true,
-        "checkJs": false, // Don't check all JS by default
+        "checkJs": true, // Check all JS files
 
         // Module resolution
         "module": "commonjs",

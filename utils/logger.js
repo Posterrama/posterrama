@@ -1,4 +1,5 @@
 const winston = require('winston');
+const Transport = require('winston-transport');
 const { EventEmitter } = require('events');
 const path = require('path');
 const fs = require('fs');
@@ -91,13 +92,15 @@ function buildBaseFormat() {
 
 // Simple custom transport capturing logs in memory
 function createMemoryTransport(inst) {
-    const CustomTransport = class extends winston.Transport {
+    const CustomTransport = class extends Transport {
         constructor(opts = {}) {
             super(opts);
             this.name = 'memory';
         }
         log(info, next) {
-            setImmediate(() => this.emit('logged', info));
+            setImmediate(() => {
+                this.emit('logged', info);
+            });
             try {
                 // Use existing timestamp from Winston format (locale time), or fallback to ISO
                 const timestamp = info.timestamp || new Date().toISOString();
@@ -128,8 +131,15 @@ function createMemoryTransport(inst) {
     return new CustomTransport();
 }
 
+/**
+ * @param {ExtendedLogger} inst
+ * @param {Object} options
+ * @param {boolean} [options.forTest]
+ * @returns {winston.transport[]}
+ */
 function buildTransports(inst, { forTest = false } = {}) {
     const memoryTransport = createMemoryTransport(inst);
+    /** @type {winston.transport[]} */
     const base = [
         new winston.transports.Console({
             format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
@@ -156,6 +166,34 @@ function buildTransports(inst, { forTest = false } = {}) {
     return forTest ? [memoryTransport] : base;
 }
 
+/**
+ * @typedef {Object} LogEntry
+ * @property {string} timestamp
+ * @property {string} level
+ * @property {string} message
+ */
+
+/**
+ * @typedef {winston.Logger & {
+ *   memoryLogs: LogEntry[],
+ *   events: EventEmitter,
+ *   fatal: (...args: any[]) => winston.Logger,
+ *   __resetMemory: () => void,
+ *   __ping: () => boolean,
+ *   shouldExcludeFromAdmin?: (message: string) => boolean,
+ *   getRecentLogs?: (level?: string | null, limit?: number, offset?: number, testOnly?: boolean) => LogEntry[],
+ *   updateLogLevelFromDebug?: () => void
+ * }} ExtendedLogger
+ */
+
+/**
+ * @param {Object} options
+ * @param {string} [options.level]
+ * @param {boolean} [options.forTest]
+ * @param {boolean} [options.silent]
+ * @param {boolean} [options.hardSilent]
+ * @returns {ExtendedLogger}
+ */
 function createLoggerInstance(options = {}) {
     const { level, forTest = false, silent, hardSilent = false } = options;
     // Determine base level. In test mode we normally default to 'warn' to keep useful diagnostics
@@ -164,23 +202,40 @@ function createLoggerInstance(options = {}) {
     if (forTest && process.env.QUIET_TEST_LOGS === '1') {
         resolvedLevel = 'error';
     }
-    const inst = winston.createLogger({
-        level: resolvedLevel,
-        levels: winston.config.npm.levels,
-        format: buildBaseFormat(),
-        transports: [],
-        // In test mode we never fully silence the logger so memory transport still captures
-        silent: hardSilent ? true : forTest ? false : (silent ?? false),
-    });
+    const inst = /** @type {ExtendedLogger} */ (
+        winston.createLogger({
+            level: resolvedLevel,
+            levels: winston.config.npm.levels,
+            format: buildBaseFormat(),
+            transports: [],
+            // In test mode we never fully silence the logger so memory transport still captures
+            silent: hardSilent ? true : forTest ? false : (silent ?? false),
+        })
+    );
     // Attach shared structures
     inst.memoryLogs = [];
     inst.events = events;
     // Utility helpers will be assigned after baseLogger populated
-    inst.info = (...args) => inst.log('info', ...args);
-    inst.warn = (...args) => inst.log('warn', ...args);
-    inst.error = (...args) => inst.log('error', ...args);
-    inst.fatal = (...args) => inst.log('error', ...args);
-    inst.debug = (...args) => inst.log('debug', ...args);
+    // @ts-ignore - Winston log() accepts rest parameters
+    inst.info = function (...args) {
+        return inst.log('info', ...args);
+    };
+    // @ts-ignore - Winston log() accepts rest parameters
+    inst.warn = function (...args) {
+        return inst.log('warn', ...args);
+    };
+    // @ts-ignore - Winston log() accepts rest parameters
+    inst.error = function (...args) {
+        return inst.log('error', ...args);
+    };
+    // @ts-ignore - Winston log() accepts rest parameters
+    inst.fatal = function (...args) {
+        return inst.log('error', ...args);
+    };
+    // @ts-ignore - Winston log() accepts rest parameters
+    inst.debug = function (...args) {
+        return inst.log('debug', ...args);
+    };
     inst.__resetMemory = () => {
         inst.memoryLogs.length = 0;
     };
@@ -206,13 +261,17 @@ function createLoggerInstance(options = {}) {
 const baseLogger = {};
 
 // Create the default singleton logger (backward compatible)
+/** @type {ExtendedLogger} */
 const logger = createLoggerInstance({ forTest: process.env.NODE_ENV === 'test' });
 
 // Expose factory for tests and advanced scenarios
+/**
+ * @param {Object} opts
+ * @returns {ExtendedLogger}
+ */
 function createTestLogger(opts = {}) {
     // silent ignored for test loggers (memory still captured)
-    const rest = { ...opts };
-    delete rest.silent;
+    const { silent, ...rest } = opts;
     return createLoggerInstance({ forTest: true, hardSilent: false, ...rest });
 }
 
@@ -227,11 +286,26 @@ baseLogger.shouldExcludeFromAdmin = message => {
 };
 
 // Add convenience methods that match console
-logger.info = (...args) => logger.log('info', ...args);
-logger.warn = (...args) => logger.log('warn', ...args);
-logger.error = (...args) => logger.log('error', ...args);
-logger.fatal = (...args) => logger.log('error', ...args); // Map fatal to error level
-logger.debug = (...args) => logger.log('debug', ...args);
+// @ts-ignore - Winston log() accepts rest parameters
+logger.info = function (...args) {
+    return logger.log('info', ...args);
+};
+// @ts-ignore - Winston log() accepts rest parameters
+logger.warn = function (...args) {
+    return logger.log('warn', ...args);
+};
+// @ts-ignore - Winston log() accepts rest parameters
+logger.error = function (...args) {
+    return logger.log('error', ...args);
+};
+// @ts-ignore - Winston log() accepts rest parameters
+logger.fatal = function (...args) {
+    return logger.log('error', ...args);
+}; // Map fatal to error level
+// @ts-ignore - Winston log() accepts rest parameters
+logger.debug = function (...args) {
+    return logger.log('debug', ...args);
+};
 
 /**
  * Retrieve recent logs from in-memory ring buffer.
@@ -247,11 +321,12 @@ logger.debug = (...args) => logger.log('debug', ...args);
  * Pagination semantics:
  *  - offset counts from the newest end (offset=0 => newest log included).
  *  - limit defines max number of entries returned.
+ * @param {LogEntry[]} sourceLogs
  * @param {string|null} level Optional level threshold (ERROR|WARN|INFO|DEBUG|TRACE etc.)
  * @param {number} limit Maximum number of entries to return (default 500)
  * @param {number} offset Number of newest logs to skip from the end (default 0)
  * @param {boolean} testOnly Restrict to synthetic test logs containing [TEST-LOG]
- * @returns {Array<{level:string,message:string,timestamp:string}>}
+ * @returns {LogEntry[]}
  */
 function computeRecentLogs(sourceLogs, level = null, limit = 500, offset = 0, testOnly = false) {
     let logs = [...sourceLogs];
@@ -326,9 +401,14 @@ logger.shouldExcludeFromAdmin = baseLogger.shouldExcludeFromAdmin;
 logger.getRecentLogs = baseLogger.getRecentLogs;
 logger.updateLogLevelFromDebug = baseLogger.updateLogLevelFromDebug;
 
+// @ts-ignore - Module exports with additional properties
 module.exports = logger; // default export (singleton)
+// Additional exports as properties (not on ExtendedLogger type)
+// @ts-ignore - Adding properties to module.exports
 module.exports.redact = redact; // pure helper
+// @ts-ignore - Adding properties to module.exports
 module.exports.createTestLogger = createTestLogger; // new factory
+// @ts-ignore - Adding properties to module.exports
 module.exports._createLoggerInstance = createLoggerInstance; // internal (for future refactors/tests)
 
 // Initialize logger level based on DEBUG environment variable on startup

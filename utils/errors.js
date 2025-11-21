@@ -8,18 +8,25 @@
  */
 
 /**
+ * @typedef {Object} ErrorOptions
+ * @property {string} source - Source name (plex, jellyfin, tmdb, romm)
+ * @property {string} operation - Operation being performed
+ * @property {boolean} [isRetryable] - Whether this error should trigger retry
+ * @property {Object} [context] - Additional context (params, URL, etc.)
+ * @property {Error} [cause] - Original error if wrapping
+ * @property {number} [statusCode] - HTTP status code if applicable
+ * @property {any} [responseBody] - Response body from API
+ * @property {number} [retryAfter] - Retry-After header value
+ */
+
+/**
  * Base error class for all source-related errors
  * Provides common functionality: context, retry logic, structured logging
  */
 class SourceError extends Error {
     /**
      * @param {string} message - Human-readable error message
-     * @param {Object} options - Error context
-     * @param {string} options.source - Source name (plex, jellyfin, tmdb, romm)
-     * @param {string} options.operation - Operation being performed (fetchMedia, getMetadata, etc.)
-     * @param {boolean} [options.isRetryable=false] - Whether this error should trigger retry
-     * @param {Object} [options.context={}] - Additional context (params, URL, etc.)
-     * @param {Error} [options.cause] - Original error if wrapping
+     * @param {Partial<ErrorOptions>} options - Error context
      */
     constructor(message, options = {}) {
         super(message);
@@ -195,13 +202,19 @@ class NotFoundError extends ApiError {
 }
 
 /**
+ * @typedef {Error & {
+ *   response?: { status: number, statusText: string, data: any, headers?: Record<string, string> },
+ *   request?: any,
+ *   code?: string
+ * }} ExtendedError
+ */
+
+/**
  * Normalize any error to SourceError
  * Converts unknown errors (axios, fetch, etc.) to our error classes
  *
- * @param {Error} error - Original error
- * @param {Object} context - Error context
- * @param {string} context.source - Source name
- * @param {string} context.operation - Operation name
+ * @param {ExtendedError} error - Original error
+ * @param {Partial<ErrorOptions>} context - Error context
  * @returns {SourceError} Normalized error
  */
 function normalizeError(error, context) {
