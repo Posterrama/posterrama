@@ -271,7 +271,7 @@ const logger = createLoggerInstance({ forTest: process.env.NODE_ENV === 'test' }
  */
 function createTestLogger(opts = {}) {
     // silent ignored for test loggers (memory still captured)
-    const { silent, ...rest } = opts;
+    const { silent: _silent, ...rest } = opts;
     return createLoggerInstance({ forTest: true, hardSilent: false, ...rest });
 }
 
