@@ -498,14 +498,20 @@
 /* Responsive adjustments - Better mobile experience */
 @media (max-width: 768px) {
     .logs-viewer {
-        padding: 12px !important;
+        padding: 0 !important;
         max-width: 100vw !important;
-        margin: 0 -12px !important;
+        margin-left: -12px !important;
+        margin-right: -12px !important;
+        margin-top: 16px !important;
+        border-radius: 0 !important;
+        max-height: calc(100vh - 300px) !important;
     }
 
     .logs-controls {
         padding: 12px !important;
         border-radius: 0 !important;
+        margin-left: -12px !important;
+        margin-right: -12px !important;
     }
 
     .logs-container {
