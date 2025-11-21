@@ -6946,15 +6946,50 @@
             }
         })();
 
-        // Mobile sidebar toggle demo behavior
+        // Mobile/tablet sidebar toggle behavior
         const toggle = $('#mobile-nav-toggle');
         const overlay = $('#sidebar-overlay');
         const sidebar = document.querySelector('.sidebar');
+
+        // Initialize sidebar state based on screen size
+        function initSidebar() {
+            const isTablet = window.innerWidth <= 1440 && window.innerWidth > 1024;
+            const isMobile = window.innerWidth <= 1024;
+
+            if (isTablet) {
+                // Tablets: sidebar open by default but can be toggled
+                sidebar?.classList.add('open');
+                toggle?.setAttribute('aria-expanded', 'true');
+            } else if (isMobile) {
+                // Mobile: sidebar closed by default
+                sidebar?.classList.remove('open');
+                overlay && (overlay.hidden = true);
+                toggle?.setAttribute('aria-expanded', 'false');
+            } else {
+                // Desktop: always visible, no toggle needed
+                sidebar?.classList.remove('open');
+            }
+        }
+
+        // Initialize on load
+        initSidebar();
+
+        // Re-initialize on resize (debounced)
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(initSidebar, 150);
+        });
+
+        // Toggle sidebar
         toggle?.addEventListener('click', () => {
             const open = sidebar?.classList.toggle('open');
-            overlay && (overlay.hidden = !open);
+            const showOverlay = open && window.innerWidth <= 1024;
+            overlay && (overlay.hidden = !showOverlay);
             toggle.setAttribute('aria-expanded', String(!!open));
         });
+
+        // Close sidebar when overlay is clicked (mobile only)
         overlay?.addEventListener('click', () => {
             sidebar?.classList.remove('open');
             overlay.hidden = true;

@@ -3137,6 +3137,7 @@ input[type='range']::-moz-range-thumb {
     .main-content {
         margin-left: var(--sidebar-width);
         padding: var(--space-lg);
+        transition: margin-left 0.3s ease;
     }
 
     .sidebar {
@@ -3144,6 +3145,21 @@ input[type='range']::-moz-range-thumb {
         min-width: var(--sidebar-width);
         max-width: var(--sidebar-width);
         padding: var(--space-sm) var(--space-xs);
+        transition: transform 0.3s ease;
+    }
+
+    /* Allow sidebar to be collapsed on tablets */
+    .sidebar:not(.open) {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    /* Adjust main content when sidebar is collapsed */
+    body:has(.sidebar:not(.open)) .main-content {
+        margin-left: 0;
     }
 
     .sidebar-nav {
@@ -5087,6 +5103,11 @@ body.sidebar-open {
 
     .mobile-only:hover {
         opacity: 1;
+    }
+
+    /* Overlay only visible when sidebar is closed on tablets */
+    .sidebar-overlay {
+        display: none;
     }
 }
 
