@@ -168,9 +168,9 @@ check_code_quality() {
         pass
         echo -e "    ${GREEN}✓${NC} No type errors found"
     else
-        warn "Found $ERROR_COUNT type errors (target: 0, baseline: 411)"
+        warn "Found $ERROR_COUNT type errors (target: 0, baseline: 25)"
         # Only warn if errors increased significantly
-        if [[ "$ERROR_COUNT" -gt 450 ]]; then
+        if [[ "$ERROR_COUNT" -gt 50 ]]; then
             fail "Type errors increased above baseline - review changes"
         fi
     fi
