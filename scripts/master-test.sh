@@ -159,7 +159,21 @@ check_environment() {
 check_code_quality() {
     print_header "FASE 1: CODE QUALITY"
     
-    print_subheader "Linting & Formatting"
+    print_subheader "Type Checking & Linting"
+    
+    check "TypeScript type checking" "quality"
+    TYPE_CHECK_OUTPUT=$(npm run type-check 2>&1)
+    ERROR_COUNT=$(echo "$TYPE_CHECK_OUTPUT" | grep -oP "Found \K[0-9]+" || echo "0")
+    if [[ "$ERROR_COUNT" -eq 0 ]]; then
+        pass
+        echo -e "    ${GREEN}✓${NC} No type errors found"
+    else
+        warn "Found $ERROR_COUNT type errors (target: 0, baseline: 411)"
+        # Only warn if errors increased significantly
+        if [[ "$ERROR_COUNT" -gt 450 ]]; then
+            fail "Type errors increased above baseline - review changes"
+        fi
+    fi
     
     check "ESLint code quality" "quality"
     if npm run lint >/dev/null 2>&1; then
