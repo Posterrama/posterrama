@@ -153,6 +153,7 @@ module.exports = [
             '*.min.js',
             '*.html',
             'public/assets/',
+            'public/vendor/',
             'dist/',
             'build/',
             'coverage/lcov-report/*.js',

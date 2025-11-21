@@ -16750,7 +16750,7 @@
                         port: port || undefined,
                         token: token || undefined,
                     });
-                    const cacheKey = `/api/admin/plex-libraries|POST|${body}`;
+                    const _cacheKey = `/api/admin/plex-libraries|POST|${body}`;
                     res = await window.dedupJSON('/api/admin/plex-libraries', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

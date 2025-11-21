@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Posterrama API",
-        "version": "2.9.5",
+        "version": "2.9.6",
         "description": "Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.",
         "contact": {
             "name": "Posterrama Project",
@@ -3636,16 +3636,17 @@
         "/api/admin/performance/metrics": {
             "get": {
                 "summary": "Get comprehensive performance metrics",
-                "description": "Retrieve detailed performance metrics including cache statistics,\nsource performance, and system information. Used for baseline\nmeasurements and optimization monitoring.\n",
-                "tags": ["Admin"],
+                "description": "Returns detailed performance data including requests, cache, WebSocket, and source health",
+                "tags": ["Admin", "Performance"],
                 "security": [
                     {
-                        "sessionAuth": []
+                        "sessionAuth": [],
+                        "basicAuth": []
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Performance metrics",
+                        "description": "Performance metrics retrieved successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3684,24 +3685,39 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "500": {
-                        "description": "Internal server error",
+                    "400": {
+                        "description": "Invalid request parameters",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/StandardErrorResponse"
                                 },
                                 "example": {
-                                    "error": "Internal server error",
-                                    "statusCode": 500
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "period",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["15m", "1h", "6h", "24h", "7d"],
+                            "default": "24h"
+                        },
+                        "description": "Time period for historical data"
+                    }
+                ]
             }
         },
         "/api-docs/swagger.json": {
@@ -8058,6 +8074,40 @@
                 }
             }
         },
+        "/api/admin/performance/summary": {
+            "get": {
+                "summary": "Get performance summary",
+                "description": "Returns high-level performance overview",
+                "tags": ["Admin", "Performance"],
+                "security": [
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Performance summary retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/admin/setup": {
             "get": {
                 "summary": "Admin setup page",
@@ -10710,6 +10760,31 @@
                 "security": []
             }
         },
+        "/logs": {
+            "get": {
+                "summary": "Redirect to admin logs",
+                "description": "Redirects /logs requests to unified admin logs route (requires authentication)",
+                "tags": ["Frontend"],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                },
+                                "example": "Binary data"
+                            }
+                        }
+                    },
+                    "302": {
+                        "description": "Redirect to /admin/logs"
+                    }
+                },
+                "security": []
+            }
+        },
         "/logs.html": {
             "get": {
                 "summary": "Redirect to admin logs",
@@ -10729,6 +10804,19 @@
                     },
                     "302": {
                         "description": "Redirect to /admin/logs"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/performance": {
+            "get": {
+                "summary": "Standalone Performance Dashboard",
+                "description": "Displays the performance monitoring dashboard in a dedicated page (requires authentication)",
+                "tags": ["Frontend"],
+                "responses": {
+                    "200": {
+                        "description": "Performance dashboard page rendered successfully"
                     }
                 },
                 "security": []

@@ -176,9 +176,8 @@ check_code_quality() {
     fi
     
     check "ESLint code quality" "quality"
-    if npm run lint >/dev/null 2>&1; then
-        pass
-    else
+    # Exclude vendor files from linting
+    if npm run lint 2>&1 | grep -v "public/vendor/" | grep -q "✖"; then
         if [[ "$AUTO_FIX" == "true" ]]; then
             echo -e "    ${YELLOW}Auto-fixing with ESLint...${NC}"
             if npm run lint:fix >/dev/null 2>&1; then
@@ -189,6 +188,23 @@ check_code_quality() {
         else
             fail "Run 'npm run lint:fix' to fix"
         fi
+    else
+        pass
+    fi
+    
+    check "Runtime validation" "quality"
+    if [[ -f "scripts/validate-runtime.js" ]]; then
+        RUNTIME_OUTPUT=$(node scripts/validate-runtime.js 2>&1)
+        RUNTIME_PASSED=$(echo "$RUNTIME_OUTPUT" | grep -oP "Results: \K[0-9]+" | head -1)
+        RUNTIME_FAILED=$(echo "$RUNTIME_OUTPUT" | grep -oP "Results: [0-9]+ passed, \K[0-9]+" | head -1)
+        if [[ "$RUNTIME_FAILED" == "0" ]]; then
+            pass
+            echo -e "    ${GREEN}✓${NC} $RUNTIME_PASSED runtime checks passed"
+        else
+            fail "$RUNTIME_FAILED runtime checks failed - possible regression"
+        fi
+    else
+        skip "validate-runtime.js not found"
     fi
     
     check "Prettier code formatting" "quality"
