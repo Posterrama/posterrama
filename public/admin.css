@@ -3128,7 +3128,96 @@ input[type='range']::-moz-range-thumb {
 }
 
 /* Responsive Design */
+/* Tablet landscape (Surface Pro 7, iPad Pro, etc.) - 1200px-1440px */
+@media (max-width: 1440px) {
+    :root {
+        --sidebar-width: 240px; /* Reduce sidebar width for tablets */
+    }
+
+    .main-content {
+        margin-left: var(--sidebar-width);
+        padding: var(--space-lg);
+    }
+
+    .sidebar {
+        width: var(--sidebar-width);
+        min-width: var(--sidebar-width);
+        max-width: var(--sidebar-width);
+        padding: var(--space-sm) var(--space-xs);
+    }
+
+    .sidebar-nav {
+        padding: var(--space-sm);
+    }
+
+    .nav-item {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+        gap: 8px;
+    }
+
+    .nav-item i {
+        font-size: 13px;
+    }
+
+    /* Tighter spacing for tablet screens */
+    .card-grid {
+        gap: var(--space-md);
+    }
+
+    .form-grid {
+        gap: var(--space-md);
+    }
+
+    .panel {
+        padding: var(--space-md);
+    }
+
+    .panel-header h2 {
+        font-size: 1.25rem;
+    }
+
+    /* Compact tables for tablets */
+    .data-table th,
+    .data-table td {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Smaller tablets (portrait mode) - reduce sidebar further */
+@media (max-width: 1200px) {
+    :root {
+        --sidebar-width: 220px;
+    }
+
+    .main-content {
+        margin-left: var(--sidebar-width);
+        padding: var(--space-md);
+    }
+
+    .sidebar {
+        width: var(--sidebar-width);
+        min-width: var(--sidebar-width);
+        max-width: var(--sidebar-width);
+    }
+
+    .nav-item {
+        padding: 7px 10px;
+        font-size: 0.85rem;
+    }
+
+    .page-title h1 {
+        font-size: 1.75rem;
+    }
+}
+
+/* Small tablets and large phones - hide sidebar by default */
 @media (max-width: 1024px) {
+    :root {
+        --sidebar-width: 280px; /* Restore full width when collapsed */
+    }
+
     .main-content {
         margin-left: 0;
         padding: var(--space-lg);
@@ -3137,7 +3226,7 @@ input[type='range']::-moz-range-thumb {
     .sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s ease;
-        width: var(--sidebar-width); /* keep consistent width */
+        width: var(--sidebar-width);
     }
 
     .sidebar.open {
@@ -4989,10 +5078,23 @@ body.sidebar-open {
     overflow: hidden;
 }
 
-/* Make burger visible on tablets/phones and refine sidebar */
+/* Optional: Show hamburger menu on tablets for quick sidebar toggle */
+@media (max-width: 1440px) {
+    .mobile-only {
+        display: inline-flex;
+        opacity: 0.7;
+    }
+
+    .mobile-only:hover {
+        opacity: 1;
+    }
+}
+
+/* Make burger fully visible and hide sidebar by default on smaller tablets */
 @media (max-width: 1024px) {
     .mobile-only {
         display: inline-flex;
+        opacity: 1;
     }
     .sidebar {
         box-shadow: var(--shadow-xl);
