@@ -6957,9 +6957,9 @@
             const isMobile = window.innerWidth <= 1024;
 
             if (isTablet) {
-                // Tablets: sidebar open by default but can be toggled
-                sidebar?.classList.add('open');
-                toggle?.setAttribute('aria-expanded', 'true');
+                // Tablets: sidebar closed by default but can be toggled
+                sidebar?.classList.remove('open');
+                toggle?.setAttribute('aria-expanded', 'false');
             } else if (isMobile) {
                 // Mobile: sidebar closed by default
                 sidebar?.classList.remove('open');
