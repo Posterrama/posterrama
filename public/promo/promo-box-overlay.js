@@ -30,7 +30,7 @@
                 </header>
                 <h1>Transform your screens into personal galleries</h1>
                 <p>
-                    This is <span class="promo-brand-name">posterrama</span>, a stunning self-hosted app that showcases dynamic posters from your movies, series, music, games<span class="movie-extensions">+ Art</span> collection. Perfect for digital signage, ambient displays, or elegant screensavers.
+                    This is <span class="promo-brand-name">posterrama</span>, a stunning self-hosted app that showcases dynamic posters from your movies, series, music, games<span class="movie-extensions">&amp; Art</span> collection. Perfect for digital signage, ambient displays, or elegant screensavers.
                 </p>
 
                 <!-- Hidden SEO content -->
