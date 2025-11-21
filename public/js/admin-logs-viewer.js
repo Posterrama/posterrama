@@ -44,9 +44,8 @@ class LogsViewer {
 
     render() {
         this.container.innerHTML = `
-            <div class="logs-viewer">
-                <!-- Controls Bar -->
-                <div class="logs-controls bg-dark p-3 rounded-top border-bottom border-secondary">
+            <!-- Fixed Controls Bar -->
+            <div class="logs-controls bg-dark p-3 rounded-top border-bottom border-secondary">
                     <div class="row g-2 align-items-center">
                         <div class="col-md-4">
                             <div class="input-group input-group-sm">
@@ -107,8 +106,10 @@ class LogsViewer {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Logs Container -->
+            <!-- Scrollable Logs Container -->
+            <div class="logs-viewer">
                 <div class="logs-container bg-dark rounded-bottom" id="logs-display">
                     <div class="text-center text-muted p-4">
                         <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
