@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Posterrama API",
-        "version": "2.9.6",
+        "version": "2.9.7",
         "description": "Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.",
         "contact": {
             "name": "Posterrama Project",
