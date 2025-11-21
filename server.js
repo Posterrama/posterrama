@@ -4424,7 +4424,10 @@ app.get(
                     usedBytes: usedMem,
                     freeBytes: freeMem,
                     totalGB: Number(toGB(totalMem).toFixed(1)),
-                    usedGB: Number(toGB(usedMem).toFixed(1)),
+                    usedGB:
+                        usedMem < 1024 * 1024 * 1024
+                            ? Math.round(usedMem / (1024 * 1024))
+                            : Number(toGB(usedMem).toFixed(1)),
                     freeGB: Number(toGB(freeMem).toFixed(1)),
                     status: memUsage > 90 ? 'error' : memUsage > 70 ? 'warning' : 'success',
                 },

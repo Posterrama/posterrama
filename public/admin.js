@@ -1937,10 +1937,14 @@
             })();
             const memPct = Number(status?.memory?.percent);
             if (Number.isFinite(memPct)) {
-                setText(
-                    'perf-mem',
-                    `${memPct}% (${status?.memory?.usedGB || '—'} GB / ${status?.memory?.totalGB || '—'} GB)`
-                );
+                const usedGB = status?.memory?.usedGB;
+                const totalGB = status?.memory?.totalGB || '—';
+                // If usedGB is a whole number < 1024, it's in MB
+                const usedDisplay =
+                    typeof usedGB === 'number' && usedGB < 1024 && Number.isInteger(usedGB)
+                        ? `${usedGB} MB`
+                        : `${usedGB || '—'} GB`;
+                setText('perf-mem', `${memPct}% (${usedDisplay} / ${totalGB} GB)`);
                 setMeter('meter-mem', memPct, 'mem');
             }
             // Simple activity level for end users (Low/Medium/High) — now shown in header pill
