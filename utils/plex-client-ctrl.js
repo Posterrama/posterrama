@@ -58,7 +58,11 @@ async function createModernPlexClient({ hostname, port, token, timeout }) {
         const plex = new PlexServer(baseurl, token, timeout || 30000);
         await plex.connect();
 
-        logger.info(`Connected to Plex server: ${plex.friendlyName} (v${plex.version})`);
+        // Only log connection in debug mode - getPlexClient() already logs once per session
+        const isDebug = process.env.DEBUG === 'true';
+        if (isDebug) {
+            logger.debug(`Connected to Plex server: ${plex.friendlyName} (v${plex.version})`);
+        }
         return plex;
     } catch (error) {
         logger.error(`Failed to connect to Plex server at ${baseurl}: ${error.message}`);
