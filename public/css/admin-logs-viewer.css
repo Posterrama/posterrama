@@ -7,7 +7,8 @@
     font-family:
         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     padding: 0;
-    height: calc(100vh - 260px);
+    max-height: calc(100vh - 260px);
+    min-height: 200px;
     overflow-y: auto;
     overflow-x: hidden;
     margin-top: 16px;
@@ -266,7 +267,6 @@
     border: none;
     border-radius: 0;
     position: relative;
-    min-height: 100%;
     padding: 12px 0;
 }
 
