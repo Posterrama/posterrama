@@ -71,7 +71,8 @@
         "icons:generate": "node scripts/generate-icons.js",
         "config:validate": "node scripts/validate-config.js",
         "config:validate:example": "node scripts/validate-config-example.js",
-        "quality:all": "npm run lint && npm run format:check && npm run test:hygiene && npm run config:validate:example && npm test && npm run openapi:sync && npm run openapi:validate && npm run deps:unused && npm run deps:security-audit",
+        "type-check": "tsc --noEmit",
+        "quality:all": "npm run type-check && npm run lint && npm run format:check && npm run test:hygiene && npm run config:validate:example && npm test && npm run openapi:sync && npm run openapi:validate && npm run deps:unused && npm run deps:security-audit",
         "test:hygiene": "node scripts/check-tests-clean.js && node scripts/verify-swagger-docs.js",
         "hooks:setup": "bash scripts/setup-git-hooks.sh",
         "push": "bash private/release-push.sh --no-tag --yes",
@@ -135,6 +136,9 @@
         "@eslint/eslintrc": "^3.3.1",
         "@eslint/js": "^9.39.1",
         "@jellyfin/sdk": "^0.11.0",
+        "@types/express": "^5.0.5",
+        "@types/node": "^24.10.1",
+        "@types/ws": "^8.18.1",
         "@vitest/ui": "^4.0.9",
         "ajv-formats": "^3.0.1",
         "audit-ci": "^7.1.0",
@@ -150,6 +154,7 @@
         "puppeteer": "^24.30.0",
         "supertest": "^7.0.0",
         "terser": "^5.44.1",
+        "typescript": "^5.9.3",
         "vitest": "^4.0.9"
     },
     "overrides": {

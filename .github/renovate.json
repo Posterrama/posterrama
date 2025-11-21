@@ -1,0 +1,78 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["config:base"],
+    "platform": "gitea",
+    "endpoint": "https://git.highlanders.cloud/api/v1",
+    "gitAuthor": "Renovate Bot <bot@renovateapp.com>",
+
+    "repositories": ["Posterrama.app/posterrama"],
+
+    "packageRules": [
+        {
+            "description": "Auto-merge patch updates for dev dependencies",
+            "matchUpdateTypes": ["patch"],
+            "matchDepTypes": ["devDependencies"],
+            "automerge": true
+        },
+        {
+            "description": "Group all ESLint packages together",
+            "groupName": "ESLint packages",
+            "matchPackagePatterns": ["^eslint", "^@eslint/"]
+        },
+        {
+            "description": "Group all testing packages together",
+            "groupName": "Testing packages",
+            "matchPackagePatterns": ["^jest", "^@jest/", "vitest", "@vitest/"]
+        },
+        {
+            "description": "Group all type definitions together",
+            "groupName": "TypeScript type definitions",
+            "matchPackagePatterns": ["^@types/"]
+        },
+        {
+            "description": "Separate major updates for security review",
+            "matchUpdateTypes": ["major"],
+            "automerge": false,
+            "labels": ["major-update"]
+        },
+        {
+            "description": "Security vulnerability updates - high priority",
+            "matchDepTypes": ["dependencies"],
+            "matchUpdateTypes": ["patch"],
+            "automerge": false,
+            "labels": ["security"]
+        }
+    ],
+
+    "schedule": ["after 10pm every weekday", "before 5am every weekday"],
+
+    "prConcurrentLimit": 5,
+    "prHourlyLimit": 2,
+
+    "vulnerabilityAlerts": {
+        "enabled": true,
+        "labels": ["security"],
+        "automerge": false
+    },
+
+    "lockFileMaintenance": {
+        "enabled": true,
+        "automerge": false,
+        "schedule": ["before 5am on Monday"]
+    },
+
+    "rangeStrategy": "bump",
+
+    "assignees": [],
+    "reviewers": [],
+
+    "labels": ["dependencies"],
+
+    "commitMessagePrefix": "chore(deps):",
+
+    "postUpdateOptions": ["npmDedupe"],
+
+    "ignoreDeps": [],
+
+    "ignorePresets": [":prHourlyLimit2"]
+}

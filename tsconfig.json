@@ -1,0 +1,55 @@
+{
+    "compilerOptions": {
+        // Type checking only - no transpilation
+        "noEmit": true,
+
+        // Allow JavaScript files
+        "allowJs": true,
+        "checkJs": false, // Don't check all JS by default
+
+        // Module resolution
+        "module": "commonjs",
+        "target": "ES2020",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+
+        // Strict type checking (leverage JSDoc)
+        "strict": false, // Start lenient, can enable later
+        "noImplicitAny": false,
+        "strictNullChecks": false,
+        "strictFunctionTypes": false,
+
+        // Skip type checking of declaration files
+        "skipLibCheck": true,
+
+        // Additional checks
+        "noUnusedLocals": false, // Too noisy initially
+        "noUnusedParameters": false,
+        "noImplicitReturns": false,
+        "noFallthroughCasesInSwitch": true,
+
+        // Output
+        "pretty": true,
+        "forceConsistentCasingInFileNames": true,
+
+        // Paths
+        "baseUrl": ".",
+        "paths": {
+            "*": ["node_modules/*"]
+        }
+    },
+    "include": ["**/*.js"],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "coverage",
+        "public",
+        "__tests__",
+        "scripts",
+        "private",
+        "test-support",
+        "**/*.test.js",
+        "**/*.spec.js"
+    ]
+}
