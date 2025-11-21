@@ -42,7 +42,7 @@
     margin-bottom: 16px !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
     position: sticky !important;
-    top: 0 !important;
+    top: 16px !important;
     z-index: 100 !important;
 }
 
