@@ -838,6 +838,12 @@
                             "default": "#333333",
                             "description": "Frame color when style is 'framed' (hex)"
                         },
+                        "frameColorMode": {
+                            "type": "string",
+                            "enum": ["custom", "tonSurTonLight", "tonSurTonDark"],
+                            "default": "custom",
+                            "description": "Frame color mode: custom uses frameColor, ton-sur-ton derives color from poster"
+                        },
                         "frameWidth": {
                             "type": "integer",
                             "minimum": 2,
@@ -852,6 +858,7 @@
                         "animation": "fade",
                         "transitionDuration": 1.5,
                         "frameColor": "#333333",
+                        "frameColorMode": "custom",
                         "frameWidth": 8
                     }
                 },
@@ -1217,6 +1224,7 @@
                     "animation": "fade",
                     "transitionDuration": 1.5,
                     "frameColor": "#333333",
+                    "frameColorMode": "custom",
                     "frameWidth": 8
                 },
                 "background": {

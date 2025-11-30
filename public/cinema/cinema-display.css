@@ -12,6 +12,17 @@
     box-sizing: border-box;
 }
 
+html {
+    font-size: 16px;
+}
+
+/* 4K Portrait displays (2160x3840): scale up 2x */
+@media (min-width: 2000px) and (min-height: 3500px) {
+    html {
+        font-size: 32px;
+    }
+}
+
 html,
 body {
     width: 100%;
@@ -43,10 +54,10 @@ body {
     background: rgba(220, 38, 38, 0.95);
     color: #fff;
     padding: 2rem;
-    border-radius: 12px;
+    border-radius: 0.75rem;
     font-size: 1.1rem;
     text-align: center;
-    max-width: 500px;
+    max-width: 31.25rem;
     z-index: 10000;
 }
 
@@ -114,106 +125,7 @@ body[data-orientation='portrait-flipped'] #poster {
     max-height: 75vh;
 }
 
-/* =================================================================
-   TEXT METADATA
-   ================================================================= */
-#text-wrapper {
-    text-align: center;
-    max-width: 800px;
-    padding: 0 1rem;
-}
-
-#title {
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin-bottom: 1rem;
-    line-height: 1.2;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
-}
-
-#tagline {
-    font-size: 1.25rem;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.85);
-    margin-bottom: 1rem;
-    line-height: 1.5;
-    font-style: italic;
-}
-
-#meta-info {
-    display: flex;
-    gap: 1.5rem;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.75);
-    font-weight: 500;
-}
-
-#meta-info span {
-    display: inline-block;
-}
-
-/* =================================================================
-   CONTROLS
-   ================================================================= */
-#controls-container {
-    position: fixed;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 1rem;
-    z-index: 100;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-body:hover #controls-container {
-    opacity: 1;
-}
-
-#controls-container button {
-    width: 56px;
-    height: 56px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    color: #fff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-#controls-container button:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: scale(1.1);
-}
-
-#controls-container button:active {
-    transform: scale(0.95);
-}
-
-#controls-container button svg {
-    width: 24px;
-    height: 24px;
-}
-
-/* Play/Pause icon toggle */
-#pause-button .icon-play {
-    display: none;
-}
-
-#pause-button.paused .icon-pause {
-    display: none;
-}
-
-#pause-button.paused .icon-play {
-    display: block;
-}
+/* TEXT METADATA and CONTROLS sections removed - not used in cinema mode */
 
 /* =================================================================
    CINEMA HEADER (dynamically inserted by cinema-display.js)
@@ -255,7 +167,7 @@ body:hover #controls-container {
     text-transform: uppercase;
     letter-spacing: 0.15em;
     color: #fff;
-    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+    text-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.9);
 }
 
 /* Neon Style */
@@ -298,7 +210,7 @@ body:hover #controls-container {
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: #ffd700;
-    text-shadow: 0 4px 12px rgba(255, 215, 0, 0.6);
+    text-shadow: 0 0.25rem 0.75rem rgba(255, 215, 0, 0.6);
 }
 
 /* =================================================================
@@ -308,8 +220,8 @@ body:hover #controls-container {
 /* Frame decoration - border around text */
 .cinema-header.decoration-frame {
     /* Keep the header's flex centering, just add border around content */
-    border: 4px solid currentColor;
-    border-radius: 4px;
+    border: 0.25rem solid currentColor;
+    border-radius: 0.25rem;
     /* Shrink width to content */
     width: fit-content !important;
     /* Keep header height but shrink visually with margin */
@@ -331,25 +243,25 @@ body:hover #controls-container {
 
 /* Apply shadow effects to frame border */
 .cinema-header.decoration-frame.shadow-subtle {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5);
 }
 .cinema-header.decoration-frame.shadow-dramatic {
     box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.9),
-        0 0 20px rgba(0, 0, 0, 0.5);
+        0 0.25rem 0.75rem rgba(0, 0, 0, 0.9),
+        0 0 1.25rem rgba(0, 0, 0, 0.5);
 }
 .cinema-header.decoration-frame.shadow-glow {
     box-shadow:
-        0 0 10px currentColor,
-        0 0 20px currentColor,
-        0 0 30px currentColor;
+        0 0 0.625rem currentColor,
+        0 0 1.25rem currentColor,
+        0 0 1.875rem currentColor;
 }
 .cinema-header.decoration-frame.shadow-neon {
     box-shadow:
-        0 0 5px currentColor,
-        0 0 10px currentColor,
-        0 0 20px currentColor,
-        0 0 40px currentColor;
+        0 0 0.3125rem currentColor,
+        0 0 0.625rem currentColor,
+        0 0 1.25rem currentColor,
+        0 0 2.5rem currentColor;
 }
 
 /* Underline decoration */
@@ -379,32 +291,32 @@ body:hover #controls-container {
     left: -0.05em;
     /* Compensate for letter-spacing on right */
     right: 0.1em;
-    height: 10px;
+    height: 0.625rem;
     background-color: currentColor;
-    border-radius: 2px;
+    border-radius: 0.125rem;
 }
 
 /* Apply shadow effects to underline */
 .cinema-header.decoration-underline.shadow-subtle::after {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5);
 }
 .cinema-header.decoration-underline.shadow-dramatic::after {
     box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.9),
-        0 0 20px rgba(0, 0, 0, 0.5);
+        0 0.25rem 0.75rem rgba(0, 0, 0, 0.9),
+        0 0 1.25rem rgba(0, 0, 0, 0.5);
 }
 .cinema-header.decoration-underline.shadow-glow::after {
     box-shadow:
-        0 0 10px currentColor,
-        0 0 20px currentColor,
-        0 0 30px currentColor;
+        0 0 0.625rem currentColor,
+        0 0 1.25rem currentColor,
+        0 0 1.875rem currentColor;
 }
 .cinema-header.decoration-underline.shadow-neon::after {
     box-shadow:
-        0 0 5px currentColor,
-        0 0 10px currentColor,
-        0 0 20px currentColor,
-        0 0 40px currentColor;
+        0 0 0.3125rem currentColor,
+        0 0 0.625rem currentColor,
+        0 0 1.25rem currentColor,
+        0 0 2.5rem currentColor;
 }
 
 /* Backdrop decoration - frosted glass effect behind text */
@@ -424,30 +336,30 @@ body:hover #controls-container {
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+    border: 0.0625rem solid rgba(255, 255, 255, 0.1);
 }
 
 /* Apply shadow effects to backdrop */
 .cinema-header.decoration-backdrop.shadow-subtle {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.3);
 }
 .cinema-header.decoration-backdrop.shadow-dramatic {
     box-shadow:
-        0 4px 20px rgba(0, 0, 0, 0.6),
-        0 0 40px rgba(0, 0, 0, 0.3);
+        0 0.25rem 1.25rem rgba(0, 0, 0, 0.6),
+        0 0 2.5rem rgba(0, 0, 0, 0.3);
 }
 .cinema-header.decoration-backdrop.shadow-glow {
     box-shadow:
-        0 0 15px currentColor,
-        0 0 30px currentColor;
+        0 0 0.9375rem currentColor,
+        0 0 1.875rem currentColor;
     border-color: currentColor;
 }
 .cinema-header.decoration-backdrop.shadow-neon {
     box-shadow:
-        0 0 10px currentColor,
-        0 0 20px currentColor,
-        0 0 40px currentColor;
+        0 0 0.625rem currentColor,
+        0 0 1.25rem currentColor,
+        0 0 2.5rem currentColor;
     border-color: currentColor;
 }
 
@@ -580,14 +492,14 @@ body:hover #controls-container {
 /* Marquee Styles */
 .cinema-footer-marquee.style-classic .cinema-footer-marquee-content {
     color: #fff;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.9);
+    text-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.9);
 }
 
 .cinema-footer-marquee.style-neon .cinema-footer-marquee-content {
     color: #00ffff;
     text-shadow:
-        0 0 20px #00ffff,
-        0 0 40px #00ffff;
+        0 0 1.25rem #00ffff,
+        0 0 2.5rem #00ffff;
 }
 
 .cinema-footer-marquee.style-minimal .cinema-footer-marquee-content {
@@ -598,7 +510,7 @@ body:hover #controls-container {
 
 .cinema-footer-marquee.style-theatre .cinema-footer-marquee-content {
     color: #ffd700;
-    text-shadow: 0 4px 8px rgba(255, 215, 0, 0.6);
+    text-shadow: 0 0.25rem 0.5rem rgba(255, 215, 0, 0.6);
 }
 
 /* =================================================================
@@ -638,8 +550,8 @@ body:hover #controls-container {
 
 .cinema-detail-item.certification {
     padding: 0.1rem 0.35rem;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 3px;
+    border: 0.0625rem solid rgba(255, 255, 255, 0.5);
+    border-radius: 0.1875rem;
     font-size: 0.85em;
 }
 
@@ -686,7 +598,7 @@ body:hover #controls-container {
     position: absolute;
     left: -1rem;
     height: 60%;
-    width: 1px;
+    width: 0.0625rem;
     background: rgba(255, 255, 255, 0.2);
 }
 
@@ -745,7 +657,7 @@ body:hover #controls-container {
 .cinema-footer-specs.layout-compact .cinema-spec-item {
     padding: 0.2rem 0.4rem;
     font-size: calc(0.65rem * var(--footer-font-size, 1));
-    border-radius: 3px;
+    border-radius: 0.1875rem;
 }
 
 .cinema-footer-specs.layout-compact .cinema-spec-item i {
@@ -834,7 +746,7 @@ body:hover #controls-container {
 .cinema-footer-specs.layout-spacious .cinema-spec-item {
     padding: 0.35rem 0.7rem;
     font-size: calc(0.85rem * var(--footer-font-size, 1));
-    border-radius: 5px;
+    border-radius: 0.3125rem;
 }
 
 .cinema-footer-specs.layout-spacious .cinema-spec-item i {
@@ -847,7 +759,7 @@ body:hover #controls-container {
     align-items: center;
     gap: 0.35rem;
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     font-size: calc(0.75rem * var(--footer-font-size, 1));
     font-weight: 600;
     text-transform: uppercase;
@@ -904,8 +816,8 @@ body:hover #controls-container {
 .cinema-footer-specs.dark-glass .cinema-spec-item {
     background: rgba(0, 0, 0, 0.7);
     color: inherit;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(0.5rem);
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.3);
 }
 .cinema-footer-specs.dark-glass .cinema-spec-item i,
 .cinema-footer-specs.dark-glass .cinema-spec-item .material-symbols-rounded {
@@ -916,8 +828,8 @@ body:hover #controls-container {
 .cinema-footer-specs.glass .cinema-spec-item {
     background: rgba(255, 255, 255, 0.15);
     color: inherit;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(0.5rem);
+    border: 0.0625rem solid rgba(255, 255, 255, 0.2);
 }
 .cinema-footer-specs.glass .cinema-spec-item i,
 .cinema-footer-specs.glass .cinema-spec-item .material-symbols-rounded {
@@ -951,14 +863,14 @@ body:hover #controls-container {
 .cinema-footer-specs.subtle .cinema-spec-item {
     background: rgba(0, 0, 0, 0.7);
     color: inherit;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(0.5rem);
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.3);
 }
 
 .cinema-footer-specs.badges .cinema-spec-item {
     background: rgba(255, 255, 255, 0.15);
     color: inherit;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 0.0625rem solid rgba(255, 255, 255, 0.2);
 }
 
 .cinema-footer-specs.icons .cinema-spec-item {
@@ -975,7 +887,7 @@ body:hover #controls-container {
 
 .cinema-footer-specs.outline .cinema-spec-item {
     background: transparent;
-    border: 2px solid rgba(255, 255, 255, 0.5);
+    border: 0.125rem solid rgba(255, 255, 255, 0.5);
     color: inherit;
 }
 
@@ -1018,7 +930,7 @@ body:hover #controls-container {
 /* Legacy badge styling (keep for backwards compat) */
 .cinema-spec-badge {
     padding: 0.5rem 1rem;
-    border-radius: 6px;
+    border-radius: 0.375rem;
     font-size: 0.95rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -1033,7 +945,7 @@ body:hover #controls-container {
 
 .cinema-footer-specs.badge-style-outlined .cinema-spec-badge {
     background: transparent;
-    border: 2px solid rgba(255, 255, 255, 0.5);
+    border: 0.125rem solid rgba(255, 255, 255, 0.5);
     color: #fff;
 }
 
@@ -1061,8 +973,8 @@ body:hover #controls-container {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 600px;
-    height: 900px;
+    width: 37.5rem;
+    height: 56.25rem;
     background: radial-gradient(
         circle,
         var(--ambilight-color, rgba(255, 255, 255, 0.3)) 0%,
@@ -1113,8 +1025,8 @@ body[data-orientation='portrait-flipped'] {
     }
 
     #controls-container button {
-        width: 48px;
-        height: 48px;
+        width: 3rem;
+        height: 3rem;
     }
 }
 
@@ -1142,7 +1054,7 @@ body.cinema-landscape-flipped {
     --cinema-font-family: 'Bebas Neue', 'Impact', sans-serif;
     --cinema-title-scale: 1;
     --cinema-title-color: #ffffff;
-    --cinema-title-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    --cinema-title-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5);
     --cinema-metadata-opacity: 0.8;
 }
 
@@ -1358,9 +1270,9 @@ body.cinema-bg-curtain::before {
         repeating-linear-gradient(
             180deg,
             transparent 0px,
-            transparent 3px,
-            rgba(0, 0, 0, 0.1) 3px,
-            rgba(0, 0, 0, 0.1) 6px
+            transparent 0.1875rem,
+            rgba(0, 0, 0, 0.1) 0.1875rem,
+            rgba(0, 0, 0, 0.1) 0.375rem
         );
     pointer-events: none;
     z-index: 1;
@@ -1371,7 +1283,7 @@ body.cinema-bg-curtain::after {
     top: 0;
     left: 0;
     width: 100%;
-    height: 80px;
+    height: 5rem;
     background: linear-gradient(
         180deg,
         rgba(139, 0, 0, 0.95) 0%,
@@ -1407,7 +1319,7 @@ body.cinema-bg-starfield::after {
 :root {
     --cinema-poster-transition: 1.5s;
     --cinema-frame-color: #333333;
-    --cinema-frame-width: 8px;
+    --cinema-frame-width: 0.5rem;
 }
 
 /* Full Bleed - edge to edge, no borders */
@@ -1444,11 +1356,11 @@ body.cinema-poster-polaroid #poster {
     background-size: cover !important;
     background-position: center !important;
     background-color: #fff;
-    padding: 12px 12px 48px 12px;
+    padding: 0.75rem 0.75rem 3rem 0.75rem;
     box-shadow:
-        0 4px 6px rgba(0, 0, 0, 0.1),
-        0 10px 30px rgba(0, 0, 0, 0.2),
-        0 1px 3px rgba(0, 0, 0, 0.08);
+        0 0.25rem 0.375rem rgba(0, 0, 0, 0.1),
+        0 0.625rem 1.875rem rgba(0, 0, 0, 0.2),
+        0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.08);
     transform: rotate(-1deg);
 }
 
@@ -1465,10 +1377,10 @@ body.cinema-poster-shadowBox #poster {
     background-position: center !important;
     border: var(--cinema-frame-width) solid var(--cinema-frame-color);
     box-shadow:
-        0 0 0 4px rgba(0, 0, 0, 0.1),
-        0 25px 50px -12px rgba(0, 0, 0, 0.5),
-        0 50px 100px -20px rgba(0, 0, 0, 0.4),
-        inset 0 0 80px rgba(0, 0, 0, 0.1);
+        0 0 0 0.25rem rgba(0, 0, 0, 0.1),
+        0 1.5625rem 3.125rem -0.75rem rgba(0, 0, 0, 0.5),
+        0 3.125rem 6.25rem -1.25rem rgba(0, 0, 0, 0.4),
+        inset 0 0 5rem rgba(0, 0, 0, 0.1);
     transform: perspective(1000px) rotateX(2deg);
 }
 
@@ -1479,7 +1391,7 @@ body.cinema-poster-neon #poster {
     max-width: 90vw;
     background-size: cover !important;
     background-position: center !important;
-    border: 3px solid var(--cinema-frame-color);
+    border: 0.1875rem solid var(--cinema-frame-color);
     box-shadow:
         0 0 10px var(--cinema-frame-color),
         0 0 20px var(--cinema-frame-color),
@@ -1495,14 +1407,14 @@ body.cinema-poster-neon #poster {
             0 0 10px var(--cinema-frame-color),
             0 0 20px var(--cinema-frame-color),
             0 0 40px var(--cinema-frame-color),
-            0 0 80px color-mix(in srgb, var(--cinema-frame-color) 50%, transparent);
+            0 0 5rem color-mix(in srgb, var(--cinema-frame-color) 50%, transparent);
     }
     100% {
         box-shadow:
-            0 0 15px var(--cinema-frame-color),
-            0 0 30px var(--cinema-frame-color),
-            0 0 60px var(--cinema-frame-color),
-            0 0 100px color-mix(in srgb, var(--cinema-frame-color) 60%, transparent);
+            0 0 0.9375rem var(--cinema-frame-color),
+            0 0 1.875rem var(--cinema-frame-color),
+            0 0 3.75rem var(--cinema-frame-color),
+            0 0 6.25rem color-mix(in srgb, var(--cinema-frame-color) 60%, transparent);
     }
 }
 
@@ -1517,8 +1429,8 @@ body.cinema-poster-doubleBorder #poster {
     outline: calc(var(--cinema-frame-width) * 0.5) solid var(--cinema-frame-color);
     outline-offset: calc(var(--cinema-frame-width) * 0.5);
     box-shadow:
-        0 15px 45px rgba(0, 0, 0, 0.4),
-        0 5px 15px rgba(0, 0, 0, 0.3);
+        0 0.9375rem 2.8125rem rgba(0, 0, 0, 0.4),
+        0 0.3125rem 0.9375rem rgba(0, 0, 0, 0.3);
 }
 
 /* Ornate Corners - decorative corner accents */
@@ -1530,29 +1442,29 @@ body.cinema-poster-ornate #poster {
     background-position: center !important;
     border: calc(var(--cinema-frame-width) * 1.5) solid var(--cinema-frame-color);
     box-shadow:
-        0 15px 45px rgba(0, 0, 0, 0.4),
-        inset 0 0 0 4px rgba(255, 215, 0, 0.3);
+        0 0.9375rem 2.8125rem rgba(0, 0, 0, 0.4),
+        inset 0 0 0 0.25rem rgba(255, 215, 0, 0.3);
     position: relative;
 }
 body.cinema-poster-ornate #poster::before,
 body.cinema-poster-ornate #poster::after {
     content: '';
     position: absolute;
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--cinema-frame-color);
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 0.1875rem solid var(--cinema-frame-color);
     pointer-events: none;
     z-index: 5;
 }
 body.cinema-poster-ornate #poster::before {
-    top: -8px;
-    left: -8px;
+    top: -0.5rem;
+    left: -0.5rem;
     border-right: none;
     border-bottom: none;
 }
 body.cinema-poster-ornate #poster::after {
-    bottom: -8px;
-    right: -8px;
+    bottom: -0.5rem;
+    right: -0.5rem;
     border-left: none;
     border-top: none;
 }
@@ -1574,7 +1486,7 @@ body.cinema-overlay-grain #poster::after {
     height: 100%;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     background-repeat: repeat;
-    background-size: 300px 300px;
+    background-size: 18.75rem 18.75rem;
     opacity: 0.4;
     mix-blend-mode: multiply;
     pointer-events: none;
@@ -1599,16 +1511,16 @@ body.cinema-overlay-oldMovie #poster::after {
         repeating-linear-gradient(
             90deg,
             transparent 0px,
-            transparent 2px,
-            rgba(0, 0, 0, 0.03) 2px,
-            rgba(0, 0, 0, 0.03) 3px
+            transparent 0.125rem,
+            rgba(0, 0, 0, 0.03) 0.125rem,
+            rgba(0, 0, 0, 0.03) 0.1875rem
         ),
         repeating-linear-gradient(
             0deg,
             transparent 0px,
-            transparent 100px,
-            rgba(255, 255, 255, 0.02) 100px,
-            rgba(255, 255, 255, 0.02) 101px
+            transparent 6.25rem,
+            rgba(255, 255, 255, 0.02) 6.25rem,
+            rgba(255, 255, 255, 0.02) 6.3125rem
         );
     animation: oldMovieFlicker 0.1s infinite;
 }
@@ -1646,7 +1558,7 @@ body.cinema-overlay-vhs #poster::after {
             rgba(0, 0, 0, 0.2) 0px,
             rgba(0, 0, 0, 0.2) 1px,
             transparent 1px,
-            transparent 3px
+            transparent 0.1875rem
         ),
         linear-gradient(
             90deg,
@@ -1664,13 +1576,13 @@ body.cinema-overlay-vhs #poster::after {
         transform: translateX(0) skewX(0deg);
     }
     25% {
-        transform: translateX(-3px) skewX(0.1deg);
+        transform: translateX(-0.1875rem) skewX(0.1deg);
     }
     50% {
-        transform: translateX(2px) skewX(-0.05deg);
+        transform: translateX(0.125rem) skewX(-0.05deg);
     }
     75% {
-        transform: translateX(-1px) skewX(0.05deg);
+        transform: translateX(-0.0625rem) skewX(0.05deg);
     }
 }
 
@@ -1706,7 +1618,7 @@ body.cinema-overlay-scanlines #poster::after {
         rgba(0, 0, 0, 0.15) 0px,
         rgba(0, 0, 0, 0.15) 1px,
         transparent 1px,
-        transparent 3px
+        transparent 0.1875rem
     );
 }
 
@@ -1824,8 +1736,8 @@ body.cinema-overlay-vintage #poster::after {
         radial-gradient(
             circle at 67% 8%,
             rgba(0, 0, 0, 0.12) 0%,
-            rgba(0, 0, 0, 0.12) 2px,
-            transparent 2px
+            rgba(0, 0, 0, 0.12) 0.125rem,
+            transparent 0.125rem
         ),
         radial-gradient(
             circle at 45% 72%,
@@ -1848,8 +1760,8 @@ body.cinema-overlay-vintage #poster::after {
         radial-gradient(
             circle at 91% 67%,
             rgba(0, 0, 0, 0.1) 0%,
-            rgba(0, 0, 0, 0.1) 2px,
-            transparent 2px
+            rgba(0, 0, 0, 0.1) 0.125rem,
+            transparent 0.125rem
         ),
         radial-gradient(
             circle at 34% 91%,
@@ -2044,10 +1956,10 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     font-size: 1.2rem;
     font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 0.125rem;
     padding: 0.75rem 1.5rem;
-    border-radius: 4px;
-    box-shadow: 0 4px 15px rgba(238, 90, 36, 0.4);
+    border-radius: 0.25rem;
+    box-shadow: 0 0.25rem 0.9375rem rgba(238, 90, 36, 0.4);
     animation: badgePulse 2s ease-in-out infinite;
     z-index: 100;
 }
@@ -2073,8 +1985,8 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     font-family: var(--cinema-font-family);
     font-size: 2rem;
     padding: 1rem 2rem;
-    border-radius: 8px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem;
+    border: 0.125rem solid rgba(255, 255, 255, 0.2);
     text-align: center;
     z-index: 100;
 }
@@ -2082,7 +1994,7 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 .cinema-countdown-label {
     font-size: 0.8rem;
     text-transform: uppercase;
-    letter-spacing: 3px;
+    letter-spacing: 0.1875rem;
     opacity: 0.7;
     margin-bottom: 0.5rem;
 }
@@ -2097,8 +2009,8 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     gap: 0.5rem;
     padding: 0.6rem 1rem;
     background: rgba(0, 0, 0, 0.85);
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.25rem 0.9375rem rgba(0, 0, 0, 0.5);
     z-index: 100;
     font-family: var(--cinema-font-family, 'Bebas Neue', sans-serif);
 }
@@ -2115,7 +2027,7 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 }
 
 .cinema-rating-badge.fresh {
-    border: 2px solid #66bb6a;
+    border: 0.125rem solid #66bb6a;
 }
 
 .cinema-rating-badge.fresh .rating-value {
@@ -2123,7 +2035,7 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 }
 
 .cinema-rating-badge.rotten {
-    border: 2px solid #ef5350;
+    border: 0.125rem solid #ef5350;
 }
 
 .cinema-rating-badge.rotten .rating-value {
@@ -2131,7 +2043,7 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 }
 
 .cinema-rating-badge.imdb {
-    border: 2px solid #f5c518;
+    border: 0.125rem solid #f5c518;
 }
 
 .cinema-rating-badge.imdb .rating-value {
@@ -2148,8 +2060,8 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     gap: 0.5rem;
     padding: 0.75rem 1rem;
     background: rgba(0, 0, 0, 0.85);
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.25rem 0.9375rem rgba(0, 0, 0, 0.5);
     z-index: 100;
 }
 
@@ -2174,9 +2086,9 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 }
 
 .cinema-watch-providers .provider-item img {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
     object-fit: contain;
     background: white;
 }
@@ -2191,8 +2103,8 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     gap: 0.5rem;
     padding: 0.6rem 1rem;
     background: linear-gradient(135deg, #ffd700, #ffb300);
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.25rem 0.9375rem rgba(255, 193, 7, 0.4);
     z-index: 100;
     animation: awardShine 3s ease-in-out infinite;
 }
@@ -2213,20 +2125,20 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 @keyframes awardShine {
     0%,
     100% {
-        box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+        box-shadow: 0 0.25rem 0.9375rem rgba(255, 193, 7, 0.4);
     }
     50% {
         box-shadow:
-            0 4px 25px rgba(255, 193, 7, 0.7),
-            0 0 30px rgba(255, 215, 0, 0.3);
+            0 0.25rem 1.5625rem rgba(255, 193, 7, 0.7),
+            0 0 1.875rem rgba(255, 215, 0, 0.3);
     }
 }
 
 /* QR Code overlay */
 .cinema-qr-code {
     position: fixed;
-    padding: 12px;
-    border-radius: 8px;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     z-index: 100;
     line-height: 0; /* Remove spacing below image */
@@ -2235,7 +2147,7 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 
 .cinema-qr-code img {
     display: block;
-    border-radius: 4px;
+    border-radius: 0.25rem;
 }
 
 .cinema-qr-code.position-bottomRight {
@@ -2275,8 +2187,8 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     overflow: hidden;
     background: #000;
     /* Elegant frame matching cinema style */
-    border: 4px solid #000000;
-    border-radius: 3px;
+    border: 0.25rem solid #000000;
+    border-radius: 0.1875rem;
     box-shadow:
         0 4px 20px rgba(0, 0, 0, 0.6),
         inset 0 0 0 1px rgba(255, 255, 255, 0.05);
@@ -2308,7 +2220,7 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     font-size: 1.5rem;
     font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 0.125rem;
     padding: 1rem;
     text-align: center;
     z-index: 200;
@@ -2434,32 +2346,32 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 }
 
 .shadow-subtle {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+    text-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5) !important;
 }
 
 .shadow-medium {
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.7) !important;
+    text-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.7) !important;
 }
 
 .shadow-dramatic {
     text-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.9),
-        0 0 20px rgba(0, 0, 0, 0.5) !important;
+        0 0.25rem 0.75rem rgba(0, 0, 0, 0.9),
+        0 0 1.25rem rgba(0, 0, 0, 0.5) !important;
 }
 
 .shadow-glow {
     text-shadow:
-        0 0 10px currentColor,
-        0 0 20px currentColor,
-        0 0 30px currentColor !important;
+        0 0 0.625rem currentColor,
+        0 0 1.25rem currentColor,
+        0 0 1.875rem currentColor !important;
 }
 
 .shadow-neon {
     text-shadow:
-        0 0 5px currentColor,
-        0 0 10px currentColor,
-        0 0 20px currentColor,
-        0 0 40px currentColor !important;
+        0 0 0.3125rem currentColor,
+        0 0 0.625rem currentColor,
+        0 0 1.25rem currentColor,
+        0 0 2.5rem currentColor !important;
 }
 
 /* Animation Classes */

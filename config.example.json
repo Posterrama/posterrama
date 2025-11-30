@@ -153,6 +153,7 @@
             "animation": "fade",
             "transitionDuration": 1.5,
             "frameColor": "#333333",
+            "frameColorMode": "custom",
             "frameWidth": 8
         },
         "background": {

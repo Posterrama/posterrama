@@ -1079,6 +1079,8 @@
             ($('#cinemaPosterAnimation').value = poster.animation || 'fade');
         $('#cinemaPosterTransition') &&
             ($('#cinemaPosterTransition').value = poster.transitionDuration || 1.5);
+        $('#cinemaFrameColorMode') &&
+            ($('#cinemaFrameColorMode').value = poster.frameColorMode || 'custom');
         $('#cinemaFrameWidth') && ($('#cinemaFrameWidth').value = poster.frameWidth || 8);
 
         // Metadata controls
@@ -1448,18 +1450,41 @@
         // Poster: show frame controls for styles that use borders
         const posterStyleSelect = $('#cinemaPosterStyle');
         const frameColorContainer = document.getElementById('cinema-frame-color-picker-container');
+        const frameColorModeRow = $('#cinemaFrameColorModeRow');
+        const frameColorModeSelect = $('#cinemaFrameColorMode');
         const frameWidthRow = $('#cinemaFrameWidthRow');
+
+        // Frame Color Mode: show/hide color picker based on mode (define first)
+        const syncFrameColorPickerVisibility = () => {
+            const style = posterStyleSelect?.value || 'floating';
+            const mode = frameColorModeSelect?.value || 'custom';
+            const stylesWithFrame = ['framed', 'shadowBox', 'neon', 'doubleBorder', 'ornate'];
+            const hasFrame = stylesWithFrame.includes(style);
+            const isCustom = mode === 'custom';
+            // Only show color picker if frame style AND custom mode
+            if (frameColorContainer) {
+                frameColorContainer.style.display = hasFrame && isCustom ? '' : 'none';
+            }
+        };
+
         if (posterStyleSelect) {
             const syncPosterVisibility = () => {
                 const style = posterStyleSelect.value;
                 // Show frame controls for framed, shadowBox, neon, doubleBorder, ornate
                 const stylesWithFrame = ['framed', 'shadowBox', 'neon', 'doubleBorder', 'ornate'];
                 const show = stylesWithFrame.includes(style);
-                if (frameColorContainer) frameColorContainer.style.display = show ? '' : 'none';
+                if (frameColorModeRow) frameColorModeRow.style.display = show ? '' : 'none';
                 if (frameWidthRow) frameWidthRow.style.display = show ? '' : 'none';
+                // Color picker visibility depends on both style and mode
+                syncFrameColorPickerVisibility();
             };
             posterStyleSelect.addEventListener('change', syncPosterVisibility);
             syncPosterVisibility();
+        }
+
+        if (frameColorModeSelect) {
+            frameColorModeSelect.addEventListener('change', syncFrameColorPickerVisibility);
+            syncFrameColorPickerVisibility();
         }
 
         // Quick Theme: apply preset combinations
@@ -1529,7 +1554,13 @@
                 }
                 if (theme.poster.frameColor) {
                     const frameColorInput = $('#cinemaFrameColor');
+                    const frameColorModeSelect = $('#cinemaFrameColorMode');
                     if (frameColorInput) frameColorInput.value = theme.poster.frameColor;
+                    // Reset to custom mode when applying theme with custom color
+                    if (frameColorModeSelect) {
+                        frameColorModeSelect.value = 'custom';
+                        frameColorModeSelect.dispatchEvent(new Event('change'));
+                    }
                 }
             }
 
@@ -1582,6 +1613,7 @@
                 animation: $('#cinemaPosterAnimation')?.value || 'fade',
                 transitionDuration: parseFloat($('#cinemaPosterTransition')?.value || '1.5'),
                 frameColor: $('#cinemaFrameColor')?.value || '#333333',
+                frameColorMode: $('#cinemaFrameColorMode')?.value || 'custom',
                 frameWidth: parseInt($('#cinemaFrameWidth')?.value || '8', 10),
             },
             background: {
@@ -2209,10 +2241,17 @@
                             setVal('cinemaPosterAnimation', 'fade');
                             setVal('cinemaPosterTransition', 1.5);
                             setVal('cinemaFrameWidth', 8);
+                            setVal('cinemaFrameColorMode', 'custom');
                             // Reset frame color
                             {
                                 const frameInput = document.getElementById('cinemaFrameColor');
                                 if (frameInput) frameInput.value = '#ffffff';
+                                // Update visibility
+                                const frameColorModeSelect =
+                                    document.getElementById('cinemaFrameColorMode');
+                                if (frameColorModeSelect) {
+                                    frameColorModeSelect.dispatchEvent(new Event('change'));
+                                }
                             }
 
                             // Metadata - ALL ON for full info display

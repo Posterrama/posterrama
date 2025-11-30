@@ -57,6 +57,7 @@
             animation: 'fade', // fade, zoomIn, slideUp, cinematic, kenBurns
             transitionDuration: 1.5, // seconds
             frameColor: '#333333',
+            frameColorMode: 'custom', // custom, tonSurTonLight, tonSurTonDark
             frameWidth: 8, // pixels
         },
         // === NEW: Background settings ===
@@ -756,8 +757,10 @@
         const img = document.createElement('img');
         img.src = qrUrl;
         img.alt = 'QR Code';
-        img.style.width = `${displaySize}px`;
-        img.style.height = `${displaySize}px`;
+        // Use rem for 4K scaling (displaySize / 16 to convert px to rem)
+        const sizeInRem = displaySize / 16;
+        img.style.width = `${sizeInRem}rem`;
+        img.style.height = `${sizeInRem}rem`;
         img.style.display = 'block'; // Remove any inline spacing
         img.loading = 'lazy';
 
@@ -1491,6 +1494,49 @@
         return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
 
+    // ===== Create Ton-sur-ton Frame Color =====
+    // Creates a frame color based on the dominant color of the poster
+    // Light variant: brightens and desaturates slightly for a subtle frame
+    // Dark variant: darkens and desaturates for a subtle shadow effect
+    function createTonSurTonColor(hexColor, variant = 'light') {
+        const hex = hexColor.replace('#', '');
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+
+        if (variant === 'light') {
+            // Lighten: move 40% toward white, slight desaturation
+            r = Math.min(255, Math.round(r + (255 - r) * 0.4));
+            g = Math.min(255, Math.round(g + (255 - g) * 0.4));
+            b = Math.min(255, Math.round(b + (255 - b) * 0.4));
+        } else {
+            // Darken: move 50% toward black
+            r = Math.round(r * 0.5);
+            g = Math.round(g * 0.5);
+            b = Math.round(b * 0.5);
+        }
+
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+
+    // ===== Update Frame Color for Ton-sur-ton =====
+    // Called after dominantColor is extracted to update frame color dynamically
+    function updateTonSurTonFrameColor(dominantColor) {
+        const poster = cinemaConfig.poster;
+        if (!poster.frameColorMode || poster.frameColorMode === 'custom') {
+            return; // Use custom color, no update needed
+        }
+
+        const variant = poster.frameColorMode === 'tonSurTonLight' ? 'light' : 'dark';
+        const tonSurTonColor = createTonSurTonColor(dominantColor, variant);
+        document.documentElement.style.setProperty('--cinema-frame-color', tonSurTonColor);
+        log('Ton-sur-ton frame color applied:', {
+            variant,
+            dominantColor,
+            frameColor: tonSurTonColor,
+        });
+    }
+
     // ===== Extract Dominant Color from Image =====
     function extractDominantColor(imageUrl) {
         return new Promise(resolve => {
@@ -1642,13 +1688,17 @@
         // Create/manage starfield canvas for that mode
         manageStarfield(bg.mode === 'starfield');
 
-        // Set CSS variables
+        // Set CSS variables (use rem for 4K scaling)
         root.style.setProperty('--cinema-bg-color', bg.solidColor);
-        root.style.setProperty('--cinema-bg-blur', `${bg.blurAmount}px`);
+        root.style.setProperty('--cinema-bg-blur', `${bg.blurAmount / 16}rem`);
 
         // Track effective background color for ton-sur-ton
         // Start with solid color as default
         effectiveBgColor = bg.solidColor || '#000000';
+
+        // Check if ton-sur-ton frame color is enabled
+        const needsTonSurTon =
+            cinemaConfig.poster.frameColorMode && cinemaConfig.poster.frameColorMode !== 'custom';
 
         // Set poster URL for blurred background
         if (media) {
@@ -1657,10 +1707,14 @@
                 root.style.setProperty('--cinema-poster-url', `url('${posterUrl}')`);
 
                 // Extract dominant color if not provided
+                // Also extract if ton-sur-ton is enabled (for frame color)
                 let dominantColor = media.dominantColor;
                 if (
                     !dominantColor &&
-                    (bg.mode === 'gradient' || bg.mode === 'ambient' || bg.mode === 'blurred')
+                    (bg.mode === 'gradient' ||
+                        bg.mode === 'ambient' ||
+                        bg.mode === 'blurred' ||
+                        needsTonSurTon)
                 ) {
                     dominantColor = await extractDominantColor(posterUrl);
                     log('Extracted dominant color:', dominantColor);
@@ -1680,6 +1734,11 @@
                 root.style.setProperty('--cinema-gradient-start', '#0f0f0f');
                 root.style.setProperty('--cinema-gradient-mid', dominantColor);
                 root.style.setProperty('--cinema-gradient-end', '#0f0f0f');
+
+                // Update ton-sur-ton frame color if enabled
+                if (needsTonSurTon) {
+                    updateTonSurTonFrameColor(dominantColor);
+                }
             }
         }
 
@@ -1736,10 +1795,10 @@
         );
         document.body.classList.add(`cinema-anim-${poster.animation}`);
 
-        // Set CSS variables
+        // Set CSS variables (use rem for 4K scaling)
         root.style.setProperty('--cinema-poster-transition', `${poster.transitionDuration}s`);
         root.style.setProperty('--cinema-frame-color', poster.frameColor);
-        root.style.setProperty('--cinema-frame-width', `${poster.frameWidth}px`);
+        root.style.setProperty('--cinema-frame-width', `${poster.frameWidth / 16}rem`);
 
         log('Poster settings applied', poster);
     }
