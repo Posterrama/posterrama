@@ -6174,17 +6174,21 @@
                 modeOrientation = payload.screensaverMode?.orientation || 'auto';
             }
 
-            // Cinema preview: always portrait (cinema only has portrait modes)
+            // Determine preview orientation
             let portrait;
             if (isCinema) {
                 // Cinema is always portrait
                 portrait = true;
             } else {
-                // Other modes: auto uses aspect ratio, otherwise check orientation
-                portrait =
-                    modeOrientation === 'auto'
-                        ? window.innerWidth < window.innerHeight
-                        : modeOrientation === 'portrait' || modeOrientation === 'portrait-flipped';
+                // Wallart/Screensaver: respect orientation setting
+                // For auto, use aspect ratio detection, for explicit orientation use the value
+                if (modeOrientation === 'auto') {
+                    // Auto detection based on window aspect ratio
+                    portrait = window.innerWidth < window.innerHeight;
+                } else {
+                    // Explicit orientation (portrait, landscape, portrait-flipped, landscape-flipped)
+                    portrait = modeOrientation.includes('portrait');
+                }
             }
 
             container.classList.toggle('portrait', portrait);

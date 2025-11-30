@@ -2400,16 +2400,11 @@ body.preview-landscape {
     }
 }
 
-/* Orientation transforms for flipped modes */
+/* Orientation transforms for flipped modes (screensaver, wallart) */
 body.orientation-portrait-flipped,
 body.orientation-landscape-flipped {
-    transform: rotate(180deg);
-    transform-origin: center center;
-}
-
-/* Ensure body fills viewport when rotated */
-body.orientation-portrait-flipped,
-body.orientation-landscape-flipped {
+    transform: rotate(180deg) !important;
+    transform-origin: center center !important;
     position: fixed;
     top: 0;
     left: 0;
