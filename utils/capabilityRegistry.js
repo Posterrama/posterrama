@@ -207,7 +207,7 @@ class CapabilityRegistry {
             icon: 'mdi:pause',
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'playback.pause' });
+                return wsHub.sendCommand(deviceId, { type: 'playback.pause', payload: {} });
             },
         });
 
@@ -218,7 +218,7 @@ class CapabilityRegistry {
             icon: 'mdi:play',
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'playback.resume' });
+                return wsHub.sendCommand(deviceId, { type: 'playback.resume', payload: {} });
             },
         });
 
@@ -229,7 +229,7 @@ class CapabilityRegistry {
             icon: 'mdi:skip-next',
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'playback.next' });
+                return wsHub.sendCommand(deviceId, { type: 'playback.next', payload: {} });
             },
         });
 
@@ -240,7 +240,7 @@ class CapabilityRegistry {
             icon: 'mdi:skip-previous',
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'playback.previous' });
+                return wsHub.sendCommand(deviceId, { type: 'playback.previous', payload: {} });
             },
         });
 
@@ -251,7 +251,7 @@ class CapabilityRegistry {
             icon: 'mdi:play-pause',
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'playback.toggle' });
+                return wsHub.sendCommand(deviceId, { type: 'playback.toggle', payload: {} });
             },
         });
     }
@@ -270,7 +270,7 @@ class CapabilityRegistry {
             commandHandler: (deviceId, value) => {
                 // For switches, value is 'ON' or 'OFF'
                 const type = value === 'OFF' ? 'power.off' : 'power.on';
-                return wsHub.sendCommand(deviceId, { type });
+                return wsHub.sendCommand(deviceId, { type, payload: {} });
             },
             stateGetter: device => {
                 // Switch state: true = ON (powered on), false = OFF (powered off)
@@ -287,7 +287,7 @@ class CapabilityRegistry {
                 return device.currentState?.poweredOff === true;
             },
             commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'power.on' });
+                return wsHub.sendCommand(deviceId, { type: 'power.on', payload: {} });
             },
         });
 
@@ -300,7 +300,7 @@ class CapabilityRegistry {
                 return device.currentState?.poweredOff !== true;
             },
             commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'power.off' });
+                return wsHub.sendCommand(deviceId, { type: 'power.off', payload: {} });
             },
         });
     }
@@ -318,7 +318,7 @@ class CapabilityRegistry {
             icon: 'mdi:pin',
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'playback.pin' });
+                return wsHub.sendCommand(deviceId, { type: 'playback.pin', payload: {} });
             },
         });
 
@@ -334,7 +334,7 @@ class CapabilityRegistry {
                 );
             },
             commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'playback.unpin' });
+                return wsHub.sendCommand(deviceId, { type: 'playback.unpin', payload: {} });
             },
         });
     }
@@ -351,7 +351,7 @@ class CapabilityRegistry {
             entityType: 'button',
             icon: 'mdi:refresh',
             commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'core.mgmt.reload' });
+                return wsHub.sendCommand(deviceId, { type: 'core.mgmt.reload', payload: {} });
             },
         });
 
@@ -361,7 +361,7 @@ class CapabilityRegistry {
             entityType: 'button',
             icon: 'mdi:restore',
             commandHandler: deviceId => {
-                return wsHub.sendCommand(deviceId, { type: 'core.mgmt.reset' });
+                return wsHub.sendCommand(deviceId, { type: 'core.mgmt.reset', payload: {} });
             },
         });
     }
@@ -1577,7 +1577,7 @@ class CapabilityRegistry {
                 const now = new Date();
 
                 if (isConnected) return 'live';
-                if (lastSeen && (now - lastSeen) / 1000 < 60) return 'online';
+                if (lastSeen && (now.getTime() - lastSeen.getTime()) / 1000 < 60) return 'online';
                 return 'offline';
             },
         });
