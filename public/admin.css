@@ -131,16 +131,30 @@
 #section-devices .nowplay-title-row {
     display: none;
 }
-/* Bottom title style */
+/* Bottom title style with scrolling animation for long titles */
 .app-section#section-devices .device-card.has-nowplay .nowplay-title-bottom {
     font-size: 14px;
     line-height: 1.4;
     color: var(--color-text-secondary);
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
     text-align: right;
     margin: 8px 78px 0 0; /* align with reserved right space (78px) */
+    position: relative;
+    max-width: calc(100% - 78px);
+}
+
+.app-section#section-devices .device-card.has-nowplay .nowplay-title-bottom:hover {
+    animation: marquee 8s linear infinite;
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(calc(-100% + 200px));
+    }
 }
 /* Keep pills on one line for Devices section */
 #section-devices .device-badges {
@@ -166,7 +180,20 @@
     max-width: 180px;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    position: relative;
+}
+
+#section-devices .nowplay-thumb:hover .nowplay-title {
+    animation: marquee-small 6s linear infinite;
+}
+
+@keyframes marquee-small {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(calc(-100% + 150px));
+    }
 }
 #modal-merge .btn-merge-accent {
     --accent-color: var(--color-warning);
@@ -1487,6 +1514,11 @@ body {
 .status-card .trend {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    padding-right: 12px;
 }
 
 .trend.positive {

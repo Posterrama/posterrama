@@ -93,49 +93,67 @@ class PlexSessionsPoller extends EventEmitter {
             const sessions = response?.MediaContainer?.Metadata || [];
 
             // Process sessions into our format
-            const processedSessions = sessions.map(session => ({
-                // Media info
-                ratingKey: session.ratingKey,
-                key: session.key,
-                guid: session.guid,
-                type: session.type, // movie, episode
-                title: session.title,
-                grandparentTitle: session.grandparentTitle, // Show name
-                parentTitle: session.parentTitle, // Season
-                year: session.year,
-                thumb: session.thumb,
-                art: session.art,
-                parentThumb: session.parentThumb,
-                grandparentThumb: session.grandparentThumb,
-                duration: session.duration || 0,
+            const processedSessions = sessions.map(session => {
+                // For episodes, extract season/episode numbers from various possible fields
+                let seasonNum = session.parentIndex;
+                const episodeNum = session.index;
 
-                // Playback info
-                viewOffset: session.viewOffset || 0,
-                progressPercent: session.duration
-                    ? Math.round(((session.viewOffset || 0) / session.duration) * 100)
-                    : 0,
+                // If not available, try extracting from parentTitle (e.g., "Season 1")
+                if (session.type === 'episode' && !seasonNum && session.parentTitle) {
+                    const seasonMatch = session.parentTitle.match(/Season (\d+)/i);
+                    if (seasonMatch) seasonNum = parseInt(seasonMatch[1], 10);
+                }
 
-                // Session info
-                sessionKey: session.Session?.id || session.sessionKey,
-                bandwidth: session.Session?.bandwidth,
-                location: session.Session?.location,
+                return {
+                    // Media info
+                    ratingKey: session.ratingKey,
+                    key: session.key,
+                    guid: session.guid,
+                    type: session.type, // movie, episode
+                    title: session.title,
+                    grandparentTitle: session.grandparentTitle, // Show name
+                    parentTitle: session.parentTitle, // Season
+                    parentIndex: seasonNum, // Season number (extracted)
+                    index: episodeNum, // Episode number
+                    year: session.year,
+                    thumb: session.thumb,
+                    art: session.art,
+                    parentThumb: session.parentThumb,
+                    grandparentThumb: session.grandparentThumb,
+                    duration: session.duration || 0,
+                    rating: session.rating,
+                    contentRating: session.contentRating,
+                    tagline: session.tagline,
+                    genres: session.Genre ? session.Genre.map(g => g.tag) : [],
 
-                // User info
-                userId: session.User?.id,
-                username: session.User?.title || 'Unknown',
-                userThumb: session.User?.thumb,
+                    // Playback info
+                    viewOffset: session.viewOffset || 0,
+                    progressPercent: session.duration
+                        ? Math.round(((session.viewOffset || 0) / session.duration) * 100)
+                        : 0,
 
-                // Player info
-                playerState: session.Player?.state || 'unknown', // playing, paused, buffering
-                playerTitle: session.Player?.title || 'Unknown Player',
-                playerDevice: session.Player?.device,
-                playerPlatform: session.Player?.platform,
-                playerProduct: session.Player?.product,
-                playerAddress: session.Player?.address,
+                    // Session info
+                    sessionKey: session.Session?.id || session.sessionKey,
+                    bandwidth: session.Session?.bandwidth,
+                    location: session.Session?.location,
 
-                // Timestamps
-                timestamp: Date.now(),
-            }));
+                    // User info
+                    userId: session.User?.id,
+                    username: session.User?.title || 'Unknown',
+                    userThumb: session.User?.thumb,
+
+                    // Player info
+                    playerState: session.Player?.state || 'unknown', // playing, paused, buffering
+                    playerTitle: session.Player?.title || 'Unknown Player',
+                    playerDevice: session.Player?.device,
+                    playerPlatform: session.Player?.platform,
+                    playerProduct: session.Player?.product,
+                    playerAddress: session.Player?.address,
+
+                    // Timestamps
+                    timestamp: Date.now(),
+                };
+            });
 
             // Check if sessions changed
             const sessionsChanged =

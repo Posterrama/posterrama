@@ -1354,42 +1354,60 @@
                 if (subEl) {
                     if (sessions.length === 0) {
                         subEl.textContent = 'nobody watching';
-                        if (cardEl) cardEl.title = 'Currently playing on Plex';
-                    } else if (sessions.length === 1) {
-                        const session = sessions[0];
-                        // For TV shows, use grandparentTitle (series name) instead of title (episode name)
-                        const title =
-                            session.type === 'episode'
-                                ? session.grandparentTitle || session.title
-                                : session.title;
-                        const user = session.username || '';
-                        let text = '1 active session';
-                        if (title && user) {
-                            text += ` — ${escapeHtml(title)} (${escapeHtml(user)})`;
-                        } else if (title) {
-                            text += ` — ${escapeHtml(title)}`;
-                        } else if (user) {
-                            text += ` (${escapeHtml(user)})`;
+                        if (cardEl) {
+                            cardEl.title = 'Currently playing on Plex';
+                            cardEl.classList.remove(
+                                'has-nowplaying-details',
+                                'js-nowplaying-hover'
+                            );
                         }
-                        subEl.textContent = text;
-                        // Tooltip shows user info
-                        let tooltip = '1 active session';
-                        if (user) {
-                            tooltip += `\nWatching: ${escapeHtml(user)}`;
-                        }
-                        if (cardEl) cardEl.title = tooltip;
                     } else {
-                        subEl.textContent = `${sessions.length} active sessions`;
-                        // Build tooltip with user list (filter out Unknown and empty strings)
-                        const users = sessions
-                            .map(s => s.username || '')
-                            .filter(u => u && u.trim() !== '' && u !== 'Unknown');
-                        const uniqueUsers = [...new Set(users)];
-                        let tooltip = `${sessions.length} active sessions`;
-                        if (uniqueUsers.length > 0) {
-                            tooltip += `\nWatching: ${uniqueUsers.join(', ')}`;
+                        // Show count and store ALL sessions for hover card
+                        const sessionText =
+                            sessions.length === 1
+                                ? '1 active session'
+                                : `${sessions.length} active sessions`;
+
+                        // If single session, show abbreviated info
+                        if (sessions.length === 1) {
+                            const session = sessions[0];
+                            const title =
+                                session.type === 'episode'
+                                    ? session.grandparentTitle || session.title
+                                    : session.title;
+                            const user = session.username || '';
+
+                            let text = sessionText;
+                            if (title && user) {
+                                text += ` — ${escapeHtml(title)} (${escapeHtml(user)})`;
+                            } else if (title) {
+                                text += ` — ${escapeHtml(title)}`;
+                            } else if (user) {
+                                text += ` (${escapeHtml(user)})`;
+                            }
+                            subEl.textContent = text;
+                        } else {
+                            // Multiple sessions - just show count
+                            subEl.textContent = sessionText;
                         }
-                        if (cardEl) cardEl.title = tooltip;
+
+                        // Store ALL sessions data for hover card
+                        if (cardEl) {
+                            cardEl.dataset.sessionData = JSON.stringify(sessions);
+                            cardEl.classList.add('has-nowplaying-details');
+                            cardEl.classList.add('js-nowplaying-hover');
+                            cardEl.removeAttribute('title'); // Remove tooltip, use hover card instead
+
+                            // Bind hover card (defer to ensure bindNowPlayingHover is available)
+                            setTimeout(() => {
+                                if (
+                                    !cardEl.__nowplayingHoverBound &&
+                                    typeof window.bindNowPlayingHover === 'function'
+                                ) {
+                                    window.bindNowPlayingHover();
+                                }
+                            }, 100);
+                        }
                     }
                 }
             } catch (e) {
@@ -1397,6 +1415,193 @@
             }
         }
     }
+
+    // Setup Now Playing hover card (global, outside devices scope)
+    (function setupNowPlayingHoverCard() {
+        // Create hover card element
+        let nowPlayingCard = document.getElementById('hc-nowplaying');
+        if (!nowPlayingCard) {
+            nowPlayingCard = document.createElement('div');
+            nowPlayingCard.className = 'hovercard';
+            nowPlayingCard.id = 'hc-nowplaying';
+            nowPlayingCard.innerHTML = `
+                <div class="hc-title"><i class="fas fa-play-circle"></i><span>Now Playing</span></div>
+                <div class="hc-list">
+                    <div class="hc-row"><i class="fas fa-heading"></i><span>Title</span><span class="mono value dim">—</span></div>
+                </div>`;
+            document.body.appendChild(nowPlayingCard);
+        }
+
+        // Position helper
+        function positionHover(el, trigger) {
+            const r = trigger.getBoundingClientRect();
+            const margin = 8;
+            const top = window.scrollY + r.top + r.height + margin;
+            const left = Math.min(
+                window.scrollX + r.left,
+                window.scrollX + window.innerWidth - el.offsetWidth - margin
+            );
+            el.style.top = top + 'px';
+            el.style.left = left + 'px';
+        }
+
+        // HTML builder - now accepts array of sessions
+        function buildNowPlayingHoverHTML(sessions) {
+            const escape = s =>
+                String(s || '').replace(
+                    /[&<>"']/g,
+                    c =>
+                        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+                );
+
+            if (!Array.isArray(sessions) || sessions.length === 0) {
+                return `
+                    <div class="hc-title"><i class="fas fa-play-circle"></i><span>Now Playing</span></div>
+                    <div class="hc-list"><div class="hc-row"><span>No active sessions</span></div></div>
+                `;
+            }
+
+            // Build HTML for each session
+            const sessionBlocks = sessions
+                .map((session, idx) => {
+                    const isEpisode = session.type === 'episode';
+                    const title = isEpisode
+                        ? session.grandparentTitle || session.title
+                        : session.title;
+                    const user = session.username || 'Unknown';
+                    const year = session.year || '—';
+
+                    const rows = [];
+
+                    // User as mini-header for each session
+                    rows.push(
+                        `<div class="hc-row" style="margin-top:${idx > 0 ? '12px' : '0'};background:rgba(0,0,0,0.3);padding-left:12px;"><i class="fas fa-user"></i><span>Watching</span><span class="mono value">${escape(user)}</span></div>`
+                    );
+
+                    if (isEpisode) {
+                        const episodeTitle = session.title || '—';
+                        // Extract season/episode from available fields
+                        // parentIndex and index are not always available from Plex sessions API
+                        // Try to extract from parentTitle (e.g., "Season 1")
+                        let season = session.parentIndex;
+                        let episode = session.index;
+
+                        if (!season && session.parentTitle) {
+                            const seasonMatch = session.parentTitle.match(/Season (\d+)/i);
+                            if (seasonMatch) season = parseInt(seasonMatch[1], 10);
+                        }
+
+                        // If still no data, try extracting from key or other fields
+                        if (!season) season = '?';
+                        if (!episode) episode = '?';
+
+                        const rating = session.rating ? Number(session.rating).toFixed(1) : null;
+
+                        rows.push(
+                            `<div class="hc-row"><i class="fas fa-tv"></i><span>Series</span><span class="mono value">${escape(title)}</span></div>`
+                        );
+                        rows.push(
+                            `<div class="hc-row"><i class="fas fa-list-ol"></i><span>Episode</span><span class="mono value">S${season}E${episode}</span></div>`
+                        );
+                        if (episodeTitle !== title && episodeTitle !== '—') {
+                            rows.push(
+                                `<div class="hc-row"><i class="fas fa-heading"></i><span>Title</span><span class="mono value">${escape(episodeTitle)}</span></div>`
+                            );
+                        }
+                        if (rating) {
+                            rows.push(
+                                `<div class="hc-row"><i class="fas fa-star"></i><span>Rating</span><span class="mono value">${rating}</span></div>`
+                            );
+                        }
+                    } else {
+                        const rating = session.rating ? Number(session.rating).toFixed(1) : null;
+                        const runtime = session.duration || session.runtime;
+                        let runtimeStr = null;
+                        if (runtime) {
+                            const minutes =
+                                runtime > 1000 ? Math.round(runtime / 60000) : Math.round(runtime);
+                            if (minutes > 0) runtimeStr = `${minutes} min`;
+                        }
+
+                        rows.push(
+                            `<div class="hc-row"><i class="fas fa-film"></i><span>Title</span><span class="mono value">${escape(title)}</span></div>`
+                        );
+                        if (year !== '—') {
+                            rows.push(
+                                `<div class="hc-row"><i class="fas fa-calendar"></i><span>Year</span><span class="mono value">${year}</span></div>`
+                            );
+                        }
+                        if (runtimeStr) {
+                            rows.push(
+                                `<div class="hc-row"><i class="fas fa-clock"></i><span>Runtime</span><span class="mono value">${runtimeStr}</span></div>`
+                            );
+                        }
+                        if (rating) {
+                            rows.push(
+                                `<div class="hc-row"><i class="fas fa-star"></i><span>Rating</span><span class="mono value">${rating}</span></div>`
+                            );
+                        }
+                    }
+
+                    return rows.join('');
+                })
+                .join('');
+
+            return `
+                <div class="hc-title"><i class="fas fa-play-circle"></i><span>Now Playing (${sessions.length})</span></div>
+                <div class="hc-list">${sessionBlocks}</div>
+            `;
+        }
+
+        // Bind function
+        window.bindNowPlayingHover = function () {
+            document.querySelectorAll('.js-nowplaying-hover').forEach(tr => {
+                if (tr.__nowplayingHoverBound) return;
+                tr.__nowplayingHoverBound = true;
+
+                let hideTimer;
+                const show = () => {
+                    if (hideTimer) {
+                        clearTimeout(hideTimer);
+                        hideTimer = null;
+                    }
+
+                    try {
+                        const sessionData = tr.dataset.sessionData;
+                        if (sessionData) {
+                            const sessions = JSON.parse(sessionData);
+                            // Sessions can be array or single object
+                            const sessionsArray = Array.isArray(sessions) ? sessions : [sessions];
+                            const html = buildNowPlayingHoverHTML(sessionsArray);
+                            nowPlayingCard.innerHTML = html;
+                            positionHover(nowPlayingCard, tr);
+                            nowPlayingCard.classList.add('open');
+                            nowPlayingCard._trigger = tr;
+                        }
+                    } catch (e) {
+                        console.error('Now Playing hover card error:', e);
+                    }
+                };
+
+                const hide = () => {
+                    hideTimer = setTimeout(() => {
+                        nowPlayingCard.classList.remove('open');
+                        nowPlayingCard._trigger = null;
+                    }, 150);
+                };
+
+                tr.addEventListener('mouseenter', show);
+                tr.addEventListener('mouseleave', hide);
+                nowPlayingCard.addEventListener('mouseenter', () => {
+                    if (hideTimer) {
+                        clearTimeout(hideTimer);
+                        hideTimer = null;
+                    }
+                });
+                nowPlayingCard.addEventListener('mouseleave', hide);
+            });
+        };
+    })();
 
     // Open card configuration modal
     function openCardConfigModal() {
@@ -13314,6 +13519,7 @@
                     <div class="hc-row"><i class="fas fa-quote-left"></i><span>Tagline</span><span class="mono value dim">—</span></div>
                 </div>`;
             const mediaCard = createHovercard('hc-media', mediaHoverHTML);
+
             function positionHover(el, trigger) {
                 const r = trigger.getBoundingClientRect();
                 const margin = 8;
@@ -13514,6 +13720,11 @@
             bindHover('.js-status-hover', statusCard);
             bindHover('.js-dupes-hover', dupesCard);
             bindHover('.js-media-hover', mediaCard);
+
+            // Bind Now Playing hover card
+            if (typeof window.bindNowPlayingHover === 'function') {
+                window.bindNowPlayingHover();
+            }
 
             // (removed) toolbar presets handlers
 
