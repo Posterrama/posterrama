@@ -3,132 +3,10 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Error - posterrama</title>
-    <meta name="description" content="An error occurred while loading Posterrama. Return to the dashboard or retry your request." />
+        <title>Error - posterrama</title>
+        <meta name="description" content="An error occurred while loading Posterrama. Return to the dashboard or retry your request." />
         <link rel="stylesheet" href="/admin.css" />
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-        <style>
-            /* Error page specific styling */
-            .error-container {
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-                position: relative;
-                overflow: hidden;
-            }
-
-            .error-box {
-                background: rgba(0, 0, 0, 0.2);
-                backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 16px;
-                padding: 3rem;
-                width: 100%;
-                max-width: 450px;
-                text-align: center;
-                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-                color: white;
-                margin: 2rem;
-            }
-
-            .error-box h1 {
-                font-size: 2rem;
-                margin-bottom: 1rem;
-                font-weight: 600;
-            }
-
-            .error-message {
-                background: rgba(239, 68, 68, 0.15);
-                border: 1px solid rgba(239, 68, 68, 0.3);
-                color: rgba(239, 68, 68, 1);
-                padding: 1rem;
-                border-radius: 8px;
-                margin: 1.5rem 0;
-                font-size: 0.95rem;
-                line-height: 1.5;
-            }
-
-            .error-message a {
-                color: rgba(239, 68, 68, 1);
-                text-decoration: underline;
-                font-weight: 500;
-            }
-
-            .error-message a:hover {
-                color: #ef4444;
-                text-decoration: none;
-            }
-
-            .btn-container {
-                margin-top: 2rem;
-            }
-
-            .btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-                padding: 0.875rem 1.5rem;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                text-decoration: none;
-                border-radius: 8px;
-                border: none;
-                font-size: 0.95rem;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-            }
-
-            .btn:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
-                color: white;
-                text-decoration: none;
-            }
-
-            .gradient-text {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-                background-clip: text;
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                font-weight: 700;
-            }
-
-            .admin-text {
-                color: rgba(255, 255, 255, 0.9);
-                font-weight: 400;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="error-container">
-            <div class="error-box">
-                <h1>
-                    <span class="admin-text">Admin</span>
-                    <span class="gradient-text">posterrama</span>
-                </h1>
-
-                <div class="error-message" id="error-message">
-                    An error occurred. Please try again.
-                </div>
-
-                <div class="btn-container">
-                    <a href="/admin/login" class="btn">
-                        <i class="fas fa-arrow-left"></i>
-                        Back to Login
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Background layers -->
-        <div id="error-background-a" class="admin-background-layer"></div>
-        <div id="error-background-b" class="admin-background-layer"></div>
-
-        <!-- Font Awesome -->
         <link
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -136,8 +14,33 @@
             crossorigin="anonymous"
             referrerpolicy="no-referrer"
         />
+    </head>
+    <body>
+        <div class="auth-container">
+            <div class="auth-box panel">
+                <div class="panel-content">
+                    <h1 class="auth-title">
+                        <div class="auth-title-row">
+                            <i class="fas fa-exclamation-triangle" style="color: #e8439b; font-size: 1.5rem;"></i>
+                            <span class="auth-title-text">Error</span>
+                        </div>
+                        <span class="auth-title-brand">posterrama</span>
+                    </h1>
 
-        <script src="/login.js"></script>
+                    <div class="error-alert" id="error-message">
+                        An error occurred. Please try again.
+                    </div>
+
+                    <div class="auth-actions">
+                        <a href="/admin/login" class="btn auth-btn-primary btn-sm">
+                            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                            <span>Back to Login</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <script>
             // Parse error message from URL parameters
             const urlParams = new URLSearchParams(window.location.search);

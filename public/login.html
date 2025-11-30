@@ -3,12 +3,9 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Control Center - posterrama</title>
+        <title>Control Center - posterrama</title>
         <meta name="description" content="Login to the Posterrama admin control center to manage media sources, display presets, devices and system operations." />
-        
-    <!-- Theme styles (new theme) -->
-    <link rel="stylesheet" href="/admin.css?v=0" />
-        <!-- Font Awesome (icons consistent with admin2) -->
+        <link rel="stylesheet" href="/admin.css" />
         <link
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -16,115 +13,59 @@
             crossorigin="anonymous"
             referrerpolicy="no-referrer"
         />
-        <style>
-            /* Keep login-specific layout tweaks; visuals come from admin.css */
-            body { background-color: var(--color-bg-secondary); color: var(--color-text-primary); }
-            .auth-container {
-                min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; gap: 2rem;
-            }
-            .auth-box { width: 100%; max-width: 420px; }
-            .panel-content { padding: var(--space-lg); }
-            .auth-title { text-align: center; margin: 0 0 1.25rem 0; letter-spacing: -0.02em; font-weight: var(--font-weight-semibold); }
-            .admin-text { font-weight: var(--font-weight-bold); text-transform: uppercase; letter-spacing: .08em; }
-            .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-            .form-group { margin-bottom: var(--space-md); }
-            .form-compact { max-width: 360px; margin: 0 auto; }
-            /* Ensure equal widths for username/password like admin2 fields */
-            .form-compact .form-group input,
-            .form-compact .form-group select {
-                width: 100%;
-            }
-            /* Minimal helpers for icons inside inputs */
-            .input-wrap { position: relative; }
-            .input-icon-btn { position: absolute; right: .5rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--color-text-secondary); padding: .25rem; cursor: pointer; opacity: .85; }
-            .input-icon-btn:hover { opacity: 1; color: var(--color-info); }
-            /* Ensure input with icon stays full width */
-            .input-wrap input { width: 100%; display: block; }
-            /* Override autofill to match theme (avoid bright background) */
-            input:-webkit-autofill,
-            input:-webkit-autofill:hover,
-            input:-webkit-autofill:focus {
-                -webkit-text-fill-color: var(--color-text-primary);
-                box-shadow: 0 0 0px 1000px var(--color-bg-card) inset;
-                border: 1px solid var(--color-border);
-                transition: background-color 9999s ease-in-out 0s;
-            }
-            /* Heading overrides: plain white, no forced uppercase */
-            .auth-title .admin-text { text-transform: none; letter-spacing: 0; }
-            /* Error message styled with theme vars */
-            .error-message { 
-                display: none; 
-                background: rgba(232,67,147,0.08); 
-                border: 1px solid rgba(232,67,147,0.35); 
-                color: #e8439b; 
-                padding: .75rem 1rem; 
-                border-radius: 8px; 
-                text-align: center; 
-                font-size: 14px; 
-                margin-top: 1rem;
-            }
-            .error-message.show { display: block !important; }
-            /* Smaller centered submit */
-            .auth-actions { display:flex; justify-content:center; margin-top: 1rem; }
-            .auth-footer { display:flex; gap:12px; align-items:center; justify-content:center; margin-top:1rem; }
-            /* Spinner + loading state styles centralized in admin.css */
-        </style>
     </head>
     <body>
         <div class="auth-container">
             <div class="auth-box panel">
                 <div class="panel-content">
-                <h1 class="auth-title" style="display: flex; flex-direction: column; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <img src="/logo.png" alt="Posterrama Logo" style="height: 32px; width: 32px; display: block; object-fit: contain;" />
-                        <span class="admin-text" style="color: var(--color-text-primary); font-weight: var(--font-weight-semibold);">Admin login</span>
-                    </div>
-                    <span style="margin-top: 0.25rem; background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: var(--font-weight-normal); letter-spacing: 0.02em; opacity: 0.9; font-size: var(--font-size-sm);">posterrama</span>
-                </h1>
-
-                <form id="loginForm" class="form-compact" method="POST" action="/admin/login">
-                    <div class="form-group">
-                        <input
-                            type="text"
-                            id="username"
-                            name="username"
-                            required
-                            placeholder="Enter your username"
-                            autocomplete="username"
-                            autocapitalize="off"
-                            spellcheck="false"
-                        />
-                    </div>
-
-                    <div class="form-group">
-                        <div class="input-wrap">
-                            <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                required
-                                placeholder="Enter your password"
-                                autocomplete="current-password"
-                                style="padding-right:2.2rem"
-                            />
-                            <button type="button" id="togglePwd" class="input-icon-btn" aria-label="Show/Hide password"><i class="fas fa-eye"></i></button>
+                    <h1 class="auth-title">
+                        <div class="auth-title-row">
+                            <img src="/logo.png" alt="Posterrama Logo" class="auth-logo" />
+                            <span class="auth-title-text">Admin login</span>
                         </div>
-                    </div>
+                        <span class="auth-title-brand">posterrama</span>
+                    </h1>
 
-                    <div class="auth-actions">
-                        <button type="submit" class="btn auth-btn-primary btn-sm" id="submitBtn">
-                            <span class="spinner" aria-hidden="true"></span>
-                            <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
-                            <span>Sign In</span>
-                        </button>
-                    </div>
+                    <form id="loginForm" class="form-compact" method="POST" action="/admin/login">
+                        <div class="form-group">
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                required
+                                placeholder="Enter your username"
+                                autocomplete="username"
+                                autocapitalize="off"
+                                spellcheck="false"
+                            />
+                        </div>
 
-                    <div id="errorMessage" class="error-message" role="alert" aria-live="assertive"></div>
-                </form>
+                        <div class="form-group">
+                            <div class="input-wrap">
+                                <input
+                                    type="password"
+                                    id="password"
+                                    name="password"
+                                    required
+                                    placeholder="Enter your password"
+                                    autocomplete="current-password"
+                                    style="padding-right:2.2rem"
+                                />
+                                <button type="button" id="togglePwd" class="input-icon-btn" aria-label="Show/Hide password"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="auth-actions">
+                            <button type="submit" class="btn auth-btn-primary btn-sm" id="submitBtn">
+                                <span class="spinner" aria-hidden="true"></span>
+                                <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                                <span>Sign In</span>
+                            </button>
+                        </div>
+
+                        <div id="errorMessage" class="error-message" role="alert" aria-live="assertive"></div>
+                    </form>
                 </div>
-            </div>
-            <div class="auth-footer">
-                <a href="/" class="btn auth-btn-secondary btn-sm"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Back to Home</span></a>
             </div>
         </div>
 

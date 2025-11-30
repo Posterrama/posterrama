@@ -4,10 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>2FA Verification - posterrama</title>
-
-        <!-- Theme styles (new theme) -->
-    <link rel="stylesheet" href="/admin.css" />
-        <!-- Font Awesome (icons consistent with admin2) -->
+        <link rel="stylesheet" href="/admin.css" />
         <link
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -15,55 +12,21 @@
             crossorigin="anonymous"
             referrerpolicy="no-referrer"
         />
-        <style>
-            /* Match login page layout and theme usage */
-            body { background-color: var(--color-bg-secondary); color: var(--color-text-primary); }
-            .auth-container {
-                min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; gap: 2rem;
-            }
-            .auth-box { width: 100%; max-width: 420px; }
-            .panel-content { padding: var(--space-lg); }
-            .auth-title { text-align: center; margin: 0 0 1.25rem 0; letter-spacing: -0.02em; font-weight: var(--font-weight-semibold); }
-            .admin-text { font-weight: var(--font-weight-bold); text-transform: uppercase; letter-spacing: .08em; }
-            /* Heading overrides: plain white, no forced uppercase for brand line */
-            .auth-title .admin-text { text-transform: none; letter-spacing: 0; }
-            .form-group { margin-bottom: var(--space-md); }
-            .form-compact { max-width: 360px; margin: 0 auto; }
-            /* Ensure equal widths */
-            .form-compact .form-group input,
-            .form-compact .form-group select { width: 100%; }
-            /* Error message styled with theme vars */
-            .error-message { 
-                display: none; 
-                background: rgba(232,67,147,0.08); 
-                border: 1px solid rgba(232,67,147,0.35); 
-                color: #e8439b; 
-                padding: .75rem 1rem; 
-                border-radius: 8px; 
-                text-align: center; 
-                font-size: 14px; 
-                margin-top: 1rem;
-            }
-            .error-message.show { display: block !important; }
-            .helper { text-align:center; color: var(--color-text-secondary); font-size: var(--font-size-sm); margin: 0 0 1rem 0; }
-            .auth-actions { display:flex; justify-content:center; margin-top: 1rem; }
-            .auth-footer { display:flex; gap:12px; align-items:center; justify-content:center; margin-top:1rem; }
-            /* Spinner + loading state styles centralized in admin.css */
-        </style>
     </head>
     <body>
         <div class="auth-container">
             <div class="auth-box panel">
                 <div class="panel-content">
                     <h1 class="auth-title">
-                        <i class="fas fa-user-lock" aria-hidden="true" style="opacity:.9; margin-right: 0.5rem;"></i>
-                        <span class="admin-text" style="color: var(--color-text-primary); font-weight: var(--font-weight-semibold);">2FA Verification</span>
-                        <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight: 100;">posterrama</span>
+                        <div class="auth-title-row">
+                            <i class="fas fa-user-lock" style="opacity:.9; color: var(--color-primary);"></i>
+                            <span class="auth-title-text">2FA Verification</span>
+                        </div>
+                        <span class="auth-title-brand">posterrama</span>
                     </h1>
 
                     <p class="helper">Enter the 6-digit code from your authenticator app to complete your login.</p>
 
-                    <!-- Error message placeholder -->
                     <div id="error-message" class="error-message" role="alert" aria-live="assertive"></div>
 
                     <form action="/admin/2fa-verify" method="POST" class="form-compact">

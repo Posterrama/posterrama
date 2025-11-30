@@ -4,7 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Setup - Admin posterrama</title>
-        <link rel="stylesheet" href="/admin.css?v=0" />
+        <link rel="stylesheet" href="/admin.css" />
         <link
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -12,31 +12,6 @@
             crossorigin="anonymous"
             referrerpolicy="no-referrer"
         />
-        <style>
-            body { background-color: var(--color-bg-secondary); color: var(--color-text-primary); }
-            .auth-container { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2rem; gap:2rem; }
-            .auth-box { width:100%; max-width:480px; }
-            .panel-content { padding: var(--space-lg); }
-            .auth-title { text-align:center; margin:0 0 1.25rem 0; letter-spacing:-0.02em; font-weight:var(--font-weight-semibold); }
-            .admin-text { font-weight: var(--font-weight-bold); text-transform: uppercase; letter-spacing: .08em; }
-            .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-            .form-group { margin-bottom: var(--space-md); }
-            .setup-choice { margin: 1rem 0; }
-            .choice-compact { background: var(--color-bg-card); border:1px solid var(--color-border); border-radius:12px; padding:1.75rem; }
-            .choice-info h3 { margin:0 0 .75rem 0; font-size:1.1rem; font-weight:600; color: var(--color-text-primary); }
-            .choice-info p { margin:0; font-size:.9rem; line-height:1.5; color: var(--color-text-secondary); }
-            .choice-buttons { display:flex; gap:1rem; justify-content:center; }
-            .choice-buttons .btn { flex:1; max-width:170px; display:flex; align-items:center; justify-content:center; gap:.5rem; font-size:.9rem; }
-            .setup-note { margin-top:1.25rem; text-align:center; font-size:.75rem; color: var(--color-text-tertiary); }
-            #qr-container img { max-width:200px; border:1px solid var(--color-border-strong); padding:10px; background: var(--color-bg-base); border-radius:8px; }
-            .steps-hidden { display:none; }
-            .step-actions { display:flex; gap:1rem; }
-            .auth-footer { display:flex; gap:12px; align-items:center; justify-content:center; margin-top:1rem; }
-            .info-list { color: var(--color-text-tertiary); margin:1rem 0 1.25rem; padding-left:1.25rem; font-size:.85rem; }
-            .info-list li { margin-bottom:.5rem; }
-            .error-inline { display:none; margin-top:.75rem; font-size:.75rem; color:#e8439b; text-align:center; }
-            .error-inline.show { display:block; }
-        </style>
     </head>
     <body>
         <div class="auth-container">
@@ -44,9 +19,11 @@
             <div id="step1" class="auth-box panel">
                 <div class="panel-content">
                     <h1 class="auth-title">
-                        <i class="fas fa-rocket" aria-hidden="true" style="opacity:.9; margin-right:.5rem"></i>
-                        <span class="admin-text" style="color: var(--color-text-primary);">Setup</span>
-                        <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight:100;">posterrama</span>
+                        <div class="auth-title-row">
+                            <i class="fas fa-rocket" style="opacity:.9; color: var(--color-primary);"></i>
+                            <span class="auth-title-text">Setup</span>
+                        </div>
+                        <span class="auth-title-brand">posterrama</span>
                     </h1>
                     <h2 style="text-align:center; font-size:1.05rem; font-weight:600; margin:0 0 .75rem; color: var(--color-text-primary);">Step 1: Create Admin Account</h2>
                     <p style="text-align:center; margin:0 0 1.25rem; font-size:.85rem; line-height:1.4; color: var(--color-text-secondary);">Create an administrator account to continue.</p>
@@ -73,9 +50,11 @@
             <div id="step2" class="auth-box panel steps-hidden">
                 <div class="panel-content">
                     <h1 class="auth-title">
-                        <i class="fas fa-shield-alt" aria-hidden="true" style="opacity:.9; margin-right:.5rem"></i>
-                        <span class="admin-text" style="color: var(--color-text-primary);">Setup</span>
-                        <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight:100;">posterrama</span>
+                        <div class="auth-title-row">
+                            <i class="fas fa-shield-alt" style="opacity:.9; color: var(--color-primary);"></i>
+                            <span class="auth-title-text">Setup</span>
+                        </div>
+                        <span class="auth-title-brand">posterrama</span>
                     </h1>
                     <h2 style="text-align:center; font-size:1.05rem; font-weight:600; margin:0 0 .75rem; color: var(--color-text-primary);">Step 2: Two-Factor Authentication</h2>
                     <p style="text-align:center; margin:0 0 1.25rem; font-size:.85rem; line-height:1.4; color: var(--color-text-secondary);">Would you like to enable 2FA to secure your admin panel?</p>
@@ -100,9 +79,11 @@
             <div id="step3" class="auth-box panel steps-hidden">
                 <div class="panel-content">
                     <h1 class="auth-title">
-                        <i class="fas fa-mobile-alt" aria-hidden="true" style="opacity:.9; margin-right:.5rem"></i>
-                        <span class="admin-text" style="color: var(--color-text-primary);">Setup</span>
-                        <span style="display:block; margin-top:.125rem; color: var(--color-text-secondary); font-size: var(--font-size-sm); font-weight:100;">posterrama</span>
+                        <div class="auth-title-row">
+                            <i class="fas fa-mobile-alt" style="opacity:.9; color: var(--color-primary);"></i>
+                            <span class="auth-title-text">Setup</span>
+                        </div>
+                        <span class="auth-title-brand">posterrama</span>
                     </h1>
                     <h2 style="text-align:center; font-size:1.05rem; font-weight:600; margin:0 0 .75rem; color: var(--color-text-primary);">Step 3: Configure 2FA</h2>
                     <ol class="info-list">
@@ -125,10 +106,6 @@
                     </form>
                     <div id="errorStep3" class="error-inline" role="alert" aria-live="assertive"></div>
                 </div>
-            </div>
-
-            <div class="auth-footer">
-                <a href="/" class="btn auth-btn-secondary btn-sm"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Back to Home</span></a>
             </div>
         </div>
         <!-- Setup complete message, only tonen als ?complete=1 in de URL staat -->

@@ -2460,6 +2460,235 @@ input[type='range']::-moz-range-thumb {
     border-color: var(--color-border-dark);
 }
 
+/* ===========================
+   AUTH PAGES (login, setup, 2fa-verify, error)
+   =========================== */
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    gap: 2rem;
+    background-color: var(--color-bg-secondary);
+}
+.auth-container .auth-box {
+    width: 100%;
+    max-width: 420px;
+}
+.auth-container .panel-content {
+    padding: var(--space-lg);
+}
+.auth-container .auth-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin: 0 0 1.25rem 0;
+    letter-spacing: -0.02em;
+    font-weight: var(--font-weight-semibold);
+}
+.auth-container .auth-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.auth-container .auth-title-text {
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+}
+.auth-container .auth-title-brand {
+    margin-top: 0.25rem;
+    /* Match nav-brand gradient (Teal -> Blue/Purple) */
+    background: linear-gradient(135deg, var(--color-teal), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: var(--font-weight-normal);
+    letter-spacing: 0.02em;
+    opacity: 0.9;
+    font-size: var(--font-size-sm);
+}
+.auth-container .auth-logo {
+    height: 32px;
+    width: 32px;
+    display: block;
+    object-fit: contain;
+}
+.auth-container .form-group {
+    margin-bottom: var(--space-md);
+}
+.auth-container .form-compact {
+    max-width: 360px;
+    margin: 0 auto;
+}
+.auth-container .form-compact .form-group input,
+.auth-container .form-compact .form-group select {
+    width: 100%;
+}
+.auth-container .auth-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+.auth-container .auth-footer {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1rem;
+}
+/* Input with icon wrapper */
+.auth-container .input-wrap {
+    position: relative;
+}
+.auth-container .input-wrap input {
+    width: 100%;
+    display: block;
+}
+.auth-container .input-icon-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    padding: 0.25rem;
+    cursor: pointer;
+    opacity: 0.85;
+}
+.auth-container .input-icon-btn:hover {
+    opacity: 1;
+    color: var(--color-info);
+}
+/* Error message */
+.auth-container .error-message {
+    display: none;
+    background: rgba(232, 67, 147, 0.08);
+    border: 1px solid rgba(232, 67, 147, 0.35);
+    color: #e8439b;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 14px;
+    margin-top: 1rem;
+}
+.auth-container .error-message.show {
+    display: block !important;
+}
+.auth-container .error-alert {
+    background: rgba(232, 67, 147, 0.08);
+    border: 1px solid rgba(232, 67, 147, 0.35);
+    color: #e8439b;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+.auth-container .error-alert a {
+    color: #e8439b;
+    text-decoration: underline;
+}
+.auth-container .error-alert a:hover {
+    text-decoration: none;
+}
+.auth-container .error-inline {
+    display: none;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: #e8439b;
+    text-align: center;
+}
+.auth-container .error-inline.show {
+    display: block;
+}
+/* Helper text */
+.auth-container .helper {
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0 0 1rem 0;
+}
+/* Setup specific */
+.auth-container .setup-choice {
+    margin: 1rem 0;
+}
+.auth-container .choice-compact {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.75rem;
+}
+.auth-container .choice-info h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+.auth-container .choice-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+.auth-container .choice-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+.auth-container .choice-buttons .btn {
+    flex: 1;
+    max-width: 170px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+.auth-container .setup-note {
+    margin-top: 1.25rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+}
+.auth-container .step-actions {
+    display: flex;
+    gap: 1rem;
+}
+.auth-container .steps-hidden {
+    display: none;
+}
+.auth-container .info-list {
+    color: var(--color-text-tertiary);
+    margin: 1rem 0 1.25rem;
+    padding-left: 1.25rem;
+    font-size: 0.85rem;
+}
+.auth-container .info-list li {
+    margin-bottom: 0.5rem;
+}
+.auth-container #qr-container img {
+    max-width: 200px;
+    border: 1px solid var(--color-border-strong);
+    padding: 10px;
+    background: var(--color-bg-base);
+    border-radius: 8px;
+}
+/* Override autofill to match theme */
+.auth-container input:-webkit-autofill,
+.auth-container input:-webkit-autofill:hover,
+.auth-container input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-text-primary);
+    box-shadow: 0 0 0px 1000px var(--color-bg-card) inset;
+    border: 1px solid var(--color-border);
+    transition: background-color 9999s ease-in-out 0s;
+}
+
 /* Auth pages secondary (Back links) – match neutral gradient surface style */
 .auth-container .btn.auth-btn-secondary {
     border: none !important;
@@ -13325,7 +13554,7 @@ select:focus-visible {
 .auth-container .btn.auth-btn-primary i,
 .auth-container .btn.auth-btn-primary .fas,
 .auth-container .btn.auth-btn-primary > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-primary) 85%, var(--color-text-secondary));
+    color: var(--color-info) !important;
 }
 .auth-container .btn.auth-btn-primary:hover:not(:disabled),
 .auth-container .btn.auth-btn-primary:focus-visible:not(:disabled) {
