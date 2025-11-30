@@ -1997,11 +1997,16 @@
                                 document.body.classList.toggle('preview-portrait', isPortrait);
                                 document.body.classList.toggle('preview-landscape', !isPortrait);
                             }
-                            // Apply wallart orientation on first load
+                            // Apply wallart orientation on first load (both preview and normal mode)
                             if (settings.wallartMode?.orientation) {
                                 applyWallartOrientation(settings.wallartMode.orientation);
                             }
                             return;
+                        }
+
+                        // Apply wallart orientation ALWAYS (not just in preview mode)
+                        if (settings.wallartMode?.orientation) {
+                            applyWallartOrientation(settings.wallartMode.orientation);
                         }
 
                         // Apply preview orientation if provided (for preview mode only)
@@ -2013,11 +2018,6 @@
 
                             document.body.classList.toggle('preview-portrait', isPortrait);
                             document.body.classList.toggle('preview-landscape', !isPortrait);
-
-                            // Apply wallart mode orientation (with flipped support)
-                            if (settings.wallartMode?.orientation) {
-                                applyWallartOrientation(settings.wallartMode.orientation);
-                            }
 
                             // If orientation changed, rebuild layout WITHOUT reload to avoid infinite loop
                             if (wasPortrait !== isPortrait) {
