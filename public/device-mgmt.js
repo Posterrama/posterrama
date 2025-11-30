@@ -664,7 +664,6 @@
     // --- Welcome overlay: pairing or register when no identity ---
     function showWelcomeOverlay() {
         return new Promise(resolve => {
-            const $ = sel => document.querySelector(sel);
             const overlay = document.createElement('div');
             overlay.id = 'pr-welcome-overlay';
             overlay.innerHTML = `
@@ -759,6 +758,9 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 </div>`;
             document.body.appendChild(overlay);
 
+            // Force a reflow to ensure DOM is ready
+            void overlay.offsetHeight;
+
             // IMMEDIATE button protection - before any other scripts can interfere
             const immediateProtection = () => {
                 const buttons = ['pr-do-pair', 'pr-close', 'pr-skip-setup'];
@@ -766,12 +768,12 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                     const btn = document.getElementById(id);
                     if (btn) {
                         btn.style.cssText +=
-                            '; display: inline-block !important; visibility: visible !important; opacity: 1 !important;';
+                            '; display: inline-block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
                         // Also add to the element's style attribute directly
                         btn.setAttribute(
                             'style',
                             btn.getAttribute('style') +
-                                '; display: inline-block !important; visibility: visible !important; opacity: 1 !important;'
+                                '; display: inline-block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;'
                         );
                     }
                 });
@@ -782,11 +784,17 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             setTimeout(immediateProtection, 1);
             setTimeout(immediateProtection, 10);
             setTimeout(immediateProtection, 50);
+            setTimeout(immediateProtection, 100);
+            setTimeout(immediateProtection, 500);
 
-            const msg = $('#pr-msg');
-            const codeEl = $('#pr-pair-code');
-            const skipButton = $('#pr-skip-setup');
-            const countdownEl = $('#pr-countdown');
+            // Use getElementById instead of $ to be safe
+            const msg = document.getElementById('pr-msg');
+            const codeEl = document.getElementById('pr-pair-code');
+            const skipButton = document.getElementById('pr-skip-setup');
+            const countdownEl = document.getElementById('pr-countdown');
+            const doPairBtn = document.getElementById('pr-do-pair');
+            const closeBtn = document.getElementById('pr-close');
+            const qrImg = document.getElementById('pr-qr-img');
             let countTimer = null;
             let remaining = 120; // seconds
 
@@ -796,9 +804,9 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 codeEl: !!codeEl,
                 skipButton: !!skipButton,
                 countdownEl: !!countdownEl,
-                doPair: !!$('#pr-do-pair'),
-                close: !!$('#pr-close'),
-                qrImg: !!$('#pr-qr-img'),
+                doPairBtn: !!doPairBtn,
+                closeBtn: !!closeBtn,
+                qrImg: !!qrImg,
             });
 
             // Interactive placeholder for pairing code
@@ -818,7 +826,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             }
 
             // Prevent form submission
-            const form = $('#pr-setup-form');
+            const form = document.getElementById('pr-setup-form');
             if (form) {
                 form.addEventListener('submit', e => {
                     e.preventDefault();
@@ -916,26 +924,38 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 }
             });
 
-            const doPairBtn = $('#pr-do-pair');
-            const closeBtn = $('#pr-close');
+            // Add click event listeners with logging
+            console.log('[DeviceMgmt] Adding event listeners...');
 
-            doPairBtn &&
+            if (doPairBtn) {
+                console.log('[DeviceMgmt] Adding click listener to doPairBtn');
                 doPairBtn.addEventListener('click', async e => {
+                    console.log('[DeviceMgmt] doPairBtn clicked!');
                     e.preventDefault();
                     e.stopPropagation();
                     await tryPair();
                 });
+            } else {
+                console.error('[DeviceMgmt] doPairBtn not found!');
+            }
 
-            closeBtn &&
+            if (closeBtn) {
+                console.log('[DeviceMgmt] Adding click listener to closeBtn');
                 closeBtn.addEventListener('click', e => {
+                    console.log('[DeviceMgmt] closeBtn clicked!');
                     e.preventDefault();
                     e.stopPropagation();
                     doClose();
                 });
+            } else {
+                console.error('[DeviceMgmt] closeBtn not found!');
+            }
 
             // Footer skip button
-            skipButton &&
+            if (skipButton) {
+                console.log('[DeviceMgmt] Adding click listener to skipButton');
                 skipButton.addEventListener('click', e => {
+                    console.log('[DeviceMgmt] skipButton clicked!');
                     e.preventDefault();
                     e.stopPropagation();
 
@@ -954,17 +974,20 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         doClose();
                     }, 800);
                 });
+            } else {
+                console.error('[DeviceMgmt] skipButton not found!');
+            }
 
             // Force button visibility
             function ensureButtonsVisible() {
-                const buttons = ['#pr-do-pair', '#pr-close', '#pr-skip-setup'];
-                buttons.forEach(id => {
-                    const btn = $(id);
+                const buttonIds = ['pr-do-pair', 'pr-close', 'pr-skip-setup'];
+                buttonIds.forEach(id => {
+                    const btn = document.getElementById(id);
                     if (btn) {
                         btn.style.setProperty('display', 'inline-block', 'important');
                         btn.style.setProperty('visibility', 'visible', 'important');
                         btn.style.setProperty('opacity', '1', 'important');
-                        btn.style.pointerEvents = 'auto';
+                        btn.style.setProperty('pointer-events', 'auto', 'important');
                     }
                 });
             }
@@ -985,7 +1008,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             });
 
             // Start observing the card for changes
-            const card = $('#pr-welcome-card');
+            const card = document.getElementById('pr-welcome-card');
             if (card) {
                 observer.observe(card, {
                     childList: true,
@@ -1018,7 +1041,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                     // IMPORTANT: No hash fragment to avoid interfering with query parameters
                     const autoRegisterUrl = `${window.location.origin}/admin?auto-register=true&device-id=${encodeURIComponent(deviceId)}&device-name=${encodeURIComponent(deviceName)}`;
                     console.log('[DeviceMgmt] QR URL:', autoRegisterUrl);
-                    const qrImg = $('#pr-qr-img');
+                    // qrImg already declared at the top
                     if (qrImg) {
                         qrImg.onload = () => {
                             console.log('[DeviceMgmt] QR image loaded');
@@ -1079,7 +1102,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 
             // Function to show success in the modal
             function showRegistrationSuccess(deviceName) {
-                const welcomeCard = $('#pr-welcome-card');
+                const welcomeCard = document.getElementById('pr-welcome-card');
                 if (!welcomeCard) return;
 
                 // Replace the entire content with success message using same styling as setup modal
@@ -1143,7 +1166,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 `;
 
                 // Handle continue button
-                const continueBtn = $('#pr-success-continue');
+                const continueBtn = document.getElementById('pr-success-continue');
                 if (continueBtn) {
                     continueBtn.addEventListener('click', () => {
                         // Clean up
