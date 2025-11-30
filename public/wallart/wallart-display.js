@@ -1659,10 +1659,14 @@
                             const zIndex = layer * 10;
                             const scale = 1 + (layer / (layerCount - 1)) * (depthScale - 1);
 
+                            const translateZ = layer * 50;
                             layerStyle = `
                                 z-index: ${zIndex};
-                                transform: translateZ(${layer * 50}px) scale(${scale.toFixed(2)});
+                                transform: translateZ(${translateZ}px) scale(${scale.toFixed(2)});
                             `;
+                            // Store original 3D transform for animation preservation
+                            posterItem.dataset.parallaxTranslateZ = translateZ;
+                            posterItem.dataset.parallaxScale = scale.toFixed(2);
                         }
 
                         posterItem.style.cssText = `
@@ -2230,31 +2234,35 @@
                         const smoothScroll = parallaxConfig.smoothScroll !== false;
                         const layer = parseInt(element.dataset.parallaxLayer) || 0;
 
+                        // Get original 3D transforms to preserve them
+                        const translateZ = parseFloat(element.dataset.parallaxTranslateZ) || 0;
+                        const scale = parseFloat(element.dataset.parallaxScale) || 1.0;
+
                         // Layers move at different speeds (background slower, foreground faster)
                         const layerSpeed = 1 + layer * 0.3 * speed;
                         const fadeTime = smoothScroll ? '0.7s' : '0.5s';
                         const waitTime = smoothScroll ? 700 : 500;
                         const moveDistance = 30 * layerSpeed; // px
 
-                        // Step 1: Fade out and move slightly
-                        img.style.transition = `all ${fadeTime} cubic-bezier(0.4, 0, 0.2, 1)`;
-                        img.style.opacity = '0';
-                        img.style.transform = `translateY(${moveDistance}px)`;
+                        // Step 1: Fade out and move slightly - PRESERVE 3D TRANSFORMS
+                        element.style.transition = `all ${fadeTime} cubic-bezier(0.4, 0, 0.2, 1)`;
+                        element.style.opacity = '0';
+                        element.style.transform = `translateZ(${translateZ}px) scale(${scale}) translateY(${moveDistance}px)`;
 
                         // Step 2: Change image and slide in from opposite direction
                         setTimeout(() => {
                             img.src = newItem.posterUrl;
                             img.alt = newItem.title || 'Movie Poster';
-                            img.style.transition = 'none';
-                            img.style.transform = `translateY(-${moveDistance}px)`;
-                            img.style.opacity = '0';
-                            img.offsetHeight; // Force reflow
+                            element.style.transition = 'none';
+                            element.style.transform = `translateZ(${translateZ}px) scale(${scale}) translateY(-${moveDistance}px)`;
+                            element.style.opacity = '0';
+                            element.offsetHeight; // Force reflow
 
-                            // Step 3: Fade in and move to center
-                            img.style.transition = `all ${fadeTime} cubic-bezier(0.4, 0, 0.2, 1)`;
+                            // Step 3: Fade in and move to center - RESTORE ORIGINAL 3D POSITION
+                            element.style.transition = `all ${fadeTime} cubic-bezier(0.4, 0, 0.2, 1)`;
                             setTimeout(() => {
-                                img.style.opacity = '1';
-                                img.style.transform = 'translateY(0)';
+                                element.style.opacity = '1';
+                                element.style.transform = `translateZ(${translateZ}px) scale(${scale})`;
                             }, 50);
                         }, waitTime);
                     } else if (
