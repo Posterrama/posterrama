@@ -16623,3 +16623,41 @@ select.input-error:focus {
 #cinema-poster-card .cinema-section-header {
     grid-column: 1 / -1;
 }
+
+/* Header card - optimized 2 column layout */
+#cinema-header-card .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 16px;
+}
+
+#cinema-header-card .form-grid > .form-row:first-child {
+    grid-column: 1 / -1; /* Header text spans full width */
+}
+
+#cinema-header-card .cinema-section-header {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+/* Footer card - optimized 2 column layout */
+#cinema-footer-card .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 16px;
+}
+
+#cinema-footer-card .form-grid > .form-row:first-child {
+    grid-column: 1 / -1; /* Footer type spans full width */
+}
+
+#cinema-footer-card .form-grid > .form-row:nth-child(2) {
+    grid-column: 1 / -1; /* Footer text spans full width */
+}
+
+#cinema-footer-card .cinema-section-header {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}

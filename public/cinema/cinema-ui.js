@@ -544,7 +544,7 @@
         ]);
 
         // === Marquee Block ===
-        const mRowText = el('div', { class: 'form-row' }, [
+        const mRowText = el('div', { class: 'form-row', id: 'cin-f-text-row' }, [
             el('label', { for: 'cin-f-presets' }, 'Footer text'),
             el('div', { class: 'cinema-inline' }, [
                 el('select', { id: 'cin-f-presets', class: 'cin-compact' }, []),
@@ -641,8 +641,23 @@
             rowShadow,
         ]);
 
-        // Compose layout
-        container.replaceChildren(ctrlType, marqueeBlock, taglineBlock, typoBlock);
+        // Compose layout - flat grid like Header for consistent 2-column layout
+        const grid = el('div', { class: 'form-grid' }, [
+            ctrlType,
+            mRowText,
+            typoHeader,
+            rowFont,
+            rowSize,
+            rowColor,
+            rowShadow,
+        ]);
+
+        // Keep the blocks for show/hide logic but inject grid
+        marqueeBlock.replaceChildren(); // Clear - mRowText moved to grid
+        taglineBlock.style.display = 'none'; // Hidden by default
+        typoBlock.replaceChildren(); // Clear - elements moved to grid
+
+        container.replaceChildren(grid, marqueeBlock, taglineBlock, typoBlock);
 
         // Initialize values
         $('#cin-f-type').value = f.type || 'metadata';
@@ -729,11 +744,18 @@
             const showMarq = t === 'marquee';
             const showTagline = t === 'tagline';
             const showMetadata = t === 'metadata';
-            const showTypo = showMarq || showTagline;
+
+            // Hide Footer text row for metadata and tagline type (only marquee needs it)
+            const textRow = document.getElementById('cin-f-text-row');
+            if (textRow) {
+                textRow.style.display = showMarq ? '' : 'none';
+            }
+
+            // Typography is always shown (important for all footer types)
 
             $('#cin-f-marquee').style.display = showMarq ? 'block' : 'none';
             $('#cin-f-tagline').style.display = showTagline ? 'block' : 'none';
-            $('#cin-f-typo').style.display = showTypo ? 'block' : 'none';
+            $('#cin-f-typo').style.display = 'block'; // Always show typography
 
             // Show/hide Metadata Display card based on footer type
             const metadataCard = document.getElementById('cinema-metadata-card');
@@ -801,9 +823,7 @@
         $('#cinemaMetadataEnabled') &&
             ($('#cinemaMetadataEnabled').checked = meta.enabled !== false);
         $('#cinemaMetadataOpacity') && ($('#cinemaMetadataOpacity').value = meta.opacity || 80);
-        $('#cinemaMetadataPosition') &&
-            ($('#cinemaMetadataPosition').value = meta.position || 'bottom');
-        $('#cinemaShowTitle') && ($('#cinemaShowTitle').checked = meta.showTitle !== false);
+        // Position is always 'bottom' - dropdown removed
         $('#cinemaShowYear') && ($('#cinemaShowYear').checked = meta.showYear !== false);
         $('#cinemaShowRuntime') && ($('#cinemaShowRuntime').checked = meta.showRuntime !== false);
         $('#cinemaShowRating') && ($('#cinemaShowRating').checked = meta.showRating !== false);
@@ -811,9 +831,11 @@
             ($('#cinemaShowCertification').checked = !!meta.showCertification);
         $('#cinemaShowGenre') && ($('#cinemaShowGenre').checked = !!meta.showGenre);
         $('#cinemaShowDirector') && ($('#cinemaShowDirector').checked = !!meta.showDirector);
-        $('#cinemaShowCast') && ($('#cinemaShowCast').checked = !!meta.showCast);
-        $('#cinemaShowPlot') && ($('#cinemaShowPlot').checked = !!meta.showPlot);
         $('#cinemaShowStudioLogo') && ($('#cinemaShowStudioLogo').checked = !!meta.showStudioLogo);
+
+        // Layout preset
+        $('#cinemaMetadataLayout') &&
+            ($('#cinemaMetadataLayout').value = meta.layout || 'comfortable');
 
         // Specs controls
         $('#cinemaShowResolution') &&
@@ -823,25 +845,19 @@
         $('#cinemaShowAspectRatio') &&
             ($('#cinemaShowAspectRatio').checked = !!specs.showAspectRatio);
         $('#cinemaSpecsStyle') && ($('#cinemaSpecsStyle').value = specs.style || 'badges');
-        $('#cinemaSpecsIconSet') && ($('#cinemaSpecsIconSet').value = specs.iconSet || 'filled');
+        $('#cinemaSpecsIconSet') && ($('#cinemaSpecsIconSet').value = specs.iconSet || 'tabler');
 
         // Promotional controls
         const promo = c.promotional || {};
-        $('#cinemaComingSoonBadge') &&
-            ($('#cinemaComingSoonBadge').checked = !!promo.comingSoonBadge);
-        $('#cinemaReleaseCountdown') &&
-            ($('#cinemaReleaseCountdown').checked = !!promo.showReleaseCountdown);
+        $('#cinemaRatingBadge') && ($('#cinemaRatingBadge').checked = !!promo.showRating);
+        $('#cinemaWatchProviders') &&
+            ($('#cinemaWatchProviders').checked = !!promo.showWatchProviders);
+        $('#cinemaAwardsBadge') && ($('#cinemaAwardsBadge').checked = !!promo.showAwardsBadge);
         const qr = promo.qrCode || {};
         $('#cinemaQREnabled') && ($('#cinemaQREnabled').checked = !!qr.enabled);
         $('#cinemaQRUrl') && ($('#cinemaQRUrl').value = qr.url || '');
         $('#cinemaQRPosition') && ($('#cinemaQRPosition').value = qr.position || 'bottomRight');
         $('#cinemaQRSize') && ($('#cinemaQRSize').value = qr.size || 100);
-        const ann = promo.announcementBanner || {};
-        $('#cinemaAnnouncementEnabled') &&
-            ($('#cinemaAnnouncementEnabled').checked = !!ann.enabled);
-        $('#cinemaAnnouncementText') && ($('#cinemaAnnouncementText').value = ann.text || '');
-        $('#cinemaAnnouncementStyle') &&
-            ($('#cinemaAnnouncementStyle').value = ann.style || 'ticker');
 
         // Initialize color pickers for background and poster
         initColorPickers(bg, poster);
@@ -1112,39 +1128,33 @@
             metadata: {
                 enabled: $('#cinemaMetadataEnabled')?.checked !== false,
                 opacity: parseInt($('#cinemaMetadataOpacity')?.value || '80', 10),
-                showTitle: $('#cinemaShowTitle')?.checked !== false,
+                layout: $('#cinemaMetadataLayout')?.value || 'comfortable',
                 showYear: $('#cinemaShowYear')?.checked !== false,
                 showRuntime: $('#cinemaShowRuntime')?.checked !== false,
                 showRating: $('#cinemaShowRating')?.checked !== false,
                 showCertification: !!$('#cinemaShowCertification')?.checked,
                 showGenre: !!$('#cinemaShowGenre')?.checked,
                 showDirector: !!$('#cinemaShowDirector')?.checked,
-                showCast: !!$('#cinemaShowCast')?.checked,
-                showPlot: !!$('#cinemaShowPlot')?.checked,
                 showStudioLogo: !!$('#cinemaShowStudioLogo')?.checked,
-                position: $('#cinemaMetadataPosition')?.value || 'bottom',
+                position: 'bottom',
                 specs: {
                     showResolution: $('#cinemaShowResolution')?.checked !== false,
                     showAudio: $('#cinemaShowAudio')?.checked !== false,
                     showHDR: $('#cinemaShowHDR')?.checked !== false,
                     showAspectRatio: !!$('#cinemaShowAspectRatio')?.checked,
                     style: $('#cinemaSpecsStyle')?.value || 'badges',
-                    iconSet: $('#cinemaSpecsIconSet')?.value || 'filled',
+                    iconSet: $('#cinemaSpecsIconSet')?.value || 'tabler',
                 },
             },
             promotional: {
-                comingSoonBadge: !!$('#cinemaComingSoonBadge')?.checked,
-                showReleaseCountdown: !!$('#cinemaReleaseCountdown')?.checked,
+                showRating: !!$('#cinemaRatingBadge')?.checked,
+                showWatchProviders: !!$('#cinemaWatchProviders')?.checked,
+                showAwardsBadge: !!$('#cinemaAwardsBadge')?.checked,
                 qrCode: {
                     enabled: !!$('#cinemaQREnabled')?.checked,
                     url: $('#cinemaQRUrl')?.value || '',
                     position: $('#cinemaQRPosition')?.value || 'bottomRight',
                     size: parseInt($('#cinemaQRSize')?.value || '100', 10),
-                },
-                announcementBanner: {
-                    enabled: !!$('#cinemaAnnouncementEnabled')?.checked,
-                    text: $('#cinemaAnnouncementText')?.value || '',
-                    style: $('#cinemaAnnouncementStyle')?.value || 'ticker',
                 },
             },
         };
@@ -1227,10 +1237,19 @@
                 presetsRow.style.flexWrap = 'wrap';
                 presetsRow.style.gap = '8px';
                 presetsRow.innerHTML = [
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="poster"><i class="fas fa-image"></i> <span>Poster Focus</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="feature"><i class="fas fa-star"></i> <span>Feature Night</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="tech"><i class="fas fa-microchip"></i> <span>Tech Specs</span></button>',
-                    '<button type="button" class="btn btn-outline btn-sm" data-cin-preset="reset"><i class="fas fa-undo"></i> <span>Reset</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="classic" title="Classic cinema experience"><i class="fas fa-film"></i> <span>Classic</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="modern" title="Clean modern look"><i class="fas fa-tv"></i> <span>Modern</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="premiere" title="Red carpet premiere feel"><i class="fas fa-star"></i> <span>Premiere</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="imax" title="IMAX-inspired immersive"><i class="fas fa-expand"></i> <span>IMAX</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="minimal" title="Minimal distraction"><i class="fas fa-minus"></i> <span>Minimal</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="neon" title="Retro neon vibes"><i class="fas fa-bolt"></i> <span>Neon</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="elegant" title="Elegant and refined"><i class="fas fa-gem"></i> <span>Elegant</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="retro" title="Vintage cinema feel"><i class="fas fa-ticket-alt"></i> <span>Retro</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="showcase" title="Full metadata showcase"><i class="fas fa-info-circle"></i> <span>Showcase</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="dark" title="Dark ambient mode"><i class="fas fa-moon"></i> <span>Dark</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="lobby" title="Cinema lobby display"><i class="fas fa-door-open"></i> <span>Lobby</span></button>',
+                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="techspec" title="Technical specifications"><i class="fas fa-microchip"></i> <span>Tech Spec</span></button>',
+                    '<button type="button" class="btn btn-outline btn-sm" data-cin-preset="reset" title="Reset to defaults"><i class="fas fa-undo"></i> <span>Reset</span></button>',
                 ].join('');
 
                 const summaryTitle = document.createElement('div');
@@ -1265,70 +1284,393 @@
                     el.dispatchEvent(new Event('change', { bubbles: true }));
                 };
                 const applyPreset = name => {
+                    // Helper to set metadata toggles
+                    const setMeta = show => {
+                        setVal('cinemaShowYear', show.year !== false);
+                        setVal('cinemaShowRuntime', show.runtime !== false);
+                        setVal('cinemaShowRating', show.rating !== false);
+                        setVal('cinemaShowCertification', !!show.certification);
+                        setVal('cinemaShowGenre', !!show.genre);
+                        setVal('cinemaShowDirector', !!show.director);
+                        setVal('cinemaShowStudioLogo', !!show.studio);
+                    };
+                    const setSpecs = show => {
+                        setVal('cinemaShowResolution', show.resolution !== false);
+                        setVal('cinemaShowAudio', show.audio !== false);
+                        setVal('cinemaShowHDR', show.hdr !== false);
+                        setVal('cinemaShowAspectRatio', !!show.aspectRatio);
+                    };
+                    const setBackground = (mode, color) => {
+                        setVal('cinemaBackgroundMode', mode || 'solid');
+                        if (color) {
+                            const bgInput = document.getElementById('cinemaBackgroundColor');
+                            if (bgInput) bgInput.value = color;
+                        }
+                    };
+                    const setPoster = (style, anim) => {
+                        setVal('cinemaPosterStyle', style || 'floating');
+                        setVal('cinemaPosterAnimation', anim || 'fade');
+                    };
+
                     switch (name) {
-                        case 'poster':
-                            // Big poster with marquee header, minimal footer
+                        case 'classic':
+                            // Classic cinema: gold header, marquee footer, warm ambilight
                             setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 50);
+                            setVal('cin-a-strength', 55);
                             setVal('cin-h-enabled', true);
                             setVal('cin-h-presets', 'Now Playing');
-                            setVal('cin-h-style', 'classic');
+                            setVal('cin-h-font', 'cinematic');
+                            setVal('cin-h-size', 110);
+                            setVal('cin-h-color', '#ffd700');
+                            setVal('cin-h-shadow', 'glow');
+                            setVal('cin-h-anim', 'none');
                             setVal('cin-f-enabled', true);
                             setVal('cin-f-type', 'marquee');
-                            // ensure style slot swaps
                             document
                                 .getElementById('cin-f-type')
                                 ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-style', 'classic');
+                            setVal('cin-f-presets', 'Feature Presentation');
+                            setVal('cin-f-font', 'cinematic');
+                            setVal('cin-f-color', '#ffffff');
+                            setVal('cin-f-shadow', 'subtle');
+                            setBackground('solid', '#000000');
+                            setPoster('floating', 'fade');
+                            setMeta({ title: true, year: true, runtime: true, rating: true });
+                            setSpecs({ resolution: true, audio: true, hdr: true });
+                            setVal('cinemaSpecsStyle', 'badges');
                             break;
-                        case 'feature':
-                            // Theatre vibe: marquee header + marquee footer, stronger ambilight
+
+                        case 'modern':
+                            // Modern clean: white text, minimal, blurred background
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 40);
+                            setVal('cin-h-enabled', true);
+                            setVal('cin-h-presets', 'Now Playing');
+                            setVal('cin-h-font', 'modern');
+                            setVal('cin-h-size', 100);
+                            setVal('cin-h-color', '#ffffff');
+                            setVal('cin-h-shadow', 'subtle');
+                            setVal('cin-h-anim', 'none');
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'metadata');
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-font', 'modern');
+                            setVal('cin-f-color', '#e0e0e0');
+                            setBackground('blurred', '#1a1a2e');
+                            setPoster('floating', 'fade');
+                            setMeta({ title: true, year: true, runtime: true, rating: true });
+                            setSpecs({ resolution: true, audio: true, hdr: true });
+                            setVal('cinemaSpecsStyle', 'subtle');
+                            break;
+
+                        case 'premiere':
+                            // Red carpet premiere: bold red accents, dramatic
                             setVal('cin-a-enabled', true);
                             setVal('cin-a-strength', 70);
                             setVal('cin-h-enabled', true);
                             setVal('cin-h-presets', 'Feature Presentation');
-                            setVal('cin-h-style', 'theatre');
+                            setVal('cin-h-font', 'elegant');
+                            setVal('cin-h-size', 120);
+                            setVal('cin-h-color', '#ff3333');
+                            setVal('cin-h-shadow', 'dramatic');
+                            setVal('cin-h-anim', 'none');
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'tagline');
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-font', 'elegant');
+                            setVal('cin-f-color', '#cccccc');
+                            setBackground('gradient', '#0a0a0a');
+                            setPoster('framed', 'cinematic');
+                            setMeta({
+                                title: true,
+                                year: true,
+                                runtime: true,
+                                rating: true,
+                                director: true,
+                            });
+                            setSpecs({
+                                resolution: true,
+                                audio: true,
+                                hdr: true,
+                                aspectRatio: true,
+                            });
+                            setVal('cinemaSpecsStyle', 'badges');
+                            break;
+
+                        case 'imax':
+                            // IMAX immersive: full specs, strong ambilight, cinematic
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 85);
+                            setVal('cin-h-enabled', true);
+                            setVal('cin-h-presets', 'Home Cinema');
+                            setVal('cin-h-font', 'cinematic');
+                            setVal('cin-h-size', 130);
+                            setVal('cin-h-color', '#3399ff');
+                            setVal('cin-h-shadow', 'glow');
+                            setVal('cin-h-anim', 'none');
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'metadata');
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-font', 'modern');
+                            setVal('cin-f-color', '#ffffff');
+                            setBackground('ambient', '#000000');
+                            setPoster('floating', 'zoomIn');
+                            setMeta({ title: true, year: true, runtime: true, rating: true });
+                            setSpecs({
+                                resolution: true,
+                                audio: true,
+                                hdr: true,
+                                aspectRatio: true,
+                            });
+                            setVal('cinemaSpecsStyle', 'icons');
+                            setVal('cinemaSpecsIconSet', 'tabler');
+                            break;
+
+                        case 'minimal':
+                            // Minimal: poster only, subtle ambilight, no text overlays
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 30);
+                            setVal('cin-h-enabled', false);
+                            setVal('cin-f-enabled', false);
+                            setBackground('solid', '#000000');
+                            setPoster('floating', 'fade');
+                            setMeta({});
+                            setSpecs({});
+                            break;
+
+                        case 'neon':
+                            // Neon retro: vibrant colors, neon glow effects
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 65);
+                            setVal('cin-h-enabled', true);
+                            setVal('cin-h-presets', 'Now Playing');
+                            setVal('cin-h-font', 'neon');
+                            setVal('cin-h-size', 110);
+                            setVal('cin-h-color', '#ff00ff');
+                            setVal('cin-h-shadow', 'neon');
+                            setVal('cin-h-anim', 'pulse');
                             setVal('cin-f-enabled', true);
                             setVal('cin-f-type', 'marquee');
                             document
                                 .getElementById('cin-f-type')
                                 ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-style', 'theatre');
+                            setVal('cin-f-presets', 'Feature Presentation');
+                            setVal('cin-f-font', 'neon');
+                            setVal('cin-f-color', '#00ffff');
+                            setVal('cin-f-shadow', 'neon');
+                            setBackground('solid', '#0a0a15');
+                            setPoster('floating', 'fade');
+                            setMeta({ title: true, year: true, rating: true });
+                            setSpecs({ resolution: true, audio: true, hdr: true });
+                            setVal('cinemaSpecsStyle', 'badges');
                             break;
-                        case 'tech':
-                            // Specifications focus: no header, specs footer with all badges filled
-                            setVal('cin-a-enabled', false);
-                            setVal('cin-h-enabled', false);
+
+                        case 'elegant':
+                            // Elegant: serif fonts, refined, sophisticated
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 45);
+                            setVal('cin-h-enabled', true);
+                            setVal('cin-h-presets', 'Now Playing');
+                            setVal('cin-h-font', 'elegant');
+                            setVal('cin-h-size', 105);
+                            setVal('cin-h-color', '#c0c0c0');
+                            setVal('cin-h-shadow', 'subtle');
+                            setVal('cin-h-anim', 'none');
                             setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'specs');
+                            setVal('cin-f-type', 'tagline');
                             document
                                 .getElementById('cin-f-type')
                                 ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-s-style', 'filled');
-                            setVal('cin-f-s-icons', 'filled');
-                            setVal('cin-f-s-res', true);
-                            setVal('cin-f-s-aud', true);
-                            setVal('cin-f-s-asp', true);
-                            setVal('cin-f-s-flag', true);
+                            setVal('cin-f-font', 'elegant');
+                            setVal('cin-f-color', '#a0a0a0');
+                            setBackground('solid', '#1a1a1a');
+                            setPoster('framed', 'fade');
+                            setMeta({
+                                title: true,
+                                year: true,
+                                runtime: true,
+                                rating: true,
+                                director: true,
+                            });
+                            setSpecs({ resolution: true, audio: true });
+                            setVal('cinemaSpecsStyle', 'subtle');
                             break;
+
+                        case 'retro':
+                            // Retro: vintage cinema, marquee style, warm tones
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 50);
+                            setVal('cin-h-enabled', true);
+                            setVal('cin-h-presets', 'Coming Soon');
+                            setVal('cin-h-font', 'retro');
+                            setVal('cin-h-size', 100);
+                            setVal('cin-h-color', '#ffcc00');
+                            setVal('cin-h-shadow', 'dramatic');
+                            setVal('cin-h-anim', 'flicker');
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'marquee');
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-presets', 'Feature Presentation');
+                            setVal('cin-f-font', 'retro');
+                            setVal('cin-f-color', '#ffaa00');
+                            setBackground('solid', '#0d0d0d');
+                            setPoster('framed', 'slideUp');
+                            setMeta({ title: true, year: true, runtime: true });
+                            setSpecs({ resolution: true, audio: true });
+                            setVal('cinemaSpecsStyle', 'badges');
+                            break;
+
+                        case 'showcase':
+                            // Showcase: maximum metadata, everything visible
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 50);
+                            setVal('cin-h-enabled', true);
+                            setVal('cin-h-presets', 'Now Playing');
+                            setVal('cin-h-font', 'cinematic');
+                            setVal('cin-h-size', 100);
+                            setVal('cin-h-color', '#ffffff');
+                            setVal('cin-h-shadow', 'subtle');
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'metadata');
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-font', 'system');
+                            setVal('cin-f-color', '#cccccc');
+                            setBackground('blurred', '#000000');
+                            setPoster('floating', 'fade');
+                            setMeta({
+                                title: true,
+                                year: true,
+                                runtime: true,
+                                rating: true,
+                                certification: true,
+                                genre: true,
+                                director: true,
+                                cast: true,
+                                plot: true,
+                            });
+                            setSpecs({
+                                resolution: true,
+                                audio: true,
+                                hdr: true,
+                                aspectRatio: true,
+                            });
+                            setVal('cinemaSpecsStyle', 'badges');
+                            break;
+
+                        case 'dark':
+                            // Dark ambient: subtle, low contrast, relaxing
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 25);
+                            setVal('cin-h-enabled', true);
+                            setVal('cin-h-presets', 'Now Playing');
+                            setVal('cin-h-font', 'system');
+                            setVal('cin-h-size', 90);
+                            setVal('cin-h-color', '#666666');
+                            setVal('cin-h-shadow', 'none');
+                            setVal('cin-h-anim', 'none');
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'metadata');
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-font', 'system');
+                            setVal('cin-f-color', '#555555');
+                            setBackground('solid', '#000000');
+                            setPoster('floating', 'fade');
+                            setMeta({ title: true, year: true });
+                            setSpecs({ resolution: true, audio: true });
+                            setVal('cinemaSpecsStyle', 'subtle');
+                            break;
+
+                        case 'lobby':
+                            // Lobby display: bright, informative, eye-catching
+                            setVal('cin-a-enabled', true);
+                            setVal('cin-a-strength', 60);
+                            setVal('cin-h-enabled', true);
+                            setVal('cin-h-presets', 'Coming Soon');
+                            setVal('cin-h-font', 'marquee');
+                            setVal('cin-h-size', 115);
+                            setVal('cin-h-color', '#ff6b6b');
+                            setVal('cin-h-shadow', 'dramatic');
+                            setVal('cin-h-anim', 'marquee');
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'metadata');
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-font', 'modern');
+                            setVal('cin-f-color', '#ffffff');
+                            setBackground('gradient', '#1a1a2e');
+                            setPoster('floating', 'zoomIn');
+                            setMeta({
+                                title: true,
+                                year: true,
+                                runtime: true,
+                                rating: true,
+                                genre: true,
+                            });
+                            setSpecs({ resolution: true, audio: true, hdr: true });
+                            setVal('cinemaSpecsStyle', 'badges');
+                            break;
+
+                        case 'techspec':
+                            // Technical specifications: all specs, minimal else
+                            setVal('cin-a-enabled', false);
+                            setVal('cin-h-enabled', false);
+                            setVal('cin-f-enabled', true);
+                            setVal('cin-f-type', 'metadata');
+                            document
+                                .getElementById('cin-f-type')
+                                ?.dispatchEvent(new Event('change', { bubbles: true }));
+                            setVal('cin-f-font', 'modern');
+                            setVal('cin-f-color', '#00ff00');
+                            setBackground('solid', '#000000');
+                            setPoster('floating', 'fade');
+                            setMeta({ title: true, year: true });
+                            setSpecs({
+                                resolution: true,
+                                audio: true,
+                                hdr: true,
+                                aspectRatio: true,
+                            });
+                            setVal('cinemaSpecsStyle', 'icons');
+                            setVal('cinemaSpecsIconSet', 'tabler');
+                            break;
+
                         default:
                             // Reset to reasonable defaults
                             setVal('cin-a-enabled', true);
                             setVal('cin-a-strength', 60);
                             setVal('cin-h-enabled', true);
                             setVal('cin-h-presets', 'Now Playing');
-                            setVal('cin-h-style', 'classic');
+                            setVal('cin-h-font', 'cinematic');
+                            setVal('cin-h-size', 100);
+                            setVal('cin-h-color', '#ffffff');
+                            setVal('cin-h-shadow', 'subtle');
+                            setVal('cin-h-anim', 'none');
                             setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'specs');
+                            setVal('cin-f-type', 'metadata');
                             document
                                 .getElementById('cin-f-type')
                                 ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-s-style', 'subtle');
-                            setVal('cin-f-s-icons', 'filled');
-                            setVal('cin-f-s-res', true);
-                            setVal('cin-f-s-aud', true);
-                            setVal('cin-f-s-asp', true);
-                            setVal('cin-f-s-flag', false);
+                            setVal('cin-f-font', 'system');
+                            setVal('cin-f-color', '#cccccc');
+                            setVal('cin-f-shadow', 'none');
+                            setBackground('solid', '#000000');
+                            setPoster('floating', 'fade');
+                            setMeta({ title: true, year: true, runtime: true, rating: true });
+                            setSpecs({ resolution: true, audio: true, hdr: true });
+                            setVal('cinemaSpecsStyle', 'badges');
                     }
                     try {
                         window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);

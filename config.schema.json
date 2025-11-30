@@ -935,15 +935,20 @@
                     "type": "object",
                     "description": "Promotional overlay features for commercial use",
                     "properties": {
-                        "comingSoonBadge": {
+                        "showRating": {
                             "type": "boolean",
                             "default": false,
-                            "description": "Show 'Coming Soon' badge overlay"
+                            "description": "Show rating badge overlay (IMDB/RT score)"
                         },
-                        "showReleaseCountdown": {
+                        "showWatchProviders": {
                             "type": "boolean",
                             "default": false,
-                            "description": "Show countdown to release date (if available)"
+                            "description": "Show streaming services/watch providers where available"
+                        },
+                        "showAwardsBadge": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Show awards badge for award-winning content"
                         },
                         "qrCode": {
                             "type": "object",
@@ -973,44 +978,18 @@
                                 }
                             },
                             "additionalProperties": false
-                        },
-                        "announcementBanner": {
-                            "type": "object",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean",
-                                    "default": false,
-                                    "description": "Show announcement banner"
-                                },
-                                "text": {
-                                    "type": "string",
-                                    "default": "",
-                                    "description": "Announcement text"
-                                },
-                                "style": {
-                                    "type": "string",
-                                    "enum": ["ticker", "static", "flash"],
-                                    "default": "ticker",
-                                    "description": "Banner style: ticker (scrolling), static, flash (attention)"
-                                }
-                            },
-                            "additionalProperties": false
                         }
                     },
                     "additionalProperties": false,
                     "default": {
-                        "comingSoonBadge": false,
-                        "showReleaseCountdown": false,
+                        "showRating": false,
+                        "showWatchProviders": false,
+                        "showAwardsBadge": false,
                         "qrCode": {
                             "enabled": false,
                             "url": "",
                             "position": "bottomRight",
                             "size": 100
-                        },
-                        "announcementBanner": {
-                            "enabled": false,
-                            "text": "",
-                            "style": "ticker"
                         }
                     }
                 },

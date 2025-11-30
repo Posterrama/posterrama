@@ -127,7 +127,6 @@ function migrateConfig(cfg) {
         posterAnimation: ['fade', 'slide', 'zoom', 'flip'],
         // Promotional
         qrPosition: ['topLeft', 'topRight', 'bottomLeft', 'bottomRight'],
-        announcementStyle: ['ticker', 'static', 'flash'],
         // Orientation
         orientation: ['auto', 'portrait', 'portrait-flipped', 'landscape', 'landscape-flipped'],
     };
@@ -444,16 +443,6 @@ function migrateConfig(cfg) {
                     modified = true;
                 }
             }
-        }
-        if (cinema.promotional.announcementBanner) {
-            modified =
-                fixEnum(
-                    cinema.promotional.announcementBanner,
-                    'style',
-                    VALID.announcementStyle,
-                    'ticker',
-                    'promotional.announcementBanner'
-                ) || modified;
         }
     }
 

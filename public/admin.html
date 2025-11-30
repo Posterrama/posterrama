@@ -1214,9 +1214,9 @@
                   <div class="mode-card" data-card-key="cinema-background" id="cinema-background-card" style="padding:12px; grid-column: 1;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-fill-drip"></i> Background</div>
                     <div id="cinema-background-mount">
-                      <div class="form-grid">
+                      <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div class="form-row">
-                          <label for="cinemaBackgroundMode">Background Mode</label>
+                          <label for="cinemaBackgroundMode">Mode</label>
                           <div class="select-wrap has-caret">
                             <select id="cinemaBackgroundMode">
                               <option value="solid">Solid Color</option>
@@ -1226,16 +1226,6 @@
                             </select>
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
-                        </div>
-                        <!-- Background Color - Component Container -->
-                        <div id="cinema-background-color-picker-container" class="cinema-conditional-row"></div>
-                        <div class="form-row cinema-conditional-row" id="cinemaBackgroundBlurRow" style="display:none;">
-                          <label for="cinemaBackgroundBlur">Blur Amount</label>
-                          <div class="modern-slider">
-                            <input type="range" id="cinemaBackgroundBlur" min="5" max="50" step="1" value="20" />
-                            <div class="slider-bar"><div class="fill"></div></div>
-                          </div>
-                          <div class="slider-percentage" data-target="cinema.background.blurAmount">20px</div>
                         </div>
                         <div class="form-row">
                           <label for="cinemaVignette">Vignette</label>
@@ -1247,6 +1237,16 @@
                             </select>
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
+                        </div>
+                        <!-- Background Color - Component Container -->
+                        <div id="cinema-background-color-picker-container" class="cinema-conditional-row" style="grid-column: 1 / -1;"></div>
+                        <div class="form-row cinema-conditional-row" id="cinemaBackgroundBlurRow" style="display:none; grid-column: 1 / -1;">
+                          <label for="cinemaBackgroundBlur">Blur Amount</label>
+                          <div class="modern-slider">
+                            <input type="range" id="cinemaBackgroundBlur" min="5" max="50" step="1" value="20" />
+                            <div class="slider-bar"><div class="fill"></div></div>
+                          </div>
+                          <div class="slider-percentage" data-target="cinema.background.blurAmount">20px</div>
                         </div>
                       </div>
                     </div>
@@ -1316,6 +1316,17 @@
                           </label>
                         </div>
                         <div class="form-row">
+                          <label for="cinemaMetadataLayout">Layout</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaMetadataLayout">
+                              <option value="compact">Compact</option>
+                              <option value="comfortable" selected>Comfortable</option>
+                              <option value="spacious">Spacious</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div class="form-row">
                           <label for="cinemaMetadataOpacity">Opacity</label>
                           <div class="modern-slider">
                             <input type="range" id="cinemaMetadataOpacity" min="0" max="100" step="5" value="80" />
@@ -1323,28 +1334,15 @@
                           </div>
                           <div class="slider-percentage">80%</div>
                         </div>
-                        <div class="form-row">
-                          <label for="cinemaMetadataPosition">Position</label>
-                          <div class="select-wrap has-caret">
-                            <select id="cinemaMetadataPosition">
-                              <option value="bottom">Bottom (Below Poster)</option>
-                              <option value="overlay">Overlay (On Poster)</option>
-                            </select>
-                            <span class="select-caret" aria-hidden="true">▾</span>
-                          </div>
-                        </div>
                         
                         <div class="cinema-section-header">Movie Info</div>
                         <div class="checkbox-group" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;">
-                          <label class="checkbox" for="cinemaShowTitle"><input type="checkbox" id="cinemaShowTitle" checked /><span class="checkmark"></span><span>Title</span></label>
                           <label class="checkbox" for="cinemaShowYear"><input type="checkbox" id="cinemaShowYear" checked /><span class="checkmark"></span><span>Year</span></label>
                           <label class="checkbox" for="cinemaShowRuntime"><input type="checkbox" id="cinemaShowRuntime" checked /><span class="checkmark"></span><span>Runtime</span></label>
                           <label class="checkbox" for="cinemaShowRating"><input type="checkbox" id="cinemaShowRating" checked /><span class="checkmark"></span><span>Rating</span></label>
                           <label class="checkbox" for="cinemaShowCertification"><input type="checkbox" id="cinemaShowCertification" /><span class="checkmark"></span><span>Certification</span></label>
                           <label class="checkbox" for="cinemaShowGenre"><input type="checkbox" id="cinemaShowGenre" /><span class="checkmark"></span><span>Genre</span></label>
                           <label class="checkbox" for="cinemaShowDirector"><input type="checkbox" id="cinemaShowDirector" /><span class="checkmark"></span><span>Director</span></label>
-                          <label class="checkbox" for="cinemaShowCast"><input type="checkbox" id="cinemaShowCast" /><span class="checkmark"></span><span>Cast</span></label>
-                          <label class="checkbox" for="cinemaShowPlot"><input type="checkbox" id="cinemaShowPlot" /><span class="checkmark"></span><span>Plot</span></label>
                           <label class="checkbox" for="cinemaShowStudioLogo"><input type="checkbox" id="cinemaShowStudioLogo" /><span class="checkmark"></span><span>Studio</span></label>
                         </div>
                         
@@ -1370,8 +1368,8 @@
                           <label for="cinemaSpecsIconSet">Icon Set</label>
                           <div class="select-wrap has-caret">
                             <select id="cinemaSpecsIconSet">
-                              <option value="filled">Filled</option>
-                              <option value="outline">Outline</option>
+                              <option value="tabler">Tabler Icons</option>
+                              <option value="mediaflags">Media Flags</option>
                             </select>
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
@@ -1385,14 +1383,65 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-bullhorn"></i> Promotional</div>
                     <div id="cinema-promotional-mount">
                       <div class="form-grid">
+                        <!-- Rating Badge -->
                         <div class="form-row">
-                          <label>Badges</label>
-                          <div class="checkbox-group" style="display: flex; flex-wrap: wrap; gap: 12px;">
-                            <label class="checkbox" for="cinemaComingSoonBadge"><input type="checkbox" id="cinemaComingSoonBadge" /><span class="checkmark"></span><span>Coming Soon</span></label>
-                            <label class="checkbox" for="cinemaReleaseCountdown"><input type="checkbox" id="cinemaReleaseCountdown" /><span class="checkmark"></span><span>Release Countdown</span></label>
+                          <label>Rating Badge</label>
+                          <label class="checkbox" for="cinemaRatingBadge"><input type="checkbox" id="cinemaRatingBadge" /><span class="checkmark"></span><span>Show Rating</span></label>
+                        </div>
+                        <div class="cinema-nested-settings" id="cinemaRatingSettings" style="display:none;">
+                          <div class="form-row">
+                            <label for="cinemaRatingSource">Rating Source</label>
+                            <div class="select-wrap has-caret">
+                              <select id="cinemaRatingSource">
+                                <option value="auto">Auto (Best Available)</option>
+                                <option value="imdb">IMDB</option>
+                                <option value="tmdb">TMDB</option>
+                                <option value="rotten">Rotten Tomatoes</option>
+                              </select>
+                              <span class="select-caret" aria-hidden="true">▾</span>
+                            </div>
+                          </div>
+                          <div class="form-row">
+                            <label for="cinemaRatingPosition">Position</label>
+                            <div class="select-wrap has-caret">
+                              <select id="cinemaRatingPosition">
+                                <option value="topLeft">Top Left</option>
+                                <option value="topRight">Top Right</option>
+                                <option value="bottomLeft">Bottom Left</option>
+                                <option value="bottomRight">Bottom Right</option>
+                              </select>
+                              <span class="select-caret" aria-hidden="true">▾</span>
+                            </div>
                           </div>
                         </div>
+
+                        <!-- Watch Providers -->
+                        <div class="form-row">
+                          <label>Watch Providers</label>
+                          <label class="checkbox" for="cinemaWatchProviders"><input type="checkbox" id="cinemaWatchProviders" /><span class="checkmark"></span><span>Show Streaming Services</span></label>
+                        </div>
+                        <div class="cinema-nested-settings" id="cinemaWatchProviderSettings" style="display:none;">
+                          <div class="form-row">
+                            <label for="cinemaWatchProviderPosition">Position</label>
+                            <div class="select-wrap has-caret">
+                              <select id="cinemaWatchProviderPosition">
+                                <option value="topRight">Top Right</option>
+                                <option value="topLeft">Top Left</option>
+                                <option value="bottomRight">Bottom Right</option>
+                                <option value="bottomLeft">Bottom Left</option>
+                              </select>
+                              <span class="select-caret" aria-hidden="true">▾</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Awards Badge -->
+                        <div class="form-row">
+                          <label>Awards</label>
+                          <label class="checkbox" for="cinemaAwardsBadge"><input type="checkbox" id="cinemaAwardsBadge" /><span class="checkmark"></span><span>Show Awards Badge</span></label>
+                        </div>
                         
+                        <!-- QR Code -->
                         <div class="form-row">
                           <label>QR Code</label>
                           <label class="checkbox" for="cinemaQREnabled"><input type="checkbox" id="cinemaQREnabled" /><span class="checkmark"></span><span>Enable Overlay</span></label>
@@ -1421,28 +1470,6 @@
                               <div class="slider-bar"><div class="fill"></div></div>
                             </div>
                             <div class="slider-percentage" data-target="cinema.promotional.qrCode.size">100px</div>
-                          </div>
-                        </div>
-                        
-                        <div class="form-row">
-                          <label>Banner</label>
-                          <label class="checkbox" for="cinemaAnnouncementEnabled"><input type="checkbox" id="cinemaAnnouncementEnabled" /><span class="checkmark"></span><span>Enable Announcement</span></label>
-                        </div>
-                        <div class="cinema-nested-settings" id="cinemaAnnouncementSettings" style="display:none;">
-                          <div class="form-row">
-                            <label for="cinemaAnnouncementText">Banner Text</label>
-                            <input type="text" id="cinemaAnnouncementText" placeholder="🎬 Special announcement..." />
-                          </div>
-                          <div class="form-row">
-                            <label for="cinemaAnnouncementStyle">Style</label>
-                            <div class="select-wrap has-caret">
-                              <select id="cinemaAnnouncementStyle">
-                                <option value="ticker">Ticker (Scrolling)</option>
-                                <option value="static">Static</option>
-                                <option value="flash">Flash (Attention)</option>
-                              </select>
-                              <span class="select-caret" aria-hidden="true">▾</span>
-                            </div>
                           </div>
                         </div>
                       </div>

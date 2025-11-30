@@ -60,32 +60,34 @@
         },
         // === NEW: Metadata display ===
         metadata: {
-            showTitle: true,
+            layout: 'comfortable', // compact, comfortable, spacious
             showYear: true,
             showRuntime: true,
             showRating: true,
             showCertification: false,
             showGenre: false,
             showDirector: false,
-            showCast: false,
-            showPlot: false,
             showStudioLogo: false,
             position: 'bottom', // bottom, side, overlay
+            specs: {
+                showResolution: true,
+                showAudio: true,
+                showHDR: true,
+                showAspectRatio: false,
+                style: 'badges', // subtle, badges, icons
+                iconSet: 'tabler', // tabler, mediaflags
+            },
         },
         // === NEW: Promotional features ===
         promotional: {
-            comingSoonBadge: false,
-            showReleaseCountdown: false,
+            showRating: false,
+            showWatchProviders: false,
+            showAwardsBadge: false,
             qrCode: {
                 enabled: false,
                 url: '',
                 position: 'bottomRight',
                 size: 100,
-            },
-            announcementBanner: {
-                enabled: false,
-                text: '',
-                style: 'ticker', // ticker, static, flash
             },
         },
     };
@@ -256,7 +258,8 @@
         // Apply footer typography
         const fontClass = `font-${typo.fontFamily || 'system'}`;
         const shadowClass = `shadow-${typo.shadow || 'none'}`;
-        footerEl.className = `cinema-footer ${fontClass} ${shadowClass}`;
+        const layout = cinemaConfig.metadata?.layout || 'comfortable';
+        footerEl.className = `cinema-footer ${fontClass} ${shadowClass} layout-${layout}`;
         footerEl.style.setProperty('--footer-font-size', `${(typo.fontSize || 100) / 100}`);
         footerEl.style.setProperty('--footer-color', typo.color || '#cccccc');
 
@@ -280,18 +283,155 @@
                 typography: typo,
             });
         } else if (cinemaConfig.footer.type === 'metadata' && currentMedia) {
-            // Metadata footer - use metadata.specs settings
+            // Metadata footer - show Movie Info + Technical Specs
             const meta = cinemaConfig.metadata || {};
             const specs = meta.specs || {};
 
+            // ===== Movie Info Section =====
+            const movieInfoDiv = document.createElement('div');
+            movieInfoDiv.className = `cinema-footer-movie-info layout-${layout}`;
+            let hasMovieInfo = false;
+
+            // Movie details row (year, runtime, rating, certification)
+            const detailsRow = document.createElement('div');
+            detailsRow.className = 'cinema-movie-details';
+
+            // Year
+            if (meta.showYear !== false && currentMedia.year) {
+                const yearEl = document.createElement('span');
+                yearEl.className = 'cinema-detail-item year';
+                yearEl.textContent = currentMedia.year;
+                detailsRow.appendChild(yearEl);
+            }
+
+            // Runtime
+            if (meta.showRuntime !== false && currentMedia.runtime) {
+                const runtimeEl = document.createElement('span');
+                runtimeEl.className = 'cinema-detail-item runtime';
+                // Format runtime (minutes to hours:minutes)
+                const mins = parseInt(currentMedia.runtime, 10);
+                const formatted =
+                    mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+                runtimeEl.textContent = formatted;
+                detailsRow.appendChild(runtimeEl);
+            }
+
+            // Rating (IMDB/user rating, not RT promotional badge)
+            if (meta.showRating !== false && currentMedia.rating) {
+                const ratingEl = document.createElement('span');
+                ratingEl.className = 'cinema-detail-item rating';
+                ratingEl.innerHTML = `<i class="fas fa-star"></i> ${currentMedia.rating}`;
+                detailsRow.appendChild(ratingEl);
+            }
+
+            // Certification (content rating like PG-13)
+            if (meta.showCertification && currentMedia.contentRating) {
+                const certEl = document.createElement('span');
+                certEl.className = 'cinema-detail-item certification';
+                certEl.textContent = currentMedia.contentRating;
+                detailsRow.appendChild(certEl);
+            }
+
+            if (detailsRow.children.length > 0) {
+                movieInfoDiv.appendChild(detailsRow);
+                hasMovieInfo = true;
+            }
+
+            // Genre
+            if (meta.showGenre && currentMedia.genres && currentMedia.genres.length > 0) {
+                const genreEl = document.createElement('div');
+                genreEl.className = 'cinema-movie-genres';
+                const genreText = Array.isArray(currentMedia.genres)
+                    ? currentMedia.genres.slice(0, 3).join(' • ')
+                    : currentMedia.genres;
+                genreEl.textContent = genreText;
+                movieInfoDiv.appendChild(genreEl);
+                hasMovieInfo = true;
+            }
+
+            // Director
+            if (meta.showDirector && currentMedia.director) {
+                const dirEl = document.createElement('div');
+                dirEl.className = 'cinema-movie-director';
+                const dirName =
+                    typeof currentMedia.director === 'object'
+                        ? currentMedia.director.name
+                        : currentMedia.director;
+                dirEl.innerHTML = `<span class="label">Director:</span> ${dirName}`;
+                movieInfoDiv.appendChild(dirEl);
+                hasMovieInfo = true;
+            }
+
+            // Studio
+            if (meta.showStudioLogo && currentMedia.studio) {
+                const studioEl = document.createElement('div');
+                studioEl.className = 'cinema-movie-studio';
+                studioEl.innerHTML = `<span class="label">Studio:</span> ${currentMedia.studio}`;
+                movieInfoDiv.appendChild(studioEl);
+                hasMovieInfo = true;
+            }
+
+            if (hasMovieInfo) {
+                footerEl.appendChild(movieInfoDiv);
+            }
+
+            // ===== Technical Specs Section =====
             const specsDiv = document.createElement('div');
-            specsDiv.className = `cinema-footer-specs ${specs.style || 'badges'} icon-${specs.iconSet || 'filled'}`;
+            specsDiv.className = `cinema-footer-specs ${specs.style || 'badges'} icon-${specs.iconSet || 'tabler'} layout-${layout}`;
+
+            // Icon helper function based on iconSet
+            const getIcon = type => {
+                const iconSet = specs.iconSet || 'tabler';
+
+                // Tabler Icons (webfont)
+                if (iconSet === 'tabler') {
+                    const tablerIcons = {
+                        resolution: '<i class="ti ti-device-tv"></i>',
+                        audio: '<i class="ti ti-volume"></i>',
+                        hdr: '<i class="ti ti-sun-high"></i>',
+                        dolbyVision: '<i class="ti ti-eye"></i>',
+                        aspectRatio: '<i class="ti ti-aspect-ratio"></i>',
+                    };
+                    return tablerIcons[type] || '';
+                }
+
+                // Media Flags - custom SVG badges
+                if (iconSet === 'mediaflags') {
+                    const mediaFlags = {
+                        resolution: `<svg class="media-flag" viewBox="0 0 48 24" fill="currentColor"><rect rx="4" width="48" height="24" opacity="0.2"/><text x="24" y="17" text-anchor="middle" font-size="12" font-weight="bold">RES</text></svg>`,
+                        audio: `<svg class="media-flag" viewBox="0 0 48 24" fill="currentColor"><rect rx="4" width="48" height="24" opacity="0.2"/><text x="24" y="17" text-anchor="middle" font-size="10" font-weight="bold">AUDIO</text></svg>`,
+                        hdr: `<svg class="media-flag hdr-badge" viewBox="0 0 48 24"><defs><linearGradient id="hdrGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#ff6b6b"/><stop offset="50%" style="stop-color:#feca57"/><stop offset="100%" style="stop-color:#48dbfb"/></linearGradient></defs><rect rx="4" width="48" height="24" fill="url(#hdrGrad)"/><text x="24" y="17" text-anchor="middle" font-size="12" font-weight="bold" fill="#000">HDR</text></svg>`,
+                        dolbyVision: `<svg class="media-flag dv-badge" viewBox="0 0 64 24"><rect rx="4" width="64" height="24" fill="#000"/><text x="32" y="17" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">DOLBY VISION</text></svg>`,
+                        aspectRatio: `<svg class="media-flag" viewBox="0 0 48 24" fill="currentColor"><rect rx="4" width="48" height="24" opacity="0.2"/><text x="24" y="17" text-anchor="middle" font-size="10" font-weight="bold">RATIO</text></svg>`,
+                        '4k': `<svg class="media-flag res-4k" viewBox="0 0 40 24"><rect rx="4" width="40" height="24" fill="#1a1a2e"/><text x="20" y="17" text-anchor="middle" font-size="14" font-weight="bold" fill="#00d4ff">4K</text></svg>`,
+                        '1080p': `<svg class="media-flag res-1080" viewBox="0 0 52 24"><rect rx="4" width="52" height="24" fill="#1a1a2e"/><text x="26" y="17" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">1080p</text></svg>`,
+                        atmos: `<svg class="media-flag atmos-badge" viewBox="0 0 64 24"><rect rx="4" width="64" height="24" fill="#000"/><text x="32" y="17" text-anchor="middle" font-size="10" font-weight="bold" fill="#00c3ff">ATMOS</text></svg>`,
+                        dtsx: `<svg class="media-flag dtsx-badge" viewBox="0 0 52 24"><rect rx="4" width="52" height="24" fill="#000"/><text x="26" y="17" text-anchor="middle" font-size="10" font-weight="bold" fill="#ff6600">DTS:X</text></svg>`,
+                    };
+                    return mediaFlags[type] || mediaFlags.resolution;
+                }
+
+                return '';
+            };
 
             // Resolution
             if (specs.showResolution !== false && currentMedia.resolution) {
                 const item = document.createElement('div');
                 item.className = 'cinema-spec-item';
-                item.innerHTML = `<i class="fas fa-tv"></i><span>${currentMedia.resolution}</span>`;
+                const iconSet = specs.iconSet || 'tabler';
+                // Use specific resolution badges for mediaflags
+                if (iconSet === 'mediaflags') {
+                    const resLower = currentMedia.resolution.toLowerCase();
+                    if (resLower.includes('4k') || resLower.includes('2160')) {
+                        item.innerHTML = getIcon('4k');
+                    } else if (resLower.includes('1080')) {
+                        item.innerHTML = getIcon('1080p');
+                    } else {
+                        item.innerHTML = `${getIcon('resolution')}<span>${currentMedia.resolution}</span>`;
+                    }
+                } else {
+                    item.innerHTML = `${getIcon('resolution')}<span>${currentMedia.resolution}</span>`;
+                }
                 specsDiv.appendChild(item);
             }
 
@@ -302,7 +442,20 @@
                 const audioText = currentMedia.audioChannels
                     ? `${currentMedia.audioCodec} ${currentMedia.audioChannels}`
                     : currentMedia.audioCodec;
-                item.innerHTML = `<i class="fas fa-volume-up"></i><span>${audioText}</span>`;
+                const iconSet = specs.iconSet || 'tabler';
+                // Use specific audio badges for mediaflags
+                if (iconSet === 'mediaflags') {
+                    const audioLower = audioText.toLowerCase();
+                    if (audioLower.includes('atmos')) {
+                        item.innerHTML = getIcon('atmos');
+                    } else if (audioLower.includes('dts:x') || audioLower.includes('dtsx')) {
+                        item.innerHTML = getIcon('dtsx');
+                    } else {
+                        item.innerHTML = `${getIcon('audio')}<span>${audioText}</span>`;
+                    }
+                } else {
+                    item.innerHTML = `${getIcon('audio')}<span>${audioText}</span>`;
+                }
                 specsDiv.appendChild(item);
             }
 
@@ -310,8 +463,15 @@
             if (specs.showHDR !== false && (currentMedia.hasHDR || currentMedia.hasDolbyVision)) {
                 const item = document.createElement('div');
                 item.className = 'cinema-spec-item';
-                const flagText = currentMedia.hasDolbyVision ? 'Dolby Vision' : 'HDR';
-                item.innerHTML = `<i class="fas fa-sun"></i><span>${flagText}</span>`;
+                const isDV = currentMedia.hasDolbyVision;
+                const iconType = isDV ? 'dolbyVision' : 'hdr';
+                const flagText = isDV ? 'Dolby Vision' : 'HDR';
+                const iconSet = specs.iconSet || 'tabler';
+                if (iconSet === 'mediaflags') {
+                    item.innerHTML = getIcon(iconType);
+                } else {
+                    item.innerHTML = `${getIcon(iconType)}<span>${flagText}</span>`;
+                }
                 specsDiv.appendChild(item);
             }
 
@@ -319,15 +479,30 @@
             if (specs.showAspectRatio && currentMedia.aspectRatio) {
                 const item = document.createElement('div');
                 item.className = 'cinema-spec-item';
-                item.innerHTML = `<i class="fas fa-expand"></i><span>${currentMedia.aspectRatio}</span>`;
+                item.innerHTML = `${getIcon('aspectRatio')}<span>${currentMedia.aspectRatio}</span>`;
                 specsDiv.appendChild(item);
             }
 
-            footerEl.appendChild(specsDiv);
+            const hasSpecs = specsDiv.children.length > 0;
+
+            // Determine layout mode: dual-row (both sections) or single-row (one section only)
+            const layoutMode = hasMovieInfo && hasSpecs ? 'dual-row' : 'single-row';
+            footerEl.classList.add(layoutMode);
+
+            // Add sections to footer
+            if (hasMovieInfo) {
+                footerEl.appendChild(movieInfoDiv);
+            }
+            if (hasSpecs) {
+                footerEl.appendChild(specsDiv);
+            }
 
             log('Cinema footer metadata/specs created', {
                 style: specs.style,
                 iconSet: specs.iconSet,
+                layoutMode,
+                hasMovieInfo,
+                hasSpecs,
                 resolution: currentMedia.resolution || 'N/A',
             });
         } else if (cinemaConfig.footer.type === 'tagline' && currentMedia) {
@@ -412,34 +587,172 @@
         log('QR Code created', { url: qrConfig.url, position: qrConfig.position });
     }
 
-    // ===== Announcement Banner (Promotional) =====
-    let announcementEl = null;
-    function createAnnouncementBanner() {
+    // ===== Rating Badge (Promotional) =====
+    let ratingBadgeEl = null;
+    function createRatingBadge(media) {
         const promo = cinemaConfig.promotional || {};
-        const banner = promo.announcementBanner || {};
 
-        // Remove existing announcement
-        if (announcementEl) {
-            announcementEl.remove();
-            announcementEl = null;
+        // Remove existing badge
+        if (ratingBadgeEl) {
+            ratingBadgeEl.remove();
+            ratingBadgeEl = null;
         }
 
-        if (!banner.enabled || !banner.text) {
+        if (!promo.showRating || !media) {
             return;
         }
 
-        // Create announcement element
-        announcementEl = document.createElement('div');
-        announcementEl.className = `cinema-announcement style-${banner.style || 'ticker'}`;
+        // Get rating from media - check multiple possible field names
+        // RT score can be in: rottenTomatoes.rating, rottenTomatoesScore, rtScore
+        const rtScore = media.rottenTomatoes?.rating || media.rottenTomatoesScore || media.rtScore;
+        // IMDB/general rating can be in: imdbRating, rating, audienceScore
+        const imdbRating = media.imdbRating || media.rating || media.audienceScore;
 
-        const textEl = document.createElement('span');
-        textEl.className = 'announcement-text';
-        textEl.textContent = banner.text;
+        if (!rtScore && !imdbRating) {
+            log('Rating badge skipped - no rating data', { media: media.title });
+            return;
+        }
 
-        announcementEl.appendChild(textEl);
-        document.body.appendChild(announcementEl);
+        ratingBadgeEl = document.createElement('div');
+        ratingBadgeEl.className = 'cinema-rating-badge';
 
-        log('Announcement banner created', { text: banner.text, style: banner.style });
+        if (rtScore) {
+            const isFresh = rtScore >= 60;
+            ratingBadgeEl.innerHTML = `
+                <span class="rating-icon ${isFresh ? 'fresh' : 'rotten'}">${isFresh ? '🍅' : '🤢'}</span>
+                <span class="rating-value">${rtScore}%</span>
+            `;
+            ratingBadgeEl.classList.add(isFresh ? 'fresh' : 'rotten');
+        } else if (imdbRating) {
+            const ratingNum = typeof imdbRating === 'number' ? imdbRating : parseFloat(imdbRating);
+            ratingBadgeEl.innerHTML = `
+                <span class="rating-icon imdb">⭐</span>
+                <span class="rating-value">${ratingNum.toFixed(1)}</span>
+            `;
+            ratingBadgeEl.classList.add('imdb');
+        }
+
+        document.body.appendChild(ratingBadgeEl);
+        log('Rating badge created', { rtScore, imdbRating, title: media.title });
+    }
+
+    // ===== Watch Providers (Promotional) =====
+    let watchProvidersEl = null;
+    function createWatchProviders(media) {
+        const promo = cinemaConfig.promotional || {};
+
+        // Remove existing element
+        if (watchProvidersEl) {
+            watchProvidersEl.remove();
+            watchProvidersEl = null;
+        }
+
+        if (!promo.showWatchProviders || !media) {
+            return;
+        }
+
+        // Get watch providers from media (if available from TMDB enrichment)
+        const providers = media.watchProviders || media.streamingServices || [];
+
+        if (!providers || providers.length === 0) {
+            return;
+        }
+
+        watchProvidersEl = document.createElement('div');
+        watchProvidersEl.className = 'cinema-watch-providers';
+
+        const label = document.createElement('span');
+        label.className = 'providers-label';
+        label.textContent = 'Available on';
+        watchProvidersEl.appendChild(label);
+
+        const providersList = document.createElement('div');
+        providersList.className = 'providers-list';
+
+        providers.slice(0, 4).forEach(provider => {
+            const providerEl = document.createElement('span');
+            providerEl.className = 'provider-item';
+            if (provider.logo) {
+                const img = document.createElement('img');
+                img.src = provider.logo;
+                img.alt = provider.name || 'Streaming service';
+                img.loading = 'lazy';
+                providerEl.appendChild(img);
+            } else {
+                providerEl.textContent = provider.name || provider;
+            }
+            providersList.appendChild(providerEl);
+        });
+
+        watchProvidersEl.appendChild(providersList);
+        document.body.appendChild(watchProvidersEl);
+        log('Watch providers created', { count: providers.length });
+    }
+
+    // ===== Awards Badge (Promotional) =====
+    let awardsBadgeEl = null;
+    function createAwardsBadge(media) {
+        const promo = cinemaConfig.promotional || {};
+
+        // Remove existing badge
+        if (awardsBadgeEl) {
+            awardsBadgeEl.remove();
+            awardsBadgeEl = null;
+        }
+
+        if (!promo.showAwardsBadge || !media) {
+            return;
+        }
+
+        // Get RT score to determine "critically acclaimed"
+        const rtScore = media.rottenTomatoes?.rating || media.rottenTomatoesScore || media.rtScore;
+
+        // Check for awards data - use RT score >= 90 as proxy for critically acclaimed
+        const hasAwards =
+            media.awards ||
+            media.oscarWinner ||
+            media.oscarNominated ||
+            media.emmyWinner ||
+            media.goldenGlobeWinner ||
+            (rtScore && rtScore >= 90);
+
+        if (!hasAwards) {
+            log('Awards badge skipped - no awards data', { media: media.title, rtScore });
+            return;
+        }
+
+        awardsBadgeEl = document.createElement('div');
+        awardsBadgeEl.className = 'cinema-awards-badge';
+
+        let badgeText = 'Award Winner';
+        let badgeIcon = '🏆';
+
+        if (media.oscarWinner) {
+            badgeText = 'Oscar Winner';
+            badgeIcon = '🏆';
+        } else if (media.oscarNominated) {
+            badgeText = 'Oscar Nominated';
+            badgeIcon = '🎬';
+        } else if (media.emmyWinner) {
+            badgeText = 'Emmy Winner';
+            badgeIcon = '📺';
+        } else if (media.goldenGlobeWinner) {
+            badgeText = 'Golden Globe Winner';
+            badgeIcon = '🌟';
+        } else if (media.awards) {
+            badgeText = media.awards;
+        } else if (rtScore && rtScore >= 90) {
+            badgeText = 'Critically Acclaimed';
+            badgeIcon = '⭐';
+        }
+
+        awardsBadgeEl.innerHTML = `
+            <span class="award-icon">${badgeIcon}</span>
+            <span class="award-text">${badgeText}</span>
+        `;
+
+        document.body.appendChild(awardsBadgeEl);
+        log('Awards badge created', { text: badgeText, title: media.title });
     }
 
     // ===== Typography Settings (Global CSS Variables) =====
@@ -699,12 +1012,6 @@
                         ...config.promotional.qrCode,
                     };
                 }
-                if (config.promotional.announcementBanner) {
-                    cinemaConfig.promotional.announcementBanner = {
-                        ...cinemaConfig.promotional.announcementBanner,
-                        ...config.promotional.announcementBanner,
-                    };
-                }
             }
         }
 
@@ -833,7 +1140,9 @@
 
         // Create/update promotional elements
         createQRCode(cinemaMedia);
-        createAnnouncementBanner();
+        createRatingBadge(cinemaMedia);
+        createWatchProviders(cinemaMedia);
+        createAwardsBadge(cinemaMedia);
 
         // Update ambilight based on poster colors
         if (cinemaConfig.ambilight.enabled && media && media.dominantColor) {
@@ -1139,18 +1448,13 @@
                         ...newConfig.cinema.promotional.qrCode,
                     };
                 }
-                // Deep merge announcementBanner
-                if (newConfig.cinema.promotional.announcementBanner) {
-                    cinemaConfig.promotional.announcementBanner = {
-                        ...cinemaConfig.promotional.announcementBanner,
-                        ...newConfig.cinema.promotional.announcementBanner,
-                    };
-                }
                 // Create/update promotional elements
                 if (currentMedia) {
                     const cinemaMedia = mapMediaToCinemaFormat(currentMedia);
                     createQRCode(cinemaMedia);
-                    createAnnouncementBanner();
+                    createRatingBadge(cinemaMedia);
+                    createWatchProviders(cinemaMedia);
+                    createAwardsBadge(cinemaMedia);
                 }
             }
         }
