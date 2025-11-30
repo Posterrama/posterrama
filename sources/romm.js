@@ -87,7 +87,7 @@ class RommSource {
 
             this.client = new RommHttpClient({
                 hostname,
-                port,
+                port: Number(port),
                 username: this.server.username,
                 password: password,
                 basePath: url.pathname !== '/' ? url.pathname : '',
@@ -460,7 +460,7 @@ class RommSource {
 
     /**
      * Fetch media from RomM server
-     * @param {Array} platforms - Platform slugs to fetch (or 'all')
+     * @param {Array|string} platforms - Platform slugs to fetch (or 'all')
      * @param {string} type - Media type (should be 'game')
      * @param {number} count - Number of items to return
      * @returns {Promise<Array>} Array of media items
@@ -483,7 +483,11 @@ class RommSource {
 
             // Get list of platforms to fetch
             let platformsToFetch = [];
-            if (platforms === 'all' || !platforms || platforms.length === 0) {
+            if (
+                platforms === 'all' ||
+                !platforms ||
+                (Array.isArray(platforms) && platforms.length === 0)
+            ) {
                 // Fetch all platforms if no selection
                 const allPlatforms = await this.getAvailablePlatforms();
                 platformsToFetch = allPlatforms.map(p => p.id);

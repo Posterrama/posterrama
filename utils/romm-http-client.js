@@ -64,7 +64,8 @@ class RommHttpClient {
         const logger = require('./logger');
         this.debug = (...args) => {
             if (this.__rommDebug) {
-                logger.debug(...args);
+                // @ts-ignore - Using apply to avoid tuple spread error
+                logger.debug.apply(logger, args);
             }
         };
 
@@ -138,6 +139,7 @@ class RommHttpClient {
                 scope: 'roms.read platforms.read assets.read',
             });
 
+            // @ts-ignore - axios.post exists but TypeScript doesn't recognize require('axios') type
             const response = await axios.post(`${this.baseUrl}/api/token`, formData, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -182,6 +184,7 @@ class RommHttpClient {
                 refresh_token: this.refreshToken,
             });
 
+            // @ts-ignore - axios.post exists but TypeScript doesn't recognize require('axios') type
             const response = await axios.post(`${this.baseUrl}/api/token`, formData, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -240,6 +243,7 @@ class RommHttpClient {
                     `[RommHttpClient] ${method} ${path}`,
                     attempt > 0 ? `(attempt ${attempt + 1})` : ''
                 );
+                // @ts-ignore - axios callable signature exists but TypeScript doesn't recognize it
                 const response = await axios(config);
                 return response.data;
             } catch (error) {
