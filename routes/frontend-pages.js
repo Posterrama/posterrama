@@ -8,6 +8,23 @@ const fs = require('fs');
 const path = require('path');
 
 /**
+ * @typedef {Object} SessionData
+ * @property {Object} [user] - Authenticated user
+ * @property {boolean} [tfa_required] - 2FA verification required
+ * @property {Object} [pendingAutoRegister] - Pending auto-register data
+ */
+
+/**
+ * @typedef {Object} FrontendRequestExtensions
+ * @property {SessionData} [session] - Express session
+ * @property {boolean} [deviceBypass] - Device bypass mode enabled
+ */
+
+/**
+ * @typedef {import('express').Request & FrontendRequestExtensions} FrontendRequest
+ */
+
+/**
  * Create frontend pages router
  * @param {Object} deps - Dependencies
  * @param {Function} deps.isAdminSetup - Check if admin is set up
@@ -111,7 +128,7 @@ module.exports = function createFrontendPagesRouter({
      *       302:
      *         description: Redirect to /admin/login if not in 2FA flow
      */
-    router.get('/2fa-verify.html', (req, res) => {
+    router.get('/2fa-verify.html', (/** @type {FrontendRequest} */ req, res) => {
         // Only allow access to 2FA page if user is in the middle of 2FA verification
         if (req.session && req.session.tfa_required) {
             res.sendFile(path.join(publicDir, '2fa-verify.html'));
@@ -135,6 +152,7 @@ module.exports = function createFrontendPagesRouter({
      *             schema:
      *               type: string
      */
+    // @ts-ignore - Express router overload issue
     router.get('/admin.css', (req, res) => {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
@@ -157,6 +175,7 @@ module.exports = function createFrontendPagesRouter({
      *             schema:
      *               type: string
      */
+    // @ts-ignore - Express router overload issue
     router.get('/admin.js', (req, res) => {
         // Aggressive cache-busting for admin.js to ensure users always get latest version
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
@@ -178,6 +197,7 @@ module.exports = function createFrontendPagesRouter({
      *       302:
      *         description: Redirect to /admin/logs
      */
+    // @ts-ignore - Express router overload issue with isAuthenticated middleware
     router.get('/logs', isAuthenticated, (req, res) => {
         // Redirect to admin/logs route instead
         res.redirect('/admin/logs');
@@ -194,6 +214,7 @@ module.exports = function createFrontendPagesRouter({
      *       302:
      *         description: Redirect to /admin/logs
      */
+    // @ts-ignore - Express router overload issue with isAuthenticated middleware
     router.get('/logs.html', isAuthenticated, (req, res) => {
         // Redirect to admin/logs route instead
         res.redirect('/admin/logs');
@@ -210,6 +231,7 @@ module.exports = function createFrontendPagesRouter({
      *       200:
      *         description: Performance dashboard page rendered successfully
      */
+    // @ts-ignore - Express router overload issue with isAuthenticated middleware
     router.get('/performance', isAuthenticated, (req, res) => {
         res.sendFile(path.join(__dirname, '..', 'public', 'performance.html'));
     });
@@ -254,7 +276,7 @@ module.exports = function createFrontendPagesRouter({
      *       302:
      *         description: Redirect to setup or login
      */
-    router.get(['/admin', '/admin.html'], (req, res, next) => {
+    router.get(['/admin', '/admin.html'], (/** @type {FrontendRequest} */ req, res, next) => {
         // Check for auto-register parameters from QR code
         const autoRegister = req.query['auto-register'];
         const deviceId = req.query['device-id'];
@@ -287,7 +309,9 @@ module.exports = function createFrontendPagesRouter({
 
         // Cache-busting for HTML
         try {
-            const params = new URLSearchParams(req.query || {});
+            const params = new URLSearchParams(
+                Object.fromEntries(Object.entries(req.query || {}).map(([k, v]) => [k, String(v)]))
+            );
             if (!params.has('v')) {
                 const v = Math.floor(Date.now() / 1000).toString(36);
                 params.set('v', v);
@@ -347,7 +371,7 @@ module.exports = function createFrontendPagesRouter({
      *       302:
      *         description: Redirect to display mode (if configured)
      */
-    router.get(['/', '/index.html'], (req, res, next) => {
+    router.get(['/', '/index.html'], (/** @type {FrontendRequest} */ req, res, next) => {
         // Configurable root redirect
         try {
             let cfg = null;
@@ -400,7 +424,10 @@ module.exports = function createFrontendPagesRouter({
             req.deviceBypass;
 
         if (!isAdminAccess) {
-            const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+            const forwardedFor = req.headers['x-forwarded-for'];
+            const ip =
+                (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : null) ||
+                req.ip;
             const userAgent = req.headers['user-agent'] || 'Unknown';
             const deviceKey = `${ip}|${userAgent.substring(0, 50)}`;
 
