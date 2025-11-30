@@ -291,6 +291,42 @@
             // Start wallart cycle with module-owned lifecycle (idempotent)
             start(cfg) {
                 try {
+                    const wallartConfig = { ...(cfg || {}), ...(window.wallartConfig || {}) };
+
+                    // Check if parallax depth mode is enabled
+                    const animationType = (wallartConfig.animationType || '').toLowerCase();
+                    if (animationType === 'parallaxdepth') {
+                        // Delegate to parallax scrolling module
+                        console.log('[Wallart] Starting parallax depth mode');
+
+                        if (!window.ParallaxScrolling) {
+                            console.error('[Wallart] ParallaxScrolling module not loaded');
+                            return;
+                        }
+
+                        // Get media queue
+                        const mediaQueue = Array.isArray(window.mediaQueue)
+                            ? window.mediaQueue
+                            : [];
+                        if (mediaQueue.length === 0) {
+                            console.error('[Wallart] No media available for parallax mode');
+                            return;
+                        }
+
+                        // Stop any existing wallart grid
+                        api.stop();
+
+                        // Start parallax scrolling
+                        window.ParallaxScrolling.init(wallartConfig, mediaQueue);
+                        return;
+                    }
+
+                    // Stop parallax scrolling if it was active
+                    if (window.ParallaxScrolling && window.ParallaxScrolling.isActive()) {
+                        window.ParallaxScrolling.cleanup();
+                    }
+
+                    // Continue with normal wallart grid mode
                     // Throttled live heartbeat trigger to reflect updates immediately
                     // Trigger immediate heartbeat on poster change
                     // Simple debounce to prevent duplicate calls within 500ms
@@ -307,7 +343,6 @@
                             /* noop */
                         }
                     };
-                    const wallartConfig = { ...(cfg || {}), ...(window.wallartConfig || {}) };
 
                     window.debugLog &&
                         window.debugLog('WALLART_START_CALLED', {
@@ -1012,6 +1047,12 @@
             // Stop/cleanup wallart cycle
             stop() {
                 try {
+                    // Stop parallax scrolling if active
+                    if (window.ParallaxScrolling && window.ParallaxScrolling.isActive()) {
+                        window.ParallaxScrolling.cleanup();
+                    }
+
+                    // Stop normal wallart grid
                     if (_state.refreshTimeout) {
                         clearTimeout(_state.refreshTimeout);
                         _state.refreshTimeout = null;
