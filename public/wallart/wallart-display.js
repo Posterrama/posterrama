@@ -275,33 +275,17 @@
                     }
                 } // End of else block for music mode skip
 
+                // Full-bleed: upsize posters to ensure 100% screen coverage
+                // Use ceil instead of floor to allow edge posters to overflow (clipped by CSS)
+                finalPosterWidth = Math.ceil(screenWidth / cols);
+                finalPosterHeight = Math.ceil(finalPosterWidth / posterAspectRatio);
+
                 const gridWidth = cols * finalPosterWidth;
                 const gridHeight = finalRows * finalPosterHeight;
 
-                let gridLeft = Math.round((screenWidth - gridWidth) / 2);
-                let gridTop = Math.round((availableHeight - gridHeight) / 2);
-
-                if (isPromoSite) {
-                    const topOffset = (screenHeight - availableHeight) / 2;
-                    gridTop = Math.round(topOffset + (availableHeight - gridHeight) / 2);
-                }
-
-                if (isPortrait && gridLeft > finalPosterWidth * 0.5) {
-                    const newPosterWidth = Math.floor(screenWidth / cols);
-                    const newPosterHeight = Math.round(newPosterWidth / posterAspectRatio);
-                    if (newPosterHeight * finalRows <= availableHeight) {
-                        finalPosterWidth = newPosterWidth;
-                        finalPosterHeight = newPosterHeight;
-                        gridLeft = 0;
-                        gridTop = Math.round((availableHeight - newPosterHeight * finalRows) / 2);
-                        if (isPromoSite) {
-                            const topOffset = (screenHeight - availableHeight) / 2;
-                            gridTop = Math.round(
-                                topOffset + (availableHeight - newPosterHeight * finalRows) / 2
-                            );
-                        }
-                    }
-                }
+                // Full-bleed: no centering, align to edges (0,0)
+                const gridLeft = 0;
+                const gridTop = 0;
 
                 const posterCount = cols * finalRows;
                 const bufferedCount = Math.ceil(posterCount * 1.5);
