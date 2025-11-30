@@ -247,7 +247,7 @@ export function createColorPicker(options) {
             </button>
             
             <!-- Custom Color Picker Popup -->
-            <div id="${pickerId}-popup" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 1000; min-width: 320px;">
+            <div id="${pickerId}-popup" style="display: none; position: fixed; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 10000; min-width: 320px;">
                 <!-- Saturation/Value Gradient -->
                 <div id="${pickerId}-sv-container" style="position: relative; width: 280px; height: 200px; margin-bottom: 16px; border-radius: 8px; cursor: crosshair; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2);">
                     <div id="${pickerId}-sv-gradient" style="position: absolute; inset: 0; background: linear-gradient(to right, #fff, hsl(0, 100%, 50%));">
@@ -401,25 +401,30 @@ export function createColorPicker(options) {
 
         // Recalculate cursor positions when opening (containers now have dimensions)
         if (isOpening) {
-            // Check if popup fits below, otherwise open above
+            // Position popup using fixed positioning relative to viewport
             const circleRect = colorCircle.getBoundingClientRect();
             const popupHeight = 420; // Approximate popup height
+            const popupWidth = 320; // Approximate popup width
             const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
             const spaceBelow = viewportHeight - circleRect.bottom;
             const spaceAbove = circleRect.top;
 
+            // Horizontal positioning - align with circle, but keep in viewport
+            let left = circleRect.left;
+            if (left + popupWidth > viewportWidth - 20) {
+                left = viewportWidth - popupWidth - 20;
+            }
+            if (left < 20) left = 20;
+            popup.style.left = `${left}px`;
+
+            // Vertical positioning - prefer below, but open above if not enough space
             if (spaceBelow < popupHeight && spaceAbove > spaceBelow) {
-                // Open above
-                popup.style.top = 'auto';
-                popup.style.bottom = '100%';
-                popup.style.marginTop = '0';
-                popup.style.marginBottom = '8px';
+                // Open above the circle
+                popup.style.top = `${circleRect.top - popupHeight - 8}px`;
             } else {
-                // Open below (default)
-                popup.style.top = '100%';
-                popup.style.bottom = 'auto';
-                popup.style.marginTop = '8px';
-                popup.style.marginBottom = '0';
+                // Open below the circle (default)
+                popup.style.top = `${circleRect.bottom + 8}px`;
             }
 
             // Force update of cursor positions after popup is visible
@@ -441,6 +446,14 @@ export function createColorPicker(options) {
             popup.style.display = 'none';
         }
     });
+
+    // Close popup on scroll (since it uses fixed positioning)
+    const closeOnScroll = () => {
+        if (popup.style.display !== 'none') {
+            popup.style.display = 'none';
+        }
+    };
+    window.addEventListener('scroll', closeOnScroll, true);
 
     // Saturation/Value picker
     const updateSV = e => {
