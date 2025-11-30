@@ -27,6 +27,10 @@ class TMDBSource {
         this.maxRetries = 3;
         this.retryDelay = 1000; // Start with 1 second delay
 
+        // Cached media items
+        /** @type {Array|null} */
+        this.cachedMedia = null;
+
         // Performance metrics
         this.metrics = {
             requestCount: 0,
@@ -873,7 +877,7 @@ class TMDBSource {
      * @param {string} type - The type of media ('movie' or 'tv').
      * @param {Map} genreMap - Map of genre ID to name.
      * @param {boolean} includeStreaming - Whether to fetch streaming data.
-     * @returns {object} Processed item.
+     * @returns {Promise<object>} Processed item.
      */
     async processTMDBItem(item, type, genreMap, includeStreaming = false) {
         const title = type === 'movie' ? item.title : item.name;

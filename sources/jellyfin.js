@@ -29,6 +29,9 @@ class JellyfinSource {
         this.isDebug = isDebug;
         // Request deduplicator for this instance
         this.deduplicator = deduplicator;
+        // Cached media items
+        /** @type {Array|null} */
+        this.cachedMedia = null;
 
         // Debug: log rating filters configuration
         if (this.isDebug) {
@@ -114,6 +117,7 @@ class JellyfinSource {
             averageProcessingTime: 0,
             lastRequestTime: null,
             errorCount: 0,
+            deduplicationRate: 0,
         };
     }
 
