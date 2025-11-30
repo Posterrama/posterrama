@@ -1423,5 +1423,48 @@
     // Recompute on resize to keep layout correct
     window.addEventListener('resize', () => updatePosterLayout());
 
+    // Listen for live color updates from admin interface (postMessage)
+    window.addEventListener('message', event => {
+        // Security: verify origin matches current window
+        if (event.origin !== window.location.origin) {
+            return;
+        }
+
+        const data = event.data;
+        if (!data || !data.type) return;
+
+        const root = document.documentElement;
+
+        switch (data.type) {
+            case 'CINEMA_TITLE_COLOR_UPDATE':
+                if (data.color) {
+                    root.style.setProperty('--cinema-title-color', data.color);
+                    cinemaConfig.typography.titleColor = data.color;
+                    log('Live title color update:', data.color);
+                }
+                break;
+
+            case 'CINEMA_BACKGROUND_COLOR_UPDATE':
+                if (data.color) {
+                    root.style.setProperty('--cinema-bg-color', data.color);
+                    cinemaConfig.background.solidColor = data.color;
+                    // Also update the body background for solid mode
+                    if (cinemaConfig.background.mode === 'solid') {
+                        document.body.style.backgroundColor = data.color;
+                    }
+                    log('Live background color update:', data.color);
+                }
+                break;
+
+            case 'CINEMA_FRAME_COLOR_UPDATE':
+                if (data.color) {
+                    root.style.setProperty('--cinema-frame-color', data.color);
+                    cinemaConfig.poster.frameColor = data.color;
+                    log('Live frame color update:', data.color);
+                }
+                break;
+        }
+    });
+
     log('Cinema display module loaded');
 })();
