@@ -1549,7 +1549,8 @@
                                 console.error(
                                     '[Wallart Display] FilmCards module not loaded, falling back to classic'
                                 );
-                                effectiveLayoutVariant = 'classic';
+                                // Fall through to classic layout below
+                                console.warn('[Wallart Display] Using classic layout as fallback');
                             } else {
                                 // Use FilmCards.initialize() - similar to artist-cards
                                 const result = window.FilmCards.initialize({

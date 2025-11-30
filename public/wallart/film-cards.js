@@ -72,7 +72,7 @@
                     groupsMap = this.groupByActor(mediaQueue, minGroupSize);
                     break;
                 case 'random':
-                default:
+                default: {
                     // Random: pick random groupBy each time
                     const modes = ['director', 'genre', 'actor'];
                     const randomMode = modes[Math.floor(Math.random() * modes.length)];
@@ -85,6 +85,7 @@
                         groupsMap = this.groupByActor(mediaQueue, minGroupSize);
                     }
                     break;
+                }
             }
 
             let groups = Array.from(groupsMap.values());
