@@ -1796,22 +1796,31 @@
     function mapMediaToCinemaFormat(media) {
         if (!media) return null;
 
-        // Map resolution from Plex qualityLabel or videoStreams
-        let resolution = media.qualityLabel || null;
-        if (!resolution && media.videoStreams && media.videoStreams.length > 0) {
-            const video = media.videoStreams[0];
-            if (video.height) {
-                if (video.height >= 2160) resolution = '4K';
-                else if (video.height >= 1080) resolution = '1080p';
-                else if (video.height >= 720) resolution = '720p';
-                else resolution = 'SD';
+        // For Plex sessions, tech specs are already extracted by the backend
+        // Check if media already has these properties (from convertSessionToMedia)
+        let resolution = media.resolution || null;
+        let audioCodec = media.audioCodec || null;
+        let audioChannels = media.audioChannels || null;
+        let aspectRatio = media.aspectRatio || null;
+        const hasHDR = media.hasHDR || false;
+        const hasDolbyVision = media.hasDolbyVision || false;
+
+        // Fallback: Map resolution from Plex qualityLabel or videoStreams (for non-session media)
+        if (!resolution) {
+            resolution = media.qualityLabel || null;
+            if (!resolution && media.videoStreams && media.videoStreams.length > 0) {
+                const video = media.videoStreams[0];
+                if (video.height) {
+                    if (video.height >= 2160) resolution = '4K';
+                    else if (video.height >= 1080) resolution = '1080p';
+                    else if (video.height >= 720) resolution = '720p';
+                    else resolution = 'SD';
+                }
             }
         }
 
-        // Map audio codec from audioTracks
-        let audioCodec = null;
-        let audioChannels = null;
-        if (media.audioTracks && media.audioTracks.length > 0) {
+        // Fallback: Map audio codec from audioTracks (for non-session media)
+        if (!audioCodec && media.audioTracks && media.audioTracks.length > 0) {
             const audio = media.audioTracks[0];
             audioCodec = audio.codec || audio.displayTitle || null;
             if (audioCodec) {
@@ -1841,7 +1850,7 @@
                 }
             }
 
-            if (audio.channels) {
+            if (!audioChannels && audio.channels) {
                 const ch = audio.channels;
                 if (ch >= 8) audioChannels = '7.1';
                 else if (ch >= 6) audioChannels = '5.1';
@@ -1850,9 +1859,8 @@
             }
         }
 
-        // Map aspect ratio from videoStreams
-        let aspectRatio = null;
-        if (media.videoStreams && media.videoStreams.length > 0) {
+        // Fallback: Map aspect ratio from videoStreams (for non-session media)
+        if (!aspectRatio && media.videoStreams && media.videoStreams.length > 0) {
             const video = media.videoStreams[0];
             aspectRatio = video.aspectRatio || null;
 
@@ -1868,6 +1876,8 @@
             audioCodec,
             audioChannels,
             aspectRatio,
+            hasHDR,
+            hasDolbyVision,
         };
     }
 
@@ -2454,13 +2464,22 @@
                 year: session.year || null,
                 rating: session.contentRating || null,
                 overview: session.summary || null,
+                tagline: session.tagline || null,
                 posterUrl: posterUrl, // Use posterUrl not poster_path for Cinema compatibility
                 backgroundUrl: backdropUrl,
                 thumbnailUrl: posterUrl,
-                genres: [],
+                genres: session.genres || [],
                 runtime: session.duration ? Math.round(session.duration / 60000) : null,
                 type: session.type === 'episode' ? 'tv' : 'movie',
                 source: 'plex-session',
+                // Technical specs from session
+                resolution: session.resolution || null,
+                videoCodec: session.videoCodec || null,
+                audioCodec: session.audioCodec || null,
+                audioChannels: session.audioChannels || null,
+                aspectRatio: session.aspectRatio || null,
+                hasHDR: session.hasHDR || false,
+                hasDolbyVision: session.hasDolbyVision || false,
             };
         } catch (e) {
             error('Failed to convert session to media', e);

@@ -1241,9 +1241,16 @@ body {
 
 .nav-item.active {
     background: var(--color-bg-card);
-    color: var(--color-text-primary);
     font-weight: var(--font-weight-medium);
     overflow: hidden;
+}
+
+.nav-item.active > span,
+.nav-item.active {
+    background: linear-gradient(135deg, var(--color-teal), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .nav-item.active::before {
@@ -1257,9 +1264,16 @@ body {
 }
 
 .nav-item i {
-    width: 16px;
+    width: 20px;
     text-align: center;
-    font-size: 14px;
+    font-size: 16px;
+}
+
+.nav-item.active i {
+    background: linear-gradient(135deg, var(--color-teal), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 /* Navigation Groups and Submenus */
@@ -3415,9 +3429,9 @@ input[type='range']::-moz-range-thumb {
 }
 
 .pagination .btn.active {
-    background: var(--color-primary);
-    color: #fff !important; /* white text on green for contrast */
-    border-color: var(--color-primary);
+    background: var(--color-secondary);
+    color: #fff !important; /* white text for contrast */
+    border-color: var(--color-secondary);
 }
 
 /* Component Sections */
@@ -3635,6 +3649,11 @@ input[type='range']::-moz-range-thumb {
         padding: 0 var(--space-md);
     }
 
+    /* Hide "posterrama" text on mobile, keep logo */
+    .nav-brand > span:first-of-type {
+        display: none;
+    }
+
     .nav-brand .version {
         display: none;
     }
@@ -3647,8 +3666,29 @@ input[type='range']::-moz-range-thumb {
         display: none;
     }
 
+    /* Page header with activity pill on mobile */
+    .page-header {
+        flex-direction: row;
+        justify-content: flex-end;
+        padding: var(--space-xs) 0;
+        margin-bottom: var(--space-sm);
+        min-height: auto;
+    }
+
+    .page-header .page-title {
+        display: none;
+    }
+
+    .page-header .page-actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+    }
+
     .main-content {
-        padding: 6px;
+        padding: var(--space-sm) var(--space-md);
+        padding-top: var(--space-xs);
     }
 
     /* Reduce panel padding on mobile */

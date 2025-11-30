@@ -104,6 +104,94 @@ class PlexSessionsPoller extends EventEmitter {
                     if (seasonMatch) seasonNum = parseInt(seasonMatch[1], 10);
                 }
 
+                // Extract technical specs from Media array
+                let resolution = null;
+                let videoCodec = null;
+                let audioCodec = null;
+                let audioChannels = null;
+                let aspectRatio = null;
+                let hasHDR = false;
+                let hasDolbyVision = false;
+
+                if (session.Media && session.Media.length > 0) {
+                    const media = session.Media[0];
+
+                    // Resolution from media container
+                    if (media.videoResolution) {
+                        resolution = media.videoResolution.toUpperCase();
+                        // Convert common resolutions
+                        if (resolution === '1080') resolution = '1080p';
+                        else if (resolution === '720') resolution = '720p';
+                        else if (resolution === '4K' || resolution === '2160') resolution = '4K';
+                    }
+
+                    // Video codec
+                    videoCodec = media.videoCodec || null;
+
+                    // Audio codec and channels
+                    audioCodec = media.audioCodec ? media.audioCodec.toUpperCase() : null;
+                    if (audioCodec === 'EAC3') audioCodec = 'Dolby Digital+';
+                    else if (audioCodec === 'AC3') audioCodec = 'Dolby Digital';
+                    else if (audioCodec === 'TRUEHD') audioCodec = 'Dolby TrueHD';
+                    else if (audioCodec === 'DTS-HD MA') audioCodec = 'DTS-HD MA';
+
+                    if (media.audioChannels) {
+                        const ch = media.audioChannels;
+                        if (ch >= 8) audioChannels = '7.1';
+                        else if (ch >= 6) audioChannels = '5.1';
+                        else if (ch === 2) audioChannels = '2.0';
+                        else audioChannels = `${ch}.0`;
+                    }
+
+                    // Aspect ratio
+                    aspectRatio = media.aspectRatio || null;
+
+                    // Check for HDR/Dolby Vision from video stream parts
+                    if (media.Part && media.Part.length > 0) {
+                        const part = media.Part[0];
+                        if (part.Stream) {
+                            for (const stream of part.Stream) {
+                                if (stream.streamType === 1) {
+                                    // Video stream
+                                    // Check for Dolby Vision
+                                    if (
+                                        stream.DOVIPresent ||
+                                        stream.DOVIBLPresent ||
+                                        (stream.displayTitle &&
+                                            stream.displayTitle
+                                                .toLowerCase()
+                                                .includes('dolby vision')) ||
+                                        (stream.extendedDisplayTitle &&
+                                            stream.extendedDisplayTitle
+                                                .toLowerCase()
+                                                .includes('dolby vision'))
+                                    ) {
+                                        hasDolbyVision = true;
+                                    }
+                                    // Check for HDR
+                                    if (
+                                        stream.colorSpace === 'bt2020nc' ||
+                                        stream.colorTrc === 'smpte2084' ||
+                                        stream.colorTrc === 'arib-std-b67' || // HLG
+                                        (stream.displayTitle &&
+                                            stream.displayTitle.toLowerCase().includes('hdr')) ||
+                                        (stream.extendedDisplayTitle &&
+                                            stream.extendedDisplayTitle
+                                                .toLowerCase()
+                                                .includes('hdr'))
+                                    ) {
+                                        hasHDR = true;
+                                    }
+                                    // Get aspect ratio from stream if not set
+                                    if (!aspectRatio && stream.aspectRatio) {
+                                        aspectRatio = stream.aspectRatio;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 return {
                     // Media info
                     ratingKey: session.ratingKey,
@@ -124,7 +212,17 @@ class PlexSessionsPoller extends EventEmitter {
                     rating: session.rating,
                     contentRating: session.contentRating,
                     tagline: session.tagline,
+                    summary: session.summary,
                     genres: session.Genre ? session.Genre.map(g => g.tag) : [],
+
+                    // Technical specs
+                    resolution,
+                    videoCodec,
+                    audioCodec,
+                    audioChannels,
+                    aspectRatio,
+                    hasHDR,
+                    hasDolbyVision,
 
                     // Playback info
                     viewOffset: session.viewOffset || 0,

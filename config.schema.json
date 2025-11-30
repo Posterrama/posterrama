@@ -520,6 +520,13 @@
                                     "default": false,
                                     "description": "Auto-calculate elegant text color based on background"
                                 },
+                                "tonSurTonIntensity": {
+                                    "type": "integer",
+                                    "minimum": 10,
+                                    "maximum": 100,
+                                    "default": 45,
+                                    "description": "Intensity of ton-sur-ton color calculation (10-100)"
+                                },
                                 "shadow": {
                                     "type": "string",
                                     "enum": ["none", "subtle", "dramatic", "neon", "glow"],
@@ -616,6 +623,13 @@
                                     "type": "boolean",
                                     "default": false,
                                     "description": "Auto-calculate elegant text color based on background"
+                                },
+                                "tonSurTonIntensity": {
+                                    "type": "integer",
+                                    "minimum": 10,
+                                    "maximum": 100,
+                                    "default": 45,
+                                    "description": "Intensity of ton-sur-ton color calculation (10-100)"
                                 },
                                 "shadow": {
                                     "type": "string",
