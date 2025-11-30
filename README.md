@@ -112,6 +112,12 @@ Display a beautiful grid of posters, updating dynamically with new content. Choo
   
 </figure>
 
+<figure>
+  <img src="./screenshots/movie_director_card.png" alt="Movie Director Card" width="740">
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>Director Cards: cinematic split-screen featuring director portraits with their filmography</em></figcaption>
+  
+</figure>
+
 **Key features:**
 
 - Three display styles: covers-only (minimal grid), album-info (with metadata), artist-cards (full-screen artist showcase)
