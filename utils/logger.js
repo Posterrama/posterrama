@@ -216,25 +216,25 @@ function createLoggerInstance(options = {}) {
     inst.memoryLogs = [];
     inst.events = events;
     // Utility helpers will be assigned after baseLogger populated
-    // @ts-ignore - Winston log() accepts rest parameters
     inst.info = function (...args) {
-        return inst.log('info', ...args);
+        // @ts-ignore - Using apply to avoid tuple spread error
+        return inst.log.apply(inst, ['info', ...args]);
     };
-    // @ts-ignore - Winston log() accepts rest parameters
     inst.warn = function (...args) {
-        return inst.log('warn', ...args);
+        // @ts-ignore - Using apply to avoid tuple spread error
+        return inst.log.apply(inst, ['warn', ...args]);
     };
-    // @ts-ignore - Winston log() accepts rest parameters
     inst.error = function (...args) {
-        return inst.log('error', ...args);
+        // @ts-ignore - Using apply to avoid tuple spread error
+        return inst.log.apply(inst, ['error', ...args]);
     };
-    // @ts-ignore - Winston log() accepts rest parameters
     inst.fatal = function (...args) {
-        return inst.log('error', ...args);
+        // @ts-ignore - Using apply to avoid tuple spread error
+        return inst.log.apply(inst, ['error', ...args]);
     };
-    // @ts-ignore - Winston log() accepts rest parameters
     inst.debug = function (...args) {
-        return inst.log('debug', ...args);
+        // @ts-ignore - Using apply to avoid tuple spread error
+        return inst.log.apply(inst, ['debug', ...args]);
     };
     inst.__resetMemory = () => {
         inst.memoryLogs.length = 0;
@@ -286,25 +286,25 @@ baseLogger.shouldExcludeFromAdmin = message => {
 };
 
 // Add convenience methods that match console
-// @ts-ignore - Winston log() accepts rest parameters
 logger.info = function (...args) {
-    return logger.log('info', ...args);
+    // @ts-ignore - Using apply to avoid tuple spread error
+    return logger.log.apply(logger, ['info', ...args]);
 };
-// @ts-ignore - Winston log() accepts rest parameters
 logger.warn = function (...args) {
-    return logger.log('warn', ...args);
+    // @ts-ignore - Using apply to avoid tuple spread error
+    return logger.log.apply(logger, ['warn', ...args]);
 };
-// @ts-ignore - Winston log() accepts rest parameters
 logger.error = function (...args) {
-    return logger.log('error', ...args);
+    // @ts-ignore - Using apply to avoid tuple spread error
+    return logger.log.apply(logger, ['error', ...args]);
 };
-// @ts-ignore - Winston log() accepts rest parameters
 logger.fatal = function (...args) {
-    return logger.log('error', ...args);
+    // @ts-ignore - Using apply to avoid tuple spread error
+    return logger.log.apply(logger, ['error', ...args]);
 }; // Map fatal to error level
-// @ts-ignore - Winston log() accepts rest parameters
 logger.debug = function (...args) {
-    return logger.log('debug', ...args);
+    // @ts-ignore - Using apply to avoid tuple spread error
+    return logger.log.apply(logger, ['debug', ...args]);
 };
 
 /**

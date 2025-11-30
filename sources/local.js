@@ -181,10 +181,10 @@ class LocalDirectorySource {
 
     /**
      * Standard source adapter interface - fetch media items
-     * @param {Array} libraryNames - Library names (unused for local)
+     * @param {Array} _libraryNames - Library names (unused for local)
      * @param {string} type - Media type (poster, background, motion)
      * @param {number} count - Maximum number of items to return
-     * @returns {Array} Array of media items
+     * @returns {Promise<Array>} Array of media items
      */
     async fetchMedia(_libraryNames = [], type = 'poster', count = 50) {
         if (!this.enabled) {
@@ -253,7 +253,7 @@ class LocalDirectorySource {
     /**
      * Scan directory for supported files
      * @param {string} directoryName - Name of directory to scan
-     * @returns {Array} Array of file objects
+     * @returns {Promise<Array>} Array of file objects
      */
     async scanDirectory(directoryName) {
         const allFiles = [];
@@ -431,7 +431,7 @@ class LocalDirectorySource {
      * Browse directory contents for admin interface
      * @param {string} relativePath - Relative path from root directory
      * @param {string} type - Type filter (all, files, directories)
-     * @returns {Object} Directory contents with files and directories
+     * @returns {Promise<Object>} Directory contents with files and directories
      */
     async browseDirectory(relativePath = '', type = 'all') {
         try {
@@ -720,7 +720,7 @@ class LocalDirectorySource {
      * Process files and create media items
      * @param {Array} files - Array of file objects
      * @param {number} limit - Maximum number of items to process
-     * @returns {Array} Array of media items
+     * @returns {Promise<Array>} Array of media items
      */
     async processFiles(files, limit) {
         const mediaItems = [];
@@ -747,7 +747,7 @@ class LocalDirectorySource {
     /**
      * Load existing metadata or create new from filename
      * @param {Object} file - File object
-     * @returns {Object} Metadata object
+     * @returns {Promise<Object>} Metadata object
      */
     async loadOrCreateMetadata(file) {
         const metadataPath = this.getMetadataPath(file.path);
@@ -1094,11 +1094,15 @@ class LocalDirectorySource {
 
         try {
             const watchRoots = this.rootPaths.map(p => path.resolve(p));
+            // @ts-ignore - chokidar.watch() accepts string[] | string as first argument
             this.watcher = chokidar.watch(watchRoots, {
-                ignored: watchRoots
-                    .map(watchRoot => [path.join(watchRoot, this.directories.system, '**')])
-                    .flat()
-                    .concat(/\.poster\.json$/), // Ignore metadata files
+                // @ts-ignore - ignored array accepts mixed string[] and RegExp
+                ignored: [
+                    ...watchRoots
+                        .map(watchRoot => [path.join(watchRoot, this.directories.system, '**')])
+                        .flat(),
+                    /\.poster\.json$/, // Ignore metadata files
+                ],
                 persistent: true,
                 ignoreInitial: true,
                 depth: 2, // Limit depth to prevent excessive watching
@@ -1121,13 +1125,13 @@ class LocalDirectorySource {
 
             this.watcher.on('error', error => {
                 logger.error('LocalDirectorySource: File watcher error:', error);
-                this.handleError('fileWatcher', error);
+                this.handleError('fileWatcher', /** @type {Error} */ (error));
             });
 
             logger.info('LocalDirectorySource: File watcher started');
         } catch (error) {
             logger.error('LocalDirectorySource: Failed to start file watcher:', error);
-            await this.handleError('startFileWatcher', error);
+            await this.handleError('startFileWatcher', /** @type {Error} */ (error));
         }
     }
 
@@ -1254,7 +1258,7 @@ class LocalDirectorySource {
     /**
      * Validate file type and size
      * @param {string} filePath - Path to file
-     * @returns {boolean} True if valid
+     * @returns {Promise<boolean>} True if valid
      */
     async validateFile(filePath) {
         try {
@@ -1293,7 +1297,7 @@ class LocalDirectorySource {
     /**
      * Validate file type by reading file header
      * @param {string} filePath - Path to file
-     * @returns {boolean} True if valid
+     * @returns {Promise<boolean>} True if valid
      */
     async validateFileType(filePath) {
         try {
@@ -1457,7 +1461,7 @@ class LocalDirectorySource {
      * Clean up files and directories
      * @param {Array} operations - Array of cleanup operations
      * @param {boolean} dryRun - Whether to perform a dry run
-     * @returns {Object} Cleanup results
+     * @returns {Promise<Object>} Cleanup results
      */
     async cleanupDirectory(operations = [], dryRun = true) {
         const results = {
@@ -1569,8 +1573,8 @@ class LocalDirectorySource {
     /**
      * Get file metadata
      * @param {string} filePath - Path to file
-     * @param {boolean} refresh - Whether to refresh cached metadata
-     * @returns {Object} File metadata
+     * @param {boolean} _refresh - Whether to refresh cached metadata
+     * @returns {Promise<Object>} File metadata
      */
     async getFileMetadata(filePath, _refresh = false) {
         try {
@@ -1607,7 +1611,7 @@ class LocalDirectorySource {
 
     /**
      * Get directory statistics
-     * @returns {Object} Directory statistics
+     * @returns {Promise<Object>} Directory statistics
      */
     async getDirectoryStats() {
         try {
@@ -1643,7 +1647,7 @@ class LocalDirectorySource {
     /**
      * Get directory statistics recursively
      * @param {string} dirPath - Directory path
-     * @returns {Object} Directory statistics
+     * @returns {Promise<Object>} Directory statistics
      */
     async getDirectoryStatsRecursive(dirPath) {
         const stats = {
@@ -1697,7 +1701,7 @@ class LocalDirectorySource {
      * Rescan local media directories and optionally generate missing metadata
      * @param {Object} options
      * @param {boolean} [options.createMetadata=true] - Whether to create missing *.poster.json files
-     * @returns {Object} Summary of the rescan
+     * @returns {Promise<Object>} Summary of the rescan
      */
     async rescan(options = {}) {
         const { createMetadata = true } = options;
