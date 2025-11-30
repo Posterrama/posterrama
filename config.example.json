@@ -75,7 +75,8 @@
                 "fontSize": 120,
                 "color": "#ffd700",
                 "shadow": "glow",
-                "animation": "none"
+                "animation": "none",
+                "decoration": "none"
             }
         },
         "footer": {

@@ -538,6 +538,12 @@
                                     "enum": ["none", "pulse", "flicker", "marquee"],
                                     "default": "none",
                                     "description": "Text animation effect"
+                                },
+                                "decoration": {
+                                    "type": "string",
+                                    "enum": ["none", "frame", "underline", "backdrop"],
+                                    "default": "none",
+                                    "description": "Header decoration style (only when animation is none)"
                                 }
                             },
                             "additionalProperties": false,
@@ -547,7 +553,8 @@
                                 "color": "#ffffff",
                                 "tonSurTon": false,
                                 "shadow": "subtle",
-                                "animation": "none"
+                                "animation": "none",
+                                "decoration": "none"
                             }
                         }
                     },
