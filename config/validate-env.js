@@ -121,10 +121,29 @@ function migrateConfig(cfg) {
         specsStyle: ['subtle', 'badges', 'icons'],
         specsIconSet: ['tabler', 'mediaflags'],
         // Background
-        backgroundMode: ['solid', 'blur', 'gradient'],
+        backgroundMode: [
+            'solid',
+            'blurred',
+            'gradient',
+            'ambient',
+            'spotlight',
+            'starfield',
+            'curtain',
+        ],
         vignette: ['none', 'subtle', 'dramatic'],
+        // Global Effects
+        colorFilter: ['none', 'sepia', 'cool', 'warm', 'tint'],
         // Poster
-        posterStyle: ['floating', 'framed', 'minimal', 'shadow'],
+        posterStyle: [
+            'fullBleed',
+            'framed',
+            'floating',
+            'polaroid',
+            'shadowBox',
+            'neon',
+            'doubleBorder',
+            'ornate',
+        ],
         posterOverlay: [
             'none',
             'grain',
@@ -184,6 +203,44 @@ function migrateConfig(cfg) {
     const cinema = cfg.cinema;
 
     modified = fixEnum(cinema, 'orientation', VALID.orientation, 'auto', 'cinema') || modified;
+
+    // === GLOBAL EFFECTS ===
+    modified = ensureObj(cinema, 'globalEffects') || modified;
+    const globalEffects = cinema.globalEffects;
+
+    modified =
+        fixEnum(globalEffects, 'colorFilter', VALID.colorFilter, 'none', 'globalEffects') ||
+        modified;
+
+    // Validate tintColor
+    if (globalEffects.tintColor && !/^#[0-9A-Fa-f]{6}$/.test(globalEffects.tintColor)) {
+        globalEffects.tintColor = '#ff6b00';
+        modified = true;
+    }
+
+    // Validate contrast (50-150)
+    if (globalEffects.contrast !== undefined) {
+        if (
+            typeof globalEffects.contrast !== 'number' ||
+            globalEffects.contrast < 50 ||
+            globalEffects.contrast > 150
+        ) {
+            globalEffects.contrast = 100;
+            modified = true;
+        }
+    }
+
+    // Validate brightness (50-150)
+    if (globalEffects.brightness !== undefined) {
+        if (
+            typeof globalEffects.brightness !== 'number' ||
+            globalEffects.brightness < 50 ||
+            globalEffects.brightness > 150
+        ) {
+            globalEffects.brightness = 100;
+            modified = true;
+        }
+    }
 
     // === HEADER ===
     modified = ensureObj(cinema, 'header') || modified;

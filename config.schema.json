@@ -427,6 +427,45 @@
             "description": "Cinema mode overlays and presentation settings (header/footer, marquee, specs, ambilight).",
             "type": "object",
             "properties": {
+                "globalEffects": {
+                    "type": "object",
+                    "description": "Global visual effects applied to the entire cinema display",
+                    "properties": {
+                        "colorFilter": {
+                            "type": "string",
+                            "enum": ["none", "sepia", "cool", "warm", "tint"],
+                            "default": "none",
+                            "description": "Global color filter applied to poster and background"
+                        },
+                        "tintColor": {
+                            "type": "string",
+                            "pattern": "^#[0-9A-Fa-f]{6}$",
+                            "default": "#ff6b00",
+                            "description": "Custom tint color when colorFilter is 'tint'"
+                        },
+                        "contrast": {
+                            "type": "integer",
+                            "minimum": 50,
+                            "maximum": 150,
+                            "default": 100,
+                            "description": "Global contrast adjustment (50-150%)"
+                        },
+                        "brightness": {
+                            "type": "integer",
+                            "minimum": 50,
+                            "maximum": 150,
+                            "default": 100,
+                            "description": "Global brightness adjustment (50-150%)"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "colorFilter": "none",
+                        "tintColor": "#ff6b00",
+                        "contrast": 100,
+                        "brightness": 100
+                    }
+                },
                 "header": {
                     "type": "object",
                     "properties": {
@@ -454,7 +493,11 @@
                                         "elegant",
                                         "marquee",
                                         "retro",
-                                        "neon"
+                                        "neon",
+                                        "scifi",
+                                        "poster",
+                                        "epic",
+                                        "bold"
                                     ],
                                     "default": "cinematic",
                                     "description": "Font family for header text"
@@ -471,6 +514,11 @@
                                     "pattern": "^#[0-9A-Fa-f]{6}$",
                                     "default": "#ffffff",
                                     "description": "Text color (hex)"
+                                },
+                                "tonSurTon": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Auto-calculate elegant text color based on background"
                                 },
                                 "shadow": {
                                     "type": "string",
@@ -490,6 +538,7 @@
                                 "fontFamily": "cinematic",
                                 "fontSize": 100,
                                 "color": "#ffffff",
+                                "tonSurTon": false,
                                 "shadow": "subtle",
                                 "animation": "none"
                             }
@@ -533,7 +582,20 @@
                             "properties": {
                                 "fontFamily": {
                                     "type": "string",
-                                    "enum": ["system", "cinematic", "classic", "modern", "elegant"],
+                                    "enum": [
+                                        "system",
+                                        "cinematic",
+                                        "classic",
+                                        "modern",
+                                        "elegant",
+                                        "marquee",
+                                        "retro",
+                                        "neon",
+                                        "scifi",
+                                        "poster",
+                                        "epic",
+                                        "bold"
+                                    ],
                                     "default": "system",
                                     "description": "Font family for footer text"
                                 },
@@ -550,6 +612,11 @@
                                     "default": "#cccccc",
                                     "description": "Text color (hex)"
                                 },
+                                "tonSurTon": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Auto-calculate elegant text color based on background"
+                                },
                                 "shadow": {
                                     "type": "string",
                                     "enum": ["none", "subtle", "dramatic"],
@@ -562,6 +629,7 @@
                                 "fontFamily": "system",
                                 "fontSize": 100,
                                 "color": "#cccccc",
+                                "tonSurTon": false,
                                 "shadow": "none"
                             }
                         }
@@ -702,9 +770,18 @@
                     "properties": {
                         "style": {
                             "type": "string",
-                            "enum": ["fullBleed", "framed", "floating"],
+                            "enum": [
+                                "fullBleed",
+                                "framed",
+                                "floating",
+                                "polaroid",
+                                "shadowBox",
+                                "neon",
+                                "doubleBorder",
+                                "ornate"
+                            ],
                             "default": "floating",
-                            "description": "Poster display style: fullBleed (edge to edge), framed (with border), floating (with shadow)"
+                            "description": "Poster display style: fullBleed (edge to edge), framed (with border), floating (with shadow), polaroid (white frame with bottom caption area), shadowBox (deep 3D shadow), neon (glowing border), doubleBorder (two-line frame), ornate (decorative corners)"
                         },
                         "overlay": {
                             "type": "string",
@@ -763,9 +840,17 @@
                     "properties": {
                         "mode": {
                             "type": "string",
-                            "enum": ["solid", "blurred", "gradient", "ambient"],
+                            "enum": [
+                                "solid",
+                                "blurred",
+                                "gradient",
+                                "ambient",
+                                "spotlight",
+                                "starfield",
+                                "curtain"
+                            ],
                             "default": "solid",
-                            "description": "Background mode: solid (black), blurred (poster blur), gradient (dynamic), ambient (color extraction)"
+                            "description": "Background mode: solid (black), blurred (poster blur), gradient (dynamic), ambient (color extraction), spotlight (theater spotlight), starfield (animated stars), curtain (theater drapes)"
                         },
                         "solidColor": {
                             "type": "string",
@@ -1014,6 +1099,11 @@
                     "enum": ["auto", "portrait", "portrait-flipped"],
                     "default": "auto",
                     "description": "Cinema mode orientation (auto = portrait, or force specific orientation)"
+                },
+                "quickTheme": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Selected quick theme preset (classicCinema, noir, neonNights, vintageTheater, modernMinimal, filmProjector)"
                 }
             },
             "additionalProperties": false,
@@ -1064,7 +1154,28 @@
                         "Home Cinema",
                         "Feature Presentation"
                     ]
-                }
+                },
+                "poster": {
+                    "style": "floating",
+                    "overlay": "none",
+                    "animation": "fade",
+                    "transitionDuration": 1.5,
+                    "frameColor": "#333333",
+                    "frameWidth": 8
+                },
+                "background": {
+                    "mode": "solid",
+                    "solidColor": "#000000",
+                    "blurAmount": 20,
+                    "vignette": "subtle"
+                },
+                "globalEffects": {
+                    "colorFilter": "none",
+                    "tintColor": "#ff6b00",
+                    "contrast": 100,
+                    "brightness": 100
+                },
+                "quickTheme": ""
             }
         },
         "transitionEffect": {

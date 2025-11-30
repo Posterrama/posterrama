@@ -463,14 +463,14 @@ body:hover #controls-container {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    color: rgba(255, 255, 255, 0.9);
+    color: inherit;
 }
 
 /* Separator dots between items */
 .cinema-detail-item:not(:last-child)::after {
     content: '•';
     margin-left: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+    opacity: 0.4;
 }
 
 .cinema-detail-item.certification {
@@ -490,7 +490,8 @@ body:hover #controls-container {
 
 .cinema-movie-genres {
     font-size: calc(0.85rem * var(--footer-font-size, 1));
-    color: rgba(255, 255, 255, 0.6);
+    color: inherit;
+    opacity: 0.85;
     letter-spacing: 0.03em;
     white-space: nowrap;
 }
@@ -536,6 +537,7 @@ body:hover #controls-container {
     padding: 0;
     background: none;
     flex-shrink: 0;
+    color: inherit;
 }
 
 /* =================================================================
@@ -578,13 +580,13 @@ body:hover #controls-container {
 }
 
 .cinema-footer-specs.layout-compact .cinema-spec-item {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
-    border-radius: 4px;
+    padding: 0.2rem 0.4rem;
+    font-size: calc(0.65rem * var(--footer-font-size, 1));
+    border-radius: 3px;
 }
 
 .cinema-footer-specs.layout-compact .cinema-spec-item i {
-    font-size: 1.1rem;
+    font-size: calc(0.75rem * var(--footer-font-size, 1));
 }
 
 /* Comfortable Layout (default) - Balanced */
@@ -623,12 +625,12 @@ body:hover #controls-container {
 }
 
 .cinema-footer-specs.layout-comfortable .cinema-spec-item {
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
+    padding: 0.25rem 0.5rem;
+    font-size: calc(0.75rem * var(--footer-font-size, 1));
 }
 
 .cinema-footer-specs.layout-comfortable .cinema-spec-item i {
-    font-size: 1.3rem;
+    font-size: calc(0.85rem * var(--footer-font-size, 1));
 }
 
 /* Spacious Layout - Larger, more spread out */
@@ -667,31 +669,32 @@ body:hover #controls-container {
 }
 
 .cinema-footer-specs.layout-spacious .cinema-spec-item {
-    padding: 0.6rem 1.2rem;
-    font-size: 1.1rem;
-    border-radius: 6px;
+    padding: 0.35rem 0.7rem;
+    font-size: calc(0.85rem * var(--footer-font-size, 1));
+    border-radius: 5px;
 }
 
 .cinema-footer-specs.layout-spacious .cinema-spec-item i {
-    font-size: 1.5rem;
+    font-size: calc(1rem * var(--footer-font-size, 1));
 }
 
 /* Spec item styling (cinema-display.js generates .cinema-spec-item) */
 .cinema-spec-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 1rem;
+    gap: 0.35rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: calc(0.75rem * var(--footer-font-size, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     white-space: nowrap;
+    color: inherit;
 }
 
 .cinema-spec-item i {
-    font-size: 1.3rem;
+    font-size: calc(0.85rem * var(--footer-font-size, 1));
 }
 
 /* =================================================================
@@ -700,7 +703,7 @@ body:hover #controls-container {
 /* Tabler Icons */
 .cinema-footer-specs.icon-tabler .cinema-spec-item i {
     font-family: 'tabler-icons' !important;
-    font-size: 1.5rem;
+    font-size: calc(0.9rem * var(--footer-font-size, 1));
 }
 
 /* Media Flags SVG badges */
@@ -711,48 +714,48 @@ body:hover #controls-container {
 }
 
 .cinema-footer-specs.icon-mediaflags .cinema-spec-item svg.media-flag {
-    height: 32px;
+    height: calc(18px * var(--footer-font-size, 1));
     width: auto;
 }
 
 .cinema-footer-specs.icon-mediaflags.layout-compact .cinema-spec-item svg.media-flag {
-    height: 28px;
+    height: calc(14px * var(--footer-font-size, 1));
 }
 
 .cinema-footer-specs.icon-mediaflags.layout-spacious .cinema-spec-item svg.media-flag {
-    height: 40px;
+    height: calc(22px * var(--footer-font-size, 1));
 }
 
 /* Style variations for spec items */
 .cinema-footer-specs.subtle .cinema-spec-item {
     background: rgba(0, 0, 0, 0.7); /* Darker background for better visibility */
-    color: rgba(255, 255, 255, 0.95);
+    color: inherit;
     backdrop-filter: blur(8px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .cinema-footer-specs.badges .cinema-spec-item {
     background: rgba(255, 255, 255, 0.15);
-    color: #fff;
+    color: inherit;
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .cinema-footer-specs.icons .cinema-spec-item {
     background: transparent;
-    color: #fff;
+    color: inherit;
     padding: 0.25rem 0.5rem;
 }
 
 /* Legacy support */
 .cinema-footer-specs.filled .cinema-spec-item {
     background: rgba(255, 255, 255, 0.2);
-    color: #fff;
+    color: inherit;
 }
 
 .cinema-footer-specs.outline .cinema-spec-item {
     background: transparent;
     border: 2px solid rgba(255, 255, 255, 0.5);
-    color: #fff;
+    color: inherit;
 }
 
 /* Icon set variations - legacy */
@@ -922,8 +925,7 @@ body.cinema-landscape-flipped {
     --cinema-metadata-opacity: 0.8;
 }
 
-/* Font imports via Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap');
+/* Fonts are loaded in cinema.html via <link> for better performance */
 
 /* Apply typography to cinema titles */
 .cinema-header {
@@ -942,6 +944,7 @@ body.cinema-landscape-flipped {
 
 /* Metadata with configurable opacity */
 #meta-info,
+.cinema-footer-movie-info,
 .cinema-footer-specs,
 .cinema-footer-tagline {
     opacity: var(--cinema-metadata-opacity);
@@ -1072,11 +1075,99 @@ body.cinema-bg-ambient::after {
     pointer-events: none;
 }
 
+/* Spotlight - theater spotlight effect */
+body.cinema-bg-spotlight {
+    background: radial-gradient(
+        ellipse 60% 80% at 50% 40%,
+        rgba(40, 35, 30, 1) 0%,
+        rgba(15, 12, 10, 1) 50%,
+        rgba(0, 0, 0, 1) 100%
+    );
+}
+body.cinema-bg-spotlight::before {
+    content: '';
+    position: fixed;
+    top: -20%;
+    left: 50%;
+    width: 120%;
+    height: 100%;
+    transform: translateX(-50%);
+    background: radial-gradient(
+        ellipse 40% 60% at 50% 0%,
+        rgba(255, 248, 220, 0.08) 0%,
+        rgba(255, 248, 220, 0.02) 40%,
+        transparent 70%
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Starfield - animated stars (canvas handled by JS) */
+body.cinema-bg-starfield {
+    background: #000;
+}
+body.cinema-bg-starfield #info-container {
+    background: transparent;
+}
+
+/* Theater Curtain - red velvet drapes */
+body.cinema-bg-curtain {
+    background: linear-gradient(180deg, #1a0a0a 0%, #2d0a0a 100%);
+}
+body.cinema-bg-curtain #info-container {
+    background: transparent;
+}
+body.cinema-bg-curtain::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(139, 0, 0, 0.9) 0%,
+            rgba(80, 0, 0, 0.4) 8%,
+            transparent 15%,
+            transparent 85%,
+            rgba(80, 0, 0, 0.4) 92%,
+            rgba(139, 0, 0, 0.9) 100%
+        ),
+        repeating-linear-gradient(
+            180deg,
+            transparent 0px,
+            transparent 3px,
+            rgba(0, 0, 0, 0.1) 3px,
+            rgba(0, 0, 0, 0.1) 6px
+        );
+    pointer-events: none;
+    z-index: 1;
+}
+body.cinema-bg-curtain::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 80px;
+    background: linear-gradient(
+        180deg,
+        rgba(139, 0, 0, 0.95) 0%,
+        rgba(100, 0, 0, 0.7) 60%,
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 2;
+}
+
 /* Vignette overlay */
 body.cinema-bg-solid::after,
 body.cinema-bg-blurred::after,
 body.cinema-bg-gradient::after,
-body.cinema-bg-ambient::after {
+body.cinema-bg-ambient::after,
+body.cinema-bg-spotlight::after,
+body.cinema-bg-starfield::after {
     content: '';
     position: fixed;
     top: 0;
@@ -1106,12 +1197,12 @@ body.cinema-poster-fullBleed #poster {
 
 /* Framed - elegant border */
 body.cinema-poster-framed #poster {
-    /* Let the image determine the size within max constraints */
-    width: auto;
-    height: 85vh;
+    /* Use aspect-ratio to maintain poster proportions */
+    width: calc(85vh * (2 / 3)) !important;
+    height: 85vh !important;
     max-width: 90vw;
-    aspect-ratio: var(--poster-aspect-ratio, 2/3);
-    background-size: cover;
+    background-size: cover !important;
+    background-position: center !important;
     border: var(--cinema-frame-width) solid var(--cinema-frame-color);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
@@ -1122,6 +1213,127 @@ body.cinema-poster-floating #poster {
     box-shadow:
         0 20px 60px rgba(0, 0, 0, 0.6),
         0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Polaroid - white frame with larger bottom for caption area */
+body.cinema-poster-polaroid #poster {
+    width: calc(75vh * (2 / 3)) !important;
+    height: 75vh !important;
+    max-width: 85vw;
+    background-size: cover !important;
+    background-position: center !important;
+    background-color: #fff;
+    padding: 12px 12px 48px 12px;
+    box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.1),
+        0 10px 30px rgba(0, 0, 0, 0.2),
+        0 1px 3px rgba(0, 0, 0, 0.08);
+    transform: rotate(-1deg);
+}
+
+/* Shadow Box - deep 3D shadow effect */
+body.cinema-poster-shadowBox #poster-wrapper {
+    /* Shift poster up slightly to account for shadow */
+    transform: translateY(-1vh);
+}
+body.cinema-poster-shadowBox #poster {
+    width: calc(85vh * (2 / 3)) !important;
+    height: 85vh !important;
+    max-width: 90vw;
+    background-size: cover !important;
+    background-position: center !important;
+    border: var(--cinema-frame-width) solid var(--cinema-frame-color);
+    box-shadow:
+        0 0 0 4px rgba(0, 0, 0, 0.1),
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        0 50px 100px -20px rgba(0, 0, 0, 0.4),
+        inset 0 0 80px rgba(0, 0, 0, 0.1);
+    transform: perspective(1000px) rotateX(2deg);
+}
+
+/* Neon Glow - glowing border effect */
+body.cinema-poster-neon #poster {
+    width: calc(85vh * (2 / 3)) !important;
+    height: 85vh !important;
+    max-width: 90vw;
+    background-size: cover !important;
+    background-position: center !important;
+    border: 3px solid var(--cinema-frame-color);
+    box-shadow:
+        0 0 10px var(--cinema-frame-color),
+        0 0 20px var(--cinema-frame-color),
+        0 0 40px var(--cinema-frame-color),
+        0 0 80px color-mix(in srgb, var(--cinema-frame-color) 50%, transparent),
+        inset 0 0 20px rgba(255, 255, 255, 0.05);
+    animation: neonPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes neonPulse {
+    0% {
+        box-shadow:
+            0 0 10px var(--cinema-frame-color),
+            0 0 20px var(--cinema-frame-color),
+            0 0 40px var(--cinema-frame-color),
+            0 0 80px color-mix(in srgb, var(--cinema-frame-color) 50%, transparent);
+    }
+    100% {
+        box-shadow:
+            0 0 15px var(--cinema-frame-color),
+            0 0 30px var(--cinema-frame-color),
+            0 0 60px var(--cinema-frame-color),
+            0 0 100px color-mix(in srgb, var(--cinema-frame-color) 60%, transparent);
+    }
+}
+
+/* Double Border - two-line frame with gap */
+body.cinema-poster-doubleBorder #poster {
+    width: calc(85vh * (2 / 3)) !important;
+    height: 85vh !important;
+    max-width: 90vw;
+    background-size: cover !important;
+    background-position: center !important;
+    border: calc(var(--cinema-frame-width) * 0.5) solid var(--cinema-frame-color);
+    outline: calc(var(--cinema-frame-width) * 0.5) solid var(--cinema-frame-color);
+    outline-offset: calc(var(--cinema-frame-width) * 0.5);
+    box-shadow:
+        0 15px 45px rgba(0, 0, 0, 0.4),
+        0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Ornate Corners - decorative corner accents */
+body.cinema-poster-ornate #poster {
+    width: calc(85vh * (2 / 3)) !important;
+    height: 85vh !important;
+    max-width: 90vw;
+    background-size: cover !important;
+    background-position: center !important;
+    border: calc(var(--cinema-frame-width) * 1.5) solid var(--cinema-frame-color);
+    box-shadow:
+        0 15px 45px rgba(0, 0, 0, 0.4),
+        inset 0 0 0 4px rgba(255, 215, 0, 0.3);
+    position: relative;
+}
+body.cinema-poster-ornate #poster::before,
+body.cinema-poster-ornate #poster::after {
+    content: '';
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--cinema-frame-color);
+    pointer-events: none;
+    z-index: 5;
+}
+body.cinema-poster-ornate #poster::before {
+    top: -8px;
+    left: -8px;
+    border-right: none;
+    border-bottom: none;
+}
+body.cinema-poster-ornate #poster::after {
+    bottom: -8px;
+    right: -8px;
+    border-left: none;
+    border-top: none;
 }
 
 /* =================================================================
@@ -1926,6 +2138,31 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     text-transform: uppercase;
 }
 
+.font-scifi {
+    font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif !important;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+.font-poster {
+    font-family: 'Oswald', 'Impact', sans-serif !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.font-epic {
+    font-family: 'Cinzel', 'Times New Roman', serif !important;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.font-bold {
+    font-family: 'Lilita One', 'Impact', sans-serif !important;
+    letter-spacing: 0.02em;
+}
+
 /* Shadow Classes */
 .shadow-none {
     text-shadow: none !important;
@@ -2056,4 +2293,34 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 .cinema-footer-tagline {
     font-size: calc(var(--footer-font-size, 1) * 1.5rem) !important;
     color: var(--footer-color, #cccccc) !important;
+}
+
+/* =================================================================
+   GLOBAL EFFECTS
+   ================================================================= */
+
+/* CSS Custom Properties for global effects */
+:root {
+    --cinema-global-filter: none;
+    --cinema-tint-color: #ff6b00;
+}
+
+/* Apply global filter to the entire display */
+body {
+    filter: var(--cinema-global-filter);
+}
+
+/* Tint overlay - applied via pseudo-element for better blending */
+body.cinema-tint-active::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--cinema-tint-color);
+    opacity: 0.15;
+    mix-blend-mode: color;
+    pointer-events: none;
+    z-index: 9998;
 }

@@ -140,7 +140,28 @@
                 "position": "bottomRight",
                 "size": 100
             }
-        }
+        },
+        "poster": {
+            "style": "floating",
+            "overlay": "none",
+            "animation": "fade",
+            "transitionDuration": 1.5,
+            "frameColor": "#333333",
+            "frameWidth": 8
+        },
+        "background": {
+            "mode": "solid",
+            "solidColor": "#000000",
+            "blurAmount": 20,
+            "vignette": "subtle"
+        },
+        "globalEffects": {
+            "colorFilter": "none",
+            "tintColor": "#ff6b00",
+            "contrast": 100,
+            "brightness": 100
+        },
+        "quickTheme": ""
     },
     "transitionEffect": "kenburns",
     "effectPauseTime": 3,

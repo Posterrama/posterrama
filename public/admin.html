@@ -467,7 +467,7 @@
               <div class="segmented" role="tablist" aria-label="Display Mode">
                 <label class="seg" id="seg-saver" role="tab" aria-controls="card-screensaver" aria-checked="false">
                   <input type="radio" name="display.mode" id="mode-screensaver" value="screensaver" />
-                  <i class="fas fa-image"></i> <span class="seg-full-text">Screensaver</span><span class="seg-short-text">Saver</span>
+                  <i class="fas fa-image"></i> Screensaver
                 </label>
                 <label class="seg" id="seg-wallart" role="tab" aria-controls="card-wallart" aria-checked="false">
                   <input type="radio" name="display.mode" id="mode-wallart" value="wallart" />
@@ -528,37 +528,30 @@
                   <!-- Visual Elements -->
                   <div class="mode-card" id="sec-visual" data-card-key="visual">
                     <div class="card-title" style="margin-bottom:10px;"><i class="fas fa-eye"></i> Visual Elements</div>
-                    <div class="form-grid">
-                      <div class="form-row"><label>Show:</label></div>
-                      <div class="form-row">
-                        <label class="checkbox" for="showPoster">
-                          <input type="checkbox" id="showPoster" />
-                          <span class="checkmark"></span>
-                          <span>Poster</span>
-                        </label>
-                      </div>
-                      <div class="form-row">
-                        <label class="checkbox" for="showMetadata">
-                          <input type="checkbox" id="showMetadata" />
-                          <span class="checkmark"></span>
-                          <span>Metadata</span>
-                        </label>
-                      </div>
-                      <div class="form-row">
-                        <label class="checkbox" for="showClearLogo">
-                          <input type="checkbox" id="showClearLogo" />
-                          <span class="checkmark"></span>
-                          <span>Clearlogo</span>
-                        </label>
-                      </div>
-                      <div class="form-row">
-                        <label class="checkbox" for="showRottenTomatoes">
-                          <input type="checkbox" id="showRottenTomatoes" />
-                          <span class="checkmark"></span>
-                          <span>Rotten Tomatoes</span>
-                        </label>
-                      </div>
-                      <div class="form-row full-span"><label for="rottenTomatoesMinimumScore">Minimum Rotten Tomatoes (0–10)</label><div class="number-input-wrapper"><input type="number" min="0" max="10" step="0.5" id="rottenTomatoesMinimumScore" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div></div>
+                    <div class="checkbox-row">
+                      <label class="checkbox" for="showPoster">
+                        <input type="checkbox" id="showPoster" />
+                        <span class="checkmark"></span>
+                        <span>Poster</span>
+                      </label>
+                      <label class="checkbox" for="showMetadata">
+                        <input type="checkbox" id="showMetadata" />
+                        <span class="checkmark"></span>
+                        <span>Metadata</span>
+                      </label>
+                      <label class="checkbox" for="showClearLogo">
+                        <input type="checkbox" id="showClearLogo" />
+                        <span class="checkmark"></span>
+                        <span>Clearlogo</span>
+                      </label>
+                      <label class="checkbox" for="showRottenTomatoes">
+                        <input type="checkbox" id="showRottenTomatoes" />
+                        <span class="checkmark"></span>
+                        <span>Rotten Tomatoes</span>
+                      </label>
+                    </div>
+                    <div class="form-grid" style="margin-top:12px;">
+                      <div class="form-row full-span"><label for="rottenTomatoesMinimumScore">Minimum RT Score (0–10)</label><div class="number-input-wrapper"><input type="number" min="0" max="10" step="0.5" id="rottenTomatoesMinimumScore" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div></div>
                     </div>
                   </div>
 
@@ -859,8 +852,8 @@
                       <!-- Card Rotation Interval -->
                       <div class="form-row">
                         <label for="wallartMode_filmCards_cardRotationSeconds">
-                          Card Rotation
-                          <span class="help-text">Next group (seconds)</span>
+                          Group Interval
+                          <span class="help-text">seconds</span>
                         </label>
                         <div class="number-input-wrapper">
                           <input type="number" id="wallartMode_filmCards_cardRotationSeconds" min="10" max="300" value="60" step="10" />
@@ -874,8 +867,8 @@
                       <!-- Poster Rotation Interval -->
                       <div class="form-row">
                         <label for="wallartMode_filmCards_posterRotationSeconds">
-                          Poster Rotation
-                          <span class="help-text">Within group (seconds)</span>
+                          Poster Interval
+                          <span class="help-text">seconds</span>
                         </label>
                         <div class="number-input-wrapper">
                           <input type="number" id="wallartMode_filmCards_posterRotationSeconds" min="5" max="120" value="15" step="5" />
@@ -1204,6 +1197,67 @@
                       </div>
                     </div>
                   </div>
+
+                  <!-- Global Effects Card (NEW) -->
+                  <div class="mode-card" data-card-key="cinema-global-effects" id="cinema-global-effects-card" style="padding:12px; grid-column: 1 / -1;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-magic"></i> Global Effects</div>
+                    <div id="cinema-global-effects-mount">
+                      <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-row">
+                          <label for="cinemaQuickTheme">Quick Theme</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaQuickTheme">
+                              <option value="">Select a theme</option>
+                              <option value="classicCinema">Classic Cinema</option>
+                              <option value="noir">Noir</option>
+                              <option value="neonNights">Neon Nights</option>
+                              <option value="vintageTheater">Vintage Theater</option>
+                              <option value="modernMinimal">Modern Minimal</option>
+                              <option value="filmProjector">Film Projector</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div class="form-row">
+                          <label for="cinemaColorFilter">Color Filter</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaColorFilter">
+                              <option value="none">None</option>
+                              <option value="sepia">Sepia</option>
+                              <option value="cool">Cool (Blue)</option>
+                              <option value="warm">Warm (Orange)</option>
+                              <option value="tint">Custom Tint</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div id="cinema-tint-color-picker-container" class="cinema-conditional-row" style="display:none;"></div>
+                        <div class="form-row">
+                          <label for="cinemaContrast">Contrast</label>
+                          <div class="slider-with-reset">
+                            <div class="modern-slider">
+                              <input type="range" id="cinemaContrast" min="50" max="150" step="5" value="100" />
+                              <div class="slider-bar"><div class="fill"></div></div>
+                            </div>
+                            <button type="button" class="reset-btn" data-reset-target="cinemaContrast" data-reset-value="100" title="Reset to 100%"><i class="fas fa-undo"></i></button>
+                          </div>
+                          <div class="slider-percentage" data-target="cinema.globalEffects.contrast">100%</div>
+                        </div>
+                        <div class="form-row">
+                          <label for="cinemaBrightness">Brightness</label>
+                          <div class="slider-with-reset">
+                            <div class="modern-slider">
+                              <input type="range" id="cinemaBrightness" min="50" max="150" step="5" value="100" />
+                              <div class="slider-bar"><div class="fill"></div></div>
+                            </div>
+                            <button type="button" class="reset-btn" data-reset-target="cinemaBrightness" data-reset-value="100" title="Reset to 100%"><i class="fas fa-undo"></i></button>
+                          </div>
+                          <div class="slider-percentage" data-target="cinema.globalEffects.brightness">100%</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <!-- Next row: Header (left) and Footer (right) -->
                   <div class="mode-card" data-card-key="cinema-header" id="cinema-header-card" style="padding:12px; grid-column: 1;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-heading"></i> Header</div>
@@ -1227,6 +1281,9 @@
                               <option value="blurred">Blurred Poster</option>
                               <option value="gradient">Dynamic Gradient</option>
                               <option value="ambient">Ambient Color</option>
+                              <option value="spotlight">Spotlight</option>
+                              <option value="starfield">Starfield</option>
+                              <option value="curtain">Theater Curtain</option>
                             </select>
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
@@ -1266,8 +1323,13 @@
                           <div class="select-wrap has-caret">
                             <select id="cinemaPosterStyle">
                               <option value="fullBleed">Full Bleed (Edge to Edge)</option>
-                              <option value="framed">Framed (Border)</option>
+                              <option value="framed">Classic Frame</option>
                               <option value="floating">Floating (Shadow)</option>
+                              <option value="polaroid">Polaroid</option>
+                              <option value="shadowBox">Shadow Box (3D)</option>
+                              <option value="neon">Neon Glow</option>
+                              <option value="doubleBorder">Double Border</option>
+                              <option value="ornate">Ornate Corners</option>
                             </select>
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
@@ -1328,13 +1390,6 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-info-circle"></i> Metadata Display</div>
                     <div id="cinema-metadata-mount">
                       <div class="form-grid">
-                        <div class="form-row" style="grid-column: 1 / -1;">
-                          <label class="checkbox" for="cinemaMetadataEnabled" style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="cinemaMetadataEnabled" checked />
-                            <span class="checkmark"></span>
-                            <span>Enable Metadata Display</span>
-                          </label>
-                        </div>
                         <div class="form-row">
                           <label for="cinemaMetadataLayout">Layout</label>
                           <div class="select-wrap has-caret">
@@ -1468,7 +1523,7 @@
                         </div>
                         <div class="cinema-nested-settings" id="cinemaQRSettings" style="display:none;">
                           <div class="form-row">
-                            <label for="cinemaQRUrl">QR URL <span class="help-text">(empty = auto trailer link)</span></label>
+                            <label for="cinemaQRUrl">Custom URL <span class="help-text">(leave empty for IMDb link)</span></label>
                             <input type="text" id="cinemaQRUrl" placeholder="https://example.com/tickets" />
                           </div>
                           <div class="form-row">

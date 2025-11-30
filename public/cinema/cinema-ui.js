@@ -47,6 +47,99 @@
         }
     }
 
+    /**
+     * Calculate ton-sur-ton (tonal) color based on background color.
+     * Creates an elegant, readable text color in the same hue family.
+     * @param {string} bgColor - Background color in hex format
+     * @returns {string} Calculated text color in hex format
+     */
+    function calculateTonSurTon(bgColor) {
+        // Parse hex color
+        let hex = bgColor.replace('#', '');
+        if (hex.length === 3) {
+            hex = hex
+                .split('')
+                .map(c => c + c)
+                .join('');
+        }
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+
+        // Convert to HSL
+        const rNorm = r / 255;
+        const gNorm = g / 255;
+        const bNorm = b / 255;
+        const max = Math.max(rNorm, gNorm, bNorm);
+        const min = Math.min(rNorm, gNorm, bNorm);
+        let h,
+            s,
+            l = (max + min) / 2;
+
+        if (max === min) {
+            h = s = 0; // achromatic
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case rNorm:
+                    h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6;
+                    break;
+                case gNorm:
+                    h = ((bNorm - rNorm) / d + 2) / 6;
+                    break;
+                case bNorm:
+                    h = ((rNorm - gNorm) / d + 4) / 6;
+                    break;
+            }
+        }
+
+        // Calculate luminance to determine if bg is dark or light
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        const isDark = luminance < 128;
+
+        // Create ton-sur-ton: same hue, adjusted lightness
+        // For dark backgrounds: lighter version (70-85% lightness)
+        // For light backgrounds: darker version (20-35% lightness)
+        let newL;
+        if (isDark) {
+            // Dark background: create elegant light tint
+            newL = 0.75 + l * 0.1; // 75-85% lightness
+            s = Math.min(s * 0.7, 0.4); // Reduce saturation for elegance
+        } else {
+            // Light background: create elegant dark shade
+            newL = 0.25 - l * 0.1; // 15-25% lightness
+            s = Math.min(s * 0.6, 0.35); // Reduce saturation for elegance
+        }
+        newL = Math.max(0.15, Math.min(0.85, newL));
+
+        // Convert HSL back to RGB
+        const hslToRgb = (h, s, l) => {
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1 / 6) return p + (q - p) * 6 * t;
+                    if (t < 1 / 2) return q;
+                    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1 / 3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1 / 3);
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        };
+
+        const [newR, newG, newB] = hslToRgb(h, s, newL);
+        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+    }
+
     // Helper: populate a simple <select> with plain options (no separators/specials)
     function populateSimpleSelect(selectEl, items, desiredValue) {
         if (!selectEl) return;
@@ -335,6 +428,10 @@
                     el('option', { value: 'marquee' }, 'Marquee (Broadway)'),
                     el('option', { value: 'retro' }, 'Retro (Press Start)'),
                     el('option', { value: 'neon' }, 'Neon (Tilt Neon)'),
+                    el('option', { value: 'scifi' }, 'Sci-Fi (Space Grotesk)'),
+                    el('option', { value: 'poster' }, 'Poster (Oswald)'),
+                    el('option', { value: 'epic' }, 'Epic (Cinzel)'),
+                    el('option', { value: 'bold' }, 'Bold (Lilita One)'),
                 ]),
                 el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
             ]),
@@ -368,6 +465,16 @@
 
         // Color picker container
         const rowColor = el('div', { id: 'cin-h-color-picker', class: 'form-row' });
+
+        // Ton-sur-ton checkbox row
+        const rowTonSurTon = el('div', { class: 'form-row', id: 'cin-h-tst-row' }, [
+            el('label', { for: 'cin-h-tst' }, 'Auto Color'),
+            el('label', { class: 'checkbox', for: 'cin-h-tst' }, [
+                el('input', { type: 'checkbox', id: 'cin-h-tst' }),
+                el('span', { class: 'checkmark' }),
+                el('span', {}, 'Ton-sur-ton (match background)'),
+            ]),
+        ]);
 
         // Shadow row
         const rowShadow = el('div', { class: 'form-row' }, [
@@ -403,6 +510,7 @@
             typoHeader,
             rowFont,
             rowSize,
+            rowTonSurTon,
             rowColor,
             rowShadow,
             rowAnim,
@@ -413,6 +521,7 @@
         $('#cin-h-font').value = typo.fontFamily || 'cinematic';
         $('#cin-h-shadow').value = typo.shadow || 'subtle';
         $('#cin-h-anim').value = typo.animation || 'none';
+        $('#cin-h-tst').checked = typo.tonSurTon || false;
 
         // Initialize header text preset
         (function () {
@@ -453,6 +562,15 @@
             colorContainer.innerHTML = '';
             colorContainer.appendChild(hiddenInput);
             colorContainer.appendChild(picker);
+
+            // Wire ton-sur-ton toggle for header
+            const tstCheckbox = document.getElementById('cin-h-tst');
+            const syncTstVisibility = () => {
+                const isTst = tstCheckbox?.checked;
+                colorContainer.style.display = isTst ? 'none' : '';
+            };
+            tstCheckbox?.addEventListener('change', syncTstVisibility);
+            syncTstVisibility();
         }
 
         // Wire Manage button for header texts
@@ -588,6 +706,13 @@
                     el('option', { value: 'classic' }, 'Classic (Playfair)'),
                     el('option', { value: 'modern' }, 'Modern (Montserrat)'),
                     el('option', { value: 'elegant' }, 'Elegant (Cormorant)'),
+                    el('option', { value: 'marquee' }, 'Marquee (Broadway)'),
+                    el('option', { value: 'retro' }, 'Retro (Press Start)'),
+                    el('option', { value: 'neon' }, 'Neon (Tilt Neon)'),
+                    el('option', { value: 'scifi' }, 'Sci-Fi (Space Grotesk)'),
+                    el('option', { value: 'poster' }, 'Poster (Oswald)'),
+                    el('option', { value: 'epic' }, 'Epic (Cinzel)'),
+                    el('option', { value: 'bold' }, 'Bold (Lilita One)'),
                 ]),
                 el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
             ]),
@@ -620,6 +745,16 @@
 
         const rowColor = el('div', { id: 'cin-f-color-picker', class: 'form-row' });
 
+        // Ton-sur-ton checkbox row for footer
+        const rowTonSurTon = el('div', { class: 'form-row', id: 'cin-f-tst-row' }, [
+            el('label', { for: 'cin-f-tst' }, 'Auto Color'),
+            el('label', { class: 'checkbox', for: 'cin-f-tst' }, [
+                el('input', { type: 'checkbox', id: 'cin-f-tst' }),
+                el('span', { class: 'checkmark' }),
+                el('span', {}, 'Ton-sur-ton (match background)'),
+            ]),
+        ]);
+
         const rowShadow = el('div', { class: 'form-row' }, [
             el('label', { for: 'cin-f-shadow' }, 'Text Shadow'),
             el('div', { class: 'select-wrap has-caret' }, [
@@ -636,6 +771,7 @@
             typoHeader,
             rowFont,
             rowSize,
+            rowTonSurTon,
             rowColor,
             rowShadow,
         ]);
@@ -647,6 +783,7 @@
             typoHeader,
             rowFont,
             rowSize,
+            rowTonSurTon,
             rowColor,
             rowShadow,
         ]);
@@ -662,6 +799,7 @@
         $('#cin-f-type').value = f.type || 'metadata';
         $('#cin-f-font').value = typo.fontFamily || 'system';
         $('#cin-f-shadow').value = typo.shadow || 'none';
+        $('#cin-f-tst').checked = typo.tonSurTon || false;
 
         // Initialize footer text preset
         const savedMarqueeText = f.marqueeText;
@@ -703,6 +841,15 @@
             colorContainer.innerHTML = '';
             colorContainer.appendChild(hiddenInput);
             colorContainer.appendChild(picker);
+
+            // Wire ton-sur-ton toggle for footer
+            const tstCheckbox = document.getElementById('cin-f-tst');
+            const syncTstVisibility = () => {
+                const isTst = tstCheckbox?.checked;
+                colorContainer.style.display = isTst ? 'none' : '';
+            };
+            tstCheckbox?.addEventListener('change', syncTstVisibility);
+            syncTstVisibility();
         }
 
         // Wire Manage button for footer texts
@@ -801,6 +948,19 @@
     function mountEnhancedControls(cfg) {
         const c = cfg.cinema || {};
 
+        // Global Effects controls
+        const globalEffects = c.globalEffects || {};
+        $('#cinemaColorFilter') &&
+            ($('#cinemaColorFilter').value = globalEffects.colorFilter || 'none');
+        $('#cinemaContrast') && ($('#cinemaContrast').value = globalEffects.contrast || 100);
+        $('#cinemaBrightness') && ($('#cinemaBrightness').value = globalEffects.brightness || 100);
+        $('#cinemaHideAllUI') && ($('#cinemaHideAllUI').checked = !!globalEffects.hideAllUI);
+
+        // Quick Theme - restore selection
+        if ($('#cinemaQuickTheme') && c.quickTheme) {
+            $('#cinemaQuickTheme').value = c.quickTheme;
+        }
+
         // Background controls
         const bg = c.background || {};
         $('#cinemaBackgroundMode') && ($('#cinemaBackgroundMode').value = bg.mode || 'solid');
@@ -820,8 +980,6 @@
         // Metadata controls
         const meta = c.metadata || {};
         const specs = meta.specs || {};
-        $('#cinemaMetadataEnabled') &&
-            ($('#cinemaMetadataEnabled').checked = meta.enabled !== false);
         $('#cinemaMetadataOpacity') && ($('#cinemaMetadataOpacity').value = meta.opacity || 80);
         // Position is always 'bottom' - dropdown removed
         $('#cinemaShowYear') && ($('#cinemaShowYear').checked = meta.showYear !== false);
@@ -859,8 +1017,8 @@
         $('#cinemaQRPosition') && ($('#cinemaQRPosition').value = qr.position || 'bottomRight');
         $('#cinemaQRSize') && ($('#cinemaQRSize').value = qr.size || 100);
 
-        // Initialize color pickers for background and poster
-        initColorPickers(bg, poster);
+        // Initialize color pickers for background, poster, and global effects
+        initColorPickers(bg, poster, globalEffects);
 
         // Wire up modern sliders with fill bar and percentage display
         wireModernSliders();
@@ -922,13 +1080,13 @@
         },
     ];
 
-    function initColorPickers(bg, poster) {
+    function initColorPickers(bg, poster, globalEffects) {
         // Check if createColorPicker is available (from ui-components.js via admin.js)
         if (typeof window.createColorPicker !== 'function') {
             // Retry after a short delay - admin.js module may still be loading
             setTimeout(() => {
                 if (typeof window.createColorPicker === 'function') {
-                    initColorPickers(bg, poster);
+                    initColorPickers(bg, poster, globalEffects);
                 } else {
                     console.warn(
                         'createColorPicker not available after retry, using fallback color inputs'
@@ -937,6 +1095,32 @@
                 }
             }, 500);
             return;
+        }
+
+        // Tint Color picker (Global Effects)
+        const tintColorContainer = document.getElementById('cinema-tint-color-picker-container');
+        if (tintColorContainer) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'cinemaTintColor';
+            hiddenInput.value = (globalEffects && globalEffects.tintColor) || '#ff6b00';
+
+            const picker = window.createColorPicker({
+                label: 'Tint Color',
+                color: (globalEffects && globalEffects.tintColor) || '#ff6b00',
+                defaultColor: '#ff6b00',
+                presets: CINEMA_COLOR_PRESETS,
+                onColorChange: color => {
+                    hiddenInput.value = color;
+                },
+                messageType: 'CINEMA_TINT_COLOR_UPDATE',
+                refreshIframe: false,
+                iframeId: 'display-preview-frame',
+            });
+
+            tintColorContainer.innerHTML = '';
+            tintColorContainer.appendChild(hiddenInput);
+            tintColorContainer.appendChild(picker);
         }
 
         // Background Color picker
@@ -1044,6 +1228,8 @@
             { id: 'cinemaPosterTransition', suffix: 's', min: 0.5, max: 5 },
             { id: 'cinemaFrameWidth', suffix: 'px', min: 2, max: 20 },
             { id: 'cinemaQRSize', suffix: 'px', min: 60, max: 200 },
+            { id: 'cinemaContrast', suffix: '%', min: 50, max: 150 },
+            { id: 'cinemaBrightness', suffix: '%', min: 50, max: 150 },
         ];
 
         sliders.forEach(({ id, suffix, min, max }) => {
@@ -1064,6 +1250,19 @@
             slider.addEventListener('input', updateSlider);
             updateSlider(); // Initial state
         });
+
+        // Wire reset buttons for sliders
+        document.querySelectorAll('.reset-btn[data-reset-target]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.dataset.resetTarget;
+                const resetValue = btn.dataset.resetValue || '100';
+                const slider = document.getElementById(targetId);
+                if (slider) {
+                    slider.value = resetValue;
+                    slider.dispatchEvent(new Event('input'));
+                }
+            });
+        });
     }
 
     function wireConditionalVisibility() {
@@ -1077,6 +1276,17 @@
             };
             fontFamilySelect.addEventListener('change', syncFontVisibility);
             syncFontVisibility();
+        }
+
+        // Global Effects: show tint color picker only when colorFilter is 'tint'
+        const colorFilterSelect = $('#cinemaColorFilter');
+        const tintColorContainer = document.getElementById('cinema-tint-color-picker-container');
+        if (colorFilterSelect && tintColorContainer) {
+            const syncTintVisibility = () => {
+                tintColorContainer.style.display = colorFilterSelect.value === 'tint' ? '' : 'none';
+            };
+            colorFilterSelect.addEventListener('change', syncTintVisibility);
+            syncTintVisibility();
         }
 
         // Background: show blur settings only when mode is 'blurred', color only when 'solid'
@@ -1093,20 +1303,132 @@
             syncBgVisibility();
         }
 
-        // Poster: show frame controls only when style is 'framed'
+        // Poster: show frame controls for styles that use borders
         const posterStyleSelect = $('#cinemaPosterStyle');
         const frameColorContainer = document.getElementById('cinema-frame-color-picker-container');
         const frameWidthRow = $('#cinemaFrameWidthRow');
         if (posterStyleSelect) {
             const syncPosterVisibility = () => {
                 const style = posterStyleSelect.value;
-                const show = style === 'framed';
+                // Show frame controls for framed, shadowBox, neon, doubleBorder, ornate
+                const stylesWithFrame = ['framed', 'shadowBox', 'neon', 'doubleBorder', 'ornate'];
+                const show = stylesWithFrame.includes(style);
                 if (frameColorContainer) frameColorContainer.style.display = show ? '' : 'none';
                 if (frameWidthRow) frameWidthRow.style.display = show ? '' : 'none';
             };
             posterStyleSelect.addEventListener('change', syncPosterVisibility);
             syncPosterVisibility();
         }
+
+        // Quick Theme: apply preset combinations
+        wireQuickThemes();
+    }
+
+    // === Quick Theme Presets ===
+    const QUICK_THEMES = {
+        classicCinema: {
+            label: 'Classic Cinema',
+            poster: { style: 'shadowBox', overlay: 'none', frameColor: '#222222' },
+            background: { mode: 'gradient', vignette: 'subtle' },
+            globalEffects: { colorFilter: 'none', contrast: 100, brightness: 100 },
+        },
+        noir: {
+            label: 'Noir',
+            poster: { style: 'framed', overlay: 'grain', frameColor: '#444444' },
+            background: { mode: 'solid', solidColor: '#0a0a0a', vignette: 'dramatic' },
+            globalEffects: { colorFilter: 'sepia', contrast: 120, brightness: 90 },
+        },
+        neonNights: {
+            label: 'Neon Nights',
+            poster: { style: 'neon', overlay: 'none', frameColor: '#ff00ff' },
+            background: { mode: 'starfield', vignette: 'none' },
+            globalEffects: { colorFilter: 'cool', contrast: 110, brightness: 100 },
+        },
+        vintageTheater: {
+            label: 'Vintage Theater',
+            poster: { style: 'ornate', overlay: 'none', frameColor: '#8b4513' },
+            background: { mode: 'curtain', vignette: 'subtle' },
+            globalEffects: { colorFilter: 'warm', contrast: 105, brightness: 95 },
+        },
+        modernMinimal: {
+            label: 'Modern Minimal',
+            poster: { style: 'fullBleed', overlay: 'none' },
+            background: { mode: 'solid', solidColor: '#000000', vignette: 'none' },
+            globalEffects: { colorFilter: 'none', contrast: 100, brightness: 100 },
+        },
+        filmProjector: {
+            label: 'Film Projector',
+            poster: { style: 'floating', overlay: 'oldMovie' },
+            background: { mode: 'blurred', vignette: 'dramatic' },
+            globalEffects: { colorFilter: 'sepia', contrast: 110, brightness: 95 },
+        },
+    };
+
+    function wireQuickThemes() {
+        const themeSelect = $('#cinemaQuickTheme');
+        if (!themeSelect) return;
+
+        themeSelect.addEventListener('change', () => {
+            const themeKey = themeSelect.value;
+            if (!themeKey || !QUICK_THEMES[themeKey]) return;
+
+            const theme = QUICK_THEMES[themeKey];
+
+            // Apply poster settings
+            if (theme.poster) {
+                const posterStyleSelect = $('#cinemaPosterStyle');
+                const posterOverlaySelect = $('#cinemaPosterOverlay');
+                if (posterStyleSelect && theme.poster.style) {
+                    posterStyleSelect.value = theme.poster.style;
+                    posterStyleSelect.dispatchEvent(new Event('change'));
+                }
+                if (posterOverlaySelect && theme.poster.overlay) {
+                    posterOverlaySelect.value = theme.poster.overlay;
+                }
+                if (theme.poster.frameColor) {
+                    const frameColorInput = $('#cinemaFrameColor');
+                    if (frameColorInput) frameColorInput.value = theme.poster.frameColor;
+                }
+            }
+
+            // Apply background settings
+            if (theme.background) {
+                const bgModeSelect = $('#cinemaBackgroundMode');
+                const vignetteSelect = $('#cinemaVignette');
+                const bgColorInput = $('#cinemaBackgroundColor');
+                if (bgModeSelect && theme.background.mode) {
+                    bgModeSelect.value = theme.background.mode;
+                    bgModeSelect.dispatchEvent(new Event('change'));
+                }
+                if (vignetteSelect && theme.background.vignette) {
+                    vignetteSelect.value = theme.background.vignette;
+                }
+                if (bgColorInput && theme.background.solidColor) {
+                    bgColorInput.value = theme.background.solidColor;
+                }
+            }
+
+            // Apply global effects
+            if (theme.globalEffects) {
+                const colorFilterSelect = $('#cinemaColorFilter');
+                const contrastSlider = $('#cinemaContrast');
+                const brightnessSlider = $('#cinemaBrightness');
+                if (colorFilterSelect && theme.globalEffects.colorFilter) {
+                    colorFilterSelect.value = theme.globalEffects.colorFilter;
+                    colorFilterSelect.dispatchEvent(new Event('change'));
+                }
+                if (contrastSlider && theme.globalEffects.contrast) {
+                    contrastSlider.value = theme.globalEffects.contrast;
+                    contrastSlider.dispatchEvent(new Event('input'));
+                }
+                if (brightnessSlider && theme.globalEffects.brightness) {
+                    brightnessSlider.value = theme.globalEffects.brightness;
+                    brightnessSlider.dispatchEvent(new Event('input'));
+                }
+            }
+
+            // Keep selected theme visible (don't reset to placeholder)
+        });
     }
 
     // === NEW: Collect enhanced settings for save ===
@@ -1127,7 +1449,6 @@
                 vignette: $('#cinemaVignette')?.value || 'subtle',
             },
             metadata: {
-                enabled: $('#cinemaMetadataEnabled')?.checked !== false,
                 opacity: parseInt($('#cinemaMetadataOpacity')?.value || '80', 10),
                 layout: $('#cinemaMetadataLayout')?.value || 'comfortable',
                 showYear: $('#cinemaShowYear')?.checked !== false,
@@ -1158,6 +1479,13 @@
                     size: parseInt($('#cinemaQRSize')?.value || '100', 10),
                 },
             },
+            globalEffects: {
+                colorFilter: $('#cinemaColorFilter')?.value || 'none',
+                tintColor: $('#cinemaTintColor')?.value || '#ff6b00',
+                contrast: parseInt($('#cinemaContrast')?.value || '100', 10),
+                brightness: parseInt($('#cinemaBrightness')?.value || '100', 10),
+            },
+            quickTheme: $('#cinemaQuickTheme')?.value || '',
         };
     }
 
@@ -1172,6 +1500,7 @@
                 color: $('#cin-h-color')?.value || '#ffffff',
                 shadow: $('#cin-h-shadow')?.value || 'subtle',
                 animation: $('#cin-h-anim')?.value || 'none',
+                tonSurTon: $('#cin-h-tst')?.checked || false,
             },
         };
         const footer = {
@@ -1183,6 +1512,7 @@
                 fontSize: parseInt($('#cin-f-size')?.value || '100', 10),
                 color: $('#cin-f-color')?.value || '#cccccc',
                 shadow: $('#cin-f-shadow')?.value || 'none',
+                tonSurTon: $('#cin-f-tst')?.checked || false,
             },
         };
         const ambilight = {
@@ -1384,8 +1714,9 @@
                                 ?.dispatchEvent(new Event('change', { bubbles: true }));
                             setVal('cin-f-font', 'elegant');
                             setVal('cin-f-color', '#cccccc');
-                            setBackground('gradient', '#0a0a0a');
-                            setPoster('framed', 'cinematic');
+                            setBackground('curtain', '#0a0a0a');
+                            setPoster('doubleBorder', 'cinematic');
+                            setVal('cinemaFrameColor', '#cc0000');
                             setMeta({
                                 title: true,
                                 year: true,
@@ -1420,7 +1751,7 @@
                                 ?.dispatchEvent(new Event('change', { bubbles: true }));
                             setVal('cin-f-font', 'modern');
                             setVal('cin-f-color', '#ffffff');
-                            setBackground('ambient', '#000000');
+                            setBackground('spotlight', '#000000');
                             setPoster('floating', 'zoomIn');
                             setMeta({ title: true, year: true, runtime: true, rating: true });
                             setSpecs({
@@ -1465,8 +1796,9 @@
                             setVal('cin-f-font', 'neon');
                             setVal('cin-f-color', '#00ffff');
                             setVal('cin-f-shadow', 'neon');
-                            setBackground('solid', '#0a0a15');
-                            setPoster('floating', 'fade');
+                            setBackground('starfield', '#000000');
+                            setPoster('neon', 'fade');
+                            setVal('cinemaFrameColor', '#ff00ff');
                             setMeta({ title: true, year: true, rating: true });
                             setSpecs({ resolution: true, audio: true, hdr: true });
                             setVal('cinemaSpecsStyle', 'badges');
@@ -1490,8 +1822,9 @@
                                 ?.dispatchEvent(new Event('change', { bubbles: true }));
                             setVal('cin-f-font', 'elegant');
                             setVal('cin-f-color', '#a0a0a0');
-                            setBackground('solid', '#1a1a1a');
-                            setPoster('framed', 'fade');
+                            setBackground('gradient', '#1a1a1a');
+                            setPoster('shadowBox', 'fade');
+                            setVal('cinemaFrameColor', '#333333');
                             setMeta({
                                 title: true,
                                 year: true,
@@ -1522,8 +1855,9 @@
                             setVal('cin-f-presets', 'Feature Presentation');
                             setVal('cin-f-font', 'retro');
                             setVal('cin-f-color', '#ffaa00');
-                            setBackground('solid', '#0d0d0d');
-                            setPoster('framed', 'slideUp');
+                            setBackground('curtain', '#0d0d0d');
+                            setPoster('ornate', 'slideUp');
+                            setVal('cinemaFrameColor', '#8b4513');
                             setMeta({ title: true, year: true, runtime: true });
                             setSpecs({ resolution: true, audio: true });
                             setVal('cinemaSpecsStyle', 'badges');
@@ -1649,29 +1983,104 @@
                             break;
 
                         default:
-                            // Reset to reasonable defaults
+                            // === FULL RESET TO CLEAN DEFAULTS ===
+                            // Goal: Full-bleed poster, normal colors, no effects, all metadata on
+
+                            // Global Effects - all off/neutral
+                            setVal('cinemaColorFilter', 'none');
+                            setVal('cinemaContrast', 100);
+                            setVal('cinemaBrightness', 100);
+                            setVal('cinemaHideAllUI', false);
+                            // Reset tint color if exists
+                            const tintInput = document.getElementById('cinemaTintColor');
+                            if (tintInput) tintInput.value = '#ff6b35';
+
+                            // Quick Theme - none selected
+                            setVal('cinemaQuickTheme', '');
+
+                            // Ambilight - subtle
                             setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 60);
+                            setVal('cin-a-strength', 50);
+
+                            // Header - silver color, cinematic font, 150% size
                             setVal('cin-h-enabled', true);
                             setVal('cin-h-presets', 'Now Playing');
                             setVal('cin-h-font', 'cinematic');
-                            setVal('cin-h-size', 100);
-                            setVal('cin-h-color', '#ffffff');
+                            setVal('cin-h-size', 150);
+                            setVal('cin-h-color', '#C0C0C0');
                             setVal('cin-h-shadow', 'subtle');
                             setVal('cin-h-anim', 'none');
+                            setVal('cin-h-tst', false); // ton-sur-ton off
+                            // Show header color picker
+                            const hColorRow = document
+                                .getElementById('cin-h-color')
+                                ?.closest('.cin-row');
+                            if (hColorRow) hColorRow.style.display = '';
+
+                            // Footer - metadata type, system font, silver color, 150% size
                             setVal('cin-f-enabled', true);
                             setVal('cin-f-type', 'metadata');
                             document
                                 .getElementById('cin-f-type')
                                 ?.dispatchEvent(new Event('change', { bubbles: true }));
                             setVal('cin-f-font', 'system');
-                            setVal('cin-f-color', '#cccccc');
+                            setVal('cin-f-size', 150);
+                            setVal('cin-f-color', '#C0C0C0');
                             setVal('cin-f-shadow', 'none');
+                            setVal('cin-f-tst', false); // ton-sur-ton off
+                            // Show footer color picker
+                            const fColorRow = document
+                                .getElementById('cin-f-color')
+                                ?.closest('.cin-row');
+                            if (fColorRow) fColorRow.style.display = '';
+
+                            // Background - solid black, no blur, subtle vignette
                             setBackground('solid', '#000000');
-                            setPoster('floating', 'fade');
-                            setMeta({ title: true, year: true, runtime: true, rating: true });
-                            setSpecs({ resolution: true, audio: true, hdr: true });
+                            setVal('cinemaBackgroundBlur', 20);
+                            setVal('cinemaVignette', 'subtle');
+
+                            // Poster - full bleed (floating), no frame effects
+                            setVal('cinemaPosterStyle', 'floating');
+                            setVal('cinemaPosterOverlay', 'none');
+                            setVal('cinemaPosterAnimation', 'fade');
+                            setVal('cinemaPosterTransition', 1.5);
+                            setVal('cinemaFrameWidth', 8);
+                            // Reset frame color
+                            const frameInput = document.getElementById('cinemaFrameColor');
+                            if (frameInput) frameInput.value = '#ffffff';
+
+                            // Metadata - ALL ON for full info display
+                            setMeta({
+                                title: true,
+                                year: true,
+                                runtime: true,
+                                rating: true,
+                                certification: true,
+                                genre: true,
+                                director: true,
+                                studio: true,
+                            });
+                            setVal('cinemaMetadataLayout', 'comfortable');
+                            setVal('cinemaMetadataOpacity', 80);
+
+                            // Specs - all on with badges style
+                            setSpecs({
+                                resolution: true,
+                                audio: true,
+                                hdr: true,
+                                aspectRatio: true,
+                            });
                             setVal('cinemaSpecsStyle', 'badges');
+                            setVal('cinemaSpecsIconSet', 'tabler');
+
+                            // Promotional - all off for clean look
+                            setVal('cinemaRatingBadge', false);
+                            setVal('cinemaWatchProviders', false);
+                            setVal('cinemaAwardsBadge', false);
+                            setVal('cinemaQREnabled', false);
+                            // Hide QR settings
+                            const qrSettings = document.getElementById('cinemaQRSettings');
+                            if (qrSettings) qrSettings.style.display = 'none';
                     }
                     try {
                         window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);

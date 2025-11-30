@@ -11149,6 +11149,7 @@ body.page-logs {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 12px;
     align-items: start;
+    margin-bottom: 0; /* Override global .form-grid margin */
 }
 /* spacing below mode cards */
 #section-display .mode-card + .content-grid,
@@ -11267,15 +11268,23 @@ body.page-logs {
 #section-display #sec-visual .form-grid > .form-row:last-child {
     margin-bottom: var(--space-lg);
 }
-/* Keep the numeric input row comfortably spaced */
-#section-display #sec-visual .form-grid .form-row.full-span {
-    margin-top: 10px; /* more air before the number field like Cinema blocks */
-    margin-bottom: var(--space-lg);
+/* Horizontal checkbox row for Visual Elements */
+#section-display #sec-visual .checkbox-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    margin-bottom: 0;
 }
-#section-display #sec-visual .checkbox {
+#section-display #sec-visual .checkbox-row .checkbox {
     display: inline-flex;
     align-items: center;
-    gap: 8px; /* Cinema uses 8px label gap */
+    gap: 8px;
+    white-space: nowrap;
+}
+/* Keep the numeric input row comfortably spaced */
+#section-display #sec-visual .form-grid .form-row.full-span {
+    margin-top: 0;
+    margin-bottom: var(--space-lg);
 }
 /* Wallart: force exactly two masonry columns so we can target the rightmost column reliably */
 #section-display #card-wallart .masonry {
@@ -12540,6 +12549,39 @@ body.page-logs {
     opacity: 0.85;
     margin-top: 4px;
     text-align: right;
+}
+
+/* Slider with reset button inline */
+#section-display .slider-with-reset {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+#section-display .slider-with-reset .modern-slider {
+    flex: 1;
+}
+
+/* Reset button for sliders */
+#section-display .reset-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    margin-left: 0;
+    border-radius: 4px;
+    opacity: 0.6;
+    transition:
+        opacity 0.2s,
+        color 0.2s,
+        background 0.2s;
+    flex-shrink: 0;
+}
+#section-display .reset-btn:hover {
+    opacity: 1;
+    color: var(--color-secondary);
+    background: var(--color-bg-tertiary);
 }
 
 /* Themed number steppers (shared in Display) */

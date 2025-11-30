@@ -15,6 +15,9 @@
 (function () {
     console.log('[Cinema] cinema-display.js loaded');
 
+    // Track effective background color for ton-sur-ton calculation
+    let effectiveBgColor = '#000000';
+
     // ===== Cinema Mode Configuration =====
     const cinemaConfig = {
         orientation: 'auto', // auto, portrait, portrait-flipped
@@ -91,6 +94,13 @@
                 position: 'bottomRight',
                 size: 100,
             },
+        },
+        // === NEW: Global effects ===
+        globalEffects: {
+            colorFilter: 'none', // none, sepia, cool, warm, tint
+            tintColor: '#ff6b00', // Custom tint color when colorFilter='tint'
+            contrast: 100, // 50-150
+            brightness: 100, // 50-150
         },
     };
 
@@ -214,7 +224,17 @@
 
         // Apply inline styles for size and color
         headerEl.style.setProperty('--header-font-size', `${(typo.fontSize || 100) / 100}`);
-        headerEl.style.setProperty('--header-color', typo.color || '#ffffff');
+
+        // Calculate color: use ton-sur-ton if enabled, otherwise use configured color
+        let headerColor = typo.color || '#ffffff';
+        if (typo.tonSurTon) {
+            headerColor = calculateTonSurTon(effectiveBgColor);
+            log('Header ton-sur-ton color calculated:', {
+                bgColor: effectiveBgColor,
+                textColor: headerColor,
+            });
+        }
+        headerEl.style.setProperty('--header-color', headerColor);
 
         // Set header text
         const headerText = cinemaConfig.header.text || 'Now Playing';
@@ -264,7 +284,17 @@
         const layout = cinemaConfig.metadata?.layout || 'comfortable';
         footerEl.className = `cinema-footer ${fontClass} ${shadowClass} layout-${layout}`;
         footerEl.style.setProperty('--footer-font-size', `${(typo.fontSize || 100) / 100}`);
-        footerEl.style.setProperty('--footer-color', typo.color || '#cccccc');
+
+        // Calculate color: use ton-sur-ton if enabled, otherwise use configured color
+        let footerColor = typo.color || '#cccccc';
+        if (typo.tonSurTon) {
+            footerColor = calculateTonSurTon(effectiveBgColor);
+            log('Footer ton-sur-ton color calculated:', {
+                bgColor: effectiveBgColor,
+                textColor: footerColor,
+            });
+        }
+        footerEl.style.setProperty('--footer-color', footerColor);
 
         // Clear existing content
         footerEl.innerHTML = '';
@@ -556,7 +586,7 @@
 
     // ===== QR Code (Promotional) =====
     let qrCodeEl = null;
-    function createQRCode(_currentMedia) {
+    function createQRCode(currentMedia) {
         const promo = cinemaConfig.promotional || {};
         const qrConfig = promo.qrCode || {};
 
@@ -566,7 +596,19 @@
             qrCodeEl = null;
         }
 
-        if (!qrConfig.enabled || !qrConfig.url) {
+        if (!qrConfig.enabled) {
+            return;
+        }
+
+        // Determine URL: custom URL or fallback to IMDb link from media
+        let targetUrl = qrConfig.url;
+        if (!targetUrl && currentMedia) {
+            // Try IMDb URL from media metadata
+            targetUrl = currentMedia.imdbUrl || null;
+        }
+
+        if (!targetUrl) {
+            log('QR Code skipped - no URL available');
             return;
         }
 
@@ -576,7 +618,7 @@
 
         // Generate QR code using canvas (simple QR code generator)
         // For now, use a QR code service or placeholder
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrConfig.size || 100}x${qrConfig.size || 100}&data=${encodeURIComponent(qrConfig.url)}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrConfig.size || 100}x${qrConfig.size || 100}&data=${encodeURIComponent(targetUrl)}`;
         const img = document.createElement('img');
         img.src = qrUrl;
         img.alt = 'QR Code';
@@ -587,7 +629,11 @@
         qrCodeEl.appendChild(img);
         document.body.appendChild(qrCodeEl);
 
-        log('QR Code created', { url: qrConfig.url, position: qrConfig.position });
+        log('QR Code created', {
+            url: targetUrl,
+            position: qrConfig.position,
+            isImdb: !qrConfig.url,
+        });
     }
 
     // ===== Rating Badge (Promotional) =====
@@ -759,6 +805,99 @@
     }
 
     // ===== Typography Settings (Global CSS Variables) =====
+
+    /**
+     * Calculate ton-sur-ton (tonal) color based on background color.
+     * Creates an elegant, readable text color in the same hue family.
+     * @param {string} bgColor - Background color in hex format
+     * @returns {string} Calculated text color in hex format
+     */
+    function calculateTonSurTon(bgColor) {
+        // Parse hex color
+        let hex = (bgColor || '#000000').replace('#', '');
+        if (hex.length === 3) {
+            hex = hex
+                .split('')
+                .map(c => c + c)
+                .join('');
+        }
+        const r = parseInt(hex.substr(0, 2), 16) || 0;
+        const g = parseInt(hex.substr(2, 2), 16) || 0;
+        const b = parseInt(hex.substr(4, 2), 16) || 0;
+
+        // Convert to HSL
+        const rNorm = r / 255;
+        const gNorm = g / 255;
+        const bNorm = b / 255;
+        const max = Math.max(rNorm, gNorm, bNorm);
+        const min = Math.min(rNorm, gNorm, bNorm);
+        let h = 0,
+            s = 0,
+            l = (max + min) / 2;
+
+        if (max !== min) {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case rNorm:
+                    h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6;
+                    break;
+                case gNorm:
+                    h = ((bNorm - rNorm) / d + 2) / 6;
+                    break;
+                case bNorm:
+                    h = ((rNorm - gNorm) / d + 4) / 6;
+                    break;
+            }
+        }
+
+        // Calculate luminance to determine if bg is dark or light
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        const isDark = luminance < 128;
+
+        // Create ton-sur-ton: same hue, adjusted lightness
+        let newL;
+        if (isDark) {
+            // Dark background: create elegant light tint (75-85%)
+            newL = 0.75 + l * 0.1;
+            s = Math.min(s * 0.7, 0.4);
+        } else {
+            // Light background: create elegant dark shade (15-25%)
+            newL = 0.25 - l * 0.1;
+            s = Math.min(s * 0.6, 0.35);
+        }
+        newL = Math.max(0.15, Math.min(0.85, newL));
+
+        // Convert HSL back to RGB
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+
+        let newR, newG, newB;
+        if (s === 0) {
+            newR = newG = newB = newL;
+        } else {
+            const q = newL < 0.5 ? newL * (1 + s) : newL + s - newL * s;
+            const p = 2 * newL - q;
+            newR = hue2rgb(p, q, h + 1 / 3);
+            newG = hue2rgb(p, q, h);
+            newB = hue2rgb(p, q, h - 1 / 3);
+        }
+
+        return `#${Math.round(newR * 255)
+            .toString(16)
+            .padStart(2, '0')}${Math.round(newG * 255)
+            .toString(16)
+            .padStart(2, '0')}${Math.round(newB * 255)
+            .toString(16)
+            .padStart(2, '0')}`;
+    }
+
     function applyTypographySettings() {
         const root = document.documentElement;
 
@@ -772,6 +911,10 @@
             marquee: '"Broadway", "Impact", fantasy',
             retro: '"Press Start 2P", "Courier New", monospace',
             neon: '"Tilt Neon", "Impact", sans-serif',
+            scifi: '"Space Grotesk", "Helvetica Neue", sans-serif',
+            poster: '"Oswald", "Impact", sans-serif',
+            epic: '"Cinzel", "Times New Roman", serif',
+            bold: '"Lilita One", "Impact", sans-serif',
         };
 
         // Header typography
@@ -868,6 +1011,88 @@
         });
     }
 
+    // ===== Starfield Background Manager =====
+    let starfieldCanvas = null;
+    let starfieldCtx = null;
+    let starfieldAnimationId = null;
+    let stars = [];
+
+    function manageStarfield(enabled) {
+        if (enabled && !starfieldCanvas) {
+            // Create canvas for starfield
+            starfieldCanvas = document.createElement('canvas');
+            starfieldCanvas.id = 'cinema-starfield';
+            starfieldCanvas.style.cssText =
+                'position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;';
+            document.body.insertBefore(starfieldCanvas, document.body.firstChild);
+            starfieldCtx = starfieldCanvas.getContext('2d');
+
+            // Initialize stars
+            const resize = () => {
+                starfieldCanvas.width = window.innerWidth;
+                starfieldCanvas.height = window.innerHeight;
+                initStars();
+            };
+            window.addEventListener('resize', resize);
+            resize();
+
+            // Start animation
+            animateStarfield();
+        } else if (!enabled && starfieldCanvas) {
+            // Remove canvas
+            if (starfieldAnimationId) cancelAnimationFrame(starfieldAnimationId);
+            starfieldCanvas.remove();
+            starfieldCanvas = null;
+            starfieldCtx = null;
+            starfieldAnimationId = null;
+            stars = [];
+        }
+    }
+
+    function initStars() {
+        stars = [];
+        const numStars = Math.floor((starfieldCanvas.width * starfieldCanvas.height) / 4000);
+        for (let i = 0; i < numStars; i++) {
+            stars.push({
+                x: Math.random() * starfieldCanvas.width,
+                y: Math.random() * starfieldCanvas.height,
+                radius: Math.random() * 1.5 + 0.5,
+                alpha: Math.random() * 0.8 + 0.2,
+                speed: Math.random() * 0.02 + 0.005,
+                twinkleSpeed: Math.random() * 0.03 + 0.01,
+                twinklePhase: Math.random() * Math.PI * 2,
+            });
+        }
+    }
+
+    function animateStarfield() {
+        if (!starfieldCtx || !starfieldCanvas) return;
+
+        starfieldCtx.fillStyle = '#000';
+        starfieldCtx.fillRect(0, 0, starfieldCanvas.width, starfieldCanvas.height);
+
+        stars.forEach(star => {
+            // Twinkle effect
+            star.twinklePhase += star.twinkleSpeed;
+            const twinkle = Math.sin(star.twinklePhase) * 0.3 + 0.7;
+            const alpha = star.alpha * twinkle;
+
+            starfieldCtx.beginPath();
+            starfieldCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+            starfieldCtx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            starfieldCtx.fill();
+
+            // Slow drift
+            star.y += star.speed;
+            if (star.y > starfieldCanvas.height) {
+                star.y = 0;
+                star.x = Math.random() * starfieldCanvas.width;
+            }
+        });
+
+        starfieldAnimationId = requestAnimationFrame(animateStarfield);
+    }
+
     // ===== Background Settings =====
     async function applyBackgroundSettings(media) {
         const root = document.documentElement;
@@ -878,13 +1103,23 @@
             'cinema-bg-solid',
             'cinema-bg-blurred',
             'cinema-bg-gradient',
-            'cinema-bg-ambient'
+            'cinema-bg-ambient',
+            'cinema-bg-spotlight',
+            'cinema-bg-starfield',
+            'cinema-bg-curtain'
         );
         document.body.classList.add(`cinema-bg-${bg.mode}`);
+
+        // Create/manage starfield canvas for that mode
+        manageStarfield(bg.mode === 'starfield');
 
         // Set CSS variables
         root.style.setProperty('--cinema-bg-color', bg.solidColor);
         root.style.setProperty('--cinema-bg-blur', `${bg.blurAmount}px`);
+
+        // Track effective background color for ton-sur-ton
+        // Start with solid color as default
+        effectiveBgColor = bg.solidColor || '#000000';
 
         // Set poster URL for blurred background
         if (media) {
@@ -894,11 +1129,19 @@
 
                 // Extract dominant color if not provided
                 let dominantColor = media.dominantColor;
-                if (!dominantColor && (bg.mode === 'gradient' || bg.mode === 'ambient')) {
+                if (
+                    !dominantColor &&
+                    (bg.mode === 'gradient' || bg.mode === 'ambient' || bg.mode === 'blurred')
+                ) {
                     dominantColor = await extractDominantColor(posterUrl);
                     log('Extracted dominant color:', dominantColor);
                 }
                 dominantColor = dominantColor || '#4a4a7a';
+
+                // Update effective background color for dynamic modes
+                if (bg.mode === 'gradient' || bg.mode === 'ambient' || bg.mode === 'blurred') {
+                    effectiveBgColor = dominantColor;
+                }
 
                 // Set gradient/ambient colors - create a darker variant for smooth gradient
                 root.style.setProperty('--cinema-ambient-color', dominantColor);
@@ -919,7 +1162,7 @@
         };
         root.style.setProperty('--cinema-vignette', vignetteMap[bg.vignette] || vignetteMap.subtle);
 
-        log('Background settings applied', bg);
+        log('Background settings applied', { ...bg, effectiveBgColor });
     }
 
     // ===== Poster Settings =====
@@ -927,11 +1170,16 @@
         const root = document.documentElement;
         const poster = cinemaConfig.poster;
 
-        // Remove existing poster style classes (perspective removed)
+        // Remove existing poster style classes
         document.body.classList.remove(
             'cinema-poster-fullBleed',
             'cinema-poster-framed',
-            'cinema-poster-floating'
+            'cinema-poster-floating',
+            'cinema-poster-polaroid',
+            'cinema-poster-shadowBox',
+            'cinema-poster-neon',
+            'cinema-poster-doubleBorder',
+            'cinema-poster-ornate'
         );
         document.body.classList.add(`cinema-poster-${poster.style}`);
 
@@ -965,6 +1213,58 @@
         root.style.setProperty('--cinema-frame-width', `${poster.frameWidth}px`);
 
         log('Poster settings applied', poster);
+    }
+
+    // ===== Global Effects =====
+    function applyGlobalEffects() {
+        const root = document.documentElement;
+        const effects = cinemaConfig.globalEffects;
+
+        // Build the CSS filter string based on settings
+        const filters = [];
+
+        // Add contrast (default 100%)
+        if (effects.contrast !== 100) {
+            filters.push(`contrast(${effects.contrast / 100})`);
+        }
+
+        // Add brightness (default 100%)
+        if (effects.brightness !== 100) {
+            filters.push(`brightness(${effects.brightness / 100})`);
+        }
+
+        // Add color filter
+        switch (effects.colorFilter) {
+            case 'sepia':
+                filters.push('sepia(0.6)');
+                break;
+            case 'cool':
+                filters.push('hue-rotate(20deg) saturate(1.1)');
+                break;
+            case 'warm':
+                filters.push('hue-rotate(-15deg) saturate(1.2)');
+                break;
+            case 'tint':
+                // Tint is applied via a pseudo-element overlay, not filter
+                root.style.setProperty('--cinema-tint-color', effects.tintColor);
+                document.body.classList.add('cinema-tint-active');
+                break;
+            default:
+                // 'none' - remove tint class if present
+                document.body.classList.remove('cinema-tint-active');
+                break;
+        }
+
+        // Remove tint class if not using tint filter
+        if (effects.colorFilter !== 'tint') {
+            document.body.classList.remove('cinema-tint-active');
+        }
+
+        // Apply combined filter to document
+        const filterValue = filters.length > 0 ? filters.join(' ') : 'none';
+        root.style.setProperty('--cinema-global-filter', filterValue);
+
+        log('Global effects applied', effects);
     }
 
     // ===== Initialize Cinema Mode =====
@@ -1031,6 +1331,13 @@
                     };
                 }
             }
+            // === Merge global effects ===
+            if (config.globalEffects) {
+                cinemaConfig.globalEffects = {
+                    ...cinemaConfig.globalEffects,
+                    ...config.globalEffects,
+                };
+            }
         }
 
         // Apply cinema orientation and initial layout sizing
@@ -1042,6 +1349,7 @@
         applyTypographySettings();
         applyBackgroundSettings(null); // No media yet at init
         applyPosterSettings();
+        applyGlobalEffects(); // Apply global color filters
 
         // Create cinema UI elements
         createHeader();
@@ -1190,6 +1498,11 @@
 
         // Update background with media info (for blurred/gradient/ambient modes)
         applyBackgroundSettings(media);
+
+        // Update header if ton-sur-ton is enabled (needs effectiveBgColor from background)
+        if (cinemaConfig.header?.typography?.tonSurTon) {
+            createHeader();
+        }
 
         // Update footer with current media info
         createFooter(cinemaMedia);
@@ -1471,6 +1784,14 @@
                     ...newConfig.cinema.background,
                 };
                 applyBackgroundSettings(currentMedia);
+                // Update header/footer if ton-sur-ton is enabled (depends on effectiveBgColor)
+                if (cinemaConfig.header?.typography?.tonSurTon) {
+                    createHeader();
+                }
+                if (cinemaConfig.footer?.typography?.tonSurTon && currentMedia) {
+                    const cinemaMedia = mapMediaToCinemaFormat(currentMedia);
+                    createFooter(cinemaMedia);
+                }
             }
 
             // Update metadata settings
@@ -1512,6 +1833,15 @@
                     createWatchProviders(cinemaMedia);
                     createAwardsBadge(cinemaMedia);
                 }
+            }
+
+            // Update global effects
+            if (newConfig.cinema.globalEffects) {
+                cinemaConfig.globalEffects = {
+                    ...cinemaConfig.globalEffects,
+                    ...newConfig.cinema.globalEffects,
+                };
+                applyGlobalEffects();
             }
         }
     }
@@ -2259,6 +2589,14 @@
                     root.style.setProperty('--cinema-frame-color', data.color);
                     cinemaConfig.poster.frameColor = data.color;
                     log('Live frame color update:', data.color);
+                }
+                break;
+
+            case 'CINEMA_TINT_COLOR_UPDATE':
+                if (data.color) {
+                    root.style.setProperty('--cinema-tint-color', data.color);
+                    cinemaConfig.globalEffects.tintColor = data.color;
+                    log('Live tint color update:', data.color);
                 }
                 break;
         }
