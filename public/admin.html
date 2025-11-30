@@ -205,10 +205,7 @@
       </a>
       <a href="#" class="nav-item" data-nav="devices">
         <i class="fas fa-laptop"></i>
-        <span class="nav-text-with-badge" style="white-space: nowrap;">
-          Device Management
-          <span class="nav-badge nav-badge-error">BETA</span>
-        </span>
+        <span>Device Management</span>
       </a>
       <a href="#" class="nav-item" data-nav="operations"><i class="fas fa-screwdriver-wrench"></i><span>Operations</span></a>
     </nav>
@@ -291,7 +288,7 @@
               <span class="label">Application</span>
               <span class="value">Running</span>
             </span>
-            <span class="header-pill" id="perf-db-status" title="Storage status" style="background: rgba(59, 130, 246, 0.15); color: #93c5fd; border-color: rgba(59, 130, 246, 0.25);">
+            <span class="header-pill status-info" id="perf-db-status" title="Storage status">
               <i class="fas fa-hdd"></i>
               <span class="label">Storage</span>
               <span class="value">Healthy</span>
@@ -443,7 +440,6 @@
               <i class="fas fa-desktop" aria-hidden="true"></i>
               <h2 style="margin:0;">Display Settings</h2>
             </div>
-            <div class="panel-subtitle">Customize posters for Screensaver, Wallart, Cinema: effects, timing, sync.</div>
           </div>
           <div class="panel-actions">
             <span class="status-pill status-info" id="display-mode-pill" title="Current display mode">Mode: —</span>
@@ -489,13 +485,7 @@
           <div id="mode-cards-top">
             <!-- Screensaver settings (active when mode = screensaver) -->
             <div id="card-screensaver" hidden>
-              <div class="card-header" style="padding-left:0; padding-right:0; background:transparent; border-bottom:none;">
-                <div class="card-title" style="font-size:1.1rem;"><i class="fas fa-image"></i> Screensaver</div>
-              </div>
               <fieldset id="fs-screensaver">
-                <div class="card-subtext" style="margin-bottom:10px; color: var(--color-text-secondary);">
-                  A calm, full-screen slideshow of your posters. Use presets or fine‑tune Effects & Playback.
-                </div>
                 <div class="form-grid masonry" id="saver-cards" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
                   <!-- Presets + Summary card (first by default) -->
                   <div class="mode-card" id="saver-presets-card" data-card-key="presets" style="padding:12px;">
@@ -517,13 +507,9 @@
                   
                   <!-- Orientation card -->
                   <div class="mode-card" data-card-key="screensaver-orientation" style="padding:12px;">
-                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Orientation</div>
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Screen Orientation</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label for="screensaverOrientation">
-                          Screen Orientation
-                          <span class="help-text">Auto follows device sensor or aspect ratio</span>
-                        </label>
                         <div class="select-wrap has-caret">
                           <select id="screensaverOrientation">
                             <option value="auto">Auto</option>
@@ -587,8 +573,8 @@
                     </div>
                     <div class="form-grid">
                       
-                      <div class="form-row"><label for="clockTimezone">Clock timezone</label><div class="select-wrap has-caret"><select id="clockTimezone"><option value="auto">Auto (System Timezone)</option><optgroup label="Common Timezones"><option value="Europe/Amsterdam">Europe/Amsterdam (CET/CEST)</option><option value="Europe/London">Europe/London (GMT/BST)</option><option value="Europe/Berlin">Europe/Berlin (CET/CEST)</option><option value="Europe/Paris">Europe/Paris (CET/CEST)</option><option value="America/New_York">America/New_York (EST/EDT)</option><option value="America/Chicago">America/Chicago (CST/CDT)</option><option value="America/Denver">America/Denver (MST/MDT)</option><option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option><option value="Asia/Tokyo">Asia/Tokyo (JST)</option><option value="Asia/Shanghai">Asia/Shanghai (CST)</option><option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option></optgroup><optgroup label="Additional Timezones"><option value="UTC">UTC (Coordinated Universal Time)</option><option value="Africa/Cairo">Africa/Cairo (EET)</option><option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option><option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires (ART)</option><option value="America/Mexico_City">America/Mexico_City (CST/CDT)</option><option value="America/Sao_Paulo">America/Sao_Paulo (BRT/BRST)</option><option value="America/Toronto">America/Toronto (EST/EDT)</option><option value="America/Vancouver">America/Vancouver (PST/PDT)</option><option value="Asia/Bangkok">Asia/Bangkok (ICT)</option><option value="Asia/Dubai">Asia/Dubai (GST)</option><option value="Asia/Hong_Kong">Asia/Hong_Kong (HKT)</option><option value="Asia/Jakarta">Asia/Jakarta (WIB)</option><option value="Asia/Kolkata">Asia/Kolkata (IST)</option><option value="Asia/Seoul">Asia/Seoul (KST)</option><option value="Asia/Singapore">Asia/Singapore (SGT)</option><option value="Asia/Taipei">Asia/Taipei (CST)</option><option value="Australia/Brisbane">Australia/Brisbane (AEST)</option><option value="Australia/Melbourne">Australia/Melbourne (AEST/AEDT)</option><option value="Australia/Perth">Australia/Perth (AWST)</option><option value="Europe/Athens">Europe/Athens (EET/EEST)</option><option value="Europe/Istanbul">Europe/Istanbul (TRT)</option><option value="Europe/Moscow">Europe/Moscow (MSK)</option><option value="Europe/Rome">Europe/Rome (CET/CEST)</option><option value="Europe/Stockholm">Europe/Stockholm (CET/CEST)</option><option value="Europe/Zurich">Europe/Zurich (CET/CEST)</option><option value="Pacific/Auckland">Pacific/Auckland (NZST/NZDT)</option><option value="Pacific/Honolulu">Pacific/Honolulu (HST)</option></optgroup></select><span class="select-caret" aria-hidden="true">▾</span></div></div>
-                      <div class="form-row"><label for="clockFormat">Clock format</label><div class="select-wrap has-caret"><select id="clockFormat"><option value="24h">24-hour</option><option value="12h">12-hour</option></select><span class="select-caret" aria-hidden="true">▾</span></div></div>
+                      <div class="form-row"><label for="clockTimezone">Timezone</label><div class="select-wrap has-caret"><select id="clockTimezone"><option value="auto">Auto (System Timezone)</option><optgroup label="Common Timezones"><option value="Europe/Amsterdam">Europe/Amsterdam (CET/CEST)</option><option value="Europe/London">Europe/London (GMT/BST)</option><option value="Europe/Berlin">Europe/Berlin (CET/CEST)</option><option value="Europe/Paris">Europe/Paris (CET/CEST)</option><option value="America/New_York">America/New_York (EST/EDT)</option><option value="America/Chicago">America/Chicago (CST/CDT)</option><option value="America/Denver">America/Denver (MST/MDT)</option><option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option><option value="Asia/Tokyo">Asia/Tokyo (JST)</option><option value="Asia/Shanghai">Asia/Shanghai (CST)</option><option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option></optgroup><optgroup label="Additional Timezones"><option value="UTC">UTC (Coordinated Universal Time)</option><option value="Africa/Cairo">Africa/Cairo (EET)</option><option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option><option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires (ART)</option><option value="America/Mexico_City">America/Mexico_City (CST/CDT)</option><option value="America/Sao_Paulo">America/Sao_Paulo (BRT/BRST)</option><option value="America/Toronto">America/Toronto (EST/EDT)</option><option value="America/Vancouver">America/Vancouver (PST/PDT)</option><option value="Asia/Bangkok">Asia/Bangkok (ICT)</option><option value="Asia/Dubai">Asia/Dubai (GST)</option><option value="Asia/Hong_Kong">Asia/Hong_Kong (HKT)</option><option value="Asia/Jakarta">Asia/Jakarta (WIB)</option><option value="Asia/Kolkata">Asia/Kolkata (IST)</option><option value="Asia/Seoul">Asia/Seoul (KST)</option><option value="Asia/Singapore">Asia/Singapore (SGT)</option><option value="Asia/Taipei">Asia/Taipei (CST)</option><option value="Australia/Brisbane">Australia/Brisbane (AEST)</option><option value="Australia/Melbourne">Australia/Melbourne (AEST/AEDT)</option><option value="Australia/Perth">Australia/Perth (AWST)</option><option value="Europe/Athens">Europe/Athens (EET/EEST)</option><option value="Europe/Istanbul">Europe/Istanbul (TRT)</option><option value="Europe/Moscow">Europe/Moscow (MSK)</option><option value="Europe/Rome">Europe/Rome (CET/CEST)</option><option value="Europe/Stockholm">Europe/Stockholm (CET/CEST)</option><option value="Europe/Zurich">Europe/Zurich (CET/CEST)</option><option value="Pacific/Auckland">Pacific/Auckland (NZST/NZDT)</option><option value="Pacific/Honolulu">Pacific/Honolulu (HST)</option></optgroup></select><span class="select-caret" aria-hidden="true">▾</span></div></div>
+                      <div class="form-row"><label for="clockFormat">Format</label><div class="select-wrap has-caret"><select id="clockFormat"><option value="24h">24-hour</option><option value="12h">12-hour</option></select><span class="select-caret" aria-hidden="true">▾</span></div></div>
                     </div>
                   </div>
 
@@ -640,7 +626,7 @@
                   <div class="mode-card" id="sec-playback" data-card-key="playback">
                     <div class="card-title" style="margin-bottom:10px;"><i class="fas fa-cogs"></i> Playback Timing</div>
                     <div class="form-grid">
-                      <div class="form-row"><label for="transitionIntervalSeconds">Transition interval (seconds)</label><div class="number-input-wrapper"><input type="number" min="1" max="300" step="1" id="transitionIntervalSeconds" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div><div class="form-help">Time in seconds between poster transitions (1-300).</div></div>
+                      <div class="form-row"><label for="transitionIntervalSeconds">Transition interval (seconds)</label><div class="number-input-wrapper"><input type="number" min="1" max="300" step="1" id="transitionIntervalSeconds" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div></div>
                     </div>
                   </div>
 
@@ -649,13 +635,7 @@
 
             <!-- Wallart settings -->
             <div id="card-wallart" style="margin-top:12px;" hidden>
-              <div class="card-header" style="padding-left:0; padding-right:0; background:transparent; border-bottom:none;">
-                <div class="card-title" style="font-size:1.1rem;"><i class="fas fa-th-large"></i> Wallart</div>
-              </div>
               <fieldset id="fs-wallart">
-                <div class="card-subtext" style="margin-bottom:10px; color: var(--color-text-secondary);">
-                  A dynamic, tiled poster wall. Fine‑tune density, animation, layout, ambience, and hero.
-                </div>
                 <div class="form-grid masonry" id="wallart-cards" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
                   <!-- Presets + Summary card (mirrors Screensaver) -->
                   <div class="mode-card" id="wallart-presets-card" data-card-key="presets" style="padding:12px;">
@@ -693,13 +673,9 @@
                   
                   <!-- Orientation card -->
                   <div class="mode-card" data-card-key="wallart-orientation" style="padding:12px;">
-                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Orientation</div>
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Screen Orientation</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label for="wallartOrientation">
-                          Screen Orientation
-                          <span class="help-text">Auto follows device sensor or aspect ratio</span>
-                        </label>
                         <div class="select-wrap has-caret">
                           <select id="wallartOrientation">
                             <option value="auto">Auto</option>
@@ -740,7 +716,6 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-magic"></i> Animation</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label for="wallartMode_animationType">Animation</label>
                         <div class="select-wrap has-caret">
                           <select id="wallartMode_animationType">
                             <option value="random">Random — Uses all animations</option>
@@ -844,7 +819,6 @@
                         </div>
                       </div>
                       <div class="form-row">
-                        <label for="wallartMode_layoutVariant">Layout</label>
                         <div class="select-wrap has-caret">
                           <select id="wallartMode_layoutVariant">
                             <option value="heroGrid">Hero Grid</option>
@@ -1156,13 +1130,7 @@
 
             <!-- Cinema settings -->
             <div id="card-cinema" style="margin-top:12px;" hidden>
-              <div class="card-header" style="padding-left:0; padding-right:0; background:transparent; border-bottom:none;">
-                <div class="card-title" style="font-size:1.1rem;"><i class="fas fa-film"></i> Cinema</div>
-              </div>
               <fieldset id="fs-cinema">
-                <div class="card-subtext" style="margin-bottom:10px; color: var(--color-text-secondary);">
-                  A large, single‑poster view for displays. Choose your screen orientation.
-                </div>
                 <div class="form-grid masonry" id="cinema-cards">
                   <!-- Presets: first card (top-left) like Screensaver -->
                   <div class="mode-card" id="cinema-presets-card" data-card-key="cinema-presets" style="padding:12px;">
@@ -1176,13 +1144,9 @@
                   </div>
                   <!-- Right: Orientation -->
                   <div class="mode-card" data-card-key="orientation" style="padding:12px; grid-column: 1;">
-                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Orientation</div>
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Screen Orientation</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label for="cinemaOrientation">
-                          Screen Orientation
-                          <span class="help-text">Auto follows device sensor or aspect ratio</span>
-                        </label>
                         <div class="select-wrap has-caret">
                           <select id="cinemaOrientation">
                             <option value="auto">Auto</option>
@@ -1214,7 +1178,7 @@
                       <div class="form-row">
                         <label for="cinemaNowPlayingPriority">
                           Session Priority
-                          <span class="help-text">Which session to show when multiple are active</span>
+                          <span class="help-text">Multiple sessions</span>
                         </label>
                         <div class="select-wrap has-caret">
                           <select id="cinemaNowPlayingPriority">
@@ -1228,7 +1192,7 @@
                       <div class="form-row" id="cinemaNowPlayingFilterUserRow" style="display:none;">
                         <label for="cinemaNowPlayingFilterUser">
                           Plex Username
-                          <span class="help-text">Show only sessions from this user</span>
+                          <span class="help-text">Filter by user</span>
                         </label>
                         <div class="select-wrap has-caret">
                           <select id="cinemaNowPlayingFilterUser">
@@ -1240,7 +1204,7 @@
                       <div class="form-row">
                         <label for="cinemaNowPlayingInterval">
                           Update Interval
-                          <span class="help-text">Seconds between session checks (5-300)</span>
+                          <span class="help-text">5-300 seconds</span>
                         </label>
                         <div class="number-input-wrapper"><input type="number" min="5" max="300" step="5" id="cinemaNowPlayingInterval" placeholder="15" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
                       </div>
@@ -1275,7 +1239,6 @@
               <i class="fas fa-server" aria-hidden="true"></i>
               <h2 style="margin:0;">Media Sources</h2>
             </div>
-            <div class="panel-subtitle">Connect and configure sources across Plex, Jellyfin, TMDB and Local</div>
           </div>
           <div class="panel-actions"></div>
         </div>
@@ -1421,10 +1384,9 @@
                   <div class="ms-options" id="plex-ms-movies-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more libraries. Populated from Plex.</small>
             </div>
             <div class="form-group">
-              <label for="plex.shows">Show Libraries</label>
+              <label for="plex.music">Music Libraries</label>
               <select id="plex.shows" multiple style="display:none"></select>
               <div class="multiselect" id="plex-ms-shows">
                 <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
@@ -1444,7 +1406,6 @@
                   <div class="ms-options" id="plex-ms-shows-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more libraries. Populated from Plex.</small>
             </div>
             <div class="form-group">
               <label for="plex.music">Music Libraries</label>
@@ -1467,7 +1428,6 @@
                   <div class="ms-options" id="plex-ms-music-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select music libraries for Music Mode. Populated from Plex.</small>
             </div>
           </div>
 
@@ -1502,7 +1462,6 @@
                   <div class="ms-options" id="plex-ms-ratings-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more ratings. Populated from Plex libraries.</small>
               
             </div>
             <div class="form-group">
@@ -1526,7 +1485,6 @@
                   <div class="ms-options" id="plex-ms-genres-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more genres. Populated from Plex libraries.</small>
               
             </div>
             <div class="form-group">
@@ -1550,7 +1508,6 @@
                   <div class="ms-options" id="plex-ms-qualities-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more qualities. Populated from Plex libraries.</small>
               
             </div>
             <div class="form-group" style="grid-column: 1 / -1;">
@@ -1575,7 +1532,6 @@
                   <div class="ms-options" id="plex-ms-music-genres-options"></div>
                 </div>
               </div>
-              <small class="form-help">Filter music albums by genre. Select music library first.</small>
             </div>
             <div class="form-group" style="grid-column: 1 / -1;">
               <label for="plex.musicArtists">Music Artists</label>
@@ -1599,13 +1555,12 @@
                   <div class="ms-options" id="plex-ms-music-artists-options"></div>
                 </div>
               </div>
-              <small class="form-help">Filter music albums by artist. Select music library first.</small>
             </div>
           </div>
 
           <!-- Recently added -->
           <div class="form-section">
-            <div class="section-title"><i class="fas fa-clock"></i> Recently added
+            <div class="section-title"><i class="fas fa-clock"></i> Recently added days
               <label class="header-toggle" for="plex.recentOnlyHeader" title="Show only recently added items" style="margin-left:auto;">
                 <input type="checkbox" id="plex.recentOnlyHeader" />
                 <span class="ht-switch" aria-hidden="true"></span>
@@ -1615,7 +1570,6 @@
           <div class="form-grid plex-dense" id="plex-recent-grid">
             <!-- hidden form checkbox kept for saving is removed per request; header toggle will be the single source -->
             <div class="form-group">
-              <label for="plex.recentDays">Recently added days</label>
               <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
             </div>
           </div>
@@ -1702,7 +1656,6 @@
                   <div class="ms-options" id="jf-ms-movies-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more libraries. Populated from Jellyfin.</small>
             </div>
             <div class="form-group">
               <label for="jf.shows">Show Libraries</label>
@@ -1725,7 +1678,6 @@
                   <div class="ms-options" id="jf-ms-shows-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more libraries. Populated from Jellyfin.</small>
             </div>
           </div>
           
@@ -1759,7 +1711,6 @@
                   <div class="ms-options" id="jf-ms-ratings-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more ratings. Populated from Jellyfin libraries.</small>
               
             </div>
             <div class="form-group">
@@ -1783,7 +1734,6 @@
                   <div class="ms-options" id="jf-ms-genres-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more genres. Populated from Jellyfin libraries.</small>
               
             </div>
           </div>
@@ -1793,12 +1743,11 @@
               <label for="jf.qualityFilter">Qualities</label>
               <input type="hidden" id="jf.qualityFilter-hidden" value="">
               <div class="multiselect" id="jf-ms-qualities"></div>
-              <small class="form-help">Qualities disabled for Jellyfin</small>
             </div>
           </div>
           <!-- Recently added -->
           <div class="form-section">
-            <div class="section-title"><i class="fas fa-clock"></i> Recently added
+            <div class="section-title"><i class="fas fa-clock"></i> Recently added days
               <label class="header-toggle" for="jf.recentOnlyHeader" title="Show only recently added items" style="margin-left:auto;">
                 <input type="checkbox" id="jf.recentOnlyHeader" />
                 <span class="ht-switch" aria-hidden="true"></span>
@@ -1808,7 +1757,6 @@
           <div class="form-grid plex-dense" id="jf-recent-grid">
             <!-- removed hidden checkbox; header toggle is the only control now -->
             <div class="form-group">
-              <label for="jf.recentDays">Recently added days</label>
               <input type="number" id="jf.recentDays" min="1" max="365" placeholder="30">
             </div>
           </div>
@@ -1849,7 +1797,6 @@
             <div class="form-group">
               <label for="romm.url">Server URL</label>
               <input type="text" id="romm.url" placeholder="http://romm-server:8080" autocomplete="off" autocapitalize="off" spellcheck="false">
-              <small class="form-help">Full URL including http:// or https://</small>
             </div>
             <div class="form-group">
               <label for="romm.username">Username</label>
@@ -1991,7 +1938,6 @@
                     <div class="ms-options" id="tmdb-ms-genres-options"></div>
                   </div>
                 </div>
-                <small id="tmdb-genre-help" class="form-help">Select one or more genres. Populated from TMDB.</small>
               </div>
             </div>
 
@@ -2038,7 +1984,6 @@
                   <div class="ms-options" id="streaming-ms-providers-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more providers. Populated from TMDB.</small>
             </div>
           </div>
           <div class="form-grid">
@@ -2209,7 +2154,6 @@
                 </select>
                 <span class="select-caret" aria-hidden="true">▾</span>
               </div>
-              <small class="form-help">Select which media source to generate posterpacks from</small>
             </div>
             
             <!-- Posterpack Library Selection (per source) -->
@@ -2259,7 +2203,6 @@
                         <div class="ms-options" id="pp-plex-ms-shows-options"></div>
                       </div>
                     </div>
-                    <small class="form-help">Leave empty to include all Plex libraries</small>
                   </div>
                   <!-- Jellyfin libraries -->
                   <div class="form-group" id="pp-jf-libs" hidden>
@@ -2303,7 +2246,6 @@
                         <div class="ms-options" id="pp-jf-ms-shows-options"></div>
                       </div>
                     </div>
-                    <small class="form-help">Leave empty to include all Jellyfin libraries</small>
                   </div>
                 </div>
               </div>
@@ -2343,7 +2285,6 @@
                         <div class="ms-options" id="pp-srv-ms-ratings-options"></div>
                       </div>
                     </div>
-                    <small class="form-help">Select one or more ratings. Populated from Plex/Jellyfin libraries.</small>
                   </div>
                   <!-- Genres multiselect -->
                   <div class="form-group">
@@ -2367,7 +2308,6 @@
                         <div class="ms-options" id="pp-srv-ms-genres-options"></div>
                       </div>
                     </div>
-                    <small class="form-help">Select one or more genres. Populated from Plex/Jellyfin libraries.</small>
                   </div>
                   <!-- Qualities multiselect -->
                   <div class="form-group">
@@ -2391,7 +2331,6 @@
                         <div class="ms-options" id="pp-srv-ms-qualities-options"></div>
                       </div>
                     </div>
-                    <small class="form-help">Select one or more qualities. Populated from Plex libraries.</small>
                   </div>
                 </div>
                 <!-- Local source variant: no media type, no max items, no recently added; multiselects like Plex/JF -->
@@ -2477,7 +2416,6 @@
                   <span class="spinner"></span><i class="fas fa-archive"></i><span>Generate Posterpack</span>
                 </button>
               </div>
-              <small class="form-help">Create a downloadable Posterpack (ZIP archive) containing posters, backgrounds, metadata, cast photos, and other assets from your selected media source with optional filters</small>
             </div>
             <!-- Generated Packs panel removed; directory-level downloads are available in the browser above -->
           </div>
@@ -2706,9 +2644,8 @@
             <div style="display:flex; align-items:center; gap:10px;">
               <i class="fas fa-laptop" aria-hidden="true"></i>
               <h2 style="margin:0;">Device Management</h2>
-              <span class="badge badge-error">BETA</span>
+              <span class="badge badge-beta">BETA</span>
             </div>
-            <div class="panel-subtitle">Manage devices, groups, and configuration presets</div>
           </div>
           <div class="panel-actions"></div>
         </div>
@@ -2826,7 +2763,6 @@
               <i class="fas fa-screwdriver-wrench"></i>
               <h2 style="margin:0;">Operations</h2>
             </div>
-            <div class="panel-subtitle">Run media refresh and manage auto-updates</div>
           </div>
           <div class="panel-actions">
             <button type="button" id="btn-restart-server" class="btn btn-secondary btn-sm" title="Restart server">
@@ -2840,9 +2776,6 @@
         <div class="panel-content">
   <div class="content-grid" style="gap:12px;">
         <div class="ops-col">
-          <div class="ops-group">
-            <div class="ops-group-title"><i class="fas fa-download"></i> Updates</div>
-          </div>
             <!-- Auto-Update Operations (moved to top-left) -->
             <section class="perf-card" aria-label="Automatic Updates">
               <h3><i class="fas fa-download"></i> Automatic Updates</h3>
@@ -2851,7 +2784,6 @@
                 <span id="update-progress-percent" class="status-pill" style="display:none;">0%</span>
                 <span id="update-idle-pill" class="status-pill status-success">Ready</span>
               </div>
-              <div class="card-subtext">Manage updates and view progress.</div>
               <div id="ops-update-status" class="status-display">
                 <div id="update-idle-state"></div>
                 <div id="update-progress-state" style="display:none;" class="mt-8">
@@ -2892,20 +2824,12 @@
                 </label>
               </div>
               <div class="card-subtext">Enable semi-transparent debug log overlay on display devices for troubleshooting.</div>
-              <div class="subtle mt-6" style="font-size: 0.85rem; color: rgba(255,255,255,0.6);">
-                <i class="fas fa-info-circle" style="color: var(--color-info);"></i>
-                When enabled, screensaver, wallart, and cinema modes will show a semi-transparent debug log viewer.
-                Useful for troubleshooting WebSocket connections, device registration, and media loading issues on remote displays.
-              </div>
             </section>
 
             <!-- Entry Route (moved here to left column) -->
             <section class="perf-card" aria-label="Entry Route">
               <h3><i class="fas fa-signs-post"></i> Entry Route</h3>
               <div class="card-subtext">What should "/" do?</div>
-              <div class="subtle" id="entry-route-tip" style="margin-top:6px;">
-                Tip: Use 302 for normal browser navigation. Choose 307 if intermediaries or non-GET requests must preserve the HTTP method.
-              </div>
               <!-- Compact dual-row layout: behavior + status on one row; bypass + action on next row -->
               <div class="metric-row mt-6 entry-row">
                 <div class="form-group inline-field nowrap entry-col">
@@ -2940,17 +2864,12 @@
               </div>
             </section>
 
-            <!-- MQTT Group Title -->
-            <div class="ops-group">
-              <div class="ops-group-title"><i class="fas fa-rss"></i> MQTT</div>
-            </div>
             <!-- MQTT Operations -->
             <section class="perf-card" aria-label="MQTT Operations">
               <h3><i class="fas fa-broadcast-tower"></i> MQTT Integration</h3>
               <div class="card-pill-spot">
                 <span class="status-pill status-warning" id="mqtt-status-pill">Disabled</span>
               </div>
-              <div class="card-subtext">Home Assistant MQTT Discovery integration.</div>
               
               <div class="metric-row mt-6">
                 <div class="form-group checkbox-group">
@@ -3003,9 +2922,6 @@
                     <i class="fas fa-home"></i><span>Generate HA Section</span>
                   </button>
                 </div>
-                <div class="subtle" style="margin-top:8px;font-size:0.85rem;">
-                  Use this to restore devices in Home Assistant after deletion or configuration changes. Note: Save settings and restart server first if you just enabled MQTT.
-                </div>
               </div>
             </section>
 
@@ -3015,59 +2931,54 @@
               <div class="card-pill-spot">
                 <span class="status-pill status-warning" id="mqtt-conn-pill">Checking...</span>
               </div>
-              <div class="card-subtext">Real-time MQTT bridge status and activity.</div>
 
               <!-- Broker Info -->
               <div class="metric-row mt-6" id="mqtt-broker-info" style="display:none;">
-                <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.85rem;">
-                  <span><strong>Broker:</strong> <span id="mqtt-broker-host">-</span></span>
-                  <span><strong>Prefix:</strong> <span id="mqtt-topic-prefix">-</span></span>
-                  <span><strong>Discovery:</strong> <span id="mqtt-discovery-status">-</span></span>
-                  <span><strong>Uptime:</strong> <span id="mqtt-uptime">-</span></span>
+                <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.85rem;color:var(--color-text-secondary);">
+                  <span><span style="color:var(--color-text-tertiary);">Broker:</span> <span id="mqtt-broker-host" style="color:var(--color-text-primary);">-</span></span>
+                  <span><span style="color:var(--color-text-tertiary);">Prefix:</span> <span id="mqtt-topic-prefix" style="color:var(--color-text-primary);">-</span></span>
+                  <span><span style="color:var(--color-text-tertiary);">Discovery:</span> <span id="mqtt-discovery-status" style="color:var(--color-text-primary);">-</span></span>
+                  <span><span style="color:var(--color-text-tertiary);">Uptime:</span> <span id="mqtt-uptime" style="color:var(--color-text-primary);">-</span></span>
                 </div>
               </div>
 
               <!-- Compact Stats & Devices Grid -->
-              <div class="metric-row" id="mqtt-stats-cards" style="display:none;margin-top:12px;">
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;">
-                  <div style="background:rgba(96,165,250,0.1);padding:8px 12px;border-radius:6px;text-align:center;">
-                    <div style="font-size:1.4rem;font-weight:700;color:#60a5fa;" id="mqtt-stat-published">0</div>
-                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.7);margin-top:2px;">Published</div>
+              <div class="metric-row" id="mqtt-stats-cards" style="display:none;margin-top:16px;">
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+                  <div style="background:var(--color-bg-tertiary);border:1px solid var(--color-border);padding:16px 12px;border-radius:8px;text-align:center;">
+                    <div style="font-size:1.6rem;font-weight:700;color:var(--color-secondary);" id="mqtt-stat-published">0</div>
+                    <div style="font-size:0.8rem;color:var(--color-text-tertiary);margin-top:4px;">Published</div>
                   </div>
-                  <div style="background:rgba(96,165,250,0.1);padding:8px 12px;border-radius:6px;text-align:center;">
-                    <div style="font-size:1.4rem;font-weight:700;color:#60a5fa;" id="mqtt-stat-received">0</div>
-                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.7);margin-top:2px;">Received</div>
+                  <div style="background:var(--color-bg-tertiary);border:1px solid var(--color-border);padding:16px 12px;border-radius:8px;text-align:center;">
+                    <div style="font-size:1.6rem;font-weight:700;color:var(--color-secondary);" id="mqtt-stat-received">0</div>
+                    <div style="font-size:0.8rem;color:var(--color-text-tertiary);margin-top:4px;">Received</div>
                   </div>
-                  <div style="background:rgba(96,165,250,0.1);padding:8px 12px;border-radius:6px;text-align:center;">
-                    <div style="font-size:1.4rem;font-weight:700;color:#60a5fa;" id="mqtt-stat-commands">0</div>
-                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.7);margin-top:2px;">Commands</div>
+                  <div style="background:var(--color-bg-tertiary);border:1px solid var(--color-border);padding:16px 12px;border-radius:8px;text-align:center;">
+                    <div style="font-size:1.6rem;font-weight:700;color:var(--color-secondary);" id="mqtt-stat-commands">0</div>
+                    <div style="font-size:0.8rem;color:var(--color-text-tertiary);margin-top:4px;">Commands</div>
                   </div>
-                  <div style="background:rgba(96,165,250,0.1);padding:8px 12px;border-radius:6px;text-align:center;">
-                    <div style="font-size:1.4rem;font-weight:700;color:#60a5fa;" id="mqtt-stat-devices">0</div>
-                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.7);margin-top:2px;">Devices</div>
+                  <div style="background:var(--color-bg-tertiary);border:1px solid var(--color-border);padding:16px 12px;border-radius:8px;text-align:center;">
+                    <div style="font-size:1.6rem;font-weight:700;color:var(--color-secondary);" id="mqtt-stat-devices">0</div>
+                    <div style="font-size:0.8rem;color:var(--color-text-tertiary);margin-top:4px;">Devices</div>
                   </div>
                 </div>
               </div>
 
               <!-- Compact Device Summary -->
-              <div class="metric-row" id="mqtt-device-summary" style="display:none;margin-top:8px;">
-                <div style="display:flex;gap:12px;align-items:center;font-size:0.9rem;">
-                  <span><strong>Devices:</strong></span>
-                  <span id="mqtt-devices-total">0</span> total
-                  <span style="color:#10b981;font-weight:600;" id="mqtt-devices-online">0</span> online
-                  <span style="color:#ef4444;font-weight:600;" id="mqtt-devices-offline">0</span> offline
+              <div class="metric-row" id="mqtt-device-summary" style="display:none;margin-top:12px;">
+                <div style="display:flex;gap:8px;align-items:center;font-size:0.9rem;color:var(--color-text-secondary);">
+                  <span style="font-weight:500;color:var(--color-text-primary);">Devices:</span>
+                  <span id="mqtt-devices-total" style="color:var(--color-text-primary);">0</span> <span style="color:var(--color-text-tertiary);">total</span>
+                  <span style="color:var(--color-success);font-weight:600;" id="mqtt-devices-online">0</span> <span style="color:var(--color-text-tertiary);">online</span>
+                  <span style="color:var(--color-error);font-weight:600;" id="mqtt-devices-offline">0</span> <span style="color:var(--color-text-tertiary);">offline</span>
                 </div>
               </div>
             </section>
         </div>
   <div class="ops-col">
-      <div class="ops-group">
-        <div class="ops-group-title"><i class="fas fa-server"></i> Server</div>
-      </div>
             <!-- Server Settings (under Server) -->
             <section class="perf-card" aria-label="Server Settings">
               <h3><i class="fas fa-gear"></i> Server</h3>
-              <div class="card-subtext">Core server configuration.</div>
               <div class="metric-row">
                 <div class="form-group inline-field nowrap" style="display: block;">
                   <label for="SERVER_PORT" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
@@ -3084,24 +2995,16 @@
                   </label>
                   <input type="url" id="baseUrl" style="width:100%;max-width:800px;" placeholder="http://localhost:4000" 
                          title="External URL where Posterrama is accessible" />
-                  <div class="subtle" style="margin-top:4px;font-size:0.85rem;">
-                    External URL for all integrations (MQTT camera preview, API access, etc). Should be accessible from external services.
-                  </div>
                 </div>
               </div>
             </section>
 
-            <!-- Backups Group Title -->
-            <div class="ops-group">
-              <div class="ops-group-title"><i class="fas fa-folder-open"></i> Backups</div>
-            </div>
             <!-- Config Backups (compact list) -->
             <section class="perf-card" aria-label="Config Backups">
               <h3><i class="fas fa-archive"></i> Config Backups</h3>
               <div class="card-pill-spot">
                 <span id="cfg-backup-schedule-pill" class="status-pill status-warning">Disabled</span>
               </div>
-              <div class="card-subtext">Create daily configuration backups and restore per file.</div>
 
               <div class="actions main-actions">
                 <button type="button" id="btn-create-cfg-backup" class="btn btn-success btn-sm"><i class="fas fa-plus-circle"></i><span>Backup now</span></button>
@@ -3123,30 +3026,13 @@
                 </div>
                 <div class="inline-field" style="display:flex;align-items:center;gap:12px;">
                   <label style="margin:0;min-width:110px;font-weight:500;position:relative;">
-                    Retention 
-                    <span class="retention-info-icon" style="cursor:help;display:inline-block;position:relative;">
-                      <i class="fas fa-info-circle" style="font-size:0.8em;opacity:0.6;"></i>
-                      <span class="retention-tooltip" style="display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 8px);background:#1a1d28;color:#fff;padding:12px 16px;border-radius:6px;font-size:0.9rem;font-weight:400;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.5);z-index:1000;line-height:1.5;border:1px solid rgba(255,255,255,0.1);">
-                        A backup is deleted if it's beyond the most recent "Keep" backups<br>OR if it's older than "Max age" days (whichever comes first)
-                        <span style="position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#1a1d28;"></span>
-                      </span>
-                    </span>
+                    Retention
                   </label>
                   <label for="input-cfg-backup-retention-count" style="font-size:0.9em;margin:0;">Keep</label>
                   <input type="number" id="input-cfg-backup-retention-count" min="1" max="60" value="5" style="width:70px;height:40px;padding:8px 12px;" />
                   <label for="input-cfg-backup-retention-days" style="font-size:0.9em;margin:0;margin-left:8px;">Max age (days)</label>
                   <input type="number" id="input-cfg-backup-retention-days" min="0" max="365" value="0" style="width:70px;height:40px;padding:8px 12px;" />
                 </div>
-                <script>
-                  (function() {
-                    const icon = document.querySelector('.retention-info-icon');
-                    const tooltip = document.querySelector('.retention-tooltip');
-                    if (icon && tooltip) {
-                      icon.addEventListener('mouseenter', () => tooltip.style.display = 'block');
-                      icon.addEventListener('mouseleave', () => tooltip.style.display = 'none');
-                    }
-                  })();
-                </script>
               </div>
 
               <div id="cfg-backup-list" class="compact-backup-list"></div>
@@ -3158,7 +3044,6 @@
               <div class="card-pill-spot">
                 <span class="status-pill status-warning" id="siteServer-pill">Disabled</span>
               </div>
-              <div class="card-subtext">Optional static poster showcase.</div>
               <div class="metric-row mt-6">
                 <div class="form-group checkbox-group">
                   <label class="checkbox" for="siteServer.enabled">
@@ -3175,17 +3060,12 @@
               </div>
             </section>
 
-            <!-- API Group Title -->
-            <div class="ops-group">
-              <div class="ops-group-title"><i class="fas fa-plug"></i> API</div>
-            </div>
             <!-- API Access -->
             <section class="perf-card" aria-label="API Access Management">
               <h3><i class="fas fa-code"></i> API Access</h3>
               <div class="card-pill-spot">
                 <span class="status-pill" id="api-key-status-pill">Key: <span id="api-key-status-text">Loading…</span></span>
               </div>
-              <div class="card-subtext">Programmatic access to admin endpoints.</div>
               <div id="api-key-display" class="is-hidden mt-6">
                 <div class="input-row">
                   <input id="api-key-input" type="password" readonly />
@@ -3207,14 +3087,9 @@
               </div>
             </section>
 
-            <!-- Media Group Title -->
-            <div class="ops-group">
-              <div class="ops-group-title"><i class="fas fa-photo-video"></i> Media</div>
-            </div>
             <!-- Media Operations -->
             <section class="perf-card" aria-label="Media Operations">
               <h3><i class="fas fa-sync-alt"></i> Media</h3>
-              <div class="card-subtext">Refresh media from configured sources.</div>
               <div class="metric-row mt-6">
                 <div class="form-group inline-field nowrap" style="display: block;">
                   <label for="ops.backgroundRefreshMinutes" style="margin:0;display:inline-flex;align-items:center;padding-right:12px; white-space:nowrap;">Background Refresh (minutes)</label>

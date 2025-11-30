@@ -663,7 +663,7 @@
     color: color-mix(in srgb, var(--color-success) 95%, var(--color-text-secondary));
 }
 #modal-revoke-api-key .btn-revoke-accent {
-    --accent-color: var(--color-error);
+    --accent-color: var(--color-primary);
 }
 #modal-revoke-api-key .btn-cancel {
     border: none !important;
@@ -705,7 +705,7 @@
         0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
         0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
         0 1px 1px rgba(0, 0, 0, 0.25) !important; /* removed colored outline layer */
-    color: color-mix(in srgb, var(--color-error) 80%, var(--color-text-secondary)) !important;
+    color: color-mix(in srgb, var(--color-primary) 82%, var(--color-text-secondary)) !important;
     padding: var(--space-sm) var(--space-md) !important;
     font-size: var(--font-size-sm) !important;
     border-radius: 4px !important;
@@ -787,11 +787,11 @@
 #modal-revoke-api-key .btn-revoke-accent:hover,
 #modal-revoke-api-key .btn-revoke-accent:focus,
 #modal-revoke-api-key .btn-revoke-accent:focus-visible {
-    color: color-mix(in srgb, var(--color-error) 88%, var(--color-text-secondary)) !important;
+    color: color-mix(in srgb, var(--color-primary) 92%, var(--color-text-secondary)) !important;
     box-shadow:
         0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
         0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
-        0 1px 2px rgba(0, 0, 0, 0.3) !important; /* removed colored outline layer */
+        0 1px 2px rgba(0, 0, 0, 0.3) !important;
 }
 #modal-revoke-api-key .btn-revoke-accent:active {
     background:
@@ -802,7 +802,7 @@
         0 1px 1px rgba(0, 0, 0, 0.25) inset !important; /* removed colored outline layer */
 }
 #modal-revoke-api-key .btn-revoke-accent:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--color-error) 55%, transparent);
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
     outline-offset: 2px;
 }
 #modal-2fa-disable .btn-2fa-accent {
@@ -895,59 +895,59 @@
     outline: none;
 }
 
-/* Local browser: make directory trash icon red (error color) to signal destructive action */
+/* Local browser: directory delete button with primary accent */
 .browser-list .browser-item[data-type='directory'] .btn-delete i,
 .browser-list .browser-item[data-type='directory'] .btn-delete .fas {
-    color: var(--color-error);
+    color: color-mix(in srgb, var(--color-primary) 82%, var(--color-text-secondary));
 }
 .browser-list .browser-item[data-type='directory'] .btn-delete:hover i,
 .browser-list .browser-item[data-type='directory'] .btn-delete:focus-visible i,
 .browser-list .browser-item[data-type='directory'] .btn-delete:hover .fas,
 .browser-list .browser-item[data-type='directory'] .btn-delete:focus-visible .fas {
-    color: color-mix(in srgb, var(--color-error) 85%, white);
+    color: color-mix(in srgb, var(--color-primary) 92%, var(--color-text-secondary));
 }
 
 /* Posterrama Admin Theme CSS */
 
 /* CSS Variables - Design System */
 :root {
-    /* Colors - Soft Dark Theme (Floating UI Inspired) */
-    /* Primary Accents - Soft Pink/Purple/Blue */
-    --color-primary: #ff79c6; /* Soft Pink */
+    /* Colors - Soft Dark Theme (Tokyo Night Storm) */
+    /* Primary Accents - Muted Pastels that blend with dark backgrounds */
+    --color-primary: #ff79c6; /* Soft Pink (Dracula-inspired) */
     --color-primary-dark: #bd93f9; /* Soft Purple */
-    --color-primary-light: #ff9ce5;
+    --color-primary-light: #ffb3d9;
 
-    --color-secondary: #7aa2f7; /* Soft Blue */
-    --color-secondary-dark: #5d7ec9;
-    --color-secondary-light: #a3c2ff;
+    --color-secondary: #7aa2f7; /* Soft Blue (Tokyo Night) */
+    --color-secondary-dark: #5d8fdd;
+    --color-secondary-light: #a8c5ff;
 
-    --color-accent: #f7768e; /* Reddish Pink */
-    --color-accent-dark: #db4b68;
-    --color-accent-light: #ff99ac;
+    --color-accent: #f7768e; /* Muted Rose */
+    --color-accent-dark: #db6076;
+    --color-accent-light: #ffa0b4;
 
-    --color-success: #9ece6a; /* Soft Green */
-    --color-success-dark: #739e42;
-    --color-success-light: #b9f27c;
+    --color-success: #9ece6a; /* Soft Sage Green */
+    --color-success-dark: #7fb352;
+    --color-success-light: #b5e08a;
 
-    --color-warning: #e0af68; /* Soft Orange/Yellow */
-    --color-warning-dark: #c7913d;
-    --color-warning-light: #f5d096;
+    --color-warning: #e0af68; /* Soft Amber */
+    --color-warning-dark: #c99a52;
+    --color-warning-light: #f0c888;
 
-    --color-error: #f7768e; /* Reddish Pink */
-    --color-error-dark: #db4b68;
-    --color-error-light: #ff99ac;
+    --color-error: #f7768e; /* Soft Coral */
+    --color-error-dark: #db6076;
+    --color-error-light: #ffa0a8;
 
-    --color-info: #7aa2f7; /* Soft Blue */
-    --color-info-dark: #5d7ec9;
-    --color-info-light: #a3c2ff;
+    --color-info: #7aa2f7; /* Soft Sky Blue */
+    --color-info-dark: #5d8fdd;
+    --color-info-light: #a8c5ff;
 
     --color-teal: #73daca; /* Soft Teal */
-    --color-teal-dark: #4db0a0;
-    --color-teal-light: #9bf2e4;
+    --color-teal-dark: #5ac0b0;
+    --color-teal-light: #9eeee0;
 
     /* Nav/submenu indicators */
-    --color-submenu-indicator: #565f89;
-    --color-submenu-accent: #bb9af7;
+    --color-submenu-indicator: #7c7ff0;
+    --color-submenu-accent: #b4a4f4;
 
     /* Neutrals - Soft Dark (Tokyo Night Storm / User Custom) */
     --color-bg-primary: #1f2028; /* User provided: rgb(31 32 40) */
@@ -963,17 +963,17 @@
     --surface-layer-4: color-mix(in srgb, var(--color-bg-tertiary) 60%, white);
 
     /* Text - Soft, not harsh white */
-    --color-text-primary: #c0caf5; /* Soft Blue-White */
-    --color-text-secondary: #a9b1d6; /* Muted Blue-Grey */
-    --color-text-muted: #787c99; /* Darker Muted */
-    --color-text-inverse: #15161e;
+    --color-text-primary: #c0caf5; /* Soft lavender-white (Tokyo Night) */
+    --color-text-secondary: #a9b1d6; /* Muted lavender */
+    --color-text-muted: #565f89; /* Subtle muted */
+    --color-text-inverse: #0f172a;
 
     /* Pastel text colors (for use on dark badge/pill backgrounds) */
-    --color-text-success-soft: #d1fae5;
-    --color-text-info-soft: #dbeafe;
-    --color-text-warning-soft: #fde68a;
-    --color-text-accent-soft: #e0e7ff;
-    --color-text-slate-soft: #cbd5e1;
+    --color-text-success-soft: #bbf7d0;
+    --color-text-info-soft: #bae6fd;
+    --color-text-warning-soft: #fef08a;
+    --color-text-accent-soft: #e9d5ff;
+    --color-text-slate-soft: #e2e8f0;
 
     /* Borders - Subtler, transparent based for smoother blending */
     --color-border: rgba(255, 255, 255, 0.06);
@@ -1245,7 +1245,7 @@ body {
     top: 0;
     bottom: 0;
     width: 3px;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    background: linear-gradient(180deg, var(--color-teal), var(--color-secondary));
 }
 
 .nav-item i {
@@ -1447,6 +1447,11 @@ body {
     color: var(--color-error-light);
     border-color: color-mix(in srgb, var(--color-error) 25%, transparent);
 }
+.header-pill.status-info {
+    background: color-mix(in srgb, var(--color-secondary) 15%, transparent);
+    color: var(--color-secondary);
+    border-color: color-mix(in srgb, var(--color-secondary) 25%, transparent);
+}
 
 /* Content Grid */
 .content-grid {
@@ -1540,7 +1545,7 @@ body {
 
 .status-card .trend {
     font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2197,26 +2202,26 @@ input[type='range']::-webkit-slider-thumb {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    background: linear-gradient(135deg, var(--color-secondary), var(--color-info));
     cursor: pointer;
     border: 3px solid var(--color-bg-card);
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 2px 8px rgba(122, 162, 247, 0.35);
     transition: all 0.2s ease;
 }
 
 input[type='range']::-webkit-slider-thumb:hover {
     transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(122, 162, 247, 0.45);
 }
 
 input[type='range']::-moz-range-thumb {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    background: linear-gradient(135deg, var(--color-secondary), var(--color-info));
     cursor: pointer;
     border: 3px solid var(--color-bg-card);
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 2px 8px rgba(122, 162, 247, 0.35);
     transition: all 0.2s ease;
 }
 
@@ -2225,7 +2230,7 @@ input[type='range']::-moz-range-thumb {
     top: -35px;
     left: 75%;
     transform: translateX(-50%);
-    background: var(--color-primary);
+    background: var(--color-secondary);
     color: var(--color-text-inverse);
     padding: 4px 8px;
     border-radius: 4px;
@@ -2562,27 +2567,33 @@ input[type='range']::-moz-range-thumb {
     min-width: 20px;
     height: 20px;
     padding: 0 var(--space-sm);
-    background: linear-gradient(135deg, var(--color-error), var(--color-error-light));
-    color: var(--color-text-inverse);
+    background: linear-gradient(135deg, var(--color-warning), var(--color-warning-dark));
+    color: #1a1b26;
     border-radius: 10px;
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
     position: absolute;
     top: -6px;
     right: -6px;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 2px 8px rgba(224, 175, 104, 0.35);
     animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
     0% {
-        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        box-shadow:
+            0 2px 8px rgba(224, 175, 104, 0.35),
+            0 0 0 0 rgba(224, 175, 104, 0.5);
     }
     70% {
-        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        box-shadow:
+            0 2px 8px rgba(224, 175, 104, 0.35),
+            0 0 0 8px rgba(224, 175, 104, 0);
     }
     100% {
-        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        box-shadow:
+            0 2px 8px rgba(224, 175, 104, 0.35),
+            0 0 0 0 rgba(224, 175, 104, 0);
     }
 }
 
@@ -2619,7 +2630,11 @@ input[type='range']::-moz-range-thumb {
 }
 
 .badge-beta {
-    background: linear-gradient(135deg, var(--color-info), var(--color-info-dark));
+    background: linear-gradient(
+        135deg,
+        var(--color-submenu-accent),
+        var(--color-submenu-indicator)
+    );
     position: static;
     animation: none;
 }
@@ -2650,19 +2665,26 @@ input[type='range']::-moz-range-thumb {
 }
 
 .badge-notification {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    background: linear-gradient(135deg, var(--color-warning), var(--color-warning-dark));
+    color: #1a1b26;
     animation: pulse-theme 2s infinite;
 }
 
 @keyframes pulse-theme {
     0% {
-        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7);
+        box-shadow:
+            0 2px 8px rgba(224, 175, 104, 0.35),
+            0 0 0 0 rgba(224, 175, 104, 0.5);
     }
     70% {
-        box-shadow: 0 0 0 10px rgba(139, 92, 246, 0);
+        box-shadow:
+            0 2px 8px rgba(224, 175, 104, 0.35),
+            0 0 0 8px rgba(224, 175, 104, 0);
     }
     100% {
-        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+        box-shadow:
+            0 2px 8px rgba(224, 175, 104, 0.35),
+            0 0 0 0 rgba(224, 175, 104, 0);
     }
 }
 
@@ -4235,8 +4257,8 @@ body .modal-overlay.open {
     border-radius: 999px;
     background: linear-gradient(
         to right,
-        var(--color-primary) 0%,
-        var(--color-primary) var(--value, 50%),
+        var(--color-secondary) 0%,
+        var(--color-secondary) var(--value, 50%),
         var(--color-bg-tertiary) var(--value, 50%),
         var(--color-bg-tertiary) 100%
     );
@@ -4255,13 +4277,13 @@ body .modal-overlay.open {
 }
 
 .range-advanced::-moz-range-progress {
-    background: var(--color-primary);
+    background: var(--color-secondary);
     height: 10px;
     border-radius: 999px 0 0 999px;
 }
 
 .range-tooltip {
-    background: var(--color-primary);
+    background: var(--color-secondary);
     color: var(--color-text-inverse);
     padding: 4px 8px;
     border-radius: 6px;
@@ -4306,7 +4328,7 @@ body .modal-overlay.open {
     top: 50%;
     transform: translateY(-50%);
     height: 8px;
-    background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+    background: linear-gradient(90deg, var(--color-secondary), var(--color-info));
     border-radius: 999px;
 }
 
@@ -11468,11 +11490,11 @@ body.page-logs {
     outline-offset: 2px !important;
 }
 
-/* Clear Cache: tint icon + label like Save Settings (green) but pink */
+/* Clear Cache: tint icon + label with primary accent */
 #clear-cache-button i,
 #clear-cache-button .fas,
 #clear-cache-button > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-error) 82%, var(--color-text-secondary)) !important;
+    color: color-mix(in srgb, var(--color-primary) 82%, var(--color-text-secondary)) !important;
 }
 #clear-cache-button:hover i,
 #clear-cache-button:focus i,
@@ -11483,12 +11505,16 @@ body.page-logs {
 #clear-cache-button:hover > span:not(.spinner),
 #clear-cache-button:focus > span:not(.spinner),
 #clear-cache-button:focus-visible > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-error) 92%, var(--color-text-secondary)) !important;
+    color: color-mix(in srgb, var(--color-primary) 92%, var(--color-text-secondary)) !important;
 }
 #clear-cache-button:active i,
 #clear-cache-button:active .fas,
 #clear-cache-button:active > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-error-dark) 85%, var(--color-text-secondary)) !important;
+    color: color-mix(
+        in srgb,
+        var(--color-primary-dark) 85%,
+        var(--color-text-secondary)
+    ) !important;
 }
 
 /* =============================================================== */
@@ -11580,10 +11606,10 @@ body.page-logs {
         0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
 }
 
-/* Modal Save: reuse Display Save green accent for icon + label */
+/* Modal Save: reuse Display Save teal accent for icon + label */
 #modal-cache-size #btn-cache-size-save i,
 #modal-cache-size #btn-cache-size-save .fas {
-    color: color-mix(in srgb, var(--color-success) 82%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary));
 }
 #modal-cache-size #btn-cache-size-save:hover i,
 #modal-cache-size #btn-cache-size-save:focus i,
@@ -11591,24 +11617,24 @@ body.page-logs {
 #modal-cache-size #btn-cache-size-save:hover .fas,
 #modal-cache-size #btn-cache-size-save:focus .fas,
 #modal-cache-size #btn-cache-size-save:focus-visible .fas {
-    color: color-mix(in srgb, var(--color-success) 92%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 92%, var(--color-text-secondary));
 }
 #modal-cache-size #btn-cache-size-save:active i,
 #modal-cache-size #btn-cache-size-save:active .fas {
-    color: color-mix(in srgb, var(--color-success-dark) 85%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal-dark) 85%, var(--color-text-secondary));
 }
 
 /* Tint the Save label text (exclude spinner) */
 #modal-cache-size #btn-cache-size-save > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-success) 82%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary));
 }
 #modal-cache-size #btn-cache-size-save:hover > span:not(.spinner),
 #modal-cache-size #btn-cache-size-save:focus > span:not(.spinner),
 #modal-cache-size #btn-cache-size-save:focus-visible > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-success) 92%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 92%, var(--color-text-secondary));
 }
 #modal-cache-size #btn-cache-size-save:active > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-success-dark) 85%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal-dark) 85%, var(--color-text-secondary));
 }
 
 /* Modal number input spinner buttons — match neutral surface */
@@ -12514,9 +12540,9 @@ body.page-logs {
     height: 100%;
     border-radius: 999px;
     pointer-events: none;
-    background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+    background: linear-gradient(90deg, var(--color-secondary), var(--color-info));
     box-shadow:
-        0 0 6px rgba(139, 92, 246, 0.18),
+        0 0 6px rgba(122, 162, 247, 0.25),
         inset 0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 #section-display .slider-percentage {
@@ -13015,10 +13041,10 @@ body.page-logs {
         0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
 }
 
-/* Success-tint on Verify icon + label (exclude spinner) */
+/* Teal-tint on Verify icon + label (exclude spinner) */
 #modal-2fa #btn-2fa-verify i,
 #modal-2fa #btn-2fa-verify .fas {
-    color: color-mix(in srgb, var(--color-success) 82%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary));
 }
 #modal-2fa #btn-2fa-verify:hover i,
 #modal-2fa #btn-2fa-verify:focus i,
@@ -13026,19 +13052,19 @@ body.page-logs {
 #modal-2fa #btn-2fa-verify:hover .fas,
 #modal-2fa #btn-2fa-verify:focus .fas,
 #modal-2fa #btn-2fa-verify:focus-visible .fas {
-    color: color-mix(in srgb, var(--color-success) 92%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 92%, var(--color-text-secondary));
 }
 #modal-2fa #btn-2fa-verify:active i,
 #modal-2fa #btn-2fa-verify:active .fas {
-    color: color-mix(in srgb, var(--color-success-dark) 85%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal-dark) 85%, var(--color-text-secondary));
 }
 #modal-2fa #btn-2fa-verify > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-success) 82%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary));
 }
 #modal-2fa #btn-2fa-verify:hover > span:not(.spinner),
 #modal-2fa #btn-2fa-verify:focus > span:not(.spinner),
 #modal-2fa #btn-2fa-verify:focus-visible > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-success) 92%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 92%, var(--color-text-secondary));
 }
 
 /* =============================================================== */
@@ -13266,7 +13292,7 @@ body.page-logs {
     color: color-mix(in srgb, var(--color-error) 92%, var(--color-text-secondary));
 }
 #modal-2fa #btn-2fa-verify:active > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-success-dark) 85%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal-dark) 85%, var(--color-text-secondary));
 }
 
 /* =============================================================== */
@@ -13465,11 +13491,11 @@ select:focus-visible {
     /* Brighter violet accent for Add button */
     color: color-mix(in srgb, var(--color-primary-light) 85%, white);
 }
-/* Save Changes green foreground (mirror operations Save Settings) */
+/* Save Changes teal foreground (mirror operations Save Settings) */
 #device-settings-inline #card-ip-whitelist .btn-op-surface.btn-primary.btn-sm i,
 #device-settings-inline #card-ip-whitelist .btn-op-surface.btn-primary.btn-sm .fas,
 #device-settings-inline #card-ip-whitelist .btn-op-surface.btn-primary.btn-sm > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-success) 85%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary));
 }
 #device-settings-inline #card-ip-whitelist .btn-violet.btn-sm:hover,
 #device-settings-inline #card-ip-whitelist .btn-violet.btn-sm:focus,
@@ -13486,7 +13512,7 @@ select:focus-visible {
 #section-operations .btn.btn-primary.btn-sm i,
 #section-operations .btn.btn-primary.btn-sm .fas,
 #section-operations .btn.btn-primary.btn-sm > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-primary) 85%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary));
 }
 /* =============================================================== */
 /* Auth pages button restyle (reuse operations surface aesthetic)  */
@@ -13538,7 +13564,7 @@ select:focus-visible {
 #section-operations .btn.btn-success.btn-sm i,
 #section-operations .btn.btn-success.btn-sm .fas,
 #section-operations .btn.btn-success.btn-sm > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-success) 85%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary));
 }
 #section-operations .btn.btn-secondary.btn-sm i,
 #section-operations .btn.btn-secondary.btn-sm .fas,
@@ -13548,7 +13574,7 @@ select:focus-visible {
 #section-operations .btn.btn-error.btn-sm i,
 #section-operations .btn.btn-error.btn-sm .fas,
 #section-operations .btn.btn-error.btn-sm > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-error) 88%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-primary) 82%, var(--color-text-secondary));
 }
 #section-operations .btn.btn-icon.btn-sm i,
 #section-operations .btn.btn-icon.btn-sm .fas {
@@ -13610,6 +13636,119 @@ select:focus-visible {
 }
 
 /* =============================================================== */
+/* Global Save Settings buttons — Success color accent             */
+/* All "Save Settings" buttons get consistent green styling        */
+/* =============================================================== */
+#btn-save-display,
+#btn-save-mqtt,
+#btn-save-plex,
+#btn-save-jellyfin,
+#btn-save-tmdb,
+#btn-save-local,
+#btn-save-romm {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+}
+#btn-save-display i,
+#btn-save-display .fas,
+#btn-save-display > span:not(.spinner),
+#btn-save-mqtt i,
+#btn-save-mqtt .fas,
+#btn-save-mqtt > span:not(.spinner),
+#btn-save-plex i,
+#btn-save-plex .fas,
+#btn-save-plex > span:not(.spinner),
+#btn-save-jellyfin i,
+#btn-save-jellyfin .fas,
+#btn-save-jellyfin > span:not(.spinner),
+#btn-save-tmdb i,
+#btn-save-tmdb .fas,
+#btn-save-tmdb > span:not(.spinner),
+#btn-save-local i,
+#btn-save-local .fas,
+#btn-save-local > span:not(.spinner),
+#btn-save-romm i,
+#btn-save-romm .fas,
+#btn-save-romm > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary)) !important;
+}
+#btn-save-display:hover i,
+#btn-save-display:hover .fas,
+#btn-save-display:hover > span:not(.spinner),
+#btn-save-display:focus i,
+#btn-save-display:focus .fas,
+#btn-save-display:focus > span:not(.spinner),
+#btn-save-mqtt:hover i,
+#btn-save-mqtt:hover .fas,
+#btn-save-mqtt:hover > span:not(.spinner),
+#btn-save-mqtt:focus i,
+#btn-save-mqtt:focus .fas,
+#btn-save-mqtt:focus > span:not(.spinner),
+#btn-save-plex:hover i,
+#btn-save-plex:hover .fas,
+#btn-save-plex:hover > span:not(.spinner),
+#btn-save-plex:focus i,
+#btn-save-plex:focus .fas,
+#btn-save-plex:focus > span:not(.spinner),
+#btn-save-jellyfin:hover i,
+#btn-save-jellyfin:hover .fas,
+#btn-save-jellyfin:hover > span:not(.spinner),
+#btn-save-jellyfin:focus i,
+#btn-save-jellyfin:focus .fas,
+#btn-save-jellyfin:focus > span:not(.spinner),
+#btn-save-tmdb:hover i,
+#btn-save-tmdb:hover .fas,
+#btn-save-tmdb:hover > span:not(.spinner),
+#btn-save-tmdb:focus i,
+#btn-save-tmdb:focus .fas,
+#btn-save-tmdb:focus > span:not(.spinner),
+#btn-save-local:hover i,
+#btn-save-local:hover .fas,
+#btn-save-local:hover > span:not(.spinner),
+#btn-save-local:focus i,
+#btn-save-local:focus .fas,
+#btn-save-local:focus > span:not(.spinner),
+#btn-save-romm:hover i,
+#btn-save-romm:hover .fas,
+#btn-save-romm:hover > span:not(.spinner),
+#btn-save-romm:focus i,
+#btn-save-romm:focus .fas,
+#btn-save-romm:focus > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-teal) 92%, var(--color-text-secondary)) !important;
+}
+#btn-save-display:active i,
+#btn-save-display:active .fas,
+#btn-save-display:active > span:not(.spinner),
+#btn-save-mqtt:active i,
+#btn-save-mqtt:active .fas,
+#btn-save-mqtt:active > span:not(.spinner),
+#btn-save-plex:active i,
+#btn-save-plex:active .fas,
+#btn-save-plex:active > span:not(.spinner),
+#btn-save-jellyfin:active i,
+#btn-save-jellyfin:active .fas,
+#btn-save-jellyfin:active > span:not(.spinner),
+#btn-save-tmdb:active i,
+#btn-save-tmdb:active .fas,
+#btn-save-tmdb:active > span:not(.spinner),
+#btn-save-local:active i,
+#btn-save-local:active .fas,
+#btn-save-local:active > span:not(.spinner),
+#btn-save-romm:active i,
+#btn-save-romm:active .fas,
+#btn-save-romm:active > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-teal-dark) 85%, var(--color-text-secondary)) !important;
+}
+
+/* =============================================================== */
 /* Media Sources — Save Settings button matches Operations style    */
 /* Includes Plex, Jellyfin, TMDB, and Local                        */
 /* =============================================================== */
@@ -13642,7 +13781,7 @@ select:focus-visible {
 #section-media-sources
     :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local, #btn-save-romm)
     > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-primary) 85%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary));
 }
 #section-media-sources
     :is(#btn-save-plex, #btn-save-jellyfin, #btn-save-tmdb, #btn-save-local, #btn-save-romm):hover,
@@ -13931,7 +14070,7 @@ select:focus-visible {
 #panel-local .btn.btn-success.btn-sm i,
 #panel-local .btn.btn-success.btn-sm .fas,
 #panel-local .btn.btn-success.btn-sm > span:not(.spinner) {
-    color: color-mix(in srgb, var(--color-success) 85%, var(--color-text-secondary));
+    color: color-mix(in srgb, var(--color-teal) 82%, var(--color-text-secondary));
 }
 #panel-local .btn.btn-error.btn-sm i,
 #panel-local .btn.btn-error.btn-sm .fas,
