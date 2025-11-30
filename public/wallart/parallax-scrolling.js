@@ -110,26 +110,29 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
+            height: 200%;
             transform: translateZ(${translateZ}px) scale(${scale});
             transform-style: preserve-3d;
             will-change: transform;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            align-content: start;
         `;
 
-        // Create two columns for seamless infinite scroll
-        const column1 = createColumn();
-        const column2 = createColumn();
-        container.appendChild(column1);
-        container.appendChild(column2);
+        // Fill layer with posters in grid
+        const posterCount = Math.ceil((window.innerWidth / 270) * 4); // ~4 rows worth
+        for (let i = 0; i < posterCount; i++) {
+            const poster = getNextPoster(layerIndex);
+            if (!poster) continue;
 
-        // Fill initial posters
-        fillColumn(column1, layerIndex);
-        fillColumn(column2, layerIndex);
+            const posterEl = createPosterElement(poster);
+            container.appendChild(posterEl);
+        }
 
         return {
             container,
-            column1,
-            column2,
             layerIndex,
             speedMultiplier,
             scrollPosition: 0,
@@ -139,63 +142,33 @@
     }
 
     /**
-     * Create a column container for posters
+     * Create a poster element
+     * @param {Object} poster - Poster data
+     * @returns {HTMLElement} Poster element
      */
-    function createColumn() {
-        const column = document.createElement('div');
-        column.className = 'parallax-column';
-        column.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            padding: 20px;
+    function createPosterElement(poster) {
+        const posterEl = document.createElement('div');
+        posterEl.className = 'parallax-poster';
+        posterEl.style.cssText = `
+            aspect-ratio: 2/3;
+            background: #111;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         `;
-        return column;
-    }
 
-    /**
-     * Fill a column with posters
-     * @param {HTMLElement} column - Column container
-     * @param {number} layerIndex - Layer index for poster selection
-     */
-    function fillColumn(column, layerIndex) {
-        const posterCount = 6; // Posters per column
-        const posterWidth = Math.min(300, window.innerWidth * 0.25);
-        const posterHeight = posterWidth * 1.5;
+        const img = document.createElement('img');
+        img.src = poster.posterUrl;
+        img.alt = poster.title || 'Poster';
+        img.style.cssText = `
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        `;
 
-        for (let i = 0; i < posterCount; i++) {
-            const poster = getNextPoster(layerIndex);
-            if (!poster) continue;
-
-            const posterEl = document.createElement('div');
-            posterEl.className = 'parallax-poster';
-            posterEl.style.cssText = `
-                width: ${posterWidth}px;
-                height: ${posterHeight}px;
-                background: #111;
-                border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-                flex-shrink: 0;
-            `;
-
-            const img = document.createElement('img');
-            img.src = poster.posterUrl;
-            img.alt = poster.title || 'Poster';
-            img.style.cssText = `
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                display: block;
-            `;
-
-            posterEl.appendChild(img);
-            column.appendChild(posterEl);
-        }
+        posterEl.appendChild(img);
+        return posterEl;
     }
 
     /**
@@ -250,46 +223,46 @@
             const scrollDistance = baseSpeed * deltaTime * layer.speedMultiplier;
             layer.scrollPosition += scrollDistance;
 
-            // Get column height
-            const columnHeight = layer.column1.offsetHeight;
+            // Update layer position for continuous scroll
+            const yOffset = -layer.scrollPosition % window.innerHeight;
+            layer.container.style.top = `${yOffset}px`;
 
-            // Update column positions for infinite scroll
-            const offset1 = -layer.scrollPosition % columnHeight;
-            const offset2 = offset1 + columnHeight;
-
-            layer.column1.style.transform = `translateX(-50%) translateY(${offset1}px)`;
-            layer.column2.style.transform = `translateX(-50%) translateY(${offset2}px)`;
-
-            // Recycle posters when they scroll off screen
-            if (layer.scrollPosition > columnHeight) {
-                layer.scrollPosition -= columnHeight;
-                recyclePoster(layer.column1, layer.layerIndex);
+            // Recycle posters when layer scrolls full height
+            if (layer.scrollPosition > window.innerHeight) {
+                layer.scrollPosition -= window.innerHeight;
+                recyclePoster(layer.container, layer.layerIndex);
             }
         });
     }
 
     /**
-     * Recycle a poster by moving it from top to bottom of column
-     * @param {HTMLElement} column - Column container
+     * Recycle posters by updating the first row with new content
+     * @param {HTMLElement} container - Layer container
      * @param {number} layerIndex - Layer index
      */
-    function recyclePoster(column, layerIndex) {
-        const firstPoster = column.firstElementChild;
-        if (!firstPoster) return;
+    function recyclePoster(container, layerIndex) {
+        const posters = container.querySelectorAll('.parallax-poster');
+        if (posters.length === 0) return;
 
-        // Get new poster
-        const poster = getNextPoster(layerIndex);
-        if (!poster) return;
+        // Calculate columns in grid
+        const cols = Math.floor(window.innerWidth / 270);
 
-        // Update image
-        const img = firstPoster.querySelector('img');
-        if (img) {
-            img.src = poster.posterUrl;
-            img.alt = poster.title || 'Poster';
+        // Recycle first row (first 'cols' number of posters)
+        for (let i = 0; i < Math.min(cols, posters.length); i++) {
+            const posterEl = posters[i];
+            const newPoster = getNextPoster(layerIndex);
+            if (!newPoster) continue;
+
+            // Update image
+            const img = posterEl.querySelector('img');
+            if (img) {
+                img.src = newPoster.posterUrl;
+                img.alt = newPoster.title || 'Poster';
+            }
+
+            // Move to end
+            container.appendChild(posterEl);
         }
-
-        // Move to end
-        column.appendChild(firstPoster);
     }
 
     /**
