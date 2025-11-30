@@ -18,29 +18,30 @@ The spec is automatically synced in the following scenarios:
 
 1. **Pre-push hook** (when pushing to main):
 
-    ```bash
-    git push  # Automatically runs openapi:sync
-    ```
+```bash
+git push # Automatically runs openapi:sync
+```
 
 2. **Quality pipeline**:
 
-    ```bash
-    npm run quality:all  # Includes openapi:sync
-    ```
+```bash
+npm run quality:all # Includes openapi:sync
+```
 
 3. **Manual sync**:
-    ```bash
-    npm run openapi:sync
-    npm run openapi:export  # Same thing
-    ```
+
+```bash
+npm run openapi:sync
+npm run openapi:export # Same thing
+```
 
 ### Workflow
 
 ```mermaid
 graph LR
-    A[swagger.js] -->|npm run openapi:export| B[docs/openapi-latest.json]
-    B -->|npm run openapi:validate| C[Validation Report]
-    A -->|/api-docs/swagger.json| D[ReDoc Live Docs]
+ A[swagger.js] -->|npm run openapi:export| B[docs/openapi-latest.json]
+ B -->|npm run openapi:validate| C[Validation Report]
+ A -->|/api-docs/swagger.json| D[ReDoc Live Docs]
 ```
 
 ## Making Changes
@@ -83,19 +84,19 @@ node scripts/validate-openapi.js
 
 Checks for:
 
-- ✅ 200 responses on all endpoints
-- ✅ Examples in all responses
-- ✅ Security definitions
-- ✅ Schema compliance
+- 200 responses on all endpoints
+- Examples in all responses
+- Security definitions
+- Schema compliance
 
 ## Files
 
-| File                       | Purpose         | Edit?             |
-| -------------------------- | --------------- | ----------------- |
-| `swagger.js`               | Source of truth | ✅ Yes            |
-| `docs/openapi-latest.json` | Static snapshot | ❌ Auto-generated |
-| `/api-docs/swagger.json`   | Live endpoint   | ❌ Dynamic        |
-| `/api-docs`                | ReDoc UI        | ❌ Uses live spec |
+| File                       | Purpose         | Edit?          |
+| -------------------------- | --------------- | -------------- |
+| `swagger.js`               | Source of truth | Yes            |
+| `docs/openapi-latest.json` | Static snapshot | Auto-generated |
+| `/api-docs/swagger.json`   | Live endpoint   | Dynamic        |
+| `/api-docs`                | ReDoc UI        | Uses live spec |
 
 ## Tips
 
@@ -103,3 +104,8 @@ Checks for:
 - Run `openapi:sync` after changes to keep files in sync
 - The pre-push hook ensures main branch stays synchronized
 - Use `npm run quality:all` before releases to validate everything
+
+---
+
+**Last updated:** November 16, 2025
+**Version:** 2.9.8

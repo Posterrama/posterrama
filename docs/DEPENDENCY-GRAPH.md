@@ -1,14 +1,14 @@
 # Posterrama Module Dependency Graph
 
-**Version**: 2.8.8  
-**Last Updated**: 2025-01-20  
-**Refactoring Status**: 70.1% reduction complete (19,864 → 5,941 lines in server.js)
+**Version**: 2.9.8
+**Last Updated**: 2025-11-28
+**Refactoring Status**: Server size 7,367 lines (from ~20k lines)
 
 ---
 
-## 📊 Overview
+## Overview
 
-This document maps the dependency relationships between Posterrama's 31 modules (server.js + 17 routes + 14 lib). Understanding these dependencies is crucial for:
+This document maps the dependency relationships between Posterrama's modules (server.js + 21 routes + lib + utils). Understanding these dependencies is crucial for:
 
 - **Refactoring**: Identify tightly coupled modules
 - **Testing**: Understand what mocks are needed
@@ -17,223 +17,235 @@ This document maps the dependency relationships between Posterrama's 31 modules 
 
 ---
 
-## 🗺️ Complete Dependency Map
+## ️ Complete Dependency Map
 
 ### Visual Dependency Graph
 
 ```mermaid
 graph TB
-    %% Core Server
-    SERVER[server.js<br/>5,941 lines]
+ %% Core Server
+ SERVER[server.js<br/>7,367 lines]
 
-    %% Route Modules (17)
-    R_CONFIG[routes/admin-config.js]
-    R_LIB[routes/admin-libraries.js]
-    R_OBSERVABLE[routes/admin-observable.js]
-    R_AUTH[routes/auth.js]
-    R_BACKUPS[routes/config-backups.js]
-    R_CONFIG_PUB[routes/config-public.js]
-    R_DEVICES[routes/devices.js]
-    R_PAGES[routes/frontend-pages.js]
-    R_GROUPS[routes/groups.js]
-    R_HEALTH[routes/health.js]
-    R_LOCAL[routes/local-directory.js]
-    R_MEDIA[routes/media.js]
-    R_METRICS[routes/metrics-testing.js]
-    R_PHOTO[routes/profile-photo.js]
-    R_PUBLIC[routes/public-api.js]
-    R_QR[routes/qr.js]
-    R_RATINGS[routes/quality-ratings.js]
+ %% Route Modules (21)
+ R_CONFIG[routes/admin-config.js]
+ R_LIB[routes/admin-libraries.js]
+ R_OBSERVABLE[routes/admin-observable.js]
+ R_CACHE[routes/admin-cache.js]
+ R_LOGS[routes/admin-logs.js]
+ R_PERF[routes/admin-performance.js]
+ R_AUTH[routes/auth.js]
+ R_BACKUPS[routes/config-backups.js]
+ R_CONFIG_PUB[routes/config-public.js]
+ R_DEVICES[routes/devices.js]
+ R_PAGES[routes/frontend-pages.js]
+ R_GROUPS[routes/groups.js]
+ R_HEALTH[routes/health.js]
+ R_LOCAL[routes/local-directory.js]
+ R_MEDIA[routes/media.js]
+ R_METRICS[routes/metrics-testing.js]
+ R_SRC_ERR[routes/source-error-metrics.js]
+ R_PHOTO[routes/profile-photo.js]
+ R_PUBLIC[routes/public-api.js]
+ R_QR[routes/qr.js]
+ R_RATINGS[routes/quality-ratings.js]
 
-    %% Lib Modules (14)
-    L_AUTH[lib/auth-helpers.js]
-    L_CACHE[lib/cache-utils.js]
-    L_CONFIG[lib/config-helpers.js]
-    L_INIT[lib/init.js]
-    L_JELLYFIN[lib/jellyfin-helpers.js]
-    L_LOCAL_INIT[lib/local-directory-init.js]
-    L_AGGREGATOR[lib/media-aggregator.js]
-    L_PLEX[lib/plex-helpers.js]
-    L_PLAYLIST[lib/playlist-cache.js]
-    L_PRESET[lib/preset-helpers.js]
-    L_SERVER_TEST[lib/server-test-helpers.js]
-    L_SOURCE_UTILS[lib/source-utils.js]
-    L_UTILS[lib/utils-helpers.js]
-    L_WEBSOCKET[lib/websocket-handlers.js]
+ %% Lib Modules (14)
+ L_AUTH[lib/auth-helpers.js]
+ L_CACHE[lib/cache-utils.js]
+ L_CONFIG[lib/config-helpers.js]
+ L_INIT[lib/init.js]
+ L_JELLYFIN[lib/jellyfin-helpers.js]
+ L_LOCAL_INIT[lib/local-directory-init.js]
+ L_AGGREGATOR[lib/media-aggregator.js]
+ L_PLEX[lib/plex-helpers.js]
+ L_PLAYLIST[lib/playlist-cache.js]
+ L_PRESET[lib/preset-helpers.js]
+ L_SERVER_TEST[lib/server-test-helpers.js]
+ L_SOURCE_UTILS[lib/source-utils.js]
+ L_UTILS[lib/utils-helpers.js]
+ L_WEBSOCKET[lib/websocket-handlers.js]
 
-    %% Middleware
-    MW_ADMIN[middleware/adminAuth.js]
-    MW_CACHE[middleware/cache.js]
-    MW_ERROR[middleware/errorHandler.js]
-    MW_INDEX[middleware/index.js]
-    MW_METRICS[middleware/metrics.js]
-    MW_RATE[middleware/rateLimiter.js]
-    MW_VALIDATE[middleware/validate.js]
+ %% Middleware
+ MW_ADMIN[middleware/adminAuth.js]
+ MW_CACHE[middleware/cache.js]
+ MW_ERROR[middleware/errorHandler.js]
+ MW_INDEX[middleware/index.js]
+ MW_METRICS[middleware/metrics.js]
+ MW_RATE[middleware/rateLimiter.js]
+ MW_VALIDATE[middleware/validate.js]
 
-    %% Utils
-    U_CACHE[utils/cache.js]
-    U_CONFIG_BACKUP[utils/configBackup.js]
-    U_DEVICE[utils/deviceStore.js]
-    U_ERRORS[utils/errors.js]
-    U_GROUPS[utils/groupsStore.js]
-    U_LOGGER[utils/logger.js]
-    U_METRICS[utils/metrics.js]
-    U_PLEX_HTTP[utils/plex-http-client.js]
-    U_JELLYFIN_HTTP[utils/jellyfin-http-client.js]
-    U_WSHUB[utils/wsHub.js]
+ %% Utils
+ U_CACHE[utils/cache.js]
+ U_CONFIG_BACKUP[utils/configBackup.js]
+ U_DEVICE[utils/deviceStore.js]
+ U_ERRORS[utils/errors.js]
+ U_GROUPS[utils/groupsStore.js]
+ U_LOGGER[utils/logger.js]
+ U_METRICS[utils/metrics.js]
+ U_PLEX_HTTP[utils/plex-http-client.js]
+ U_JELLYFIN_HTTP[utils/jellyfin-http-client.js]
+ U_WSHUB[utils/wsHub.js]
 
-    %% Sources
-    S_PLEX[sources/plex.js]
-    S_JELLYFIN[sources/jellyfin.js]
-    S_TMDB[sources/tmdb.js]
-    S_LOCAL[sources/local.js]
+ %% Sources
+ S_PLEX[sources/plex.js]
+ S_JELLYFIN[sources/jellyfin.js]
+ S_TMDB[sources/tmdb.js]
+ S_LOCAL[sources/local.js]
 
-    %% Server Dependencies
-    SERVER --> R_CONFIG
-    SERVER --> R_LIB
-    SERVER --> R_OBSERVABLE
-    SERVER --> R_AUTH
-    SERVER --> R_BACKUPS
-    SERVER --> R_CONFIG_PUB
-    SERVER --> R_DEVICES
-    SERVER --> R_PAGES
-    SERVER --> R_GROUPS
-    SERVER --> R_HEALTH
-    SERVER --> R_LOCAL
-    SERVER --> R_MEDIA
-    SERVER --> R_METRICS
-    SERVER --> R_PHOTO
-    SERVER --> R_PUBLIC
-    SERVER --> R_QR
-    SERVER --> R_RATINGS
-    SERVER --> MW_INDEX
-    SERVER --> L_INIT
-    SERVER --> U_LOGGER
-    SERVER --> U_WSHUB
+ %% Server Dependencies
+ SERVER --> R_CONFIG
+ SERVER --> R_LIB
+ SERVER --> R_OBSERVABLE
+ SERVER --> R_CACHE
+ SERVER --> R_LOGS
+ SERVER --> R_PERF
+ SERVER --> R_AUTH
+ SERVER --> R_BACKUPS
+ SERVER --> R_CONFIG_PUB
+ SERVER --> R_DEVICES
+ SERVER --> R_PAGES
+ SERVER --> R_GROUPS
+ SERVER --> R_HEALTH
+ SERVER --> R_LOCAL
+ SERVER --> R_MEDIA
+ SERVER --> R_METRICS
+ SERVER --> R_SRC_ERR
+ SERVER --> R_PHOTO
+ SERVER --> R_PUBLIC
+ SERVER --> R_QR
+ SERVER --> R_RATINGS
+ SERVER --> MW_INDEX
+ SERVER --> L_INIT
+ SERVER --> U_LOGGER
+ SERVER --> U_WSHUB
 
-    %% Route -> Lib Dependencies
-    R_CONFIG --> L_CONFIG
-    R_CONFIG --> L_PRESET
-    R_CONFIG --> U_CONFIG_BACKUP
+ %% Route -> Lib Dependencies
+ R_CONFIG --> L_CONFIG
+ R_CONFIG --> L_PRESET
+ R_CONFIG --> U_CONFIG_BACKUP
 
-    R_LIB --> L_PLEX
-    R_LIB --> L_JELLYFIN
-    R_LIB --> L_SERVER_TEST
+ R_LIB --> L_PLEX
+ R_LIB --> L_JELLYFIN
+ R_LIB --> L_SERVER_TEST
 
-    R_AUTH --> L_AUTH
-    R_AUTH --> MW_RATE
+ R_AUTH --> L_AUTH
+ R_AUTH --> MW_RATE
 
-    R_BACKUPS --> U_CONFIG_BACKUP
+ R_BACKUPS --> U_CONFIG_BACKUP
 
-    R_DEVICES --> L_PRESET
-    R_DEVICES --> L_WEBSOCKET
-    R_DEVICES --> U_DEVICE
-    R_DEVICES --> U_WSHUB
+ R_DEVICES --> L_PRESET
+ R_DEVICES --> L_WEBSOCKET
+ R_DEVICES --> U_DEVICE
+ R_DEVICES --> U_WSHUB
 
-    R_PAGES --> L_INIT
+ R_PAGES --> L_INIT
 
-    R_GROUPS --> U_GROUPS
+ R_GROUPS --> U_GROUPS
 
-    R_LOCAL --> L_LOCAL_INIT
-    R_LOCAL --> L_PLEX
-    R_LOCAL --> L_JELLYFIN
-    R_LOCAL --> S_LOCAL
+ R_LOCAL --> L_LOCAL_INIT
+ R_LOCAL --> L_PLEX
+ R_LOCAL --> L_JELLYFIN
+ R_LOCAL --> S_LOCAL
 
-    R_MEDIA --> L_AGGREGATOR
-    R_MEDIA --> L_PLAYLIST
-    R_MEDIA --> L_CACHE
+ R_MEDIA --> L_AGGREGATOR
+ R_MEDIA --> L_PLAYLIST
+ R_MEDIA --> L_CACHE
 
-    R_PHOTO --> L_UTILS
+ R_PHOTO --> L_UTILS
 
-    %% Lib -> Lib Dependencies
-    L_AGGREGATOR --> L_PLEX
-    L_AGGREGATOR --> L_JELLYFIN
-    L_AGGREGATOR --> L_PLAYLIST
-    L_AGGREGATOR --> L_SOURCE_UTILS
+ %% Lib -> Lib Dependencies
+ L_AGGREGATOR --> L_PLEX
+ L_AGGREGATOR --> L_JELLYFIN
+ L_AGGREGATOR --> L_PLAYLIST
+ L_AGGREGATOR --> L_SOURCE_UTILS
 
-    L_PLAYLIST --> L_CACHE
-    L_PLAYLIST --> L_AGGREGATOR
+ L_PLAYLIST --> L_CACHE
+ L_PLAYLIST --> L_AGGREGATOR
 
-    L_PLEX --> L_CACHE
-    L_PLEX --> U_PLEX_HTTP
-    L_PLEX --> S_PLEX
+ L_PLEX --> L_CACHE
+ L_PLEX --> U_PLEX_HTTP
+ L_PLEX --> S_PLEX
 
-    L_JELLYFIN --> L_CACHE
-    L_JELLYFIN --> U_JELLYFIN_HTTP
-    L_JELLYFIN --> S_JELLYFIN
+ L_JELLYFIN --> L_CACHE
+ L_JELLYFIN --> U_JELLYFIN_HTTP
+ L_JELLYFIN --> S_JELLYFIN
 
-    L_CONFIG --> U_CONFIG_BACKUP
-    L_CONFIG --> U_LOGGER
+ L_CONFIG --> U_CONFIG_BACKUP
+ L_CONFIG --> U_LOGGER
 
-    L_INIT --> U_LOGGER
+ L_INIT --> U_LOGGER
 
-    L_WEBSOCKET --> U_DEVICE
-    L_WEBSOCKET --> U_WSHUB
+ L_WEBSOCKET --> U_DEVICE
+ L_WEBSOCKET --> U_WSHUB
 
-    %% Lib -> Utils Dependencies
-    L_CACHE --> U_CACHE
+ %% Lib -> Utils Dependencies
+ L_CACHE --> U_CACHE
 
-    %% Middleware Dependencies
-    MW_INDEX --> MW_ADMIN
-    MW_INDEX --> MW_CACHE
-    MW_INDEX --> MW_ERROR
-    MW_INDEX --> MW_METRICS
-    MW_INDEX --> MW_RATE
-    MW_INDEX --> MW_VALIDATE
+ %% Middleware Dependencies
+ MW_INDEX --> MW_ADMIN
+ MW_INDEX --> MW_CACHE
+ MW_INDEX --> MW_ERROR
+ MW_INDEX --> MW_METRICS
+ MW_INDEX --> MW_RATE
+ MW_INDEX --> MW_VALIDATE
 
-    MW_CACHE --> U_CACHE
-    MW_ERROR --> U_LOGGER
-    MW_ERROR --> U_ERRORS
-    MW_METRICS --> U_METRICS
+ MW_CACHE --> U_CACHE
+ MW_ERROR --> U_LOGGER
+ MW_ERROR --> U_ERRORS
+ MW_METRICS --> U_METRICS
 
-    %% Sources Dependencies
-    S_PLEX --> U_CACHE
-    S_PLEX --> U_LOGGER
-    S_JELLYFIN --> U_CACHE
-    S_JELLYFIN --> U_LOGGER
-    S_TMDB --> U_CACHE
-    S_TMDB --> U_LOGGER
-    S_LOCAL --> U_LOGGER
+ %% Sources Dependencies
+ S_PLEX --> U_CACHE
+ S_PLEX --> U_LOGGER
+ S_JELLYFIN --> U_CACHE
+ S_JELLYFIN --> U_LOGGER
+ S_TMDB --> U_CACHE
+ S_TMDB --> U_LOGGER
+ S_LOCAL --> U_LOGGER
 
-    %% Styling
-    classDef serverClass fill:#4CAF50,stroke:#2E7D32,stroke-width:4px
-    classDef routeClass fill:#2196F3,stroke:#1565C0,stroke-width:2px
-    classDef libClass fill:#FF9800,stroke:#E65100,stroke-width:2px
-    classDef utilClass fill:#9C27B0,stroke:#6A1B9A,stroke-width:2px
-    classDef sourceClass fill:#F44336,stroke:#C62828,stroke-width:2px
+ %% Styling
+ classDef serverClass fill:#4CAF50,stroke:#2E7D32,stroke-width:4px
+ classDef routeClass fill:#2196F3,stroke:#1565C0,stroke-width:2px
+ classDef libClass fill:#FF9800,stroke:#E65100,stroke-width:2px
+ classDef utilClass fill:#9C27B0,stroke:#6A1B9A,stroke-width:2px
+ classDef sourceClass fill:#F44336,stroke:#C62828,stroke-width:2px
 
-    class SERVER serverClass
-    class R_CONFIG,R_LIB,R_OBSERVABLE,R_AUTH,R_BACKUPS,R_CONFIG_PUB,R_DEVICES,R_PAGES,R_GROUPS,R_HEALTH,R_LOCAL,R_MEDIA,R_METRICS,R_PHOTO,R_PUBLIC,R_QR,R_RATINGS routeClass
-    class L_AUTH,L_CACHE,L_CONFIG,L_INIT,L_JELLYFIN,L_LOCAL_INIT,L_AGGREGATOR,L_PLEX,L_PLAYLIST,L_PRESET,L_SERVER_TEST,L_SOURCE_UTILS,L_UTILS,L_WEBSOCKET libClass
-    class U_CACHE,U_CONFIG_BACKUP,U_DEVICE,U_ERRORS,U_GROUPS,U_LOGGER,U_METRICS,U_PLEX_HTTP,U_JELLYFIN_HTTP,U_WSHUB,MW_ADMIN,MW_CACHE,MW_ERROR,MW_INDEX,MW_METRICS,MW_RATE,MW_VALIDATE utilClass
-    class S_PLEX,S_JELLYFIN,S_TMDB,S_LOCAL sourceClass
+ class SERVER serverClass
+ class R_CONFIG,R_LIB,R_OBSERVABLE,R_CACHE,R_LOGS,R_PERF,R_AUTH,R_BACKUPS,R_CONFIG_PUB,R_DEVICES,R_PAGES,R_GROUPS,R_HEALTH,R_LOCAL,R_MEDIA,R_METRICS,R_SRC_ERR,R_PHOTO,R_PUBLIC,R_QR,R_RATINGS routeClass
+ class L_AUTH,L_CACHE,L_CONFIG,L_INIT,L_JELLYFIN,L_LOCAL_INIT,L_AGGREGATOR,L_PLEX,L_PLAYLIST,L_PRESET,L_SERVER_TEST,L_SOURCE_UTILS,L_UTILS,L_WEBSOCKET libClass
+ class U_CACHE,U_CONFIG_BACKUP,U_DEVICE,U_ERRORS,U_GROUPS,U_LOGGER,U_METRICS,U_PLEX_HTTP,U_JELLYFIN_HTTP,U_WSHUB,MW_ADMIN,MW_CACHE,MW_ERROR,MW_INDEX,MW_METRICS,MW_RATE,MW_VALIDATE utilClass
+ class S_PLEX,S_JELLYFIN,S_TMDB,S_LOCAL sourceClass
 ```
 
 ---
 
-## 📋 Dependency Matrix
+## Dependency Matrix
 
 ### Route Dependencies
 
-| Route Module            | Depends On (Direct)                                                | Transitively Uses                                      |
-| ----------------------- | ------------------------------------------------------------------ | ------------------------------------------------------ |
-| **admin-config.js**     | config-helpers, preset-helpers, configBackup                       | cache, logger                                          |
-| **admin-libraries.js**  | plex-helpers, jellyfin-helpers, server-test-helpers                | cache, plex-http-client, jellyfin-http-client, logger  |
-| **admin-observable.js** | logger, metrics                                                    | -                                                      |
-| **auth.js**             | auth-helpers, rateLimiter                                          | logger                                                 |
-| **config-backups.js**   | configBackup                                                       | logger                                                 |
-| **config-public.js**    | -                                                                  | logger                                                 |
-| **devices.js**          | preset-helpers, websocket-handlers, deviceStore, wsHub             | cache, logger                                          |
-| **frontend-pages.js**   | init (asset versioning)                                            | logger                                                 |
-| **groups.js**           | groupsStore                                                        | logger                                                 |
-| **health.js**           | -                                                                  | logger                                                 |
-| **local-directory.js**  | local-directory-init, plex-helpers, jellyfin-helpers, local source | cache, logger                                          |
-| **media.js**            | media-aggregator, playlist-cache, cache-utils                      | plex-helpers, jellyfin-helpers, sources, cache, logger |
-| **metrics-testing.js**  | metrics                                                            | logger                                                 |
-| **profile-photo.js**    | utils-helpers                                                      | logger                                                 |
-| **public-api.js**       | -                                                                  | logger                                                 |
-| **qr.js**               | -                                                                  | logger                                                 |
-| **quality-ratings.js**  | -                                                                  | logger                                                 |
+| Route Module                | Depends On (Direct)                                                | Transitively Uses                                      |
+| --------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------ |
+| **admin-cache.js**          | cache                                                              | logger                                                 |
+| **admin-config.js**         | config-helpers, preset-helpers, configBackup                       | cache, logger                                          |
+| **admin-libraries.js**      | plex-helpers, jellyfin-helpers, server-test-helpers                | cache, plex-http-client, jellyfin-http-client, logger  |
+| **admin-logs.js**           | logger                                                             | -                                                      |
+| **admin-observable.js**     | logger, metrics                                                    | -                                                      |
+| **admin-performance.js**    | metrics                                                            | logger                                                 |
+| **auth.js**                 | auth-helpers, rateLimiter                                          | logger                                                 |
+| **config-backups.js**       | configBackup                                                       | logger                                                 |
+| **config-public.js**        | -                                                                  | logger                                                 |
+| **devices.js**              | preset-helpers, websocket-handlers, deviceStore, wsHub             | cache, logger                                          |
+| **frontend-pages.js**       | init (asset versioning)                                            | logger                                                 |
+| **groups.js**               | groupsStore                                                        | logger                                                 |
+| **health.js**               | -                                                                  | logger                                                 |
+| **local-directory.js**      | local-directory-init, plex-helpers, jellyfin-helpers, local source | cache, logger                                          |
+| **media.js**                | media-aggregator, playlist-cache, cache-utils                      | plex-helpers, jellyfin-helpers, sources, cache, logger |
+| **metrics-testing.js**      | metrics                                                            | logger                                                 |
+| **profile-photo.js**        | utils-helpers                                                      | logger                                                 |
+| **public-api.js**           | -                                                                  | logger                                                 |
+| **qr.js**                   | -                                                                  | logger                                                 |
+| **quality-ratings.js**      | -                                                                  | logger                                                 |
+| **source-error-metrics.js** | metrics                                                            | logger                                                 |
 
 ### Lib Module Dependencies
 
@@ -256,7 +268,7 @@ graph TB
 
 ---
 
-## 🎯 Dependency Levels
+## Dependency Levels
 
 Modules organized by dependency depth (0 = no dependencies, higher = more dependencies):
 
@@ -323,11 +335,11 @@ Modules organized by dependency depth (0 = no dependencies, higher = more depend
 
 ---
 
-## 🔄 Circular Dependencies
+## Circular Dependencies
 
 ### Identified Circles
 
-**⚠️ media-aggregator.js ↔ playlist-cache.js**
+**️ media-aggregator.js ↔ playlist-cache.js**
 
 - `lib/media-aggregator.js` depends on `lib/playlist-cache.js`
 - `lib/playlist-cache.js` depends on `lib/media-aggregator.js`
@@ -338,7 +350,7 @@ Modules organized by dependency depth (0 = no dependencies, higher = more depend
 
 ---
 
-## 📊 Module Coupling Analysis
+## Module Coupling Analysis
 
 ### Highly Coupled Modules (>5 direct dependents)
 
@@ -362,7 +374,7 @@ Modules organized by dependency depth (0 = no dependencies, higher = more depend
 
 ---
 
-## 🧩 Dependency Clusters
+## Dependency Clusters
 
 Modules that work together as cohesive units:
 
@@ -370,71 +382,71 @@ Modules that work together as cohesive units:
 
 ```
 lib/media-aggregator.js
-  ├─> lib/plex-helpers.js
-  ├─> lib/jellyfin-helpers.js
-  ├─> lib/playlist-cache.js
-  └─> lib/source-utils.js
+ ├─> lib/plex-helpers.js
+ ├─> lib/jellyfin-helpers.js
+ ├─> lib/playlist-cache.js
+ └─> lib/source-utils.js
 ```
 
-**Purpose**: Aggregate media from multiple sources  
+**Purpose**: Aggregate media from multiple sources
 **Routes Using**: `routes/media.js`, `routes/local-directory.js`
 
 ### Cluster 2: Configuration Management
 
 ```
 lib/config-helpers.js
-  ├─> utils/configBackup.js
-  └─> lib/preset-helpers.js
+ ├─> utils/configBackup.js
+ └─> lib/preset-helpers.js
 ```
 
-**Purpose**: Manage app and device configuration  
+**Purpose**: Manage app and device configuration
 **Routes Using**: `routes/admin-config.js`, `routes/devices.js`
 
 ### Cluster 3: Media Server Adapters
 
 ```
 lib/plex-helpers.js
-  ├─> utils/plex-http-client.js
-  └─> sources/plex.js
+ ├─> utils/plex-http-client.js
+ └─> sources/plex.js
 
 lib/jellyfin-helpers.js
-  ├─> utils/jellyfin-http-client.js
-  └─> sources/jellyfin.js
+ ├─> utils/jellyfin-http-client.js
+ └─> sources/jellyfin.js
 ```
 
-**Purpose**: Adapt external media servers to common interface  
+**Purpose**: Adapt external media servers to common interface
 **Routes Using**: `routes/admin-libraries.js`, `routes/media.js`, `routes/local-directory.js`
 
 ### Cluster 4: Device Management
 
 ```
 lib/websocket-handlers.js
-  ├─> utils/wsHub.js
-  ├─> utils/deviceStore.js
-  └─> lib/preset-helpers.js
+ ├─> utils/wsHub.js
+ ├─> utils/deviceStore.js
+ └─> lib/preset-helpers.js
 ```
 
-**Purpose**: Manage device connections and settings  
+**Purpose**: Manage device connections and settings
 **Routes Using**: `routes/devices.js`, `routes/groups.js`
 
 ### Cluster 5: Middleware Pipeline
 
 ```
 middleware/index.js
-  ├─> middleware/adminAuth.js
-  ├─> middleware/cache.js
-  ├─> middleware/errorHandler.js
-  ├─> middleware/metrics.js
-  ├─> middleware/rateLimiter.js
-  └─> middleware/validate.js
+ ├─> middleware/adminAuth.js
+ ├─> middleware/cache.js
+ ├─> middleware/errorHandler.js
+ ├─> middleware/metrics.js
+ ├─> middleware/rateLimiter.js
+ └─> middleware/validate.js
 ```
 
-**Purpose**: Request processing pipeline  
+**Purpose**: Request processing pipeline
 **Used By**: `server.js` (all requests flow through)
 
 ---
 
-## 🔍 Import Analysis
+## Import Analysis
 
 ### Most Imported Modules (Top 10)
 
@@ -459,7 +471,7 @@ middleware/index.js
 
 ---
 
-## 🎨 Dependency Patterns
+## Dependency Patterns
 
 ### Pattern 1: Route → Lib → Utils → Source
 
@@ -467,10 +479,10 @@ middleware/index.js
 
 ```
 routes/media.js
-  └─> lib/media-aggregator.js
-       └─> lib/plex-helpers.js
-            └─> utils/cache.js
-                 └─> sources/plex.js
+ └─> lib/media-aggregator.js
+ └─> lib/plex-helpers.js
+ └─> utils/cache.js
+ └─> sources/plex.js
 ```
 
 **Rationale**: Clean separation of concerns
@@ -486,9 +498,9 @@ routes/media.js
 
 ```
 lib/plex-helpers.js
-  ├─> utils/plex-http-client.js  (HTTP communication)
-  ├─> sources/plex.js             (Data transformation)
-  └─> utils/cache.js              (Caching layer)
+ ├─> utils/plex-http-client.js (HTTP communication)
+ ├─> sources/plex.js (Data transformation)
+ └─> utils/cache.js (Caching layer)
 ```
 
 **Rationale**: Separation of concerns
@@ -521,7 +533,7 @@ module.exports = function createRouter({
 
 ---
 
-## 🧪 Testing Implications
+## Testing Implications
 
 ### Mocking Requirements by Route
 
@@ -555,7 +567,7 @@ module.exports = function createRouter({
 
 ---
 
-## 📈 Refactoring Recommendations
+## Refactoring Recommendations
 
 ### Short-term (Low Risk)
 
@@ -572,14 +584,16 @@ module.exports = function createRouter({
 ### Long-term (High Risk)
 
 1. **Break circular dependency** media-aggregator ↔ playlist-cache
-    - Option A: Extract shared coordinator
-    - Option B: Make playlist-cache emit events instead of calling aggregator
+
+- Option A: Extract shared coordinator
+- Option B: Make playlist-cache emit events instead of calling aggregator
+
 2. **Create plugin system** for media sources (reduce hard-coded dependencies)
 3. **Extract admin routes** to separate Express app instance
 
 ---
 
-## 🔧 Development Guidelines
+## Development Guidelines
 
 ### Adding a New Module
 
@@ -604,7 +618,7 @@ module.exports = function createRouter({
 
 ---
 
-## 📚 Related Documentation
+## Related Documentation
 
 - [MODULE-ARCHITECTURE.md](./MODULE-ARCHITECTURE.md) - Module structure and design patterns
 - [ARCHITECTURE-DIAGRAMS.md](./ARCHITECTURE-DIAGRAMS.md) - Visual system diagrams
@@ -613,16 +627,16 @@ module.exports = function createRouter({
 
 ---
 
-## 🎯 Maintenance Checklist
+## Maintenance Checklist
 
 **Update this document when**:
 
-- ✅ Adding new route, lib, or util module
-- ✅ Changing module dependencies (new imports)
-- ✅ Removing or merging modules
-- ✅ Introducing circular dependencies (document and plan resolution)
-- ✅ Splitting large modules into smaller ones
-- ✅ Creating new utility or helper functions
+- Adding new route, lib, or util module
+- Changing module dependencies (new imports)
+- Removing or merging modules
+- Introducing circular dependencies (document and plan resolution)
+- Splitting large modules into smaller ones
+- Creating new utility or helper functions
 
 **Review dependency health**:
 
@@ -632,6 +646,6 @@ module.exports = function createRouter({
 
 ---
 
-**Document Version**: 1.0.0  
-**Last Review**: 2025-01-20  
+**Document Version**: 1.0.0
+**Last Review**: 2025-01-20
 **Next Review**: After next major refactoring phase

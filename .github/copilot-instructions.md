@@ -1,97 +1,57 @@
-# Posterrama – AI Agent Onboarding Guide
+# Posterrama AI Agent Instructions
 
-**Posterrama** (v2.9.4) is a Node.js/Express media server aggregation app that turns any screen into a dynamic poster gallery. It unifies Plex, Jellyfin, TMDB, and local libraries with three display modes (Screensaver, Wallart, Cinema), real-time device management over WebSocket, and comprehensive API documentation at `/api-docs`.
+Posterrama (v2.9.x) is a Node.js/Express media server aggregation app. It unifies Plex, Jellyfin, TMDB, and local libraries into dynamic displays (Screensaver, Wallart, Cinema).
 
-## Architecture Quick Reference
+## Architecture & Patterns
 
-**Modular architecture** – Routes extracted to `routes/` directory, core logic in `lib/`, utilities in `utils/`. Main `server.js` (~5.6k lines) orchestrates initialization and route registration.
+### Core Structure
 
-### Key Components
+- **Entry Point**: `server.js` (~7k lines) is the main orchestrator. It initializes the environment, validates config, and mounts routes.
+- **Route Factories**: Routes in `routes/` are typically exported as **factory functions** that accept dependencies (e.g., `createMediaRouter(config, logger)`).
+    - _Pattern_: `const createXRouter = require('./routes/x'); app.use('/path', createXRouter(deps));`
+- **Business Logic**:
+    - `lib/`: Domain logic (e.g., `plex-helpers.js`, `jellyfin-helpers.js`).
+    - `sources/`: Media server adapters (standardized interface: `fetchMedia`, `getMetrics`).
+    - `utils/`: Shared utilities (`logger.js`, `cache.js`, `wsHub.js`).
 
-- **Routes**: Modular Express routers in `routes/` (admin-\*, api-\*, device-\*, media-\*)
-- **Sources**: Media server adapters in `sources/` (plex.js, jellyfin.js, tmdb.js)
-- **HTTP Clients**: Dedicated clients in `utils/` (plex-http-client.js, jellyfin-http-client.js)
-- **Core Libraries**: Business logic in `lib/` (jellyfin-helpers.js, plex-helpers.js)
-- **Utilities**: Shared utilities (logger.js, cache.js, wsHub.js, deviceStore.js)
+### Key Mechanisms
 
-### Key Features
+- **Dependency Injection**: Most modules receive `config` and `logger` rather than importing global singletons.
+- **Caching**: `utils/cache.js` implements a tiered `CacheManager` (L1 Memory -> L2 -> L3 Disk) with LRU eviction.
+- **Async Handling**: Use `asyncHandler` middleware wrapper for all async route handlers to catch errors.
+- **Configuration**:
+    - stored in `config.json`.
+    - Validated at startup via `config/validators.js`.
+    - _Rule_: Schema changes require updates to `config.schema.json`, `config/validators.js`, and `config.example.json`.
+- **Real-time**: `utils/wsHub.js` handles WebSocket connections for device management.
 
-- **Multi-Source Integration**: Plex, Jellyfin, TMDB with unified API endpoints
-- **Advanced Caching**: Memory, disk, and HTTP caching with intelligent invalidation
-- **Admin Interface**: Full configuration management, server monitoring, and genre filtering
-- **Image Processing**: Lazy loading, optimization, fallback handling with custom SVG placeholders
-- **API Documentation**: Comprehensive Swagger/OpenAPI documentation at `/api-docs`
-- **Production Ready**: PM2 process management, comprehensive logging, health checks
+## Development Workflow
 
-## Build & Development Workflow
+### Build & Run
 
-### Prerequisites
+- **Backend**: `npm start` (runs `server.js`).
+- **Frontend**: `npm run dev` (Vite) or `npm run build` (Vite build).
+- **Production**: `pm2 start ecosystem.config.js`.
 
-- **Node.js**: >=18.0.0 (confirmed working with Node 18+)
-- **npm**: Package management and script execution
-- **PM2**: Production process management (optional for development)
+### Testing Strategy
 
-### Essential Commands
+- **Backend Unit/Integration**: `npm test` (Jest).
+- **Frontend**: `npm run test:frontend` (Vitest).
+- **Quality**: `npm run quality:all` (runs lint, format, type-check, and tests).
+- **Linting**: `npm run lint` (ESLint) and `npm run format` (Prettier).
 
-**Development Workflow:**
+## Critical Implementation Details
 
-```bash
-npm install           # Install dependencies
-npm start            # Start development server on http://localhost:4000
-npm test             # Run test suite (2400+ tests, 92%+ coverage)
-npm run lint         # ESLint code quality checks
-npm run format       # Prettier code formatting (auto-fix)
-```
-
-**Quality Assurance:**
-
-```bash
-npm run test:coverage      # Generate test coverage reports (target: 92%+)
-npm run quality:all       # Complete quality pipeline (lint + format + test + security)
-npm run deps:audit        # Security vulnerability scanning
-```
-
-**Production (PM2):**
-
-```bash
-pm2 delete posterrama && pm2 start ecosystem.config.js  # Full restart with .env reload
-pm2 logs posterrama       # View logs
-pm2 restart posterrama    # Quick restart (less reliable for .env changes)
-```
-
-## Quick Reference
-
-**Core Files:**
-
-- `server.js` – Main Express app, routes registration, Swagger at `/api-docs`
-- `routes/` – Modular Express routers (admin-\*, api-\*, device-\*, media-\*)
-- `sources/` – Media adapters: plex.js, jellyfin.js, tmdb.js (fetchMedia, getMetrics, resetMetrics)
-- `utils/` – logger.js, cache.js, wsHub.js, deviceStore.js, \*-http-client.js
-- `lib/` – jellyfin-helpers.js, plex-helpers.js
-
-**Patterns:**
-
-- **Logging**: `logger.info/warn/error/debug` (Winston, console redirected)
-- **Caching**: `CacheManager` from utils/cache.js (memory/disk/HTTP with TTL)
-- **HTTP**: Use utils/jellyfin-http-client.js, utils/plex-http-client.js
-- **WebSocket**: `/ws/devices` via wsHub.sendCommandAwait(deviceId, {type, payload})
-
-**Jellyfin Debug:**
-
-```bash
-# .env: JELLYFIN_HTTP_DEBUG=true
-pm2 delete posterrama && pm2 start ecosystem.config.js
-tail -f logs/combined.log | grep JellyfinHttpClient | jq -r '.message'
-```
+- **Logging**: Always use `utils/logger.js` (`logger.info`, `logger.error`). Do not use `console.log`.
+- **HTTP Clients**: Use dedicated clients in `utils/` (`plex-http-client.js`, `jellyfin-http-client.js`) which handle retries and headers.
+- **API Docs**: Swagger/OpenAPI definitions are in `server.js` (JSDoc comments) and `swagger.js`.
 
 ## Policy Addendum (2025-11-13)
 
 The AI assistant MUST:
 
-1. Respond only in English (no automatic language switching, even if the user uses another language, unless explicitly instructed to translate or answer in that language).
-2. NOT modify `README.md` or other top-level docs automatically. Documentation changes must be explicitly requested by the user each time.
-3. Prefer implementing code + tests over documentation edits when both are possible and the user has not explicitly requested docs.
-4. When a feature impacts the README, propose the diff in the response (English) and wait for explicit confirmation before applying, unless the user explicitly said to update the README now.
-5. Treat configuration schema changes as requiring: (a) schema edit, (b) example config consistency check, (c) validation path review, (d) at least one test covering new validation logic.
-
-Enforcement: If an instruction conflicts with this addendum, clarify with the user before proceeding.
+1. Respond only in English.
+2. NOT modify `README.md` or other top-level docs automatically.
+3. Prefer implementing code + tests over documentation edits.
+4. Propose `README.md` diffs in chat for user confirmation before applying.
+5. Treat configuration schema changes as requiring: schema edit, example update, validation update, and tests.

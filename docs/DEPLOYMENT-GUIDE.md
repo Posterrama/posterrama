@@ -15,12 +15,12 @@ NODE_ENV=development
 
 **Behavior:**
 
-- ✅ Serves raw files from `public/` (no build step)
-- ✅ Live file changes without rebuild
-- ✅ Full error stack traces in browser
-- ✅ Verbose logging enabled
-- ❌ No minification (larger files)
-- ❌ No cache-busting hashes
+- Serves raw files from `public/` (no build step)
+- Live file changes without rebuild
+- Full error stack traces in browser
+- Verbose logging enabled
+- No minification (larger files)
+- No cache-busting hashes
 
 **Use When:**
 
@@ -40,13 +40,13 @@ NODE_ENV=production
 
 **Behavior:**
 
-- ✅ Auto-builds frontend on startup if changed
-- ✅ Serves minified files from `dist/public/`
-- ✅ CSS minification (~29% smaller)
-- ✅ Asset hashing for cache busting
-- ✅ Smart rebuild detection (hash-based)
-- ✅ Reduced logging verbosity
-- ❌ Requires rebuild for frontend changes
+- Auto-builds frontend on startup if changed
+- Serves minified files from `dist/public/`
+- CSS minification (~29% smaller)
+- Asset hashing for cache busting
+- Smart rebuild detection (hash-based)
+- Reduced logging verbosity
+- Requires rebuild for frontend changes
 
 **Use When:**
 
@@ -148,30 +148,47 @@ This script:
 name: Deploy to Production
 
 on:
-    push:
-        branches: [main]
+ push:
+ branches: [main]
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v3
+ deploy:
+ runs-on: ubuntu-latest
+ steps:
+ - uses: actions/checkout@v3
 
-            - name: Deploy to server
-              run: |
-                  ssh user@server << 'EOF'
-                    cd /var/www/posterrama
-                    git pull origin main
-                    
-                    # Ensure production mode
-                    grep -q "NODE_ENV=production" .env || echo "NODE_ENV=production" >> .env
-                    
-                    # Auto-build happens on restart
-                    pm2 delete posterrama
-                    pm2 start ecosystem.config.js
-                    pm2 save
-                  EOF
+ - name: Deploy to server
+ run: |
+ ssh user@server << 'EOF'
+ cd /var/www/posterrama
+ git pull origin main
+
+ # Ensure production mode
+ grep -q "NODE_ENV=production" .env || echo "NODE_ENV=production" >> .env
+
+ # Auto-build happens on restart
+ pm2 delete posterrama
+ pm2 start ecosystem.config.js
+ pm2 save
+ EOF
 ```
+
+### Scenario 4: Manual Update (Fallback)
+
+**If automatic updates fail or for troubleshooting:**
+
+```bash
+# Run manual update script
+sudo bash scripts/manual-update.sh [version]
+```
+
+This script:
+
+1. Downloads the specified version (or latest)
+2. Backs up configuration (`config.json`, `devices.json`, `.env`)
+3. Replaces code while preserving data
+4. Restores configuration
+5. Restalls dependencies and restarts PM2
 
 ---
 
@@ -203,13 +220,13 @@ PLEX_TOKEN=your_token_here
 
 **Commit to Git:**
 
-- ✅ `public/` (source files)
-- ✅ `vite.config.js` (build configuration)
-- ✅ `ecosystem.config.js` (PM2 config)
-- ✅ `config.example.env` (template)
-- ❌ `dist/` (generated files, in `.gitignore`)
-- ❌ `.env` (secrets, in `.gitignore`)
-- ❌ `dist/.build-hash` (runtime cache)
+- `public/` (source files)
+- `vite.config.js` (build configuration)
+- `ecosystem.config.js` (PM2 config)
+- `config.example.env` (template)
+- `dist/` (generated files, in `.gitignore`)
+- `.env` (secrets, in `.gitignore`)
+- `dist/.build-hash` (runtime cache)
 
 ### 3. Multiple Developers
 
@@ -253,10 +270,10 @@ pm2 start ecosystem.config.js
 dist/public/
 ├── admin.html (253 KB, gzipped: 38 KB)
 ├── assets/
-│   ├── admin.B1PlrUXO.css (326 KB, gzipped: 42 KB)
-│   ├── error-handler.l-FyDqMs.js (1.15 KB, gzipped: 0.62 KB)
-│   ├── mode-redirect.CnJlCTyG.js (2.17 KB, gzipped: 0.95 KB)
-│   └── screensaver.BOeF07Qd.js (2.30 KB, gzipped: 0.96 KB)
+│ ├── admin.B1PlrUXO.css (326 KB, gzipped: 42 KB)
+│ ├── error-handler.l-FyDqMs.js (1.15 KB, gzipped: 0.62 KB)
+│ ├── mode-redirect.CnJlCTyG.js (2.17 KB, gzipped: 0.95 KB)
+│ └── screensaver.BOeF07Qd.js (2.30 KB, gzipped: 0.96 KB)
 └── ... (other pages)
 
 Total: 1.8 MB (vs public/ 3.6 MB)
@@ -343,18 +360,19 @@ cat /var/www/posterrama/dist/.build-hash
 
 1. Check you're in development mode:
 
-    ```bash
-    pm2 logs posterrama --lines 5 | grep NODE_ENV
-    # Should show: NODE_ENV=development
-    ```
+```bash
+pm2 logs posterrama --lines 5 | grep NODE_ENV
+# Should show: NODE_ENV=development
+```
 
 2. Clear browser cache (Ctrl+Shift+R)
 
 3. Check file was saved:
-    ```bash
-    ls -lh public/admin.html
-    # Verify timestamp is recent
-    ```
+
+```bash
+ls -lh public/admin.html
+# Verify timestamp is recent
+```
 
 ---
 
@@ -376,19 +394,19 @@ cat /var/www/posterrama/dist/.build-hash
 
 ## Summary
 
-✅ **Development:**
+**Development:**
 
 - Set `NODE_ENV=development` in `.env`
 - Serves from `public/` (no build)
 - Instant file changes
 
-✅ **Production:**
+    **Production:**
 
 - Set `NODE_ENV=production` in `.env`
 - Auto-builds on startup if changed
 - Serves minified from `dist/public/`
 
-✅ **Workflow:**
+    **Workflow:**
 
 1. Develop locally with `NODE_ENV=development`
 2. Commit and push changes
@@ -396,4 +414,9 @@ cat /var/www/posterrama/dist/.build-hash
 4. Auto-build detects changes and rebuilds
 5. Minified assets served to users
 
-No manual build steps needed on either side! 🚀
+No manual build steps needed on either side!
+
+---
+
+**Last updated:** November 16, 2025
+**Version:** 2.9.8

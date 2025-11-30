@@ -1,7 +1,7 @@
 # Posterrama Frontend Architecture
 
-**Version:** 2.9.4  
-**Last Updated:** November 15, 2025
+**Version:** 2.9.8
+**Last Updated:** November 28, 2025
 
 ---
 
@@ -59,55 +59,55 @@ Posterrama's frontend is a **Multi-Page Application (MPA)** built with **vanilla
 
 ```
 public/
-├── index.html                  # Landing page (mode selector)
-├── login.html                  # Admin login
-├── admin.html                  # Admin dashboard (26,564 LOC - TO BE SPLIT)
-├── setup.html                  # Device setup flow
-├── 2fa-verify.html             # 2FA verification
+├── index.html # Landing page (mode selector)
+├── login.html # Admin login
+├── admin.html # Admin dashboard (26,564 LOC - TO BE SPLIT)
+├── setup.html # Device setup flow
+├── 2fa-verify.html # 2FA verification
 │
 ├── Display Modes
-│   ├── screensaver.html        # Screensaver mode entry point
-│   ├── wallart.html            # Wallart mode entry point
-│   ├── cinema.html             # Cinema mode entry point
-│   ├── screensaver/
-│   │   ├── screensaver.js      # Screensaver display logic (1,144 LOC)
-│   │   └── screensaver.css     # Screensaver styles
-│   ├── wallart/
-│   │   ├── wallart-display.js  # Wallart grid layout logic (2,474 LOC)
-│   │   ├── wallart.css         # Wallart styles
-│   │   └── wallart-keyboard.js # Keyboard shortcuts
-│   └── cinema/
-│       ├── cinema-display.js   # Cinema display logic (2,070 LOC)
-│       ├── cinema-bootstrap.js # Cinema initialization (1,125 LOC)
-│       ├── cinema-ui.js        # Cinema UI controls (884 LOC)
-│       └── cinema.css          # Cinema styles
+│ ├── screensaver.html # Screensaver mode entry point
+│ ├── wallart.html # Wallart mode entry point
+│ ├── cinema.html # Cinema mode entry point
+│ ├── screensaver/
+│ │ ├── screensaver.js # Screensaver display logic (1,144 LOC)
+│ │ └── screensaver.css # Screensaver styles
+│ ├── wallart/
+│ │ ├── wallart-display.js # Wallart grid layout logic (2,474 LOC)
+│ │ ├── wallart.css # Wallart styles
+│ │ └── wallart-keyboard.js # Keyboard shortcuts
+│ └── cinema/
+│ ├── cinema-display.js # Cinema display logic (2,070 LOC)
+│ ├── cinema-bootstrap.js # Cinema initialization (1,125 LOC)
+│ ├── cinema-ui.js # Cinema UI controls (884 LOC)
+│ └── cinema.css # Cinema styles
 │
 ├── Core Modules (New - Extracted 2025-11-15)
-│   ├── error-handler.js        # Global error handler (127 LOC)
-│   ├── mode-redirect.js        # Mode switching logic (152 LOC)
-│   ├── display-mode-init.js    # Display mode initialization (32 LOC)
-│   └── screensaver-bootstrap.js # Screensaver init (177 LOC)
+│ ├── error-handler.js # Global error handler (127 LOC)
+│ ├── mode-redirect.js # Mode switching logic (152 LOC)
+│ ├── display-mode-init.js # Display mode initialization (32 LOC)
+│ └── screensaver-bootstrap.js # Screensaver init (177 LOC)
 │
 ├── Utilities (Legacy - Global Window Objects)
-│   ├── core.js                 # Core utilities (548 LOC)
-│   ├── device-mgmt.js          # Device management (2,513 LOC - TO BE SPLIT)
-│   ├── utils.js                # Shared helpers
-│   ├── lazy-loading.js         # Image lazy loading
-│   ├── client-logger.js        # Client-side logging
-│   └── notify.js               # Toast notifications
+│ ├── core.js # Core utilities (548 LOC)
+│ ├── device-mgmt.js # Device management (2,513 LOC - TO BE SPLIT)
+│ ├── utils.js # Shared helpers
+│ ├── lazy-loading.js # Image lazy loading
+│ ├── client-logger.js # Client-side logging
+│ └── notify.js # Toast notifications
 │
 ├── Admin (Monolith - TO BE SPLIT)
-│   ├── admin.js                # Admin dashboard logic (26,564 LOC!)
-│   └── admin.css               # Admin styles (15,503 LOC!)
+│ ├── admin.js # Admin dashboard logic (26,564 LOC!)
+│ └── admin.css # Admin styles (15,503 LOC!)
 │
 ├── Assets
-│   ├── style.css               # Global styles
-│   ├── icons/                  # PWA icons
-│   ├── favicon.ico             # Favicon
-│   └── manifest.json           # PWA manifest
+│ ├── style.css # Global styles
+│ ├── icons/ # PWA icons
+│ ├── favicon.ico # Favicon
+│ └── manifest.json # PWA manifest
 │
 └── Service Worker
-    └── sw.js                   # Service Worker (800 media item cache)
+ └── sw.js # Service Worker (800 media item cache)
 ```
 
 ---
@@ -118,8 +118,8 @@ public/
 
 **Purpose:** Simple slideshow with clock widget and automatic media rotation
 
-**Entry Point:** `screensaver.html`  
-**Logic:** `screensaver/screensaver.js` (1,144 LOC)  
+**Entry Point:** `screensaver.html`
+**Logic:** `screensaver/screensaver.js` (1,144 LOC)
 **Bootstrap:** `screensaver-bootstrap.js` (177 LOC)
 
 **Features:**
@@ -154,7 +154,7 @@ public/
 
 **Purpose:** Grid layout with hero poster rotation and music mode support
 
-**Entry Point:** `wallart.html`  
+**Entry Point:** `wallart.html`
 **Logic:** `wallart/wallart-display.js` (2,474 LOC)
 
 **Features:**
@@ -197,7 +197,7 @@ function calculateLayout(density, viewport) {
 
 **Purpose:** Immersive single-poster display with metadata overlay
 
-**Entry Point:** `cinema.html`  
+**Entry Point:** `cinema.html`
 **Logic:** `cinema/cinema-display.js` (2,070 LOC), `cinema-bootstrap.js` (1,125 LOC)
 
 **Features:**
@@ -237,24 +237,24 @@ function calculateLayout(density, viewport) {
 
 ```javascript
 window.PosterramaCore = {
-    // Config management
-    fetchConfig(extra = {}) → Promise<Object>,
+ // Config management
+ fetchConfig(extra = {}) → Promise<Object>,
 
-    // Mode detection
-    getActiveMode(cfg) → 'screensaver' | 'wallart' | 'cinema',
+ // Mode detection
+ getActiveMode(cfg) → 'screensaver' | 'wallart' | 'cinema',
 
-    // Navigation
-    buildUrlForMode(mode) → string,
-    navigateToMode(mode) → void,
+ // Navigation
+ buildUrlForMode(mode) → string,
+ navigateToMode(mode) → void,
 
-    // Auto-exit polling (mode switching check)
-    startAutoExitPoll({ currentMode, intervalMs }) → void,
+ // Auto-exit polling (mode switching check)
+ startAutoExitPoll({ currentMode, intervalMs }) → void,
 
-    // Service Worker
-    registerServiceWorker() → Promise<void>,
+ // Service Worker
+ registerServiceWorker() → Promise<void>,
 
-    // Promo overlay
-    loadPromoOverlay(cfg) → void,
+ // Promo overlay
+ loadPromoOverlay(cfg) → void,
 };
 ```
 
@@ -293,21 +293,21 @@ window.PosterramaCore.startAutoExitPoll({
 
 ```
 device-management/
-├── device-identity.js      # localStorage + IndexedDB (~400 LOC)
-├── device-network.js       # Registration, heartbeat (~600 LOC)
-├── device-websocket.js     # WebSocket, commands (~700 LOC)
-├── device-ui.js            # Pairing overlay, setup (~600 LOC)
-└── device-commands.js      # Command handlers (~600 LOC)
+├── device-identity.js # localStorage + IndexedDB (~400 LOC)
+├── device-network.js # Registration, heartbeat (~600 LOC)
+├── device-websocket.js # WebSocket, commands (~700 LOC)
+├── device-ui.js # Pairing overlay, setup (~600 LOC)
+└── device-commands.js # Command handlers (~600 LOC)
 ```
 
 **Exposed API:**
 
 ```javascript
 window.PosterramaDevice = {
-    init(cfg) → void,
-    getState() → { deviceId, installId, hardwareId },
-    sendCommand(cmd) → Promise<void>,
-    updatePresence() → Promise<void>,
+ init(cfg) → void,
+ getState() → { deviceId, installId, hardwareId },
+ sendCommand(cmd) → Promise<void>,
+ updatePresence() → Promise<void>,
 };
 ```
 
@@ -382,7 +382,7 @@ window.PosterramaDevice; // Device management
 window.PosterramaScreensaver; // Screensaver module
 ```
 
-**⚠️ Technical Debt:** Global state is fragmented and unpredictable.
+**️ Technical Debt:** Global state is fragmented and unpredictable.
 
 **Recommended Migration:** Zustand or Redux Toolkit (see FRONTEND-ANALYSIS Part 4)
 
@@ -433,11 +433,11 @@ npm run dev
 
 **Features:**
 
-- ✅ Terser minification (5-7x size reduction)
-- ✅ Asset hashing (cache busting)
-- ✅ Source maps
-- ✅ API proxy to backend (`:4000`)
-- ❌ Module bundling (scripts not yet `type="module"`)
+- Terser minification (5-7x size reduction)
+- Asset hashing (cache busting)
+- Source maps
+- API proxy to backend (`:4000`)
+- Module bundling (scripts not yet `type="module"`)
 
 **Next Steps:**
 
@@ -453,21 +453,21 @@ npm run dev
 
 ```bash
 # 1. Start backend server
-npm start                # Port 4000
+npm start # Port 4000
 
 # 2. Start Vite dev server (optional, for HMR)
-npm run dev              # Port 5173
+npm run dev # Port 5173
 
 # 3. Access app
-http://localhost:4000    # Direct (no build)
-http://localhost:5173    # Vite dev server (with HMR)
+http://localhost:4000 # Direct (no build)
+http://localhost:5173 # Vite dev server (with HMR)
 ```
 
 ### Production Build
 
 ```bash
 # 1. Build frontend
-npm run build            # Output: dist/public/
+npm run build # Output: dist/public/
 
 # 2. Deploy dist/public/ to server
 # (server.js should serve from dist/public/ in production)
@@ -476,12 +476,11 @@ npm run build            # Output: dist/public/
 ### Testing
 
 ```bash
-# No frontend tests yet (0% coverage)
-# Recommended: Vitest + Playwright
+npm run test:frontend # Unit tests (Vitest) - 88 tests passing
+# npm run test:e2e # E2E tests (Playwright) - Planned
 
 # Future:
-npm run test:frontend    # Unit tests (Vitest)
-npm run test:e2e         # E2E tests (Playwright)
+# npm run test:e2e # E2E tests (Playwright)
 ```
 
 ---
@@ -504,7 +503,7 @@ npm run test:e2e         # E2E tests (Playwright)
 })();
 ```
 
-**Pros:** No build step required, works in all browsers  
+**Pros:** No build step required, works in all browsers
 **Cons:** Pollutes global namespace, no tree shaking, no type safety
 
 ---
@@ -531,7 +530,7 @@ export function isPreviewMode() {
 </script>
 ```
 
-**Pros:** Clean exports, tree shaking, better IDE support  
+**Pros:** Clean exports, tree shaking, better IDE support
 **Cons:** Requires `type="module"` in HTML, build step for optimization
 
 ---
@@ -612,7 +611,7 @@ ws.send(JSON.stringify({ type: 'heartbeat', deviceId: 'abc123' }));
 
 ### Current State
 
-**Frontend Tests:** 0% coverage (no tests exist)
+**Frontend Tests:** 88 tests passing (Screensaver, Wallart, Cinema modes covered)
 
 **Backend Tests:** 2,400+ tests, 92%+ coverage
 
@@ -677,45 +676,55 @@ test('should switch from screensaver to wallart', async ({ page }) => {
 2. Create `public/new-mode/new-mode-display.js`
 3. Create `public/new-mode/new-mode.css`
 4. Add entry point to `vite.config.js`:
-    ```javascript
-    input: {
-        // ... existing entries
-        'new-mode': resolve(__dirname, 'public/new-mode.html'),
-    }
-    ```
+
+```javascript
+input: {
+// ... existing entries
+'new-mode': resolve(__dirname, 'public/new-mode.html'),
+}
+```
+
 5. Add mode detection to `core.js`:
-    ```javascript
-    Core.getActiveMode = function (cfg) {
-        if (cfg.newModeEnabled) return 'new-mode';
-        // ... existing logic
-    };
-    ```
+
+```javascript
+Core.getActiveMode = function (cfg) {
+    if (cfg.newModeEnabled) return 'new-mode';
+    // ... existing logic
+};
+```
+
 6. Add route in `server.js`:
-    ```javascript
-    app.get('/new-mode', (req, res) => {
-        res.sendFile(path.join(__dirname, 'public/new-mode.html'));
-    });
-    ```
+
+```javascript
+app.get('/new-mode', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/new-mode.html'));
+});
+```
 
 ---
 
 ### Debug Mode Switching Issues
 
 1. Enable debug logging:
-    ```javascript
-    window.debugLog = (event, data) => {
-        console.log(`[DEBUG] ${event}`, data);
-    };
-    ```
+
+```javascript
+window.debugLog = (event, data) => {
+    console.log(`[DEBUG] ${event}`, data);
+};
+```
+
 2. Check mode verification flags:
-    ```javascript
-    console.log('Wallart verified:', window.__wallartModeVerified);
-    ```
+
+```javascript
+console.log('Wallart verified:', window.__wallartModeVerified);
+```
+
 3. Check auto-exit polling:
-    ```javascript
-    // Should log every 15s
-    window.PosterramaCore.startAutoExitPoll({ currentMode: 'cinema', intervalMs: 15000 });
-    ```
+
+```javascript
+// Should log every 15s
+window.PosterramaCore.startAutoExitPoll({ currentMode: 'cinema', intervalMs: 15000 });
+```
 
 ---
 
@@ -760,30 +769,33 @@ Then import where needed:
 
 ### Quick Wins
 
-1. **Enable Minification:** ✅ Done (Vite setup)
-2. **Extract Inline Scripts:** ✅ Done (mode-redirect.js, error-handler.js)
-3. **Add `type="module"` to scripts:** ❌ TODO
-4. **Code splitting:** ❌ TODO (requires admin.js split)
-5. **Image optimization:** ❌ TODO (WebP/AVIF support)
+1. **Enable Minification:** Done (Vite setup)
+2. **Extract Inline Scripts:** Done (mode-redirect.js, error-handler.js)
+3. **Add `type="module"` to scripts:** TODO
+4. **Code splitting:** TODO (requires admin.js split)
+5. **Image optimization:** TODO (WebP/AVIF support)
 
 ---
 
 ## Security Considerations
 
 1. **XSS Prevention:**
-    - Audit all `innerHTML` usage
-    - Use `textContent` when possible
-    - Sanitize user input
+
+- Audit all `innerHTML` usage
+- Use `textContent` when possible
+- Sanitize user input
 
 2. **Authentication:**
-    - Admin routes require JWT token
-    - 2FA support available
-    - Token stored in HttpOnly cookie (recommended vs localStorage)
+
+- Admin routes require JWT token
+- 2FA support available
+- Token stored in HttpOnly cookie (recommended vs localStorage)
 
 3. **WebSocket Security:**
-    - Device ID validation
-    - Rate limiting on commands
-    - TLS/WSS in production
+
+- Device ID validation
+- Rate limiting on commands
+- TLS/WSS in production
 
 ---
 
@@ -809,8 +821,8 @@ Then import where needed:
 
 ### Issue: Mode redirect loop
 
-**Symptom:** Page keeps reloading  
-**Cause:** Mode verification flag not set  
+**Symptom:** Page keeps reloading
+**Cause:** Mode verification flag not set
 **Fix:**
 
 ```javascript
@@ -822,8 +834,8 @@ window.__wallartModeVerified = true;
 
 ### Issue: Media queue empty
 
-**Symptom:** "No media available"  
-**Cause:** `/get-media` endpoint returning empty array  
+**Symptom:** "No media available"
+**Cause:** `/get-media` endpoint returning empty array
 **Fix:**
 
 1. Check backend logs for errors
@@ -834,8 +846,8 @@ window.__wallartModeVerified = true;
 
 ### Issue: WebSocket connection fails
 
-**Symptom:** Device commands not working  
-**Cause:** WebSocket connection refused  
+**Symptom:** Device commands not working
+**Cause:** WebSocket connection refused
 **Fix:**
 
 1. Check device registration: `window.PosterramaDevice.getState()`
@@ -848,7 +860,7 @@ window.__wallartModeVerified = true;
 ## Resources
 
 - **Backend Analysis:** [docs/BACKEND-ANALYSIS-2025-11-13-README.md](./BACKEND-ANALYSIS-2025-11-13-README.md)
-- **Frontend Analysis:** [docs/FRONTEND-ANALYSIS-2025-11-15-README.md](./FRONTEND-ANALYSIS-2025-11-15-README.md)
+- **Frontend Analysis:** [docs/FRONTEND-ANALYSIS-CONSOLIDATED.md](./FRONTEND-ANALYSIS-CONSOLIDATED.md)
 - **API Documentation:** http://localhost:4000/api-docs
 - **GitHub Repository:** https://github.com/Posterrama/posterrama
 
@@ -856,6 +868,6 @@ window.__wallartModeVerified = true;
 
 **End of Architecture Documentation**
 
-**Last Updated:** November 15, 2025  
-**Maintainer:** Posterrama Team  
+**Last Updated:** November 15, 2025
+**Maintainer:** Posterrama Team
 **Questions?** Open an issue on GitHub

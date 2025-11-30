@@ -1,7 +1,7 @@
 # Frontend Analysis - Consolidated Report
 
-**Date:** November 15, 2025  
-**Version:** 2.9.4  
+**Date:** November 28, 2025
+**Version:** 2.9.8
 **Status:** Analysis Complete + Performance Optimizations Implemented
 
 ---
@@ -22,24 +22,24 @@ This document was created on November 15, 2025 by consolidating ~180KB of detail
 
 ```
 public/
- screensaver.html          # Primary mode (portrait/landscape)
- wallart.html              # Gallery grid mode
- cinema.html               # Now Playing mode
- admin.html                # Configuration interface (1.3MB)
+ screensaver.html # Primary mode (portrait/landscape)
+ wallart.html # Gallery grid mode
+ cinema.html # Now Playing mode
+ admin.html # Configuration interface (1.3MB)
  styles/
-    ├── style.css (64KB)      # Main stylesheet (non-blocking)
-    ├── critical.css (1KB)    # Inline critical CSS
-    └── *.css                 # Component styles
+ ├── style.css (64KB) # Main stylesheet (non-blocking)
+ ├── critical.css (1KB) # Inline critical CSS
+ └── *.css # Component styles
 
 js/ (Vite-built)
- screensaver.js            # Core rotation logic
- wallart.js                # Grid calculation
- cinema.js                 # Now Playing integration
- device-client.js          # WebSocket client
- admin.js (1.3MB IIFE)     # Monolithic admin (needs split)
+ screensaver.js # Core rotation logic
+ wallart.js # Grid calculation
+ cinema.js # Now Playing integration
+ device-client.js # WebSocket client
+ admin.js (1.3MB IIFE) # Monolithic admin (needs split)
 
 utils/
- frontend-helpers.js       # Shared utilities
+ frontend-helpers.js # Shared utilities
 ```
 
 ### Display Modes
@@ -69,7 +69,7 @@ utils/
 
 ## Performance Optimizations (2025-11-15)
 
-### Task A: FCP Verification ✅
+### Task A: FCP Verification
 
 **Objective:** Verify 20-40% FCP improvement from defer attribute
 
@@ -81,62 +81,65 @@ utils/
 
 **Analysis:** Defer optimization successful, major FCP improvements achieved
 
-### Task B: Test Coverage Expansion ✅
+### Task B: Test Coverage Expansion
 
 **Objective:** Comprehensive frontend test suite
 
 **Results:**
 
 - Created `cinema-display.test.js` (22 tests)
-    - Rotation configuration
-    - Media queue management
-    - Poster rotation logic
-    - Now Playing integration
-    - Layout calculation
-    - Error handling
+- Rotation configuration
+- Media queue management
+- Poster rotation logic
+- Now Playing integration
+- Layout calculation
+- Error handling
 
 - Created `wallart-display.test.js` (33 tests)
-    - Density configuration
-    - Poster count calculation
-    - Grid positioning
-    - Ambient overlay
-    - Lifecycle management
-    - Error handling
+- Density configuration
+- Poster count calculation
+- Grid positioning
+- Ambient overlay
+- Lifecycle management
+- Error handling
 
 **Total:** 88 frontend tests passing (55 new tests added)
 
-### Task C: CSS Optimization ✅
+### Task C: CSS Optimization
 
 **Objective:** Inline critical CSS for non-blocking render
 
 **Implementation:**
 
 1. **Extracted Critical CSS** (1069 bytes minified)
-    - HTML/body reset
-    - Loader styles
-    - Poster container
-    - Error message
-    - Critical animations
+
+- HTML/body reset
+- Loader styles
+- Poster container
+- Error message
+- Critical animations
 
 2. **Modified HTML Files**
-    - Inline critical CSS in `<head>`
-    - Converted style.css to `<link rel="preload">`
-    - Added onload handler: `this.onload=null;this.rel='stylesheet'`
-    - Added noscript fallback
+
+- Inline critical CSS in `<head>`
+- Converted style.css to `<link rel="preload">`
+- Added onload handler: `this.onload=null;this.rel='stylesheet'`
+- Added noscript fallback
 
 3. **Created css-loader.js**
-    - Progressive CSS loading
-    - Fallback mechanism
+
+- Progressive CSS loading
+- Fallback mechanism
 
 **Result:**
 
-- ❌ No FCP improvement (defer was the real bottleneck)
-- ✅ Non-blocking CSS render achieved
-- ✅ style.css removed from render-blocking resources
+- No FCP improvement (defer was the real bottleneck)
+- Non-blocking CSS render achieved
+- style.css removed from render-blocking resources
 
 **Analysis:** CSS optimization delivered value (non-blocking render) but defer attribute was the actual FCP bottleneck.
 
-### Task D: Memory Profiling ✅
+### Task D: Memory Profiling
 
 **Objective:** Automated memory profiling across all display modes
 
@@ -149,19 +152,19 @@ utils/
 **Results:**
 
 ```
-Page         Heap     DOM    Listeners  Layouts  Script
-Admin        0.89 MB  89     9          7        156 ms
-Screensaver  7.25 MB  412    22         115      1043 ms
-Wallart      6.77 MB  587    27         97       891 ms
-Cinema       2.66 MB  293    15         52       567 ms
+Page Heap DOM Listeners Layouts Script
+Admin 0.89 MB 89 9 7 156 ms
+Screensaver 7.25 MB 412 22 115 1043 ms
+Wallart 6.77 MB 587 27 97 891 ms
+Cinema 2.66 MB 293 15 52 567 ms
 ```
 
 **Analysis:**
 
-- ✅ All pages show healthy memory patterns
-- ✅ Screensaver/Wallart better than estimates (8-15 MB)
-- ✅ No memory leak indicators (low listeners, clean DOM)
-- ✅ Script execution times acceptable (<1100ms)
+- All pages show healthy memory patterns
+- Screensaver/Wallart better than estimates (8-15 MB)
+- No memory leak indicators (low listeners, clean DOM)
+- Script execution times acceptable (<1100ms)
 
 **npm script added:** `npm run perf:memory`
 
@@ -179,23 +182,23 @@ Cinema       2.66 MB  293    15         52       567 ms
 
 **Key Areas Covered:**
 
-- ✅ Display mode configuration
-- ✅ Media queue management
-- ✅ Poster rotation logic
-- ✅ Grid calculation (Wallart)
-- ✅ Now Playing integration (Cinema)
-- ✅ Ambient overlay effects
-- ✅ WebSocket lifecycle
-- ✅ Error handling
+- Display mode configuration
+- Media queue management
+- Poster rotation logic
+- Grid calculation (Wallart)
+- Now Playing integration (Cinema)
+- Ambient overlay effects
+- WebSocket lifecycle
+- Error handling
 
 **Coverage Target:** 3% per-file threshold (vitest.config.js)
 
 ### Test Execution
 
 ```bash
-npm test                      # Run all tests
-npm test -- screensaver       # Run specific suite
-npm run test:coverage         # Generate coverage report
+npm test # Run all tests
+npm test -- screensaver # Run specific suite
+npm run test:coverage # Generate coverage report
 ```
 
 ---
@@ -205,11 +208,11 @@ npm run test:coverage         # Generate coverage report
 ### Load Time Metrics (Post-Optimization)
 
 ```
-Metric               Screensaver  Wallart  Cinema
-FCP                  2.4s         2.6s     3.2s
-LCP                  2.8s         3.1s     3.5s
-TTI                  3.2s         3.8s     4.1s
-Total Blocking Time  120ms        150ms    180ms
+Metric Screensaver Wallart Cinema
+FCP 2.4s 2.6s 3.2s
+LCP 2.8s 3.1s 3.5s
+TTI 3.2s 3.8s 4.1s
+Total Blocking Time 120ms 150ms 180ms
 ```
 
 **Improvements from Baseline:**
@@ -221,11 +224,11 @@ Total Blocking Time  120ms        150ms    180ms
 ### Memory Usage (Measured via Puppeteer)
 
 ```
-Mode         Heap Size  DOM Nodes  Event Listeners
-Screensaver  7.25 MB    412        22
-Wallart      6.77 MB    587        27
-Cinema       2.66 MB    293        15
-Admin        0.89 MB    89         9
+Mode Heap Size DOM Nodes Event Listeners
+Screensaver 7.25 MB 412 22
+Wallart 6.77 MB 587 27
+Cinema 2.66 MB 293 15
+Admin 0.89 MB 89 9
 ```
 
 **Analysis:** All modes show healthy memory patterns with no leak indicators.
@@ -233,13 +236,13 @@ Admin        0.89 MB    89         9
 ### Bundle Sizes
 
 ```
-File             Size      Gzipped
-admin.js         1.3 MB    400 KB    (⚠️ needs splitting)
-screensaver.js   45 KB     12 KB
-wallart.js       38 KB     10 KB
-cinema.js        32 KB     9 KB
-style.css        64 KB     8 KB
-critical.css     1 KB      450 B
+File Size Gzipped
+admin.js 1.3 MB 400 KB (️ needs splitting)
+screensaver.js 45 KB 12 KB
+wallart.js 38 KB 10 KB
+cinema.js 32 KB 9 KB
+style.css 64 KB 8 KB
+critical.css 1 KB 450 B
 ```
 
 **Priority:** Split admin.js into ES modules (Q1 2026)
@@ -248,39 +251,45 @@ critical.css     1 KB      450 B
 
 ## Optimization Roadmap
 
-### 🔴 Critical (Q1 2026)
+### Critical (Q1 2026)
 
 1. **Split admin.js** (40-60h)
-    - 1.3MB IIFE → 12 ES modules
-    - Enable tree-shaking
-    - Target: 400-650KB total
+
+- 1.3MB IIFE → 12 ES modules
+- Enable tree-shaking
+- Target: 400-650KB total
 
 2. **Progressive image loading** (15-20h)
-    - Lazy load below-the-fold
-    - Placeholder images
-    - IntersectionObserver
+
+- Lazy load below-the-fold
+- Placeholder images
+- IntersectionObserver
 
 ### 🟡 High (Q2 2026)
 
 3. **Service Worker caching** (20-30h)
-    - Offline support
-    - Cache-first strategy
-    - Background sync
+
+- Offline support
+- Cache-first strategy
+- Background sync
 
 4. **WebP/AVIF adoption** (10-15h)
-    - Modern image formats
-    - Fallback to JPEG
-    - 30-50% size reduction
+
+- Modern image formats
+- Fallback to JPEG
+- 30-50% size reduction
 
 ### 🟢 Medium (Q3-Q4 2026)
 
 5. **Virtual scrolling (Wallart)** (15-20h)
-    - Render only visible posters
-    - Improve high-density performance
+
+- Render only visible posters
+- Improve high-density performance
 
 6. **Preconnect optimization** (5-8h)
-    - DNS prefetch for CDNs
-    - Preconnect to media servers
+
+- DNS prefetch for CDNs
+- Preconnect to media servers
 
 ---
 
@@ -311,10 +320,10 @@ style.css (64KB)
  Reset/base
  Layout (grid, flex)
  Components
-   ├── .poster
-   ├── .ambient-overlay
-   ├── .loader
-   └── .error-message
+ ├── .poster
+ ├── .ambient-overlay
+ ├── .loader
+ └── .error-message
  Animations
  Media queries
 ```
@@ -354,10 +363,10 @@ style.css (64KB)
 
 ### Supported Browsers
 
-- ✅ Chrome/Edge 90+
-- ✅ Firefox 88+
-- ✅ Safari 14+
-- ❌ IE11 (not supported)
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
+- IE11 (not supported)
 
 ### Required APIs
 
@@ -450,5 +459,5 @@ npm test
 **Document History:**
 
 - **Created:** November 15, 2025
-- **Last Updated:** November 15, 2025
+- **Last Updated:** November 28, 2025
 - **Status:** Active - Single source of truth for frontend analysis

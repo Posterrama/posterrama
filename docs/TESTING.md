@@ -4,33 +4,33 @@ Complete guide for all testing & validation in Posterrama v2.9.4.
 
 ---
 
-## 🎯 Quick Start
+## Quick Start
 
 ### For Release
 
 ```bash
-npm run release:ready              # Complete pre-release validation
-npm run release:ready:fast         # Fast version (skip slow tests)
+npm run release:ready # Complete pre-release validation
+npm run release:ready:fast # Fast version (skip slow tests)
 ```
 
 ### Daily Development
 
 ```bash
-npm test                           # Unit tests
-npm run test:watch                 # Watch mode
-npm run lint                       # Code quality
-npm run format                     # Auto-format
+npm test # Unit tests
+npm run test:watch # Watch mode
+npm run lint # Code quality
+npm run format # Auto-format
 ```
 
 ---
 
-## 📊 Test Coverage Overview
+## Test Coverage Overview
 
-**Backend:** 175 test files, ~2044 tests
+**Backend:** 175 test files, ~2400 tests
 
 - **Coverage target:** 60-70% (realistic behavioral testing)
 - **Test types:** Unit, Integration, API, Performance, Regression
-- **Frontend:** 4 Vitest browser tests
+- **Frontend:** 88 Vitest browser tests
 
 **Test distribution:**
 
@@ -41,21 +41,21 @@ npm run format                     # Auto-format
 - Config: 13 tests
 - Performance: 3 tests
 - Integration: 4 tests
-- Frontend: 4 tests
+- Frontend: 88 tests
 
 ---
 
-## 🚀 The Master Test Script
+## The Master Test Script
 
 ### What is `master-test.sh`?
 
 The **definitive pre-release validation script** that:
 
-- ✅ Executes **9 phases** of checks
-- ✅ Uses **real credentials** (`private/test-credentials.json`)
-- ✅ **Clear categories**: BLOCKERS, FAILURES, WARNINGS
-- ✅ **Auto-fix** where possible
-- ✅ **Pass rate** percentage and final report
+- Executes **9 phases** of checks
+- Uses **real credentials** (`private/test-credentials.json`)
+- **Clear categories**: BLOCKERS, FAILURES, WARNINGS
+- **Auto-fix** where possible
+- **Pass rate** percentage and final report
 
 ### Usage
 
@@ -74,76 +74,76 @@ AUTO_FIX=false ./scripts/master-test.sh
 
 #### PHASE 0: Environment Setup
 
-- ✅ Node.js & npm installed
-- ✅ node_modules exists
-- ✅ Test credentials available (`private/test-credentials.json`)
+- Node.js & npm installed
+- node_modules exists
+- Test credentials available (`private/test-credentials.json`)
 
 #### PHASE 1: Code Quality
 
-- ✅ ESLint (auto-fix available)
-- ✅ Prettier formatting (auto-fix available)
-- ✅ No backup files
-- ✅ No large files (>500KB)
-- ✅ Console.log statements removed
+- ESLint (auto-fix available)
+- Prettier formatting (auto-fix available)
+- No backup files
+- No large files (>500KB)
+- Console.log statements removed
 
 #### PHASE 2: Configuration & Schema
 
-- ✅ config.json exists & valid
-- ✅ Config validates against schema
-- ✅ Example configs up-to-date
-- ✅ Admin defaults validated
+- config.json exists & valid
+- Config validates against schema
+- Example configs up-to-date
+- Admin defaults validated
 
 #### PHASE 3: Dependencies & Security
 
-- ✅ All dependencies installed
-- ✅ No unused dependencies
-- ✅ Security audit (filtered)
-- ✅ No secrets in code
+- All dependencies installed
+- No unused dependencies
+- Security audit (filtered)
+- No secrets in code
 
 #### PHASE 4: Unit & API Tests
 
-- ✅ Jest configuration valid
-- ✅ All unit tests pass
-- ✅ Test coverage meets threshold (60-70%)
+- Jest configuration valid
+- All unit tests pass
+- Test coverage meets threshold (60-70%)
 
 #### PHASE 5: Integration Tests ⭐ **WITH REAL CREDENTIALS**
 
-- ✅ Integration tests with real Plex/Jellyfin/TMDB
-- ✅ Media source connectivity check
-- ⚠️ Skipped if `private/test-credentials.json` doesn't exist
+- Integration tests with real Plex/Jellyfin/TMDB
+- Media source connectivity check
+- ️ Skipped if `private/test-credentials.json` doesn't exist
 
 #### PHASE 6: Regression Tests
 
-- 🚫 API contract validation (BLOCKING)
-- 🚫 Config schema backward compatibility (BLOCKING)
-- ⚠️ External service contracts
-- ⚠️ Critical path E2E tests
+- API contract validation (BLOCKING)
+- Config schema backward compatibility (BLOCKING)
+- ️ External service contracts
+- ️ Critical path E2E tests
 
 #### PHASE 7: Performance & Health
 
-- ✅ Health check passes
-- ✅ Performance baseline check
-- ✅ Memory usage reasonable
+- Health check passes
+- Performance baseline check
+- Memory usage reasonable
 
 #### PHASE 8: Documentation & API
 
-- ✅ README.md exists
-- ✅ OpenAPI spec generation
-- ✅ OpenAPI spec validation
-- ✅ Swagger documentation complete
+- README.md exists
+- OpenAPI spec generation
+- OpenAPI spec validation
+- Swagger documentation complete
 
 #### PHASE 9: File System & Cleanup
 
-- ✅ Shell scripts executable (auto-fix)
-- ✅ Test artifacts cleaned (auto-fix)
-- ✅ No .env files committed
+- Shell scripts executable (auto-fix)
+- Test artifacts cleaned (auto-fix)
+- No .env files committed
 
 ### Output Example
 
 ```
 ╔═══════════════════════════════════════════════════════════════╗
-║   POSTERRAMA MASTER TEST & RELEASE READINESS                 ║
-║   Complete validation with real credentials                  ║
+║ POSTERRAMA MASTER TEST & RELEASE READINESS ║
+║ Complete validation with real credentials ║
 ╚═══════════════════════════════════════════════════════════════╝
 
 ═══════════════════════════════════════════════════════════════
@@ -151,55 +151,55 @@ PHASE 1: CODE QUALITY
 ═══════════════════════════════════════════════════════════════
 
 ▶ Linting & Formatting
-  [1] ESLint code quality... ✅ PASS
-  [2] Prettier code formatting... ✅ PASS
+ [1] ESLint code quality... PASS
+ [2] Prettier code formatting... PASS
 
 ... (more output)
 
 ═══════════════════════════════════════════════════════════════
-📊 FINAL RELEASE READINESS REPORT
+ FINAL RELEASE READINESS REPORT
 ═══════════════════════════════════════════════════════════════
 
 Summary:
-  Total Checks:    45
-  ✅ Passed:       42
-  ❌ Failed:       1
-  ⚠️  Warnings:     2
-  🚫 Blockers:     0
+ Total Checks: 45
+ Passed: 42
+ Failed: 1
+ ️ Warnings: 2
+ Blockers: 0
 
-  Pass Rate: 93%
+ Pass Rate: 93%
 
-⚠️  WARNINGS (review recommended):
-  • [23] Integration tests: Cannot reach some media sources
-  • [35] Memory usage: 450MB (monitor for leaks)
+️ WARNINGS (review recommended):
+ • [23] Integration tests: Cannot reach some media sources
+ • [35] Memory usage: 450MB (monitor for leaks)
 
-✅ RELEASE READY (with warnings)
-   2 warnings to review
+ RELEASE READY (with warnings)
+ 2 warnings to review
 ```
 
 ### Exit Codes
 
-| Exit Code | Status                 | Meaning                    |
-| --------- | ---------------------- | -------------------------- |
-| `0`       | ✅ **READY**           | All checks passed          |
-| `1`       | 🚫 **BLOCKED**         | Blocking issues, fix first |
-| `1`       | ⚠️ **NOT RECOMMENDED** | Failures present           |
+| Exit Code | Status                | Meaning                    |
+| --------- | --------------------- | -------------------------- |
+| `0`       | **READY**             | All checks passed          |
+| `1`       | **BLOCKED**           | Blocking issues, fix first |
+| `1`       | ️ **NOT RECOMMENDED** | Failures present           |
 
 ### Status Categories
 
-**🚫 BLOCKER** - MUST be fixed before release:
+** BLOCKER** - MUST be fixed before release:
 
 - API contract regression
 - Config schema breaking changes
 - Critical system failures
 
-**❌ FAILURE** - SHOULD be fixed:
+** FAILURE** - SHOULD be fixed:
 
 - Test failures
 - Config validation errors
 - ESLint/Prettier errors
 
-**⚠️ WARNING** - Review recommended:
+**️ WARNING** - Review recommended:
 
 - External service issues
 - Performance warnings
@@ -207,7 +207,7 @@ Summary:
 
 ---
 
-## 📋 All Test Commands
+## All Test Commands
 
 ### Unit & Integration Tests
 
@@ -249,31 +249,31 @@ Summary:
 
 Quick check voor live servers:
 
-- ✅ Basic connectivity (root, admin)
-- ✅ API endpoints (/api/health, /get-config, /api/posters)
-- ✅ Static assets (logo, CSS, JS)
-- ✅ Display modes (screensaver, wallart, cinema)
-- ✅ Response time check (<100ms = excellent)
+- Basic connectivity (root, admin)
+- API endpoints (/api/health, /get-config, /api/posters)
+- Static assets (logo, CSS, JS)
+- Display modes (screensaver, wallart, cinema)
+- Response time check (<100ms = excellent)
 
 #### Contract Test
 
 API contract validatie op live server:
 
-- ✅ Verify status codes
-- ✅ Verify response structure
-- ✅ Verify required fields
-- ✅ Verify field types
-- ✅ Response time measurement
+- Verify status codes
+- Verify response structure
+- Verify required fields
+- Verify field types
+- Response time measurement
 
 #### Performance Test
 
 Performance monitoring met baselines:
 
-- ✅ Meet response times (5 iteraties)
-- ✅ Calculate avg, min, max, P95
-- ✅ Compare tegen thresholds
-- ✅ Compare tegen baseline
-- ✅ Detect >20% performance changes
+- Meet response times (5 iteraties)
+- Calculate avg, min, max, P95
+- Compare tegen thresholds
+- Compare tegen baseline
+- Detect >20% performance changes
 
 ### Code Quality
 
@@ -353,30 +353,30 @@ Performance monitoring met baselines:
 
 ---
 
-## 🔄 Recommended Workflow
+## Recommended Workflow
 
 ### For Each Feature
 
 ```bash
-npm test                    # Quick unit test check
+npm test # Quick unit test check
 ```
 
 ### For Commit
 
 ```bash
-npm run lint && npm test    # Basic quality gate
+npm run lint && npm test # Basic quality gate
 ```
 
 ### For Pull Request
 
 ```bash
-npm run release:ready       # Full validation
+npm run release:ready # Full validation
 ```
 
 ### For Release
 
 ```bash
-npm run release:ready       # Complete check
+npm run release:ready # Complete check
 # Review output
 # Fix any blockers/failures
 # Deploy!
@@ -402,7 +402,7 @@ git commit -m "chore: update performance baseline"
 
 ---
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### "BLOCKED: API contract regression"
 
@@ -458,7 +458,7 @@ npm run test:performance:baseline
 
 ---
 
-## 📝 Test Credentials
+## Test Credentials
 
 For **complete** integration testing (PHASE 5):
 
@@ -484,16 +484,16 @@ For **complete** integration testing (PHASE 5):
 
 **Without credentials:**
 
-- Unit tests: ✅ Work (use mocks)
-- API tests: ✅ Work (use mocks)
-- Integration tests: ⚠️ Will be **skipped**
-- Regression tests: ✅ Work (some use mocks)
+- Unit tests: Work (use mocks)
+- API tests: Work (use mocks)
+- Integration tests: ️ Will be **skipped**
+- Regression tests: Work (some use mocks)
 
 Location: `private/test-credentials.json`
 
 ---
 
-## 📈 Continuous Integration
+## Continuous Integration
 
 ### Potential CI/CD Extensions
 
@@ -507,11 +507,11 @@ on:
     workflow_dispatch:
 jobs:
     smoke-test:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v3
-            - run: npm ci
-            - run: npm run test:smoke:live https://your-domain.com
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v3
+        - run: npm ci
+        - run: npm run test:smoke:live https://your-domain.com
 ```
 
 #### Performance Monitoring
@@ -523,11 +523,11 @@ on:
         - cron: '0 0 * * *' # Daily
 jobs:
     performance:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v3
-            - run: npm ci
-            - run: TEST_URL=https://your-domain.com npm run test:performance
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v3
+        - run: npm ci
+        - run: TEST_URL=https://your-domain.com npm run test:performance
 ```
 
 #### Pre-deployment Gate
@@ -536,19 +536,19 @@ jobs:
 name: Pre-deployment
 on:
     push:
-        branches: [main]
+    branches: [main]
 jobs:
     validate:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v3
-            - run: npm ci
-            - run: npm run test:pre-deployment
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v3
+        - run: npm ci
+        - run: npm run test:pre-deployment
 ```
 
 ---
 
-## 🎯 Possible Extensions
+## Possible Extensions
 
 Current coverage is very comprehensive. Optional additions:
 
@@ -581,7 +581,7 @@ npm install -D playwright @playwright/test
 
 ---
 
-## 📊 Metrics & Reporting
+## Metrics & Reporting
 
 Automatically generated reports:
 
@@ -591,7 +591,7 @@ Automatically generated reports:
 
 ---
 
-## 💡 Best Practices
+## Best Practices
 
 1. **Voor Development:** `npm run test:watch`
 2. **Voor Commit:** `npm run lint && npm test`
@@ -602,7 +602,7 @@ Automatically generated reports:
 
 ---
 
-## 🎯 Conclusion
+## Conclusion
 
 **`npm run release:ready` is the definitive answer to:**
 
@@ -610,15 +610,15 @@ Automatically generated reports:
 
 It gives you a clear, structured overview with:
 
-- ✅ What works (PASSED)
-- ❌ What needs to be fixed (FAILURES)
-- 🚫 What blocks the release (BLOCKERS)
-- ⚠️ What you should review (WARNINGS)
+- What works (PASSED)
+- What needs to be fixed (FAILURES)
+- What blocks the release (BLOCKERS)
+- ️ What you should review (WARNINGS)
 
-**One command to rule them all:** `npm run release:ready` 🎉
+**One command to rule them all:** `npm run release:ready`
 
 ---
 
-**Last update:** November 16, 2025  
-**Version:** 2.9.4  
+**Last update:** November 16, 2025
+**Version:** 2.9.8
 **Script location:** `scripts/master-test.sh`

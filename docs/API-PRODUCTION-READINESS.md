@@ -1,44 +1,45 @@
 # API Production Readiness
 
-**Version:** 2.9.7  
-**Production Readiness:** 93%  
-**Last Updated:** November 12, 2025
+**Version:** 2.9.8
+**Production Readiness:** 95%
+**Last Updated:** November 28, 2025
 
 ---
 
 ## Executive Summary
 
-The Posterrama API is **93% production-ready**. All core v1 endpoints are implemented and functional. The API is ready for production use.
+The Posterrama API is **95% production-ready**. All core v1 endpoints are implemented and functional. The API is ready for production use.
 
 **Current Status:**
 
-- ✅ OpenAPI compliance complete (100% examples, consolidated security)
-- ✅ RESTful v1 endpoints implemented (5 core endpoints)
-- ✅ Full backwards compatibility maintained
+- OpenAPI compliance complete (100% examples, consolidated security)
+- RESTful v1 endpoints implemented (14 endpoints including metrics)
+- Full backwards compatibility maintained
 - 🟡 Frontend migration optional (both old and new paths work indefinitely)
 
 **Available v1 Endpoints:**
 
 ```
-GET  /api/v1/config                  → Public configuration
-GET  /api/v1/media                   → Media collection
-GET  /api/v1/media/{key}             → Single media item
-GET  /api/v1/devices/bypass-status   → Device bypass check
-POST /api/v1/devices/reload          → Reload all devices
+GET /api/v1/config → Public configuration
+GET /api/v1/media → Media collection
+GET /api/v1/media/{key} → Single media item
+GET /api/v1/devices/bypass-status → Device bypass check
+POST /api/v1/devices/reload → Reload all devices
+GET /api/v1/metrics/* → System & Performance metrics
 ```
 
 ---
 
 ## Current Metrics
 
-| Metric               | Status                |
-| -------------------- | --------------------- |
-| Production Readiness | 93%                   |
-| Total Endpoints      | 171 documented        |
-| OpenAPI Examples     | 100%                  |
-| Security Schemes     | 2 (consolidated)      |
-| **V1 Endpoints**     | **5/5 functional** ✅ |
-| **Backwards Compat** | **100%** ✅           |
+| Metric               | Status               |
+| -------------------- | -------------------- |
+| Production Readiness | 95%                  |
+| Total Endpoints      | 180+ documented      |
+| OpenAPI Examples     | 100%                 |
+| Security Schemes     | 2 (consolidated)     |
+| **V1 Endpoints**     | **14/14 functional** |
+| **Backwards Compat** | **100%**             |
 
 ---
 
@@ -112,6 +113,7 @@ Must verify after any API changes:
 - [ ] `GET /api/v1/media/{key}` returns single item
 - [ ] `GET /api/v1/devices/bypass-status` returns bypass status
 - [ ] `POST /api/v1/devices/reload` (with auth) reloads devices
+- [ ] `GET /api/v1/metrics/system` returns system metrics
 
 ### Legacy Compatibility
 
@@ -134,20 +136,19 @@ Must verify after any API changes:
 
 ### Production Readiness Checklist
 
-✅ **API Endpoints:** All v1 endpoints tested and functional  
-✅ **Documentation:** OpenAPI spec complete with examples  
-✅ **Backwards Compatibility:** Legacy paths maintained  
-✅ **Security:** Auth middleware preserved  
-✅ **Caching:** All caching strategies functional  
-✅ **Error Handling:** Comprehensive error responses
+**API Endpoints:** All v1 endpoints tested and functional
+**Documentation:** OpenAPI spec complete with examples
+**Backwards Compatibility:** Legacy paths maintained
+**Security:** Auth middleware preserved
+**Caching:** All caching strategies functional
+**Error Handling:** Comprehensive error responses
 
-### What Changed (November 12, 2025)
+### What Changed (November 28, 2025)
 
 **Added:**
 
-- 5 RESTful v1 endpoints (`/api/v1/*`)
-- Enhanced OpenAPI metadata (`externalDocs`, `servers` array)
-- Media key validation for spaces in server names
+- 9 new Metrics endpoints (`/api/v1/metrics/*`)
+- Updated documentation to reflect v2.9.8 status
 
 **Not Changed:**
 
@@ -180,6 +181,7 @@ If/when frontend migration is desired:
 - `routes/media.js` - Media endpoints
 - `routes/config-public.js` - Config endpoint
 - `routes/devices.js` - Device endpoints
+- `routes/metrics-testing.js` - Metrics endpoints
 - `middleware/validate.js` - Request validation
 
 **Documentation:**
@@ -189,7 +191,7 @@ If/when frontend migration is desired:
 
 ---
 
-**Last Review:** November 12, 2025  
+**Last Review:** November 28, 2025
 **Next Review:** When frontend migration is scheduled (optional)
 
 **Next Action:** Begin Phase 0.1 when ready to implement breaking changes

@@ -2,13 +2,13 @@
 
 Complete guide for integrating Posterrama with Home Assistant via MQTT.
 
-**Version**: 2.9.3+  
-**Last Updated**: 2025-11-12  
+**Version**: 2.9.8
+**Last Updated**: 2025-11-28
 **Prerequisites**: Posterrama v2.9.3+, Home Assistant with MQTT broker
 
 **Quick Troubleshooting:**
 
-- 🔴 Not connecting? Check broker IP and credentials in config.json
+- Not connecting? Check broker IP and credentials in config.json
 - 🟡 Entities not appearing? Ensure discovery.enabled: true and restart Posterrama
 - 🟢 Works but slow? Increase publishInterval to 60 seconds
 
@@ -54,8 +54,8 @@ pm2 restart posterrama
 - **Posterrama**: v2.8.1 or higher
 - **Home Assistant**: Any recent version (2023.x+)
 - **MQTT Broker**: One of:
-    - Mosquitto (built into Home Assistant)
-    - External MQTT broker (optional)
+- Mosquitto (built into Home Assistant)
+- External MQTT broker (optional)
 
 ### Recommended Knowledge
 
@@ -179,11 +179,11 @@ pm2 logs posterrama --lines 50 | grep -i mqtt
 **Expected output:**
 
 ```
-🔌 Initializing MQTT bridge...
-✅ Connected to MQTT broker
-📢 Publishing Home Assistant discovery configs...
-✅ Published discovery for device living-room-display
-✅ MQTT bridge initialized successfully
+ Initializing MQTT bridge...
+ Connected to MQTT broker
+ Publishing Home Assistant discovery configs...
+ Published discovery for device living-room-display
+ MQTT bridge initialized successfully
 ```
 
 **Check Admin UI:**
@@ -191,9 +191,10 @@ pm2 logs posterrama --lines 50 | grep -i mqtt
 1. Go to http://localhost:4000/admin
 2. Scroll to **Operations** section
 3. **MQTT Integration** card should show:
-    - 🟢 **Connected** (green pill)
-    - Broker info
-    - Connected devices
+
+- 🟢 **Connected** (green pill)
+- Broker info
+- Connected devices
 
 **Check Home Assistant:**
 
@@ -312,17 +313,18 @@ sudo ufw allow 8883/tcp comment 'MQTT TLS'
 
 1. **Posterrama publishes discovery messages** to:
 
-    ```
-    homeassistant/{entity_type}/posterrama_{device_id}/{capability}/config
-    ```
+```
+homeassistant/{entity_type}/posterrama_{device_id}/{capability}/config
+```
 
 2. **Home Assistant auto-creates entities:**
-    - Buttons (play, pause, next, refresh)
-    - Switches (clockWidget, showMetadata)
-    - Selects (mode, transitionEffect)
-    - Numbers (transitionInterval, uiScaling)
-    - Sensors (currentPoster, deviceInfo)
-    - Camera (current poster image)
+
+- Buttons (play, pause, next, refresh)
+- Switches (clockWidget, showMetadata)
+- Selects (mode, transitionEffect)
+- Numbers (transitionInterval, uiScaling)
+- Sensors (currentPoster, deviceInfo)
+- Camera (current poster image)
 
 3. **Entities grouped by device** in Home Assistant UI
 
@@ -389,14 +391,14 @@ Posterrama devices expose 50+ capabilities organized in categories:
 ```yaml
 # Automation example
 automation:
-    - alias: 'Pause all displays at bedtime'
-      trigger:
-          - platform: time
-            at: '23:00:00'
-      action:
-          - service: button.press
-            target:
-                entity_id: button.living_room_pause
+ - alias: 'Pause all displays at bedtime'
+ trigger:
+ - platform: time
+ at: '23:00:00'
+ action:
+ - service: button.press
+ target:
+ entity_id: button.living_room_pause
 ```
 
 ### Power Management
@@ -527,7 +529,7 @@ service: notify.mobile_app
 data:
     message: 'Now showing in living room'
     data:
-        image: "{{ state_attr('camera.living_room_current_poster', 'entity_picture') }}"
+    image: "{{ state_attr('camera.living_room_current_poster', 'entity_picture') }}"
 ```
 
 ---
@@ -540,71 +542,71 @@ data:
 
 ```yaml
 automation:
-    - alias: 'Morning Movie Display'
-      trigger:
-          - platform: time
-            at: '07:00:00'
-      condition:
-          - condition: state
-            entity_id: binary_sensor.workday
-            state: 'on'
-      action:
-          - service: select.select_option
-            target:
-                entity_id: select.living_room_mode
-            data:
-                option: 'cinema'
-          - service: switch.turn_on
-            target:
-                entity_id:
-                    - switch.living_room_cinema_header_enabled
-                    - switch.living_room_cinema_ambilight_enabled
-          - service: select.select_option
-            target:
-                entity_id: select.living_room_cinema_header_text
-            data:
-                option: 'Good Morning'
+ - alias: 'Morning Movie Display'
+ trigger:
+ - platform: time
+ at: '07:00:00'
+ condition:
+ - condition: state
+ entity_id: binary_sensor.workday
+ state: 'on'
+ action:
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_mode
+ data:
+ option: 'cinema'
+ - service: switch.turn_on
+ target:
+ entity_id:
+ - switch.living_room_cinema_header_enabled
+ - switch.living_room_cinema_ambilight_enabled
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_cinema_header_text
+ data:
+ option: 'Good Morning'
 ```
 
 #### 2. Bedtime Wallart
 
 ```yaml
 automation:
-    - alias: 'Bedtime Wallart Mode'
-      trigger:
-          - platform: time
-            at: '22:00:00'
-      action:
-          - service: select.select_option
-            target:
-                entity_id: select.living_room_mode
-            data:
-                option: 'wallart'
-          - service: select.select_option
-            target:
-                entity_id: select.living_room_wallart_density
-            data:
-                option: 'low'
-          - service: number.set_value
-            target:
-                entity_id: number.living_room_wallart_refresh_rate
-            data:
-                value: 10
+ - alias: 'Bedtime Wallart Mode'
+ trigger:
+ - platform: time
+ at: '22:00:00'
+ action:
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_mode
+ data:
+ option: 'wallart'
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_wallart_density
+ data:
+ option: 'low'
+ - service: number.set_value
+ target:
+ entity_id: number.living_room_wallart_refresh_rate
+ data:
+ value: 10
 ```
 
 #### 3. Movie Night Scene
 
 ```yaml
 scene:
-    - name: 'Movie Night'
-      entities:
-          select.living_room_mode: 'cinema'
-          select.living_room_cinema_orientation: 'landscape'
-          select.living_room_cinema_header_text: 'Feature Presentation'
-          switch.living_room_cinema_header_enabled: on
-          switch.living_room_cinema_footer_enabled: on
-          switch.living_room_cinema_ambilight_enabled: on
-          number.living_room_cinema_ambilight_strength: 80
+ - name: 'Movie Night'
+ entities:
+ select.living_room_mode: 'cinema'
+ select.living_room_cinema_orientation: 'landscape'
+ select.living_room_cinema_header_text: 'Feature Presentation'
+ switch.living_room_cinema_header_enabled: on
+ switch.living_room_cinema_footer_enabled: on
+ switch.living_room_cinema_ambilight_enabled: on
+ number.living_room_cinema_ambilight_strength: 80
 ```
 
 #### 4. Pause All Displays
@@ -612,14 +614,14 @@ scene:
 ```yaml
 script:
     pause_all_displays:
-        alias: 'Pause All Posterrama Displays'
-        sequence:
-            - service: button.press
-              target:
-                  entity_id:
-                      - button.living_room_pause
-                      - button.bedroom_pause
-                      - button.kitchen_pause
+    alias: 'Pause All Posterrama Displays'
+    sequence:
+        - service: button.press
+    target:
+    entity_id:
+        - button.living_room_pause
+        - button.bedroom_pause
+        - button.kitchen_pause
 ```
 
 ### Dashboard Cards
@@ -654,19 +656,19 @@ name: 'Now Showing'
 ```yaml
 type: vertical-stack
 cards:
-    - type: entities
-      title: Cinema Mode
-      entities:
-          - entity: select.living_room_mode
-          - entity: select.living_room_cinema_orientation
-          - entity: switch.living_room_cinema_header_enabled
-          - entity: select.living_room_cinema_header_text
-          - entity: switch.living_room_cinema_footer_enabled
-    - type: entities
-      title: Ambilight
-      entities:
-          - entity: switch.living_room_cinema_ambilight_enabled
-          - entity: number.living_room_cinema_ambilight_strength
+ - type: entities
+ title: Cinema Mode
+ entities:
+ - entity: select.living_room_mode
+ - entity: select.living_room_cinema_orientation
+ - entity: switch.living_room_cinema_header_enabled
+ - entity: select.living_room_cinema_header_text
+ - entity: switch.living_room_cinema_footer_enabled
+ - type: entities
+ title: Ambilight
+ entities:
+ - entity: switch.living_room_cinema_ambilight_enabled
+ - entity: number.living_room_cinema_ambilight_strength
 ```
 
 #### 4. Wallart Controls
@@ -690,42 +692,42 @@ type: grid
 columns: 2
 square: false
 cards:
-    - type: button
-      name: Pause All
-      icon: mdi:pause
-      tap_action:
-          action: call-service
-          service: script.pause_all_displays
-    - type: button
-      name: Cinema Mode
-      icon: mdi:movie-open
-      tap_action:
-          action: call-service
-          service: scene.turn_on
-          target:
-              entity_id: scene.movie_night
-    - type: button
-      name: Wallart Mode
-      icon: mdi:view-gallery
-      tap_action:
-          action: call-service
-          service: select.select_option
-          target:
-              entity_id:
-                  - select.living_room_mode
-                  - select.bedroom_mode
-          data:
-              option: wallart
-    - type: button
-      name: Next Poster
-      icon: mdi:skip-next
-      tap_action:
-          action: call-service
-          service: button.press
-          target:
-              entity_id:
-                  - button.living_room_next
-                  - button.bedroom_next
+ - type: button
+ name: Pause All
+ icon: mdi:pause
+ tap_action:
+ action: call-service
+ service: script.pause_all_displays
+ - type: button
+ name: Cinema Mode
+ icon: mdi:movie-open
+ tap_action:
+ action: call-service
+ service: scene.turn_on
+ target:
+ entity_id: scene.movie_night
+ - type: button
+ name: Wallart Mode
+ icon: mdi:view-gallery
+ tap_action:
+ action: call-service
+ service: select.select_option
+ target:
+ entity_id:
+ - select.living_room_mode
+ - select.bedroom_mode
+ data:
+ option: wallart
+ - type: button
+ name: Next Poster
+ icon: mdi:skip-next
+ tap_action:
+ action: call-service
+ service: button.press
+ target:
+ entity_id:
+ - button.living_room_next
+ - button.bedroom_next
 ```
 
 ### Advanced Automations
@@ -734,178 +736,178 @@ cards:
 
 ```yaml
 automation:
-    - alias: 'Rainy Day Cozy Mode'
-      trigger:
-          - platform: state
-            entity_id: weather.home
-            to: 'rainy'
-      action:
-          - service: select.select_option
-            target:
-                entity_id: select.living_room_mode
-            data:
-                option: 'cinema'
-          - service: number.set_value
-            target:
-                entity_id: number.living_room_transition_interval
-            data:
-                value: 20
-          - service: number.set_value
-            target:
-                entity_id: number.living_room_cinema_ambilight_strength
-            data:
-                value: 40
+ - alias: 'Rainy Day Cozy Mode'
+ trigger:
+ - platform: state
+ entity_id: weather.home
+ to: 'rainy'
+ action:
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_mode
+ data:
+ option: 'cinema'
+ - service: number.set_value
+ target:
+ entity_id: number.living_room_transition_interval
+ data:
+ value: 20
+ - service: number.set_value
+ target:
+ entity_id: number.living_room_cinema_ambilight_strength
+ data:
+ value: 40
 ```
 
 #### 2. Presence-Based Control
 
 ```yaml
 automation:
-    - alias: 'Display Control Based on Presence'
-      trigger:
-          - platform: state
-            entity_id: binary_sensor.living_room_occupancy
-      action:
-          - choose:
-                - conditions:
-                      - condition: state
-                        entity_id: binary_sensor.living_room_occupancy
-                        state: 'on'
-                  sequence:
-                      - service: button.press
-                        target:
-                            entity_id: button.living_room_wake
-                      - service: button.press
-                        target:
-                            entity_id: button.living_room_play
-                - conditions:
-                      - condition: state
-                        entity_id: binary_sensor.living_room_occupancy
-                        state: 'off'
-                      - condition: state
-                        entity_id: binary_sensor.living_room_occupancy
-                        state: 'off'
-                        for:
-                            minutes: 30
-                  sequence:
-                      - service: button.press
-                        target:
-                            entity_id: button.living_room_sleep
+ - alias: 'Display Control Based on Presence'
+ trigger:
+ - platform: state
+ entity_id: binary_sensor.living_room_occupancy
+ action:
+ - choose:
+ - conditions:
+ - condition: state
+ entity_id: binary_sensor.living_room_occupancy
+ state: 'on'
+ sequence:
+ - service: button.press
+ target:
+ entity_id: button.living_room_wake
+ - service: button.press
+ target:
+ entity_id: button.living_room_play
+ - conditions:
+ - condition: state
+ entity_id: binary_sensor.living_room_occupancy
+ state: 'off'
+ - condition: state
+ entity_id: binary_sensor.living_room_occupancy
+ state: 'off'
+ for:
+ minutes: 30
+ sequence:
+ - service: button.press
+ target:
+ entity_id: button.living_room_sleep
 ```
 
 #### 3. Content Rating Filter
 
 ```yaml
 automation:
-    - alias: 'Kids Mode - Filter Content'
-      trigger:
-          - platform: state
-            entity_id: input_boolean.kids_mode
-            to: 'on'
-      action:
-          - service: mqtt.publish
-            data:
-                topic: 'posterrama/living-room/command/settings'
-                payload: >
-                    {
-                      "ratingFilter": ["G", "PG"],
-                      "genreFilter": "family,animation,comedy"
-                    }
+ - alias: 'Kids Mode - Filter Content'
+ trigger:
+ - platform: state
+ entity_id: input_boolean.kids_mode
+ to: 'on'
+ action:
+ - service: mqtt.publish
+ data:
+ topic: 'posterrama/living-room/command/settings'
+ payload: >
+ {
+ "ratingFilter": ["G", "PG"],
+ "genreFilter": "family,animation,comedy"
+ }
 ```
 
 #### 4. Time-of-Day Themes
 
 ```yaml
 automation:
-    - alias: 'Dynamic Display Themes'
-      trigger:
-          - platform: time
-            at:
-                - '06:00:00'
-                - '12:00:00'
-                - '18:00:00'
-                - '22:00:00'
-      action:
-          - choose:
-                # Morning: Cinema with "Good Morning"
-                - conditions:
-                      - condition: time
-                        after: '06:00:00'
-                        before: '12:00:00'
-                  sequence:
-                      - service: select.select_option
-                        target:
-                            entity_id: select.living_room_mode
-                        data:
-                            option: 'cinema'
-                      - service: select.select_option
-                        target:
-                            entity_id: select.living_room_cinema_header_text
-                        data:
-                            option: 'Good Morning'
-                      - service: number.set_value
-                        target:
-                            entity_id: number.living_room_ui_scaling_global
-                        data:
-                            value: 100
+ - alias: 'Dynamic Display Themes'
+ trigger:
+ - platform: time
+ at:
+ - '06:00:00'
+ - '12:00:00'
+ - '18:00:00'
+ - '22:00:00'
+ action:
+ - choose:
+ # Morning: Cinema with "Good Morning"
+ - conditions:
+ - condition: time
+ after: '06:00:00'
+ before: '12:00:00'
+ sequence:
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_mode
+ data:
+ option: 'cinema'
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_cinema_header_text
+ data:
+ option: 'Good Morning'
+ - service: number.set_value
+ target:
+ entity_id: number.living_room_ui_scaling_global
+ data:
+ value: 100
 
-                # Afternoon: Wallart medium density
-                - conditions:
-                      - condition: time
-                        after: '12:00:00'
-                        before: '18:00:00'
-                  sequence:
-                      - service: select.select_option
-                        target:
-                            entity_id: select.living_room_mode
-                        data:
-                            option: 'wallart'
-                      - service: select.select_option
-                        target:
-                            entity_id: select.living_room_wallart_density
-                        data:
-                            option: 'medium'
+ # Afternoon: Wallart medium density
+ - conditions:
+ - condition: time
+ after: '12:00:00'
+ before: '18:00:00'
+ sequence:
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_mode
+ data:
+ option: 'wallart'
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_wallart_density
+ data:
+ option: 'medium'
 
-                # Evening: Cinema with "Now Playing"
-                - conditions:
-                      - condition: time
-                        after: '18:00:00'
-                        before: '22:00:00'
-                  sequence:
-                      - service: select.select_option
-                        target:
-                            entity_id: select.living_room_mode
-                        data:
-                            option: 'cinema'
-                      - service: select.select_option
-                        target:
-                            entity_id: select.living_room_cinema_header_text
-                        data:
-                            option: 'Now Playing'
-                      - service: switch.turn_on
-                        target:
-                            entity_id: switch.living_room_cinema_ambilight_enabled
+ # Evening: Cinema with "Now Playing"
+ - conditions:
+ - condition: time
+ after: '18:00:00'
+ before: '22:00:00'
+ sequence:
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_mode
+ data:
+ option: 'cinema'
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_cinema_header_text
+ data:
+ option: 'Now Playing'
+ - service: switch.turn_on
+ target:
+ entity_id: switch.living_room_cinema_ambilight_enabled
 
-                # Night: Wallart low density
-                - conditions:
-                      - condition: time
-                        after: '22:00:00'
-                  sequence:
-                      - service: select.select_option
-                        target:
-                            entity_id: select.living_room_mode
-                        data:
-                            option: 'wallart'
-                      - service: select.select_option
-                        target:
-                            entity_id: select.living_room_wallart_density
-                        data:
-                            option: 'low'
-                      - service: number.set_value
-                        target:
-                            entity_id: number.living_room_ui_scaling_global
-                        data:
-                            value: 80
+ # Night: Wallart low density
+ - conditions:
+ - condition: time
+ after: '22:00:00'
+ sequence:
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_mode
+ data:
+ option: 'wallart'
+ - service: select.select_option
+ target:
+ entity_id: select.living_room_wallart_density
+ data:
+ option: 'low'
+ - service: number.set_value
+ target:
+ entity_id: number.living_room_ui_scaling_global
+ data:
+ value: 80
 ```
 
 ---
@@ -954,7 +956,7 @@ mosquitto_pub -h YOUR_HA_IP -u posterrama -P YOUR_PASSWORD -t "test" -m "test"
 sudo ufw status | grep 1883
 
 # Should show:
-# 1883/tcp                   ALLOW       Anywhere
+# 1883/tcp ALLOW Anywhere
 
 # If not, add rule:
 sudo ufw allow 1883/tcp
@@ -1057,9 +1059,10 @@ mosquitto_sub -h YOUR_HA_IP -u posterrama -P YOUR_PASSWORD -t "homeassistant/#" 
 1. Settings → Devices & Services → MQTT
 2. Should show "Configured" status
 3. If not, add integration:
-    - Click "Add Integration"
-    - Search "MQTT"
-    - Configure broker settings
+
+- Click "Add Integration"
+- Search "MQTT"
+- Configure broker settings
 
 #### Problem: "Entities unavailable (grey in HA)"
 
@@ -1240,20 +1243,20 @@ Error: unable to verify the first certificate
 ```json
 // Disable verification (testing only):
 {
-  "mqtt": {
-    "broker": {
-      "rejectUnauthorized": false
-    }
-  }
+ "mqtt": {
+ "broker": {
+ "rejectUnauthorized": false
+ }
+ }
 }
 
 // Or provide CA certificate:
 {
-  "mqtt": {
-    "broker": {
-      "ca": "/path/to/ca.crt"
-    }
-  }
+ "mqtt": {
+ "broker": {
+ "ca": "/path/to/ca.crt"
+ }
+ }
 }
 ```
 
@@ -1283,20 +1286,20 @@ curl http://localhost:4000/api/admin/mqtt/status
 
 # Expected response:
 {
-  "enabled": true,
-  "connected": true,
-  "stats": {
-    "messagesPublished": 1234,
-    "messagesReceived": 56,
-    "commandsExecuted": 12,
-    "connectedAt": "2025-10-24T10:30:00.000Z",
-    "uptime": 3600000
-  },
-  "deviceSummary": {
-    "total": 3,
-    "online": 3,
-    "offline": 0
-  }
+ "enabled": true,
+ "connected": true,
+ "stats": {
+ "messagesPublished": 1234,
+ "messagesReceived": 56,
+ "commandsExecuted": 12,
+ "connectedAt": "2025-10-24T10:30:00.000Z",
+ "uptime": 3600000
+ },
+ "deviceSummary": {
+ "total": 3,
+ "online": 3,
+ "offline": 0
+ }
 }
 ```
 
@@ -1406,8 +1409,8 @@ Override device names in Home Assistant:
 ```bash
 # Publish custom device config
 mosquitto_pub -h YOUR_HA_IP -u posterrama -P YOUR_PASSWORD \
-  -t "posterrama/living-room/command/settings" \
-  -m '{"deviceName": "Living Room TV Display"}'
+ -t "posterrama/living-room/command/settings" \
+ -m '{"deviceName": "Living Room TV Display"}'
 ```
 
 ---
@@ -1416,78 +1419,78 @@ mosquitto_pub -h YOUR_HA_IP -u posterrama -P YOUR_PASSWORD \
 
 ### General Questions
 
-**Q: Do I need Home Assistant for MQTT?**  
+**Q: Do I need Home Assistant for MQTT?**
 A: No, Posterrama works with any MQTT broker. Home Assistant discovery is optional but recommended for easy setup.
 
-**Q: Can I use external MQTT brokers (CloudMQTT, AWS IoT)?**  
+**Q: Can I use external MQTT brokers (CloudMQTT, AWS IoT)?**
 A: Yes, configure `broker.host` to point to external broker. Ensure network access and credentials are correct.
 
-**Q: How many devices can I connect?**  
+**Q: How many devices can I connect?**
 A: No hard limit. Tested with 20+ devices. Performance depends on `publishInterval` and broker capacity.
 
-**Q: Does MQTT work offline?**  
+**Q: Does MQTT work offline?**
 A: Devices need network access to MQTT broker. If broker is local (Home Assistant), works on LAN without internet.
 
-**Q: Can I control devices without Home Assistant?**  
+**Q: Can I control devices without Home Assistant?**
 A: Yes, send MQTT commands directly using mosquitto_pub or any MQTT client.
 
 ### Technical Questions
 
-**Q: What MQTT version is supported?**  
+**Q: What MQTT version is supported?**
 A: MQTT 3.1.1 and 5.0 (auto-negotiated).
 
-**Q: Are messages retained?**  
+**Q: Are messages retained?**
 A: Discovery configs are retained. State messages can be configured with `retain: true`.
 
-**Q: What happens if MQTT disconnects?**  
+**Q: What happens if MQTT disconnects?**
 A: Bridge auto-reconnects with exponential backoff. Devices continue working via WebSocket.
 
-**Q: Can I use MQTT and WebSocket simultaneously?**  
+**Q: Can I use MQTT and WebSocket simultaneously?**
 A: Yes, both work independently. MQTT for HA integration, WebSocket for direct device control.
 
-**Q: How much bandwidth does MQTT use?**  
+**Q: How much bandwidth does MQTT use?**
 A: Minimal. ~1KB per state update. Camera entity ~50-200KB per update (base64 image).
 
 ### Security Questions
 
-**Q: Is MQTT traffic encrypted?**  
+**Q: Is MQTT traffic encrypted?**
 A: Only if using TLS (port 8883). Plain MQTT (1883) is unencrypted. Use TLS for external brokers.
 
-**Q: Should I use authentication?**  
+**Q: Should I use authentication?**
 A: Yes, always use username/password, especially if broker is exposed to internet.
 
-**Q: Can I restrict MQTT access by IP?**  
+**Q: Can I restrict MQTT access by IP?**
 A: Yes, configure Mosquitto ACLs or firewall rules.
 
-**Q: Where are passwords stored?**  
+**Q: Where are passwords stored?**
 A: In environment variables (`.env` file), never in config.json. Ensure `.env` is not committed to git.
 
 ### Troubleshooting Questions
 
-**Q: Why don't entities appear in Home Assistant?**  
+**Q: Why don't entities appear in Home Assistant?**
 A: Check discovery enabled, correct prefix, MQTT integration configured, and restart Posterrama.
 
-**Q: Why are entities unavailable?**  
+**Q: Why are entities unavailable?**
 A: Device offline, MQTT disconnected, or availability timeout too low. Check device heartbeat and increase timeout.
 
-**Q: Commands not working?**  
+**Q: Commands not working?**
 A: Verify device online, check command topic, monitor logs for errors, test with mosquitto_pub manually.
 
-**Q: Camera not updating?**  
+**Q: Camera not updating?**
 A: Check `publishInterval`, verify device has poster loaded, monitor camera topic size.
 
 ### Configuration Questions
 
-**Q: What's the optimal publishInterval?**  
+**Q: What's the optimal publishInterval?**
 A: 30 seconds for most use cases. Lower (10-15s) for real-time dashboards. Higher (60s+) for battery/bandwidth savings.
 
-**Q: Should I enable availability tracking?**  
+**Q: Should I enable availability tracking?**
 A: Yes, shows device online/offline status in Home Assistant. Disable if causing false offline alerts.
 
-**Q: Do I need discovery enabled?**  
+**Q: Do I need discovery enabled?**
 A: No, but highly recommended. Without it, you must manually create entities in Home Assistant.
 
-**Q: Can I change topicPrefix after setup?**  
+**Q: Can I change topicPrefix after setup?**
 A: Yes, but requires rediscovery. Old entities will become unavailable. Delete old entities manually in HA.
 
 ---
@@ -1516,13 +1519,13 @@ A: Yes, but requires rediscovery. Old entities will become unavailable. Delete o
 
 ### Example Projects
 
-**1. Complete Dashboard YAML:**  
+**1. Complete Dashboard YAML:**
 See `examples/home-assistant-dashboard.yaml` (if available)
 
-**2. Automation Bundle:**  
+**2. Automation Bundle:**
 See `examples/posterrama-automations.yaml` (if available)
 
-**3. Node-RED Flows:**  
+**3. Node-RED Flows:**
 Compatible with Node-RED MQTT nodes for advanced automation
 
 ### Version History
@@ -1537,14 +1540,14 @@ Compatible with Node-RED MQTT nodes for advanced automation
 
 After completing setup:
 
-1. ✅ **Verify all devices appear** in Home Assistant
-2. ✅ **Create basic automation** (e.g., mode change on schedule)
-3. ✅ **Add dashboard card** with quick controls
-4. ✅ **Test camera entity** in dashboard
-5. ✅ **Setup scenes** for different viewing modes
-6. 🔄 **Explore advanced settings** (wallart, cinema customization)
-7. 🔄 **Create automations** based on presence, time, weather
-8. 🔄 **Share your setup** with the community!
+1. **Verify all devices appear** in Home Assistant
+2. **Create basic automation** (e.g., mode change on schedule)
+3. **Add dashboard card** with quick controls
+4. **Test camera entity** in dashboard
+5. **Setup scenes** for different viewing modes
+6. **Explore advanced settings** (wallart, cinema customization)
+7. **Create automations** based on presence, time, weather
+8. **Share your setup** with the community!
 
 ### Recommended First Automations
 
@@ -1562,6 +1565,6 @@ After completing setup:
 
 ---
 
-**Happy Automating! 🎬🏠**
+**Happy Automating! **
 
 _For issues or questions, check troubleshooting section or refer to Posterrama documentation._

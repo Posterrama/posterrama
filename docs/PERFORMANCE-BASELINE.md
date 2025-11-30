@@ -1,8 +1,8 @@
 # Performance Baseline Report
 
-**Date:** November 15, 2025  
-**Version:** 2.9.4  
-**Environment:** Production mode (NODE_ENV=production)  
+**Date:** November 16, 2025
+**Version:** 2.9.8
+**Environment:** Production mode (NODE_ENV=production)
 **Measurement Tool:** Vite build output, du, Lighthouse CLI
 
 ---
@@ -13,21 +13,21 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 **Key Improvements Already Applied:**
 
-- ✅ Vite 7.2.2 with Terser minification enabled
-- ✅ Inline scripts extracted to ES modules (361 LOC)
-- ✅ Global error handler with telemetry
-- ✅ Automatic production builds with hash-based caching
-- ✅ CSS minification (admin.css: 460KB → 326KB, 29% reduction)
+- Vite 7.2.2 with Terser minification enabled
+- Inline scripts extracted to ES modules (361 LOC)
+- Global error handler with telemetry
+- Automatic production builds with hash-based caching
+- CSS minification (admin.css: 460KB → 326KB, 29% reduction)
 
 **Baseline Metrics (Post Quick Wins):**
 
-| Metric                        | Value                  | vs. Pre-Optimization                                         |
-| ----------------------------- | ---------------------- | ------------------------------------------------------------ |
-| **Total Bundle (Production)** | 1.8 MB                 | ↓ 50% (was 3.6 MB)                                           |
-| **Largest JS File**           | 1.3 MB (admin.js)      | Unchanged (not yet modularized)                              |
-| **Largest CSS File**          | 326 KB (admin.css)     | ↓ 29% (was 460 KB)                                           |
-| **Minified ES Modules**       | 3 files, 6.31 KB total | ✨ New (error-handler, mode-redirect, screensaver-bootstrap) |
-| **Gzipped Admin HTML**        | 38.23 KB               | ↓ 85% (was ~253 KB uncompressed)                             |
+| Metric                        | Value                  | vs. Pre-Optimization                                      |
+| ----------------------------- | ---------------------- | --------------------------------------------------------- |
+| **Total Bundle (Production)** | 1.8 MB                 | ↓ 50% (was 3.6 MB)                                        |
+| **Largest JS File**           | 1.3 MB (admin.js)      | Unchanged (not yet modularized)                           |
+| **Largest CSS File**          | 326 KB (admin.css)     | ↓ 29% (was 460 KB)                                        |
+| **Minified ES Modules**       | 3 files, 6.31 KB total | New (error-handler, mode-redirect, screensaver-bootstrap) |
+| **Gzipped Admin HTML**        | 38.23 KB               | ↓ 85% (was ~253 KB uncompressed)                          |
 
 ---
 
@@ -72,33 +72,33 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 ### Top 20 Largest Source Files
 
-| File               | Size   | Status                                     |
-| ------------------ | ------ | ------------------------------------------ |
-| admin.js           | 1.3 MB | ⚠️ Monolith - not yet minified             |
-| admin.css          | 457 KB | ✅ Minified to 326 KB (29% reduction)      |
-| admin.html         | 248 KB | ✅ Minified to 253 KB (gzipped: 38 KB)     |
-| wallart-display.js | 133 KB | ⚠️ Not yet modularized                     |
-| device-mgmt.js     | 109 KB | ⚠️ Not yet modularized                     |
-| style.css          | 63 KB  | ✅ General styles                          |
-| screensaver.js     | 55 KB  | ⚠️ Not yet modularized                     |
-| cinema.css         | 48 KB  | ✅ Minified to 6.78 KB                     |
-| cinema-ui.js       | 42 KB  | ⚠️ Not yet modularized                     |
-| cinema-display.js  | 41 KB  | ⚠️ Not yet modularized                     |
-| wallart.html       | 28 KB  | ✅ Minified to 28.14 KB (gzipped: 6.73 KB) |
-| artist-cards.js    | 23 KB  | ⚠️ Not yet modularized                     |
-| core.js            | 23 KB  | ⚠️ Legacy IIFE - not minified              |
-| setup.html         | 22 KB  | ✅ Minified to 22.08 KB                    |
-| logs.css           | 21 KB  | ✅ Minified                                |
-| logs.js            | 20 KB  | ⚠️ Not yet modularized                     |
-| login.html         | 13 KB  | ✅ Minified to 12.87 KB                    |
-| sw.js              | 13 KB  | ⚠️ Service worker - not minified           |
-| cinema-display.css | 13 KB  | ✅ Minified to 6.78 KB                     |
-| promo-box.css      | 13 KB  | ✅ Minified                                |
+| File               | Size   | Status                                  |
+| ------------------ | ------ | --------------------------------------- |
+| admin.js           | 1.3 MB | ️ Monolith - not yet minified           |
+| admin.css          | 457 KB | Minified to 326 KB (29% reduction)      |
+| admin.html         | 248 KB | Minified to 253 KB (gzipped: 38 KB)     |
+| wallart-display.js | 133 KB | ️ Not yet modularized                   |
+| device-mgmt.js     | 109 KB | ️ Not yet modularized                   |
+| style.css          | 63 KB  | General styles                          |
+| screensaver.js     | 55 KB  | ️ Not yet modularized                   |
+| cinema.css         | 48 KB  | Minified to 6.78 KB                     |
+| cinema-ui.js       | 42 KB  | ️ Not yet modularized                   |
+| cinema-display.js  | 41 KB  | ️ Not yet modularized                   |
+| wallart.html       | 28 KB  | Minified to 28.14 KB (gzipped: 6.73 KB) |
+| artist-cards.js    | 23 KB  | ️ Not yet modularized                   |
+| core.js            | 23 KB  | ️ Legacy IIFE - not minified            |
+| setup.html         | 22 KB  | Minified to 22.08 KB                    |
+| logs.css           | 21 KB  | Minified                                |
+| logs.js            | 20 KB  | ️ Not yet modularized                   |
+| login.html         | 13 KB  | Minified to 12.87 KB                    |
+| sw.js              | 13 KB  | ️ Service worker - not minified         |
+| cinema-display.css | 13 KB  | Minified to 6.78 KB                     |
+| promo-box.css      | 13 KB  | Minified                                |
 
 **Legend:**
 
-- ✅ = Already optimized/minified
-- ⚠️ = Optimization opportunity (not yet ES modules or minified)
+- = Already optimized/minified
+- ️ = Optimization opportunity (not yet ES modules or minified)
 
 ---
 
@@ -138,31 +138,36 @@ This document establishes the performance baseline **after Quick Win optimizatio
 ### High Impact Opportunities (Q1-Q2 2026)
 
 1. **admin.js (1.3 MB)** - Split into 12 ES modules
-    - Current: Single 26,564 LOC file, IIFE pattern
-    - Target: 12 modules <3K LOC each, ES module syntax
-    - Expected reduction: 50-70% (with tree shaking + minification)
-    - Estimated new size: 400-650 KB minified+gzipped
+
+- Current: Single 26,564 LOC file, IIFE pattern
+- Target: 12 modules <3K LOC each, ES module syntax
+- Expected reduction: 50-70% (with tree shaking + minification)
+- Estimated new size: 400-650 KB minified+gzipped
 
 2. **Legacy IIFE Files** - Convert to ES modules
-    - Files: wallart-display.js, device-mgmt.js, screensaver.js, cinema-\*.js
-    - Current: 66,639 LOC not minified
-    - Target: ES module conversion enables Vite bundling
-    - Expected reduction: 60-80% with minification
+
+- Files: wallart-display.js, device-mgmt.js, screensaver.js, cinema-\*.js
+- Current: 66,639 LOC not minified
+- Target: ES module conversion enables Vite bundling
+- Expected reduction: 60-80% with minification
 
 3. **CSS Deduplication** - Extract utilities, design system
-    - Current: admin.css 15,503 LOC with massive duplication
-    - Target: Utility classes, component library, 5K LOC
-    - Expected reduction: 60-70% (admin.css: 326KB → ~100-130KB)
+
+- Current: admin.css 15,503 LOC with massive duplication
+- Target: Utility classes, component library, 5K LOC
+- Expected reduction: 60-70% (admin.css: 326KB → ~100-130KB)
 
 4. **Image Optimization** - Responsive images, WebP/AVIF
-    - Current: posterrama-icon.svg 249KB (gzipped: 176KB)
-    - Target: Responsive srcsets, modern formats
-    - Expected reduction: 40-60% for images
+
+- Current: posterrama-icon.svg 249KB (gzipped: 176KB)
+- Target: Responsive srcsets, modern formats
+- Expected reduction: 40-60% for images
 
 5. **Code Splitting** - Lazy load admin sections
-    - Current: admin.js loaded entirely on page load
-    - Target: Route-based code splitting (settings, devices, filters)
-    - Expected reduction: 70% initial bundle, load on demand
+
+- Current: admin.js loaded entirely on page load
+- Target: Route-based code splitting (settings, devices, filters)
+- Expected reduction: 70% initial bundle, load on demand
 
 ---
 
@@ -178,12 +183,12 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 ### Build Output Efficiency
 
-| Metric                     | Value                                 |
-| -------------------------- | ------------------------------------- |
-| **Total Output Size**      | 1.8 MB                                |
-| **Gzip Compression Ratio** | 82% average (HTML/CSS/JS)             |
-| **Cache-Busting Hashes**   | ✅ Enabled (e.g., admin.B1PlrUXO.css) |
-| **Source Maps**            | ✅ Generated for debugging            |
+| Metric                     | Value                              |
+| -------------------------- | ---------------------------------- |
+| **Total Output Size**      | 1.8 MB                             |
+| **Gzip Compression Ratio** | 82% average (HTML/CSS/JS)          |
+| **Cache-Busting Hashes**   | Enabled (e.g., admin.B1PlrUXO.css) |
+| **Source Maps**            | Generated for debugging            |
 
 ---
 
@@ -200,7 +205,7 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 **Coverage by File:**
 
-- ✅ error-handler.js: 100% (11 tests)
+- error-handler.js: 100% (11 tests)
 - ⏸️ mode-redirect.js: 0% (deferred - JSDOM limitations)
 - ⏸️ screensaver-bootstrap.js: 0% (not started)
 - ⏸️ admin.js: 0% (too large, pending modularization)
@@ -214,13 +219,13 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 ### Core Web Vitals Summary
 
-| Page        | FCP (Fast) | LCP (Good)  | TTI (Fast)  | Status |
-| ----------- | ---------- | ----------- | ----------- | ------ |
-| Admin       | 3.6s (⚠️)  | 4.5s (⚠️)   | 4.5s (⚠️)   | OK     |
-| Wallart     | 4.0s (⚠️)  | 96.7s (🚨)  | 96.8s (🚨)  | POOR   |
-| Cinema      | 5.0s (⚠️)  | 100.2s (🚨) | 100.2s (🚨) | POOR   |
-| Screensaver | 3.0s (✅)  | 94.3s (🚨)  | 94.3s (🚨)  | POOR   |
-| Login       | 3.5s (✅)  | 4.5s (⚠️)   | 4.5s (⚠️)   | OK     |
+| Page        | FCP (Fast) | LCP (Good) | TTI (Fast) | Status |
+| ----------- | ---------- | ---------- | ---------- | ------ |
+| Admin       | 3.6s (️)   | 4.5s (️)   | 4.5s (️)   | OK     |
+| Wallart     | 4.0s (️)   | 96.7s ()   | 96.8s ()   | POOR   |
+| Cinema      | 5.0s (️)   | 100.2s ()  | 100.2s ()  | POOR   |
+| Screensaver | 3.0s ()    | 94.3s ()   | 94.3s ()   | POOR   |
+| Login       | 3.5s ()    | 4.5s (️)   | 4.5s (️)   | OK     |
 
 **Thresholds:** FCP < 1.8s (Good), LCP < 2.5s (Good), TTI < 3.8s (Good)
 
@@ -228,13 +233,13 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 **Desktop (Fast 3G, ~1.6 Mbps):**
 
-| Page        | Transfer Time | FCP  | LCP    | Notes                        |
-| ----------- | ------------- | ---- | ------ | ---------------------------- |
-| Admin       | ~6-8s         | 3.6s | 4.5s   | admin.js (1.3MB) dominates   |
-| Wallart     | ~3-4s         | 4.0s | 96.7s  | 🚨 Lazy-loaded poster images |
-| Cinema      | ~3-4s         | 5.0s | 100.2s | 🚨 Lazy-loaded poster images |
-| Screensaver | ~3-4s         | 3.0s | 94.3s  | 🚨 Lazy-loaded poster images |
-| Login       | ~2-3s         | 3.5s | 4.5s   | Smallest bundle              |
+| Page        | Transfer Time | FCP  | LCP    | Notes                      |
+| ----------- | ------------- | ---- | ------ | -------------------------- |
+| Admin       | ~6-8s         | 3.6s | 4.5s   | admin.js (1.3MB) dominates |
+| Wallart     | ~3-4s         | 4.0s | 96.7s  | Lazy-loaded poster images  |
+| Cinema      | ~3-4s         | 5.0s | 100.2s | Lazy-loaded poster images  |
+| Screensaver | ~3-4s         | 3.0s | 94.3s  | Lazy-loaded poster images  |
+| Login       | ~2-3s         | 3.5s | 4.5s   | Smallest bundle            |
 
 **Mobile (Slow 3G, ~400 Kbps):**
 
@@ -250,7 +255,7 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 ## Lighthouse Metrics (Actual Results)
 
-**Status:** ✅ Audits completed on Nov 15, 2025
+**Status:** Audits completed on Nov 15, 2025
 
 **Audit Command:** `npm run perf:audit`
 
@@ -270,72 +275,75 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 **Performance (62-77/100):**
 
-- ✅ Admin and Login pages perform best (76-77/100)
-- ⚠️ Display modes (Wallart/Cinema/Screensaver) have lower scores (62-69/100)
-- 🚨 **Critical Issue:** LCP is 90-100s on display modes due to lazy-loaded poster images
-- ✅ TBT is excellent (0-80ms) - JavaScript execution is not blocking
-- ✅ CLS is excellent (0-0.004) - no layout shifts
+- Admin and Login pages perform best (76-77/100)
+- ️ Display modes (Wallart/Cinema/Screensaver) have lower scores (62-69/100)
+- **Critical Issue:** LCP is 90-100s on display modes due to lazy-loaded poster images
+- TBT is excellent (0-80ms) - JavaScript execution is not blocking
+- CLS is excellent (0-0.004) - no layout shifts
 
 **Accessibility (95-100/100):**
 
-- ✅ Excellent scores across all pages
+- Excellent scores across all pages
 - Display modes score perfect 100/100
 - Admin/Login at 95/100 (minor ARIA improvements needed)
 
 **Best Practices (93-100/100):**
 
-- ✅ Near-perfect scores
+- Near-perfect scores
 - Display modes score 100/100
 - Admin/Login at 93/100 (likely HTTPS/CSP headers)
 
 **SEO (91-100/100):**
 
-- ✅ Excellent scores
+- Excellent scores
 - Admin/Wallart/Login at 100/100
 - Cinema/Screensaver at 91/100 (meta description missing?)
 
 ### Performance Bottlenecks Identified
 
-1. **LCP on Display Modes (90-100s)** 🚨 **CRITICAL** - **PARTIALLY ADDRESSED**
-    - Root Cause: Poster images use `background-image` which has low browser priority
-    - Secondary Cause: Asynchronous /get-media fetch → JS render → image load pipeline
-    - **Attempted Fixes (Nov 15, 2025):**
-        - ✅ Gradient placeholder for instant visual feedback
-        - ✅ DNS prefetch + preconnect for /image endpoint
-        - ✅ JavaScript preload with fetchPriority='high'
-        - ⚠️ **Result:** LCP still ~95s (Lighthouse timeout)
-    - **Root Cause Analysis:**
-        - `background-image` CSS property has inherently low browser priority
-        - Lighthouse measures LCP until TTI, screensaver continuous animation delays this
-        - Preload hints don't affect background-images (only <img> tags)
-    - **Remaining Fix Required:** Convert #poster from background-image to <img> tag
-        - Benefits: Browser-native lazy loading, fetchpriority support, preload works
-        - Effort: 4-6 hours (refactor screensaver.js setPoster logic + CSS)
-        - Expected Improvement: LCP 95s → 5-10s, Performance score +15-20 points
-    - **Alternative Quick Win:** Server-side first poster injection (2h)
-        - Inject first poster URL as data-first-poster attribute in HTML
-        - Render immediately without waiting for /get-media fetch
-        - Expected Improvement: LCP 95s → 10-15s, Performance score +10 points
+1. **LCP on Display Modes (90-100s)** **CRITICAL** - **PARTIALLY ADDRESSED**
 
-2. **FCP Times (3.0-5.0s)** ⚠️ **MEDIUM**
-    - Root Cause: Large JavaScript bundles (admin.js 1.3MB)
-    - Impact: Slower initial paint
-    - Fix: Code splitting, tree shaking, async loading
-    - Expected Improvement: FCP → 1.5-2.5s
+- Root Cause: Poster images use `background-image` which has low browser priority
+- Secondary Cause: Asynchronous /get-media fetch → JS render → image load pipeline
+- **Attempted Fixes (Nov 15, 2025):**
+- Gradient placeholder for instant visual feedback
+- DNS prefetch + preconnect for /image endpoint
+- JavaScript preload with fetchPriority='high'
+- ️ **Result:** LCP still ~95s (Lighthouse timeout)
+- **Root Cause Analysis:**
+- `background-image` CSS property has inherently low browser priority
+- Lighthouse measures LCP until TTI, screensaver continuous animation delays this
+- Preload hints don't affect background-images (only <img> tags)
+- **Remaining Fix Required:** Convert #poster from background-image to <img> tag
+- Benefits: Browser-native lazy loading, fetchpriority support, preload works
+- Effort: 4-6 hours (refactor screensaver.js setPoster logic + CSS)
+- Expected Improvement: LCP 95s → 5-10s, Performance score +15-20 points
+- **Alternative Quick Win:** Server-side first poster injection (2h)
+- Inject first poster URL as data-first-poster attribute in HTML
+- Render immediately without waiting for /get-media fetch
+- Expected Improvement: LCP 95s → 10-15s, Performance score +10 points
 
-3. **TTI on Display Modes (94-100s)** ⚠️ **MEDIUM**
-    - Root Cause: Lighthouse measures TTI until page is stable (screensaver animations delay this)
-    - Secondary Cause: Waiting for all visible posters to load
-    - Impact: Page not fully interactive until all images complete
-    - Fix: Mark page as interactive immediately after first poster loads
-    - Expected Improvement: TTI → 5-10s
+2. **FCP Times (3.0-5.0s)** ️ **MEDIUM**
+
+- Root Cause: Large JavaScript bundles (admin.js 1.3MB)
+- Impact: Slower initial paint
+- Fix: Code splitting, tree shaking, async loading
+- Expected Improvement: FCP → 1.5-2.5s
+
+3. **TTI on Display Modes (94-100s)** ️ **MEDIUM**
+
+- Root Cause: Lighthouse measures TTI until page is stable (screensaver animations delay this)
+- Secondary Cause: Waiting for all visible posters to load
+- Impact: Page not fully interactive until all images complete
+- Fix: Mark page as interactive immediately after first poster loads
+- Expected Improvement: TTI → 5-10s
 
 **Action Items (Priority Order):**
 
-1. 🚨 **HIGH**: Convert #poster to <img> tag (4-6h, biggest LCP impact)
-2. ⚠️ **MEDIUM**: Server-side first poster injection (2h, quick win)
-3. ⚠️ **MEDIUM**: Code splitting for FCP improvement (8-12h)
-4. 📝 **LOW**: TTI optimization (mark interactive earlier)
+1. **HIGH**: Convert #poster to <img> tag (4-6h, biggest LCP impact)
+2. ️ **MEDIUM**: Server-side first poster injection (2h, quick win)
+3. ️ **MEDIUM**: Code splitting for FCP improvement (8-12h)
+4. **LOW**: TTI optimization (mark interactive earlier)
 
 ---
 
@@ -343,16 +351,16 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 **Target Browsers:**
 
-- Chrome/Edge: Last 2 versions (✅ Modern JS supported)
-- Firefox: Last 2 versions (✅ Modern JS supported)
-- Safari: Last 2 versions (✅ ES modules supported)
+- Chrome/Edge: Last 2 versions ( Modern JS supported)
+- Firefox: Last 2 versions ( Modern JS supported)
+- Safari: Last 2 versions ( ES modules supported)
 
 **ES Module Support:**
 
-- ✅ Chrome 61+
-- ✅ Firefox 60+
-- ✅ Safari 11+
-- ✅ Edge 79+
+- Chrome 61+
+- Firefox 60+
+- Safari 11+
+- Edge 79+
 
 **Current Issues:**
 
@@ -363,8 +371,8 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 ## Memory Usage
 
-**Status:** ✅ Measured (November 15, 2025)  
-**Tool:** Puppeteer automated profiling via `scripts/test-memory.js`  
+**Status:** Measured (November 15, 2025)
+**Tool:** Puppeteer automated profiling via `scripts/test-memory.js`
 **Environment:** Production mode, initial page load
 
 ### Actual Memory Metrics
@@ -378,7 +386,7 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 ### Analysis
 
-**✅ Healthy Memory Profile:**
+** Healthy Memory Profile:**
 
 - **Admin redirect** (0.89 MB) - Very lightweight, redirects to login immediately
 - **Display modes** (2.66-7.25 MB) - Well within acceptable range for 24/7 operation
@@ -395,10 +403,10 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 **Comparison vs. Estimated Baselines:**
 
-- ✅ Admin: 0.89 MB actual vs. 15-25 MB estimated (redirect page, not full admin)
-- ✅ Screensaver: 7.25 MB actual vs. 8-12 MB estimated (within range)
-- ✅ Wallart: 6.77 MB actual vs. 10-15 MB estimated (better than expected!)
-- ✅ Cinema: 2.66 MB actual vs. 8-12 MB estimated (excellent optimization)
+- Admin: 0.89 MB actual vs. 15-25 MB estimated (redirect page, not full admin)
+- Screensaver: 7.25 MB actual vs. 8-12 MB estimated (within range)
+- Wallart: 6.77 MB actual vs. 10-15 MB estimated (better than expected!)
+- Cinema: 2.66 MB actual vs. 8-12 MB estimated (excellent optimization)
 
 **Note:** Admin page shows redirect behavior (0.89 MB). Full admin dashboard after login would be higher (~15-25 MB estimated).
 
@@ -466,9 +474,9 @@ This document establishes the performance baseline **after Quick Win optimizatio
 | **Total Bundle**         | 3.6 MB           | 1.8 MB                   | ↓ 50%       |
 | **admin.css**            | 460 KB           | 326 KB                   | ↓ 29%       |
 | **admin.html (gzipped)** | ~253 KB          | 38.23 KB                 | ↓ 85%       |
-| **ES Modules**           | 0 files          | 3 files (6.31 KB)        | ✨ New      |
-| **Build Process**        | Manual           | Automatic (hash-based)   | ✨ New      |
-| **Test Coverage**        | 0%               | 1% (error-handler: 100%) | ✨ New      |
+| **ES Modules**           | 0 files          | 3 files (6.31 KB)        | New         |
+| **Build Process**        | Manual           | Automatic (hash-based)   | New         |
+| **Test Coverage**        | 0%               | 1% (error-handler: 100%) | New         |
 
 **Key Wins:**
 
@@ -522,26 +530,29 @@ jq -r '.categories | to_entries[] | "\(.key): \(.value.score * 100)"' lighthouse
 
 1. **Start Server**
 
-    ```bash
-    npm start
-    ```
+```bash
+npm start
+```
 
 2. **Open Chrome DevTools**
-    - Navigate to `http://localhost:4000/admin`
-    - Press F12 → Performance tab
-    - Click "Record" → Interact with page → Stop
-    - Analyze heap snapshots, event listeners, DOM nodes
+
+- Navigate to `http://localhost:4000/admin`
+- Press F12 → Performance tab
+- Click "Record" → Interact with page → Stop
+- Analyze heap snapshots, event listeners, DOM nodes
 
 3. **Take Heap Snapshot**
-    - Memory tab → "Take snapshot"
-    - Compare snapshots before/after actions
-    - Look for detached DOM nodes (memory leaks)
+
+- Memory tab → "Take snapshot"
+- Compare snapshots before/after actions
+- Look for detached DOM nodes (memory leaks)
 
 4. **Key Metrics to Capture**
-    - **Heap Size:** Total memory used by JavaScript objects
-    - **DOM Nodes:** Number of DOM elements (target: <1500)
-    - **Event Listeners:** Number of registered listeners (target: <50)
-    - **Detached Nodes:** Memory leaks from removed DOM elements
+
+- **Heap Size:** Total memory used by JavaScript objects
+- **DOM Nodes:** Number of DOM elements (target: <1500)
+- **Event Listeners:** Number of registered listeners (target: <50)
+- **Detached Nodes:** Memory leaks from removed DOM elements
 
 **Expected Baselines (Estimates):**
 
@@ -584,7 +595,7 @@ open coverage/frontend/index.html
 
 ## References
 
-- Frontend Analysis: [FRONTEND-ANALYSIS-2025-11-15-README.md](./FRONTEND-ANALYSIS-2025-11-15-README.md)
+- Frontend Analysis: [FRONTEND-ANALYSIS-CONSOLIDATED.md](./FRONTEND-ANALYSIS-CONSOLIDATED.md)
 - Architecture Guide: [FRONTEND-ARCHITECTURE.md](./FRONTEND-ARCHITECTURE.md)
 - Deployment Guide: [DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md)
 - Vite Documentation: https://vitejs.dev/
@@ -592,6 +603,6 @@ open coverage/frontend/index.html
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** November 15, 2025  
+**Document Version:** 1.1
+**Last Updated:** November 16, 2025
 **Next Review:** December 15, 2025 (after Q1 Sprint 1 completion)

@@ -5,6 +5,7 @@ This codebase uses adapter classes per source with a small, consistent contract 
 Core files to study:
 
 - `sources/jellyfin.js`, `sources/plex.js` — real adapters
+- `sources/local.js`, `sources/tmdb.js`, `sources/romm.js` — other adapters
 - `sources/example.js` — minimal template
 - `utils/jellyfin-http-client.js`, `utils/plex-http-client.js` — HTTP helpers
 - `utils/example-http-client.js`, `utils/example-processors.js` — example client + item processor
@@ -23,7 +24,9 @@ Checklist:
 2. Use a dedicated HTTP client in `utils/` (create one if needed) instead of raw fetch/axios. See `utils/example-http-client.js`.
 3. Paginate: fetch all items per library, then filter across the full set (see Jellyfin adapter for the pattern).
 4. Normalize items in `processItem` so the UI gets consistent fields (title, poster path/URL, rating, year, etc.).
-    - See `utils/example-processors.js` for a starter.
+
+- See `utils/example-processors.js` for a starter.
+
 5. Maintain `this.metrics` and compute `filterEfficiency` in `getMetrics()`.
 6. Shuffle with `shuffleArray` and cap to `count`.
 7. Wire into `server.js` routes and add to Swagger docs in `swagger.js` if you expose new endpoints/options.
@@ -56,3 +59,8 @@ source = new MyNewSource(
     isDebug
 );
 ```
+
+---
+
+**Last updated:** November 16, 2025
+**Version:** 2.9.8

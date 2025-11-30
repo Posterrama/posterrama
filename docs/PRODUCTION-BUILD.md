@@ -26,11 +26,11 @@ Builds and immediately starts the server with the production build to verify fun
 
 **Frontend Code (public/):**
 
-- ✅ `console.log()` - Removed (172 instances in v2.9.4)
-- ✅ `console.debug()` - Removed
-- ✅ `console.info()` - Removed
-- ❌ `console.warn()` - **Kept** (important warnings)
-- ❌ `console.error()` - **Kept** (critical errors)
+- `console.log()` - Removed (172 instances in v2.9.4)
+- `console.debug()` - Removed
+- `console.info()` - Removed
+- `console.warn()` - **Kept** (important warnings)
+- `console.error()` - **Kept** (critical errors)
 
 **Backend Code (server.js, lib/, routes/, etc.):**
 
@@ -49,23 +49,23 @@ Posterrama Production Build v2.9.4
 ==========================================
 
 Step 1/4: Cleaning dist directory...
-✓ Dist directory cleaned
+ Dist directory cleaned
 
 Step 2/4: Copying public files to dist...
-✓ Files copied
+ Files copied
 
 Step 3/4: Removing console.logs from JavaScript...
-  ✓ Processed: dist/public/admin.js (removed 94 console statements)
-  ✓ Processed: dist/public/device-mgmt.js (removed 38 console statements)
-  ✓ Processed: dist/public/wallart/artist-cards.js (removed 15 console statements)
-  ...
-  ⊘ Skipped: dist/public/client-logger.js (logger infrastructure)
+ Processed: dist/public/admin.js (removed 94 console statements)
+ Processed: dist/public/device-mgmt.js (removed 38 console statements)
+ Processed: dist/public/wallart/artist-cards.js (removed 15 console statements)
+ ...
+ ⊘ Skipped: dist/public/client-logger.js (logger infrastructure)
 
-✓ Processed 25 JavaScript files
-✓ Removed 172 console statements
+ Processed 25 JavaScript files
+ Removed 172 console statements
 
 Step 4/4: Verifying console.logs removed...
-✓ All console.logs successfully removed
+ All console.logs successfully removed
 
 ==========================================
 Production Build Complete!
@@ -82,7 +82,7 @@ Backup directory: dist/backup
 Console.log statements are **allowed and encouraged** during development:
 
 ```javascript
-// ✅ OK during development
+// OK during development
 console.log('Debug info:', data);
 console.debug('Detailed state:', state);
 ```
@@ -93,20 +93,21 @@ ESLint will show **warnings** (not errors) for console statements, reminding you
 
 1. **Run production build:**
 
-    ```bash
-    npm run build:prod
-    ```
+```bash
+npm run build:prod
+```
 
 2. **Verify build works:**
 
-    ```bash
-    npm run build:prod:test
-    ```
+```bash
+npm run build:prod:test
+```
 
 3. **Deploy dist/public:**
-    ```bash
-    rsync -av dist/public/ user@server:/path/to/posterrama/public/
-    ```
+
+```bash
+rsync -av dist/public/ user@server:/path/to/posterrama/public/
+```
 
 ## Alternative: Use Logger Infrastructure
 
@@ -148,7 +149,7 @@ Original files backed up to `dist/backup/` before modification.
 ```javascript
 // .eslintrc.js
 rules: {
-  'no-console': ['warn', { allow: ['warn', 'error'] }]
+ 'no-console': ['warn', { allow: ['warn', 'error'] }]
 }
 ```
 
@@ -171,18 +172,18 @@ This warns about `console.log/debug/info` but allows `console.warn/error`.
 
 ```yaml
 - name: Build for production
-  run: npm run build:prod
+ run: npm run build:prod
 
 - name: Verify console.logs removed
-  run: |
-      REMAINING=$(grep -r "console\.log(" dist/public --include="*.js" | wc -l)
-      if [ "$REMAINING" -ne 0 ]; then
-        echo "ERROR: Found $REMAINING console.logs in production build"
-        exit 1
-      fi
+ run: |
+ REMAINING=$(grep -r "console\.log(" dist/public --include="*.js" | wc -l)
+ if [ "$REMAINING" -ne 0 ]; then
+ echo "ERROR: Found $REMAINING console.logs in production build"
+ exit 1
+ fi
 
 - name: Deploy
-  run: rsync -av dist/public/ ${{ secrets.DEPLOY_TARGET }}
+ run: rsync -av dist/public/ ${{ secrets.DEPLOY_TARGET }}
 ```
 
 ### Docker Integration
@@ -239,24 +240,24 @@ npm run build:prod
 2. Manually review the file
 3. Simplify console.log patterns:
 
-    ```javascript
-    // ❌ Hard to remove automatically
-    console.log('Complex ' + 'multi-line ' + data);
+```javascript
+// Hard to remove automatically
+console.log('Complex ' + 'multi-line ' + data);
 
-    // ✅ Easy to remove
-    console.log('Simple:', data);
-    ```
+// Easy to remove
+console.log('Simple:', data);
+```
 
 ## Best Practices
 
-### ✅ DO
+### DO
 
 - Use `console.log()` freely during development
 - Run `npm run build:prod` before deployment
 - Use `window.logger` for persistent debug infrastructure
 - Keep `console.warn()` and `console.error()` for important messages
 
-### ❌ DON'T
+### DON'T
 
 - Deploy `public/` directory directly to production
 - Remove ESLint warnings manually (they're helpful reminders)
@@ -271,7 +272,12 @@ npm run build:prod
 
 ## Version History
 
-- **v2.9.4** - Initial production build system
-    - Removes 172 console statements from frontend
-    - ESLint warnings for console usage
-    - Automated build script with verification
+- **v2.9.8** - Updated for latest release
+- Removes console statements from frontend
+- ESLint warnings for console usage
+- Automated build script with verification
+
+---
+
+**Last updated:** November 16, 2025
+**Version:** 2.9.8
