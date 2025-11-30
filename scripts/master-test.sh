@@ -563,6 +563,18 @@ check_documentation() {
         fail "README.md missing"
     fi
     
+    check "Help documentation coverage" "docs"
+    if [[ -f "__tests__/docs/help-documentation-coverage.test.js" ]]; then
+        if npm test -- __tests__/docs/help-documentation-coverage.test.js --silent 2>&1 | grep -q "PASS"; then
+            pass
+            echo -e "    ${GREEN}✓${NC} All settings documented in help system"
+        else
+            fail "Help documentation incomplete - run 'npm test -- __tests__/docs/help-documentation-coverage.test.js'"
+        fi
+    else
+        warn "Help documentation test not found"
+    fi
+    
     check "OpenAPI spec generation" "docs"
     if npm run openapi:sync >/dev/null 2>&1; then
         pass
