@@ -59,6 +59,7 @@ module.exports = function createConfigBackupsRouter({
      *             schema:
      *               $ref: '#/components/schemas/BackupListResponse'
      */
+    // @ts-ignore - Express router overload issue with async handler
     router.get('/api/admin/config-backups', isAuthenticated, async (req, res) => {
         try {
             const list = await cfgListBackups();
@@ -103,6 +104,7 @@ module.exports = function createConfigBackupsRouter({
      *             schema:
      *               $ref: '#/components/schemas/BackupCreateResponse'
      */
+    // @ts-ignore - Express router overload issue with async handler
     router.post('/api/admin/config-backups', isAuthenticated, async (req, res) => {
         try {
             const options = { auditContext: getAuditContext(req) };
@@ -156,6 +158,7 @@ module.exports = function createConfigBackupsRouter({
      *             schema:
      *               $ref: '#/components/schemas/BackupCleanupResponse'
      */
+    // @ts-ignore - Express router overload issue with async handler
     router.post('/api/admin/config-backups/cleanup', isAuthenticated, async (req, res) => {
         try {
             const keep = Math.max(1, Math.min(60, Number(req.body?.keep || 5)));
@@ -204,6 +207,7 @@ module.exports = function createConfigBackupsRouter({
      *       400:
      *         description: Invalid request or restore failed
      */
+    // @ts-ignore - Express router overload issue with async handler
     router.post('/api/admin/config-backups/restore', isAuthenticated, async (req, res) => {
         const id = String(req.body?.backupId || '');
         const file = String(req.body?.file || '');
@@ -259,6 +263,7 @@ module.exports = function createConfigBackupsRouter({
      *       400:
      *         description: Invalid ID or deletion failed
      */
+    // @ts-ignore - Express router overload issue with async handler
     router.delete('/api/admin/config-backups/:id', isAuthenticated, async (req, res) => {
         const id = String(req.params.id || '');
         try {
@@ -320,6 +325,7 @@ module.exports = function createConfigBackupsRouter({
      *       400:
      *         description: Invalid ID or update failed
      */
+    // @ts-ignore - Express router overload issue with async handler
     router.patch('/api/admin/config-backups/:id', isAuthenticated, async (req, res) => {
         const id = String(req.params.id || '');
         try {
@@ -356,6 +362,7 @@ module.exports = function createConfigBackupsRouter({
      *             schema:
      *               $ref: '#/components/schemas/BackupScheduleResponse'
      */
+    // @ts-ignore - Express router overload issue with async handler
     router.get('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) => {
         try {
             const cfg = await cfgReadSchedule();
@@ -404,6 +411,7 @@ module.exports = function createConfigBackupsRouter({
      *                 description: Delete backups older than this many days (0 = disabled)
      *                 example: 30
      */
+    // @ts-ignore - Express router overload issue with async handler
     router.post('/api/admin/config-backups/schedule', isAuthenticated, async (req, res) => {
         try {
             const out = await cfgWriteSchedule(req.body || {});
@@ -445,7 +453,7 @@ module.exports = function createConfigBackupsRouter({
         const next = new Date(now);
         next.setHours(hh, mm, 0, 0);
         if (next <= now) next.setDate(next.getDate() + 1);
-        const ms = next - now;
+        const ms = next.getTime() - now.getTime();
         __cfgBackupTimer = setTimeout(async function runBackup() {
             try {
                 const meta = await cfgCreateBackup();
@@ -470,6 +478,7 @@ module.exports = function createConfigBackupsRouter({
     }
 
     // Export the scheduler function so it can be initialized from server.js
+    // @ts-ignore - Custom property on Express router for scheduler function
     router.scheduleConfigBackups = scheduleConfigBackups;
 
     return router;
