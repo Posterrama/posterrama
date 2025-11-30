@@ -457,9 +457,6 @@
                 <button type="button" id="toggle-preview-zoom" class="pip-button" title="Zoom 1.4x">
                   <i class="fas fa-search-plus"></i>
                 </button>
-                <button type="button" id="toggle-preview-orientation" class="pip-button" title="Toggle Orientation">
-                  <i class="fas fa-mobile-alt"></i>
-                </button>
               </div>
               <iframe id="display-preview-frame" class="preview-frame" title="Display Settings Live Preview" src="/screensaver?preview=1"></iframe>
             </div>
@@ -512,6 +509,29 @@
                       <span class="status-pill" id="saver-summary-effect" title="Visual transition">Effect: —</span>
                       <span class="status-pill" id="saver-summary-pause" title="Pause after transition">Pause: —</span>
                       <span class="status-pill" id="saver-summary-clock" title="Clock widget status">Clock: —</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Orientation card -->
+                  <div class="mode-card" data-card-key="screensaver-orientation" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Orientation</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label for="screensaverOrientation">
+                          Screen Orientation
+                          <span class="help-text">Auto follows device sensor or aspect ratio</span>
+                        </label>
+                        <div class="select-wrap has-caret">
+                          <select id="screensaverOrientation">
+                            <option value="auto">Auto</option>
+                            <option value="portrait">Portrait</option>
+                            <option value="landscape">Landscape</option>
+                            <option value="portrait-flipped">Portrait (flipped)</option>
+                            <option value="landscape-flipped">Landscape (flipped)</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
@@ -667,6 +687,30 @@
                       <span class="status-pill" id="wallart-summary-tempo" title="Refresh/Randomness">Tempo: —</span>
                     </div>
                   </div>
+                  
+                  <!-- Orientation card -->
+                  <div class="mode-card" data-card-key="wallart-orientation" style="padding:12px;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Orientation</div>
+                    <div class="form-grid">
+                      <div class="form-row">
+                        <label for="wallartOrientation">
+                          Screen Orientation
+                          <span class="help-text">Auto follows device sensor or aspect ratio</span>
+                        </label>
+                        <div class="select-wrap has-caret">
+                          <select id="wallartOrientation">
+                            <option value="auto">Auto</option>
+                            <option value="portrait">Portrait</option>
+                            <option value="landscape">Landscape</option>
+                            <option value="portrait-flipped">Portrait (flipped)</option>
+                            <option value="landscape-flipped">Landscape (flipped)</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <!-- Tempo card -->
                   <div class="mode-card" data-card-key="tempo" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-tachometer-alt"></i> Tempo</div>
@@ -1052,12 +1096,17 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-mobile-alt"></i> Orientation</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label for="cinemaOrientation">Orientation</label>
+                        <label for="cinemaOrientation">
+                          Screen Orientation
+                          <span class="help-text">Auto follows device sensor or aspect ratio</span>
+                        </label>
                         <div class="select-wrap has-caret">
                           <select id="cinemaOrientation">
                             <option value="auto">Auto</option>
                             <option value="portrait">Portrait</option>
+                            <option value="landscape">Landscape</option>
                             <option value="portrait-flipped">Portrait (flipped)</option>
+                            <option value="landscape-flipped">Landscape (flipped)</option>
                           </select>
                           <span class="select-caret" aria-hidden="true">▾</span>
                         </div>

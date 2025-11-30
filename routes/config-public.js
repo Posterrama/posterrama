@@ -187,9 +187,12 @@ module.exports = function createConfigPublicRouter({
                     ? Number(config.syncAlignMaxDelayMs)
                     : 1200,
                 cinemaMode: config.cinemaMode || false,
-                cinemaOrientation: config.cinemaOrientation || 'auto',
+                // Legacy: keep for backward compatibility but prefer cinema.orientation
+                cinemaOrientation: config.cinema?.orientation || config.cinemaOrientation || 'auto',
                 // Include full cinema configuration object
                 cinema: config.cinema || {},
+                // Include screensaver mode configuration
+                screensaverMode: config.screensaverMode || { orientation: 'auto' },
                 wallartMode: { ...wallartDefaults, ...(config.wallartMode || {}) },
                 transitionIntervalSeconds: config.transitionIntervalSeconds || 15,
                 backgroundRefreshMinutes: Number.isFinite(Number(config.backgroundRefreshMinutes))

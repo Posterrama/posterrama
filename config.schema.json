@@ -70,6 +70,28 @@
             "enum": ["12h", "24h"],
             "default": "24h"
         },
+        "screensaverMode": {
+            "description": "Screensaver mode settings - displays single poster with metadata and effects",
+            "type": "object",
+            "properties": {
+                "orientation": {
+                    "type": "string",
+                    "enum": [
+                        "auto",
+                        "portrait",
+                        "landscape",
+                        "portrait-flipped",
+                        "landscape-flipped"
+                    ],
+                    "default": "auto",
+                    "description": "Screensaver orientation (auto = follow device/aspect ratio, or force specific orientation)"
+                }
+            },
+            "additionalProperties": false,
+            "default": {
+                "orientation": "auto"
+            }
+        },
         "wallartMode": {
             "description": "Enable wallart mode - displays multiple posters/covers in a grid layout. Shows many items simultaneously like a digital art gallery.",
             "type": "object",
@@ -98,6 +120,18 @@
                     "maximum": 10,
                     "default": 2,
                     "description": "Amount of random staggering in the cycle timing"
+                },
+                "orientation": {
+                    "type": "string",
+                    "enum": [
+                        "auto",
+                        "portrait",
+                        "landscape",
+                        "portrait-flipped",
+                        "landscape-flipped"
+                    ],
+                    "default": "auto",
+                    "description": "Wallart orientation (auto = follow device/aspect ratio, or force specific orientation)"
                 },
                 "animationType": {
                     "type": "string",
@@ -331,12 +365,6 @@
             "description": "Enable cinema mode for portrait displays with fullscreen poster layout.",
             "type": "boolean",
             "default": false
-        },
-        "cinemaOrientation": {
-            "description": "Force a specific portrait orientation for cinema mode instead of relying on device sensors.",
-            "type": "string",
-            "enum": ["auto", "portrait", "portrait-flipped"],
-            "default": "portrait-flipped"
         },
         "cinema": {
             "description": "Cinema mode overlays and presentation settings (header/footer, marquee, specs, ambilight).",
@@ -575,9 +603,15 @@
                 },
                 "orientation": {
                     "type": "string",
-                    "enum": ["auto", "portrait", "portrait-flipped", "landscape"],
+                    "enum": [
+                        "auto",
+                        "portrait",
+                        "landscape",
+                        "portrait-flipped",
+                        "landscape-flipped"
+                    ],
                     "default": "auto",
-                    "description": "Cinema mode orientation override (auto = follow device, portrait/landscape/portrait-flipped = force orientation)"
+                    "description": "Cinema mode orientation (auto = follow device/aspect ratio, or force specific orientation)"
                 }
             },
             "additionalProperties": false,

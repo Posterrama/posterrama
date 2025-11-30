@@ -100,12 +100,37 @@
         const body = document.body;
 
         // Remove existing orientation classes
-        body.classList.remove('cinema-auto', 'cinema-portrait', 'cinema-portrait-flipped');
+        body.classList.remove(
+            'cinema-auto',
+            'cinema-portrait',
+            'cinema-landscape',
+            'cinema-portrait-flipped',
+            'cinema-landscape-flipped'
+        );
+
+        // Handle auto orientation: use sensor if available, otherwise aspect ratio
+        let resolvedOrientation = orientation;
+        if (orientation === 'auto') {
+            // Try screen orientation API first
+            if (window.screen?.orientation?.type) {
+                const type = window.screen.orientation.type;
+                if (type.includes('portrait')) {
+                    resolvedOrientation = 'portrait';
+                } else {
+                    resolvedOrientation = 'landscape';
+                }
+            } else {
+                // Fallback: use aspect ratio (width > height = landscape)
+                resolvedOrientation =
+                    window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+            }
+            log(`Auto-detected orientation: ${resolvedOrientation}`);
+        }
 
         // Add new orientation class
-        body.classList.add(`cinema-${orientation}`);
+        body.classList.add(`cinema-${resolvedOrientation}`);
 
-        log(`Applied cinema orientation: ${orientation}`);
+        log(`Applied cinema orientation: ${orientation} (resolved: ${resolvedOrientation})`);
     }
 
     // ===== Cinema Header =====

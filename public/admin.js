@@ -3860,8 +3860,10 @@
 
         // Wallart: Ambience — keep Bias visible regardless of Ambient Gradient state (as requested)
 
-        // Cinema
-        setIf('cinemaOrientation', c.cinemaOrientation || 'auto');
+        // Orientation settings for each mode
+        setIf('screensaverOrientation', c.screensaverMode?.orientation || 'auto');
+        setIf('wallartOrientation', c.wallartMode?.orientation || 'auto');
+        setIf('cinemaOrientation', c.cinema?.orientation || 'auto');
         setIf('cinemaRotationInterval', c.cinema?.rotationIntervalMinutes || 0);
 
         // Cinema Now Playing
@@ -5430,6 +5432,12 @@
                 ? { ...existingCinemaFromUI }
                 : {};
 
+        // Collect orientation
+        const orientationEl = document.getElementById('cinemaOrientation');
+        if (orientationEl !== null) {
+            cinemaUpdate.orientation = val('cinemaOrientation') || 'auto';
+        }
+
         // Collect rotation interval if element exists
         const rotationEl = document.getElementById('cinemaRotationInterval');
         if (rotationEl !== null) {
@@ -5497,11 +5505,14 @@
             syncAlignMaxDelayMs: val('syncAlignMaxDelayMs'),
             // Modes
             cinemaMode: cinemaEnabled,
-            cinemaOrientation: val('cinemaOrientation'),
             // Preview orientation for screensaver/wallart (not saved to config, just for preview)
             previewOrientation: window.__previewOrientation || 'landscape',
+            screensaverMode: {
+                orientation: val('screensaverOrientation') || 'auto',
+            },
             wallartMode: {
                 enabled: wallartEnabled,
+                orientation: val('wallartOrientation') || 'auto',
                 density: val('wallartMode_density'),
                 refreshRate: val('wallartMode_refreshRate'),
                 randomness: val('wallartMode_randomness'),
@@ -5785,7 +5796,7 @@
         // Track whether the user has manually moved the PiP; if so, don't auto-reanchor
         let userHasMovedPreview = false;
         // Preview-only orientation state for non-cinema modes
-        let previewOrientation = 'landscape'; // 'landscape' | 'portrait'
+        const previewOrientation = 'landscape'; // 'landscape' | 'portrait'
         // Store in window so collectDisplayFormPatch can access it
         window.__previewOrientation = previewOrientation;
         // Remember user's custom anchor after drag so we can preserve it across changes
@@ -6150,12 +6161,28 @@
             container.classList.toggle('cinema-mode', isCinema);
             container.classList.toggle('wallart-mode', isWallart);
             container.classList.toggle('screensaver-mode', !isCinema && !isWallart);
-            // In Cinema preview, orientation follows the form selection; the toggle button is hidden
-            if (orientBtn) orientBtn.style.display = isCinema ? 'none' : '';
-            // Cinema preview MUST always be portrait (window and content), regardless of form selection
-            const portrait = isCinema ? true : previewOrientation === 'portrait';
+
+            // Determine orientation from active mode config
+            let modeOrientation = 'auto';
+            if (isCinema) {
+                modeOrientation = payload.cinema?.orientation || 'auto';
+            } else if (isWallart) {
+                modeOrientation = payload.wallartMode?.orientation || 'auto';
+            } else {
+                modeOrientation = payload.screensaverMode?.orientation || 'auto';
+            }
+
+            // Auto orientation uses aspect ratio detection (width > height = landscape)
+            const portrait =
+                modeOrientation === 'auto'
+                    ? window.innerWidth < window.innerHeight
+                    : modeOrientation === 'portrait' || modeOrientation === 'portrait-flipped';
+
             container.classList.toggle('portrait', portrait);
             container.classList.toggle('landscape', !portrait);
+
+            // Hide orientation toggle button since it's now per-mode
+            if (orientBtn) orientBtn.style.display = 'none';
         }
 
         function updateFrameScale() {
@@ -6372,38 +6399,8 @@
             }
         });
 
-        // Orientation toggle for non-cinema modes: landscape <-> portrait
-        orientBtn?.addEventListener('click', () => {
-            // Only applies in Screensaver/Wallart; hidden in Cinema
-            // Capture the current anchor before changing orientation; if we're
-            // in landscape now, remember it for exact restoration
-            // Capture user anchor only if they had previously dragged
-            if (userHasMovedPreview) {
-                try {
-                    lastUserAnchor = getTopRightAnchorPoint();
-                } catch (_) {
-                    /* device metrics refresh scheduling failed (dashboard still usable) */
-                }
-            }
-            previewOrientation = previewOrientation === 'portrait' ? 'landscape' : 'portrait';
-            window.__previewOrientation = previewOrientation; // Sync to window
-            // Update container immediately for visual aspect switch
-            try {
-                const payload = collectPreviewPayload();
-                applyContainerMode(payload);
-            } catch (_) {
-                /* slider bar initial width calc failed (visual only) */
-            }
-            requestAnimationFrame(() => {
-                updateFrameScale();
-                // After dimensions settle, keep the same visual top-right anchor
-                reanchorToCorrectPoint();
-                // Extra nudge on next frame in case transform finishes one frame later
-                requestAnimationFrame(reanchorToCorrectPoint);
-            });
-            // No config change needed; just update the preview
-            sendUpdate();
-        });
+        // Orientation is now per-mode (screensaver, wallart, cinema), configured in each mode's settings
+        // No global toggle button needed anymore
 
         // Keep orientation control visibility and shell aspect in sync with active mode
         const modeRadios = document.querySelectorAll('input[name="display.mode"]');
