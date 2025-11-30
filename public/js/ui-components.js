@@ -401,6 +401,27 @@ export function createColorPicker(options) {
 
         // Recalculate cursor positions when opening (containers now have dimensions)
         if (isOpening) {
+            // Check if popup fits below, otherwise open above
+            const circleRect = colorCircle.getBoundingClientRect();
+            const popupHeight = 420; // Approximate popup height
+            const viewportHeight = window.innerHeight;
+            const spaceBelow = viewportHeight - circleRect.bottom;
+            const spaceAbove = circleRect.top;
+
+            if (spaceBelow < popupHeight && spaceAbove > spaceBelow) {
+                // Open above
+                popup.style.top = 'auto';
+                popup.style.bottom = '100%';
+                popup.style.marginTop = '0';
+                popup.style.marginBottom = '8px';
+            } else {
+                // Open below (default)
+                popup.style.top = '100%';
+                popup.style.bottom = 'auto';
+                popup.style.marginTop = '8px';
+                popup.style.marginBottom = '0';
+            }
+
             // Force update of cursor positions after popup is visible
             setTimeout(() => {
                 const svX = (currentHSV.s / 100) * svContainer.offsetWidth;
