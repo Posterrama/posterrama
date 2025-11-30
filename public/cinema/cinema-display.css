@@ -412,6 +412,32 @@ body:hover #controls-container {
     font-weight: 300;
 }
 
+/* Tagline Footer */
+.cinema-footer-tagline {
+    position: static;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.5rem 2rem;
+    font-size: 1.4rem;
+    font-style: italic;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.95);
+    text-align: center;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    max-width: 90%;
+    margin: 0 auto;
+}
+
+.cinema-footer-tagline.fallback-title {
+    font-style: normal;
+    font-weight: 500;
+    font-size: 1.3rem;
+    opacity: 0.85;
+}
+
 /* Legacy badge styling (keep for backwards compat) */
 .cinema-spec-badge {
     padding: 0.5rem 1rem;

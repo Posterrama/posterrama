@@ -12719,6 +12719,10 @@ import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
                             json: { cinema: { footer: { type: 'specs' } } },
                         },
                         {
+                            label: 'cinema.footer.type=tagline',
+                            json: { cinema: { footer: { type: 'tagline' } } },
+                        },
+                        {
                             label: 'cinema.ambilight.enabled',
                             json: { cinema: { ambilight: { enabled: true } } },
                         },

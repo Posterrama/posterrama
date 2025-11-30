@@ -426,7 +426,7 @@
             el(
                 'select',
                 { id: 'cin-f-type', class: 'cin-compact' },
-                ['marquee', 'specs'].map(s => el('option', {}, s))
+                ['marquee', 'specs', 'tagline'].map(s => el('option', {}, s))
             ),
         ]);
         const styleSlot = el('div', { id: 'cin-f-style-slot' }, []);

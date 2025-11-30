@@ -354,7 +354,12 @@ module.exports = function createFrontendPagesRouter({
                     .replace(
                         /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
                         `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
-                    );
+                    )
+                    .replace(
+                        /cinema-ui\.js\?v=\{\{ASSET_VERSION\}\}/g,
+                        `cinema-ui.js?v=${versions['cinema/cinema-ui.js'] || ASSET_VERSION}`
+                    )
+                    .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION);
 
                 res.setHeader('Cache-Control', 'no-cache');
                 res.send(stamped);
@@ -545,7 +550,16 @@ module.exports = function createFrontendPagesRouter({
                 .replace(
                     /\/sw\.js(\?v=[^"'\s>]+)?/g,
                     `/sw.js?v=${versions['sw.js'] || ASSET_VERSION}`
-                );
+                )
+                .replace(
+                    /cinema-display\.css\?v=\{\{ASSET_VERSION\}\}/g,
+                    `cinema-display.css?v=${versions['cinema/cinema-display.css'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /cinema-display\.js\?v=\{\{ASSET_VERSION\}\}/g,
+                    `cinema-display.js?v=${versions['cinema/cinema-display.js'] || ASSET_VERSION}`
+                )
+                .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION);
 
             // Inject debug viewer if enabled
             const finalHtml = injectDebugViewer(stamped, getConfig ? getConfig() : null);

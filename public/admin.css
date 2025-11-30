@@ -14236,23 +14236,44 @@ select:focus-visible {
     align-items: center;
 }
 
-.browser-search input {
+.search-input-wrapper::before {
+    content: '\f002';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    left: 1rem;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    pointer-events: none;
+    z-index: 1;
+    transition: color 0.2s ease;
+}
+
+.search-input-wrapper:focus-within::before {
+    color: var(--color-accent);
+}
+
+.browser-search input,
+.browser-search input.form-input {
     width: 100%;
-    padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+    height: 38px;
+    padding: 0 2.25rem 0 2.75rem !important;
     border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border-radius: 20px !important;
     background: var(--surface-layer-1);
     color: var(--color-text);
     font-size: 0.875rem;
     transition:
         border-color 0.2s ease,
-        box-shadow 0.2s ease;
+        box-shadow 0.2s ease,
+        background-color 0.2s ease;
 }
 
 .browser-search input:focus {
     outline: none;
     border-color: var(--color-accent);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+    background: var(--surface-layer-2);
 }
 
 .browser-search input::placeholder {
@@ -14261,7 +14282,7 @@ select:focus-visible {
 
 .search-clear-btn {
     position: absolute;
-    right: 0.5rem;
+    right: 0.75rem;
     background: none;
     border: none;
     color: var(--color-text-secondary);
@@ -14270,9 +14291,9 @@ select:focus-visible {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 4px;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
     transition:
         background-color 0.2s ease,
         color 0.2s ease;
@@ -15497,9 +15518,10 @@ select:focus-visible {
         width: 100%;
     }
 
-    #panel-local .search-input-wrapper input {
+    #panel-local .search-input-wrapper input,
+    #panel-local .search-input-wrapper input.form-input {
         font-size: 0.9rem;
-        padding: 10px 12px;
+        padding: 10px 2.25rem 10px 2.75rem !important;
     }
 
     /* Browser content - optimize file/folder items */

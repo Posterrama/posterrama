@@ -464,9 +464,9 @@
                         },
                         "type": {
                             "type": "string",
-                            "enum": ["marquee", "specs"],
+                            "enum": ["marquee", "specs", "tagline"],
                             "default": "specs",
-                            "description": "Footer type - marquee scrolling text or technical specs"
+                            "description": "Footer type - marquee scrolling text, technical specs, or movie tagline"
                         },
                         "marqueeText": {
                             "type": "string",

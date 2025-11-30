@@ -276,6 +276,30 @@
                 hasHDR: currentMedia.hasHDR || false,
                 hasDolbyVision: currentMedia.hasDolbyVision || false,
             });
+        } else if (cinemaConfig.footer.type === 'tagline' && currentMedia) {
+            // Tagline footer - displays the movie/series tagline
+            const taglineDiv = document.createElement('div');
+            taglineDiv.className = 'cinema-footer-tagline';
+
+            const taglineText = currentMedia.tagline || currentMedia.summary?.split('.')[0] || '';
+            if (taglineText) {
+                taglineDiv.textContent = taglineText;
+                footerEl.appendChild(taglineDiv);
+
+                log('Cinema footer tagline created', {
+                    tagline: taglineText,
+                    title: currentMedia.title || 'Unknown',
+                });
+            } else {
+                // Fallback: show title if no tagline available
+                taglineDiv.textContent = currentMedia.title || '';
+                taglineDiv.classList.add('fallback-title');
+                footerEl.appendChild(taglineDiv);
+
+                log('Cinema footer tagline fallback to title', {
+                    title: currentMedia.title || 'Unknown',
+                });
+            }
         }
     }
 
