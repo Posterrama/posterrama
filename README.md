@@ -141,7 +141,7 @@ Perfect for vertical screens or digital signage. Show a rotating selection of po
   <img src="./screenshots/cinema_4.png" alt="Cinema Mode - Specs" width="180">
 </p>
 
-_From left to right: Classic poster display with header, rich metadata footer with ratings and runtime, promotional QR code overlay, and technical specs badges (resolution, audio codec, HDR)._
+_From left to right: "Feature Presentation" banner with metadata footer showing year, rating score, content rating, and genres plus technical badges (4K, Dolby Atmos, Dolby Vision); "Now Playing" mode displaying the movie tagline; vintage-style header with logo art integration; and QR code overlay for quick mobile access alongside rich technical specifications._
 
 **Key features:**
 
