@@ -1516,7 +1516,7 @@
               </div>
               
             </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
+            <div class="form-group">
               <label for="plex.musicGenres">Music Genres</label>
               <select id="plex.musicGenres" multiple style="display:none"></select>
               <input type="hidden" id="plex.musicGenres-hidden" value="">
@@ -1539,7 +1539,7 @@
                 </div>
               </div>
             </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
+            <div class="form-group">
               <label for="plex.musicArtists">Music Artists</label>
               <select id="plex.musicArtists" multiple style="display:none"></select>
               <input type="hidden" id="plex.musicArtists-hidden" value="">
@@ -1562,26 +1562,24 @@
                 </div>
               </div>
             </div>
-          </div>
-
-          <!-- Recently added -->
-          <div class="form-section">
-            <div class="section-title"><i class="fas fa-clock"></i> Recently added days
-              <label class="header-toggle" for="plex.recentOnlyHeader" title="Show only recently added items" style="margin-left:auto;">
-                <input type="checkbox" id="plex.recentOnlyHeader" />
-                <span class="ht-switch" aria-hidden="true"></span>
-              </label>
-            </div>
-          </div>
-          <div class="form-grid plex-dense" id="plex-recent-grid">
-            <!-- hidden form checkbox kept for saving is removed per request; header toggle will be the single source -->
-            <div class="form-group">
-              <div class="number-input-wrapper niw-compact">
-                <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
-                <div class="number-controls" role="group">
-                  <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
-                  <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+            <!-- Recently added days - toggle enables/disables the filter -->
+            <div class="form-group recent-filter-group">
+              <div class="recent-filter-header">
+                <label><i class="fas fa-clock"></i> Recently added</label>
+                <label class="header-toggle" for="plex.recentOnlyHeader">
+                  <input type="checkbox" id="plex.recentOnlyHeader" />
+                  <span class="ht-switch" aria-hidden="true"></span>
+                </label>
+              </div>
+              <div class="recent-filter-input">
+                <div class="number-input-wrapper niw-compact">
+                  <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
+                  <div class="number-controls" role="group">
+                    <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                    <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                  </div>
                 </div>
+                <span class="recent-filter-unit">days</span>
               </div>
             </div>
           </div>
@@ -1748,6 +1746,26 @@
               </div>
               
             </div>
+            <!-- Recently added days - toggle enables/disables the filter -->
+            <div class="form-group recent-filter-group">
+              <div class="recent-filter-header">
+                <label><i class="fas fa-clock"></i> Recently added</label>
+                <label class="header-toggle" for="jf.recentOnlyHeader">
+                  <input type="checkbox" id="jf.recentOnlyHeader" />
+                  <span class="ht-switch" aria-hidden="true"></span>
+                </label>
+              </div>
+              <div class="recent-filter-input">
+                <div class="number-input-wrapper niw-compact">
+                  <input type="number" id="jf.recentDays" min="1" max="365" placeholder="30">
+                  <div class="number-controls" role="group">
+                    <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                    <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                  </div>
+                </div>
+                <span class="recent-filter-unit">days</span>
+              </div>
+            </div>
           </div>
           <!-- Jellyfin Qualities hidden (disabled feature) -->
           <div class="form-grid" style="display:none">
@@ -1755,27 +1773,6 @@
               <label for="jf.qualityFilter">Qualities</label>
               <input type="hidden" id="jf.qualityFilter-hidden" value="">
               <div class="multiselect" id="jf-ms-qualities"></div>
-            </div>
-          </div>
-          <!-- Recently added -->
-          <div class="form-section">
-            <div class="section-title"><i class="fas fa-clock"></i> Recently added days
-              <label class="header-toggle" for="jf.recentOnlyHeader" title="Show only recently added items" style="margin-left:auto;">
-                <input type="checkbox" id="jf.recentOnlyHeader" />
-                <span class="ht-switch" aria-hidden="true"></span>
-              </label>
-            </div>
-          </div>
-          <div class="form-grid plex-dense" id="jf-recent-grid">
-            <!-- removed hidden checkbox; header toggle is the only control now -->
-            <div class="form-group">
-              <div class="number-input-wrapper niw-compact">
-                <input type="number" id="jf.recentDays" min="1" max="365" placeholder="30">
-                <div class="number-controls" role="group">
-                  <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
-                  <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -2178,9 +2175,9 @@
             <div class="form-group" id="posterpack-lib-section" style="grid-column: 1 / -1;" hidden>
               <div class="form-subsection">
                 <h4>Libraries</h4>
-                <div class="form-grid">
-                  <!-- Plex libraries -->
-                  <div class="form-group" id="pp-plex-libs" hidden>
+                <div class="form-grid pp-libs-grid" id="pp-plex-libs" hidden>
+                  <!-- Plex Movie Libraries -->
+                  <div class="form-group">
                     <label for="pp-plex.movies">Movie Libraries</label>
                     <select id="pp-plex.movies" multiple style="display:none"></select>
                     <div class="multiselect" id="pp-plex-ms-movies" tabindex="0">
@@ -2201,7 +2198,10 @@
                         <div class="ms-options" id="pp-plex-ms-movies-options"></div>
                       </div>
                     </div>
-                    <label for="pp-plex.shows" style="margin-top:8px;">Show Libraries</label>
+                  </div>
+                  <!-- Plex Show Libraries -->
+                  <div class="form-group">
+                    <label for="pp-plex.shows">Show Libraries</label>
                     <select id="pp-plex.shows" multiple style="display:none"></select>
                     <div class="multiselect" id="pp-plex-ms-shows" tabindex="0">
                       <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox" tabindex="0">
@@ -2222,8 +2222,10 @@
                       </div>
                     </div>
                   </div>
-                  <!-- Jellyfin libraries -->
-                  <div class="form-group" id="pp-jf-libs" hidden>
+                </div>
+                <!-- Jellyfin libraries -->
+                <div class="form-grid pp-libs-grid" id="pp-jf-libs" hidden>
+                  <div class="form-group">
                     <label for="pp-jf.movies">Movie Libraries</label>
                     <select id="pp-jf.movies" multiple style="display:none"></select>
                     <div class="multiselect" id="pp-jf-ms-movies" tabindex="0">
@@ -2244,7 +2246,9 @@
                         <div class="ms-options" id="pp-jf-ms-movies-options"></div>
                       </div>
                     </div>
-                    <label for="pp-jf.shows" style="margin-top:8px;">Show Libraries</label>
+                  </div>
+                  <div class="form-group">
+                    <label for="pp-jf.shows">Show Libraries</label>
                     <select id="pp-jf.shows" multiple style="display:none"></select>
                     <div class="multiselect" id="pp-jf-ms-shows" tabindex="0">
                       <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox" tabindex="0">

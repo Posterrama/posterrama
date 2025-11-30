@@ -5517,12 +5517,61 @@ select:not([multiple]) {
 
 /* Posterpack: make Content Source select shrink to its content */
 #posterpack-source-wrap {
-    width: 640px; /* ensure wrapper itself is wide */
-    max-width: 100%;
+    width: auto;
+    min-width: 150px;
+    max-width: 200px;
 }
 #posterpack-source-wrap select {
-    width: 100%; /* fill wrapper width */
+    width: 100%;
 }
+
+/* Posterpack: compact layout */
+#posterpack-lib-section {
+    grid-column: 1 / -1 !important;
+}
+#posterpack-lib-section .form-subsection {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+#posterpack-lib-section .form-subsection h4 {
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    color: var(--color-text-secondary);
+}
+/* Posterpack libraries 2-column grid (Movies | Shows side by side) */
+.pp-libs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+#posterpack-filters {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+#posterpack-filters h4 {
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    color: var(--color-text-secondary);
+}
+#posterpack-filters .form-grid,
+#posterpack-filters-common,
+#posterpack-filters-srv {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+#posterpack-filters-common {
+    margin-bottom: 16px;
+}
+/* Release Years spans 1 column */
+#posterpack-filters-common .form-group {
+    grid-column: span 1;
+}
+
 .select-wrap.has-caret select {
     /* remove native background chevron since we render our own */
     background-image: none !important;
@@ -10605,19 +10654,56 @@ body.page-logs {
     grid-column: span 6;
 }
 
-/* Plex Filters: make Ratings, Genres, and Qualities multiselects full width */
-#panel-plex #plex-filters-grid > .form-group:has(#plex-ms-ratings),
-#panel-plex #plex-filters-grid > .form-group:has(#plex-ms-genres),
-#panel-plex #plex-filters-grid > .form-group:has(#plex-ms-qualities) {
-    grid-column: 1 / -1; /* span all 12 columns */
+/* Plex Filters: 4-column layout on large screens */
+@media (min-width: 1200px) {
+    #panel-plex #plex-filters-grid > .form-group {
+        grid-column: span 3; /* 4 items per row */
+    }
+    /* Release Years stays smaller */
+    #panel-plex #plex-filters-grid > .form-group:has(#plex\.yearFilter) {
+        grid-column: span 3;
+    }
 }
-@media (min-width: 900px) {
-    #panel-plex #plex-recent-grid > .form-group:first-child {
-        grid-column: span 4;
-    }
-    #panel-plex #plex-recent-grid > .form-group:last-child {
-        grid-column: span 8;
-    }
+
+/* Music Genres and Artists: 2 columns on desktop */
+#panel-plex #plex-filters-grid > .form-group:has(#plex-ms-music-genres),
+#panel-plex #plex-filters-grid > .form-group:has(#plex-ms-music-artists) {
+    grid-column: span 6;
+}
+
+/* Recently added filter - with enable/disable toggle */
+.recent-filter-group {
+    grid-column: 1 / -1; /* Force full width to start new row */
+    max-width: 250px; /* But limit actual width */
+}
+.recent-filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.recent-filter-header label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+.recent-filter-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.recent-filter-input .number-input-wrapper {
+    max-width: 80px;
+}
+.recent-filter-unit {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+/* Disabled state when toggle is off */
+.recent-filter-group:has(input[type='checkbox']:not(:checked)) .recent-filter-input {
+    opacity: 0.4;
+    pointer-events: none;
 }
 
 /* Jellyfin dense grids: mirror Plex for compact layout */
@@ -10629,33 +10715,20 @@ body.page-logs {
 #panel-jellyfin #jf-filters-grid > .form-group {
     grid-column: span 6;
 }
+#panel-jellyfin #jf-filters-grid > .form-group.recent-filter-group,
+#panel-plex #plex-filters-grid > .form-group.recent-filter-group {
+    grid-column: 1 / -1;
+    max-width: 250px;
+}
 @media (min-width: 1200px) {
     #panel-jellyfin #jf-filters-grid > .form-group {
         grid-column: span 3;
     }
-}
-#panel-jellyfin #jf-recent-grid {
-    grid-template-columns: repeat(12, 1fr);
-}
-#panel-jellyfin #jf-recent-grid > .form-group:first-child {
-    grid-column: span 6;
-}
-#panel-jellyfin #jf-recent-grid > .form-group:last-child {
-    grid-column: span 6;
-}
-@media (min-width: 900px) {
-    #panel-jellyfin #jf-recent-grid > .form-group:first-child {
-        grid-column: span 4;
+    #panel-jellyfin #jf-filters-grid > .form-group.recent-filter-group,
+    #panel-plex #plex-filters-grid > .form-group.recent-filter-group {
+        grid-column: 1 / -1;
+        max-width: 250px;
     }
-    #panel-jellyfin #jf-recent-grid > .form-group:last-child {
-        grid-column: span 8;
-    }
-}
-
-/* Jellyfin Filters: make Ratings and Genres multiselects full width */
-#panel-jellyfin #jf-filters-grid > .form-group:has(#jf-ms-ratings),
-#panel-jellyfin #jf-filters-grid > .form-group:has(#jf-ms-genres) {
-    grid-column: 1 / -1; /* span all 12 columns */
 }
 
 /* Plex: enforce equal control height */
