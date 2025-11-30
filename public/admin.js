@@ -6423,6 +6423,34 @@
         // Orientation is now per-mode (screensaver, wallart, cinema), configured in each mode's settings
         // No global toggle button needed anymore
 
+        // Listen to orientation dropdown changes for live preview update
+        const orientationSelects = [
+            'screensaverOrientation',
+            'wallartOrientation',
+            'cinemaOrientation',
+        ];
+        orientationSelects.forEach(id => {
+            const select = document.getElementById(id);
+            if (select) {
+                select.addEventListener('change', () => {
+                    // Apply immediately and rescale
+                    try {
+                        const payload = collectPreviewPayload();
+                        applyContainerMode(payload);
+                    } catch (_) {
+                        /* orientation update failed */
+                    }
+                    requestAnimationFrame(() => {
+                        updateFrameScale();
+                        reanchorToCorrectPoint();
+                        requestAnimationFrame(reanchorToCorrectPoint);
+                    });
+                    // Update the preview content too
+                    sendUpdate();
+                });
+            }
+        });
+
         // Keep orientation control visibility and shell aspect in sync with active mode
         const modeRadios = document.querySelectorAll('input[name="display.mode"]');
         modeRadios.forEach(r => {
