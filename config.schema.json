@@ -603,15 +603,9 @@
                 },
                 "orientation": {
                     "type": "string",
-                    "enum": [
-                        "auto",
-                        "portrait",
-                        "landscape",
-                        "portrait-flipped",
-                        "landscape-flipped"
-                    ],
+                    "enum": ["auto", "portrait", "portrait-flipped"],
                     "default": "auto",
-                    "description": "Cinema mode orientation (auto = follow device/aspect ratio, or force specific orientation)"
+                    "description": "Cinema mode orientation (auto = portrait, or force specific orientation)"
                 }
             },
             "additionalProperties": false,

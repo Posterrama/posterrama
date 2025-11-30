@@ -12073,6 +12073,11 @@ body.page-logs {
     aspect-ratio: 9 / 16;
 }
 
+/* Flipped orientation - rotate preview 180° */
+#display-preview-container.orientation-flipped .preview-shell {
+    transform: scale(var(--preview-scale, 0.8)) rotate(180deg);
+}
+
 /* Disable transitions during initial show to avoid ugly zoom/pop */
 #display-preview-container.no-transition .preview-shell {
     transition: none !important;

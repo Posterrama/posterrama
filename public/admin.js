@@ -6174,13 +6174,11 @@
                 modeOrientation = payload.screensaverMode?.orientation || 'auto';
             }
 
-            // Cinema preview: always portrait EXCEPT for landscape/landscape-flipped
+            // Cinema preview: always portrait (cinema only has portrait modes)
             let portrait;
             if (isCinema) {
-                // Cinema is portrait by default, only landscape for landscape modes
-                portrait = !(
-                    modeOrientation === 'landscape' || modeOrientation === 'landscape-flipped'
-                );
+                // Cinema is always portrait
+                portrait = true;
             } else {
                 // Other modes: auto uses aspect ratio, otherwise check orientation
                 portrait =
@@ -6191,6 +6189,11 @@
 
             container.classList.toggle('portrait', portrait);
             container.classList.toggle('landscape', !portrait);
+
+            // Add flipped class for 180° rotation in preview
+            const isFlipped =
+                modeOrientation === 'portrait-flipped' || modeOrientation === 'landscape-flipped';
+            container.classList.toggle('orientation-flipped', isFlipped);
 
             // Hide orientation toggle button since it's now per-mode
             if (orientBtn) orientBtn.style.display = 'none';
