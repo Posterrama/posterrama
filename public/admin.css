@@ -968,6 +968,13 @@
     --color-text-muted: #787c99; /* Darker Muted */
     --color-text-inverse: #15161e;
 
+    /* Pastel text colors (for use on dark badge/pill backgrounds) */
+    --color-text-success-soft: #d1fae5;
+    --color-text-info-soft: #dbeafe;
+    --color-text-warning-soft: #fde68a;
+    --color-text-accent-soft: #e0e7ff;
+    --color-text-slate-soft: #cbd5e1;
+
     /* Borders - Subtler, transparent based for smoother blending */
     --color-border: rgba(255, 255, 255, 0.06);
     --color-border-light: rgba(255, 255, 255, 0.1);
@@ -1067,7 +1074,7 @@ body {
 
 .nav-brand > span:first-of-type {
     /* Restore original brand gradient (Teal -> Blue/Purple) */
-    background: linear-gradient(135deg, #00d4aa, #667eea);
+    background: linear-gradient(135deg, var(--color-teal), var(--color-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -2555,7 +2562,7 @@ input[type='range']::-moz-range-thumb {
     min-width: 20px;
     height: 20px;
     padding: 0 var(--space-sm);
-    background: linear-gradient(135deg, var(--color-error), #ff6b9d);
+    background: linear-gradient(135deg, var(--color-error), var(--color-error-light));
     color: var(--color-text-inverse);
     border-radius: 10px;
     font-size: var(--font-size-xs);
@@ -2606,13 +2613,13 @@ input[type='range']::-moz-range-thumb {
     animation: none;
 }
 .badge-secondary {
-    background: linear-gradient(135deg, var(--color-secondary), #9ca3af);
+    background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary-light));
     position: static;
     animation: none;
 }
 
 .badge-beta {
-    background: linear-gradient(135deg, var(--color-info), #1d4ed8);
+    background: linear-gradient(135deg, var(--color-info), var(--color-info-dark));
     position: static;
     animation: none;
 }
@@ -2627,12 +2634,12 @@ input[type='range']::-moz-range-thumb {
     animation: none;
 }
 .badge-version {
-    background: linear-gradient(135deg, #6b7280, #9ca3af);
+    background: linear-gradient(135deg, var(--color-text-muted), var(--color-text-secondary));
     position: static;
     animation: none;
 }
 .badge-pro {
-    background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+    background: linear-gradient(135deg, var(--color-submenu-accent), var(--color-primary-light));
     position: static;
     animation: none;
 }
@@ -2775,7 +2782,7 @@ input[type='range']::-moz-range-thumb {
 .nav-item .badge {
     position: static;
     margin-left: auto;
-    background: linear-gradient(135deg, var(--color-info), #1d4ed8);
+    background: linear-gradient(135deg, var(--color-info), var(--color-info-dark));
     color: white;
     font-size: 10px;
     font-weight: 500;
@@ -2785,14 +2792,14 @@ input[type='range']::-moz-range-thumb {
     box-shadow: none;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    border: 1px solid color-mix(in srgb, var(--color-info) 30%, transparent);
 }
 
 .nav-badge {
     position: absolute;
     top: -10px;
     right: -24px;
-    background: linear-gradient(135deg, var(--color-info), #1d4ed8);
+    background: linear-gradient(135deg, var(--color-info), var(--color-info-dark));
     color: white;
     font-size: 8px;
     font-weight: 500;
@@ -2800,7 +2807,7 @@ input[type='range']::-moz-range-thumb {
     border-radius: 3px;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    border: 1px solid color-mix(in srgb, var(--color-info) 30%, transparent);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
@@ -6244,13 +6251,13 @@ select:not([multiple]) {
         color: var(--color-warning);
     }
     .ov-key-type.t-object {
-        color: #a855f7;
+        color: var(--color-submenu-accent);
     }
     .ov-key-type.t-array {
-        color: #ec4899;
+        color: var(--color-primary);
     }
     .ov-key-type.t-null {
-        color: #6b7280;
+        color: var(--color-text-muted);
     }
 
     /* Inline autocomplete dropdown */
@@ -6408,12 +6415,12 @@ select:not([multiple]) {
     text-transform: capitalize;
 }
 .tile-badge.status-success {
-    background: rgba(34, 197, 94, 0.15);
-    color: #86efac;
+    background: color-mix(in srgb, var(--color-success) 15%, transparent);
+    color: var(--color-success-light);
 }
 .tile-badge.status-warning {
-    background: rgba(245, 158, 11, 0.15);
-    color: #fcd34d;
+    background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+    color: var(--color-warning-light);
 }
 .tile-badge.status-error {
     background: rgba(239, 68, 68, 0.15);
@@ -6989,7 +6996,7 @@ body.page-logs {
     border-radius: 6px;
 }
 .level-trace {
-    background: #6b7280; /* slate-500 */
+    background: var(--color-text-muted);
     color: #fff;
 }
 .level-debug {
@@ -7002,14 +7009,14 @@ body.page-logs {
 }
 .level-warn {
     background: var(--color-warning); /* amber-500 */
-    color: #111827;
+    color: var(--color-text-inverse);
 }
 .level-error {
     background: var(--color-error); /* red-500 */
     color: #fff;
 }
 .level-fatal {
-    background: #8b5cf6; /* violet-500 */
+    background: var(--color-submenu-accent);
     color: #fff;
 }
 .log-row .message {
@@ -7626,7 +7633,7 @@ body.page-logs {
         rgba(16, 185, 129, 0.32),
         rgba(59, 130, 246, 0.24)
     ) !important;
-    color: #ecfdf5 !important;
+    color: var(--color-text-success-soft) !important;
     border: 1px solid rgba(16, 185, 129, 0.65) !important;
     box-shadow:
         0 0 0 3px rgba(16, 185, 129, 0.14),
@@ -7992,16 +7999,16 @@ body.page-logs {
     background: rgba(255, 255, 255, 0.08);
 }
 .operations-panel .status-pill.status-success {
-    background: rgba(34, 197, 94, 0.15);
-    color: #86efac;
+    background: color-mix(in srgb, var(--color-success) 15%, transparent);
+    color: var(--color-success-light);
 }
 .operations-panel .status-pill.status-info {
-    background: rgba(59, 130, 246, 0.15);
-    color: #93c5fd;
+    background: color-mix(in srgb, var(--color-info) 15%, transparent);
+    color: var(--color-info-light);
 }
 .operations-panel .status-pill.status-warning {
-    background: rgba(251, 191, 36, 0.15);
-    color: #fde68a;
+    background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+    color: var(--color-warning-light);
 }
 .operations-panel .status-pill.status-error {
     background: rgba(239, 68, 68, 0.15);
@@ -8255,7 +8262,7 @@ body.page-logs {
 .meter > div {
     height: 100%;
     width: 0;
-    background: linear-gradient(90deg, var(--color-info-light), #2563eb);
+    background: linear-gradient(90deg, var(--color-info-light), var(--color-info-dark));
     transition: width 0.2s ease;
 }
 /* Backups list styling */
@@ -8909,7 +8916,7 @@ body.page-logs {
 #section-media-sources .sc-status .status-pill.status-success,
 #section-media-sources .status-pill.is-configured {
     background: linear-gradient(90deg, rgba(16, 185, 129, 0.22), rgba(59, 130, 246, 0.16));
-    color: #d1fae5;
+    color: var(--color-text-success-soft);
     border-color: rgba(16, 185, 129, 0.45);
     box-shadow:
         0 0 0 2px rgba(16, 185, 129, 0.08),
@@ -8935,7 +8942,7 @@ body.page-logs {
 #jf-status-pill-header.is-configured,
 #tmdb-status-pill-header.is-configured {
     background: linear-gradient(90deg, rgba(16, 185, 129, 0.22), rgba(59, 130, 246, 0.16));
-    color: #d1fae5;
+    color: var(--color-text-success-soft);
     border-color: rgba(16, 185, 129, 0.45);
     box-shadow:
         0 0 0 2px rgba(16, 185, 129, 0.08),
@@ -9164,7 +9171,7 @@ body.page-logs {
     top: 2px;
     left: 2px;
     border-radius: 50%;
-    background: linear-gradient(180deg, #2a3142, #232937);
+    background: linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-secondary));
     box-shadow:
         0 2px 4px rgba(0, 0, 0, 0.45),
         inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -9232,7 +9239,7 @@ body.page-logs {
     top: 2px;
     left: 2px;
     border-radius: 50%;
-    background: linear-gradient(180deg, #2a3142, #232937);
+    background: linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-secondary));
     box-shadow:
         0 2px 4px rgba(0, 0, 0, 0.45),
         inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -9289,7 +9296,7 @@ body.page-logs {
     top: 2px;
     left: 2px;
     border-radius: 50%;
-    background: linear-gradient(180deg, #2a3142, #232937);
+    background: linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-secondary));
     box-shadow:
         0 2px 4px rgba(0, 0, 0, 0.45),
         inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -11104,7 +11111,7 @@ body.page-logs {
 /* Default/info look (fallback) */
 #section-display .status-pill.status-info {
     background: linear-gradient(90deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.1));
-    color: #dbeafe;
+    color: var(--color-text-info-soft);
     border-color: rgba(59, 130, 246, 0.35);
     box-shadow:
         0 0 0 2px rgba(59, 130, 246, 0.06),
@@ -11113,7 +11120,7 @@ body.page-logs {
 /* Mode-specific highlight variants */
 #section-display #display-mode-pill.pill-screensaver {
     background: linear-gradient(90deg, rgba(99, 102, 241, 0.22), rgba(139, 92, 246, 0.16));
-    color: #e0e7ff;
+    color: var(--color-text-accent-soft);
     border-color: rgba(139, 92, 246, 0.45);
     box-shadow:
         0 0 0 2px rgba(139, 92, 246, 0.08),
@@ -11121,7 +11128,7 @@ body.page-logs {
 }
 #section-display #display-mode-pill.pill-wallart {
     background: linear-gradient(90deg, rgba(16, 185, 129, 0.22), rgba(59, 130, 246, 0.16));
-    color: #d1fae5;
+    color: var(--color-text-success-soft);
     border-color: rgba(16, 185, 129, 0.45);
     box-shadow:
         0 0 0 2px rgba(16, 185, 129, 0.08),
@@ -11129,7 +11136,7 @@ body.page-logs {
 }
 #section-display #display-mode-pill.pill-cinema {
     background: linear-gradient(90deg, rgba(245, 158, 11, 0.26), rgba(244, 63, 94, 0.16));
-    color: #fde68a;
+    color: var(--color-text-warning-soft);
     border-color: rgba(245, 158, 11, 0.5);
     box-shadow:
         0 0 0 2px rgba(245, 158, 11, 0.1),
@@ -12148,13 +12155,13 @@ body.page-logs {
     position: static;
 }
 #section-display .badge.active {
-    background: rgba(34, 197, 94, 0.15);
-    color: #86efac;
-    border-color: rgba(34, 197, 94, 0.35);
+    background: color-mix(in srgb, var(--color-success) 15%, transparent);
+    color: var(--color-success-light);
+    border-color: color-mix(in srgb, var(--color-success) 35%, transparent);
 }
 #section-display .badge.inactive {
     background: rgba(100, 116, 139, 0.15);
-    color: #cbd5e1;
+    color: var(--color-text-slate-soft);
     border-color: rgba(100, 116, 139, 0.35);
 }
 #section-display fieldset:disabled {
@@ -13456,7 +13463,7 @@ select:focus-visible {
 #device-settings-inline #card-ip-whitelist .btn-violet.btn-sm .fas,
 #device-settings-inline #card-ip-whitelist .btn-violet.btn-sm > span:not(.spinner) {
     /* Brighter violet accent for Add button */
-    color: color-mix(in srgb, #e4d4ff 85%, white);
+    color: color-mix(in srgb, var(--color-primary-light) 85%, white);
 }
 /* Save Changes green foreground (mirror operations Save Settings) */
 #device-settings-inline #card-ip-whitelist .btn-op-surface.btn-primary.btn-sm i,
@@ -14467,9 +14474,9 @@ select:focus-visible {
 
 .job-status.completed {
     /* Lighter background, clearer border, readable green text */
-    background: color-mix(in srgb, #37d27a 28%, transparent);
-    color: #37d27a;
-    border: 1px solid color-mix(in srgb, #37d27a 40%, transparent);
+    background: color-mix(in srgb, var(--color-success) 28%, transparent);
+    color: var(--color-success);
+    border: 1px solid color-mix(in srgb, var(--color-success) 40%, transparent);
     font-weight: 600;
 }
 

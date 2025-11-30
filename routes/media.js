@@ -1274,24 +1274,31 @@ module.exports = function createMediaRouter({
     // Lightweight fallback image to prevent broken redirects from the image proxy
     // Always available even if no static asset is present on disk.
     router.get('/fallback-poster.png', (req, res) => {
+        // Uses "Storm" theme colors:
+        // Gradient: #252a3a -> #1a1d29
+        // Icon Fill: #3a4553
+        // Shadow: #0f111a
+        // Stroke: #4a5568
+        // Text Main: #b8bcc8
+        // Text Sub: #8b92a5
         const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
     <defs>
         <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#2b2b2b"/>
-            <stop offset="100%" stop-color="#1a1a1a"/>
+            <stop offset="0%" stop-color="#252a3a"/>
+            <stop offset="100%" stop-color="#1a1d29"/>
         </linearGradient>
     </defs>
     <rect width="600" height="900" fill="url(#g)"/>
-    <g fill="#555">
-        <rect x="110" y="160" width="380" height="570" rx="8" fill="#000" opacity="0.15"/>
-        <circle cx="300" cy="360" r="90" stroke="#777" stroke-width="10" fill="none"/>
+    <g fill="#3a4553">
+        <rect x="110" y="160" width="380" height="570" rx="8" fill="#0f111a" opacity="0.15"/>
+        <circle cx="300" cy="360" r="90" stroke="#4a5568" stroke-width="10" fill="none"/>
         <rect x="200" y="550" width="200" height="16" rx="8"/>
     </g>
-    <text x="50%" y="780" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="28" fill="#888">
+    <text x="50%" y="780" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="28" fill="#b8bcc8">
         Poster unavailable
     </text>
-    <text x="50%" y="820" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#666">
+    <text x="50%" y="820" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#8b92a5">
         Source did not return an image
     </text>
     <metadata>posterrama-fallback</metadata>

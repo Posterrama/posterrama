@@ -669,35 +669,35 @@
             overlay.id = 'pr-welcome-overlay';
             overlay.innerHTML = `
 <style>
-#pr-welcome-overlay{position:fixed;inset:0;background:linear-gradient(135deg, rgba(0,0,0,.92) 0%, rgba(20,20,30,.95) 100%);color:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;padding:20px;box-sizing:border-box;overflow-y:auto}
-#pr-welcome-card{width:min(95vw,680px);max-height:95vh;background:linear-gradient(145deg, rgba(25,25,35,.9) 0%, rgba(15,15,25,.95) 100%);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:0;box-shadow:0 25px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.05);overflow-y:auto;position:relative;margin:auto}
-.pr-header{background:linear-gradient(90deg, #1e293b 0%, #334155 100%);padding:24px 32px;border-bottom:1px solid rgba(255,255,255,.08);position:relative}
-.pr-header h2{margin:0;font-size:24px;font-weight:600;color:#ffffff;letter-spacing:-.2px}
-.pr-header .pr-subtitle{margin:6px 0 0;color:#94a3b8;font-size:14px;font-weight:400}
-.pr-countdown{position:absolute;top:24px;right:32px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#60a5fa;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;font-mono}
+#pr-welcome-overlay{position:fixed;inset:0;background:rgba(26, 29, 41, 0.95);color:#b8bcc8;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;padding:20px;box-sizing:border-box;overflow-y:auto}
+#pr-welcome-card{width:min(95vw,680px);max-height:95vh;background:#252a3a;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid #3a4553;border-radius:24px;padding:0;box-shadow:0 25px 50px rgba(0,0,0,.5);overflow-y:auto;position:relative;margin:auto}
+.pr-header{background:#2f3646;padding:24px 32px;border-bottom:1px solid #3a4553;position:relative}
+.pr-header h2{margin:0;font-size:24px;font-weight:600;color:#b8bcc8;letter-spacing:-.2px}
+.pr-header .pr-subtitle{margin:6px 0 0;color:#8b92a5;font-size:14px;font-weight:400}
+.pr-countdown{position:absolute;top:24px;right:32px;background:rgba(122, 162, 247, 0.15);border:1px solid rgba(122, 162, 247, 0.3);color:#7aa2f7;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;font-mono}
 .pr-body{padding:32px;display:grid;grid-template-columns:1fr 240px;gap:40px;align-items:start}
 .pr-main{display:flex;flex-direction:column;gap:24px}
 .pr-field{display:flex;flex-direction:column;gap:8px}
-.pr-field label{font-size:13px;color:#94a3b8;font-weight:500;margin-bottom:4px}
-.pr-code-input{width:220px;padding:16px;background:rgba(15,23,42,.8);border:2px solid rgba(71,85,105,.4);border-radius:12px;color:#fff;font-size:20px;text-align:center;letter-spacing:8px;font-family:ui-monospace,monospace;outline:none;transition:all 0.2s ease}
-.pr-code-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1);background:rgba(15,23,42,.95)}
-.pr-code-input::placeholder{color:#475569;letter-spacing:6px}
+.pr-field label{font-size:13px;color:#8b92a5;font-weight:500;margin-bottom:4px}
+.pr-code-input{width:220px;padding:16px;background:#2f3646;border:2px solid #3a4553;border-radius:12px;color:#b8bcc8;font-size:20px;text-align:center;letter-spacing:8px;font-family:ui-monospace,monospace;outline:none;transition:all 0.2s ease}
+.pr-code-input:focus{border-color:#7aa2f7;box-shadow:0 0 0 3px rgba(122, 162, 247, 0.1);background:#2f3646}
+.pr-code-input::placeholder{color:#5c6375;letter-spacing:6px}
 .pr-primary-actions{display:flex;gap:12px;margin-top:8px;width:256px}
 .pr-btn{border:0;border-radius:10px;padding:12px 8px;font-weight:600;font-size:14px;cursor:pointer;transition:all 0.15s ease;position:relative;z-index:20;display:inline-block !important;visibility:visible !important;opacity:1 !important;outline:none;flex:1;text-align:center}
-.pr-btn.primary{background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:#fff;box-shadow:0 4px 12px rgba(59,130,246,.25)}
-.pr-btn.primary:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(59,130,246,.3)}
-.pr-btn.secondary{background:rgba(71,85,105,.6);color:#e2e8f0;border:1px solid rgba(100,116,139,.5)}
-.pr-btn.secondary:hover{background:rgba(71,85,105,.8);border-color:rgba(100,116,139,.8)}
+.pr-btn.primary{background:#7aa2f7;color:#1a1d29;box-shadow:0 4px 12px rgba(122, 162, 247, 0.25)}
+.pr-btn.primary:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(122, 162, 247, 0.3);background:#89b4fa}
+.pr-btn.secondary{background:#3a4553;color:#b8bcc8;border:1px solid #4a5568}
+.pr-btn.secondary:hover{background:#4a5568;border-color:#5c6375}
 .pr-secondary-section{display:flex;flex-direction:column;gap:16px;margin-top:-8px}
-.pr-footer{padding:20px 32px;background:rgba(15,23,42,.3);border-top:1px solid rgba(255,255,255,.05)}
-.pr-footer-btn{width:100%;background:rgba(71,85,105,.25);border:1px solid rgba(100,116,139,.4);color:#cbd5e1;padding:16px 20px;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s ease;display:flex;align-items:center;justify-content:center}
-.pr-footer-btn:hover{background:rgba(71,85,105,.4);border-color:rgba(100,116,139,.6);color:#e2e8f0;transform:translateY(-1px)}
-.pr-btn.tertiary{background:rgba(100,116,139,.3);color:#cbd5e1;border:1px solid rgba(100,116,139,.4)}
-.pr-btn.tertiary:hover{background:rgba(100,116,139,.5)}
-.pr-qr-section{display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px;background:rgba(255,255,255,.02);border-radius:16px;border:1px solid rgba(255,255,255,.05)}
+.pr-footer{padding:20px 32px;background:#2f3646;border-top:1px solid #3a4553}
+.pr-footer-btn{width:100%;background:#3a4553;border:1px solid #4a5568;color:#b8bcc8;padding:16px 20px;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s ease;display:flex;align-items:center;justify-content:center}
+.pr-footer-btn:hover{background:#4a5568;border-color:#5c6375;color:#b8bcc8;transform:translateY(-1px)}
+.pr-btn.tertiary{background:#3a4553;color:#b8bcc8;border:1px solid #4a5568}
+.pr-btn.tertiary:hover{background:#4a5568}
+.pr-qr-section{display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px;background:rgba(255,255,255,.02);border-radius:16px;border:1px solid #3a4553}
 .pr-qr-code{width:180px;height:180px;background:#fff;border-radius:12px;padding:12px;box-shadow:0 8px 25px rgba(0,0,0,.2)}
-.pr-qr-caption{font-size:12px;color:#94a3b8;text-align:center;font-weight:500}
-.pr-msg{color:#ef4444;font-size:13px;font-weight:500;min-height:18px;padding:8px 0}
+.pr-qr-caption{font-size:12px;color:#8b92a5;text-align:center;font-weight:500}
+.pr-msg{color:#f7768e;font-size:13px;font-weight:500;min-height:18px;padding:8px 0}
 /* Ultra-aggressive button visibility rules */
 #pr-do-pair, #pr-close, #pr-skip-setup {display: inline-block !important; visibility: visible !important; opacity: 1 !important;}
 button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block !important; visibility: visible !important; opacity: 1 !important;}
@@ -826,7 +826,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             updatePlaceholder(); // Initial call
 
             function setMsg(t, ok) {
-                msg.style.color = ok ? '#7ad97a' : '#f88';
+                msg.style.color = ok ? '#9ece6a' : '#f7768e';
                 msg.textContent = t || '';
             }
             function fmt(n) {
@@ -1067,8 +1067,8 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                     <div class="pr-body" style="grid-template-columns: 1fr; text-align: center;">
                         <div class="pr-main">
                             <div style="
-                                background: rgba(34, 197, 94, 0.1);
-                                border: 1px solid rgba(34, 197, 94, 0.3);
+                                background: rgba(158, 206, 106, 0.1);
+                                border: 1px solid rgba(158, 206, 106, 0.3);
                                 border-radius: 16px;
                                 padding: 32px 24px;
                                 margin: 16px 0;
@@ -1078,19 +1078,19 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                     margin: 0 0 12px 0;
                                     font-size: 20px;
                                     font-weight: 600;
-                                    color: #22c55e;
+                                    color: #9ece6a;
                                 ">"${deviceName}" is registered</h3>
                                 <p style="
                                     margin: 0;
                                     font-size: 14px;
-                                    color: #94a3b8;
+                                    color: #8b92a5;
                                     line-height: 1.5;
                                 ">This screen can now be controlled remotely from the admin panel</p>
                             </div>
                             
                             <div style="
                                 background: rgba(255, 255, 255, 0.02);
-                                border: 1px solid rgba(255, 255, 255, 0.08);
+                                border: 1px solid #3a4553;
                                 border-radius: 12px;
                                 padding: 20px;
                                 text-align: left;
@@ -1098,15 +1098,15 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                             ">
                                 <div style="display: flex; align-items: center; margin-bottom: 12px;">
                                     <span style="font-size: 20px; margin-right: 12px;">🎮</span>
-                                    <span style="font-size: 14px; color: #e2e8f0;">Remote control enabled</span>
+                                    <span style="font-size: 14px; color: #b8bcc8;">Remote control enabled</span>
                                 </div>
                                 <div style="display: flex; align-items: center; margin-bottom: 12px;">
                                     <span style="font-size: 20px; margin-right: 12px;">📱</span>
-                                    <span style="font-size: 14px; color: #e2e8f0;">Commands sync automatically</span>
+                                    <span style="font-size: 14px; color: #b8bcc8;">Commands sync automatically</span>
                                 </div>
                                 <div style="display: flex; align-items: center;">
                                     <span style="font-size: 20px; margin-right: 12px;">⚡</span>
-                                    <span style="font-size: 14px; color: #e2e8f0;">Live monitoring active</span>
+                                    <span style="font-size: 14px; color: #b8bcc8;">Live monitoring active</span>
                                 </div>
                             </div>
                             
