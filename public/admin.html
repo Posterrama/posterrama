@@ -858,62 +858,51 @@
                   <!-- Film Cards Settings card -->
                   <div class="mode-card" id="wallart-filmcards-card" data-card-key="filmcards" style="padding:12px; display:none;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;">
-                      <i class="fas fa-th-large"></i> Film Cards Settings
+                      <i class="fas fa-film"></i> Film Cards Spotlight
                     </div>
                     <div class="form-grid">
-                      <!-- Card Gap -->
+                      <!-- Group By -->
                       <div class="form-row">
-                        <label for="wallartMode_filmCards_cardGap">
-                          Card Gap
-                          <span class="help-text">Space between cards (px)</span>
+                        <label for="wallartMode_filmCards_groupBy">
+                          Group Films By
+                          <span class="help-text">Spotlight theme for film cards</span>
                         </label>
-                        <input type="range" id="wallartMode_filmCards_cardGap" min="0" max="40" value="12" step="2" class="slider" />
-                        <output for="wallartMode_filmCards_cardGap" class="slider-value">12px</output>
-                      </div>
-
-                      <!-- Border Radius -->
-                      <div class="form-row">
-                        <label for="wallartMode_filmCards_cardBorderRadius">
-                          Border Radius
-                          <span class="help-text">Roundness of card corners (px)</span>
-                        </label>
-                        <input type="range" id="wallartMode_filmCards_cardBorderRadius" min="0" max="24" value="10" step="2" class="slider" />
-                        <output for="wallartMode_filmCards_cardBorderRadius" class="slider-value">10px</output>
-                      </div>
-
-                      <!-- Card Elevation -->
-                      <div class="form-row">
-                        <label for="wallartMode_filmCards_cardElevation">Shadow Depth</label>
                         <div class="select-wrap has-caret">
-                          <select id="wallartMode_filmCards_cardElevation">
-                            <option value="subtle">Subtle</option>
-                            <option value="medium" selected>Medium</option>
-                            <option value="high">High</option>
+                          <select id="wallartMode_filmCards_groupBy">
+                            <option value="director" selected>Director</option>
+                            <option value="genre">Genre</option>
+                            <option value="actor">Actor</option>
+                            <option value="random">Random</option>
                           </select>
                           <span class="select-caret" aria-hidden="true">▾</span>
                         </div>
                       </div>
 
-                      <!-- Metadata Style -->
+                      <!-- Card Rotation Interval -->
                       <div class="form-row">
-                        <label for="wallartMode_filmCards_metadataStyle">Metadata Style</label>
-                        <div class="select-wrap has-caret">
-                          <select id="wallartMode_filmCards_metadataStyle">
-                            <option value="gradient" selected>Gradient Overlay</option>
-                            <option value="solid">Solid Bar</option>
-                            <option value="minimal">Minimal</option>
-                          </select>
-                          <span class="select-caret" aria-hidden="true">▾</span>
-                        </div>
+                        <label for="wallartMode_filmCards_cardRotationSeconds">
+                          Card Rotation Interval
+                          <span class="help-text">Switch to next group (seconds)</span>
+                        </label>
+                        <input type="number" id="wallartMode_filmCards_cardRotationSeconds" min="10" max="300" value="60" class="form-control" />
                       </div>
 
-                      <!-- Show Metadata Toggle -->
+                      <!-- Poster Rotation Interval -->
                       <div class="form-row">
-                        <label class="checkbox" for="wallartMode_filmCards_showMetadata">
-                          <input type="checkbox" id="wallartMode_filmCards_showMetadata" checked />
-                          <span class="checkmark"></span>
-                          <span>Show title & metadata</span>
+                        <label for="wallartMode_filmCards_posterRotationSeconds">
+                          Poster Rotation Interval
+                          <span class="help-text">Rotate posters within group (seconds)</span>
                         </label>
+                        <input type="number" id="wallartMode_filmCards_posterRotationSeconds" min="5" max="120" value="15" class="form-control" />
+                      </div>
+
+                      <!-- Minimum Group Size -->
+                      <div class="form-row">
+                        <label for="wallartMode_filmCards_minGroupSize">
+                          Minimum Group Size
+                          <span class="help-text">Min films per group to display</span>
+                        </label>
+                        <input type="number" id="wallartMode_filmCards_minGroupSize" min="1" max="20" value="3" class="form-control" />
                       </div>
                     </div>
                   </div>

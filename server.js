@@ -2152,6 +2152,7 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
         const versions = {
             'wallart/wallart-display.js': generateVersion('wallart/wallart-display.js'),
             'wallart/artist-cards.js': generateVersion('wallart/artist-cards.js'),
+            'wallart/film-cards.js': generateVersion('wallart/film-cards.js'),
             'wallart/wallart.css': generateVersion('wallart/wallart.css'),
             'core.js': generateVersion('core.js'),
             'lazy-loading.js': generateVersion('lazy-loading.js'),
@@ -2169,6 +2170,10 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
             .replace(
                 /\/wallart\/artist-cards\.js\?v=\{\{ASSET_VERSION\}\}/g,
                 `/wallart/artist-cards.js?v=${versions['wallart/artist-cards.js'] || ASSET_VERSION}`
+            )
+            .replace(
+                /\/wallart\/film-cards\.js\?v=\{\{ASSET_VERSION\}\}/g,
+                `/wallart/film-cards.js?v=${versions['wallart/film-cards.js'] || ASSET_VERSION}`
             )
             .replace(
                 /\/wallart\/wallart\.css\?v=\{\{ASSET_VERSION\}\}/g,

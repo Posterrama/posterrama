@@ -3584,11 +3584,10 @@
 
         // Film Cards settings
         const filmCards = (w.layoutSettings || {}).filmCards || {};
-        setIf('wallartMode_filmCards_cardGap', filmCards.cardGap ?? 12);
-        setIf('wallartMode_filmCards_cardBorderRadius', filmCards.cardBorderRadius ?? 10);
-        setIf('wallartMode_filmCards_cardElevation', filmCards.cardElevation || 'medium');
-        setIf('wallartMode_filmCards_metadataStyle', filmCards.metadataStyle || 'gradient');
-        setIf('wallartMode_filmCards_showMetadata', filmCards.showMetadata !== false);
+        setIf('wallartMode_filmCards_groupBy', filmCards.groupBy || 'director');
+        setIf('wallartMode_filmCards_cardRotationSeconds', filmCards.cardRotationSeconds ?? 60);
+        setIf('wallartMode_filmCards_posterRotationSeconds', filmCards.posterRotationSeconds ?? 15);
+        setIf('wallartMode_filmCards_minGroupSize', filmCards.minGroupSize ?? 3);
 
         // Parallax Depth settings
         const parallaxDepth = w.parallaxDepth || {};
@@ -5571,12 +5570,12 @@
                         biasAmbientToHero: val('wallartMode_biasAmbientToHero'),
                     },
                     filmCards: {
-                        cardGap: parseInt(val('wallartMode_filmCards_cardGap')) || 12,
-                        cardBorderRadius:
-                            parseInt(val('wallartMode_filmCards_cardBorderRadius')) || 10,
-                        cardElevation: val('wallartMode_filmCards_cardElevation') || 'medium',
-                        metadataStyle: val('wallartMode_filmCards_metadataStyle') || 'gradient',
-                        showMetadata: val('wallartMode_filmCards_showMetadata'),
+                        groupBy: val('wallartMode_filmCards_groupBy') || 'director',
+                        cardRotationSeconds:
+                            parseInt(val('wallartMode_filmCards_cardRotationSeconds')) || 60,
+                        posterRotationSeconds:
+                            parseInt(val('wallartMode_filmCards_posterRotationSeconds')) || 15,
+                        minGroupSize: parseInt(val('wallartMode_filmCards_minGroupSize')) || 3,
                     },
                 },
             },

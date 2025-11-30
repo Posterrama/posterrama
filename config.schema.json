@@ -194,36 +194,32 @@
                         "filmCards": {
                             "type": "object",
                             "properties": {
-                                "cardGap": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 40,
-                                    "default": 12,
-                                    "description": "Gap between cards in pixels (0-40)"
-                                },
-                                "cardBorderRadius": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 24,
-                                    "default": 10,
-                                    "description": "Border radius for cards in pixels (0-24)"
-                                },
-                                "showMetadata": {
-                                    "type": "boolean",
-                                    "default": true,
-                                    "description": "Show title and metadata overlay on cards"
-                                },
-                                "cardElevation": {
+                                "groupBy": {
                                     "type": "string",
-                                    "enum": ["subtle", "medium", "high"],
-                                    "default": "medium",
-                                    "description": "Shadow depth for card elevation effect"
+                                    "enum": ["director", "genre", "actor", "random"],
+                                    "default": "director",
+                                    "description": "Group films by: director, genre, actor, or random (picks random group type each session)"
                                 },
-                                "metadataStyle": {
-                                    "type": "string",
-                                    "enum": ["gradient", "solid", "minimal"],
-                                    "default": "gradient",
-                                    "description": "Visual style for metadata overlay"
+                                "cardRotationSeconds": {
+                                    "type": "integer",
+                                    "minimum": 10,
+                                    "maximum": 300,
+                                    "default": 60,
+                                    "description": "How often to rotate to next group (seconds)"
+                                },
+                                "posterRotationSeconds": {
+                                    "type": "integer",
+                                    "minimum": 5,
+                                    "maximum": 120,
+                                    "default": 15,
+                                    "description": "How often posters rotate within group (seconds)"
+                                },
+                                "minGroupSize": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 20,
+                                    "default": 3,
+                                    "description": "Minimum films required per group to display"
                                 }
                             }
                         }
