@@ -1009,3 +1009,169 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
         background: linear-gradient(90deg, #ee5a24, #ff6b6b);
     }
 }
+
+/* =================================================================
+   TYPOGRAPHY UTILITY CLASSES
+   For header/footer typography customization
+   ================================================================= */
+
+/* Font Family Classes */
+.font-system {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.font-cinematic {
+    font-family: 'Bebas Neue', 'Impact', 'Arial Black', sans-serif !important;
+    letter-spacing: 0.1em;
+}
+
+.font-classic {
+    font-family: 'Times New Roman', 'Georgia', serif !important;
+    font-weight: 600;
+}
+
+.font-modern {
+    font-family: 'Montserrat', 'Helvetica Neue', 'Arial', sans-serif !important;
+    font-weight: 700;
+}
+
+.font-elegant {
+    font-family: 'Playfair Display', 'Georgia', 'Times New Roman', serif !important;
+    font-weight: 500;
+    font-style: italic;
+}
+
+.font-marquee {
+    font-family: 'Bebas Neue', 'Impact', 'Arial Black', sans-serif !important;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.font-retro {
+    font-family: 'Courier New', 'Courier', monospace !important;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.font-neon {
+    font-family: 'Orbitron', 'Arial Black', sans-serif !important;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+/* Shadow Classes */
+.shadow-none {
+    text-shadow: none !important;
+}
+
+.shadow-subtle {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+.shadow-medium {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.7) !important;
+}
+
+.shadow-dramatic {
+    text-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.9),
+        0 0 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+.shadow-glow {
+    text-shadow:
+        0 0 10px currentColor,
+        0 0 20px currentColor,
+        0 0 30px currentColor !important;
+}
+
+.shadow-neon {
+    text-shadow:
+        0 0 5px currentColor,
+        0 0 10px currentColor,
+        0 0 20px currentColor,
+        0 0 40px currentColor !important;
+}
+
+/* Animation Classes */
+.anim-pulse {
+    animation: textPulse 2s ease-in-out infinite !important;
+}
+
+.anim-glow {
+    animation: textGlow 2s ease-in-out infinite !important;
+}
+
+.anim-flicker {
+    animation: textFlicker 3s ease-in-out infinite !important;
+}
+
+.anim-slide {
+    animation: textSlide 8s linear infinite !important;
+}
+
+@keyframes textPulse {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.85;
+        transform: scale(1.02);
+    }
+}
+
+@keyframes textGlow {
+    0%,
+    100% {
+        filter: brightness(1);
+    }
+    50% {
+        filter: brightness(1.3);
+    }
+}
+
+@keyframes textFlicker {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    10% {
+        opacity: 0.95;
+    }
+    20% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.9;
+    }
+    60% {
+        opacity: 1;
+    }
+}
+
+@keyframes textSlide {
+    0% {
+        transform: translateX(2%);
+    }
+    50% {
+        transform: translateX(-2%);
+    }
+    100% {
+        transform: translateX(2%);
+    }
+}
+
+/* Header/Footer Custom Properties Application */
+.cinema-header {
+    font-size: calc(var(--header-font-size, 1) * 3rem) !important;
+    color: var(--header-color, #ffffff) !important;
+}
+
+.cinema-footer,
+.cinema-footer-marquee-content,
+.cinema-footer-tagline {
+    font-size: calc(var(--footer-font-size, 1) * 1.5rem) !important;
+    color: var(--footer-color, #cccccc) !important;
+}

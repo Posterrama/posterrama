@@ -20,35 +20,30 @@
         header: {
             enabled: true,
             text: 'Now Playing',
-            style: 'classic', // classic, neon, minimal, theatre
+            typography: {
+                fontFamily: 'cinematic',
+                fontSize: 100,
+                color: '#ffffff',
+                shadow: 'subtle',
+                animation: 'none',
+            },
         },
         footer: {
             enabled: true,
-            type: 'specs', // marquee, specs, tagline
+            type: 'metadata', // marquee, metadata, tagline
             marqueeText: 'Feature Presentation',
-            marqueeStyle: 'classic',
-            specs: {
-                showResolution: true,
-                showAudio: true,
-                showAspectRatio: true,
-                showFlags: false,
-                style: 'subtle', // subtle, filled, outline
-                iconSet: 'filled', // filled, line
+            typography: {
+                fontFamily: 'system',
+                fontSize: 100,
+                color: '#cccccc',
+                shadow: 'none',
             },
         },
         ambilight: {
             enabled: true,
             strength: 60, // 0-100
         },
-        // === NEW: Typography customization ===
-        typography: {
-            fontFamily: 'cinematic', // system, cinematic, classic, modern, elegant
-            titleSize: 100, // percentage 50-200
-            titleColor: '#ffffff',
-            titleShadow: 'subtle', // none, subtle, dramatic, neon
-            metadataOpacity: 80, // 0-100
-        },
-        // === NEW: Poster presentation ===
+        // === Poster presentation ===
         poster: {
             style: 'floating', // fullBleed, framed, floating, perspective
             animation: 'fade', // fade, zoomIn, slideUp, cinematic, kenBurns
@@ -197,6 +192,8 @@
             return;
         }
 
+        const typo = cinemaConfig.header.typography || {};
+
         // Create or update header element
         if (!headerEl) {
             headerEl = document.createElement('div');
@@ -204,9 +201,16 @@
             document.body.appendChild(headerEl);
         }
 
-        // Apply header style class
-        const styleClass = `style-${cinemaConfig.header.style}`;
-        headerEl.className = `cinema-header ${styleClass}`;
+        // Apply header typography classes
+        const fontClass = `font-${typo.fontFamily || 'cinematic'}`;
+        const shadowClass = `shadow-${typo.shadow || 'subtle'}`;
+        const animClass =
+            typo.animation && typo.animation !== 'none' ? `anim-${typo.animation}` : '';
+        headerEl.className = `cinema-header ${fontClass} ${shadowClass} ${animClass}`.trim();
+
+        // Apply inline styles for size and color
+        headerEl.style.setProperty('--header-font-size', `${(typo.fontSize || 100) / 100}`);
+        headerEl.style.setProperty('--header-color', typo.color || '#ffffff');
 
         // Set header text
         headerEl.textContent = cinemaConfig.header.text || 'Now Playing';
@@ -219,7 +223,7 @@
 
         log('Cinema header created/updated', {
             text: cinemaConfig.header.text,
-            style: cinemaConfig.header.style,
+            typography: typo,
         });
     }
 
@@ -235,6 +239,8 @@
             return;
         }
 
+        const typo = cinemaConfig.footer.typography || {};
+
         // Add body class to adjust spacing
         document.body.classList.add('cinema-footer-active');
         // Update poster layout after footer changes
@@ -247,6 +253,13 @@
             document.body.appendChild(footerEl);
         }
 
+        // Apply footer typography
+        const fontClass = `font-${typo.fontFamily || 'system'}`;
+        const shadowClass = `shadow-${typo.shadow || 'none'}`;
+        footerEl.className = `cinema-footer ${fontClass} ${shadowClass}`;
+        footerEl.style.setProperty('--footer-font-size', `${(typo.fontSize || 100) / 100}`);
+        footerEl.style.setProperty('--footer-color', typo.color || '#cccccc');
+
         // Clear existing content
         footerEl.innerHTML = '';
 
@@ -254,9 +267,6 @@
             // Marquee footer
             const marqueeDiv = document.createElement('div');
             marqueeDiv.className = 'cinema-footer-marquee';
-            // Apply style variant on the container (style-*)
-            const styleVariant = `style-${cinemaConfig.footer.marqueeStyle || 'classic'}`;
-            marqueeDiv.classList.add(styleVariant);
 
             const marqueeText = document.createElement('div');
             marqueeText.className = 'cinema-footer-marquee-content';
@@ -267,20 +277,18 @@
 
             log('Cinema footer marquee created', {
                 text: cinemaConfig.footer.marqueeText,
-                style: cinemaConfig.footer.marqueeStyle,
+                typography: typo,
             });
-        } else if (cinemaConfig.footer.type === 'specs' && currentMedia) {
-            // Specs footer
+        } else if (cinemaConfig.footer.type === 'metadata' && currentMedia) {
+            // Metadata footer - use metadata.specs settings
+            const meta = cinemaConfig.metadata || {};
+            const specs = meta.specs || {};
+
             const specsDiv = document.createElement('div');
-            const styleClasses = [
-                'cinema-footer-specs',
-                cinemaConfig.footer.specs.style,
-                `icon-${cinemaConfig.footer.specs.iconSet}`,
-            ].join(' ');
-            specsDiv.className = styleClasses;
+            specsDiv.className = `cinema-footer-specs ${specs.style || 'badges'} icon-${specs.iconSet || 'filled'}`;
 
             // Resolution
-            if (cinemaConfig.footer.specs.showResolution && currentMedia.resolution) {
+            if (specs.showResolution !== false && currentMedia.resolution) {
                 const item = document.createElement('div');
                 item.className = 'cinema-spec-item';
                 item.innerHTML = `<i class="fas fa-tv"></i><span>${currentMedia.resolution}</span>`;
@@ -288,7 +296,7 @@
             }
 
             // Audio
-            if (cinemaConfig.footer.specs.showAudio && currentMedia.audioCodec) {
+            if (specs.showAudio !== false && currentMedia.audioCodec) {
                 const item = document.createElement('div');
                 item.className = 'cinema-spec-item';
                 const audioText = currentMedia.audioChannels
@@ -298,36 +306,29 @@
                 specsDiv.appendChild(item);
             }
 
+            // HDR
+            if (specs.showHDR !== false && (currentMedia.hasHDR || currentMedia.hasDolbyVision)) {
+                const item = document.createElement('div');
+                item.className = 'cinema-spec-item';
+                const flagText = currentMedia.hasDolbyVision ? 'Dolby Vision' : 'HDR';
+                item.innerHTML = `<i class="fas fa-sun"></i><span>${flagText}</span>`;
+                specsDiv.appendChild(item);
+            }
+
             // Aspect Ratio
-            if (cinemaConfig.footer.specs.showAspectRatio && currentMedia.aspectRatio) {
+            if (specs.showAspectRatio && currentMedia.aspectRatio) {
                 const item = document.createElement('div');
                 item.className = 'cinema-spec-item';
                 item.innerHTML = `<i class="fas fa-expand"></i><span>${currentMedia.aspectRatio}</span>`;
                 specsDiv.appendChild(item);
             }
 
-            // Flags (HDR, Dolby Vision, etc.)
-            if (cinemaConfig.footer.specs.showFlags) {
-                if (currentMedia.hasHDR || currentMedia.hasDolbyVision) {
-                    const item = document.createElement('div');
-                    item.className = 'cinema-spec-item';
-                    const flagText = currentMedia.hasDolbyVision ? 'Dolby Vision' : 'HDR';
-                    item.innerHTML = `<i class="fas fa-sun"></i><span>${flagText}</span>`;
-                    specsDiv.appendChild(item);
-                }
-            }
-
             footerEl.appendChild(specsDiv);
 
-            log('Cinema footer specs created', {
-                style: cinemaConfig.footer.specs.style,
-                iconSet: cinemaConfig.footer.specs.iconSet,
+            log('Cinema footer metadata/specs created', {
+                style: specs.style,
+                iconSet: specs.iconSet,
                 resolution: currentMedia.resolution || 'N/A',
-                audioCodec: currentMedia.audioCodec || 'N/A',
-                audioChannels: currentMedia.audioChannels || 'N/A',
-                aspectRatio: currentMedia.aspectRatio || 'N/A',
-                hasHDR: currentMedia.hasHDR || false,
-                hasDolbyVision: currentMedia.hasDolbyVision || false,
             });
         } else if (cinemaConfig.footer.type === 'tagline' && currentMedia) {
             // Tagline footer - displays the movie/series tagline
@@ -341,17 +342,12 @@
 
                 log('Cinema footer tagline created', {
                     tagline: taglineText,
-                    title: currentMedia.title || 'Unknown',
                 });
             } else {
                 // Fallback: show title if no tagline available
                 taglineDiv.textContent = currentMedia.title || '';
                 taglineDiv.classList.add('fallback-title');
                 footerEl.appendChild(taglineDiv);
-
-                log('Cinema footer tagline fallback to title', {
-                    title: currentMedia.title || 'Unknown',
-                });
             }
         }
     }
@@ -380,48 +376,121 @@
         log('Cinema ambilight created/updated', { strength: cinemaConfig.ambilight.strength });
     }
 
-    // ===== Typography Settings =====
+    // ===== QR Code (Promotional) =====
+    let qrCodeEl = null;
+    function createQRCode(_currentMedia) {
+        const promo = cinemaConfig.promotional || {};
+        const qrConfig = promo.qrCode || {};
+
+        // Remove existing QR code
+        if (qrCodeEl) {
+            qrCodeEl.remove();
+            qrCodeEl = null;
+        }
+
+        if (!qrConfig.enabled || !qrConfig.url) {
+            return;
+        }
+
+        // Create QR code element
+        qrCodeEl = document.createElement('div');
+        qrCodeEl.className = `cinema-qr-code position-${qrConfig.position || 'bottomRight'}`;
+
+        // Generate QR code using canvas (simple QR code generator)
+        // For now, use a QR code service or placeholder
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrConfig.size || 100}x${qrConfig.size || 100}&data=${encodeURIComponent(qrConfig.url)}`;
+        const img = document.createElement('img');
+        img.src = qrUrl;
+        img.alt = 'QR Code';
+        img.style.width = `${qrConfig.size || 100}px`;
+        img.style.height = `${qrConfig.size || 100}px`;
+        img.loading = 'lazy';
+
+        qrCodeEl.appendChild(img);
+        document.body.appendChild(qrCodeEl);
+
+        log('QR Code created', { url: qrConfig.url, position: qrConfig.position });
+    }
+
+    // ===== Announcement Banner (Promotional) =====
+    let announcementEl = null;
+    function createAnnouncementBanner() {
+        const promo = cinemaConfig.promotional || {};
+        const banner = promo.announcementBanner || {};
+
+        // Remove existing announcement
+        if (announcementEl) {
+            announcementEl.remove();
+            announcementEl = null;
+        }
+
+        if (!banner.enabled || !banner.text) {
+            return;
+        }
+
+        // Create announcement element
+        announcementEl = document.createElement('div');
+        announcementEl.className = `cinema-announcement style-${banner.style || 'ticker'}`;
+
+        const textEl = document.createElement('span');
+        textEl.className = 'announcement-text';
+        textEl.textContent = banner.text;
+
+        announcementEl.appendChild(textEl);
+        document.body.appendChild(announcementEl);
+
+        log('Announcement banner created', { text: banner.text, style: banner.style });
+    }
+
+    // ===== Typography Settings (Global CSS Variables) =====
     function applyTypographySettings() {
         const root = document.documentElement;
-        const typo = cinemaConfig.typography;
 
-        // Font family mapping
+        // Font family mapping for header/footer
         const fontMap = {
             system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             cinematic: '"Bebas Neue", "Impact", sans-serif',
             classic: '"Playfair Display", Georgia, serif',
             modern: '"Montserrat", "Helvetica Neue", sans-serif',
             elegant: '"Cormorant Garamond", "Times New Roman", serif',
+            marquee: '"Broadway", "Impact", fantasy',
+            retro: '"Press Start 2P", "Courier New", monospace',
+            neon: '"Tilt Neon", "Impact", sans-serif',
         };
 
-        // Apply CSS variables
+        // Header typography
+        const headerTypo = cinemaConfig.header?.typography || {};
         root.style.setProperty(
-            '--cinema-font-family',
-            fontMap[typo.fontFamily] || fontMap.cinematic
-        );
-        root.style.setProperty('--cinema-title-scale', (typo.titleSize / 100).toFixed(2));
-        root.style.setProperty('--cinema-title-color', typo.titleColor);
-        root.style.setProperty(
-            '--cinema-metadata-opacity',
-            (typo.metadataOpacity / 100).toFixed(2)
+            '--header-font-family',
+            fontMap[headerTypo.fontFamily] || fontMap.cinematic
         );
 
-        // Title shadow presets
+        // Footer typography
+        const footerTypo = cinemaConfig.footer?.typography || {};
+        root.style.setProperty(
+            '--footer-font-family',
+            fontMap[footerTypo.fontFamily] || fontMap.system
+        );
+
+        // Metadata opacity from metadata settings
+        const meta = cinemaConfig.metadata || {};
+        root.style.setProperty(
+            '--cinema-metadata-opacity',
+            ((meta.opacity || 80) / 100).toFixed(2)
+        );
+
+        // Shadow presets for header
         const shadowMap = {
             none: 'none',
             subtle: '0 2px 4px rgba(0,0,0,0.5)',
             dramatic: '0 4px 8px rgba(0,0,0,0.8), 0 8px 16px rgba(0,0,0,0.4)',
-            neon: `0 0 10px ${typo.titleColor}, 0 0 20px ${typo.titleColor}, 0 0 40px ${typo.titleColor}`,
+            neon: '0 0 10px currentColor, 0 0 20px currentColor, 0 0 40px currentColor',
+            glow: '0 0 15px rgba(255,255,255,0.5), 0 0 30px rgba(255,255,255,0.3)',
         };
-        root.style.setProperty(
-            '--cinema-title-shadow',
-            shadowMap[typo.titleShadow] || shadowMap.subtle
-        );
+        root.style.setProperty('--header-shadow', shadowMap[headerTypo.shadow] || shadowMap.subtle);
+        root.style.setProperty('--footer-shadow', shadowMap[footerTypo.shadow] || 'none');
 
-        // Add body class for typography
-        document.body.classList.add(`cinema-typography-${typo.fontFamily}`);
-
-        log('Typography settings applied', typo);
+        log('Typography settings applied', { header: headerTypo, footer: footerTypo });
     }
 
     // ===== Background Settings =====
@@ -499,13 +568,19 @@
             }
             if (config.header) {
                 cinemaConfig.header = { ...cinemaConfig.header, ...config.header };
+                if (config.header.typography) {
+                    cinemaConfig.header.typography = {
+                        ...cinemaConfig.header.typography,
+                        ...config.header.typography,
+                    };
+                }
             }
             if (config.footer) {
                 cinemaConfig.footer = { ...cinemaConfig.footer, ...config.footer };
-                if (config.footer.specs) {
-                    cinemaConfig.footer.specs = {
-                        ...cinemaConfig.footer.specs,
-                        ...config.footer.specs,
+                if (config.footer.typography) {
+                    cinemaConfig.footer.typography = {
+                        ...cinemaConfig.footer.typography,
+                        ...config.footer.typography,
                     };
                 }
             }
@@ -515,23 +590,25 @@
             if (config.nowPlaying) {
                 cinemaConfig.nowPlaying = { ...cinemaConfig.nowPlaying, ...config.nowPlaying };
             }
-            // === NEW: Merge typography settings ===
-            if (config.typography) {
-                cinemaConfig.typography = { ...cinemaConfig.typography, ...config.typography };
-            }
-            // === NEW: Merge poster settings ===
+            // === Merge poster settings ===
             if (config.poster) {
                 cinemaConfig.poster = { ...cinemaConfig.poster, ...config.poster };
             }
-            // === NEW: Merge background settings ===
+            // === Merge background settings ===
             if (config.background) {
                 cinemaConfig.background = { ...cinemaConfig.background, ...config.background };
             }
-            // === NEW: Merge metadata settings ===
+            // === Merge metadata settings ===
             if (config.metadata) {
                 cinemaConfig.metadata = { ...cinemaConfig.metadata, ...config.metadata };
+                if (config.metadata.specs) {
+                    cinemaConfig.metadata.specs = {
+                        ...cinemaConfig.metadata.specs,
+                        ...config.metadata.specs,
+                    };
+                }
             }
-            // === NEW: Merge promotional settings ===
+            // === Merge promotional settings ===
             if (config.promotional) {
                 cinemaConfig.promotional = { ...cinemaConfig.promotional, ...config.promotional };
                 if (config.promotional.qrCode) {
@@ -661,6 +738,10 @@
 
         // Update footer with current media info
         createFooter(cinemaMedia);
+
+        // Create/update promotional elements
+        createQRCode(cinemaMedia);
+        createAnnouncementBanner();
 
         // Update ambilight based on poster colors
         if (cinemaConfig.ambilight.enabled && media && media.dominantColor) {
@@ -812,9 +893,23 @@
             }
             if (newConfig.cinema.header) {
                 cinemaConfig.header = { ...cinemaConfig.header, ...newConfig.cinema.header };
+                // Deep merge typography
+                if (newConfig.cinema.header.typography) {
+                    cinemaConfig.header.typography = {
+                        ...cinemaConfig.header.typography,
+                        ...newConfig.cinema.header.typography,
+                    };
+                }
             }
             if (newConfig.cinema.footer) {
                 cinemaConfig.footer = { ...cinemaConfig.footer, ...newConfig.cinema.footer };
+                // Deep merge typography
+                if (newConfig.cinema.footer.typography) {
+                    cinemaConfig.footer.typography = {
+                        ...cinemaConfig.footer.typography,
+                        ...newConfig.cinema.footer.typography,
+                    };
+                }
                 if (newConfig.cinema.footer.specs) {
                     cinemaConfig.footer.specs = {
                         ...cinemaConfig.footer.specs,
@@ -903,6 +998,67 @@
                 createAmbilight();
                 if (currentMedia && currentMedia.dominantColor) {
                     updateAmbilightColor(currentMedia.dominantColor);
+                }
+            }
+
+            // Update poster settings
+            if (newConfig.cinema.poster) {
+                cinemaConfig.poster = { ...cinemaConfig.poster, ...newConfig.cinema.poster };
+                applyPosterSettings();
+            }
+
+            // Update background settings
+            if (newConfig.cinema.background) {
+                cinemaConfig.background = {
+                    ...cinemaConfig.background,
+                    ...newConfig.cinema.background,
+                };
+                applyBackgroundSettings();
+            }
+
+            // Update metadata settings
+            if (newConfig.cinema.metadata) {
+                cinemaConfig.metadata = { ...cinemaConfig.metadata, ...newConfig.cinema.metadata };
+                // Deep merge specs
+                if (newConfig.cinema.metadata.specs) {
+                    cinemaConfig.metadata.specs = {
+                        ...cinemaConfig.metadata.specs,
+                        ...newConfig.cinema.metadata.specs,
+                    };
+                }
+                applyTypographySettings();
+                // Recreate footer to reflect metadata changes
+                if (currentMedia) {
+                    const cinemaMedia = mapMediaToCinemaFormat(currentMedia);
+                    createFooter(cinemaMedia);
+                }
+            }
+
+            // Update promotional settings
+            if (newConfig.cinema.promotional) {
+                cinemaConfig.promotional = {
+                    ...cinemaConfig.promotional,
+                    ...newConfig.cinema.promotional,
+                };
+                // Deep merge qrCode
+                if (newConfig.cinema.promotional.qrCode) {
+                    cinemaConfig.promotional.qrCode = {
+                        ...cinemaConfig.promotional.qrCode,
+                        ...newConfig.cinema.promotional.qrCode,
+                    };
+                }
+                // Deep merge announcementBanner
+                if (newConfig.cinema.promotional.announcementBanner) {
+                    cinemaConfig.promotional.announcementBanner = {
+                        ...cinemaConfig.promotional.announcementBanner,
+                        ...newConfig.cinema.promotional.announcementBanner,
+                    };
+                }
+                // Create/update promotional elements
+                if (currentMedia) {
+                    const cinemaMedia = mapMediaToCinemaFormat(currentMedia);
+                    createQRCode(cinemaMedia);
+                    createAnnouncementBanner();
                 }
             }
         }
@@ -1439,8 +1595,26 @@
             case 'CINEMA_TITLE_COLOR_UPDATE':
                 if (data.color) {
                     root.style.setProperty('--cinema-title-color', data.color);
-                    cinemaConfig.typography.titleColor = data.color;
                     log('Live title color update:', data.color);
+                }
+                break;
+
+            case 'CINEMA_HEADER_COLOR_UPDATE':
+                if (data.color) {
+                    cinemaConfig.header.typography.color = data.color;
+                    createHeader();
+                    log('Live header color update:', data.color);
+                }
+                break;
+
+            case 'CINEMA_FOOTER_COLOR_UPDATE':
+                if (data.color) {
+                    cinemaConfig.footer.typography.color = data.color;
+                    if (currentMedia) {
+                        const cinemaMedia = mapMediaToCinemaFormat(currentMedia);
+                        createFooter(cinemaMedia);
+                    }
+                    log('Live footer color update:', data.color);
                 }
                 break;
 
