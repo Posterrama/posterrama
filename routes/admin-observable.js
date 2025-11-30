@@ -6,6 +6,20 @@
 const express = require('express');
 
 /**
+ * @typedef {Object} SessionData
+ * @property {Object} [user] - Authenticated user
+ */
+
+/**
+ * @typedef {Object} ObservableRequestExtensions
+ * @property {SessionData} [session] - Express session
+ */
+
+/**
+ * @typedef {import('express').Request & ObservableRequestExtensions} ObservableRequest
+ */
+
+/**
  * Create admin observable router with dependency injection
  * @param {Object} deps - Dependencies
  * @param {Function} deps.isAuthenticated - Authentication middleware
@@ -60,12 +74,13 @@ module.exports = function createAdminObservableRouter({
      *               items:
      *                 $ref: '#/components/schemas/LogEntry'
      */
+    // @ts-ignore - Express router overload issue with isAuthenticated middleware
     router.get('/api/admin/logs', isAuthenticated, (req, res) => {
         const { level, limit, offset, testOnly } = req.query;
         res.setHeader('Cache-Control', 'no-store'); // Prevent browser caching of log data
 
-        const parsedLimit = parseInt(limit, 10) || 1000;
-        const parsedOffset = parseInt(offset, 10) || 0;
+        const parsedLimit = parseInt(String(limit || '1000'), 10) || 1000;
+        const parsedOffset = parseInt(String(offset || '0'), 10) || 0;
         const testOnlyMode = testOnly === 'true';
 
         // Base logger returns chronological (oldest->newest) for the selected window.
@@ -136,6 +151,7 @@ module.exports = function createAdminObservableRouter({
      *       500:
      *         description: Failed to update log level
      */
+    // @ts-ignore - Express router overload issue with isAuthenticated middleware
     router.get('/api/admin/logs/level', isAuthenticated, (req, res) => {
         try {
             const currentLevel = logger.level;
@@ -192,54 +208,61 @@ module.exports = function createAdminObservableRouter({
      *       500:
      *         description: Failed to update log level
      */
-    router.post('/api/admin/logs/level', isAuthenticated, (req, res) => {
-        try {
-            const { level } = req.body;
+    // @ts-ignore - Express router overload issue with isAuthenticated middleware
+    router.post(
+        '/api/admin/logs/level',
+        isAuthenticated,
+        (/** @type {ObservableRequest} */ req, res) => {
+            try {
+                const { level } = req.body;
 
-            // Validate log level
-            const validLevels = ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'];
-            if (!level || !validLevels.includes(level)) {
-                return res.status(400).json({
-                    error: 'Invalid log level',
-                    validLevels,
-                    receivedLevel: level,
+                // Validate log level
+                const validLevels = ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'];
+                if (!level || !validLevels.includes(level)) {
+                    return res.status(400).json({
+                        error: 'Invalid log level',
+                        validLevels,
+                        receivedLevel: level,
+                    });
+                }
+
+                const oldLevel = logger.level;
+
+                // Update Winston log level and all transports
+                logger.level = level;
+                logger.transports.forEach(transport => {
+                    transport.level = level;
+                });
+
+                const observableReq = /** @type {ObservableRequest} */ (req);
+                logger.info('Log level updated', {
+                    oldLevel,
+                    newLevel: level,
+                    transportCount: logger.transports.length,
+                    adminUser: observableReq.session?.user?.username || 'unknown',
+                });
+
+                res.json({
+                    success: true,
+                    oldLevel,
+                    newLevel: level,
+                });
+            } catch (error) {
+                const observableReq = /** @type {ObservableRequest} */ (req);
+                const { level } = req.body; // Re-declare for error handler scope
+                logger.error('Failed to update log level', {
+                    error: error.message,
+                    attemptedLevel: level,
+                    adminUser: observableReq.session?.user?.username || 'unknown',
+                });
+
+                res.status(500).json({
+                    error: 'Failed to update log level',
+                    details: error.message,
                 });
             }
-
-            const oldLevel = logger.level;
-
-            // Update Winston log level and all transports
-            logger.level = level;
-            logger.transports.forEach(transport => {
-                transport.level = level;
-            });
-
-            logger.info('Log level updated', {
-                oldLevel,
-                newLevel: level,
-                transportCount: logger.transports.length,
-                adminUser: req.session?.user?.username || 'unknown',
-            });
-
-            res.json({
-                success: true,
-                oldLevel,
-                newLevel: level,
-            });
-        } catch (error) {
-            const { level } = req.body; // Re-declare for error handler scope
-            logger.error('Failed to update log level', {
-                error: error.message,
-                attemptedLevel: level,
-                adminUser: req.session?.user?.username || 'unknown',
-            });
-
-            res.status(500).json({
-                error: 'Failed to update log level',
-                details: error.message,
-            });
         }
-    });
+    );
 
     // Admin Notifications: test logging endpoint to validate SSE + Notification Center
     // Usage: POST /api/admin/notify/test { level?: 'info'|'warn'|'error', message?: string }
@@ -268,6 +291,7 @@ module.exports = function createAdminObservableRouter({
      *       500:
      *         description: Failed to emit notification
      */
+    // @ts-ignore - Express router overload issue with isAuthenticated middleware
     router.post('/api/admin/notify/test', isAuthenticated, (req, res) => {
         try {
             const lvl = String(req.body?.level || 'warn').toLowerCase();
@@ -317,6 +341,7 @@ module.exports = function createAdminObservableRouter({
      */
     // Admin SSE: simple test endpoint to broadcast a sample device event for debugging
     // Usage (in Admin console while logged in): fetch('/api/admin/sse-test', { method: 'POST' })
+    // @ts-ignore - Express router overload issue with isAuthenticated middleware
     router.post('/api/admin/sse-test', isAuthenticated, (req, res) => {
         try {
             const payload = {
@@ -378,6 +403,7 @@ module.exports = function createAdminObservableRouter({
     router.get(
         '/api/admin/events',
         isAuthenticated,
+        // @ts-ignore - asyncHandler typing issue
         asyncHandler(async (req, res) => {
             // SSE headers
             res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -418,7 +444,7 @@ module.exports = function createAdminObservableRouter({
             req.on('close', cleanup);
             req.on('error', cleanup);
         })
-    );
+    ); // closing for asyncHandler and router.get
 
     // Export router, clients set, and broadcast function
     return {
