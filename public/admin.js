@@ -3591,10 +3591,14 @@
         setIf('wallartMode_filmCards_accentColor', filmCards.accentColor || '#b40f0f');
         setIf('wallartMode_filmCards_accentColor_text', filmCards.accentColor || '#b40f0f');
 
-        // Sync color picker and text input + live preview
+        // Sync color picker, text input, circle preview + live preview
         const colorPicker = document.getElementById('wallartMode_filmCards_accentColor');
         const colorText = document.getElementById('wallartMode_filmCards_accentColor_text');
-        if (colorPicker && colorText) {
+        const colorCircle = document.getElementById('wallartMode_filmCards_accentColor_circle');
+        const colorReset = document.getElementById('wallartMode_filmCards_accentColor_reset');
+        const colorPresets = document.querySelectorAll('.color-preset');
+
+        if (colorPicker && colorText && colorCircle) {
             // Helper: Send color update to preview iframe
             const sendColorToPreview = color => {
                 const previewIframe = document.getElementById('preview-iframe');
@@ -3609,17 +3613,96 @@
                 }
             };
 
-            colorPicker.addEventListener('input', e => {
-                const color = e.target.value.toUpperCase();
-                colorText.value = color;
-                sendColorToPreview(color);
+            // Helper: Update all color displays
+            const updateColor = hex => {
+                colorPicker.value = hex;
+                colorText.value = hex.toUpperCase();
+                colorCircle.style.background = hex;
+                sendColorToPreview(hex);
+
+                // Update preset selection indicator
+                colorPresets.forEach(preset => {
+                    if (preset.dataset.color.toLowerCase() === hex.toLowerCase()) {
+                        preset.style.border = '2px solid #3b82f6';
+                        preset.style.transform = 'scale(1.1)';
+                    } else {
+                        preset.style.border = '2px solid transparent';
+                        preset.style.transform = 'scale(1)';
+                    }
+                });
+            };
+
+            // Initialize color circle with current value
+            updateColor(colorPicker.value);
+
+            // Click on circle opens native color picker
+            colorCircle.addEventListener('click', () => {
+                colorPicker.click();
             });
+
+            // Color picker change
+            colorPicker.addEventListener('input', e => {
+                updateColor(e.target.value);
+            });
+
+            // Text input change
             colorText.addEventListener('input', e => {
                 const hex = e.target.value.trim();
                 if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-                    colorPicker.value = hex;
-                    sendColorToPreview(hex);
+                    updateColor(hex);
                 }
+            });
+
+            // Color preset clicks
+            colorPresets.forEach(preset => {
+                preset.addEventListener('click', () => {
+                    updateColor(preset.dataset.color);
+                });
+
+                // Hover effect
+                preset.addEventListener('mouseenter', function () {
+                    if (this.style.border !== '2px solid rgb(59, 130, 246)') {
+                        this.style.transform = 'scale(1.15)';
+                        this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
+                    }
+                });
+                preset.addEventListener('mouseleave', function () {
+                    if (this.style.border !== '2px solid rgb(59, 130, 246)') {
+                        this.style.transform = 'scale(1)';
+                        this.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
+                    }
+                });
+            });
+
+            // Reset button
+            if (colorReset) {
+                colorReset.addEventListener('click', () => {
+                    updateColor('#b40f0f');
+                });
+
+                // Hover effect for reset button
+                colorReset.addEventListener('mouseenter', function () {
+                    this.style.background = 'var(--primary)';
+                    this.style.color = 'white';
+                    this.style.borderColor = 'var(--primary)';
+                });
+                colorReset.addEventListener('mouseleave', function () {
+                    this.style.background = 'var(--bg-light)';
+                    this.style.color = 'var(--text)';
+                    this.style.borderColor = 'var(--border)';
+                });
+            }
+
+            // Circle hover effect
+            colorCircle.addEventListener('mouseenter', function () {
+                this.style.transform = 'scale(1.1)';
+                this.style.boxShadow =
+                    '0 6px 16px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.2)';
+            });
+            colorCircle.addEventListener('mouseleave', function () {
+                this.style.transform = 'scale(1)';
+                this.style.boxShadow =
+                    '0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.2)';
             });
         }
 
