@@ -2255,7 +2255,9 @@ if (env.server.nodeEnv === 'test') {
         // Only seed a session automatically for benign, non-sensitive reads in tests.
         // Never auto-seed for /api/devices* so unauthenticated access can be correctly tested.
         if ((req.method === 'GET' || req.method === 'HEAD') && req.path.startsWith('/api/groups')) {
+            // @ts-ignore - req.session provided by express-session
             req.session = req.session || {};
+            // @ts-ignore - req.session provided by express-session
             req.session.user = req.session.user || { username: 'test-admin' };
         }
         next();
@@ -2506,6 +2508,7 @@ app.get('/api/admin/device-presets', adminAuth, async (req, res) => {
 // Admin: replace device presets (JSON)
 app.put(
     '/api/admin/device-presets',
+    // @ts-ignore - Express router overload with middleware
     adminAuth,
     express.json({ limit: '1mb' }),
     async (req, res) => {
@@ -2577,6 +2580,7 @@ app.put(
  *       500:
  *         description: Failed to fetch music libraries
  */
+// @ts-ignore - Express router overload with middleware
 app.get('/api/admin/plex/music-libraries', adminAuth, async (req, res) => {
     try {
         // Find enabled Plex server
@@ -2636,6 +2640,7 @@ app.get('/api/admin/plex/music-libraries', adminAuth, async (req, res) => {
  *       500:
  *         description: Failed to fetch genres
  */
+// @ts-ignore - Express router overload with middleware
 app.get('/api/admin/plex/music-genres', adminAuth, async (req, res) => {
     try {
         const { library } = req.query;
@@ -2726,6 +2731,7 @@ app.get('/api/admin/plex/music-genres', adminAuth, async (req, res) => {
  *       500:
  *         description: Failed to fetch artists
  */
+// @ts-ignore - Express router overload with middleware
 app.get('/api/admin/plex/music-artists', adminAuth, async (req, res) => {
     try {
         const { library, limit = 100, offset = 0 } = req.query;
@@ -2831,6 +2837,7 @@ app.post('/csp-report', cspReportJson, (req, res) => {
  */
 app.get(
     '/api/admin/cache/stats',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     newValidationMiddleware(validationRules.adminRequest),
     apiCacheMiddleware.short,
@@ -2886,6 +2893,7 @@ app.get(
  */
 app.get(
     '/api/admin/performance/metrics',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     newValidationMiddleware(validationRules.adminRequest),
     asyncHandler(async (req, res) => {
@@ -3013,6 +3021,7 @@ if (isDebug) {
  * @returns {Promise<Array>} Array of media items from all sources
  */
 async function getPlaylistMediaWrapper() {
+    // @ts-ignore - Returns {media, errors} object, not array
     return getPlaylistMedia({
         config,
         processPlexItem,
@@ -3076,7 +3085,7 @@ app.get('/admin', (req, res) => {
     // Force redirect to remove old version parameters from cached URLs
     // This ensures users always get the latest admin interface
     const queryParams = req.query;
-    const hasOldVersionParam = queryParams.v && !/^\d+$/.test(queryParams.v);
+    const hasOldVersionParam = queryParams.v && !/^\d+$/.test(String(queryParams.v));
 
     if (hasOldVersionParam) {
         // Redirect to clean URL with cache-busting timestamp
@@ -3179,6 +3188,7 @@ app.get('/admin', (req, res) => {
  *       401:
  *         description: Authentication required
  */
+// @ts-ignore - Express router overload with middleware
 app.get('/admin/logs', isAuthenticated, (req, res) => {
     // This route serves the dedicated live log viewer page with auto-versioning.
     const filePath = path.join(__dirname, 'public', 'logs.html');
@@ -3555,6 +3565,7 @@ app.get('/api/health', (req, res, next) => {
  *       401:
  *         description: Unauthorized (admin only)
  */
+// @ts-ignore - Express router overload with middleware
 app.post('/api/admin/restart-app', adminAuth, (req, res) => {
     try {
         // Respond immediately so the client can start polling /health
@@ -3743,6 +3754,7 @@ app.use('/', localDirectoryRouter);
  */
 app.post(
     '/api/admin/test-tmdb',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
@@ -3888,6 +3900,7 @@ app.post(
  */
 app.get(
     '/api/admin/tmdb-genres',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Request received for /api/admin/tmdb-genres.');
@@ -3957,6 +3970,7 @@ app.get(
  */
 app.post(
     '/api/admin/tmdb-genres-test',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
@@ -4026,6 +4040,7 @@ app.post(
  */
 app.get(
     '/api/admin/tmdb-total',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         const cfg = await readConfig();
@@ -4143,6 +4158,7 @@ app.get(
  */
 app.get(
     '/api/admin/tmdb-cache-stats',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Request received for /api/admin/tmdb-cache-stats.');
@@ -4194,6 +4210,7 @@ app.get(
 app.post(
     '/api/admin/change-password',
     authLimiter,
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
@@ -4282,6 +4299,7 @@ app.post(
  */
 app.post(
     '/api/admin/restart-app',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Received request to restart the application.');
@@ -4360,6 +4378,7 @@ app.post(
  */
 app.get(
     '/api/admin/status',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
@@ -4416,9 +4435,10 @@ app.get(
                 const stats = await fsp.statfs(__dirname);
                 const totalSpace = stats.bavail * stats.bsize;
                 const totalSpaceGB = (totalSpace / 1024 ** 3).toFixed(1);
+                const totalSpaceNum = parseFloat(totalSpaceGB);
                 diskUsage = {
                     available: `${totalSpaceGB} GB available`,
-                    status: totalSpaceGB > 5 ? 'success' : totalSpaceGB > 1 ? 'warning' : 'error',
+                    status: totalSpaceNum > 5 ? 'success' : totalSpaceNum > 1 ? 'warning' : 'error',
                 };
             } catch (e) {
                 // Fallback if statfs is not available
@@ -4481,6 +4501,7 @@ app.get(
  */
 app.get(
     '/api/admin/version',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
@@ -4545,6 +4566,7 @@ app.get(
  */
 app.get(
     '/api/admin/update-check',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
@@ -4643,6 +4665,7 @@ app.get(
  */
 app.get(
     '/api/admin/github/releases',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
@@ -4706,6 +4729,7 @@ app.get(
  */
 app.get(
     '/api/admin/github/repository',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
@@ -4741,6 +4765,7 @@ app.get(
  */
 app.post(
     '/api/admin/github/clear-cache',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
@@ -4804,6 +4829,7 @@ app.post(
  */
 app.post(
     '/api/admin/update/start',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
@@ -4913,6 +4939,7 @@ app.post(
  */
 app.get(
     '/api/admin/update/status',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
@@ -5008,6 +5035,7 @@ app.get(
  */
 app.post(
     '/api/admin/update/rollback',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
@@ -5066,6 +5094,7 @@ app.post(
  */
 app.get(
     '/api/admin/update/backups',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
@@ -5117,6 +5146,7 @@ app.get(
  */
 app.post(
     '/api/admin/update/cleanup',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
@@ -5186,6 +5216,7 @@ app.post(
  */
 app.get(
     '/api/admin/performance',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
@@ -5308,6 +5339,7 @@ app.get(
  */
 app.post(
     '/api/admin/refresh-media',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Received request to force-refresh media playlist.');
@@ -5376,6 +5408,7 @@ app.post(
  */
 app.post(
     '/api/admin/mqtt/generate-dashboard',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         const { deviceIds = [], ...options } = req.body;
@@ -5419,6 +5452,7 @@ app.post(
  */
 app.post(
     '/api/admin/mqtt/republish',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Received request to republish MQTT discovery.');
@@ -5499,6 +5533,7 @@ app.post(
  */
 app.get(
     '/api/admin/mqtt/status',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         const mqttBridge = global.__posterramaMqttBridge;
@@ -5543,6 +5578,7 @@ app.get(
  */
 app.post(
     '/api/admin/reset-refresh',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         logger.info('Admin refresh reset requested', {
@@ -5595,6 +5631,7 @@ app.post(
  */
 app.get(
     '/reset-refresh',
+    // @ts-ignore - Express router overload with asyncHandler
     asyncHandler(async (req, res) => {
         const isRefreshing = isPlaylistRefreshing();
         const refreshStartTime = getRefreshStartTime();
@@ -5654,6 +5691,7 @@ app.get(
  */
 app.get(
     '/api/admin/debug-cache',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         const userAgent = req.get('user-agent') || '';
@@ -5719,6 +5757,7 @@ app.get(
  */
 app.post(
     '/api/admin/clear-image-cache',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Received request to clear image cache.');
@@ -5760,6 +5799,7 @@ app.post(
  */
 app.get(
     '/api/admin/cache-stats',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         if (isDebug) logger.debug('[Admin API] Received request for cache stats');
@@ -5821,16 +5861,18 @@ app.get(
 
             // Count items by prefix (basic categorization)
             for (const key of cacheManager.cache.keys()) {
+                // @ts-ignore - Cache keys are strings
+                const keyStr = String(key);
                 if (
-                    key.startsWith('media:') ||
-                    key.startsWith('plex:') ||
-                    key.startsWith('tmdb:') ||
+                    keyStr.startsWith('media:') ||
+                    keyStr.startsWith('plex:') ||
+                    keyStr.startsWith('tmdb:') ||
                     false
                 ) {
                     itemCount.media++;
-                } else if (key.startsWith('config:')) {
+                } else if (keyStr.startsWith('config:')) {
                     itemCount.config++;
-                } else if (key.startsWith('image:')) {
+                } else if (keyStr.startsWith('image:')) {
                     itemCount.image++;
                 }
             }
@@ -5952,7 +5994,8 @@ app.post(
                 // Count entries in this tier before clearing
                 const tierPrefix = `tier:${tier}:`;
                 for (const key of cacheManager.cache.keys()) {
-                    if (key.startsWith(tierPrefix)) {
+                    // @ts-ignore - Cache keys are strings
+                    if (String(key).startsWith(tierPrefix)) {
                         cacheManager.delete(key);
                         cleared++;
                     }
@@ -5997,6 +6040,7 @@ app.post(
  */
 app.get(
     '/api/admin/config',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (_req, res) => {
         try {
@@ -6106,6 +6150,7 @@ app.get(
  */
 app.post(
     '/api/admin/config',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
@@ -6121,8 +6166,10 @@ app.post(
                 if (
                     typeof apiCache !== 'undefined' &&
                     apiCache &&
+                    // @ts-ignore - clearPattern is a custom method
                     typeof apiCache.clearPattern === 'function'
                 ) {
+                    // @ts-ignore - clearPattern is a custom method
                     apiCache.clearPattern('/get-config');
                     logger.debug('Cleared /get-config cache after config update');
                 }
@@ -6179,6 +6226,7 @@ app.post(
  */
 app.get(
     '/api/admin/source-status',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (_req, res) => {
         try {
