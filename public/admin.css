@@ -7929,15 +7929,15 @@ body.page-logs {
 
 /* MODERN DASHBOARD - inspired by the screenshot */
 #panel-perf-dashboard {
-    background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    background: transparent !important;
     border: none !important;
-    border-radius: var(--border-radius-lg) !important;
-    box-shadow: var(--shadow-md) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
 }
 
 #panel-perf-dashboard:hover {
     transform: none !important;
-    box-shadow: var(--shadow-md) !important;
+    box-shadow: none !important;
 }
 
 #panel-perf-dashboard .panel-header {
