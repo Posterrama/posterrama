@@ -535,6 +535,20 @@
             ]),
         ]);
 
+        // Decoration row (only shown when animation is 'none')
+        const rowDecoration = el('div', { class: 'form-row', id: 'cin-h-decoration-row' }, [
+            el('label', { for: 'cin-h-decoration' }, 'Decoration'),
+            el('div', { class: 'select-wrap has-caret' }, [
+                el('select', { id: 'cin-h-decoration' }, [
+                    el('option', { value: 'none' }, 'None'),
+                    el('option', { value: 'frame' }, 'Frame'),
+                    el('option', { value: 'underline' }, 'Underline'),
+                    el('option', { value: 'inverted' }, 'Inverted'),
+                ]),
+                el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
+            ]),
+        ]);
+
         const grid = el('div', { class: 'form-grid' }, [
             rowText,
             typoHeader,
@@ -545,6 +559,7 @@
             rowColor,
             rowShadow,
             rowAnim,
+            rowDecoration,
         ]);
         container.replaceChildren(grid);
 
@@ -552,8 +567,19 @@
         $('#cin-h-font').value = typo.fontFamily || 'cinematic';
         $('#cin-h-shadow').value = typo.shadow || 'subtle';
         $('#cin-h-anim').value = typo.animation || 'none';
+        $('#cin-h-decoration').value = typo.decoration || 'none';
         $('#cin-h-tst').checked = typo.tonSurTon || false;
         $('#cin-h-tst-intensity').value = typo.tonSurTonIntensity || 45;
+
+        // Wire decoration visibility based on animation
+        const decorationRow = document.getElementById('cin-h-decoration-row');
+        const animSelect = document.getElementById('cin-h-anim');
+        const syncDecorationVisibility = () => {
+            const isNoAnim = animSelect?.value === 'none';
+            if (decorationRow) decorationRow.style.display = isNoAnim ? '' : 'none';
+        };
+        animSelect?.addEventListener('change', syncDecorationVisibility);
+        syncDecorationVisibility();
 
         // Initialize header text preset
         (function () {
@@ -1066,7 +1092,7 @@
         $('#cinemaShowHDR') && ($('#cinemaShowHDR').checked = specs.showHDR !== false);
         $('#cinemaShowAspectRatio') &&
             ($('#cinemaShowAspectRatio').checked = !!specs.showAspectRatio);
-        $('#cinemaSpecsStyle') && ($('#cinemaSpecsStyle').value = specs.style || 'badges');
+        $('#cinemaSpecsStyle') && ($('#cinemaSpecsStyle').value = specs.style || 'icons-text');
         $('#cinemaSpecsIconSet') && ($('#cinemaSpecsIconSet').value = specs.iconSet || 'tabler');
 
         // Promotional controls
@@ -1090,12 +1116,14 @@
         // Wire up conditional visibility
         wireConditionalVisibility();
 
-        // Specs icon set: show only when style = icons
+        // Specs icon set: show only when style uses icons
         const specsStyle = $('#cinemaSpecsStyle');
         const iconSetRow = $('#cinemaSpecsIconSetRow');
         if (specsStyle && iconSetRow) {
             const syncIconVisibility = () => {
-                iconSetRow.style.display = specsStyle.value === 'icons' ? '' : 'none';
+                const needsIcons =
+                    specsStyle.value === 'icons-only' || specsStyle.value === 'icons-text';
+                iconSetRow.style.display = needsIcons ? '' : 'none';
             };
             specsStyle.addEventListener('change', syncIconVisibility);
             syncIconVisibility();
@@ -1534,7 +1562,7 @@
                     showAudio: $('#cinemaShowAudio')?.checked !== false,
                     showHDR: $('#cinemaShowHDR')?.checked !== false,
                     showAspectRatio: !!$('#cinemaShowAspectRatio')?.checked,
-                    style: $('#cinemaSpecsStyle')?.value || 'badges',
+                    style: $('#cinemaSpecsStyle')?.value || 'icons-text',
                     iconSet: $('#cinemaSpecsIconSet')?.value || 'tabler',
                 },
             },
@@ -1570,6 +1598,7 @@
                 color: $('#cin-h-color')?.value || '#ffffff',
                 shadow: $('#cin-h-shadow')?.value || 'subtle',
                 animation: $('#cin-h-anim')?.value || 'none',
+                decoration: $('#cin-h-decoration')?.value || 'none',
                 tonSurTon: $('#cin-h-tst')?.checked || false,
                 tonSurTonIntensity: parseInt($('#cin-h-tst-intensity')?.value || '45', 10),
             },
@@ -1740,7 +1769,7 @@
                             setPoster('floating', 'fade');
                             setMeta({ title: true, year: true, runtime: true, rating: true });
                             setSpecs({ resolution: true, audio: true, hdr: true });
-                            setVal('cinemaSpecsStyle', 'badges');
+                            setVal('cinemaSpecsStyle', 'icons-text');
                             break;
 
                         case 'modern':
@@ -1765,7 +1794,7 @@
                             setPoster('floating', 'fade');
                             setMeta({ title: true, year: true, runtime: true, rating: true });
                             setSpecs({ resolution: true, audio: true, hdr: true });
-                            setVal('cinemaSpecsStyle', 'subtle');
+                            setVal('cinemaSpecsStyle', 'dark-glass');
                             break;
 
                         case 'premiere':
@@ -1802,7 +1831,7 @@
                                 hdr: true,
                                 aspectRatio: true,
                             });
-                            setVal('cinemaSpecsStyle', 'badges');
+                            setVal('cinemaSpecsStyle', 'glass');
                             break;
 
                         case 'imax':
@@ -1832,7 +1861,7 @@
                                 hdr: true,
                                 aspectRatio: true,
                             });
-                            setVal('cinemaSpecsStyle', 'icons');
+                            setVal('cinemaSpecsStyle', 'icons-only');
                             setVal('cinemaSpecsIconSet', 'tabler');
                             break;
 

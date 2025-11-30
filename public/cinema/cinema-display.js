@@ -18,6 +18,9 @@
     // Track effective background color for ton-sur-ton calculation
     let effectiveBgColor = '#000000';
 
+    // Track if cinema mode has completed initialization (prevents duplicate poster displays)
+    let cinemaInitialized = false;
+
     // ===== Cinema Mode Configuration =====
     const cinemaConfig = {
         orientation: 'auto', // auto, portrait, portrait-flipped
@@ -212,6 +215,8 @@
         if (!headerEl) {
             headerEl = document.createElement('div');
             headerEl.className = 'cinema-header';
+            // Hide initially to prevent flash of unstyled content
+            headerEl.style.visibility = 'hidden';
             document.body.appendChild(headerEl);
         }
 
@@ -220,35 +225,41 @@
         const shadowClass = `shadow-${typo.shadow || 'subtle'}`;
         const animClass =
             typo.animation && typo.animation !== 'none' ? `anim-${typo.animation}` : '';
-        headerEl.className = `cinema-header ${fontClass} ${shadowClass} ${animClass}`.trim();
+        // Decoration only applies when no animation
+        const decorationClass =
+            (!typo.animation || typo.animation === 'none') &&
+            typo.decoration &&
+            typo.decoration !== 'none'
+                ? `decoration-${typo.decoration}`
+                : '';
+        headerEl.className =
+            `cinema-header ${fontClass} ${shadowClass} ${animClass} ${decorationClass}`.trim();
 
         // Apply inline styles for size and color
         headerEl.style.setProperty('--header-font-size', `${(typo.fontSize || 100) / 100}`);
 
         // Calculate color: use ton-sur-ton if enabled, otherwise use configured color
         let headerColor = typo.color || '#ffffff';
-        console.log('[TON-SUR-TON DEBUG 2025]', 'Header check:', {
-            tonSurTon: typo.tonSurTon,
-            intensity: typo.tonSurTonIntensity,
-            effectiveBgColor,
-            configuredColor: typo.color,
-        });
         if (typo.tonSurTon && effectiveBgColor) {
             const intensity = typo.tonSurTonIntensity || 15;
             headerColor = calculateTonSurTon(effectiveBgColor, intensity);
-            console.log(
-                '[TON-SUR-TON] Header color calculated:',
-                headerColor,
-                'intensity:',
-                intensity
-            );
         }
         headerEl.style.setProperty('--header-color', headerColor);
         headerEl.style.color = headerColor; // Direct color application for reliability
 
+        // Handle inverted decoration - need contrasting text color for the background
+        if (decorationClass === 'decoration-inverted') {
+            // For inverted, the headerColor becomes the background, so we need contrasting text
+            const isLightBg = isLightColor(headerColor);
+            headerEl.classList.add(isLightBg ? 'inverted-dark-text' : 'inverted-light-text');
+        }
+
         // Set header text
         const headerText = cinemaConfig.header.text || 'Now Playing';
         headerEl.textContent = headerText;
+
+        // Show header now that styling is complete (was hidden to prevent FOUC)
+        headerEl.style.visibility = 'visible';
 
         // Add body class to adjust info-container padding
         document.body.classList.add('cinema-header-active');
@@ -300,12 +311,6 @@
         if (typo.tonSurTon && effectiveBgColor) {
             const intensity = typo.tonSurTonIntensity || 45;
             footerColor = calculateTonSurTon(effectiveBgColor, intensity);
-            console.log(
-                '[TON-SUR-TON] Footer color calculated:',
-                footerColor,
-                'intensity:',
-                intensity
-            );
         }
         footerEl.style.setProperty('--footer-color', footerColor);
         footerEl.style.color = footerColor; // Direct color application for reliability
@@ -424,13 +429,125 @@
 
             // ===== Technical Specs Section =====
             const specsDiv = document.createElement('div');
-            specsDiv.className = `cinema-footer-specs ${specs.style || 'badges'} icon-${specs.iconSet || 'tabler'} layout-${layout}`;
+            specsDiv.className = `cinema-footer-specs ${specs.style || 'icons-text'} icon-${specs.iconSet || 'tabler'} layout-${layout}`;
 
-            // Icon helper function based on iconSet
-            const getIcon = type => {
-                const iconSet = specs.iconSet || 'tabler';
+            const specsStyle = specs.style || 'icons-text';
+            const iconSet = specs.iconSet || 'tabler';
+            const isIconsOnly = specsStyle === 'icons-only';
 
-                // Tabler Icons (webfont)
+            // Icon helper function - returns specific or generic icons based on style
+            const getIcon = (type, value) => {
+                // For icons-only mode, we need specific icons that represent the value
+                if (isIconsOnly && iconSet === 'material') {
+                    // Resolution-specific icons
+                    if (type === 'resolution' && value) {
+                        const resLower = value.toLowerCase();
+                        if (
+                            resLower.includes('4k') ||
+                            resLower.includes('2160') ||
+                            resLower.includes('uhd')
+                        ) {
+                            return '<span class="material-symbols-rounded">4k</span>';
+                        } else if (
+                            resLower.includes('1080') ||
+                            resLower.includes('fhd') ||
+                            resLower.includes('full hd')
+                        ) {
+                            return '<span class="material-symbols-rounded">full_hd</span>';
+                        } else if (resLower.includes('720') || resLower.includes('hd')) {
+                            return '<span class="material-symbols-rounded">hd</span>';
+                        }
+                        return '<span class="material-symbols-rounded">high_quality</span>';
+                    }
+                    // Audio-specific icons
+                    if (type === 'audio' && value) {
+                        const audioLower = value.toLowerCase();
+                        if (audioLower.includes('atmos')) {
+                            return '<span class="material-symbols-rounded">spatial_audio</span>';
+                        } else if (audioLower.includes('dts:x') || audioLower.includes('dtsx')) {
+                            return '<span class="material-symbols-rounded">spatial_audio_off</span>';
+                        } else if (audioLower.includes('dts-hd') || audioLower.includes('dts hd')) {
+                            return '<span class="material-symbols-rounded">equalizer</span>';
+                        } else if (audioLower.includes('dts')) {
+                            return '<span class="material-symbols-rounded">equalizer</span>';
+                        } else if (
+                            audioLower.includes('truehd') ||
+                            audioLower.includes('true hd')
+                        ) {
+                            return '<span class="material-symbols-rounded">surround_sound</span>';
+                        } else if (
+                            audioLower.includes('dd+') ||
+                            audioLower.includes('ddplus') ||
+                            audioLower.includes('eac3')
+                        ) {
+                            return '<span class="material-symbols-rounded">surround_sound</span>';
+                        } else if (
+                            audioLower.includes('dolby') ||
+                            audioLower.includes('ac3') ||
+                            audioLower.includes('dd')
+                        ) {
+                            return '<span class="material-symbols-rounded">surround_sound</span>';
+                        } else if (audioLower.includes('pcm')) {
+                            return '<span class="material-symbols-rounded">hearing</span>';
+                        } else if (audioLower.includes('stereo') || audioLower.includes('2.0')) {
+                            return '<span class="material-symbols-rounded">speaker</span>';
+                        } else if (audioLower.includes('mono') || audioLower.includes('1.0')) {
+                            return '<span class="material-symbols-rounded">hearing</span>';
+                        } else if (
+                            audioLower.includes('aac') ||
+                            audioLower.includes('flac') ||
+                            audioLower.includes('mp3')
+                        ) {
+                            return '<span class="material-symbols-rounded">music_note</span>';
+                        }
+                        return '<span class="material-symbols-rounded">surround_sound</span>';
+                    }
+                    // HDR/Dolby Vision icons
+                    if (type === 'hdr') {
+                        return '<span class="material-symbols-rounded">hdr_on</span>';
+                    }
+                    if (type === 'hdr10') {
+                        return '<span class="material-symbols-rounded">hdr_on</span>';
+                    }
+                    if (type === 'hdr10plus') {
+                        return '<span class="material-symbols-rounded">hdr_auto</span>';
+                    }
+                    if (type === 'dolbyVision') {
+                        return '<span class="material-symbols-rounded">hdr_auto</span>';
+                    }
+                    if (type === 'hlg') {
+                        return '<span class="material-symbols-rounded">hdr_auto</span>';
+                    }
+                    if (type === 'aspectRatio') {
+                        return '<span class="material-symbols-rounded">aspect_ratio</span>';
+                    }
+                }
+
+                // For icons-only with Tabler, use similar logic
+                if (isIconsOnly && iconSet === 'tabler') {
+                    if (type === 'resolution' && value) {
+                        const resLower = value.toLowerCase();
+                        if (resLower.includes('4k') || resLower.includes('2160')) {
+                            return '<i class="ti ti-badge-4k"></i>';
+                        } else if (resLower.includes('1080')) {
+                            return '<i class="ti ti-badge-hd"></i>';
+                        }
+                        return '<i class="ti ti-badge-sd"></i>';
+                    }
+                    if (type === 'audio' && value) {
+                        const audioLower = value.toLowerCase();
+                        if (
+                            audioLower.includes('atmos') ||
+                            audioLower.includes('7.1') ||
+                            audioLower.includes('5.1')
+                        ) {
+                            return '<i class="ti ti-volume"></i>';
+                        }
+                        return '<i class="ti ti-volume-2"></i>';
+                    }
+                }
+
+                // Generic icons for icons-text mode or fallback
                 if (iconSet === 'tabler') {
                     const tablerIcons = {
                         resolution: '<i class="ti ti-device-tv"></i>',
@@ -442,20 +559,15 @@
                     return tablerIcons[type] || '';
                 }
 
-                // Media Flags - custom SVG badges
-                if (iconSet === 'mediaflags') {
-                    const mediaFlags = {
-                        resolution: `<svg class="media-flag" viewBox="0 0 48 24" fill="currentColor"><rect rx="4" width="48" height="24" opacity="0.2"/><text x="24" y="17" text-anchor="middle" font-size="12" font-weight="bold">RES</text></svg>`,
-                        audio: `<svg class="media-flag" viewBox="0 0 48 24" fill="currentColor"><rect rx="4" width="48" height="24" opacity="0.2"/><text x="24" y="17" text-anchor="middle" font-size="10" font-weight="bold">AUDIO</text></svg>`,
-                        hdr: `<svg class="media-flag hdr-badge" viewBox="0 0 48 24"><defs><linearGradient id="hdrGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#ff6b6b"/><stop offset="50%" style="stop-color:#feca57"/><stop offset="100%" style="stop-color:#48dbfb"/></linearGradient></defs><rect rx="4" width="48" height="24" fill="url(#hdrGrad)"/><text x="24" y="17" text-anchor="middle" font-size="12" font-weight="bold" fill="#000">HDR</text></svg>`,
-                        dolbyVision: `<svg class="media-flag dv-badge" viewBox="0 0 64 24"><rect rx="4" width="64" height="24" fill="#000"/><text x="32" y="17" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">DOLBY VISION</text></svg>`,
-                        aspectRatio: `<svg class="media-flag" viewBox="0 0 48 24" fill="currentColor"><rect rx="4" width="48" height="24" opacity="0.2"/><text x="24" y="17" text-anchor="middle" font-size="10" font-weight="bold">RATIO</text></svg>`,
-                        '4k': `<svg class="media-flag res-4k" viewBox="0 0 40 24"><rect rx="4" width="40" height="24" fill="#1a1a2e"/><text x="20" y="17" text-anchor="middle" font-size="14" font-weight="bold" fill="#00d4ff">4K</text></svg>`,
-                        '1080p': `<svg class="media-flag res-1080" viewBox="0 0 52 24"><rect rx="4" width="52" height="24" fill="#1a1a2e"/><text x="26" y="17" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">1080p</text></svg>`,
-                        atmos: `<svg class="media-flag atmos-badge" viewBox="0 0 64 24"><rect rx="4" width="64" height="24" fill="#000"/><text x="32" y="17" text-anchor="middle" font-size="10" font-weight="bold" fill="#00c3ff">ATMOS</text></svg>`,
-                        dtsx: `<svg class="media-flag dtsx-badge" viewBox="0 0 52 24"><rect rx="4" width="52" height="24" fill="#000"/><text x="26" y="17" text-anchor="middle" font-size="10" font-weight="bold" fill="#ff6600">DTS:X</text></svg>`,
+                if (iconSet === 'material') {
+                    const materialIcons = {
+                        resolution: '<span class="material-symbols-rounded">videocam</span>',
+                        audio: '<span class="material-symbols-rounded">volume_up</span>',
+                        hdr: '<span class="material-symbols-rounded">hdr_on</span>',
+                        dolbyVision: '<span class="material-symbols-rounded">hdr_on</span>',
+                        aspectRatio: '<span class="material-symbols-rounded">aspect_ratio</span>',
                     };
-                    return mediaFlags[type] || mediaFlags.resolution;
+                    return materialIcons[type] || '';
                 }
 
                 return '';
@@ -465,20 +577,7 @@
             if (specs.showResolution !== false && currentMedia.resolution) {
                 const item = document.createElement('div');
                 item.className = 'cinema-spec-item';
-                const iconSet = specs.iconSet || 'tabler';
-                // Use specific resolution badges for mediaflags
-                if (iconSet === 'mediaflags') {
-                    const resLower = currentMedia.resolution.toLowerCase();
-                    if (resLower.includes('4k') || resLower.includes('2160')) {
-                        item.innerHTML = getIcon('4k');
-                    } else if (resLower.includes('1080')) {
-                        item.innerHTML = getIcon('1080p');
-                    } else {
-                        item.innerHTML = `${getIcon('resolution')}<span>${currentMedia.resolution}</span>`;
-                    }
-                } else {
-                    item.innerHTML = `${getIcon('resolution')}<span>${currentMedia.resolution}</span>`;
-                }
+                item.innerHTML = `${getIcon('resolution', currentMedia.resolution)}<span>${currentMedia.resolution}</span>`;
                 specsDiv.appendChild(item);
             }
 
@@ -489,20 +588,7 @@
                 const audioText = currentMedia.audioChannels
                     ? `${currentMedia.audioCodec} ${currentMedia.audioChannels}`
                     : currentMedia.audioCodec;
-                const iconSet = specs.iconSet || 'tabler';
-                // Use specific audio badges for mediaflags
-                if (iconSet === 'mediaflags') {
-                    const audioLower = audioText.toLowerCase();
-                    if (audioLower.includes('atmos')) {
-                        item.innerHTML = getIcon('atmos');
-                    } else if (audioLower.includes('dts:x') || audioLower.includes('dtsx')) {
-                        item.innerHTML = getIcon('dtsx');
-                    } else {
-                        item.innerHTML = `${getIcon('audio')}<span>${audioText}</span>`;
-                    }
-                } else {
-                    item.innerHTML = `${getIcon('audio')}<span>${audioText}</span>`;
-                }
+                item.innerHTML = `${getIcon('audio', audioText)}<span>${audioText}</span>`;
                 specsDiv.appendChild(item);
             }
 
@@ -513,12 +599,7 @@
                 const isDV = currentMedia.hasDolbyVision;
                 const iconType = isDV ? 'dolbyVision' : 'hdr';
                 const flagText = isDV ? 'Dolby Vision' : 'HDR';
-                const iconSet = specs.iconSet || 'tabler';
-                if (iconSet === 'mediaflags') {
-                    item.innerHTML = getIcon(iconType);
-                } else {
-                    item.innerHTML = `${getIcon(iconType)}<span>${flagText}</span>`;
-                }
+                item.innerHTML = `${getIcon(iconType)}<span>${flagText}</span>`;
                 specsDiv.appendChild(item);
             }
 
@@ -526,7 +607,7 @@
             if (specs.showAspectRatio && currentMedia.aspectRatio) {
                 const item = document.createElement('div');
                 item.className = 'cinema-spec-item';
-                item.innerHTML = `${getIcon('aspectRatio')}<span>${currentMedia.aspectRatio}</span>`;
+                item.innerHTML = `${getIcon('aspectRatio', currentMedia.aspectRatio)}<span>${currentMedia.aspectRatio}</span>`;
                 specsDiv.appendChild(item);
             }
 
@@ -543,6 +624,20 @@
             if (hasSpecs) {
                 footerEl.appendChild(specsDiv);
             }
+
+            // Debug: Log all available tech specs data
+            console.log('🎬 TECH SPECS DEBUG:', {
+                title: currentMedia.title,
+                resolution: currentMedia.resolution,
+                audioCodec: currentMedia.audioCodec,
+                audioChannels: currentMedia.audioChannels,
+                hasHDR: currentMedia.hasHDR,
+                hasDolbyVision: currentMedia.hasDolbyVision,
+                aspectRatio: currentMedia.aspectRatio,
+                videoStreams: currentMedia.videoStreams?.length || 0,
+                audioTracks: currentMedia.audioTracks?.length || 0,
+                qualityLabel: currentMedia.qualityLabel,
+            });
 
             log('Cinema footer metadata/specs created', {
                 style: specs.style,
@@ -848,6 +943,28 @@
     // ===== Typography Settings (Global CSS Variables) =====
 
     /**
+     * Check if a color is light or dark based on luminance.
+     * Uses WCAG relative luminance formula.
+     * @param {string} color - Color in hex format
+     * @returns {boolean} True if light, false if dark
+     */
+    function isLightColor(color) {
+        let hex = (color || '#000000').replace('#', '');
+        if (hex.length === 3) {
+            hex = hex
+                .split('')
+                .map(c => c + c)
+                .join('');
+        }
+        const r = parseInt(hex.substr(0, 2), 16) || 0;
+        const g = parseInt(hex.substr(2, 2), 16) || 0;
+        const b = parseInt(hex.substr(4, 2), 16) || 0;
+        // WCAG relative luminance formula
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return luminance > 0.5;
+    }
+
+    /**
      * Calculate ton-sur-ton (tonal) color based on background color.
      * Creates an elegant, readable text color in the same hue family.
      * @param {string} bgColor - Background color in hex format
@@ -930,18 +1047,6 @@
             newS = Math.max(minSat, Math.min(s * satMultiplier, maxSat));
         }
 
-        console.log('[TON-SUR-TON CALC]', {
-            bgColor,
-            intensity,
-            isDark: useLightText,
-            luminance,
-            origH: h,
-            origS: s,
-            origL: l,
-            newS,
-            newL,
-        });
-
         // Convert HSL back to RGB
         const hue2rgb = (p, q, t) => {
             if (t < 0) t += 1;
@@ -971,7 +1076,6 @@
             .toString(16)
             .padStart(2, '0')}`;
 
-        console.log('[TON-SUR-TON RESULT]', { bgColor, result });
         return result;
     }
 
@@ -1605,7 +1709,15 @@
         applyGlobalEffects(); // Apply global color filters
 
         // Create cinema UI elements
-        createHeader();
+        // Skip initial header creation if ton-sur-ton is enabled - it will be created
+        // in updateCinemaDisplay() with proper background colors from the poster
+        // But still add the body class for layout purposes
+        if (cinemaConfig.header?.enabled) {
+            document.body.classList.add('cinema-header-active');
+        }
+        if (!cinemaConfig.header?.typography?.tonSurTon) {
+            createHeader();
+        }
         createAmbilight();
 
         // Always fetch media queue for fallback scenarios
@@ -1677,11 +1789,26 @@
         }
 
         log('Cinema mode initialized successfully');
+        // Note: cinemaInitialized flag is set in showNextPoster() after first poster is displayed
     }
 
     // ===== Update Cinema Display =====
     async function updateCinemaDisplay(media) {
+        // DEBUG: Track where calls come from
+        console.log('[Cinema Display] updateCinemaDisplay called', {
+            title: media?.title,
+            cinemaInitialized,
+            stack: new Error().stack?.split('\\n').slice(1, 4).join(' <- '),
+        });
+
         log('Updating cinema display', media);
+
+        // Mark initialization complete on first display update
+        // This prevents bootstrap's mediaUpdated event from causing duplicate displays
+        if (!cinemaInitialized) {
+            cinemaInitialized = true;
+            console.log('[Cinema Display] First display update, initialization complete');
+        }
 
         // Store current media for live config updates
         currentMedia = media;
@@ -1722,15 +1849,32 @@
                 ? `${url}&quality=30&width=400`
                 : `${url}?quality=30&width=400`;
 
+            console.log('[Cinema Display] 🖼️ THUMBNAIL loading:', {
+                url: thumbUrl,
+                expectedSize: '400x600',
+                title: media.title,
+            });
+
             posterEl.style.backgroundImage = `url('${thumbUrl}')`;
             posterEl.style.filter = 'blur(3px)';
             posterEl.style.transition = 'filter 0.5s ease-out';
 
             // Load full quality in background
             const fullImg = new Image();
+            const loadStartTime = performance.now();
+
             fullImg.onload = () => {
+                const loadTime = Math.round(performance.now() - loadStartTime);
                 posterEl.style.backgroundImage = `url('${url}')`;
                 posterEl.style.filter = 'none';
+
+                console.log('[Cinema Display] 🎬 ORIGINAL POSTER loaded:', {
+                    url: url,
+                    resolution: `${fullImg.naturalWidth}x${fullImg.naturalHeight}`,
+                    loadTimeMs: loadTime,
+                    title: media.title,
+                });
+
                 // Set aspect ratio for framed mode
                 if (fullImg.naturalWidth && fullImg.naturalHeight) {
                     document.documentElement.style.setProperty(
@@ -1739,7 +1883,12 @@
                     );
                 }
             };
-            fullImg.onerror = () => {
+            fullImg.onerror = err => {
+                console.error('[Cinema Display] ❌ ORIGINAL POSTER failed to load:', {
+                    url: url,
+                    error: err,
+                    title: media.title,
+                });
                 // Keep thumbnail, just remove blur
                 posterEl.style.filter = 'none';
             };
@@ -2189,9 +2338,10 @@
     };
 
     // ===== Poster Rotation Functions =====
-    let currentMediaIndex = -1; // Start at -1 so first showNextPoster() shows index 0
+    let currentMediaIndex = -1; // Start at -1, will be randomized on first showNextPoster()
     let currentSessionIndex = 0; // For multi-stream Now Playing rotation
     let nowPlayingSessions = []; // Store all active sessions for rotation
+    let isFirstPoster = true; // Track if this is the first poster display
 
     function startRotation() {
         try {
@@ -2238,11 +2388,17 @@
 
     async function fetchMediaQueue() {
         try {
-            const cfg = window.appConfig || {};
+            // Wait for config to be available
+            let cfg = window.appConfig || window.__serverConfig;
+            if (!cfg) {
+                // Wait a bit for config to load
+                await new Promise(resolve => setTimeout(resolve, 200));
+                cfg = window.appConfig || window.__serverConfig || {};
+            }
             const type = (cfg && cfg.type) || 'movies';
 
             // Check if games mode is active
-            const wallartMode = window.__serverConfig?.wallartMode || {};
+            const wallartMode = cfg?.wallartMode || {};
             const isGamesOnly = wallartMode.gamesOnly === true;
 
             // Build URL with appropriate parameter
@@ -2253,17 +2409,23 @@
                 url += '&excludeGames=1';
             }
 
+            console.log('[Cinema Display] Fetching media from:', url);
             const res = await fetch(url, {
                 cache: 'no-cache',
                 headers: { 'Cache-Control': 'no-cache' },
             });
-            if (!res.ok) return [];
+            if (!res.ok) {
+                console.error('[Cinema Display] Media fetch failed:', res.status, res.statusText);
+                return [];
+            }
             const data = await res.json();
             const items = Array.isArray(data)
                 ? data
                 : Array.isArray(data?.results)
                   ? data.results
                   : [];
+
+            console.log('[Cinema Display] Media fetch result:', items.length, 'items');
 
             // Shuffle the queue for random order on each page load
             // Fisher-Yates shuffle algorithm
@@ -2279,6 +2441,7 @@
             });
             return items;
         } catch (e) {
+            console.error('[Cinema Display] fetchMediaQueue error:', e);
             error('Failed to fetch media queue', e);
             return [];
         }
@@ -2297,14 +2460,20 @@
                 return;
             }
 
-            currentMediaIndex = (currentMediaIndex + 1) % mediaQueue.length;
+            // Randomize starting position on first poster
+            if (isFirstPoster) {
+                currentMediaIndex = Math.floor(Math.random() * mediaQueue.length);
+                isFirstPoster = false;
+                log('First poster - randomized start index', { index: currentMediaIndex });
+            } else {
+                currentMediaIndex = (currentMediaIndex + 1) % mediaQueue.length;
+            }
             const nextMedia = mediaQueue[currentMediaIndex];
 
             log('Showing next poster', { index: currentMediaIndex, title: nextMedia?.title });
             updateCinemaDisplay(nextMedia);
-
-            // Dispatch mediaUpdated event for consistency
-            window.dispatchEvent(new CustomEvent('mediaUpdated', { detail: { media: nextMedia } }));
+            // Note: Don't dispatch mediaUpdated here - updateCinemaDisplay already handles the update
+            // Dispatching it would cause double updates
         } catch (e) {
             error('Failed to show next poster', e);
         }
@@ -2322,9 +2491,7 @@
 
             log('Showing previous poster', { index: currentMediaIndex, title: prevMedia?.title });
             updateCinemaDisplay(prevMedia);
-
-            // Dispatch mediaUpdated event for consistency
-            window.dispatchEvent(new CustomEvent('mediaUpdated', { detail: { media: prevMedia } }));
+            // Note: Don't dispatch mediaUpdated here - updateCinemaDisplay already handles the update
         } catch (e) {
             error('Failed to show previous poster', e);
         }
@@ -2575,8 +2742,8 @@
                     // Wait for media queue if this is the first check and queue is empty
                     if (isFirstCheck && mediaQueue.length === 0) {
                         console.log('[Cinema Display] Waiting for media queue to load...');
-                        // Poll for queue to be loaded (max 3 seconds)
-                        for (let i = 0; i < 30 && mediaQueue.length === 0; i++) {
+                        // Poll for queue to be loaded (max 5 seconds)
+                        for (let i = 0; i < 50 && mediaQueue.length === 0; i++) {
                             await new Promise(resolve => setTimeout(resolve, 100));
                         }
                         console.log(
@@ -2584,6 +2751,22 @@
                             mediaQueue.length,
                             'items'
                         );
+                    }
+
+                    // If still empty, try fetching again with increasing delays
+                    if (mediaQueue.length === 0) {
+                        console.log('[Cinema Display] Queue still empty, retrying fetch...');
+                        // Retry up to 7 times with increasing delays (1s, 2s, 3s, etc.)
+                        for (let retry = 1; retry <= 7 && mediaQueue.length === 0; retry++) {
+                            await new Promise(resolve => setTimeout(resolve, retry * 1000));
+                            console.log(`[Cinema Display] Retry ${retry}/7...`);
+                            mediaQueue = await fetchMediaQueue();
+                            console.log(
+                                '[Cinema Display] Retry fetch result:',
+                                mediaQueue.length,
+                                'items'
+                            );
+                        }
                     }
 
                     // Return to rotation mode
@@ -2773,16 +2956,18 @@
 
     // ===== Listen for Media Changes =====
     // Hook into the global media update event if available
+    // NOTE: Cinema mode manages its own media queue and display updates.
+    // The bootstrap's mediaUpdated event should be ignored entirely in cinema mode
+    // to prevent duplicate poster displays.
     window.addEventListener('mediaUpdated', event => {
-        // Don't process mediaUpdated events when Now Playing is active
-        if (nowPlayingActive) {
-            log('mediaUpdated event blocked: Now Playing is active');
-            return;
-        }
+        // Cinema mode handles its own media - ignore bootstrap events entirely
+        log('mediaUpdated event blocked: Cinema mode manages its own media');
+        return;
 
-        if (event.detail && event.detail.media) {
-            updateCinemaDisplay(event.detail.media);
-        }
+        // Legacy code kept for reference - cinema should never process mediaUpdated:
+        // if (event.detail && event.detail.media) {
+        //     updateCinemaDisplay(event.detail.media);
+        // }
     });
 
     // Listen for settingsUpdated event from core.js (preview mode, WebSocket, BroadcastChannel, etc.)

@@ -111,6 +111,7 @@ function migrateConfig(cfg) {
         ],
         headerShadow: ['none', 'subtle', 'dramatic', 'neon', 'glow'],
         headerAnimation: ['none', 'pulse', 'flicker', 'marquee'],
+        headerDecoration: ['none', 'frame', 'underline', 'inverted'],
         // Footer
         footerType: ['marquee', 'metadata', 'tagline'],
         footerFontFamily: ['system', 'cinematic', 'classic', 'modern', 'elegant'],
@@ -118,8 +119,16 @@ function migrateConfig(cfg) {
         // Metadata
         metadataPosition: ['bottom', 'overlay'],
         metadataLayout: ['compact', 'comfortable', 'spacious'],
-        specsStyle: ['subtle', 'badges', 'icons'],
-        specsIconSet: ['tabler', 'mediaflags'],
+        specsStyle: [
+            'dark-glass',
+            'glass',
+            'icons-only',
+            'icons-text',
+            'subtle',
+            'badges',
+            'icons',
+        ],
+        specsIconSet: ['tabler', 'material'],
         // Background
         backgroundMode: [
             'solid',
@@ -290,6 +299,9 @@ function migrateConfig(cfg) {
         fixEnum(hTypo, 'shadow', VALID.headerShadow, 'subtle', 'header.typography') || modified;
     modified =
         fixEnum(hTypo, 'animation', VALID.headerAnimation, 'none', 'header.typography') || modified;
+    modified =
+        fixEnum(hTypo, 'decoration', VALID.headerDecoration, 'none', 'header.typography') ||
+        modified;
 
     // Remove invalid properties from header.typography
     modified = removeProperty(hTypo, 'effect', 'header.typography') || modified;
@@ -426,12 +438,31 @@ function migrateConfig(cfg) {
         modified = true;
     }
 
-    modified = fixEnum(specs, 'style', VALID.specsStyle, 'badges', 'metadata.specs') || modified;
+    // Migrate old style values to new values
+    const styleMapping = {
+        subtle: 'dark-glass',
+        badges: 'icons-text',
+        icons: 'icons-only',
+    };
+    if (specs.style && styleMapping[specs.style]) {
+        console.log(
+            `[Config Migration] Changed specs.style from "${specs.style}" to "${styleMapping[specs.style]}"`
+        );
+        specs.style = styleMapping[specs.style];
+        modified = true;
+    }
+    modified =
+        fixEnum(specs, 'style', VALID.specsStyle, 'icons-text', 'metadata.specs') || modified;
 
-    // Migrate old iconSet values (filled/outline) to new values (tabler/mediaflags)
+    // Migrate old iconSet values (filled/outline/mediaflags) to new values (tabler/material)
     if (specs.iconSet === 'filled' || specs.iconSet === 'outline') {
         console.log(`[Config Migration] Changed specs.iconSet from "${specs.iconSet}" to "tabler"`);
         specs.iconSet = 'tabler';
+        modified = true;
+    }
+    if (specs.iconSet === 'mediaflags') {
+        console.log(`[Config Migration] Changed specs.iconSet from "mediaflags" to "material"`);
+        specs.iconSet = 'material';
         modified = true;
     }
     modified =

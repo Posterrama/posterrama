@@ -998,15 +998,23 @@
                                 },
                                 "style": {
                                     "type": "string",
-                                    "enum": ["subtle", "badges", "icons"],
-                                    "default": "badges",
-                                    "description": "Specs display style: subtle (text only), badges (colored badges), icons (icon-based)"
+                                    "enum": [
+                                        "dark-glass",
+                                        "glass",
+                                        "icons-only",
+                                        "icons-text",
+                                        "subtle",
+                                        "badges",
+                                        "icons"
+                                    ],
+                                    "default": "icons-text",
+                                    "description": "Specs display style: dark-glass (text only, dark), glass (text only, light), icons-only (icons without text), icons-text (icons with text)"
                                 },
                                 "iconSet": {
                                     "type": "string",
-                                    "enum": ["tabler", "mediaflags"],
+                                    "enum": ["tabler", "material"],
                                     "default": "tabler",
-                                    "description": "Icon style: tabler (Tabler Icons webfont), mediaflags (custom SVG badges)"
+                                    "description": "Icon style: tabler (Tabler Icons), material (Material Symbols)"
                                 }
                             },
                             "additionalProperties": false,
@@ -1015,7 +1023,7 @@
                                 "showAudio": true,
                                 "showAspectRatio": false,
                                 "showHDR": true,
-                                "style": "badges",
+                                "style": "icons-text",
                                 "iconSet": "tabler"
                             }
                         }

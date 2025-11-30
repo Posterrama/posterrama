@@ -1032,7 +1032,13 @@ module.exports = function createMediaRouter({
             }
 
             // Create a unique and safe filename for the cache
-            const cacheKey = directUrl || `${serverName}-${imagePath}`;
+            // Include quality/width in cache key so high-res and low-res are cached separately
+            const quality = parseInt(req.query.quality, 10) || 100;
+            const width = parseInt(req.query.width, 10) || 0;
+            const qualitySuffix = quality < 50 || width > 0 ? `-q${quality}-w${width}` : '-hires';
+            const cacheKey = directUrl
+                ? `${directUrl}${qualitySuffix}`
+                : `${serverName}-${imagePath}${qualitySuffix}`;
             const cacheHash = crypto.createHash('sha256').update(cacheKey).digest('hex');
             const fileExtension = directUrl
                 ? path.extname(new URL(directUrl).pathname) || '.jpg'
@@ -1091,7 +1097,30 @@ module.exports = function createMediaRouter({
                         trackFallback('plexIncomplete', { serverName, path: imagePath }, logger);
                         return res.redirect('/fallback-poster.png');
                     }
-                    imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}`;
+
+                    // Check for quality/width parameters to determine transcode size
+                    const quality = parseInt(req.query.quality, 10) || 100;
+                    const width = parseInt(req.query.width, 10) || 0;
+
+                    const encodedPath = encodeURIComponent(imagePath);
+
+                    if (quality >= 50 && width === 0) {
+                        // High quality request - use ORIGINAL image directly (no transcode)
+                        imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}`;
+                        logger.info(`[Image Proxy] ORIGINAL Plex request`, {
+                            path: imagePath,
+                            resolution: 'original',
+                        });
+                    } else {
+                        // Low quality thumbnail - transcode to small size for fast loading
+                        const thumbWidth = width || 400;
+                        const thumbHeight = Math.round(thumbWidth * 1.5); // Poster aspect ratio
+                        imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}/photo/:/transcode?width=${thumbWidth}&height=${thumbHeight}&minSize=1&upscale=0&url=${encodedPath}&X-Plex-Token=${token}`;
+                        logger.info(`[Image Proxy] THUMBNAIL Plex request`, {
+                            path: imagePath,
+                            resolution: `${thumbWidth}x${thumbHeight}`,
+                        });
+                    }
                     fetchOptions.headers['X-Plex-Token'] = token;
                 } else if (serverConfig.type === 'jellyfin') {
                     const token = process.env[serverConfig.tokenEnvVar];
@@ -1111,7 +1140,28 @@ module.exports = function createMediaRouter({
                         );
                         return res.redirect('/fallback-poster.png');
                     }
-                    imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}`;
+
+                    // Check for quality/width parameters
+                    const quality = parseInt(req.query.quality, 10) || 100;
+                    const width = parseInt(req.query.width, 10) || 0;
+
+                    // For high quality requests, add maxWidth/maxHeight to get full resolution
+                    if (quality >= 50 && width === 0) {
+                        // Add quality parameters for high-res images
+                        const separator = imagePath.includes('?') ? '&' : '?';
+                        imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}${separator}maxWidth=1000&maxHeight=1500&quality=100`;
+                        logger.info(`[Image Proxy] HIGH-RES Jellyfin request`, {
+                            path: imagePath,
+                            resolution: '1000x1500',
+                        });
+                    } else {
+                        imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}`;
+                        logger.info(`[Image Proxy] LOW-RES Jellyfin request`, {
+                            path: imagePath,
+                            quality,
+                            width,
+                        });
+                    }
                     fetchOptions.headers['X-Emby-Token'] = token;
                 } else {
                     logger.error('[Image Proxy] Unsupported server type', {
