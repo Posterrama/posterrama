@@ -1645,28 +1645,15 @@
                         const isParallaxDepth = animationType.toLowerCase() === 'parallaxdepth';
 
                         // Assign layer for parallax depth effect
-                        let layerStyle = '';
+                        const layerStyle = '';
                         if (isParallaxDepth) {
                             const parallaxConfig = wallartConfig.parallaxDepth || {};
                             const layerCount = parseInt(parallaxConfig.layerCount) || 3;
-                            const depthScale = parseFloat(parallaxConfig.depthScale) || 1.3;
 
                             // Distribute posters across layers (0 = background, layerCount-1 = foreground)
+                            // Layers only affect animation SPEED, not visual size
                             const layer = index % layerCount;
                             posterItem.dataset.parallaxLayer = layer;
-
-                            // Calculate z-index and scale based on layer
-                            const zIndex = layer * 10;
-                            const scale = 1 + (layer / (layerCount - 1)) * (depthScale - 1);
-
-                            const translateZ = layer * 50;
-                            layerStyle = `
-                                z-index: ${zIndex};
-                                transform: translateZ(${translateZ}px) scale(${scale.toFixed(2)});
-                            `;
-                            // Store original 3D transform for animation preservation
-                            posterItem.dataset.parallaxTranslateZ = translateZ;
-                            posterItem.dataset.parallaxScale = scale.toFixed(2);
                         }
 
                         posterItem.style.cssText = `
@@ -2228,43 +2215,40 @@
 
                     // Apply animation based on type
                     if (anim === 'parallaxdepth') {
-                        // Parallax depth animation with layer-based movement
+                        // Parallax depth animation with layer-based movement speed
                         const parallaxConfig = window.appConfig?.wallartMode?.parallaxDepth || {};
                         const speed = parseFloat(parallaxConfig.speed) || 1.0;
                         const smoothScroll = parallaxConfig.smoothScroll !== false;
                         const layer = parseInt(element.dataset.parallaxLayer) || 0;
 
-                        // Get original 3D transforms to preserve them
-                        const translateZ = parseFloat(element.dataset.parallaxTranslateZ) || 0;
-                        const scale = parseFloat(element.dataset.parallaxScale) || 1.0;
+                        // Layers move at different speeds and distances (background slower/shorter, foreground faster/longer)
+                        const layerSpeedMultiplier = 1 + layer * 0.5 * speed;
+                        const baseDuration = smoothScroll ? 700 : 500;
+                        const duration = baseDuration / layerSpeedMultiplier;
+                        const fadeTime = `${duration}ms`;
+                        const moveDistance = 40 * layerSpeedMultiplier; // px
 
-                        // Layers move at different speeds (background slower, foreground faster)
-                        const layerSpeed = 1 + layer * 0.3 * speed;
-                        const fadeTime = smoothScroll ? '0.7s' : '0.5s';
-                        const waitTime = smoothScroll ? 700 : 500;
-                        const moveDistance = 30 * layerSpeed; // px
+                        // Step 1: Fade out and slide down
+                        img.style.transition = `all ${fadeTime} cubic-bezier(0.4, 0, 0.2, 1)`;
+                        img.style.opacity = '0';
+                        img.style.transform = `translateY(${moveDistance}px)`;
 
-                        // Step 1: Fade out and move slightly - PRESERVE 3D TRANSFORMS
-                        element.style.transition = `all ${fadeTime} cubic-bezier(0.4, 0, 0.2, 1)`;
-                        element.style.opacity = '0';
-                        element.style.transform = `translateZ(${translateZ}px) scale(${scale}) translateY(${moveDistance}px)`;
-
-                        // Step 2: Change image and slide in from opposite direction
+                        // Step 2: Change image and position at top
                         setTimeout(() => {
                             img.src = newItem.posterUrl;
                             img.alt = newItem.title || 'Movie Poster';
-                            element.style.transition = 'none';
-                            element.style.transform = `translateZ(${translateZ}px) scale(${scale}) translateY(-${moveDistance}px)`;
-                            element.style.opacity = '0';
-                            element.offsetHeight; // Force reflow
+                            img.style.transition = 'none';
+                            img.style.transform = `translateY(-${moveDistance}px)`;
+                            img.style.opacity = '0';
+                            img.offsetHeight; // Force reflow
 
-                            // Step 3: Fade in and move to center - RESTORE ORIGINAL 3D POSITION
-                            element.style.transition = `all ${fadeTime} cubic-bezier(0.4, 0, 0.2, 1)`;
+                            // Step 3: Fade in and slide to center
+                            img.style.transition = `all ${fadeTime} cubic-bezier(0.4, 0, 0.2, 1)`;
                             setTimeout(() => {
-                                element.style.opacity = '1';
-                                element.style.transform = `translateZ(${translateZ}px) scale(${scale})`;
+                                img.style.opacity = '1';
+                                img.style.transform = 'translateY(0)';
                             }, 50);
-                        }, waitTime);
+                        }, duration);
                     } else if (
                         anim === 'fade' ||
                         anim === 'staggered' ||
