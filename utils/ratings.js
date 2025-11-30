@@ -275,7 +275,6 @@ async function getJellyfinQualitiesWithCounts({
     getJellyfinLibraries,
     isDebug,
     logger,
-    fullScan = false,
 }) {
     try {
         const jellyfinClient = await getJellyfinClient(serverConfig);

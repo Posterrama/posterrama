@@ -166,7 +166,7 @@ class MediaSourcesManager {
      * Initialize Local source
      */
     async initializeLocalSource(localConfig) {
-        const source = new LocalSource(localConfig, this.isDebug);
+        const source = new LocalSource(localConfig);
 
         this.sources.set('local', {
             type: 'local',

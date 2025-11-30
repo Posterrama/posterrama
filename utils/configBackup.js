@@ -224,7 +224,13 @@ async function updateBackupMetadata(backupId, updates = {}) {
         meta = JSON.parse(raw);
     } catch (_) {
         // If meta.json doesn't exist, create minimal metadata
-        meta = { id: backupId, createdAt: new Date(st.mtimeMs).toISOString(), files: [] };
+        meta = {
+            id: backupId,
+            createdAt: new Date(st.mtimeMs).toISOString(),
+            files: [],
+            label: '',
+            note: '',
+        };
     }
 
     // Update label and note (null/empty removes them)

@@ -135,7 +135,7 @@ async function executeWithRetry(operation, context, retryConfig = {}) {
  *
  * @param {number} attempt - Current attempt number (0-indexed)
  * @param {Object} config - Retry configuration
- * @param {SourceError} error - Normalized error
+ * @param {Error} error - Normalized error
  * @returns {number} Delay in milliseconds
  */
 function calculateDelay(attempt, config, error) {

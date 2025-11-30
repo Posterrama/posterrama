@@ -8,7 +8,7 @@ const logger = require('./logger');
 
 /**
  * Create media API routes
- * @param {MediaSourcesManager} mediaManager - Media sources manager instance
+ * @param {Object} mediaManager - Media sources manager instance
  * @param {Object} middleware - Middleware functions
  * @returns {express.Router} Express router with media routes
  */

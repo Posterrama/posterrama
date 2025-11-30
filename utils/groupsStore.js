@@ -63,7 +63,13 @@ async function getById(id) {
     return all.find(g => g.id === id) || null;
 }
 
-async function createGroup({ id, name = '', description = '', settingsTemplate = {}, order } = {}) {
+async function createGroup({
+    id = '',
+    name = '',
+    description = '',
+    settingsTemplate = {},
+    order = 0,
+} = {}) {
     const all = await readAll();
     const now = new Date().toISOString();
     const gid = (id || '').toString().trim() || crypto.randomUUID();

@@ -118,6 +118,7 @@ class PlexSource {
             averageProcessingTime: 0,
             lastRequestTime: null,
             errorCount: 0,
+            deduplicationRate: 0,
         };
     }
 

@@ -9,6 +9,7 @@ export default defineConfig({
         emptyOutDir: true,
 
         minify: 'terser',
+        // @ts-ignore - terserOptions type compatibility
         terserOptions: {
             compress: {
                 drop_console: false, // Keep console logs for now

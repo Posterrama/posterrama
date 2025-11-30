@@ -167,9 +167,9 @@ module.exports = function createProfilePhotoRouter({ adminAuth, getAvatarPath, a
      *       500:
      *         description: Failed to delete avatar
      */
-    // @ts-ignore - Express router overload issue
     router.delete(
         '/api/admin/profile/photo',
+        // @ts-ignore - Express router overload issue
         adminAuth,
         async (/** @type {ProfileRequest} */ req, res) => {
             try {
