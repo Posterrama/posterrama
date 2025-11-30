@@ -93,6 +93,7 @@ body[data-orientation='portrait-flipped'] #info-container {
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 10; /* Above background effects */
 }
 
 #poster {
@@ -637,6 +638,11 @@ body.cinema-bg-solid #info-container {
 /* Blurred poster background */
 body.cinema-bg-blurred {
     position: relative;
+    background: #000;
+}
+
+body.cinema-bg-blurred #info-container {
+    background: transparent;
 }
 
 body.cinema-bg-blurred::before {
@@ -650,7 +656,7 @@ body.cinema-bg-blurred::before {
     background-size: cover;
     background-position: center;
     filter: blur(var(--cinema-bg-blur)) brightness(0.4);
-    z-index: -2;
+    z-index: 1;
 }
 
 /* Gradient background - dynamic based on poster colors */
@@ -663,9 +669,18 @@ body.cinema-bg-gradient {
     );
 }
 
+body.cinema-bg-gradient #info-container {
+    background: transparent;
+}
+
 /* Ambient background - color extracted from poster */
 body.cinema-bg-ambient {
     position: relative;
+    background: #000;
+}
+
+body.cinema-bg-ambient #info-container {
+    background: transparent;
 }
 
 body.cinema-bg-ambient::before {
@@ -680,7 +695,7 @@ body.cinema-bg-ambient::before {
         var(--cinema-ambient-color, rgba(30, 30, 50, 0.8)) 0%,
         #000 70%
     );
-    z-index: -2;
+    z-index: 1;
 }
 
 /* Vignette overlay */

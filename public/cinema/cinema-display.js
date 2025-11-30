@@ -493,8 +493,57 @@
         log('Typography settings applied', { header: headerTypo, footer: footerTypo });
     }
 
+    // ===== Extract Dominant Color from Image =====
+    function extractDominantColor(imageUrl) {
+        return new Promise(resolve => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    // Sample a small area for performance
+                    canvas.width = 50;
+                    canvas.height = 75;
+                    ctx.drawImage(img, 0, 0, 50, 75);
+                    const data = ctx.getImageData(0, 0, 50, 75).data;
+
+                    // Calculate average color
+                    let r = 0,
+                        g = 0,
+                        b = 0,
+                        count = 0;
+                    for (let i = 0; i < data.length; i += 4) {
+                        // Skip very dark and very light pixels
+                        const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                        if (brightness > 30 && brightness < 220) {
+                            r += data[i];
+                            g += data[i + 1];
+                            b += data[i + 2];
+                            count++;
+                        }
+                    }
+
+                    if (count > 0) {
+                        r = Math.round(r / count);
+                        g = Math.round(g / count);
+                        b = Math.round(b / count);
+                        const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+                        resolve(hex);
+                    } else {
+                        resolve('#2a2a4a'); // Default fallback
+                    }
+                } catch (e) {
+                    resolve('#2a2a4a'); // CORS or other error
+                }
+            };
+            img.onerror = () => resolve('#2a2a4a');
+            img.src = imageUrl;
+        });
+    }
+
     // ===== Background Settings =====
-    function applyBackgroundSettings(media) {
+    async function applyBackgroundSettings(media) {
         const root = document.documentElement;
         const bg = cinemaConfig.background;
 
@@ -516,14 +565,21 @@
             const posterUrl = media.posterUrl || media.poster_path || '';
             if (posterUrl) {
                 root.style.setProperty('--cinema-poster-url', `url('${posterUrl}')`);
-            }
 
-            // Set gradient/ambient colors from dominant color
-            const dominantColor = media.dominantColor || '#1a1a2e';
-            root.style.setProperty('--cinema-ambient-color', dominantColor);
-            root.style.setProperty('--cinema-gradient-start', '#0f0f0f');
-            root.style.setProperty('--cinema-gradient-mid', dominantColor);
-            root.style.setProperty('--cinema-gradient-end', '#0f0f0f');
+                // Extract dominant color if not provided
+                let dominantColor = media.dominantColor;
+                if (!dominantColor && (bg.mode === 'gradient' || bg.mode === 'ambient')) {
+                    dominantColor = await extractDominantColor(posterUrl);
+                    log('Extracted dominant color:', dominantColor);
+                }
+                dominantColor = dominantColor || '#2a2a4a';
+
+                // Set gradient/ambient colors
+                root.style.setProperty('--cinema-ambient-color', dominantColor);
+                root.style.setProperty('--cinema-gradient-start', '#0f0f0f');
+                root.style.setProperty('--cinema-gradient-mid', dominantColor);
+                root.style.setProperty('--cinema-gradient-end', '#0f0f0f');
+            }
         }
 
         // Vignette presets
