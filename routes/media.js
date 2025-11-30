@@ -321,6 +321,7 @@ module.exports = function createMediaRouter({
      *             schema:
      *               $ref: '#/components/schemas/ApiMessage'
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/get-media',
         validateGetMediaQuery,
@@ -821,6 +822,7 @@ module.exports = function createMediaRouter({
      *               error: 'Internal server error'
      *               statusCode: 500
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/get-media-by-key/:key',
         validateMediaKeyParam,
@@ -828,6 +830,7 @@ module.exports = function createMediaRouter({
             const keyParts = req.params.key.split('-'); // e.g., ['plex', 'My', 'Server', '12345']
             if (keyParts.length < 3) {
                 // Must have at least type, name, and key
+                // @ts-ignore - ApiError is constructable
                 throw new ApiError(400, 'Invalid media key format.');
             }
             const type = keyParts.shift();
@@ -840,6 +843,7 @@ module.exports = function createMediaRouter({
             );
 
             if (!serverConfig) {
+                // @ts-ignore - NotFoundError is constructable
                 throw new NotFoundError('Server configuration not found for this item.');
             }
 
@@ -855,6 +859,7 @@ module.exports = function createMediaRouter({
             if (mediaItem) {
                 res.json(mediaItem);
             } else {
+                // @ts-ignore - NotFoundError is constructable
                 throw new NotFoundError('Media not found or could not be processed.');
             }
         })
@@ -897,6 +902,7 @@ module.exports = function createMediaRouter({
      *       302:
      *         description: Redirects to a fallback image on error.
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/image',
         validateImageQuery,
