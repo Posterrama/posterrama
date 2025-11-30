@@ -610,6 +610,7 @@
                     redContainer.appendChild(redPhoto);
 
                     const redOverlay = document.createElement('div');
+                    redOverlay.className = 'film-card-overlay';
                     // Convert hex to RGB for gradient
                     const rgb = this.hexToRgb(accentColor);
                     const darkRgb = {
@@ -1137,4 +1138,24 @@
         }
     `;
     document.head.appendChild(style);
+
+    // Listen for live accent color updates from admin interface
+    window.addEventListener('message', event => {
+        if (event.data && event.data.type === 'FILMCARDS_ACCENT_COLOR_UPDATE') {
+            const newColor = event.data.color;
+            console.log('[Film Cards] Received live color update:', newColor);
+
+            // Update all overlay elements with new gradient
+            const overlays = document.querySelectorAll('.film-card-overlay');
+            overlays.forEach(overlay => {
+                const rgb = window.FilmCards.hexToRgb(newColor);
+                const darkRgb = {
+                    r: Math.floor(rgb.r * 0.67),
+                    g: Math.floor(rgb.g * 0.67),
+                    b: Math.floor(rgb.b * 0.67),
+                };
+                overlay.style.background = `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.92), rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.95))`;
+            });
+        }
+    });
 })();

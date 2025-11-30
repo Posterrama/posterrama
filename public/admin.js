@@ -3591,17 +3591,34 @@
         setIf('wallartMode_filmCards_accentColor', filmCards.accentColor || '#b40f0f');
         setIf('wallartMode_filmCards_accentColor_text', filmCards.accentColor || '#b40f0f');
 
-        // Sync color picker and text input
+        // Sync color picker and text input + live preview
         const colorPicker = document.getElementById('wallartMode_filmCards_accentColor');
         const colorText = document.getElementById('wallartMode_filmCards_accentColor_text');
         if (colorPicker && colorText) {
+            // Helper: Send color update to preview iframe
+            const sendColorToPreview = color => {
+                const previewIframe = document.getElementById('preview-iframe');
+                if (previewIframe && previewIframe.contentWindow) {
+                    previewIframe.contentWindow.postMessage(
+                        {
+                            type: 'FILMCARDS_ACCENT_COLOR_UPDATE',
+                            color: color,
+                        },
+                        '*'
+                    );
+                }
+            };
+
             colorPicker.addEventListener('input', e => {
-                colorText.value = e.target.value.toUpperCase();
+                const color = e.target.value.toUpperCase();
+                colorText.value = color;
+                sendColorToPreview(color);
             });
             colorText.addEventListener('input', e => {
                 const hex = e.target.value.trim();
                 if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
                     colorPicker.value = hex;
+                    sendColorToPreview(hex);
                 }
             });
         }
