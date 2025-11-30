@@ -2641,14 +2641,32 @@
             /* noop: animation helper is optional */
         }
 
-        // Apply initial orientation from appConfig on module load
-        try {
-            const initialOrientation = window.appConfig?.wallartMode?.orientation;
-            if (initialOrientation) {
-                applyWallartOrientation(initialOrientation);
+        // Apply initial orientation when appConfig is available
+        function tryApplyInitialOrientation() {
+            try {
+                const initialOrientation = window.appConfig?.wallartMode?.orientation;
+                if (initialOrientation) {
+                    applyWallartOrientation(initialOrientation);
+                    return true;
+                }
+                return false;
+            } catch (e) {
+                console.warn('[Wallart] Failed to apply initial orientation:', e);
+                return false;
             }
-        } catch (e) {
-            console.warn('[Wallart] Failed to apply initial orientation:', e);
+        }
+
+        // Try immediately first
+        if (!tryApplyInitialOrientation()) {
+            // If appConfig not ready, poll for it
+            const checkInterval = setInterval(() => {
+                if (tryApplyInitialOrientation()) {
+                    clearInterval(checkInterval);
+                }
+            }, 50);
+
+            // Stop polling after 5 seconds
+            setTimeout(() => clearInterval(checkInterval), 5000);
         }
 
         try {
