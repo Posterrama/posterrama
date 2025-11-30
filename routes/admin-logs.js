@@ -20,17 +20,17 @@ const logger = require('../utils/logger');
  */
 router.get('/logs', (req, res) => {
     try {
-        const level = req.query.level || null;
-        const search = req.query.search || null;
-        const limit = Math.min(parseInt(req.query.limit) || 100, 1000);
-        const offset = parseInt(req.query.offset) || 0;
+        const level = req.query.level ? String(req.query.level) : null;
+        const search = req.query.search ? String(req.query.search) : null;
+        const limit = Math.min(parseInt(String(req.query.limit || '100')) || 100, 1000);
+        const offset = parseInt(String(req.query.offset || '0')) || 0;
 
         // Get logs from memory buffer (already sorted chronologically)
         let logs = logger.getRecentLogs(level, 1000, 0, false); // Get all from memory
 
         // Apply search filter if provided
         if (search) {
-            const searchLower = search.toLowerCase();
+            const searchLower = String(search).toLowerCase();
             logs = logs.filter(
                 log =>
                     (log.message && log.message.toLowerCase().includes(searchLower)) ||
@@ -92,7 +92,7 @@ router.get('/logs/stream', (req, res) => {
         try {
             // Apply level filter if specified
             if (level) {
-                const requestedLevel = levelHierarchy[level.toUpperCase()];
+                const requestedLevel = levelHierarchy[String(level).toUpperCase()];
                 const entryLevel = levelHierarchy[entry.level.toUpperCase()];
                 if (requestedLevel === undefined || entryLevel === undefined) {
                     return; // Skip if unknown level
@@ -158,7 +158,7 @@ router.get('/logs/files', async (req, res) => {
         }
 
         // Sort by modified date (newest first)
-        logFiles.sort((a, b) => new Date(b.modified) - new Date(a.modified));
+        logFiles.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
 
         res.json({
             success: true,
@@ -182,8 +182,8 @@ router.get('/logs/files', async (req, res) => {
  */
 router.get('/logs/download', async (req, res) => {
     try {
-        const filename = req.query.file;
-        const format = req.query.format || 'txt';
+        const filename = req.query.file ? String(req.query.file) : null;
+        const format = req.query.format ? String(req.query.format) : 'txt';
 
         if (filename) {
             // Download specific log file
@@ -294,7 +294,7 @@ router.get('/logs/download', async (req, res) => {
                 lines.push(`Process ID:            ${process.pid}`);
                 lines.push(`Working Directory:     ${process.cwd()}`);
                 lines.push(`Environment:           ${process.env.NODE_ENV || 'production'}`);
-                lines.push(`Debug Mode:            ${config.debug || false}`);
+                lines.push(`Debug Mode:            ${config.isDebug || false}`);
                 lines.push(`Log Level:             ${process.env.LOG_LEVEL || 'info'}`);
                 lines.push('');
 
@@ -324,7 +324,7 @@ router.get('/logs/download', async (req, res) => {
                 lines.push('## CONFIGURATION');
                 lines.push(divider);
                 lines.push(`Admin Port:            ${config.port || 4000}`);
-                lines.push(`Site Port:             ${config.sitePort || 4001}`);
+                lines.push(`Site Port:             ${config.env?.SITE_PORT || 4001}`);
                 lines.push('');
 
                 // Media Sources Status
@@ -403,7 +403,7 @@ router.get('/logs/download', async (req, res) => {
 
                         if (fetchInfo && fetchInfo.timestamp) {
                             const fetchDate = new Date(fetchInfo.timestamp);
-                            const formattedDate = !isNaN(fetchDate)
+                            const formattedDate = !isNaN(fetchDate.getTime())
                                 ? formatLocaleTimestamp(fetchDate)
                                 : fetchInfo.timestamp;
                             lines.push(`    Last check: ${formattedDate}`);
