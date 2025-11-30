@@ -527,7 +527,7 @@ class MetricsManager {
             let idle = 0;
             let total = 0;
             for (const cpu of cpuInfo) {
-                const t = cpu.times || {};
+                const t = /** @type {any} */ (cpu.times || {});
                 const i = Number(t.idle || 0);
                 const s = Number(t.sys || t.system || 0);
                 const u = Number(t.user || 0);

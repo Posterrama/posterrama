@@ -332,20 +332,21 @@ function broadcast(message) {
 
 /**
  * Initialize WebSocket server
- * @param {http.Server} httpServer - HTTP server instance
+ * @param {import('http').Server} httpServer - HTTP server instance
  * @param {Object} options - Configuration options
  * @param {string} [options.path='/ws/devices'] - WebSocket endpoint path
- * @param {Function} options.verifyDevice - Device verification callback
+ * @param {Function} [options.verifyDevice] - Device verification callback
  * @returns {WebSocket.Server} WebSocket server instance
  */
-function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
+function init(httpServer, { path = '/ws/devices', verifyDevice = () => false } = {}) {
     if (wss) return wss;
     wss = new WebSocket.Server({ server: httpServer, path });
     logger.info(`[WS] Device WebSocket listening on ${path}`);
 
     wss.on('connection', (ws, req) => {
-        const ip =
-            (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
+        const forwarded = req.headers['x-forwarded-for'];
+        const forwardedStr = Array.isArray(forwarded) ? forwarded[0] : forwarded || '';
+        const ip = forwardedStr.split(',')[0].trim() || req.socket.remoteAddress;
         logger.debug('[WS] connection from', ip);
 
         // State machine: pending -> authenticating -> authenticated -> failed
@@ -416,9 +417,10 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
         ws.on('message', async data => {
             try {
                 // Check message size (Issue #5 fix)
-                if (data.length > MAX_MESSAGE_SIZE) {
+                const buffer = /** @type {Buffer} */ (data);
+                if (buffer.length > MAX_MESSAGE_SIZE) {
                     logger.warn('[WS] Message too large', {
-                        size: data.length,
+                        size: buffer.length,
                         maxSize: MAX_MESSAGE_SIZE,
                         ip,
                         deviceId,
@@ -429,13 +431,13 @@ function init(httpServer, { path = '/ws/devices', verifyDevice } = {}) {
                 // Parse JSON with error handling
                 let msg;
                 try {
-                    msg = JSON.parse(data.toString());
+                    msg = JSON.parse(buffer.toString());
                 } catch (parseError) {
                     logger.warn('[WS] Invalid JSON', {
                         error: parseError.message,
                         ip,
                         deviceId,
-                        dataLength: data.length,
+                        dataLength: buffer.length,
                     });
                     return closeSocket(ws, 1007, 'Invalid JSON');
                 }
