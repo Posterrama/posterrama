@@ -9,8 +9,9 @@ export default defineConfig({
         emptyOutDir: true,
 
         minify: 'terser',
-        // @ts-ignore - terserOptions type compatibility
+        // @ts-ignore - terserOptions type compatibility with Vite build options
         terserOptions: {
+            // @ts-ignore
             compress: {
                 drop_console: false, // Keep console logs for now
                 drop_debugger: true,

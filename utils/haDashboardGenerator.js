@@ -15,10 +15,10 @@ class HADashboardGenerator {
     /**
      * Generate dashboard YAML for selected devices
      * @param {Array} devices - Array of device objects to include
-     * @param {Object} options - Generation options
+     * @param {Array} deviceIds - Device IDs to include
      * @returns {string} YAML configuration
      */
-    generateDashboard(devices = [], _options = {}) {
+    generateDashboard(devices = [], deviceIds = []) {
         logger.info('🏠 Generating Home Assistant section', {
             deviceCount: devices.length,
         });

@@ -848,7 +848,9 @@ class AutoUpdater {
                 }
             }
 
-            return backups.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            return backups.sort(
+                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            );
         } catch (error) {
             logger.error('Failed to list backups', { error: error.message });
             return [];

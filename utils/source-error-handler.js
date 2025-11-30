@@ -140,8 +140,9 @@ async function executeWithRetry(operation, context, retryConfig = {}) {
  */
 function calculateDelay(attempt, config, error) {
     // Check if error has Retry-After header (rate limiting)
-    if (error.retryAfter) {
-        const delay = error.retryAfter * 1000; // Convert seconds to ms
+    const err = /** @type {any} */ (error);
+    if (err.retryAfter) {
+        const delay = err.retryAfter * 1000; // Convert seconds to ms
         return Math.min(delay, config.maxDelay);
     }
 

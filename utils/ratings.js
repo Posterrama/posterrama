@@ -267,6 +267,7 @@ async function getRatingsWithCounts({
  * @param {Function} params.getJellyfinLibraries - Function to get Jellyfin libraries
  * @param {boolean} params.isDebug - Debug mode flag
  * @param {Object} params.logger - Logger instance
+ * @param {boolean} [params.fullScan=false] - Whether to perform full scan
  * @returns {Promise<Array>} Array of quality objects with count
  */
 async function getJellyfinQualitiesWithCounts({
@@ -299,7 +300,7 @@ async function getJellyfinQualitiesWithCounts({
 
         if (libraryIds.length === 0) {
             console.warn('[getJellyfinQualitiesWithCounts] No movie or TV show libraries found');
-            return { qualities: [], partial: false };
+            return /** @type {any} */ ({ qualities: [], partial: false });
         }
 
         // Use the HTTP client method to get qualities with counts
@@ -313,7 +314,7 @@ async function getJellyfinQualitiesWithCounts({
         return result;
     } catch (error) {
         console.error(`[getJellyfinQualitiesWithCounts] Error: ${error.message}`);
-        return { qualities: [], partial: false };
+        return /** @type {any} */ ({ qualities: [], partial: false });
     }
 }
 

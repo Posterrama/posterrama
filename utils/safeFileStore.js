@@ -173,8 +173,8 @@ class SafeFileStore {
                     logger.debug(`[SafeFileStore] Acquired lock: ${this.filePath}`);
                 } catch (error) {
                     if (error.code === 'ELOCKED') {
-                        const lockError = new Error(
-                            `File is locked by another process: ${this.filePath}`
+                        const lockError = /** @type {any} */ (
+                            new Error(`File is locked by another process: ${this.filePath}`)
                         );
                         lockError.code = 'ELOCKED';
                         lockError.statusCode = 409;

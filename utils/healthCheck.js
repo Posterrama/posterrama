@@ -387,7 +387,7 @@ async function checkPlexConnectivity() {
         // Try to import the testServerConnection function from server utilities
         let testServerConnection;
         try {
-            testServerConnection = require('../server').testServerConnection;
+            testServerConnection = /** @type {any} */ (require('../server')).testServerConnection;
         } catch (error) {
             // If import fails, use fallback
             const result = await checkPlexConnectivityFallback();
@@ -603,7 +603,7 @@ async function checkJellyfinConnectivity() {
         // Try to import the testServerConnection function from server utilities
         let testServerConnection;
         try {
-            testServerConnection = require('../server').testServerConnection;
+            testServerConnection = /** @type {any} */ (require('../server')).testServerConnection;
         } catch (error) {
             // If import fails, use fallback
             return await checkJellyfinConnectivityFallback();
