@@ -13,6 +13,7 @@ const logger = require('../utils/logger');
  * Implements security best practices
  */
 function securityMiddleware() {
+    // @ts-ignore - helmet is callable but require() doesn't map types correctly
     return helmet({
         contentSecurityPolicy: {
             directives: {

@@ -42,7 +42,7 @@ const logger = require('../../utils/logger');
  *                   type: integer
  */
 router.get('/api/test/generate-logs', (req, res) => {
-    const count = Math.min(1000, Math.max(1, parseInt(req.query.count) || 10));
+    const count = Math.min(1000, Math.max(1, parseInt(String(req.query.count || '10')) || 10));
 
     for (let i = 0; i < count; i++) {
         logger.info(`[TEST-LOG] Generated test log entry ${i + 1}/${count}`, {

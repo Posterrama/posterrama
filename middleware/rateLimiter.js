@@ -1,5 +1,6 @@
 // Rate limiting configuration
 const createRateLimiter = (windowMs, max, messageText) => {
+    // @ts-ignore - express-rate-limit is callable but require() doesn't map types correctly
     return require('express-rate-limit')({
         windowMs,
         // In test environment, use a lower max for specific rate limiter tests only
