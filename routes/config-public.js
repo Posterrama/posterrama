@@ -84,9 +84,9 @@ module.exports = function createConfigPublicRouter({
      *               message: 'Failed to retrieve configuration'
      *               statusCode: 500
      */
-    // @ts-ignore - Express router overload issue with cacheMiddleware
     router.get(
         '/',
+        // @ts-ignore - Express router overload issue with cacheMiddleware
         validateGetConfigQuery,
         cacheMiddleware({
             ttl: 30000, // 30 seconds

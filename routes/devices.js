@@ -38,10 +38,13 @@ module.exports = function createDevicesRouter({
     adminAuth,
     adminAuthDevices,
     testSessionShim,
+    // @ts-ignore - unused parameter for API compatibility
     _deviceBypassMiddleware,
     deviceRegisterLimiter,
     devicePairClaimLimiter,
+    // @ts-ignore - unused parameter for API compatibility
     _asyncHandler,
+    // @ts-ignore - unused parameter for API compatibility
     _ApiError,
     logger,
     isDebug,
@@ -165,6 +168,7 @@ module.exports = function createDevicesRouter({
      */
     router.post(
         '/register',
+        // @ts-ignore - Express router overload issue with rate limiter
         deviceRegisterLimiter,
         express.json(),
         async (/** @type {DeviceRequest} */ req, res) => {
@@ -511,6 +515,7 @@ module.exports = function createDevicesRouter({
      *               message: Rate limit exceeded. Please wait 42 seconds before retrying.
      *               statusCode: 429
      */
+    // @ts-ignore - Express router overload issue with rate limiter
     router.post('/pair', devicePairClaimLimiter, express.json(), async (req, res) => {
         try {
             const { code } = req.body || {};
@@ -606,6 +611,7 @@ module.exports = function createDevicesRouter({
      *       404:
      *         description: Device not found
      */
+    // @ts-ignore - Express router overload issue with adminAuth
     router.post('/:id/pairing-code', adminAuth, async (req, res) => {
         try {
             const { id } = req.params;
@@ -675,6 +681,7 @@ module.exports = function createDevicesRouter({
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - Express router overload issue with adminAuth
     router.get('/pairing-codes/active', adminAuth, async (_req, res) => {
         try {
             const activeCodes = await deviceStore.getActivePairings();
