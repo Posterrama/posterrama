@@ -474,9 +474,16 @@
                                 },
                                 "shadow": {
                                     "type": "string",
-                                    "enum": ["none", "subtle", "dramatic", "neon", "glow"],
+                                    "enum": [
+                                        "none",
+                                        "subtle",
+                                        "dramatic",
+                                        "neon",
+                                        "glow",
+                                        "posterMask"
+                                    ],
                                     "default": "subtle",
-                                    "description": "Text shadow/glow effect"
+                                    "description": "Text shadow/glow effect (posterMask clips poster image through text)"
                                 },
                                 "animation": {
                                     "type": "string",

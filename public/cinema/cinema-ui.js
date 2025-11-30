@@ -379,6 +379,7 @@
                     el('option', { value: 'dramatic' }, 'Dramatic Shadow'),
                     el('option', { value: 'neon' }, 'Neon Glow'),
                     el('option', { value: 'glow' }, 'Soft Glow'),
+                    el('option', { value: 'posterMask' }, 'Poster Mask'),
                 ]),
                 el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
             ]),
@@ -1279,7 +1280,6 @@
         mountFooter($('#cinema-footer-mount'), cfg);
         // Mount enhanced controls (Issue #35)
         mountEnhancedControls(cfg);
-        mountAmbilight($('#cinema-ambilight-mount'), cfg);
         mountNowPlaying(cfg);
         // Mount presets card
         try {

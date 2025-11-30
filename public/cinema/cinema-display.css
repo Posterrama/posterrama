@@ -423,9 +423,9 @@ body:hover #controls-container {
     font-size: 1.4rem;
     font-style: italic;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.95);
+    color: var(--footer-color, rgba(255, 255, 255, 0.95));
     text-align: center;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    /* text-shadow inherits from parent .cinema-footer shadow class */
     letter-spacing: 0.02em;
     line-height: 1.4;
     max-width: 90%;
@@ -691,11 +691,33 @@ body.cinema-bg-ambient::before {
     width: 100%;
     height: 100%;
     background: radial-gradient(
-        ellipse at center,
-        var(--cinema-ambient-color, rgba(30, 30, 50, 0.8)) 0%,
-        #000 70%
+        ellipse 120% 100% at center,
+        var(--cinema-ambient-color, #3a3a6a) 0%,
+        var(--cinema-ambient-color-dark, #1a1a2a) 50%,
+        #000 100%
     );
     z-index: 1;
+    opacity: 0.9;
+}
+
+/* Ambient glow effect behind poster */
+body.cinema-bg-ambient::after {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    height: 80%;
+    background: radial-gradient(
+        ellipse at center,
+        var(--cinema-ambient-color, #3a3a6a) 0%,
+        transparent 70%
+    );
+    z-index: 2;
+    opacity: 0.6;
+    filter: blur(80px);
+    pointer-events: none;
 }
 
 /* Vignette overlay */
@@ -732,6 +754,12 @@ body.cinema-poster-fullBleed #poster {
 
 /* Framed - elegant border */
 body.cinema-poster-framed #poster {
+    /* Let the image determine the size within max constraints */
+    width: auto;
+    height: 85vh;
+    max-width: 90vw;
+    aspect-ratio: var(--poster-aspect-ratio, 2/3);
+    background-size: cover;
     border: var(--cinema-frame-width) solid var(--cinema-frame-color);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
@@ -1096,6 +1124,20 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
         0 0 10px currentColor,
         0 0 20px currentColor,
         0 0 40px currentColor !important;
+}
+
+/* Poster Mask Effect - shows poster image through text */
+.shadow-posterMask {
+    background-image: var(--cinema-poster-url);
+    background-size: cover;
+    background-position: center;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent !important;
+    text-shadow: none !important;
+    /* Add subtle outline for readability */
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.15);
+    filter: brightness(1.2) contrast(1.1);
 }
 
 /* Animation Classes */

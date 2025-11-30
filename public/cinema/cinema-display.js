@@ -493,6 +493,16 @@
         log('Typography settings applied', { header: headerTypo, footer: footerTypo });
     }
 
+    // ===== Create Darker Color Variant =====
+    function createDarkerColor(hexColor) {
+        // Parse hex color
+        const hex = hexColor.replace('#', '');
+        const r = Math.max(0, Math.round(parseInt(hex.substring(0, 2), 16) * 0.4));
+        const g = Math.max(0, Math.round(parseInt(hex.substring(2, 4), 16) * 0.4));
+        const b = Math.max(0, Math.round(parseInt(hex.substring(4, 6), 16) * 0.4));
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+
     // ===== Extract Dominant Color from Image =====
     function extractDominantColor(imageUrl) {
         return new Promise(resolve => {
@@ -572,10 +582,13 @@
                     dominantColor = await extractDominantColor(posterUrl);
                     log('Extracted dominant color:', dominantColor);
                 }
-                dominantColor = dominantColor || '#2a2a4a';
+                dominantColor = dominantColor || '#4a4a7a';
 
-                // Set gradient/ambient colors
+                // Set gradient/ambient colors - create a darker variant for smooth gradient
                 root.style.setProperty('--cinema-ambient-color', dominantColor);
+                // Create darker variant of the color
+                const darkerColor = createDarkerColor(dominantColor);
+                root.style.setProperty('--cinema-ambient-color-dark', darkerColor);
                 root.style.setProperty('--cinema-gradient-start', '#0f0f0f');
                 root.style.setProperty('--cinema-gradient-mid', dominantColor);
                 root.style.setProperty('--cinema-gradient-end', '#0f0f0f');
@@ -794,6 +807,13 @@
             fullImg.onload = () => {
                 posterEl.style.backgroundImage = `url('${url}')`;
                 posterEl.style.filter = 'none';
+                // Set aspect ratio for framed mode
+                if (fullImg.naturalWidth && fullImg.naturalHeight) {
+                    document.documentElement.style.setProperty(
+                        '--poster-aspect-ratio',
+                        `${fullImg.naturalWidth} / ${fullImg.naturalHeight}`
+                    );
+                }
             };
             fullImg.onerror = () => {
                 // Keep thumbnail, just remove blur

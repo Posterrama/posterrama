@@ -16597,3 +16597,29 @@ select.input-error:focus {
 .mode-card .checkbox-group {
     grid-column: 1 / -1;
 }
+
+/* Now Playing card - stack items vertically on smaller widths */
+#cinema-now-playing-card .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 16px;
+}
+
+#cinema-now-playing-card .form-grid .form-row:nth-child(3) {
+    grid-column: 1 / -1;
+}
+
+#cinema-now-playing-card .card-title {
+    justify-content: flex-start !important;
+}
+
+/* Poster Style card - 2 column grid, section headers span full width */
+#cinema-poster-card .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 16px;
+}
+
+#cinema-poster-card .cinema-section-header {
+    grid-column: 1 / -1;
+}
