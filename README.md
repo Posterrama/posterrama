@@ -134,6 +134,15 @@ Display a beautiful grid of posters, updating dynamically with new content. Choo
 
 Perfect for vertical screens or digital signage. Show a rotating selection of posters in portrait orientation, with smooth transitions and optional info overlays. Ideal for hallway displays, kiosks, or a true cinema entrance feel.
 
+<p>
+  <img src="./screenshots/cinema_1.png" alt="Cinema Mode - Classic" width="180">&nbsp;&nbsp;
+  <img src="./screenshots/cinema_2.png" alt="Cinema Mode - Metadata" width="180">&nbsp;&nbsp;
+  <img src="./screenshots/cinema_3.png" alt="Cinema Mode - QR Code" width="180">&nbsp;&nbsp;
+  <img src="./screenshots/cinema_4.png" alt="Cinema Mode - Specs" width="180">
+</p>
+
+_From left to right: Classic poster display with header, rich metadata footer with ratings and runtime, promotional QR code overlay, and technical specs badges (resolution, audio codec, HDR)._
+
 **Key features:**
 
 - Optimized for portrait/vertical screens

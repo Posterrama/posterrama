@@ -227,14 +227,24 @@
 
         // Calculate color: use ton-sur-ton if enabled, otherwise use configured color
         let headerColor = typo.color || '#ffffff';
-        if (typo.tonSurTon) {
-            headerColor = calculateTonSurTon(effectiveBgColor);
-            log('Header ton-sur-ton color calculated:', {
-                bgColor: effectiveBgColor,
-                textColor: headerColor,
-            });
+        console.log('[TON-SUR-TON DEBUG 2025]', 'Header check:', {
+            tonSurTon: typo.tonSurTon,
+            intensity: typo.tonSurTonIntensity,
+            effectiveBgColor,
+            configuredColor: typo.color,
+        });
+        if (typo.tonSurTon && effectiveBgColor) {
+            const intensity = typo.tonSurTonIntensity || 15;
+            headerColor = calculateTonSurTon(effectiveBgColor, intensity);
+            console.log(
+                '[TON-SUR-TON] Header color calculated:',
+                headerColor,
+                'intensity:',
+                intensity
+            );
         }
         headerEl.style.setProperty('--header-color', headerColor);
+        headerEl.style.color = headerColor; // Direct color application for reliability
 
         // Set header text
         const headerText = cinemaConfig.header.text || 'Now Playing';
@@ -287,14 +297,18 @@
 
         // Calculate color: use ton-sur-ton if enabled, otherwise use configured color
         let footerColor = typo.color || '#cccccc';
-        if (typo.tonSurTon) {
-            footerColor = calculateTonSurTon(effectiveBgColor);
-            log('Footer ton-sur-ton color calculated:', {
-                bgColor: effectiveBgColor,
-                textColor: footerColor,
-            });
+        if (typo.tonSurTon && effectiveBgColor) {
+            const intensity = typo.tonSurTonIntensity || 45;
+            footerColor = calculateTonSurTon(effectiveBgColor, intensity);
+            console.log(
+                '[TON-SUR-TON] Footer color calculated:',
+                footerColor,
+                'intensity:',
+                intensity
+            );
         }
         footerEl.style.setProperty('--footer-color', footerColor);
+        footerEl.style.color = footerColor; // Direct color application for reliability
 
         // Clear existing content
         footerEl.innerHTML = '';
@@ -616,15 +630,42 @@
         qrCodeEl = document.createElement('div');
         qrCodeEl.className = `cinema-qr-code position-${qrConfig.position || 'bottomRight'}`;
 
-        // Generate QR code using canvas (simple QR code generator)
-        // For now, use a QR code service or placeholder
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrConfig.size || 100}x${qrConfig.size || 100}&data=${encodeURIComponent(targetUrl)}`;
+        // Determine QR code colors - always use ton-sur-ton (never plain white/black)
+        const footerTypo = cinemaConfig.footer?.typography || {};
+        const intensity = footerTypo.tonSurTonIntensity || 45;
+        const bgColorForQR = effectiveBgColor || '#1a1a2e';
+
+        // Always calculate ton-sur-ton colors for QR code
+        // Use extra light version for background, extra dark for foreground
+        const lightTon = calculateTonSurTonLight(bgColorForQR, intensity);
+        const darkTon = calculateTonSurTonDark(bgColorForQR, intensity);
+
+        const qrBgColor = lightTon.replace('#', ''); // Light tinted background (replaces white)
+        const qrFgColor = darkTon.replace('#', ''); // Dark tinted foreground (replaces black)
+
+        log('QR Code using ton-sur-ton colors', {
+            bgColor: bgColorForQR,
+            qrFgColor: darkTon,
+            qrBgColor: lightTon,
+            intensity,
+        });
+
+        // Generate QR code using external API with custom colors
+        // Use SVG format for crisp rendering, high resolution, and no margin
+        const displaySize = qrConfig.size || 100;
+        const renderSize = displaySize * 3; // 3x resolution for sharpness
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${renderSize}x${renderSize}&format=svg&color=${qrFgColor}&bgcolor=${qrBgColor}&margin=0&data=${encodeURIComponent(targetUrl)}`;
+
         const img = document.createElement('img');
         img.src = qrUrl;
         img.alt = 'QR Code';
-        img.style.width = `${qrConfig.size || 100}px`;
-        img.style.height = `${qrConfig.size || 100}px`;
+        img.style.width = `${displaySize}px`;
+        img.style.height = `${displaySize}px`;
+        img.style.display = 'block'; // Remove any inline spacing
         img.loading = 'lazy';
+
+        // Set background color on container to match QR background (lichte ton als rand)
+        qrCodeEl.style.backgroundColor = lightTon;
 
         qrCodeEl.appendChild(img);
         document.body.appendChild(qrCodeEl);
@@ -810,9 +851,10 @@
      * Calculate ton-sur-ton (tonal) color based on background color.
      * Creates an elegant, readable text color in the same hue family.
      * @param {string} bgColor - Background color in hex format
+     * @param {number} intensity - Intensity level (10-100), default 15
      * @returns {string} Calculated text color in hex format
      */
-    function calculateTonSurTon(bgColor) {
+    function calculateTonSurTon(bgColor, intensity = 15) {
         // Parse hex color
         let hex = (bgColor || '#000000').replace('#', '');
         if (hex.length === 3) {
@@ -853,20 +895,52 @@
 
         // Calculate luminance to determine if bg is dark or light
         const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-        const isDark = luminance < 128;
 
-        // Create ton-sur-ton: same hue, adjusted lightness
+        // Ton-sur-ton: elegant harmonious color with good readability
+        // Goal: text that feels like it "belongs" with the background but is still readable
+        // Intensity ranges from 10 (subtle) to 100 (maximum color)
         let newL;
-        if (isDark) {
-            // Dark background: create elegant light tint (75-85%)
-            newL = 0.75 + l * 0.1;
-            s = Math.min(s * 0.7, 0.4);
+        let newS;
+
+        // Normalize intensity to 0-1 range (10 = 0, 100 = 1)
+        const intensityNorm = (intensity - 10) / 90;
+
+        // Calculate saturation based on intensity
+        // Level 10: subtle (12-30%), Level 15: balanced (45-70%), Level 100: full (80-95%)
+        const minSat = 0.12 + intensityNorm * 0.68; // 0.12 to 0.80
+        const maxSat = 0.3 + intensityNorm * 0.65; // 0.30 to 0.95
+        const satMultiplier = 0.35 + intensityNorm * 0.65; // 0.35 to 1.0
+
+        // Calculate lightness based on intensity
+        // Higher intensity = less extreme lightness = more color visible
+        const lightAdjust = intensityNorm * 0.23; // 0 to 0.23
+        const darkAdjust = intensityNorm * 0.22; // 0 to 0.22
+
+        // Use a high threshold - only truly light backgrounds get dark text
+        // Most movie poster backgrounds are dark/medium, so we favor light text
+        const useLightText = luminance < 180;
+
+        if (useLightText) {
+            // Dark/medium background: warm tinted light color
+            newL = 0.88 - lightAdjust; // 0.88 (level 10) to 0.65 (level 100)
+            newS = Math.max(minSat, Math.min(s * satMultiplier, maxSat));
         } else {
-            // Light background: create elegant dark shade (15-25%)
-            newL = 0.25 - l * 0.1;
-            s = Math.min(s * 0.6, 0.35);
+            // Light background: rich dark shade with color depth
+            newL = 0.18 + darkAdjust; // 0.18 (level 10) to 0.40 (level 100)
+            newS = Math.max(minSat, Math.min(s * satMultiplier, maxSat));
         }
-        newL = Math.max(0.15, Math.min(0.85, newL));
+
+        console.log('[TON-SUR-TON CALC]', {
+            bgColor,
+            intensity,
+            isDark: useLightText,
+            luminance,
+            origH: h,
+            origS: s,
+            origL: l,
+            newS,
+            newL,
+        });
 
         // Convert HSL back to RGB
         const hue2rgb = (p, q, t) => {
@@ -879,10 +953,189 @@
         };
 
         let newR, newG, newB;
-        if (s === 0) {
+        if (newS === 0) {
             newR = newG = newB = newL;
         } else {
-            const q = newL < 0.5 ? newL * (1 + s) : newL + s - newL * s;
+            const q = newL < 0.5 ? newL * (1 + newS) : newL + newS - newL * newS;
+            const p = 2 * newL - q;
+            newR = hue2rgb(p, q, h + 1 / 3);
+            newG = hue2rgb(p, q, h);
+            newB = hue2rgb(p, q, h - 1 / 3);
+        }
+
+        const result = `#${Math.round(newR * 255)
+            .toString(16)
+            .padStart(2, '0')}${Math.round(newG * 255)
+            .toString(16)
+            .padStart(2, '0')}${Math.round(newB * 255)
+            .toString(16)
+            .padStart(2, '0')}`;
+
+        console.log('[TON-SUR-TON RESULT]', { bgColor, result });
+        return result;
+    }
+
+    /**
+     * Calculate a DARK ton-sur-ton color (for QR code foreground).
+     * Always produces a dark color regardless of background luminance.
+     * @param {string} bgColor - Background color in hex format
+     * @param {number} intensity - Intensity level (10-100), default 45
+     * @returns {string} Calculated dark color in hex format
+     */
+    function calculateTonSurTonDark(bgColor, intensity = 45) {
+        // Parse hex color
+        let hex = (bgColor || '#000000').replace('#', '');
+        if (hex.length === 3) {
+            hex = hex
+                .split('')
+                .map(c => c + c)
+                .join('');
+        }
+        const r = parseInt(hex.substr(0, 2), 16) || 0;
+        const g = parseInt(hex.substr(2, 2), 16) || 0;
+        const b = parseInt(hex.substr(4, 2), 16) || 0;
+
+        // Convert to HSL
+        const rNorm = r / 255;
+        const gNorm = g / 255;
+        const bNorm = b / 255;
+        const max = Math.max(rNorm, gNorm, bNorm);
+        const min = Math.min(rNorm, gNorm, bNorm);
+        let h = 0;
+        let s = 0;
+
+        if (max !== min) {
+            const d = max - min;
+            s = (max + min) / 2 > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case rNorm:
+                    h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6;
+                    break;
+                case gNorm:
+                    h = ((bNorm - rNorm) / d + 2) / 6;
+                    break;
+                case bNorm:
+                    h = ((rNorm - gNorm) / d + 4) / 6;
+                    break;
+            }
+        }
+
+        // Normalize intensity to 0-1 range (10 = 0, 100 = 1)
+        const intensityNorm = (intensity - 10) / 90;
+
+        // Calculate saturation based on intensity
+        const minSat = 0.15 + intensityNorm * 0.55;
+        const maxSat = 0.35 + intensityNorm * 0.5;
+        const satMultiplier = 0.4 + intensityNorm * 0.55;
+
+        // Extra dark lightness for QR code foreground - needs good contrast
+        const darkAdjust = intensityNorm * 0.1; // Less adjustment = stays darker
+        const newL = 0.08 + darkAdjust; // 0.08 to 0.18 (very dark)
+        const newS = Math.max(minSat, Math.min(s * satMultiplier, maxSat));
+
+        // Convert HSL back to RGB
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+
+        let newR, newG, newB;
+        if (newS === 0) {
+            newR = newG = newB = newL;
+        } else {
+            const q = newL < 0.5 ? newL * (1 + newS) : newL + newS - newL * newS;
+            const p = 2 * newL - q;
+            newR = hue2rgb(p, q, h + 1 / 3);
+            newG = hue2rgb(p, q, h);
+            newB = hue2rgb(p, q, h - 1 / 3);
+        }
+
+        return `#${Math.round(newR * 255)
+            .toString(16)
+            .padStart(2, '0')}${Math.round(newG * 255)
+            .toString(16)
+            .padStart(2, '0')}${Math.round(newB * 255)
+            .toString(16)
+            .padStart(2, '0')}`;
+    }
+
+    /**
+     * Calculate a LIGHT ton-sur-ton color (for QR code background).
+     * Always produces an extra light color regardless of background luminance.
+     * @param {string} bgColor - Background color in hex format
+     * @param {number} intensity - Intensity level (10-100), default 45
+     * @returns {string} Calculated light color in hex format
+     */
+    function calculateTonSurTonLight(bgColor, intensity = 45) {
+        // Parse hex color
+        let hex = (bgColor || '#000000').replace('#', '');
+        if (hex.length === 3) {
+            hex = hex
+                .split('')
+                .map(c => c + c)
+                .join('');
+        }
+        const r = parseInt(hex.substr(0, 2), 16) || 0;
+        const g = parseInt(hex.substr(2, 2), 16) || 0;
+        const b = parseInt(hex.substr(4, 2), 16) || 0;
+
+        // Convert to HSL
+        const rNorm = r / 255;
+        const gNorm = g / 255;
+        const bNorm = b / 255;
+        const max = Math.max(rNorm, gNorm, bNorm);
+        const min = Math.min(rNorm, gNorm, bNorm);
+        let h = 0;
+        let s = 0;
+
+        if (max !== min) {
+            const d = max - min;
+            s = (max + min) / 2 > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case rNorm:
+                    h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6;
+                    break;
+                case gNorm:
+                    h = ((bNorm - rNorm) / d + 2) / 6;
+                    break;
+                case bNorm:
+                    h = ((rNorm - gNorm) / d + 4) / 6;
+                    break;
+            }
+        }
+
+        // Normalize intensity to 0-1 range (10 = 0, 100 = 1)
+        const intensityNorm = (intensity - 10) / 90;
+
+        // Calculate saturation - subtle tint for light background
+        const minSat = 0.08 + intensityNorm * 0.2; // 0.08 to 0.28
+        const maxSat = 0.15 + intensityNorm * 0.25; // 0.15 to 0.40
+        const satMultiplier = 0.25 + intensityNorm * 0.45;
+
+        // Extra light lightness for QR code background - needs good contrast
+        const lightAdjust = intensityNorm * 0.08; // Less adjustment = stays lighter
+        const newL = 0.95 - lightAdjust; // 0.95 to 0.87 (very light)
+        const newS = Math.max(minSat, Math.min(s * satMultiplier, maxSat));
+
+        // Convert HSL back to RGB
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+
+        let newR, newG, newB;
+        if (newS === 0) {
+            newR = newG = newB = newL;
+        } else {
+            const q = newL < 0.5 ? newL * (1 + newS) : newL + newS - newL * newS;
             const p = 2 * newL - q;
             newR = hue2rgb(p, q, h + 1 / 3);
             newG = hue2rgb(p, q, h);
@@ -1427,7 +1680,7 @@
     }
 
     // ===== Update Cinema Display =====
-    function updateCinemaDisplay(media) {
+    async function updateCinemaDisplay(media) {
         log('Updating cinema display', media);
 
         // Store current media for live config updates
@@ -1497,7 +1750,8 @@
         const cinemaMedia = mapMediaToCinemaFormat(media);
 
         // Update background with media info (for blurred/gradient/ambient modes)
-        applyBackgroundSettings(media);
+        // Must await to ensure effectiveBgColor is set before ton-sur-ton calculation
+        await applyBackgroundSettings(media);
 
         // Update header if ton-sur-ton is enabled (needs effectiveBgColor from background)
         if (cinemaConfig.header?.typography?.tonSurTon) {
@@ -1651,7 +1905,7 @@
     }
 
     // ===== Handle Configuration Updates =====
-    function handleConfigUpdate(newConfig) {
+    async function handleConfigUpdate(newConfig) {
         log('Handling cinema config update', newConfig);
 
         if (newConfig.cinema) {
@@ -1783,7 +2037,7 @@
                     ...cinemaConfig.background,
                     ...newConfig.cinema.background,
                 };
-                applyBackgroundSettings(currentMedia);
+                await applyBackgroundSettings(currentMedia);
                 // Update header/footer if ton-sur-ton is enabled (depends on effectiveBgColor)
                 if (cinemaConfig.header?.typography?.tonSurTon) {
                     createHeader();

@@ -2005,10 +2005,16 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 .cinema-qr-code {
     position: fixed;
     padding: 12px;
-    background: white;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     z-index: 100;
+    line-height: 0; /* Remove spacing below image */
+    /* background color is set dynamically via JS to match ton-sur-ton light */
+}
+
+.cinema-qr-code img {
+    display: block;
+    border-radius: 4px;
 }
 
 .cinema-qr-code.position-bottomRight {

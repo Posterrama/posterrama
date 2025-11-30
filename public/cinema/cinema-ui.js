@@ -472,7 +472,33 @@
             el('label', { class: 'checkbox', for: 'cin-h-tst' }, [
                 el('input', { type: 'checkbox', id: 'cin-h-tst' }),
                 el('span', { class: 'checkmark' }),
-                el('span', {}, 'Ton-sur-ton (match background)'),
+                el('span', {}, 'Ton-sur-ton'),
+            ]),
+        ]);
+
+        // Ton-sur-ton intensity slider row
+        const rowTstIntensity = el('div', { class: 'form-row', id: 'cin-h-tst-intensity-row' }, [
+            el('label', { for: 'cin-h-tst-intensity' }, 'Color Intensity'),
+            el('div', { class: 'slider-row' }, [
+                el('div', { class: 'modern-slider' }, [
+                    el('input', {
+                        type: 'range',
+                        id: 'cin-h-tst-intensity',
+                        min: '10',
+                        max: '100',
+                        step: '5',
+                        value: String(typo.tonSurTonIntensity || 45),
+                    }),
+                    el('div', { class: 'slider-bar' }, [el('div', { class: 'fill' })]),
+                ]),
+                el(
+                    'div',
+                    {
+                        class: 'slider-percentage',
+                        'data-target': 'cinema.header.typography.tonSurTonIntensity',
+                    },
+                    `${typo.tonSurTonIntensity || 45}%`
+                ),
             ]),
         ]);
 
@@ -511,6 +537,7 @@
             rowFont,
             rowSize,
             rowTonSurTon,
+            rowTstIntensity,
             rowColor,
             rowShadow,
             rowAnim,
@@ -522,6 +549,7 @@
         $('#cin-h-shadow').value = typo.shadow || 'subtle';
         $('#cin-h-anim').value = typo.animation || 'none';
         $('#cin-h-tst').checked = typo.tonSurTon || false;
+        $('#cin-h-tst-intensity').value = typo.tonSurTonIntensity || 45;
 
         // Initialize header text preset
         (function () {
@@ -565,9 +593,11 @@
 
             // Wire ton-sur-ton toggle for header
             const tstCheckbox = document.getElementById('cin-h-tst');
+            const tstIntensityRow = document.getElementById('cin-h-tst-intensity-row');
             const syncTstVisibility = () => {
                 const isTst = tstCheckbox?.checked;
                 colorContainer.style.display = isTst ? 'none' : '';
+                if (tstIntensityRow) tstIntensityRow.style.display = isTst ? '' : 'none';
             };
             tstCheckbox?.addEventListener('change', syncTstVisibility);
             syncTstVisibility();
@@ -751,7 +781,33 @@
             el('label', { class: 'checkbox', for: 'cin-f-tst' }, [
                 el('input', { type: 'checkbox', id: 'cin-f-tst' }),
                 el('span', { class: 'checkmark' }),
-                el('span', {}, 'Ton-sur-ton (match background)'),
+                el('span', {}, 'Ton-sur-ton'),
+            ]),
+        ]);
+
+        // Ton-sur-ton intensity slider row for footer
+        const rowTstIntensity = el('div', { class: 'form-row', id: 'cin-f-tst-intensity-row' }, [
+            el('label', { for: 'cin-f-tst-intensity' }, 'Color Intensity'),
+            el('div', { class: 'slider-row' }, [
+                el('div', { class: 'modern-slider' }, [
+                    el('input', {
+                        type: 'range',
+                        id: 'cin-f-tst-intensity',
+                        min: '10',
+                        max: '100',
+                        step: '5',
+                        value: String(typo.tonSurTonIntensity || 45),
+                    }),
+                    el('div', { class: 'slider-bar' }, [el('div', { class: 'fill' })]),
+                ]),
+                el(
+                    'div',
+                    {
+                        class: 'slider-percentage',
+                        'data-target': 'cinema.footer.typography.tonSurTonIntensity',
+                    },
+                    `${typo.tonSurTonIntensity || 45}%`
+                ),
             ]),
         ]);
 
@@ -784,6 +840,7 @@
             rowFont,
             rowSize,
             rowTonSurTon,
+            rowTstIntensity,
             rowColor,
             rowShadow,
         ]);
@@ -800,6 +857,7 @@
         $('#cin-f-font').value = typo.fontFamily || 'system';
         $('#cin-f-shadow').value = typo.shadow || 'none';
         $('#cin-f-tst').checked = typo.tonSurTon || false;
+        $('#cin-f-tst-intensity').value = typo.tonSurTonIntensity || 45;
 
         // Initialize footer text preset
         const savedMarqueeText = f.marqueeText;
@@ -844,9 +902,11 @@
 
             // Wire ton-sur-ton toggle for footer
             const tstCheckbox = document.getElementById('cin-f-tst');
+            const tstIntensityRow = document.getElementById('cin-f-tst-intensity-row');
             const syncTstVisibility = () => {
                 const isTst = tstCheckbox?.checked;
                 colorContainer.style.display = isTst ? 'none' : '';
+                if (tstIntensityRow) tstIntensityRow.style.display = isTst ? '' : 'none';
             };
             tstCheckbox?.addEventListener('change', syncTstVisibility);
             syncTstVisibility();
@@ -1223,11 +1283,13 @@
         const sliders = [
             { id: 'cin-h-size', suffix: '%', min: 50, max: 200 },
             { id: 'cin-f-size', suffix: '%', min: 50, max: 200 },
+            { id: 'cin-h-tst-intensity', suffix: '%', min: 10, max: 100 },
+            { id: 'cin-f-tst-intensity', suffix: '%', min: 10, max: 100 },
             { id: 'cinemaMetadataOpacity', suffix: '%', min: 0, max: 100 },
             { id: 'cinemaBackgroundBlur', suffix: 'px', min: 5, max: 50 },
             { id: 'cinemaPosterTransition', suffix: 's', min: 0.5, max: 5 },
             { id: 'cinemaFrameWidth', suffix: 'px', min: 2, max: 20 },
-            { id: 'cinemaQRSize', suffix: 'px', min: 60, max: 200 },
+            { id: 'cinemaQRSize', suffix: '%', min: 60, max: 200 },
             { id: 'cinemaContrast', suffix: '%', min: 50, max: 150 },
             { id: 'cinemaBrightness', suffix: '%', min: 50, max: 150 },
         ];
@@ -1239,12 +1301,16 @@
             const container = slider.closest('.modern-slider');
             const fill = container?.querySelector('.slider-bar .fill');
             const percentageEl = container?.parentElement?.querySelector('.slider-percentage');
+            // Also support .modern-slider-wrap with .modern-slider-value
+            const wrapContainer = slider.closest('.modern-slider-wrap');
+            const valueEl = wrapContainer?.querySelector('.modern-slider-value');
 
             const updateSlider = () => {
                 const value = parseFloat(slider.value);
                 const percent = ((value - min) / (max - min)) * 100;
                 if (fill) fill.style.width = `${percent}%`;
                 if (percentageEl) percentageEl.textContent = value + suffix;
+                if (valueEl) valueEl.textContent = value + suffix;
             };
 
             slider.addEventListener('input', updateSlider);
@@ -1501,6 +1567,7 @@
                 shadow: $('#cin-h-shadow')?.value || 'subtle',
                 animation: $('#cin-h-anim')?.value || 'none',
                 tonSurTon: $('#cin-h-tst')?.checked || false,
+                tonSurTonIntensity: parseInt($('#cin-h-tst-intensity')?.value || '45', 10),
             },
         };
         const footer = {
@@ -1513,6 +1580,7 @@
                 color: $('#cin-f-color')?.value || '#cccccc',
                 shadow: $('#cin-f-shadow')?.value || 'none',
                 tonSurTon: $('#cin-f-tst')?.checked || false,
+                tonSurTonIntensity: parseInt($('#cin-f-tst-intensity')?.value || '45', 10),
             },
         };
         const ambilight = {
@@ -2013,12 +2081,16 @@
                             setVal('cin-h-shadow', 'subtle');
                             setVal('cin-h-anim', 'none');
                             setVal('cin-h-tst', false); // ton-sur-ton off
-                            // Show header color picker
+                            setVal('cin-h-tst-intensity', 45); // default intensity
+                            // Show header color picker, hide intensity slider
                             {
                                 const hColorRow = document
                                     .getElementById('cin-h-color')
                                     ?.closest('.cin-row');
                                 if (hColorRow) hColorRow.style.display = '';
+                                const hIntensityRow =
+                                    document.getElementById('cin-h-tst-intensity-row');
+                                if (hIntensityRow) hIntensityRow.style.display = 'none';
                             }
 
                             // Footer - metadata type, system font, silver color, 150% size
@@ -2032,12 +2104,16 @@
                             setVal('cin-f-color', '#C0C0C0');
                             setVal('cin-f-shadow', 'none');
                             setVal('cin-f-tst', false); // ton-sur-ton off
-                            // Show footer color picker
+                            setVal('cin-f-tst-intensity', 45); // default intensity
+                            // Show footer color picker, hide intensity slider
                             {
                                 const fColorRow = document
                                     .getElementById('cin-f-color')
                                     ?.closest('.cin-row');
                                 if (fColorRow) fColorRow.style.display = '';
+                                const fIntensityRow =
+                                    document.getElementById('cin-f-tst-intensity-row');
+                                if (fIntensityRow) fIntensityRow.style.display = 'none';
                             }
 
                             // Background - solid black, no blur, subtle vignette
