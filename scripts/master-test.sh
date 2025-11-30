@@ -240,7 +240,7 @@ check_code_quality() {
     fi
     
     check "No large JavaScript files" "quality"
-    LARGE_FILES=$(find . -name "*.js" -size +500k ! -path "./node_modules/*" ! -path "./coverage/*" ! -path "./public/admin.js" 2>/dev/null)
+    LARGE_FILES=$(find . -name "*.js" -size +500k ! -path "./node_modules/*" ! -path "./coverage/*" ! -path "./dist/*" ! -path "./public/admin.js" 2>/dev/null)
     if [[ -z "$LARGE_FILES" ]]; then
         pass
     else
