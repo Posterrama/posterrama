@@ -949,12 +949,12 @@
     --color-submenu-indicator: #565f89;
     --color-submenu-accent: #bb9af7;
 
-    /* Neutrals - Deep Soft Dark (Tokyo Night / Floating UI style) */
-    --color-bg-primary: #1a1b26; /* Deep Blue-Grey */
-    --color-bg-secondary: #24283b; /* Lighter Blue-Grey */
-    --color-bg-tertiary: #292e42; /* Muted Blue-Grey - Darkened for subtler gradients */
-    --color-bg-dark: #16161e; /* Darker */
-    --color-bg-card: #1f2335; /* Card Background */
+    /* Neutrals - Soft Dark (Tokyo Night Storm / User Custom) */
+    --color-bg-primary: #1f2028; /* User provided: rgb(31 32 40) */
+    --color-bg-secondary: #2a2b38; /* Adjusted to match primary hue */
+    --color-bg-tertiary: #303240; /* Adjusted tertiary */
+    --color-bg-dark: #16161e; /* Deep anchor */
+    --color-bg-card: #242530; /* Card slightly lighter than bg */
 
     /* Text - Soft, not harsh white */
     --color-text-primary: #c0caf5; /* Soft Blue-White */
