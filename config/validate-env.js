@@ -34,6 +34,7 @@ const envFileToUse = process.env.NODE_ENV === 'test' ? exampleEnvPath : envPath;
 require('dotenv').config({ path: envFileToUse });
 
 // --- Schema Validation ---
+// @ts-ignore - Ajv constructor is valid but TypeScript doesn't recognize it from require()
 const ajv = new Ajv({ allErrors: true, allowUnionTypes: true }); // allowUnionTypes to support multi-type definitions
 const schemaPath = path.join(__dirname, '..', 'config.schema.json');
 
@@ -46,7 +47,7 @@ function realReadFileSync(p, encoding = 'utf-8') {
         const stat = fs.fstatSync(fd);
         const buf = Buffer.allocUnsafe(stat.size);
         fs.readSync(fd, buf, 0, stat.size, 0);
-        return encoding ? buf.toString(encoding) : buf;
+        return encoding ? buf.toString(/** @type {BufferEncoding} */ (encoding)) : buf;
     } finally {
         try {
             fs.closeSync(fd);
@@ -57,7 +58,9 @@ function realReadFileSync(p, encoding = 'utf-8') {
 }
 
 function safeReadFile(pathStr, { preferMockForConfig = false } = {}) {
-    const isFsMocked = typeof fs.readFileSync === 'function' && fs.readFileSync._isMockFunction;
+    const isFsMocked =
+        typeof fs.readFileSync === 'function' &&
+        /** @type {any} */ (fs.readFileSync)._isMockFunction;
     if (preferMockForConfig && isFsMocked && pathStr === configPath) {
         // Let the test-provided mock supply config.json content
         return fs.readFileSync(pathStr, 'utf-8');
@@ -68,7 +71,7 @@ function safeReadFile(pathStr, { preferMockForConfig = false } = {}) {
 
 let configSchema;
 try {
-    configSchema = JSON.parse(safeReadFile(schemaPath));
+    configSchema = JSON.parse(String(safeReadFile(schemaPath)));
 } catch (e) {
     console.error('[Config] Failed to read config.schema.json:', e.message);
     process.exit(1);
@@ -77,7 +80,7 @@ const validate = ajv.compile(configSchema);
 
 let config;
 try {
-    config = JSON.parse(safeReadFile(configPath, { preferMockForConfig: true }));
+    config = JSON.parse(String(safeReadFile(configPath, { preferMockForConfig: true })));
 } catch (error) {
     console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: Could not read or parse config.json.');
     console.error(error.message);

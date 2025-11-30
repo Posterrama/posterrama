@@ -9,6 +9,7 @@ global.testTimeouts = [];
 
 // Override setInterval to track intervals
 const originalSetInterval = global.setInterval;
+// @ts-ignore - Overriding global setInterval for test tracking
 global.setInterval = function (callback, delay) {
     const intervalId = originalSetInterval(callback, delay);
     global.testIntervals.push(intervalId);
@@ -17,6 +18,7 @@ global.setInterval = function (callback, delay) {
 
 // Override setTimeout to track timeouts
 const originalSetTimeout = global.setTimeout;
+// @ts-ignore - Overriding global setTimeout for test tracking
 global.setTimeout = function (callback, delay) {
     const timeoutId = originalSetTimeout(callback, delay);
     global.testTimeouts.push(timeoutId);
@@ -119,6 +121,7 @@ for (const f of CRITICAL_FIXTURES) {
 }
 
 // Global teardown after each test
+// @ts-ignore - Jest global not recognized by TypeScript
 afterEach(() => {
     global.cleanupTimers();
 
@@ -147,6 +150,7 @@ afterEach(() => {
 });
 
 // Global teardown before exit
+// @ts-ignore - Jest global not recognized by TypeScript
 afterAll(() => {
     global.cleanupTimers();
 });
