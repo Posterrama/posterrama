@@ -97,6 +97,7 @@ module.exports = function createLocalDirectoryRouter({
             if (!localDirectorySource) {
                 try {
                     const LocalDirectorySource = require('../sources/local');
+                    // @ts-ignore - LocalDirectorySource constructor accepts 2 arguments
                     localDirectorySource = new LocalDirectorySource(config.localDirectory, logger);
                 } catch (e) {
                     return res.status(500).json({ error: 'Local directory unavailable' });
@@ -152,6 +153,7 @@ module.exports = function createLocalDirectoryRouter({
             if (!localDirectorySource) {
                 try {
                     const LocalDirectorySource = require('../sources/local');
+                    // @ts-ignore - LocalDirectorySource constructor accepts 2 arguments
                     localDirectorySource = new LocalDirectorySource(config.localDirectory, logger);
                 } catch (e) {
                     return res.status(500).json({ error: 'Local directory unavailable' });

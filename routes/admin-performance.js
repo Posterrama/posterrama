@@ -59,6 +59,7 @@ module.exports = function createAdminPerformanceRouter({
      *       500:
      *         description: Server error
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/api/admin/performance/metrics',
         adminAuth,
@@ -200,6 +201,7 @@ module.exports = function createAdminPerformanceRouter({
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/api/admin/performance/summary',
         adminAuth,
