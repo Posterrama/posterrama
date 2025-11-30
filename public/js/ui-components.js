@@ -395,7 +395,22 @@ export function createColorPicker(options) {
 
     // Toggle popup on circle click
     colorCircle.addEventListener('click', () => {
-        popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+        const isOpening = popup.style.display === 'none';
+        popup.style.display = isOpening ? 'block' : 'none';
+
+        // Recalculate cursor positions when opening (containers now have dimensions)
+        if (isOpening) {
+            // Force update of cursor positions after popup is visible
+            setTimeout(() => {
+                const svX = (currentHSV.s / 100) * svContainer.offsetWidth;
+                const svY = ((100 - currentHSV.v) / 100) * svContainer.offsetHeight;
+                svCursor.style.left = `${svX}px`;
+                svCursor.style.top = `${svY}px`;
+
+                const hueX = (currentHSV.h / 360) * hueContainer.offsetWidth;
+                hueCursor.style.left = `${hueX}px`;
+            }, 0);
+        }
     });
 
     // Close popup when clicking outside
