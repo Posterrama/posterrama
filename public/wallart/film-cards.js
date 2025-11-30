@@ -832,13 +832,15 @@
                         top: 35%;
                         left: 50%;
                         transform: translate(-50%, -50%);
-                        width: 20vw;
-                        height: 20vw;
+                        width: 24vw;
+                        height: 24vw;
                         border-radius: 50%;
                         object-fit: cover;
-                        border: 3px solid rgba(212, 175, 55, 0.6);
-                        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9), 0 0 60px rgba(0, 0, 0, 0.5);
-                        z-index: 5;
+                        background: #1a1a1a;
+                        border: 4px solid rgba(212, 175, 55, 0.7);
+                        box-shadow: 0 16px 60px rgba(0, 0, 0, 0.95), 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 80px rgba(0, 0, 0, 0.6);
+                        z-index: 10;
+                        opacity: 1;
                     `;
                     // For portrait, add to card (positioned absolutely on dividing line)
                     card.appendChild(actorPhoto);
@@ -846,14 +848,16 @@
                     actorPhoto.style.cssText = `
                         position: absolute;
                         top: 3vh;
-                        left: -4.5vw;
-                        width: 9vw;
-                        height: 9vw;
+                        left: -5.5vw;
+                        width: 11vw;
+                        height: 11vw;
                         border-radius: 50%;
                         object-fit: cover;
-                        border: 3px solid rgba(212, 175, 55, 0.6);
-                        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9), 0 0 60px rgba(0, 0, 0, 0.5);
-                        z-index: 5;
+                        background: #1a1a1a;
+                        border: 4px solid rgba(212, 175, 55, 0.7);
+                        box-shadow: 0 16px 60px rgba(0, 0, 0, 0.95), 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 80px rgba(0, 0, 0, 0.6);
+                        z-index: 10;
+                        opacity: 1;
                     `;
                     // For landscape, add to posterSection (right side)
                     posterSection.appendChild(actorPhoto);
