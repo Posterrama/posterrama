@@ -911,58 +911,60 @@
 
 /* CSS Variables - Design System */
 :root {
-    /* Colors - Modern Dashboard Theme */
-    --color-primary: #00d4aa;
-    --color-primary-dark: #00b894;
-    --color-primary-light: #55efc4;
+    /* Colors - Soft Dark Theme (Floating UI Inspired) */
+    /* Primary Accents - Soft Pink/Purple/Blue */
+    --color-primary: #ff79c6; /* Soft Pink */
+    --color-primary-dark: #bd93f9; /* Soft Purple */
+    --color-primary-light: #ff9ce5;
 
-    --color-secondary: #667eea;
-    --color-secondary-dark: #5a6acf;
-    --color-secondary-light: #a8b5f0;
+    --color-secondary: #7aa2f7; /* Soft Blue */
+    --color-secondary-dark: #5d7ec9;
+    --color-secondary-light: #a3c2ff;
 
-    --color-accent: #764ba2;
-    --color-accent-dark: #667292;
-    --color-accent-light: #a18cd1;
+    --color-accent: #f7768e; /* Reddish Pink */
+    --color-accent-dark: #db4b68;
+    --color-accent-light: #ff99ac;
 
-    --color-success: #00d4aa;
-    --color-success-dark: #00b894;
-    --color-success-light: #55efc4;
+    --color-success: #9ece6a; /* Soft Green */
+    --color-success-dark: #739e42;
+    --color-success-light: #b9f27c;
 
-    --color-warning: #fdcb6e;
-    --color-warning-dark: #e17055;
-    --color-warning-light: #fef7e6;
+    --color-warning: #e0af68; /* Soft Orange/Yellow */
+    --color-warning-dark: #c7913d;
+    --color-warning-light: #f5d096;
 
-    --color-error: #e84393;
-    --color-error-dark: #d63031;
-    --color-error-light: #fde2e7;
+    --color-error: #f7768e; /* Reddish Pink */
+    --color-error-dark: #db4b68;
+    --color-error-light: #ff99ac;
 
-    --color-info: #667eea;
-    --color-info-dark: #5a6acf;
-    --color-info-light: #a8b5f0;
+    --color-info: #7aa2f7; /* Soft Blue */
+    --color-info-dark: #5d7ec9;
+    --color-info-light: #a3c2ff;
 
-    --color-teal: #14b8a6;
-    --color-teal-dark: #0d9488;
-    --color-teal-light: #2dd4bf;
+    --color-teal: #73daca; /* Soft Teal */
+    --color-teal-dark: #4db0a0;
+    --color-teal-light: #9bf2e4;
 
     /* Nav/submenu indicators */
-    --color-submenu-indicator: #a3aed0; /* default muted blue-grey */
-    --color-submenu-accent: #667eea; /* submenu highlight (blue), distinct from primary green */
+    --color-submenu-indicator: #565f89;
+    --color-submenu-accent: #bb9af7;
 
-    /* Neutrals - Modern Balanced Dark Theme */
-    --color-bg-primary: #1a1d29;
-    --color-bg-secondary: #252a3a;
-    --color-bg-tertiary: #2a3142;
-    --color-bg-dark: #151821;
-    --color-bg-card: #232937;
+    /* Neutrals - Deep Soft Dark (Tokyo Night / Floating UI style) */
+    --color-bg-primary: #1a1b26; /* Deep Blue-Grey */
+    --color-bg-secondary: #24283b; /* Lighter Blue-Grey */
+    --color-bg-tertiary: #292e42; /* Muted Blue-Grey - Darkened for subtler gradients */
+    --color-bg-dark: #16161e; /* Darker */
+    --color-bg-card: #1f2335; /* Card Background */
 
-    --color-text-primary: #ffffff;
-    --color-text-secondary: #b8bcc8;
-    --color-text-muted: #8b92a5;
-    --color-text-inverse: #1a1d29;
+    /* Text - Soft, not harsh white */
+    --color-text-primary: #c0caf5; /* Soft Blue-White */
+    --color-text-secondary: #a9b1d6; /* Muted Blue-Grey */
+    --color-text-muted: #787c99; /* Darker Muted */
+    --color-text-inverse: #15161e;
 
-    --color-border: #3a4553;
-    --color-border-light: #4a5568;
-    --color-border-dark: #2d3748;
+    --color-border: #414868;
+    --color-border-light: #565f89;
+    --color-border-dark: #24283b;
 
     /* Spacing */
     --space-xs: 0.25rem;
@@ -994,11 +996,11 @@
     --border-radius-lg: 0.75rem;
     --border-radius-xl: 1rem;
 
-    /* Shadows - Enhanced for dark theme */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+    /* Shadows - Soft & Deep */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
 
     /* Layout */
     --sidebar-width: 280px;
