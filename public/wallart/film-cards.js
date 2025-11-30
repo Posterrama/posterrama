@@ -395,7 +395,7 @@
             card.style.cssText = `
                 width: 100%;
                 height: 100%;
-                background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+                background: linear-gradient(135deg, #1a0a0a 0%, #2a0505 100%);
                 border-radius: 24px;
                 overflow: hidden;
                 position: relative;
@@ -410,9 +410,9 @@
             // Background layer: Two versions of the same backdrop
             if (groupData.backdrop) {
                 if (isPortrait) {
-                    // Portrait: Top section with blue monochrome effect (35%)
-                    const blueContainer = document.createElement('div');
-                    blueContainer.style.cssText = `
+                    // Portrait: Top section with deep red cinematic effect (35%)
+                    const redContainer = document.createElement('div');
+                    redContainer.style.cssText = `
                         position: absolute;
                         top: 0;
                         left: 0;
@@ -422,28 +422,28 @@
                         z-index: 0;
                     `;
 
-                    const bluePhoto = document.createElement('img');
-                    bluePhoto.src = groupData.backdrop;
-                    bluePhoto.style.cssText = `
+                    const redPhoto = document.createElement('img');
+                    redPhoto.src = groupData.backdrop;
+                    redPhoto.style.cssText = `
                         width: 100%;
                         height: 285%;
                         object-fit: cover;
                         object-position: center top;
-                        filter: grayscale(100%) contrast(1.1);
+                        filter: grayscale(100%) contrast(1.2) brightness(0.9);
                     `;
-                    blueContainer.appendChild(bluePhoto);
+                    redContainer.appendChild(redPhoto);
 
-                    const blueOverlay = document.createElement('div');
-                    blueOverlay.style.cssText = `
+                    const redOverlay = document.createElement('div');
+                    redOverlay.style.cssText = `
                         position: absolute;
                         inset: 0;
-                        background: rgba(20, 60, 140, 0.75);
+                        background: linear-gradient(135deg, rgba(140, 20, 20, 0.8), rgba(80, 10, 10, 0.85));
                         mix-blend-mode: multiply;
                         pointer-events: none;
                     `;
-                    blueContainer.appendChild(blueOverlay);
+                    redContainer.appendChild(redOverlay);
 
-                    card.appendChild(blueContainer);
+                    card.appendChild(redContainer);
 
                     // Bottom section: Original colors (65%)
                     const originalPhoto = document.createElement('img');
@@ -461,9 +461,9 @@
                     `;
                     card.appendChild(originalPhoto);
                 } else {
-                    // Landscape: Left blue (40%), right original (60%)
-                    const blueContainer = document.createElement('div');
-                    blueContainer.style.cssText = `
+                    // Landscape: Left deep red cinematic (40%), right original (60%)
+                    const redContainer = document.createElement('div');
+                    redContainer.style.cssText = `
                         position: absolute;
                         top: 0;
                         left: 0;
@@ -473,28 +473,28 @@
                         z-index: 0;
                     `;
 
-                    const bluePhoto = document.createElement('img');
-                    bluePhoto.src = groupData.backdrop;
-                    bluePhoto.style.cssText = `
+                    const redPhoto = document.createElement('img');
+                    redPhoto.src = groupData.backdrop;
+                    redPhoto.style.cssText = `
                         width: 250%;
                         height: 100%;
                         object-fit: cover;
                         object-position: left center;
-                        filter: grayscale(100%) contrast(1.1);
+                        filter: grayscale(100%) contrast(1.2) brightness(0.9);
                     `;
-                    blueContainer.appendChild(bluePhoto);
+                    redContainer.appendChild(redPhoto);
 
-                    const blueOverlay = document.createElement('div');
-                    blueOverlay.style.cssText = `
+                    const redOverlay = document.createElement('div');
+                    redOverlay.style.cssText = `
                         position: absolute;
                         inset: 0;
-                        background: rgba(20, 60, 140, 0.75);
+                        background: linear-gradient(135deg, rgba(140, 20, 20, 0.8), rgba(80, 10, 10, 0.85));
                         mix-blend-mode: multiply;
                         pointer-events: none;
                     `;
-                    blueContainer.appendChild(blueOverlay);
+                    redContainer.appendChild(redOverlay);
 
-                    card.appendChild(blueContainer);
+                    card.appendChild(redContainer);
 
                     // Right side: Original colors (60%)
                     const originalPhoto = document.createElement('img');
@@ -545,9 +545,9 @@
                 ? `
                 font-size: 7vw;
                 font-weight: 900;
-                color: #fff;
+                color: #d4af37;
                 line-height: 1;
-                text-shadow: 0 4px 20px rgba(0,0,0,0.7);
+                text-shadow: 0 4px 20px rgba(0,0,0,0.9), 0 0 30px rgba(212,175,55,0.3);
                 margin-bottom: 1.5vh;
                 letter-spacing: -0.03em;
                 position: relative;
@@ -556,9 +556,9 @@
                 : `
                 font-size: 4vw;
                 font-weight: 900;
-                color: #fff;
+                color: #d4af37;
                 line-height: 1;
-                text-shadow: 0 4px 20px rgba(0,0,0,0.7);
+                text-shadow: 0 4px 20px rgba(0,0,0,0.9), 0 0 30px rgba(212,175,55,0.3);
                 margin-bottom: 1.5vh;
                 letter-spacing: -0.03em;
                 position: relative;
