@@ -790,8 +790,20 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             let countTimer = null;
             let remaining = 120; // seconds
 
+            // Debug: check if elements exist
+            console.log('[DeviceMgmt] Setup overlay elements:', {
+                msg: !!msg,
+                codeEl: !!codeEl,
+                skipButton: !!skipButton,
+                countdownEl: !!countdownEl,
+                doPair: !!$('#pr-do-pair'),
+                close: !!$('#pr-close'),
+                qrImg: !!$('#pr-qr-img'),
+            });
+
             // Interactive placeholder for pairing code
             function updatePlaceholder() {
+                if (!codeEl) return;
                 const value = codeEl.value;
                 const maxLength = 6;
                 let placeholder = '';
@@ -815,14 +827,15 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 });
             }
 
-            codeEl.addEventListener('input', updatePlaceholder);
-            codeEl.addEventListener('focus', updatePlaceholder);
-            codeEl.addEventListener('keydown', e => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    tryPair();
-                }
-            });
+            codeEl && codeEl.addEventListener('input', updatePlaceholder);
+            codeEl && codeEl.addEventListener('focus', updatePlaceholder);
+            codeEl &&
+                codeEl.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        tryPair();
+                    }
+                });
             updatePlaceholder(); // Initial call
 
             function setMsg(t, ok) {
@@ -903,38 +916,44 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 }
             });
 
-            $('#pr-do-pair').addEventListener('click', async e => {
-                e.preventDefault();
-                e.stopPropagation();
-                await tryPair();
-            });
+            const doPairBtn = $('#pr-do-pair');
+            const closeBtn = $('#pr-close');
 
-            $('#pr-close').addEventListener('click', e => {
-                e.preventDefault();
-                e.stopPropagation();
-                doClose();
-            });
+            doPairBtn &&
+                doPairBtn.addEventListener('click', async e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await tryPair();
+                });
+
+            closeBtn &&
+                closeBtn.addEventListener('click', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    doClose();
+                });
 
             // Footer skip button
-            skipButton.addEventListener('click', e => {
-                e.preventDefault();
-                e.stopPropagation();
+            skipButton &&
+                skipButton.addEventListener('click', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
 
-                // Visual feedback
-                skipButton.style.opacity = '0.6';
-                skipButton.textContent = 'Saving preference...';
+                    // Visual feedback
+                    skipButton.style.opacity = '0.6';
+                    skipButton.textContent = 'Saving preference...';
 
-                try {
-                    localStorage.setItem('posterrama-skip-device-setup', 'true');
-                } catch (_) {
-                    /* noop: localStorage failed */
-                }
+                    try {
+                        localStorage.setItem('posterrama-skip-device-setup', 'true');
+                    } catch (_) {
+                        /* noop: localStorage failed */
+                    }
 
-                // Small delay for user feedback
-                setTimeout(() => {
-                    doClose();
-                }, 800);
-            });
+                    // Small delay for user feedback
+                    setTimeout(() => {
+                        doClose();
+                    }, 800);
+                });
 
             // Force button visibility
             function ensureButtonsVisible() {
@@ -989,6 +1008,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             // Delay QR loading to prevent interference with buttons
             let registrationPollTimer = null;
             setTimeout(() => {
+                console.log('[DeviceMgmt] Loading QR code...');
                 try {
                     const iid = state.installId || getInstallId();
                     const hw = state.hardwareId || getHardwareId();
@@ -997,18 +1017,23 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 
                     // IMPORTANT: No hash fragment to avoid interfering with query parameters
                     const autoRegisterUrl = `${window.location.origin}/admin?auto-register=true&device-id=${encodeURIComponent(deviceId)}&device-name=${encodeURIComponent(deviceName)}`;
+                    console.log('[DeviceMgmt] QR URL:', autoRegisterUrl);
                     const qrImg = $('#pr-qr-img');
                     if (qrImg) {
                         qrImg.onload = () => {
+                            console.log('[DeviceMgmt] QR image loaded');
                             setTimeout(() => {
                                 checkButtons();
                                 ensureButtonsVisible();
                             }, 100);
                         };
-                        qrImg.onerror = () => {
+                        qrImg.onerror = e => {
+                            console.error('[DeviceMgmt] QR image error:', e);
                             setTimeout(checkButtons, 100);
                         };
                         qrImg.src = `/api/qr?format=svg&text=${encodeURIComponent(autoRegisterUrl)}`;
+                    } else {
+                        console.error('[DeviceMgmt] QR img element not found');
                     }
 
                     // Start polling for successful registration (single interval, 429-aware)
@@ -1173,10 +1198,11 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
 
             // Start countdown
             try {
+                console.log('[DeviceMgmt] Starting countdown timer');
                 if (countdownEl) countdownEl.textContent = '02:00';
                 countTimer = setInterval(tickCountdown, 1000);
-            } catch (_) {
-                /* noop: countdown init failed */
+            } catch (e) {
+                console.error('[DeviceMgmt] Countdown init failed:', e);
             }
         });
     }
