@@ -18,7 +18,7 @@ class HADashboardGenerator {
      * @param {Array} deviceIds - Device IDs to include
      * @returns {string} YAML configuration
      */
-    generateDashboard(devices = [], deviceIds = []) {
+    generateDashboard(devices = [], _deviceIds = []) {
         logger.info('🏠 Generating Home Assistant section', {
             deviceCount: devices.length,
         });
