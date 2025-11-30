@@ -53,7 +53,7 @@
      * @param {string} bgColor - Background color in hex format
      * @returns {string} Calculated text color in hex format
      */
-    function calculateTonSurTon(bgColor) {
+    function _calculateTonSurTon(bgColor) {
         // Parse hex color
         let hex = bgColor.replace('#', '');
         if (hex.length === 3) {
@@ -72,9 +72,9 @@
         const bNorm = b / 255;
         const max = Math.max(rNorm, gNorm, bNorm);
         const min = Math.min(rNorm, gNorm, bNorm);
-        let h,
-            s,
-            l = (max + min) / 2;
+        let h;
+        let s;
+        const l = (max + min) / 2;
 
         if (max === min) {
             h = s = 0; // achromatic
@@ -1992,8 +1992,10 @@
                             setVal('cinemaBrightness', 100);
                             setVal('cinemaHideAllUI', false);
                             // Reset tint color if exists
-                            const tintInput = document.getElementById('cinemaTintColor');
-                            if (tintInput) tintInput.value = '#ff6b35';
+                            {
+                                const tintInput = document.getElementById('cinemaTintColor');
+                                if (tintInput) tintInput.value = '#ff6b35';
+                            }
 
                             // Quick Theme - none selected
                             setVal('cinemaQuickTheme', '');
@@ -2012,10 +2014,12 @@
                             setVal('cin-h-anim', 'none');
                             setVal('cin-h-tst', false); // ton-sur-ton off
                             // Show header color picker
-                            const hColorRow = document
-                                .getElementById('cin-h-color')
-                                ?.closest('.cin-row');
-                            if (hColorRow) hColorRow.style.display = '';
+                            {
+                                const hColorRow = document
+                                    .getElementById('cin-h-color')
+                                    ?.closest('.cin-row');
+                                if (hColorRow) hColorRow.style.display = '';
+                            }
 
                             // Footer - metadata type, system font, silver color, 150% size
                             setVal('cin-f-enabled', true);
@@ -2029,10 +2033,12 @@
                             setVal('cin-f-shadow', 'none');
                             setVal('cin-f-tst', false); // ton-sur-ton off
                             // Show footer color picker
-                            const fColorRow = document
-                                .getElementById('cin-f-color')
-                                ?.closest('.cin-row');
-                            if (fColorRow) fColorRow.style.display = '';
+                            {
+                                const fColorRow = document
+                                    .getElementById('cin-f-color')
+                                    ?.closest('.cin-row');
+                                if (fColorRow) fColorRow.style.display = '';
+                            }
 
                             // Background - solid black, no blur, subtle vignette
                             setBackground('solid', '#000000');
@@ -2046,8 +2052,10 @@
                             setVal('cinemaPosterTransition', 1.5);
                             setVal('cinemaFrameWidth', 8);
                             // Reset frame color
-                            const frameInput = document.getElementById('cinemaFrameColor');
-                            if (frameInput) frameInput.value = '#ffffff';
+                            {
+                                const frameInput = document.getElementById('cinemaFrameColor');
+                                if (frameInput) frameInput.value = '#ffffff';
+                            }
 
                             // Metadata - ALL ON for full info display
                             setMeta({
@@ -2079,8 +2087,10 @@
                             setVal('cinemaAwardsBadge', false);
                             setVal('cinemaQREnabled', false);
                             // Hide QR settings
-                            const qrSettings = document.getElementById('cinemaQRSettings');
-                            if (qrSettings) qrSettings.style.display = 'none';
+                            {
+                                const qrSettings = document.getElementById('cinemaQRSettings');
+                                if (qrSettings) qrSettings.style.display = 'none';
+                            }
                     }
                     try {
                         window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);

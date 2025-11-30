@@ -831,9 +831,9 @@
         const bNorm = b / 255;
         const max = Math.max(rNorm, gNorm, bNorm);
         const min = Math.min(rNorm, gNorm, bNorm);
-        let h = 0,
-            s = 0,
-            l = (max + min) / 2;
+        let h = 0;
+        let s = 0;
+        const l = (max + min) / 2;
 
         if (max !== min) {
             const d = max - min;
