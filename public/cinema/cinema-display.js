@@ -782,6 +782,7 @@
     let currentTrailerKey = null; // Track current trailer to avoid reloading
     let ytPlayer = null; // YouTube Player instance
     let ytApiReady = false; // Track if YouTube API is loaded
+    let trailerDelayTimer = null; // Timer for delayed trailer start
 
     // Load YouTube IFrame API (once)
     function loadYouTubeAPI() {
@@ -824,12 +825,35 @@
         const promo = cinemaConfig.promotional || {};
         const trailerConfig = promo.trailer || {};
 
+        // Clear any pending trailer delay timer
+        if (trailerDelayTimer) {
+            clearTimeout(trailerDelayTimer);
+            trailerDelayTimer = null;
+        }
+
         // Remove existing trailer if disabled or no media
         if (!trailerConfig.enabled || !media) {
             removeTrailerOverlay();
             return;
         }
 
+        // Get delay in seconds (default 5s)
+        const delaySeconds = trailerConfig.delay ?? 5;
+
+        // If delay > 0, schedule the trailer to start after delay
+        if (delaySeconds > 0) {
+            log('Trailer scheduled', { delay: delaySeconds, title: media.title });
+            trailerDelayTimer = setTimeout(() => {
+                trailerDelayTimer = null;
+                startTrailerPlayback(media, trailerConfig);
+            }, delaySeconds * 1000);
+        } else {
+            // No delay, start immediately
+            startTrailerPlayback(media, trailerConfig);
+        }
+    }
+
+    async function startTrailerPlayback(media, trailerConfig) {
         // Get TMDB ID from media (can be in different fields or in guids array)
         let tmdbId = media.tmdbId || media.tmdb_id;
 

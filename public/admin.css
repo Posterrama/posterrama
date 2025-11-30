@@ -12262,7 +12262,7 @@ body.page-logs {
     --preview-long-side: 420px;
     width: var(--preview-long-side);
     aspect-ratio: 16 / 9;
-    border-radius: 12px;
+    border-radius: 6px;
     overflow: hidden;
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-lg);
@@ -16774,4 +16774,402 @@ select.input-error:focus {
     grid-column: 1 / -1;
     margin-top: 8px;
     margin-bottom: 4px;
+}
+
+/* ==========================================================================
+   Documentation Search - Simple Fixed Input
+   ========================================================================== */
+
+/* Inline search container */
+.doc-search-inline {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: var(--navbar-height, 56px);
+}
+
+/* Search icon in circle on right */
+.doc-search-icon-circle {
+    position: absolute;
+    right: 3px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    color: var(--color-secondary);
+    font-size: 0.65rem;
+    pointer-events: none;
+}
+
+/* Fixed search input */
+.doc-search-inline .doc-search-input {
+    width: 170px;
+    height: 32px;
+    padding: 0 34px 0 12px;
+    background: var(--surface-layer-1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    color: var(--color-text-primary);
+    font-size: 0.8rem;
+    font-family: inherit;
+    outline: none;
+}
+
+.doc-search-inline .doc-search-input::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.5;
+}
+
+/* Prevent autofill styling */
+.doc-search-inline .doc-search-input:-webkit-autofill,
+.doc-search-inline .doc-search-input:-webkit-autofill:hover,
+.doc-search-inline .doc-search-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--surface-layer-1) inset !important;
+    -webkit-text-fill-color: var(--color-text-primary) !important;
+    background-color: var(--surface-layer-1) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Dropdown results */
+.doc-search-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 380px;
+    max-height: 480px;
+    overflow-y: auto;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 1700;
+    padding: 0;
+}
+
+.doc-search-dropdown[hidden] {
+    display: none;
+}
+
+/* Results header */
+.doc-search-header {
+    padding: 10px 14px 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--color-bg-tertiary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* Empty state */
+.doc-search-empty {
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+.doc-search-empty i {
+    font-size: 1.5rem;
+    opacity: 0.3;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.doc-search-empty p {
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+/* Individual result */
+.doc-search-result {
+    padding: 12px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-border);
+    transition: background 0.1s ease;
+}
+
+.doc-search-result:last-of-type {
+    border-bottom: none;
+}
+
+.doc-search-result:hover {
+    background: var(--color-bg-tertiary);
+}
+
+.doc-search-result.selected {
+    background: color-mix(in srgb, var(--color-secondary) 12%, var(--color-bg-tertiary));
+    border-left: 3px solid var(--color-secondary);
+    padding-left: 11px;
+}
+
+/* Result header row */
+.doc-search-result-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.doc-search-result-category {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+}
+
+.doc-search-result-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Short description */
+.doc-search-result-desc {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+    margin-bottom: 0;
+}
+
+/* Expanded help content (shown on selected) */
+.doc-search-result-details {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-border);
+}
+
+.doc-search-result.selected .doc-search-result-details {
+    display: block;
+}
+
+.doc-search-result-help {
+    font-size: 0.75rem;
+    color: var(--color-text-primary);
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.doc-search-result-example {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.72rem;
+    color: var(--color-text-secondary);
+    background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-primary));
+    padding: 8px 10px;
+    border-radius: 4px;
+    border-left: 2px solid var(--color-secondary);
+}
+
+.doc-search-result-example::before {
+    content: '\f0eb'; /* fa-lightbulb */
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    font-size: 0.75rem;
+    color: var(--color-warning);
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* Action hint */
+.doc-search-result-action {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 0.68rem;
+    color: var(--color-secondary);
+    opacity: 0;
+    transition: opacity 0.1s ease;
+}
+
+.doc-search-result.selected .doc-search-result-action {
+    opacity: 1;
+}
+
+.doc-search-result-action i {
+    font-size: 0.6rem;
+}
+
+/* Footer with keyboard hints */
+.doc-search-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 10px 14px;
+    background: var(--color-bg-tertiary);
+    border-top: 1px solid var(--color-border);
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+}
+
+.doc-search-footer kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-light);
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.58rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin: 0 2px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Highlight animation for found settings */
+@keyframes doc-search-pulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+    15%,
+    85% {
+        box-shadow:
+            0 0 0 3px color-mix(in srgb, var(--color-secondary) 60%, transparent),
+            0 0 20px 0 color-mix(in srgb, var(--color-secondary) 30%, transparent);
+    }
+    30%,
+    70% {
+        box-shadow:
+            0 0 0 4px color-mix(in srgb, var(--color-secondary) 70%, transparent),
+            0 0 30px 5px color-mix(in srgb, var(--color-secondary) 25%, transparent);
+    }
+    50% {
+        box-shadow:
+            0 0 0 2px color-mix(in srgb, var(--color-secondary) 50%, transparent),
+            0 0 15px 0 color-mix(in srgb, var(--color-secondary) 20%, transparent);
+    }
+}
+
+.doc-search-highlight {
+    animation: doc-search-pulse 2s ease-in-out 5;
+    border-radius: 6px;
+    position: relative;
+}
+
+.doc-search-highlight::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 8px;
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--color-secondary) 12%, transparent),
+        transparent 50%
+    );
+    pointer-events: none;
+    opacity: 0;
+    animation: doc-search-highlight-bg 2s ease-in-out 5;
+}
+
+@keyframes doc-search-highlight-bg {
+    0%,
+    100% {
+        opacity: 0;
+    }
+    25%,
+    75% {
+        opacity: 1;
+    }
+}
+
+/* Preview banner when viewing a different mode's settings */
+.doc-search-preview-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    background: color-mix(in srgb, var(--color-warning, #f59e0b) 15%, var(--color-bg-secondary));
+    border: 1px solid color-mix(in srgb, var(--color-warning, #f59e0b) 40%, transparent);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--color-text-primary);
+}
+
+.doc-search-preview-banner i {
+    color: var(--color-warning, #f59e0b);
+    font-size: 1rem;
+}
+
+.doc-search-preview-banner strong {
+    color: var(--color-warning, #f59e0b);
+}
+
+.doc-search-preview-banner .btn {
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+/* Tooltip for setting hints */
+.doc-search-tooltip {
+    padding: 10px 14px;
+    background: linear-gradient(
+        135deg,
+        var(--color-bg-tertiary, #333) 0%,
+        color-mix(in srgb, var(--color-bg-tertiary, #333) 90%, var(--color-secondary)) 100%
+    );
+    border: 1px solid color-mix(in srgb, var(--color-secondary) 40%, var(--color-border));
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    color: var(--color-text-primary);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.4),
+        0 0 0 1px color-mix(in srgb, var(--color-secondary) 20%, transparent),
+        inset 0 1px 0 color-mix(in srgb, white 5%, transparent);
+    max-width: 320px;
+    animation: doc-search-tooltip-fade 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(8px);
+}
+
+.doc-search-tooltip i {
+    margin-right: 8px;
+    font-size: 1rem;
+}
+
+.doc-search-tooltip-info {
+    border-left: 3px solid var(--color-secondary);
+}
+
+.doc-search-tooltip-info i {
+    color: var(--color-secondary);
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-secondary) 50%, transparent));
+}
+
+.doc-search-tooltip-warning {
+    border-left: 3px solid var(--color-warning, #f59e0b);
+}
+
+.doc-search-tooltip-warning i {
+    color: var(--color-warning, #f59e0b);
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-warning, #f59e0b) 50%, transparent));
+}
+
+@keyframes doc-search-tooltip-fade {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }

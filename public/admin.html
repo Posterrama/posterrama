@@ -111,6 +111,26 @@
   <span class="nav-badge" id="update-available-pill" hidden title="" style="margin-left:6px;">Update available</span>
     </div>
     <div class="nav-actions">
+      <!-- Documentation Search (inline) -->
+      <div class="doc-search-inline" id="doc-search-inline">
+        <input type="search" 
+               id="doc-search-input" 
+               class="doc-search-input" 
+               placeholder="Search help..." 
+               autocomplete="off"
+               autocorrect="off"
+               autocapitalize="off"
+               spellcheck="false"
+               data-form-type="other"
+               data-lpignore="true"
+               readonly
+               onfocus="this.removeAttribute('readonly'); this.value='';">
+        <div class="doc-search-icon-circle">
+          <i class="fas fa-search"></i>
+        </div>
+        <div class="doc-search-dropdown" id="doc-search-results" hidden></div>
+      </div>
+      
       <div class="dropdown" id="notif-dropdown">
         <button class="btn btn-icon dropdown-toggle" id="notif-btn" title="Notifications" aria-haspopup="true" aria-expanded="false" aria-controls="notif-menu">
           <i class="fas fa-bell"></i>
@@ -1535,6 +1555,14 @@
                           <label class="checkbox" for="cinemaTrailerEnabled"><input type="checkbox" id="cinemaTrailerEnabled" /><span class="checkmark"></span><span>Show Trailer</span></label>
                         </div>
                         <div class="cinema-nested-settings" id="cinemaTrailerSettings" style="display:none;">
+                          <div class="form-row">
+                            <label for="cinemaTrailerDelay">Delay <span class="help-text">(seconds before trailer starts)</span></label>
+                            <div class="modern-slider">
+                              <input type="range" id="cinemaTrailerDelay" min="0" max="30" step="1" value="5" />
+                              <div class="slider-bar"><div class="fill"></div></div>
+                            </div>
+                            <div class="slider-percentage" data-target="cinema.promotional.trailer.delay">5s</div>
+                          </div>
                           <div class="form-row">
                             <label for="cinemaTrailerMuted">Sound</label>
                             <label class="checkbox" for="cinemaTrailerMuted"><input type="checkbox" id="cinemaTrailerMuted" checked /><span class="checkmark"></span><span>Muted</span></label>
@@ -5091,6 +5119,9 @@
       });
     }
   </script>
+  
+  <!-- Documentation Search Script -->
+  <script src="/js/doc-search.js"></script>
 </body>
 </html>
 

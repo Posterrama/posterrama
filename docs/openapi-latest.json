@@ -12439,6 +12439,95 @@
                 "security": []
             }
         },
+        "/get-trailer": {
+            "get": {
+                "tags": ["Media"],
+                "summary": "Get YouTube trailer URL for a movie or show",
+                "description": "Fetches the official YouTube trailer URL from TMDB for a given movie or TV show.\nReturns the first available trailer (prefers official trailers).\n",
+                "parameters": [
+                    {
+                        "name": "tmdbId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "TMDB ID of the movie or show"
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": ["movie", "tv"],
+                            "default": "movie"
+                        },
+                        "description": "Media type (movie or tv)"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Trailer information",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "trailer": {
+                                            "type": "object",
+                                            "properties": {
+                                                "key": {
+                                                    "type": "string",
+                                                    "description": "YouTube video ID"
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "description": "Trailer title"
+                                                },
+                                                "site": {
+                                                    "type": "string",
+                                                    "description": "Video site (YouTube)"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "description": "Video type (Trailer, Teaser, etc.)"
+                                                },
+                                                "official": {
+                                                    "type": "boolean",
+                                                    "description": "Whether this is an official trailer"
+                                                },
+                                                "embedUrl": {
+                                                    "type": "string",
+                                                    "description": "Full YouTube embed URL"
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing tmdbId parameter"
+                    },
+                    "404": {
+                        "description": "No trailer found"
+                    },
+                    "500": {
+                        "description": "TMDB API error"
+                    }
+                },
+                "security": []
+            }
+        },
         "/api/v1/metrics/performance": {
             "get": {
                 "summary": "Get performance metrics",

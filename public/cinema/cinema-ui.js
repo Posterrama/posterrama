@@ -1121,6 +1121,7 @@
         // Trailer settings
         const trailer = promo.trailer || {};
         $('#cinemaTrailerEnabled') && ($('#cinemaTrailerEnabled').checked = !!trailer.enabled);
+        $('#cinemaTrailerDelay') && ($('#cinemaTrailerDelay').value = trailer.delay ?? 5);
         $('#cinemaTrailerMuted') && ($('#cinemaTrailerMuted').checked = trailer.muted !== false);
         $('#cinemaTrailerLoop') && ($('#cinemaTrailerLoop').checked = trailer.loop !== false);
 
@@ -1648,6 +1649,7 @@
                 showAwardsBadge: !!$('#cinemaAwardsBadge')?.checked,
                 trailer: {
                     enabled: !!$('#cinemaTrailerEnabled')?.checked,
+                    delay: parseInt($('#cinemaTrailerDelay')?.value || '5', 10),
                     muted: $('#cinemaTrailerMuted')?.checked !== false,
                     loop: $('#cinemaTrailerLoop')?.checked !== false,
                 },
