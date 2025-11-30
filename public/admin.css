@@ -1218,7 +1218,17 @@ body {
     background: var(--color-bg-card);
     color: var(--color-text-primary);
     font-weight: var(--font-weight-medium);
-    box-shadow: inset 3px 0 0 var(--color-primary);
+    overflow: hidden;
+}
+
+.nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
 }
 
 .nav-item i {
