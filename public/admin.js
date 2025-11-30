@@ -3713,6 +3713,19 @@
                         musicSettings.style.display = musicModeCheckbox.checked ? '' : 'none';
                     }
 
+                    // Toggle preset buttons visibility
+                    const generalPresets = document.getElementById('wallart-presets-general');
+                    const musicPresets = document.getElementById('wallart-presets-music');
+                    if (generalPresets && musicPresets) {
+                        if (musicModeCheckbox.checked) {
+                            generalPresets.style.display = 'none';
+                            musicPresets.style.display = 'flex';
+                        } else {
+                            generalPresets.style.display = 'flex';
+                            musicPresets.style.display = 'none';
+                        }
+                    }
+
                     // Hide wallart cards that don't affect Music Mode
                     const isMusicMode = musicModeCheckbox.checked;
                     const tempoCard = document.querySelector('.mode-card[data-card-key="tempo"]');
@@ -5113,17 +5126,36 @@
                 v => `${v}px`
             );
 
-            // Presets
+            // General Presets
             const btnGallery = document.getElementById('wallart-preset-gallery');
             const btnHero = document.getElementById('wallart-preset-hero');
             const btnVibe = document.getElementById('wallart-preset-vibe');
+            const btnMuseum = document.getElementById('wallart-preset-museum');
+            const btnDynamic = document.getElementById('wallart-preset-dynamic');
+            const btnLounge = document.getElementById('wallart-preset-lounge');
+            const btnFocus = document.getElementById('wallart-preset-focus');
+            const btnShowcase = document.getElementById('wallart-preset-showcase');
             const btnResetW = document.getElementById('wallart-preset-reset');
+
+            // Music Presets
+            const btnMusicVinyl = document.getElementById('music-preset-vinyl');
+            const btnMusicArtist = document.getElementById('music-preset-artist');
+            const btnMusicDisco = document.getElementById('music-preset-disco');
+            const btnMusicMinimal = document.getElementById('music-preset-minimal');
+            const btnMusicJazz = document.getElementById('music-preset-jazz');
+            const btnMusicParty = document.getElementById('music-preset-party');
+            const btnMusicAudiophile = document.getElementById('music-preset-audiophile');
+            const btnMusicGallery = document.getElementById('music-preset-gallery');
+            const btnMusicReset = document.getElementById('music-preset-reset');
             const setVal = (id, value, evs = ['input', 'change']) => {
                 const el = document.getElementById(id);
                 if (!el) return;
                 if (el.type === 'checkbox') el.checked = !!value;
                 else el.value = String(value);
                 evs.forEach(e => el.dispatchEvent(new Event(e, { bubbles: true })));
+            };
+            const setMusicVal = (field, value, evs = ['input', 'change']) => {
+                setVal(`wallartMode_musicMode_${field}`, value, evs);
             };
             const onPreset = p => {
                 // Density, Layout, Anim, Refresh, Randomness, Ambient, Hero
@@ -5183,6 +5215,65 @@
                     biasHero: false,
                 })
             );
+            btnMuseum?.addEventListener('click', () =>
+                onPreset({
+                    density: 'low',
+                    layout: 'classic',
+                    animation: 'fade',
+                    refresh: 12,
+                    randomness: 1,
+                    ambient: true,
+                    biasHero: false,
+                })
+            );
+            btnDynamic?.addEventListener('click', () =>
+                onPreset({
+                    density: 'ludicrous',
+                    layout: 'classic',
+                    animation: 'staggered',
+                    refresh: 3,
+                    randomness: 8,
+                    ambient: false,
+                    biasHero: false,
+                })
+            );
+            btnLounge?.addEventListener('click', () =>
+                onPreset({
+                    density: 'medium',
+                    layout: 'classic',
+                    animation: 'fade',
+                    refresh: 8,
+                    randomness: 4,
+                    ambient: true,
+                    biasHero: false,
+                })
+            );
+            btnFocus?.addEventListener('click', () =>
+                onPreset({
+                    density: 'medium',
+                    layout: 'heroGrid',
+                    animation: 'fade',
+                    refresh: 7,
+                    randomness: 1,
+                    ambient: false,
+                    biasHero: true,
+                    heroSide: 'right',
+                    heroRotationMinutes: 10,
+                })
+            );
+            btnShowcase?.addEventListener('click', () =>
+                onPreset({
+                    density: 'medium',
+                    layout: 'heroGrid',
+                    animation: 'neonPulse',
+                    refresh: 5,
+                    randomness: 6,
+                    ambient: true,
+                    biasHero: true,
+                    heroSide: 'left',
+                    heroRotationMinutes: 5,
+                })
+            );
             btnResetW?.addEventListener('click', () =>
                 onPreset({
                     density: 'medium',
@@ -5194,6 +5285,136 @@
                     biasHero: true,
                     heroSide: 'left',
                     heroRotationMinutes: 10,
+                })
+            );
+
+            // Music Presets - enable music mode and set specific configs
+            const onMusicPreset = p => {
+                // Enable music mode first
+                setVal('wallartMode_musicMode_enabled', true, ['change']);
+                // Set music-specific settings
+                if (p.displayStyle) setMusicVal('displayStyle', p.displayStyle, ['change']);
+                if (p.animation) setMusicVal('animation', p.animation, ['change']);
+                if (p.density) setMusicVal('density', p.density, ['change']);
+                if (typeof p.showArtist === 'boolean')
+                    setMusicVal('showArtist', p.showArtist, ['change']);
+                if (typeof p.showAlbumTitle === 'boolean')
+                    setMusicVal('showAlbumTitle', p.showAlbumTitle, ['change']);
+                if (typeof p.showYear === 'boolean')
+                    setMusicVal('showYear', p.showYear, ['change']);
+                if (typeof p.showGenre === 'boolean')
+                    setMusicVal('showGenre', p.showGenre, ['change']);
+                applySummary();
+                try {
+                    window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+                } catch (_) {}
+            };
+
+            btnMusicVinyl?.addEventListener('click', () =>
+                onMusicPreset({
+                    displayStyle: 'covers-only',
+                    animation: 'vinyl-spin',
+                    density: 'medium',
+                    showArtist: false,
+                    showAlbumTitle: false,
+                    showYear: false,
+                    showGenre: false,
+                })
+            );
+
+            btnMusicArtist?.addEventListener('click', () =>
+                onMusicPreset({
+                    displayStyle: 'artist-cards',
+                    animation: 'crossfade',
+                    density: 'low',
+                    showArtist: true,
+                    showAlbumTitle: true,
+                    showYear: true,
+                    showGenre: true,
+                })
+            );
+
+            btnMusicDisco?.addEventListener('click', () =>
+                onMusicPreset({
+                    displayStyle: 'covers-only',
+                    animation: 'flip',
+                    density: 'ludicrous',
+                    showArtist: false,
+                    showAlbumTitle: false,
+                    showYear: false,
+                    showGenre: false,
+                })
+            );
+
+            btnMusicMinimal?.addEventListener('click', () =>
+                onMusicPreset({
+                    displayStyle: 'covers-only',
+                    animation: 'crossfade',
+                    density: 'low',
+                    showArtist: false,
+                    showAlbumTitle: false,
+                    showYear: false,
+                    showGenre: false,
+                })
+            );
+
+            btnMusicJazz?.addEventListener('click', () =>
+                onMusicPreset({
+                    displayStyle: 'album-info',
+                    animation: 'crossfade',
+                    density: 'low',
+                    showArtist: true,
+                    showAlbumTitle: true,
+                    showYear: true,
+                    showGenre: true,
+                })
+            );
+
+            btnMusicParty?.addEventListener('click', () =>
+                onMusicPreset({
+                    displayStyle: 'covers-only',
+                    animation: 'slide-fade',
+                    density: 'high',
+                    showArtist: false,
+                    showAlbumTitle: false,
+                    showYear: false,
+                    showGenre: false,
+                })
+            );
+
+            btnMusicAudiophile?.addEventListener('click', () =>
+                onMusicPreset({
+                    displayStyle: 'album-info',
+                    animation: 'vinyl-spin',
+                    density: 'medium',
+                    showArtist: true,
+                    showAlbumTitle: true,
+                    showYear: true,
+                    showGenre: true,
+                })
+            );
+
+            btnMusicGallery?.addEventListener('click', () =>
+                onMusicPreset({
+                    displayStyle: 'covers-only',
+                    animation: 'crossfade',
+                    density: 'high',
+                    showArtist: false,
+                    showAlbumTitle: false,
+                    showYear: false,
+                    showGenre: false,
+                })
+            );
+
+            btnMusicReset?.addEventListener('click', () =>
+                onMusicPreset({
+                    displayStyle: 'covers-only',
+                    animation: 'vinyl-spin',
+                    density: 'medium',
+                    showArtist: true,
+                    showAlbumTitle: true,
+                    showYear: true,
+                    showGenre: false,
                 })
             );
         } catch (_) {

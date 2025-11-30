@@ -637,11 +637,27 @@
                   <!-- Presets + Summary card (mirrors Screensaver) -->
                   <div class="mode-card" id="wallart-presets-card" data-card-key="presets" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-sliders-h"></i> Presets</div>
-                    <div class="scaling-presets" style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <div class="scaling-presets" id="wallart-presets-general" style="display:flex; flex-wrap:wrap; gap:8px;">
                       <button type="button" class="btn btn-secondary btn-sm" id="wallart-preset-gallery" title="Dense grid, smooth fade"><i class="fas fa-th"></i> <span>Gallery</span></button>
                       <button type="button" class="btn btn-secondary btn-sm" id="wallart-preset-hero" title="Hero left, medium grid cadence"><i class="fas fa-user-astronaut"></i> <span>Hero Focus</span></button>
                       <button type="button" class="btn btn-secondary btn-sm" id="wallart-preset-vibe" title="Ambient gradient, slow"> <i class="fas fa-water"></i> <span>Ambient Vibe</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="wallart-preset-museum" title="Slow, calm rotation for museum-like atmosphere"><i class="fas fa-landmark"></i> <span>Museum</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="wallart-preset-dynamic" title="Fast-paced with high variety"><i class="fas fa-bolt"></i> <span>Dynamic</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="wallart-preset-lounge" title="Relaxed tempo with subtle UI"><i class="fas fa-couch"></i> <span>Lounge</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="wallart-preset-focus" title="Minimal randomness, predictable"><i class="fas fa-crosshairs"></i> <span>Focus</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="wallart-preset-showcase" title="Moderate speed with larger UI"><i class="fas fa-star"></i> <span>Showcase</span></button>
                       <button type="button" class="btn btn-outline btn-sm" id="wallart-preset-reset" title="Reset to sensible defaults"><i class="fas fa-undo"></i> <span>Reset</span></button>
+                    </div>
+                    <div class="scaling-presets" id="wallart-presets-music" style="display:none; flex-wrap:wrap; gap:8px;">
+                      <button type="button" class="btn btn-secondary btn-sm" id="music-preset-vinyl" title="Classic vinyl spin with medium grid"><i class="fas fa-record-vinyl"></i> <span>Vinyl Lounge</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="music-preset-artist" title="Artist cards with full-screen photos"><i class="fas fa-user-music"></i> <span>Artist Focus</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="music-preset-disco" title="High density with flip animation"><i class="fas fa-compact-disc"></i> <span>Disco Wall</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="music-preset-minimal" title="Clean covers-only, low density"><i class="fas fa-border-none"></i> <span>Minimalist</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="music-preset-jazz" title="Slow crossfade with album info"><i class="fas fa-guitar"></i> <span>Jazz Club</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="music-preset-party" title="Fast, energetic with slide-fade"><i class="fas fa-music"></i> <span>Party Mode</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="music-preset-audiophile" title="Detailed metadata, medium pace"><i class="fas fa-headphones-alt"></i> <span>Audiophile</span></button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="music-preset-gallery" title="High density grid showcase"><i class="fas fa-album-collection"></i> <span>Collection</span></button>
+                      <button type="button" class="btn btn-outline btn-sm" id="music-preset-reset" title="Reset to music defaults"><i class="fas fa-undo"></i> <span>Reset</span></button>
                     </div>
                     <div class="card-title" style="font-size:.95rem; margin:10px 0 6px;"><i class="fas fa-info-circle"></i> Current Experience</div>
                     <div id="wallart-summary" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
