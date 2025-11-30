@@ -9,9 +9,13 @@
         Object.entries(attrs).forEach(([k, v]) => {
             if (k === 'class') n.className = v;
             else if (k === 'for') n.htmlFor = v;
-            else if (k.startsWith('on') && typeof v === 'function')
+            else if (k === 'checked') {
+                // Handle boolean checked attribute properly
+                if (v === true || v === 'checked') n.checked = true;
+                // Don't set checked for false/null/undefined
+            } else if (k.startsWith('on') && typeof v === 'function')
                 n.addEventListener(k.substring(2), v);
-            else n.setAttribute(k, v);
+            else if (v !== null && v !== undefined) n.setAttribute(k, v);
         });
         (Array.isArray(children) ? children : [children])
             .filter(Boolean)
