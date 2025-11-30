@@ -474,16 +474,9 @@
                                 },
                                 "shadow": {
                                     "type": "string",
-                                    "enum": [
-                                        "none",
-                                        "subtle",
-                                        "dramatic",
-                                        "neon",
-                                        "glow",
-                                        "posterMask"
-                                    ],
+                                    "enum": ["none", "subtle", "dramatic", "neon", "glow"],
                                     "default": "subtle",
-                                    "description": "Text shadow/glow effect (posterMask clips poster image through text)"
+                                    "description": "Text shadow/glow effect"
                                 },
                                 "animation": {
                                     "type": "string",
@@ -712,6 +705,21 @@
                             "enum": ["fullBleed", "framed", "floating"],
                             "default": "floating",
                             "description": "Poster display style: fullBleed (edge to edge), framed (with border), floating (with shadow)"
+                        },
+                        "overlay": {
+                            "type": "string",
+                            "enum": [
+                                "none",
+                                "grain",
+                                "oldMovie",
+                                "vhs",
+                                "monochrome",
+                                "scanlines",
+                                "paper",
+                                "vintage"
+                            ],
+                            "default": "none",
+                            "description": "Overlay effect applied to the poster"
                         },
                         "animation": {
                             "type": "string",

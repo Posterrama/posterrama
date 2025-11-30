@@ -217,7 +217,8 @@
         headerEl.style.setProperty('--header-color', typo.color || '#ffffff');
 
         // Set header text
-        headerEl.textContent = cinemaConfig.header.text || 'Now Playing';
+        const headerText = cinemaConfig.header.text || 'Now Playing';
+        headerEl.textContent = headerText;
 
         // Add body class to adjust info-container padding
         document.body.classList.add('cinema-header-active');
@@ -933,6 +934,21 @@
             'cinema-poster-floating'
         );
         document.body.classList.add(`cinema-poster-${poster.style}`);
+
+        // Remove existing overlay classes
+        document.body.classList.remove(
+            'cinema-overlay-none',
+            'cinema-overlay-grain',
+            'cinema-overlay-oldMovie',
+            'cinema-overlay-vhs',
+            'cinema-overlay-monochrome',
+            'cinema-overlay-scanlines',
+            'cinema-overlay-paper',
+            'cinema-overlay-vintage'
+        );
+        if (poster.overlay && poster.overlay !== 'none') {
+            document.body.classList.add(`cinema-overlay-${poster.overlay}`);
+        }
 
         // Remove existing animation classes (kenBurns removed)
         document.body.classList.remove(

@@ -379,7 +379,6 @@
                     el('option', { value: 'dramatic' }, 'Dramatic Shadow'),
                     el('option', { value: 'neon' }, 'Neon Glow'),
                     el('option', { value: 'glow' }, 'Soft Glow'),
-                    el('option', { value: 'posterMask' }, 'Poster Mask'),
                 ]),
                 el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
             ]),
@@ -811,6 +810,7 @@
         // Poster controls
         const poster = c.poster || {};
         $('#cinemaPosterStyle') && ($('#cinemaPosterStyle').value = poster.style || 'floating');
+        $('#cinemaPosterOverlay') && ($('#cinemaPosterOverlay').value = poster.overlay || 'none');
         $('#cinemaPosterAnimation') &&
             ($('#cinemaPosterAnimation').value = poster.animation || 'fade');
         $('#cinemaPosterTransition') &&
@@ -1114,6 +1114,7 @@
         return {
             poster: {
                 style: $('#cinemaPosterStyle')?.value || 'floating',
+                overlay: $('#cinemaPosterOverlay')?.value || 'none',
                 animation: $('#cinemaPosterAnimation')?.value || 'fade',
                 transitionDuration: parseFloat($('#cinemaPosterTransition')?.value || '1.5'),
                 frameColor: $('#cinemaFrameColor')?.value || '#333333',

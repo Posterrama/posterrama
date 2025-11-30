@@ -125,6 +125,16 @@ function migrateConfig(cfg) {
         vignette: ['none', 'subtle', 'dramatic'],
         // Poster
         posterStyle: ['floating', 'framed', 'minimal', 'shadow'],
+        posterOverlay: [
+            'none',
+            'grain',
+            'oldMovie',
+            'vhs',
+            'monochrome',
+            'scanlines',
+            'paper',
+            'vintage',
+        ],
         posterAnimation: ['fade', 'slide', 'zoom', 'flip'],
         // Promotional
         qrPosition: ['topLeft', 'topRight', 'bottomLeft', 'bottomRight'],
@@ -218,6 +228,7 @@ function migrateConfig(cfg) {
     modified =
         fixEnum(hTypo, 'fontFamily', VALID.headerFontFamily, 'cinematic', 'header.typography') ||
         modified;
+
     modified =
         fixEnum(hTypo, 'shadow', VALID.headerShadow, 'subtle', 'header.typography') || modified;
     modified =
@@ -403,6 +414,8 @@ function migrateConfig(cfg) {
     if (cinema.poster) {
         modified =
             fixEnum(cinema.poster, 'style', VALID.posterStyle, 'floating', 'poster') || modified;
+        modified =
+            fixEnum(cinema.poster, 'overlay', VALID.posterOverlay, 'none', 'poster') || modified;
         modified =
             fixEnum(cinema.poster, 'animation', VALID.posterAnimation, 'fade', 'poster') ||
             modified;
