@@ -21,6 +21,8 @@
         layers: [],
         config: null,
         posterQueue: [],
+        originalPosters: [], // Keep original list for reshuffling
+        usedPosters: new Set(),
         animationFrame: null,
         lastTime: 0,
         scrollSpeed: 20, // Base pixels per second
@@ -38,7 +40,9 @@
         cleanup();
 
         state.config = config.parallaxDepth || {};
-        state.posterQueue = [...posters];
+        state.originalPosters = [...posters];
+        state.posterQueue = shuffleArray([...posters]);
+        state.usedPosters = new Set();
         state.isActive = true;
 
         // Create layer containers
@@ -172,19 +176,56 @@
     }
 
     /**
-     * Get next poster from queue (cycling through)
-     * @param {number} layerIndex - Layer index for distribution
+     * Shuffle array using Fisher-Yates algorithm
+     */
+    function shuffleArray(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
+    /**
+     * Get next poster with smart selection and auto-reshuffle
      * @returns {Object|null} Poster object
      */
-    function getNextPoster(layerIndex) {
-        if (state.posterQueue.length === 0) return null;
+    function getNextPoster() {
+        if (state.originalPosters.length === 0) return null;
 
-        // Distribute posters across layers
-        const posterIndex = (layerIndex * 37) % state.posterQueue.length;
-        const poster = state.posterQueue[posterIndex];
+        // If all posters have been used, reshuffle and reset
+        if (state.usedPosters.size >= state.originalPosters.length) {
+            console.log('[ParallaxScrolling] All posters used, reshuffling...');
+            state.usedPosters.clear();
+            state.posterQueue = shuffleArray([...state.originalPosters]);
+        }
 
-        // Rotate queue
-        state.posterQueue.push(state.posterQueue.shift());
+        // If queue is empty, reshuffle
+        if (state.posterQueue.length === 0) {
+            state.posterQueue = shuffleArray([...state.originalPosters]);
+        }
+
+        // Get next unused poster from queue
+        let poster = state.posterQueue.shift();
+        let attempts = 0;
+
+        // Try to find an unused poster (max 10 attempts to avoid infinite loop)
+        while (
+            state.usedPosters.has(poster?.id || poster?.posterUrl) &&
+            attempts < 10 &&
+            state.posterQueue.length > 0
+        ) {
+            state.posterQueue.push(poster); // Put it back at end
+            poster = state.posterQueue.shift();
+            attempts++;
+        }
+
+        // Mark as used
+        if (poster) {
+            const posterId = poster.id || poster.posterUrl;
+            state.usedPosters.add(posterId);
+        }
 
         return poster;
     }
@@ -306,6 +347,9 @@
         // Reset state
         state.layers = [];
         state.scrollPosition = 0;
+        state.usedPosters.clear();
+        state.posterQueue = [];
+        state.originalPosters = [];
     }
 
     /**
