@@ -190,6 +190,7 @@ const ratingCache = require('./utils/rating-cache.js');
 const { deviceBypassMiddleware } = require('./middleware/deviceBypass');
 
 // Use environment configuration with fallback to config.json
+// @ts-ignore - Config.serverPort exists at runtime
 const port = env.server.port || config.serverPort || 4000;
 const isDebug = env.server.debug;
 
@@ -217,6 +218,7 @@ initializeCache(logger, metricsManager);
 app.use(deviceBypassMiddleware);
 
 // Initialize cache disk manager
+// @ts-ignore - Config.cache exists at runtime
 const cacheDiskManager = new CacheDiskManager(imageCacheDir, config.cache || {});
 
 // Initialize local directory support (extracted to lib/local-directory-init.js)
@@ -342,11 +344,13 @@ app.use((req, res, next) => {
 // Performance and security logging middleware
 app.use((req, res, next) => {
     // Add request ID for tracking
+    // @ts-ignore - req.id is a custom property
     req.id = crypto.randomBytes(16).toString('hex');
 
     // Log start of request processing
     const start = process.hrtime();
     const requestLog = {
+        // @ts-ignore - req.id is a custom property
         id: req.id,
         method: req.method,
         path: req.path,
@@ -356,6 +360,7 @@ app.use((req, res, next) => {
 
     // Security logging for admin endpoints - only log truly suspicious activity
     if (req.path.startsWith('/api/admin/')) {
+        // @ts-ignore - req.session is provided by express-session
         const hasSessionUser = Boolean(req.session?.user);
         const authHeader = req.headers.authorization || '';
         const hasBearer = authHeader.startsWith('Bearer ');
@@ -443,7 +448,7 @@ app.use('/api', (req, res, next) => {
     if (acceptedVersion) {
         const supportedVersions = ['1.2.0', '1.2.1', '1.2.2', '1.2.3', '1.2.4', '1.2.5'];
 
-        if (!supportedVersions.includes(acceptedVersion)) {
+        if (!supportedVersions.includes(String(acceptedVersion))) {
             return res.status(400).json({
                 error: `Unsupported API version: ${acceptedVersion}. Supported versions: ${supportedVersions.join(', ')}`,
             });
@@ -1037,6 +1042,7 @@ app.get('/api/_internal/health-debug', (req, res) => {
 // Example URL shape produced by LocalDirectorySource: /local-media/posters/My%20Movie.jpg
 app.get(
     '/local-media/*',
+    // @ts-ignore - Express router overload with asyncHandler
     asyncHandler(async (req, res) => {
         // Minimal placeholder: disable direct file serving by default.
         // Local media can be accessed via /local-posterpack for ZIP contents.
@@ -1095,6 +1101,7 @@ app.get(
 // Example: /local-posterpack?zip=complete/manual/Movie%20(2024).zip&entry=poster
 app.get(
     '/local-posterpack',
+    // @ts-ignore - Express router overload with asyncHandler
     asyncHandler(async (req, res) => {
         try {
             if (!config.localDirectory?.enabled || !localDirectorySource) {
@@ -1239,6 +1246,7 @@ app.get(
 // HEAD support to quickly check presence of a posterpack entry (no body streamed)
 app.head(
     '/local-posterpack',
+    // @ts-ignore - Express router overload with asyncHandler
     asyncHandler(async (req, res) => {
         try {
             if (!config.localDirectory?.enabled || !localDirectorySource) {
@@ -1390,6 +1398,7 @@ app.head(
  */
 app.post(
     '/api/admin/filter-preview',
+    // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     express.json(),
     asyncHandler(async (req, res) => {
@@ -2366,11 +2375,13 @@ const adminCacheRouter = createAdminCacheRouter({
 });
 app.use('/', adminCacheRouter);
 // Initialize cache references (must be done after apiCache is created)
+// @ts-ignore - Custom method on router
 adminCacheRouter.initCacheReferences(cacheManager, apiCache);
 
 // === ADMIN LOGS ROUTES ===
 // Extracted to routes/admin-logs.js
 const adminLogsRouter = require('./routes/admin-logs');
+// @ts-ignore - Express router overload with middleware
 app.use('/api/admin', isAuthenticated, adminLogsRouter);
 
 // === ADMIN PERFORMANCE ROUTES ===
@@ -2437,6 +2448,7 @@ const cspReportJson = express.json({
  *         description: Failed to read presets
  */
 // Admin: get device presets (JSON)
+// @ts-ignore - Express router overload with middleware
 app.get('/api/admin/device-presets', adminAuth, async (req, res) => {
     try {
         const list = await readPresets(__dirname);
@@ -2639,7 +2651,7 @@ app.get('/api/admin/plex/music-genres', adminAuth, async (req, res) => {
             return res.status(404).json({ error: 'no_plex_server_configured' });
         }
 
-        const genres = await getPlexMusicGenres(plexServer, library);
+        const genres = await getPlexMusicGenres(plexServer, String(library));
         res.json(genres);
     } catch (err) {
         logger.error(`Failed to fetch Plex music genres: ${err.message}`);
@@ -2731,9 +2743,9 @@ app.get('/api/admin/plex/music-artists', adminAuth, async (req, res) => {
 
         const result = await getPlexMusicArtists(
             plexServer,
-            library,
-            parseInt(limit, 10),
-            parseInt(offset, 10)
+            String(library),
+            parseInt(String(limit), 10),
+            parseInt(String(offset), 10)
         );
         res.json(result);
     } catch (err) {
@@ -3027,6 +3039,7 @@ async function refreshPlaylistCache() {
  */
 function schedulePlaylistBackgroundRefresh() {
     return schedulePlaylistBackgroundRefreshCore({
+        // @ts-ignore - Config.backgroundRefreshMinutes exists at runtime
         intervalMinutes: config.backgroundRefreshMinutes,
         refreshCallback: refreshPlaylistCache,
     });
@@ -3597,10 +3610,10 @@ app.post('/api/admin/restart-app', adminAuth, (req, res) => {
                 // best-effort logging
             }
             if (!env.pm2.isEnabled()) {
-                const timeoutConfig = require('./config/');
+                const timeoutConfig2 = require('./config/');
                 setTimeout(
                     () => process.exit(0),
-                    timeoutConfig.getTimeout('processGracefulShutdown')
+                    timeoutConfig2.getTimeout('processGracefulShutdown')
                 );
             }
         }
