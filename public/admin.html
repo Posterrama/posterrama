@@ -1245,20 +1245,14 @@
                         </div>
                         <div class="form-row">
                           <label for="cinemaTitleSize">Title Size</label>
-                          <div class="cinema-range-row">
+                          <div class="modern-slider">
                             <input type="range" id="cinemaTitleSize" min="50" max="200" step="5" value="100" />
-                            <span class="range-value" id="cinemaTitleSizeValue">100%</span>
+                            <div class="slider-bar"><div class="fill"></div></div>
                           </div>
+                          <div class="slider-percentage" data-target="cinema.typography.titleSize">100%</div>
                         </div>
-                        <div class="form-row">
-                          <label for="cinemaTitleColor">Title Color</label>
-                          <div class="cinema-color-picker">
-                            <div class="cinema-color-circle" id="cinemaTitleColorCircle" style="background-color: #ffffff;">
-                              <input type="color" id="cinemaTitleColor" value="#ffffff" />
-                            </div>
-                            <span class="cinema-color-hex" id="cinemaTitleColorHex">#FFFFFF</span>
-                          </div>
-                        </div>
+                        <!-- Title Color - Component Container -->
+                        <div id="cinema-title-color-picker-container"></div>
                         <div class="form-row">
                           <label for="cinemaTitleShadow">Title Shadow</label>
                           <div class="select-wrap has-caret">
@@ -1273,26 +1267,11 @@
                         </div>
                         <div class="form-row">
                           <label for="cinemaMetadataOpacity">Metadata Opacity</label>
-                          <div class="cinema-range-row">
+                          <div class="modern-slider">
                             <input type="range" id="cinemaMetadataOpacity" min="0" max="100" step="5" value="80" />
-                            <span class="range-value" id="cinemaMetadataOpacityValue">80%</span>
+                            <div class="slider-bar"><div class="fill"></div></div>
                           </div>
-                        </div>
-                      </div>
-                      <!-- Live Preview -->
-                      <div class="cinema-preview-panel" id="cinemaTypographyPreview">
-                        <div class="cinema-preview-header">
-                          <span class="cinema-preview-title"><i class="fas fa-eye"></i> Live Preview</span>
-                          <button type="button" class="cinema-preview-refresh" id="cinemaPreviewRefresh" title="Refresh preview"><i class="fas fa-sync-alt"></i></button>
-                        </div>
-                        <div class="cinema-preview-content">
-                          <div class="cinema-preview-poster" id="cinemaPreviewPoster">
-                            <img src="/api/poster/random?mode=cinema&t=preview" alt="Preview" onerror="this.style.display='none'" />
-                          </div>
-                          <div class="cinema-preview-meta">
-                            <div class="cinema-preview-meta-title" id="cinemaPreviewTitle">Movie Title</div>
-                            <div class="cinema-preview-meta-info" id="cinemaPreviewInfo">2024 • 2h 15m • ★ 8.5</div>
-                          </div>
+                          <div class="slider-percentage" data-target="cinema.typography.metadataOpacity">80%</div>
                         </div>
                       </div>
                     </div>
@@ -1315,21 +1294,15 @@
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
                         </div>
-                        <div class="form-row cinema-conditional-row" id="cinemaBackgroundColorRow">
-                          <label for="cinemaBackgroundColor">Background Color</label>
-                          <div class="cinema-color-picker">
-                            <div class="cinema-color-circle" id="cinemaBackgroundColorCircle" style="background-color: #000000;">
-                              <input type="color" id="cinemaBackgroundColor" value="#000000" />
-                            </div>
-                            <span class="cinema-color-hex" id="cinemaBackgroundColorHex">#000000</span>
-                          </div>
-                        </div>
+                        <!-- Background Color - Component Container -->
+                        <div id="cinema-background-color-picker-container" class="cinema-conditional-row"></div>
                         <div class="form-row cinema-conditional-row" id="cinemaBackgroundBlurRow" style="display:none;">
                           <label for="cinemaBackgroundBlur">Blur Amount</label>
-                          <div class="cinema-range-row">
+                          <div class="modern-slider">
                             <input type="range" id="cinemaBackgroundBlur" min="5" max="50" step="1" value="20" />
-                            <span class="range-value" id="cinemaBackgroundBlurValue">20px</span>
+                            <div class="slider-bar"><div class="fill"></div></div>
                           </div>
+                          <div class="slider-percentage" data-target="cinema.background.blurAmount">20px</div>
                         </div>
                         <div class="form-row">
                           <label for="cinemaVignette">Vignette</label>
@@ -1363,21 +1336,15 @@
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
                         </div>
-                        <div class="form-row cinema-conditional-row" id="cinemaFrameColorRow" style="display:none;">
-                          <label for="cinemaFrameColor">Frame Color</label>
-                          <div class="cinema-color-picker">
-                            <div class="cinema-color-circle" id="cinemaFrameColorCircle" style="background-color: #333333;">
-                              <input type="color" id="cinemaFrameColor" value="#333333" />
-                            </div>
-                            <span class="cinema-color-hex" id="cinemaFrameColorHex">#333333</span>
-                          </div>
-                        </div>
+                        <!-- Frame Color - Component Container -->
+                        <div id="cinema-frame-color-picker-container" class="cinema-conditional-row" style="display:none;"></div>
                         <div class="form-row cinema-conditional-row" id="cinemaFrameWidthRow" style="display:none;">
                           <label for="cinemaFrameWidth">Frame Width</label>
-                          <div class="cinema-range-row">
+                          <div class="modern-slider">
                             <input type="range" id="cinemaFrameWidth" min="2" max="20" step="1" value="8" />
-                            <span class="range-value" id="cinemaFrameWidthValue">8px</span>
+                            <div class="slider-bar"><div class="fill"></div></div>
                           </div>
+                          <div class="slider-percentage" data-target="cinema.poster.frameWidth">8px</div>
                         </div>
                         <div class="cinema-section-header">Animation</div>
                         <div class="form-row">
@@ -1395,10 +1362,11 @@
                         </div>
                         <div class="form-row">
                           <label for="cinemaPosterTransition">Transition Duration</label>
-                          <div class="cinema-range-row">
+                          <div class="modern-slider">
                             <input type="range" id="cinemaPosterTransition" min="0.5" max="5" step="0.5" value="1.5" />
-                            <span class="range-value" id="cinemaPosterTransitionValue">1.5s</span>
+                            <div class="slider-bar"><div class="fill"></div></div>
                           </div>
+                          <div class="slider-percentage" data-target="cinema.poster.transitionDuration">1.5s</div>
                         </div>
                       </div>
                     </div>
@@ -1420,17 +1388,17 @@
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
                         </div>
-                        <div class="cinema-checkbox-grid">
-                          <label class="cinema-check"><input type="checkbox" id="cinemaShowTitle" checked /> <span>Title</span></label>
-                          <label class="cinema-check"><input type="checkbox" id="cinemaShowYear" checked /> <span>Year</span></label>
-                          <label class="cinema-check"><input type="checkbox" id="cinemaShowRuntime" checked /> <span>Runtime</span></label>
-                          <label class="cinema-check"><input type="checkbox" id="cinemaShowRating" checked /> <span>Rating</span></label>
-                          <label class="cinema-check"><input type="checkbox" id="cinemaShowCertification" /> <span>Certification</span></label>
-                          <label class="cinema-check"><input type="checkbox" id="cinemaShowGenre" /> <span>Genre</span></label>
-                          <label class="cinema-check"><input type="checkbox" id="cinemaShowDirector" /> <span>Director</span></label>
-                          <label class="cinema-check"><input type="checkbox" id="cinemaShowCast" /> <span>Cast</span></label>
-                          <label class="cinema-check"><input type="checkbox" id="cinemaShowPlot" /> <span>Plot</span></label>
-                          <label class="cinema-check"><input type="checkbox" id="cinemaShowStudioLogo" /> <span>Studio Logo</span></label>
+                        <div class="checkbox-group" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;">
+                          <label class="checkbox" for="cinemaShowTitle"><input type="checkbox" id="cinemaShowTitle" checked /><span class="checkmark"></span><span>Title</span></label>
+                          <label class="checkbox" for="cinemaShowYear"><input type="checkbox" id="cinemaShowYear" checked /><span class="checkmark"></span><span>Year</span></label>
+                          <label class="checkbox" for="cinemaShowRuntime"><input type="checkbox" id="cinemaShowRuntime" checked /><span class="checkmark"></span><span>Runtime</span></label>
+                          <label class="checkbox" for="cinemaShowRating"><input type="checkbox" id="cinemaShowRating" checked /><span class="checkmark"></span><span>Rating</span></label>
+                          <label class="checkbox" for="cinemaShowCertification"><input type="checkbox" id="cinemaShowCertification" /><span class="checkmark"></span><span>Certification</span></label>
+                          <label class="checkbox" for="cinemaShowGenre"><input type="checkbox" id="cinemaShowGenre" /><span class="checkmark"></span><span>Genre</span></label>
+                          <label class="checkbox" for="cinemaShowDirector"><input type="checkbox" id="cinemaShowDirector" /><span class="checkmark"></span><span>Director</span></label>
+                          <label class="checkbox" for="cinemaShowCast"><input type="checkbox" id="cinemaShowCast" /><span class="checkmark"></span><span>Cast</span></label>
+                          <label class="checkbox" for="cinemaShowPlot"><input type="checkbox" id="cinemaShowPlot" /><span class="checkmark"></span><span>Plot</span></label>
+                          <label class="checkbox" for="cinemaShowStudioLogo"><input type="checkbox" id="cinemaShowStudioLogo" /><span class="checkmark"></span><span>Studio Logo</span></label>
                         </div>
                       </div>
                     </div>
@@ -1442,14 +1410,14 @@
                     <div id="cinema-promotional-mount">
                       <div class="form-grid">
                         <div class="cinema-section-header">Badges</div>
-                        <div class="cinema-checkbox-grid">
-                          <label class="cinema-check"><input type="checkbox" id="cinemaComingSoonBadge" /> <span>Coming Soon Badge</span></label>
-                          <label class="cinema-check"><input type="checkbox" id="cinemaReleaseCountdown" /> <span>Release Countdown</span></label>
+                        <div class="checkbox-group" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                          <label class="checkbox" for="cinemaComingSoonBadge"><input type="checkbox" id="cinemaComingSoonBadge" /><span class="checkmark"></span><span>Coming Soon Badge</span></label>
+                          <label class="checkbox" for="cinemaReleaseCountdown"><input type="checkbox" id="cinemaReleaseCountdown" /><span class="checkmark"></span><span>Release Countdown</span></label>
                         </div>
                         
                         <div class="cinema-section-header">QR Code</div>
                         <div class="form-row">
-                          <label class="cinema-check"><input type="checkbox" id="cinemaQREnabled" /> <span>Enable QR Code Overlay</span></label>
+                          <label class="checkbox" for="cinemaQREnabled"><input type="checkbox" id="cinemaQREnabled" /><span class="checkmark"></span><span>Enable QR Code Overlay</span></label>
                         </div>
                         <div class="cinema-nested-settings" id="cinemaQRSettings" style="display:none;">
                           <div class="form-row">
@@ -1470,16 +1438,17 @@
                           </div>
                           <div class="form-row">
                             <label for="cinemaQRSize">Size</label>
-                            <div class="cinema-range-row">
+                            <div class="modern-slider">
                               <input type="range" id="cinemaQRSize" min="60" max="200" step="10" value="100" />
-                              <span class="range-value" id="cinemaQRSizeValue">100px</span>
+                              <div class="slider-bar"><div class="fill"></div></div>
                             </div>
+                            <div class="slider-percentage" data-target="cinema.promotional.qrCode.size">100px</div>
                           </div>
                         </div>
                         
                         <div class="cinema-section-header">Announcement Banner</div>
                         <div class="form-row">
-                          <label class="cinema-check"><input type="checkbox" id="cinemaAnnouncementEnabled" /> <span>Enable Announcement Banner</span></label>
+                          <label class="checkbox" for="cinemaAnnouncementEnabled"><input type="checkbox" id="cinemaAnnouncementEnabled" /><span class="checkmark"></span><span>Enable Announcement Banner</span></label>
                         </div>
                         <div class="cinema-nested-settings" id="cinemaAnnouncementSettings" style="display:none;">
                           <div class="form-row">

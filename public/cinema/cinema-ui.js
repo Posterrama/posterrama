@@ -697,23 +697,14 @@
         const typo = c.typography || {};
         $('#cinemaFontFamily') && ($('#cinemaFontFamily').value = typo.fontFamily || 'cinematic');
         $('#cinemaTitleSize') && ($('#cinemaTitleSize').value = typo.titleSize || 100);
-        $('#cinemaTitleSizeValue') &&
-            ($('#cinemaTitleSizeValue').textContent = (typo.titleSize || 100) + '%');
-        $('#cinemaTitleColor') && ($('#cinemaTitleColor').value = typo.titleColor || '#ffffff');
         $('#cinemaTitleShadow') && ($('#cinemaTitleShadow').value = typo.titleShadow || 'subtle');
         $('#cinemaMetadataOpacity') &&
             ($('#cinemaMetadataOpacity').value = typo.metadataOpacity || 80);
-        $('#cinemaMetadataOpacityValue') &&
-            ($('#cinemaMetadataOpacityValue').textContent = (typo.metadataOpacity || 80) + '%');
 
         // Background controls
         const bg = c.background || {};
         $('#cinemaBackgroundMode') && ($('#cinemaBackgroundMode').value = bg.mode || 'solid');
-        $('#cinemaBackgroundColor') &&
-            ($('#cinemaBackgroundColor').value = bg.solidColor || '#000000');
         $('#cinemaBackgroundBlur') && ($('#cinemaBackgroundBlur').value = bg.blurAmount || 20);
-        $('#cinemaBackgroundBlurValue') &&
-            ($('#cinemaBackgroundBlurValue').textContent = (bg.blurAmount || 20) + 'px');
         $('#cinemaVignette') && ($('#cinemaVignette').value = bg.vignette || 'subtle');
 
         // Poster controls
@@ -723,13 +714,7 @@
             ($('#cinemaPosterAnimation').value = poster.animation || 'fade');
         $('#cinemaPosterTransition') &&
             ($('#cinemaPosterTransition').value = poster.transitionDuration || 1.5);
-        $('#cinemaPosterTransitionValue') &&
-            ($('#cinemaPosterTransitionValue').textContent =
-                (poster.transitionDuration || 1.5) + 's');
-        $('#cinemaFrameColor') && ($('#cinemaFrameColor').value = poster.frameColor || '#333333');
         $('#cinemaFrameWidth') && ($('#cinemaFrameWidth').value = poster.frameWidth || 8);
-        $('#cinemaFrameWidthValue') &&
-            ($('#cinemaFrameWidthValue').textContent = (poster.frameWidth || 8) + 'px');
 
         // Metadata controls
         const meta = c.metadata || {};
@@ -758,7 +743,6 @@
         $('#cinemaQRUrl') && ($('#cinemaQRUrl').value = qr.url || '');
         $('#cinemaQRPosition') && ($('#cinemaQRPosition').value = qr.position || 'bottomRight');
         $('#cinemaQRSize') && ($('#cinemaQRSize').value = qr.size || 100);
-        $('#cinemaQRSizeValue') && ($('#cinemaQRSizeValue').textContent = (qr.size || 100) + 'px');
         const ann = promo.announcementBanner || {};
         $('#cinemaAnnouncementEnabled') &&
             ($('#cinemaAnnouncementEnabled').checked = !!ann.enabled);
@@ -766,99 +750,14 @@
         $('#cinemaAnnouncementStyle') &&
             ($('#cinemaAnnouncementStyle').value = ann.style || 'ticker');
 
-        // Wire up range sliders to show values
-        const wireRange = (sliderId, valueId, suffix) => {
-            const slider = $(sliderId);
-            const valueEl = $(valueId);
-            if (slider && valueEl) {
-                slider.addEventListener('input', () => {
-                    valueEl.textContent = slider.value + suffix;
-                    updateLivePreview(); // Trigger preview update
-                });
-            }
-        };
-        wireRange('#cinemaTitleSize', '#cinemaTitleSizeValue', '%');
-        wireRange('#cinemaMetadataOpacity', '#cinemaMetadataOpacityValue', '%');
-        wireRange('#cinemaBackgroundBlur', '#cinemaBackgroundBlurValue', 'px');
-        wireRange('#cinemaPosterTransition', '#cinemaPosterTransitionValue', 's');
-        wireRange('#cinemaFrameWidth', '#cinemaFrameWidthValue', 'px');
-        wireRange('#cinemaQRSize', '#cinemaQRSizeValue', 'px');
+        // Initialize color pickers using the reusable component (like Wallart)
+        initColorPickers(typo, bg, poster);
 
-        // Wire up color pickers with hex display and circle preview
-        const wireColorPicker = (inputId, circleId, hexId) => {
-            const input = $(inputId);
-            const circle = $(circleId);
-            const hex = $(hexId);
-            if (input) {
-                const updateColor = () => {
-                    const color = input.value;
-                    if (circle) circle.style.backgroundColor = color;
-                    if (hex) hex.textContent = color.toUpperCase();
-                    updateLivePreview(); // Trigger preview update
-                };
-                input.addEventListener('input', updateColor);
-                input.addEventListener('change', updateColor);
-                updateColor(); // Initial sync
-            }
-        };
-        wireColorPicker('#cinemaTitleColor', '#cinemaTitleColorCircle', '#cinemaTitleColorHex');
-        wireColorPicker(
-            '#cinemaBackgroundColor',
-            '#cinemaBackgroundColorCircle',
-            '#cinemaBackgroundColorHex'
-        );
-        wireColorPicker('#cinemaFrameColor', '#cinemaFrameColorCircle', '#cinemaFrameColorHex');
+        // Wire up modern sliders with fill bar and percentage display
+        wireModernSliders();
 
         // Wire up conditional visibility
-        // Font Family: show custom font input when 'custom' is selected
-        const fontFamilySelect = $('#cinemaFontFamily');
-        const customFontRow = $('#cinemaCustomFontRow');
-        if (fontFamilySelect && customFontRow) {
-            const syncFontVisibility = () => {
-                const isCustom = fontFamilySelect.value === 'custom';
-                customFontRow.style.display = isCustom ? '' : 'none';
-                updateLivePreview();
-            };
-            fontFamilySelect.addEventListener('change', syncFontVisibility);
-            syncFontVisibility();
-        }
-
-        // Background: show blur settings only when mode is 'blurred', color only when 'solid'
-        const bgModeSelect = $('#cinemaBackgroundMode');
-        const blurRow = $('#cinemaBackgroundBlurRow');
-        const colorRow = $('#cinemaBackgroundColorRow');
-        if (bgModeSelect && blurRow && colorRow) {
-            const syncBgVisibility = () => {
-                const mode = bgModeSelect.value;
-                blurRow.style.display = mode === 'blurred' ? '' : 'none';
-                colorRow.style.display = mode === 'solid' ? '' : 'none';
-                updateLivePreview();
-            };
-            bgModeSelect.addEventListener('change', syncBgVisibility);
-            syncBgVisibility();
-        }
-
-        // Poster: show frame controls only when style is 'framed'
-        const posterStyleSelect = $('#cinemaPosterStyle');
-        const frameColorRow = $('#cinemaFrameColorRow');
-        const frameWidthRow = $('#cinemaFrameWidthRow');
-        if (posterStyleSelect && frameColorRow && frameWidthRow) {
-            const syncPosterVisibility = () => {
-                const style = posterStyleSelect.value;
-                const show = style === 'framed';
-                frameColorRow.style.display = show ? '' : 'none';
-                frameWidthRow.style.display = show ? '' : 'none';
-                updateLivePreview();
-            };
-            posterStyleSelect.addEventListener('change', syncPosterVisibility);
-            syncPosterVisibility();
-        }
-
-        // Shadow select change also updates preview
-        const shadowSelect = $('#cinemaTitleShadow');
-        if (shadowSelect) {
-            shadowSelect.addEventListener('change', updateLivePreview);
-        }
+        wireConditionalVisibility();
 
         // QR Code: show settings when enabled
         const qrEnabled = $('#cinemaQREnabled');
@@ -881,106 +780,188 @@
             annEnabled.addEventListener('change', syncAnnVisibility);
             syncAnnVisibility();
         }
-
-        // Initialize live preview
-        initLivePreview();
     }
 
-    // === Live Preview System ===
-    function initLivePreview() {
-        const refreshBtn = $('#cinemaPreviewRefresh');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
-                // Reload poster image
-                const posterImg = $('#cinemaPreviewPoster img');
-                if (posterImg) {
-                    posterImg.src = `/api/poster/random?mode=cinema&t=${Date.now()}`;
-                }
-                updateLivePreview();
-            });
-        }
-        // Initial preview update
-        updateLivePreview();
-    }
+    // Color presets for cinema (cinema-themed colors)
+    const CINEMA_COLOR_PRESETS = [
+        { name: 'White', color: '#ffffff', gradient: 'linear-gradient(135deg, #ffffff, #f0f0f0)' },
+        { name: 'Gold', color: '#ffd700', gradient: 'linear-gradient(135deg, #ffd700, #ffaa00)' },
+        { name: 'Silver', color: '#c0c0c0', gradient: 'linear-gradient(135deg, #c0c0c0, #a0a0a0)' },
+        { name: 'Red', color: '#ff3333', gradient: 'linear-gradient(135deg, #ff3333, #cc0000)' },
+        { name: 'Blue', color: '#3399ff', gradient: 'linear-gradient(135deg, #3399ff, #0066cc)' },
+        { name: 'Black', color: '#000000', gradient: 'linear-gradient(135deg, #333333, #000000)' },
+        {
+            name: 'Dark Blue',
+            color: '#1a1a2e',
+            gradient: 'linear-gradient(135deg, #1a1a2e, #0a0a15)',
+        },
+        {
+            name: 'Dark Gray',
+            color: '#333333',
+            gradient: 'linear-gradient(135deg, #333333, #1a1a1a)',
+        },
+    ];
 
-    function updateLivePreview() {
-        const titleEl = $('#cinemaPreviewTitle');
-        const infoEl = $('#cinemaPreviewInfo');
-        const posterEl = $('#cinemaPreviewPoster');
-
-        if (!titleEl) return;
-
-        // Get current settings
-        const fontFamily = $('#cinemaFontFamily')?.value || 'cinematic';
-        const customFont = $('#cinemaCustomFont')?.value || '';
-        const titleSize = parseInt($('#cinemaTitleSize')?.value || '100', 10);
-        const titleColor = $('#cinemaTitleColor')?.value || '#ffffff';
-        const titleShadow = $('#cinemaTitleShadow')?.value || 'subtle';
-        const metaOpacity = parseInt($('#cinemaMetadataOpacity')?.value || '80', 10);
-        const posterStyle = $('#cinemaPosterStyle')?.value || 'floating';
-        const frameColor = $('#cinemaFrameColor')?.value || '#333333';
-        const frameWidth = parseInt($('#cinemaFrameWidth')?.value || '8', 10);
-
-        // Apply font family
-        titleEl.className = 'cinema-preview-meta-title';
-        if (fontFamily === 'custom' && customFont) {
-            // Load custom Google Font dynamically
-            loadGoogleFont(customFont);
-            titleEl.style.fontFamily = `'${customFont}', sans-serif`;
-        } else {
-            titleEl.classList.add(`font-${fontFamily}`);
-            titleEl.style.fontFamily = '';
-        }
-
-        // Apply title size
-        titleEl.style.fontSize = `${titleSize / 100}rem`;
-
-        // Apply title color
-        titleEl.style.color = titleColor;
-
-        // Apply shadow
-        titleEl.classList.add(`shadow-${titleShadow}`);
-
-        // Apply metadata opacity
-        if (infoEl) {
-            infoEl.style.opacity = metaOpacity / 100;
-        }
-
-        // Apply poster style
-        if (posterEl) {
-            posterEl.className = 'cinema-preview-poster';
-            posterEl.classList.add(`style-${posterStyle}`);
-            if (posterStyle === 'framed') {
-                posterEl.style.setProperty('--preview-frame-color', frameColor);
-                posterEl.style.setProperty(
-                    '--preview-frame-width',
-                    `${Math.max(2, frameWidth / 3)}px`
-                );
-            }
-        }
-    }
-
-    // Google Fonts loader cache
-    const loadedFonts = new Set();
-
-    function loadGoogleFont(fontName) {
-        if (!fontName || loadedFonts.has(fontName)) return;
-
-        // Sanitize font name for URL
-        const urlFontName = fontName.replace(/\s+/g, '+');
-        const linkId = `google-font-${urlFontName.toLowerCase().replace(/\+/g, '-')}`;
-
-        if (document.getElementById(linkId)) {
-            loadedFonts.add(fontName);
+    function initColorPickers(typo, bg, poster) {
+        // Check if createColorPicker is available (from ui-components.js)
+        if (typeof window.createColorPicker !== 'function') {
+            console.warn('createColorPicker not available, color pickers will not be initialized');
             return;
         }
 
-        const link = document.createElement('link');
-        link.id = linkId;
-        link.rel = 'stylesheet';
-        link.href = `https://fonts.googleapis.com/css2?family=${urlFontName}:wght@400;600;700&display=swap`;
-        document.head.appendChild(link);
-        loadedFonts.add(fontName);
+        // Title Color picker
+        const titleColorContainer = document.getElementById('cinema-title-color-picker-container');
+        if (titleColorContainer) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'cinemaTitleColor';
+            hiddenInput.value = typo.titleColor || '#ffffff';
+
+            const picker = window.createColorPicker({
+                label: 'Title Color',
+                color: typo.titleColor || '#ffffff',
+                defaultColor: '#ffffff',
+                presets: CINEMA_COLOR_PRESETS,
+                onColorChange: color => {
+                    hiddenInput.value = color;
+                },
+                messageType: 'CINEMA_TITLE_COLOR_UPDATE',
+                refreshIframe: false,
+                iframeId: 'display-preview-frame',
+            });
+
+            titleColorContainer.innerHTML = '';
+            titleColorContainer.appendChild(hiddenInput);
+            titleColorContainer.appendChild(picker);
+        }
+
+        // Background Color picker
+        const bgColorContainer = document.getElementById(
+            'cinema-background-color-picker-container'
+        );
+        if (bgColorContainer) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'cinemaBackgroundColor';
+            hiddenInput.value = bg.solidColor || '#000000';
+
+            const picker = window.createColorPicker({
+                label: 'Background Color',
+                color: bg.solidColor || '#000000',
+                defaultColor: '#000000',
+                presets: CINEMA_COLOR_PRESETS,
+                onColorChange: color => {
+                    hiddenInput.value = color;
+                },
+                messageType: 'CINEMA_BACKGROUND_COLOR_UPDATE',
+                refreshIframe: false,
+                iframeId: 'display-preview-frame',
+            });
+
+            bgColorContainer.innerHTML = '';
+            bgColorContainer.appendChild(hiddenInput);
+            bgColorContainer.appendChild(picker);
+        }
+
+        // Frame Color picker
+        const frameColorContainer = document.getElementById('cinema-frame-color-picker-container');
+        if (frameColorContainer) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'cinemaFrameColor';
+            hiddenInput.value = poster.frameColor || '#333333';
+
+            const picker = window.createColorPicker({
+                label: 'Frame Color',
+                color: poster.frameColor || '#333333',
+                defaultColor: '#333333',
+                presets: CINEMA_COLOR_PRESETS,
+                onColorChange: color => {
+                    hiddenInput.value = color;
+                },
+                messageType: 'CINEMA_FRAME_COLOR_UPDATE',
+                refreshIframe: false,
+                iframeId: 'display-preview-frame',
+            });
+
+            frameColorContainer.innerHTML = '';
+            frameColorContainer.appendChild(hiddenInput);
+            frameColorContainer.appendChild(picker);
+        }
+    }
+
+    function wireModernSliders() {
+        // Wire up modern sliders with fill bar animation (like Wallart)
+        const sliders = [
+            { id: 'cinemaTitleSize', suffix: '%', min: 50, max: 200 },
+            { id: 'cinemaMetadataOpacity', suffix: '%', min: 0, max: 100 },
+            { id: 'cinemaBackgroundBlur', suffix: 'px', min: 5, max: 50 },
+            { id: 'cinemaPosterTransition', suffix: 's', min: 0.5, max: 5 },
+            { id: 'cinemaFrameWidth', suffix: 'px', min: 2, max: 20 },
+            { id: 'cinemaQRSize', suffix: 'px', min: 60, max: 200 },
+        ];
+
+        sliders.forEach(({ id, suffix, min, max }) => {
+            const slider = document.getElementById(id);
+            if (!slider) return;
+
+            const container = slider.closest('.modern-slider');
+            const fill = container?.querySelector('.slider-bar .fill');
+            const percentageEl = container?.parentElement?.querySelector('.slider-percentage');
+
+            const updateSlider = () => {
+                const value = parseFloat(slider.value);
+                const percent = ((value - min) / (max - min)) * 100;
+                if (fill) fill.style.width = `${percent}%`;
+                if (percentageEl) percentageEl.textContent = value + suffix;
+            };
+
+            slider.addEventListener('input', updateSlider);
+            updateSlider(); // Initial state
+        });
+    }
+
+    function wireConditionalVisibility() {
+        // Font Family: show custom font input when 'custom' is selected
+        const fontFamilySelect = $('#cinemaFontFamily');
+        const customFontRow = $('#cinemaCustomFontRow');
+        if (fontFamilySelect && customFontRow) {
+            const syncFontVisibility = () => {
+                const isCustom = fontFamilySelect.value === 'custom';
+                customFontRow.style.display = isCustom ? '' : 'none';
+            };
+            fontFamilySelect.addEventListener('change', syncFontVisibility);
+            syncFontVisibility();
+        }
+
+        // Background: show blur settings only when mode is 'blurred', color only when 'solid'
+        const bgModeSelect = $('#cinemaBackgroundMode');
+        const blurRow = $('#cinemaBackgroundBlurRow');
+        const colorContainer = document.getElementById('cinema-background-color-picker-container');
+        if (bgModeSelect) {
+            const syncBgVisibility = () => {
+                const mode = bgModeSelect.value;
+                if (blurRow) blurRow.style.display = mode === 'blurred' ? '' : 'none';
+                if (colorContainer) colorContainer.style.display = mode === 'solid' ? '' : 'none';
+            };
+            bgModeSelect.addEventListener('change', syncBgVisibility);
+            syncBgVisibility();
+        }
+
+        // Poster: show frame controls only when style is 'framed'
+        const posterStyleSelect = $('#cinemaPosterStyle');
+        const frameColorContainer = document.getElementById('cinema-frame-color-picker-container');
+        const frameWidthRow = $('#cinemaFrameWidthRow');
+        if (posterStyleSelect) {
+            const syncPosterVisibility = () => {
+                const style = posterStyleSelect.value;
+                const show = style === 'framed';
+                if (frameColorContainer) frameColorContainer.style.display = show ? '' : 'none';
+                if (frameWidthRow) frameWidthRow.style.display = show ? '' : 'none';
+            };
+            posterStyleSelect.addEventListener('change', syncPosterVisibility);
+            syncPosterVisibility();
+        }
     }
 
     // === NEW: Collect enhanced settings for save ===
