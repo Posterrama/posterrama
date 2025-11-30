@@ -733,6 +733,7 @@ module.exports = function createDevicesRouter({
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - Express router overload issue with testSessionShim
     router.get('/', testSessionShim, adminAuthDevices, async (_req, res) => {
         try {
             const devices = await deviceStore.getAll();
@@ -781,6 +782,7 @@ module.exports = function createDevicesRouter({
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - Express router overload issue with testSessionShim
     router.get('/:id', testSessionShim, adminAuthDevices, async (req, res) => {
         try {
             const device = await deviceStore.getById(req.params.id);
@@ -898,6 +900,7 @@ module.exports = function createDevicesRouter({
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - Express router overload issue with testSessionShim
     router.delete('/:id', testSessionShim, adminAuthDevices, async (req, res) => {
         try {
             const deviceId = req.params.id;
@@ -978,6 +981,7 @@ module.exports = function createDevicesRouter({
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - Express router overload issue with testSessionShim
     router.patch('/:id', testSessionShim, adminAuthDevices, express.json(), async (req, res) => {
         try {
             const deviceId = req.params.id;
@@ -1054,6 +1058,7 @@ module.exports = function createDevicesRouter({
      */
     router.post(
         '/:id/merge',
+        // @ts-ignore - Express router overload issue with testSessionShim
         testSessionShim,
         adminAuthDevices,
         express.json(),
@@ -1195,6 +1200,7 @@ module.exports = function createDevicesRouter({
      *       500:
      *         description: Send failed
      */
+    // @ts-ignore - Express router overload issue with adminAuth
     router.post('/:id/command', adminAuth, express.json(), async (req, res) => {
         try {
             const { type, payload } = req.body || {};
@@ -1246,6 +1252,7 @@ module.exports = function createDevicesRouter({
         }
     });
 
+    // @ts-ignore - Express router overload issue with adminAuth
     router.post('/command', adminAuth, express.json(), async (req, res) => {
         try {
             const { deviceIds, command } = req.body || {};
@@ -1322,6 +1329,7 @@ module.exports = function createDevicesRouter({
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - Express router overload issue with adminAuth
     router.post('/clear-reload', adminAuth, async (req, res) => {
         try {
             const all = await deviceStore.getAll();

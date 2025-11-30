@@ -321,9 +321,9 @@ module.exports = function createMediaRouter({
      *             schema:
      *               $ref: '#/components/schemas/ApiMessage'
      */
-    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/get-media',
+        // @ts-ignore - Express router overload issue with validation middleware
         validateGetMediaQuery,
         // CRITICAL: Games mode middleware MUST run BEFORE cache middleware
         // Otherwise cache will return cached movies instead of fetching games
@@ -822,9 +822,9 @@ module.exports = function createMediaRouter({
      *               error: 'Internal server error'
      *               statusCode: 500
      */
-    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/get-media-by-key/:key',
+        // @ts-ignore - Express router overload issue with validation middleware
         validateMediaKeyParam,
         asyncHandler(async (req, res) => {
             const keyParts = req.params.key.split('-'); // e.g., ['plex', 'My', 'Server', '12345']
@@ -902,9 +902,9 @@ module.exports = function createMediaRouter({
      *       302:
      *         description: Redirects to a fallback image on error.
      */
-    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/image',
+        // @ts-ignore - Express router overload issue with validation middleware
         validateImageQuery,
         asyncHandler(async (req, res) => {
             const imageCacheDir = path.join(process.cwd(), 'image_cache');
