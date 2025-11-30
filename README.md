@@ -9,16 +9,17 @@
 <div align="center">
 
 <p style="margin: 0; line-height: 1.1;">
-  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.9.7-blue.svg"></a>
+  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.9.8-blue.svg"></a>
   <a href="https://github.com/Posterrama/posterrama/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Posterrama/posterrama/total.svg"></a>
   <a href="https://nodejs.org/"><img alt="Node.js" src="https://img.shields.io/badge/node.js-%E2%89%A520.0.0-blue"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue"></a>
 </p>
 <p style="margin: 2px 0 8px 0; line-height: 1.1;">
-  <a href="#multiple-content-sources"><img alt="Plex" src="https://img.shields.io/badge/Plex-supported-ffaa00.svg?logo=plex&logoColor=white"></a>
-  <a href="#multiple-content-sources"><img alt="Jellyfin" src="https://img.shields.io/badge/Jellyfin-supported-8f7ee7.svg?logo=jellyfin&logoColor=white"></a>
-  <a href="#multiple-content-sources"><img alt="TMDB" src="https://img.shields.io/badge/TMDB-supported-01d277.svg?logo=themoviedatabase&logoColor=white"></a>
-  <a href="https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/Posterrama/posterrama/main/docs/openapi-latest.json" target="_blank" rel="noopener noreferrer"><img alt="OpenAPI Docs" src="https://img.shields.io/badge/OpenAPI-Docs-85EA2D.svg?logo=swagger&logoColor=white"></a>
+  <a href="https://www.plex.tv/"><img alt="Plex" src="https://img.shields.io/badge/Plex-supported-ffaa00.svg?logo=plex&logoColor=white"></a>
+  <a href="https://github.com/jellyfin/jellyfin"><img alt="Jellyfin" src="https://img.shields.io/badge/Jellyfin-supported-8f7ee7.svg?logo=jellyfin&logoColor=white"></a>
+  <a href="https://github.com/rommapp/romm"><img alt="RomM" src="https://img.shields.io/badge/RomM-supported-e74c3c.svg?logo=retroarch&logoColor=white"></a>
+  <a href="https://www.themoviedb.org/"><img alt="TMDB" src="https://img.shields.io/badge/TMDB-supported-01d277.svg?logo=themoviedatabase&logoColor=white"></a>
+  <a href="https://posterrama.github.io/posterrama/"><img alt="API Docs" src="https://img.shields.io/badge/API-Docs-85EA2D.svg?logo=swagger&logoColor=white"></a>
 </p>
 
 <img src="./screenshots/screensaver.png" alt="Posterrama hero" width="740">

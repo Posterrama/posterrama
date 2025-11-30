@@ -181,22 +181,30 @@
             validItems.forEach(item => {
                 // Get directors array (can have multiple directors)
                 const directors = item.directors || [];
+                const directorsDetailed = item.directorsDetailed || [];
                 if (directors.length === 0) return;
 
                 // Use first director as primary
                 const directorName = directors[0];
+                const directorDetailed = directorsDetailed.find(d => d.name === directorName);
 
                 if (!groupMap.has(directorName)) {
                     groupMap.set(directorName, {
                         name: directorName,
                         films: [],
                         backdrop: null,
+                        photo: directorDetailed?.thumbUrl || null,
                         genres: new Set(),
                     });
                 }
 
                 const groupData = groupMap.get(directorName);
                 groupData.films.push(item);
+
+                // Store director photo from first film with thumbnail
+                if (!groupData.photo && directorDetailed?.thumbUrl) {
+                    groupData.photo = directorDetailed.thumbUrl;
+                }
 
                 // Use backdrop from highest rated film
                 if (!groupData.backdrop || (item.rating && item.rating > 7.5)) {
@@ -484,8 +492,35 @@
                 animation: filmCardFadeIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             `;
 
+            // FIRST: Select which posters will be shown (shuffled)
+            const maxPosters = isPortrait ? 5 : 8;
+            const postersToShow = [];
+            const usedIds = new Set();
+            const targetCount = Math.min(maxPosters, groupData.films.length);
+
+            if (groupData.films.length > 0) {
+                const shuffled = [...groupData.films].sort(() => Math.random() - 0.5);
+
+                for (const film of shuffled) {
+                    if (postersToShow.length >= targetCount) break;
+
+                    const filmId = film.id || film.key || film.posterUrl;
+                    if (!usedIds.has(filmId)) {
+                        postersToShow.push(film);
+                        usedIds.add(filmId);
+                    }
+                }
+            }
+
+            // Use backdrop from FIRST poster in the grid (leftmost)
+            // Falls back to groupData.backdrop if no films available
+            const backdropUrl =
+                postersToShow.length > 0 && postersToShow[0].backgroundUrl
+                    ? postersToShow[0].backgroundUrl
+                    : groupData.backdrop;
+
             // Background layer: Two versions of the same backdrop
-            if (groupData.backdrop) {
+            if (backdropUrl) {
                 if (isPortrait) {
                     // Portrait: Top section with deep red cinematic effect (35%)
                     const redContainer = document.createElement('div');
@@ -500,7 +535,8 @@
                     `;
 
                     const redPhoto = document.createElement('img');
-                    redPhoto.src = groupData.backdrop;
+                    redPhoto.className = 'film-card-backdrop';
+                    redPhoto.src = backdropUrl;
                     redPhoto.style.cssText = `
                         width: 100%;
                         height: 285%;
@@ -524,7 +560,8 @@
 
                     // Bottom section: Original colors (65%)
                     const originalPhoto = document.createElement('img');
-                    originalPhoto.src = groupData.backdrop;
+                    originalPhoto.className = 'film-card-backdrop';
+                    originalPhoto.src = backdropUrl;
                     originalPhoto.style.cssText = `
                         position: absolute;
                         top: 0;
@@ -551,7 +588,8 @@
                     `;
 
                     const redPhoto = document.createElement('img');
-                    redPhoto.src = groupData.backdrop;
+                    redPhoto.className = 'film-card-backdrop';
+                    redPhoto.src = backdropUrl;
                     redPhoto.style.cssText = `
                         width: 250%;
                         height: 100%;
@@ -575,7 +613,8 @@
 
                     // Right side: Original colors (60%)
                     const originalPhoto = document.createElement('img');
-                    originalPhoto.src = groupData.backdrop;
+                    originalPhoto.className = 'film-card-backdrop';
+                    originalPhoto.src = backdropUrl;
                     originalPhoto.style.cssText = `
                         position: absolute;
                         top: 0;
@@ -780,13 +819,54 @@
                 position: relative;
                 z-index: 1;
             `;
+
+            // Person Photo (circular, for actor/director grouping)
+            // On landscape: positioned centered on dividing line at top
+            // On portrait: positioned centered on dividing line between top and bottom sections
+            if ((groupBy === 'actor' || groupBy === 'director') && groupData.photo) {
+                const actorPhoto = document.createElement('img');
+                actorPhoto.src = groupData.photo;
+                if (isPortrait) {
+                    actorPhoto.style.cssText = `
+                        position: absolute;
+                        top: 35%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 20vw;
+                        height: 20vw;
+                        border-radius: 50%;
+                        object-fit: cover;
+                        border: 3px solid rgba(212, 175, 55, 0.6);
+                        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9), 0 0 60px rgba(0, 0, 0, 0.5);
+                        z-index: 5;
+                    `;
+                    // For portrait, add to card (positioned absolutely on dividing line)
+                    card.appendChild(actorPhoto);
+                } else {
+                    actorPhoto.style.cssText = `
+                        position: absolute;
+                        top: 3vh;
+                        left: -4.5vw;
+                        width: 9vw;
+                        height: 9vw;
+                        border-radius: 50%;
+                        object-fit: cover;
+                        border: 3px solid rgba(212, 175, 55, 0.6);
+                        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9), 0 0 60px rgba(0, 0, 0, 0.5);
+                        z-index: 5;
+                    `;
+                    // For landscape, add to posterSection (right side)
+                    posterSection.appendChild(actorPhoto);
+                }
+            }
+
             card.appendChild(posterSection);
 
             // BOTTOM - Poster Grid (full width at bottom)
             const posterGrid = document.createElement('div');
             posterGrid.className = 'film-poster-grid';
 
-            const maxPosters = isPortrait ? 5 : 8;
+            // maxPosters already defined at top of function
             const gridGap = isPortrait ? '2vw' : '1.5vw';
 
             posterGrid.style.cssText = isPortrait
@@ -809,27 +889,7 @@
                 z-index: 3;
             `;
 
-            // Show up to maxPosters (pick UNIQUE films, randomized)
-            const postersToShow = [];
-            const usedIds = new Set();
-            const targetCount = Math.min(maxPosters, groupData.films.length);
-
-            if (groupData.films.length === 0) {
-                // No films
-            } else {
-                const shuffled = [...groupData.films].sort(() => Math.random() - 0.5);
-
-                for (const film of shuffled) {
-                    if (postersToShow.length >= targetCount) break;
-
-                    const filmId = film.id || film.key || film.posterUrl;
-                    if (!usedIds.has(filmId)) {
-                        postersToShow.push(film);
-                        usedIds.add(filmId);
-                    }
-                }
-            }
-
+            // Posters already selected at the top of this function
             const visiblePosters = postersToShow;
             visiblePosters.forEach((film, idx) => {
                 const posterImg = document.createElement('img');
@@ -958,6 +1018,23 @@
                         }, 400);
                     }, idx * 150);
                 });
+
+                // Update background to match leftmost (first) poster
+                if (nextFilms.length > 0 && nextFilms[0].backgroundUrl) {
+                    const backgroundImgs = card.querySelectorAll('.film-card-backdrop');
+                    backgroundImgs.forEach(bgImg => {
+                        // Smooth transition for background change
+                        setTimeout(() => {
+                            bgImg.style.transition = 'opacity 0.8s ease-in-out';
+                            bgImg.style.opacity = '0';
+
+                            setTimeout(() => {
+                                bgImg.src = nextFilms[0].backgroundUrl;
+                                bgImg.style.opacity = '1';
+                            }, 800);
+                        }, 600); // Start after first poster transition
+                    });
+                }
             }, rotationSeconds * 1000);
         },
     };

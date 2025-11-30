@@ -3318,7 +3318,50 @@ input[type='range']::-moz-range-thumb {
     }
 
     .main-content {
-        padding: var(--space-md);
+        padding: 6px;
+    }
+
+    /* Reduce panel padding on mobile */
+    .panel-content {
+        padding: 8px 10px !important;
+    }
+
+    .panel {
+        border-radius: 8px;
+        padding: 0;
+    }
+
+    .panel-header {
+        padding: 8px 10px;
+    }
+
+    /* Form sections: tighter spacing */
+    .form-section {
+        margin: 6px 0 !important;
+        padding: 8px !important;
+    }
+
+    .form-section .section-title {
+        margin: 0 0 6px 0 !important;
+        font-size: 0.85rem;
+        padding-left: 8px;
+    }
+
+    .form-group {
+        margin-bottom: 10px;
+    }
+
+    /* Source tabs on mobile */
+    .source-tabs,
+    .segment-tabs {
+        gap: 4px !important;
+        padding: 4px !important;
+    }
+
+    .source-tabs .tab-btn,
+    .segment-tabs .btn {
+        padding: 8px 12px !important;
+        font-size: 0.8rem !important;
     }
 
     .page-title h1 {
@@ -3365,13 +3408,49 @@ input[type='range']::-moz-range-thumb {
     .panel-header {
         flex-direction: column;
         align-items: stretch;
-        gap: var(--space-md);
+        gap: var(--space-sm);
+        padding: 12px !important;
     }
 
     .panel-actions {
         justify-content: flex-start;
         width: 100%;
         gap: var(--space-sm);
+    }
+
+    /* Override specific section paddings for mobile */
+    #section-display .panel-content,
+    #section-media-sources .panel-content,
+    #section-devices .panel-content,
+    #section-operations .panel-content,
+    #section-performance .panel-content {
+        padding: 12px !important;
+    }
+
+    /* Segmented controls: more compact on mobile */
+    .segmented {
+        gap: 2px !important;
+        flex-wrap: wrap;
+    }
+
+    .segmented .seg {
+        padding: 8px 10px !important;
+        font-size: 0.75rem !important;
+        min-width: auto !important;
+    }
+
+    .segmented .seg i {
+        font-size: 0.9rem;
+    }
+
+    .segmented .seg .seg-text {
+        display: none;
+    }
+
+    /* Show only icons on very small screens */
+    .segmented .seg .dropdown-chevron {
+        margin-left: 2px;
+        font-size: 0.6rem;
     }
 
     .table-footer {
@@ -14902,18 +14981,20 @@ select:focus-visible {
 
     /* Source tabs section - reduce padding */
     #section-media-sources #sources-tabs {
-        padding: var(--space-sm) !important;
+        padding: 8px 10px !important;
+        border-radius: 10px;
+        margin-bottom: 8px;
     }
 
     #section-media-sources #sources-tabs .section-title {
-        font-size: 0.9rem;
-        margin-bottom: var(--space-xs);
+        font-size: 0.85rem;
+        margin: 0 0 6px 0 !important;
     }
 
     #section-media-sources #sources-tabs .form-row {
         display: flex;
         flex-direction: column;
-        gap: var(--space-xs);
+        gap: 4px;
     }
 
     /* Move source-actions-right below segmented on mobile */
@@ -14938,8 +15019,8 @@ select:focus-visible {
     /* Actions home - wrap buttons */
     #section-media-sources .actions-home {
         flex-wrap: wrap;
-        gap: 8px !important;
-        padding: var(--space-sm) !important;
+        gap: 6px !important;
+        padding: 8px !important;
     }
 
     #section-media-sources .actions-home .btn {
@@ -14952,14 +15033,16 @@ select:focus-visible {
         padding: 4px 8px;
     }
 
-    /* Form sections */
+    /* Form sections - compact cards */
     #section-media-sources .form-section {
-        padding: var(--space-sm);
+        margin: 6px 0 !important;
+        padding: 0 !important;
     }
 
     #section-media-sources .section-title {
-        font-size: 0.9rem;
-        margin-bottom: var(--space-sm);
+        font-size: 0.85rem;
+        margin: 0 0 6px 0 !important;
+        padding-left: 8px;
     }
 
     /* Server grid - keep as regular form groups, don't use grid override */

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Posterrama API Documentation</title>
+  <meta name="description" content="API documentation for Posterrama - Transform any screen into your personal gallery">
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Posterrama/posterrama/main/public/logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    /* Custom ReDoc theme overrides */
+    .api-content h1 {
+      font-weight: 600;
+    }
+    
+    /* Dark scrollbar for dark theme */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #1a1a2e;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #4a4a6a;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #5a5a7a;
+    }
+  </style>
+</head>
+<body>
+  <redoc 
+    spec-url='./openapi-latest.json'
+    hide-hostname="true"
+    theme='{
+      "colors": {
+        "primary": {
+          "main": "#6366f1"
+        },
+        "success": {
+          "main": "#22c55e"
+        },
+        "warning": {
+          "main": "#f59e0b"
+        },
+        "error": {
+          "main": "#ef4444"
+        },
+        "text": {
+          "primary": "#e2e8f0",
+          "secondary": "#94a3b8"
+        },
+        "http": {
+          "get": "#22c55e",
+          "post": "#3b82f6",
+          "put": "#f59e0b",
+          "delete": "#ef4444",
+          "patch": "#8b5cf6"
+        }
+      },
+      "typography": {
+        "fontSize": "15px",
+        "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+        "headings": {
+          "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+          "fontWeight": "600"
+        },
+        "code": {
+          "fontSize": "13px",
+          "fontFamily": "\"JetBrains Mono\", \"Fira Code\", Consolas, monospace"
+        }
+      },
+      "sidebar": {
+        "backgroundColor": "#0f172a",
+        "textColor": "#e2e8f0",
+        "activeTextColor": "#6366f1"
+      },
+      "rightPanel": {
+        "backgroundColor": "#1e293b"
+      },
+      "schema": {
+        "nestedBackground": "#1e293b"
+      }
+    }'
+  ></redoc>
+  <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+</body>
+</html>
