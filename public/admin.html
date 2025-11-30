@@ -275,9 +275,9 @@
 
   <section class="content-grid" style="margin-top: 16px;">
       <!-- Unified System Performance Dashboard -->
-      <section class="panel" id="panel-perf-dashboard">
-        <header class="panel-header">
-          <h2 style="color: var(--color-text-primary); font-size: 1.25rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-gauge-high" style="color: var(--color-accent);"></i> System Performance</h2>
+      <section class="status-card" id="panel-perf-dashboard" style="padding: 24px; display: flex; flex-direction: column; gap: 20px; border-left: 4px solid var(--color-accent); cursor: default;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="color: var(--color-text-primary); font-size: 1.25rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-gauge-high"></i> System Performance</h2>
           
           <!-- Status pills in header -->
           <div style="display: flex; gap: 16px; align-items: center;">
@@ -303,11 +303,10 @@
               <span class="value" id="perf-uptime">—</span>
             </span>
           </div>
-        </header>
-        <div class="panel-content" style="padding: 24px;">
-          
-          <!-- Resource usage cards -->
-          <div class="dashboard-cards-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        </div>
+        
+        <!-- Resource usage cards -->
+        <div class="dashboard-cards-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             
             <!-- Resources card -->
             <div style="background: var(--color-bg-card); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-md); border: 1px solid var(--color-border);">
@@ -424,7 +423,6 @@
               </div>
             </div>
           </div>
-        </div>
       </section>
     </section>
     </section> <!-- /section-dashboard -->
