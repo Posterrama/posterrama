@@ -753,7 +753,7 @@
     outline: none;
 }
 #modal-override .mode-segment .seg-btn[aria-checked='true'] {
-    color: #bfdbfe;
+    color: var(--color-info-light);
 }
 #modal-override .mode-segment .seg-indicator {
     position: absolute;
@@ -955,6 +955,12 @@
     --color-bg-tertiary: #303240; /* Adjusted tertiary */
     --color-bg-dark: #16161e; /* Deep anchor */
     --color-bg-card: #242530; /* Card slightly lighter than bg */
+
+    /* Surface Layers (Aliases for component compatibility) */
+    --surface-layer-1: var(--color-bg-card);
+    --surface-layer-2: var(--color-bg-tertiary);
+    --surface-layer-3: color-mix(in srgb, var(--color-bg-tertiary) 80%, white);
+    --surface-layer-4: color-mix(in srgb, var(--color-bg-tertiary) 60%, white);
 
     /* Text - Soft, not harsh white */
     --color-text-primary: #c0caf5; /* Soft Blue-White */
@@ -1420,19 +1426,19 @@ body {
     text-transform: capitalize;
 }
 .header-pill.status-success {
-    background: rgba(34, 197, 94, 0.15);
-    color: #86efac;
-    border-color: rgba(34, 197, 94, 0.25);
+    background: color-mix(in srgb, var(--color-success) 15%, transparent);
+    color: var(--color-success-light);
+    border-color: color-mix(in srgb, var(--color-success) 25%, transparent);
 }
 .header-pill.status-warning {
-    background: rgba(245, 158, 11, 0.15);
-    color: #fcd34d;
-    border-color: rgba(245, 158, 11, 0.25);
+    background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+    color: var(--color-warning-light);
+    border-color: color-mix(in srgb, var(--color-warning) 25%, transparent);
 }
 .header-pill.status-error {
-    background: rgba(239, 68, 68, 0.15);
-    color: #fca5a5;
-    border-color: rgba(239, 68, 68, 0.25);
+    background: color-mix(in srgb, var(--color-error) 15%, transparent);
+    color: var(--color-error-light);
+    border-color: color-mix(in srgb, var(--color-error) 25%, transparent);
 }
 
 /* Content Grid */
@@ -1685,87 +1691,87 @@ body {
     left: auto;
 }
 .status-pill.status-success {
-    background: rgba(0, 212, 170, 0.12);
-    border-color: rgba(0, 212, 170, 0.45);
-    color: #a7f3d0;
+    background: color-mix(in srgb, var(--color-success) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-success) 35%, transparent);
+    color: var(--color-success-light);
 }
 .status-pill.status-error {
-    background: rgba(232, 67, 147, 0.12);
-    border-color: rgba(232, 67, 147, 0.45);
-    color: #fbcfe8;
+    background: color-mix(in srgb, var(--color-error) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-error) 35%, transparent);
+    color: var(--color-error-light);
 }
 .status-pill.status-warning {
-    background: rgba(251, 146, 60, 0.12); /* orange-400 */
-    border-color: rgba(251, 146, 60, 0.45);
-    color: #fed7aa; /* orange-200 */
+    background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-warning) 35%, transparent);
+    color: var(--color-warning-light);
 }
 
 /* Device status variants (worst -> best: unknown, offline, online, live) */
 .status-pill.status-unknown {
-    background: rgba(148, 163, 184, 0.14); /* slate-400 */
-    border-color: rgba(148, 163, 184, 0.45);
-    color: #cbd5e1; /* slate-300 */
+    background: color-mix(in srgb, var(--color-text-muted) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-text-muted) 35%, transparent);
+    color: var(--color-text-secondary);
 }
 .status-pill.status-offline {
-    background: rgba(239, 68, 68, 0.14); /* red-500 */
-    border-color: rgba(239, 68, 68, 0.5);
-    color: #fecaca; /* red-200 */
+    background: color-mix(in srgb, var(--color-error) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-error) 35%, transparent);
+    color: var(--color-error-light);
 }
 .status-pill.status-online {
-    background: rgba(34, 197, 94, 0.14); /* green-500 */
-    border-color: rgba(34, 197, 94, 0.5);
-    color: #bbf7d0; /* green-200 */
+    background: color-mix(in srgb, var(--color-success) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-success) 35%, transparent);
+    color: var(--color-success-light);
 }
 .status-pill.status-live {
-    background: linear-gradient(135deg, #10b981, #34d399);
-    border-color: rgba(16, 185, 129, 0.7);
+    background: linear-gradient(135deg, var(--color-success-dark), var(--color-success));
+    border-color: color-mix(in srgb, var(--color-success) 60%, transparent);
     color: #fff;
     box-shadow:
-        0 0 0 2px rgba(16, 185, 129, 0.3),
-        0 0 18px rgba(16, 185, 129, 0.55);
+        0 0 0 2px color-mix(in srgb, var(--color-success) 30%, transparent),
+        0 0 18px color-mix(in srgb, var(--color-success) 55%, transparent);
     animation: live-pulse 2s infinite;
 }
 
 /* Status-pill variants for type/mode/sync that keep exact sizing */
 .status-pill.sp-browser {
     /* blue tone for client/browser */
-    background: rgba(59, 130, 246, 0.15); /* blue-500 */
-    border-color: rgba(59, 130, 246, 0.5);
-    color: #bfdbfe; /* blue-200 */
+    background: color-mix(in srgb, var(--color-info) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-info) 35%, transparent);
+    color: var(--color-info-light);
 }
 .status-pill.sp-screensaver {
-    background: rgba(102, 126, 234, 0.15);
-    border-color: rgba(102, 126, 234, 0.5);
-    color: var(--color-info-light);
+    background: color-mix(in srgb, var(--color-secondary) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-secondary) 35%, transparent);
+    color: var(--color-secondary-light);
 }
 .status-pill.sp-wallart {
     /* purple tone for wall art */
-    background: rgba(168, 85, 247, 0.15); /* purple-500 */
-    border-color: rgba(168, 85, 247, 0.45);
-    color: #e9d5ff; /* purple-200 */
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+    color: var(--color-primary-light);
 }
 .status-pill.sp-cinema {
-    background: rgba(245, 158, 11, 0.15);
-    border-color: rgba(245, 158, 11, 0.45);
-    color: #fde68a;
+    background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-warning) 35%, transparent);
+    color: var(--color-warning-light);
 }
 .status-pill.sp-mode {
     /* fallback for generic mode labels */
-    background: rgba(6, 182, 212, 0.15); /* cyan-500 */
-    border-color: rgba(6, 182, 212, 0.45);
-    color: #a5f3fc; /* cyan-200 */
+    background: color-mix(in srgb, var(--color-teal) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-teal) 35%, transparent);
+    color: var(--color-teal-light);
 }
 .status-pill.sp-synced {
-    background: linear-gradient(135deg, #10b981, #34d399);
-    border-color: rgba(16, 185, 129, 0.7);
+    background: linear-gradient(135deg, var(--color-success-dark), var(--color-success));
+    border-color: color-mix(in srgb, var(--color-success) 60%, transparent);
     color: #fff;
 }
 
 /* Dedicated variants for configuration state */
 .status-pill.is-configured {
-    background: rgba(102, 126, 234, 0.15); /* secondary blue tone */
-    border-color: rgba(102, 126, 234, 0.5);
-    color: var(--color-info-light);
+    background: color-mix(in srgb, var(--color-secondary) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-secondary) 35%, transparent);
+    color: var(--color-secondary-light);
 }
 .status-pill.is-not-configured {
     background: rgba(255, 255, 255, 0.06);
@@ -1960,7 +1966,7 @@ body {
     margin-bottom: 10px;
 }
 #modal-update .update-status-ok i {
-    color: #34d399; /* green-400 */
+    color: var(--color-success); /* green-400 */
     font-size: 2rem;
     margin-bottom: 8px;
 }
@@ -1972,7 +1978,7 @@ body {
     border-radius: 8px;
 }
 #modal-update .update-repair-box .title {
-    color: #fbbf24; /* amber-400 */
+    color: var(--color-warning-light); /* amber-400 */
     font-weight: 600;
     margin-bottom: 6px;
 }
@@ -1996,7 +2002,7 @@ body {
     border: 1px solid rgba(34, 197, 94, 0.3);
 }
 #modal-update .update-box-available .available-label {
-    color: #34d399; /* green-400 */
+    color: var(--color-success); /* green-400 */
 }
 #modal-update .release-notes {
     max-height: 160px;
@@ -2580,22 +2586,22 @@ input[type='range']::-moz-range-thumb {
     animation: none;
 }
 .badge-success {
-    background: linear-gradient(135deg, var(--color-success), #34d399);
+    background: linear-gradient(135deg, var(--color-success), var(--color-success));
     position: static;
     animation: none;
 }
 .badge-warning {
-    background: linear-gradient(135deg, var(--color-warning), #fbbf24);
+    background: linear-gradient(135deg, var(--color-warning), var(--color-warning-light));
     position: static;
     animation: none;
 }
 .badge-error {
-    background: linear-gradient(135deg, var(--color-error), #f87171);
+    background: linear-gradient(135deg, var(--color-error), var(--color-error-light));
     position: static;
     animation: none;
 }
 .badge-info {
-    background: linear-gradient(135deg, var(--color-info), #60a5fa);
+    background: linear-gradient(135deg, var(--color-info), var(--color-info-light));
     position: static;
     animation: none;
 }
@@ -2606,17 +2612,17 @@ input[type='range']::-moz-range-thumb {
 }
 
 .badge-beta {
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    background: linear-gradient(135deg, var(--color-info), #1d4ed8);
     position: static;
     animation: none;
 }
 .badge-new {
-    background: linear-gradient(135deg, #10b981, #34d399);
+    background: linear-gradient(135deg, var(--color-success-dark), var(--color-success));
     position: static;
     animation: none;
 }
 .badge-alpha {
-    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    background: linear-gradient(135deg, var(--color-warning), var(--color-warning-light));
     position: static;
     animation: none;
 }
@@ -2631,7 +2637,7 @@ input[type='range']::-moz-range-thumb {
     animation: none;
 }
 .badge-premium {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    background: linear-gradient(135deg, var(--color-warning-light), var(--color-warning));
     position: static;
     animation: none;
 }
@@ -2747,7 +2753,7 @@ input[type='range']::-moz-range-thumb {
 
 /* Synced pill (green, matches size/shape of other pills) */
 .pill-synced {
-    background: linear-gradient(135deg, #10b981, #34d399);
+    background: linear-gradient(135deg, var(--color-success-dark), var(--color-success));
     color: #fff;
     border-color: rgba(16, 185, 129, 0.7);
 }
@@ -2769,7 +2775,7 @@ input[type='range']::-moz-range-thumb {
 .nav-item .badge {
     position: static;
     margin-left: auto;
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    background: linear-gradient(135deg, var(--color-info), #1d4ed8);
     color: white;
     font-size: 10px;
     font-weight: 500;
@@ -2786,7 +2792,7 @@ input[type='range']::-moz-range-thumb {
     position: absolute;
     top: -10px;
     right: -24px;
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    background: linear-gradient(135deg, var(--color-info), #1d4ed8);
     color: white;
     font-size: 8px;
     font-weight: 500;
@@ -3026,7 +3032,7 @@ input[type='range']::-moz-range-thumb {
 
 /* Status badges adjusted for dark theme */
 .status-badge.status-live {
-    background: linear-gradient(135deg, #10b981, #34d399);
+    background: linear-gradient(135deg, var(--color-success-dark), var(--color-success));
     color: white;
     border: none;
     box-shadow:
@@ -5203,7 +5209,7 @@ body .modal-overlay.open {
     border-color: rgba(245, 158, 11, 0.35);
 }
 .pill-synced {
-    background: linear-gradient(135deg, #10b981, #34d399);
+    background: linear-gradient(135deg, var(--color-success-dark), var(--color-success));
     color: #fff;
     border-color: rgba(16, 185, 129, 0.7);
     box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
@@ -5654,7 +5660,7 @@ select:not([multiple]) {
 }
 /* Sidebar nav badge error variant */
 .nav-badge.nav-badge-error {
-    background: linear-gradient(135deg, var(--color-error), #f87171);
+    background: linear-gradient(135deg, var(--color-error), var(--color-error-light));
     color: #fff;
     border-color: rgba(239, 68, 68, 0.3) !important;
 }
@@ -6228,14 +6234,14 @@ select:not([multiple]) {
         letter-spacing: 0.5px;
     }
     .ov-key-type.t-boolean {
-        color: #10b981;
+        color: var(--color-success-dark);
     }
     .ov-key-type.t-string {
-        color: #3b82f6;
+        color: var(--color-info);
     }
     .ov-key-type.t-number,
     .ov-key-type.t-integer {
-        color: #f59e0b;
+        color: var(--color-warning);
     }
     .ov-key-type.t-object {
         color: #a855f7;
@@ -6987,19 +6993,19 @@ body.page-logs {
     color: #fff;
 }
 .level-debug {
-    background: #3b82f6; /* blue-500 */
+    background: var(--color-info); /* blue-500 */
     color: #fff;
 }
 .level-info {
-    background: #10b981; /* green-500 */
+    background: var(--color-success-dark); /* green-500 */
     color: #fff;
 }
 .level-warn {
-    background: #f59e0b; /* amber-500 */
+    background: var(--color-warning); /* amber-500 */
     color: #111827;
 }
 .level-error {
-    background: #ef4444; /* red-500 */
+    background: var(--color-error); /* red-500 */
     color: #fff;
 }
 .level-fatal {
@@ -7115,12 +7121,12 @@ body.page-logs {
 }
 
 .status-dot-success {
-    background: #10b981;
+    background: var(--color-success-dark);
     box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
 }
 
 .status-dot-error {
-    background: #ef4444;
+    background: var(--color-error);
     box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
     animation: none;
 }
@@ -7198,7 +7204,7 @@ body.page-logs {
     height: 48px;
     background: rgba(59, 130, 246, 0.15);
     border-radius: 8px;
-    color: #3b82f6;
+    color: var(--color-info);
     font-size: 1.2rem;
 }
 
@@ -7330,12 +7336,12 @@ body.page-logs {
 
 .mqtt-cmd-status.status-success {
     background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
+    color: var(--color-success-dark);
 }
 
 .mqtt-cmd-status.status-error {
     background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--color-error);
 }
 
 /* HA Dashboard radio buttons */
@@ -7358,7 +7364,7 @@ body.page-logs {
 
 .ha-device-radio-label.selected {
     background: rgba(59, 130, 246, 0.15);
-    border-color: #3b82f6;
+    border-color: var(--color-info);
 }
 
 .ha-device-radio-label input[type='radio'] {
@@ -7431,16 +7437,16 @@ body.page-logs {
     opacity: 1;
 }
 .toast-info {
-    border-left: 4px solid #60a5fa;
+    border-left: 4px solid var(--color-info-light);
 }
 .toast-success {
-    border-left: 4px solid #34d399;
+    border-left: 4px solid var(--color-success);
 }
 .toast-warning {
-    border-left: 4px solid #f59e0b;
+    border-left: 4px solid var(--color-warning);
 }
 .toast-error {
-    border-left: 4px solid #ef4444;
+    border-left: 4px solid var(--color-error);
 }
 /* Button loading spinner */
 @keyframes spin {
@@ -7453,7 +7459,7 @@ body.page-logs {
     width: 14px;
     height: 14px;
     border: 2px solid rgba(255, 255, 255, 0.25);
-    border-top-color: #60a5fa;
+    border-top-color: var(--color-info-light);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
     margin-right: 6px;
@@ -7739,16 +7745,19 @@ body.page-logs {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success, #22c55e) 25%, transparent);
 }
 .hovercard .hc-title .sd-online {
-    background: var(--color-info, #60a5fa);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-info, #60a5fa) 25%, transparent);
+    background: var(--color-info, var(--color-info-light));
+    box-shadow: 0 0 0 3px
+        color-mix(in srgb, var(--color-info, var(--color-info-light)) 25%, transparent);
 }
 .hovercard .hc-title .sd-unknown {
-    background: var(--color-warning, #f59e0b);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-warning, #f59e0b) 25%, transparent);
+    background: var(--color-warning, var(--color-warning));
+    box-shadow: 0 0 0 3px
+        color-mix(in srgb, var(--color-warning, var(--color-warning)) 25%, transparent);
 }
 .hovercard .hc-title .sd-offline {
-    background: var(--color-error, #ef4444);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error, #ef4444) 25%, transparent);
+    background: var(--color-error, var(--color-error));
+    box-shadow: 0 0 0 3px
+        color-mix(in srgb, var(--color-error, var(--color-error)) 25%, transparent);
 }
 /* Powered off (live but blacked out) — magenta like pin */
 .hovercard .hc-title .sd-poweredoff {
@@ -8246,7 +8255,7 @@ body.page-logs {
 .meter > div {
     height: 100%;
     width: 0;
-    background: linear-gradient(90deg, #60a5fa, #2563eb);
+    background: linear-gradient(90deg, var(--color-info-light), #2563eb);
     transition: width 0.2s ease;
 }
 /* Backups list styling */
@@ -8862,15 +8871,15 @@ body.page-logs {
     display: inline-block;
 }
 #section-media-sources .sc-status .status-dot.status-success {
-    background: #34d399;
+    background: var(--color-success);
     box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
 }
 #section-media-sources .sc-status .status-dot.status-warning {
-    background: #f59e0b;
+    background: var(--color-warning);
     box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
 }
 #section-media-sources .sc-status .status-dot.status-error {
-    background: #ef4444;
+    background: var(--color-error);
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -9195,7 +9204,7 @@ body.page-logs {
     content: 'ON';
     left: 10px;
     right: auto;
-    color: #f59e0b; /* amber-500 */
+    color: var(--color-warning); /* amber-500 */
 }
 /* Hide external text label inside header for compactness */
 #section-display #sec-clock .header-toggle .ht-text,
@@ -9254,7 +9263,7 @@ body.page-logs {
     content: 'ON';
     left: 10px;
     right: auto;
-    color: #f59e0b; /* amber-500 */
+    color: var(--color-warning); /* amber-500 */
 }
 /* Hide external label text for Media Sources (use in-track ON/OFF instead) */
 #section-media-sources .header-toggle .ht-text {
@@ -9311,7 +9320,7 @@ body.page-logs {
     content: 'ON';
     left: 10px;
     right: auto;
-    color: #f59e0b; /* amber-500 */
+    color: var(--color-warning); /* amber-500 */
 }
 #section-operations .header-toggle .ht-text {
     display: none;
@@ -9353,7 +9362,7 @@ body.page-logs {
     display: none;
 }
 #section-display .segmented .seg[aria-checked='true'] {
-    color: #bfdbfe;
+    color: var(--color-info-light);
 }
 
 /* Sliding indicator behind the active segment */
@@ -9434,7 +9443,7 @@ body.page-logs {
     display: none;
 }
 #section-media-sources #sources-tabs .segmented .seg[aria-checked='true'] {
-    color: #bfdbfe;
+    color: var(--color-info-light);
 }
 #section-media-sources #sources-tabs .segmented .seg-indicator {
     position: absolute;
@@ -9497,7 +9506,7 @@ body.page-logs {
 
 #section-media-sources #sources-tabs .segmented .seg.has-dropdown.dropdown-open .dropdown-chevron {
     transform: translateY(-50%) rotate(180deg);
-    color: #60a5fa;
+    color: var(--color-info-light);
 }
 
 #section-media-sources #sources-tabs .segmented .seg-dropdown {
@@ -9577,7 +9586,7 @@ body.page-logs {
 }
 
 #section-media-sources #sources-tabs .segmented .seg-dropdown-item.active i {
-    color: #60a5fa;
+    color: var(--color-info-light);
     opacity: 1;
     transform: scale(1.1);
 }
@@ -9681,7 +9690,7 @@ body.page-logs {
     display: none;
 }
 #section-devices #device-tabs .segmented .seg[aria-checked='true'] {
-    color: #bfdbfe;
+    color: var(--color-info-light);
 }
 #section-devices #device-tabs .segmented .seg-indicator {
     position: absolute;
@@ -16083,7 +16092,7 @@ select:focus-visible {
 input.input-error,
 textarea.input-error,
 select.input-error {
-    border-color: #ef4444 !important;
+    border-color: var(--color-error) !important;
     background-color: rgba(239, 68, 68, 0.05) !important;
     animation: shake 0.3s ease-in-out;
 }
@@ -16104,7 +16113,7 @@ select.input-error {
 input.input-error:focus,
 textarea.input-error:focus,
 select.input-error:focus {
-    border-color: #ef4444 !important;
+    border-color: var(--color-error) !important;
     box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1) !important;
 }
 
