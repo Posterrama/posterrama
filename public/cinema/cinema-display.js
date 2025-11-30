@@ -24,7 +24,7 @@
         },
         footer: {
             enabled: true,
-            type: 'specs', // marquee, specs
+            type: 'specs', // marquee, specs, tagline
             marqueeText: 'Feature Presentation',
             marqueeStyle: 'classic',
             specs: {
@@ -39,6 +39,59 @@
         ambilight: {
             enabled: true,
             strength: 60, // 0-100
+        },
+        // === NEW: Typography customization ===
+        typography: {
+            fontFamily: 'cinematic', // system, cinematic, classic, modern, elegant
+            titleSize: 100, // percentage 50-200
+            titleColor: '#ffffff',
+            titleShadow: 'subtle', // none, subtle, dramatic, neon
+            metadataOpacity: 80, // 0-100
+        },
+        // === NEW: Poster presentation ===
+        poster: {
+            style: 'floating', // fullBleed, framed, floating, perspective
+            animation: 'fade', // fade, zoomIn, slideUp, cinematic, kenBurns
+            transitionDuration: 1.5, // seconds
+            frameColor: '#333333',
+            frameWidth: 8, // pixels
+        },
+        // === NEW: Background settings ===
+        background: {
+            mode: 'solid', // solid, blurred, gradient, ambient
+            solidColor: '#000000',
+            blurAmount: 20, // pixels
+            vignette: 'subtle', // none, subtle, dramatic
+        },
+        // === NEW: Metadata display ===
+        metadata: {
+            showTitle: true,
+            showYear: true,
+            showRuntime: true,
+            showRating: true,
+            showCertification: false,
+            showGenre: false,
+            showDirector: false,
+            showCast: false,
+            showPlot: false,
+            showStudioLogo: false,
+            position: 'bottom', // bottom, side, overlay
+        },
+        // === NEW: Promotional features ===
+        promotional: {
+            comingSoonBadge: false,
+            showReleaseCountdown: false,
+            qrCode: {
+                enabled: false,
+                url: '',
+                position: 'bottomRight',
+                size: 100,
+            },
+            announcementBanner: {
+                enabled: false,
+                text: '',
+                style: 'ticker', // ticker, static, flash
+            },
         },
     };
 
@@ -327,6 +380,111 @@
         log('Cinema ambilight created/updated', { strength: cinemaConfig.ambilight.strength });
     }
 
+    // ===== Typography Settings =====
+    function applyTypographySettings() {
+        const root = document.documentElement;
+        const typo = cinemaConfig.typography;
+
+        // Font family mapping
+        const fontMap = {
+            system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            cinematic: '"Bebas Neue", "Impact", sans-serif',
+            classic: '"Playfair Display", Georgia, serif',
+            modern: '"Montserrat", "Helvetica Neue", sans-serif',
+            elegant: '"Cormorant Garamond", "Times New Roman", serif',
+        };
+
+        // Apply CSS variables
+        root.style.setProperty(
+            '--cinema-font-family',
+            fontMap[typo.fontFamily] || fontMap.cinematic
+        );
+        root.style.setProperty('--cinema-title-scale', (typo.titleSize / 100).toFixed(2));
+        root.style.setProperty('--cinema-title-color', typo.titleColor);
+        root.style.setProperty(
+            '--cinema-metadata-opacity',
+            (typo.metadataOpacity / 100).toFixed(2)
+        );
+
+        // Title shadow presets
+        const shadowMap = {
+            none: 'none',
+            subtle: '0 2px 4px rgba(0,0,0,0.5)',
+            dramatic: '0 4px 8px rgba(0,0,0,0.8), 0 8px 16px rgba(0,0,0,0.4)',
+            neon: `0 0 10px ${typo.titleColor}, 0 0 20px ${typo.titleColor}, 0 0 40px ${typo.titleColor}`,
+        };
+        root.style.setProperty(
+            '--cinema-title-shadow',
+            shadowMap[typo.titleShadow] || shadowMap.subtle
+        );
+
+        // Add body class for typography
+        document.body.classList.add(`cinema-typography-${typo.fontFamily}`);
+
+        log('Typography settings applied', typo);
+    }
+
+    // ===== Background Settings =====
+    function applyBackgroundSettings() {
+        const root = document.documentElement;
+        const bg = cinemaConfig.background;
+
+        // Apply background mode class
+        document.body.classList.remove(
+            'cinema-bg-solid',
+            'cinema-bg-blurred',
+            'cinema-bg-gradient',
+            'cinema-bg-ambient'
+        );
+        document.body.classList.add(`cinema-bg-${bg.mode}`);
+
+        // Set CSS variables
+        root.style.setProperty('--cinema-bg-color', bg.solidColor);
+        root.style.setProperty('--cinema-bg-blur', `${bg.blurAmount}px`);
+
+        // Vignette presets
+        const vignetteMap = {
+            none: 'none',
+            subtle: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%)',
+            dramatic: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.8) 100%)',
+        };
+        root.style.setProperty('--cinema-vignette', vignetteMap[bg.vignette] || vignetteMap.subtle);
+
+        log('Background settings applied', bg);
+    }
+
+    // ===== Poster Settings =====
+    function applyPosterSettings() {
+        const root = document.documentElement;
+        const poster = cinemaConfig.poster;
+
+        // Remove existing poster style classes
+        document.body.classList.remove(
+            'cinema-poster-fullBleed',
+            'cinema-poster-framed',
+            'cinema-poster-floating',
+            'cinema-poster-perspective'
+        );
+        document.body.classList.add(`cinema-poster-${poster.style}`);
+
+        // Remove existing animation classes
+        document.body.classList.remove(
+            'cinema-anim-fade',
+            'cinema-anim-zoomIn',
+            'cinema-anim-slideUp',
+            'cinema-anim-cinematic',
+            'cinema-anim-kenBurns'
+        );
+        document.body.classList.add(`cinema-anim-${poster.animation}`);
+
+        // Set CSS variables
+        root.style.setProperty('--cinema-poster-transition', `${poster.transitionDuration}s`);
+        root.style.setProperty('--cinema-frame-color', poster.frameColor);
+        root.style.setProperty('--cinema-frame-width', `${poster.frameWidth}px`);
+
+        log('Poster settings applied', poster);
+    }
+
     // ===== Initialize Cinema Mode =====
     function initCinemaMode(config) {
         log('Initializing cinema mode', config);
@@ -357,12 +515,49 @@
             if (config.nowPlaying) {
                 cinemaConfig.nowPlaying = { ...cinemaConfig.nowPlaying, ...config.nowPlaying };
             }
+            // === NEW: Merge typography settings ===
+            if (config.typography) {
+                cinemaConfig.typography = { ...cinemaConfig.typography, ...config.typography };
+            }
+            // === NEW: Merge poster settings ===
+            if (config.poster) {
+                cinemaConfig.poster = { ...cinemaConfig.poster, ...config.poster };
+            }
+            // === NEW: Merge background settings ===
+            if (config.background) {
+                cinemaConfig.background = { ...cinemaConfig.background, ...config.background };
+            }
+            // === NEW: Merge metadata settings ===
+            if (config.metadata) {
+                cinemaConfig.metadata = { ...cinemaConfig.metadata, ...config.metadata };
+            }
+            // === NEW: Merge promotional settings ===
+            if (config.promotional) {
+                cinemaConfig.promotional = { ...cinemaConfig.promotional, ...config.promotional };
+                if (config.promotional.qrCode) {
+                    cinemaConfig.promotional.qrCode = {
+                        ...cinemaConfig.promotional.qrCode,
+                        ...config.promotional.qrCode,
+                    };
+                }
+                if (config.promotional.announcementBanner) {
+                    cinemaConfig.promotional.announcementBanner = {
+                        ...cinemaConfig.promotional.announcementBanner,
+                        ...config.promotional.announcementBanner,
+                    };
+                }
+            }
         }
 
         // Apply cinema orientation and initial layout sizing
         applyCinemaOrientation(cinemaConfig.orientation);
         // Compute initial poster layout bands
         updatePosterLayout();
+
+        // Apply new visual settings
+        applyTypographySettings();
+        applyBackgroundSettings();
+        applyPosterSettings();
 
         // Create cinema UI elements
         createHeader();

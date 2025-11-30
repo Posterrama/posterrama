@@ -689,6 +689,207 @@
         container.replaceChildren(rowStrength);
     }
 
+    // === NEW: Mount and initialize enhanced controls (Issue #35) ===
+    function mountEnhancedControls(cfg) {
+        const c = cfg.cinema || {};
+
+        // Typography controls
+        const typo = c.typography || {};
+        $('#cinemaFontFamily') && ($('#cinemaFontFamily').value = typo.fontFamily || 'cinematic');
+        $('#cinemaTitleSize') && ($('#cinemaTitleSize').value = typo.titleSize || 100);
+        $('#cinemaTitleSizeValue') &&
+            ($('#cinemaTitleSizeValue').textContent = (typo.titleSize || 100) + '%');
+        $('#cinemaTitleColor') && ($('#cinemaTitleColor').value = typo.titleColor || '#ffffff');
+        $('#cinemaTitleShadow') && ($('#cinemaTitleShadow').value = typo.titleShadow || 'subtle');
+        $('#cinemaMetadataOpacity') &&
+            ($('#cinemaMetadataOpacity').value = typo.metadataOpacity || 80);
+        $('#cinemaMetadataOpacityValue') &&
+            ($('#cinemaMetadataOpacityValue').textContent = (typo.metadataOpacity || 80) + '%');
+
+        // Background controls
+        const bg = c.background || {};
+        $('#cinemaBackgroundMode') && ($('#cinemaBackgroundMode').value = bg.mode || 'solid');
+        $('#cinemaBackgroundColor') &&
+            ($('#cinemaBackgroundColor').value = bg.solidColor || '#000000');
+        $('#cinemaBackgroundBlur') && ($('#cinemaBackgroundBlur').value = bg.blurAmount || 20);
+        $('#cinemaBackgroundBlurValue') &&
+            ($('#cinemaBackgroundBlurValue').textContent = (bg.blurAmount || 20) + 'px');
+        $('#cinemaVignette') && ($('#cinemaVignette').value = bg.vignette || 'subtle');
+
+        // Poster controls
+        const poster = c.poster || {};
+        $('#cinemaPosterStyle') && ($('#cinemaPosterStyle').value = poster.style || 'floating');
+        $('#cinemaPosterAnimation') &&
+            ($('#cinemaPosterAnimation').value = poster.animation || 'fade');
+        $('#cinemaPosterTransition') &&
+            ($('#cinemaPosterTransition').value = poster.transitionDuration || 1.5);
+        $('#cinemaPosterTransitionValue') &&
+            ($('#cinemaPosterTransitionValue').textContent =
+                (poster.transitionDuration || 1.5) + 's');
+        $('#cinemaFrameColor') && ($('#cinemaFrameColor').value = poster.frameColor || '#333333');
+        $('#cinemaFrameWidth') && ($('#cinemaFrameWidth').value = poster.frameWidth || 8);
+        $('#cinemaFrameWidthValue') &&
+            ($('#cinemaFrameWidthValue').textContent = (poster.frameWidth || 8) + 'px');
+
+        // Metadata controls
+        const meta = c.metadata || {};
+        $('#cinemaMetadataPosition') &&
+            ($('#cinemaMetadataPosition').value = meta.position || 'bottom');
+        $('#cinemaShowTitle') && ($('#cinemaShowTitle').checked = meta.showTitle !== false);
+        $('#cinemaShowYear') && ($('#cinemaShowYear').checked = meta.showYear !== false);
+        $('#cinemaShowRuntime') && ($('#cinemaShowRuntime').checked = meta.showRuntime !== false);
+        $('#cinemaShowRating') && ($('#cinemaShowRating').checked = meta.showRating !== false);
+        $('#cinemaShowCertification') &&
+            ($('#cinemaShowCertification').checked = !!meta.showCertification);
+        $('#cinemaShowGenre') && ($('#cinemaShowGenre').checked = !!meta.showGenre);
+        $('#cinemaShowDirector') && ($('#cinemaShowDirector').checked = !!meta.showDirector);
+        $('#cinemaShowCast') && ($('#cinemaShowCast').checked = !!meta.showCast);
+        $('#cinemaShowPlot') && ($('#cinemaShowPlot').checked = !!meta.showPlot);
+        $('#cinemaShowStudioLogo') && ($('#cinemaShowStudioLogo').checked = !!meta.showStudioLogo);
+
+        // Promotional controls
+        const promo = c.promotional || {};
+        $('#cinemaComingSoonBadge') &&
+            ($('#cinemaComingSoonBadge').checked = !!promo.comingSoonBadge);
+        $('#cinemaReleaseCountdown') &&
+            ($('#cinemaReleaseCountdown').checked = !!promo.showReleaseCountdown);
+        const qr = promo.qrCode || {};
+        $('#cinemaQREnabled') && ($('#cinemaQREnabled').checked = !!qr.enabled);
+        $('#cinemaQRUrl') && ($('#cinemaQRUrl').value = qr.url || '');
+        $('#cinemaQRPosition') && ($('#cinemaQRPosition').value = qr.position || 'bottomRight');
+        $('#cinemaQRSize') && ($('#cinemaQRSize').value = qr.size || 100);
+        $('#cinemaQRSizeValue') && ($('#cinemaQRSizeValue').textContent = (qr.size || 100) + 'px');
+        const ann = promo.announcementBanner || {};
+        $('#cinemaAnnouncementEnabled') &&
+            ($('#cinemaAnnouncementEnabled').checked = !!ann.enabled);
+        $('#cinemaAnnouncementText') && ($('#cinemaAnnouncementText').value = ann.text || '');
+        $('#cinemaAnnouncementStyle') &&
+            ($('#cinemaAnnouncementStyle').value = ann.style || 'ticker');
+
+        // Wire up range sliders to show values
+        const wireRange = (sliderId, valueId, suffix) => {
+            const slider = $(sliderId);
+            const valueEl = $(valueId);
+            if (slider && valueEl) {
+                slider.addEventListener('input', () => {
+                    valueEl.textContent = slider.value + suffix;
+                });
+            }
+        };
+        wireRange('#cinemaTitleSize', '#cinemaTitleSizeValue', '%');
+        wireRange('#cinemaMetadataOpacity', '#cinemaMetadataOpacityValue', '%');
+        wireRange('#cinemaBackgroundBlur', '#cinemaBackgroundBlurValue', 'px');
+        wireRange('#cinemaPosterTransition', '#cinemaPosterTransitionValue', 's');
+        wireRange('#cinemaFrameWidth', '#cinemaFrameWidthValue', 'px');
+        wireRange('#cinemaQRSize', '#cinemaQRSizeValue', 'px');
+
+        // Wire up conditional visibility
+        // Background: show blur settings only when mode is 'blurred'
+        const bgModeSelect = $('#cinemaBackgroundMode');
+        const blurRow = $('#cinemaBackgroundBlurRow');
+        const colorRow = $('#cinemaBackgroundColorRow');
+        if (bgModeSelect && blurRow && colorRow) {
+            const syncBgVisibility = () => {
+                const mode = bgModeSelect.value;
+                blurRow.style.display = mode === 'blurred' ? '' : 'none';
+                colorRow.style.display = mode === 'solid' ? '' : 'none';
+            };
+            bgModeSelect.addEventListener('change', syncBgVisibility);
+            syncBgVisibility();
+        }
+
+        // Poster: show frame controls only when style is 'framed'
+        const posterStyleSelect = $('#cinemaPosterStyle');
+        const frameColorRow = $('#cinemaFrameColorRow');
+        const frameWidthRow = $('#cinemaFrameWidthRow');
+        if (posterStyleSelect && frameColorRow && frameWidthRow) {
+            const syncPosterVisibility = () => {
+                const style = posterStyleSelect.value;
+                const show = style === 'framed';
+                frameColorRow.style.display = show ? '' : 'none';
+                frameWidthRow.style.display = show ? '' : 'none';
+            };
+            posterStyleSelect.addEventListener('change', syncPosterVisibility);
+            syncPosterVisibility();
+        }
+
+        // QR Code: show settings when enabled
+        const qrEnabled = $('#cinemaQREnabled');
+        const qrSettings = $('#cinemaQRSettings');
+        if (qrEnabled && qrSettings) {
+            const syncQRVisibility = () => {
+                qrSettings.style.display = qrEnabled.checked ? '' : 'none';
+            };
+            qrEnabled.addEventListener('change', syncQRVisibility);
+            syncQRVisibility();
+        }
+
+        // Announcement: show settings when enabled
+        const annEnabled = $('#cinemaAnnouncementEnabled');
+        const annSettings = $('#cinemaAnnouncementSettings');
+        if (annEnabled && annSettings) {
+            const syncAnnVisibility = () => {
+                annSettings.style.display = annEnabled.checked ? '' : 'none';
+            };
+            annEnabled.addEventListener('change', syncAnnVisibility);
+            syncAnnVisibility();
+        }
+    }
+
+    // === NEW: Collect enhanced settings for save ===
+    function collectEnhancedSettings() {
+        return {
+            typography: {
+                fontFamily: $('#cinemaFontFamily')?.value || 'cinematic',
+                titleSize: parseInt($('#cinemaTitleSize')?.value || '100', 10),
+                titleColor: $('#cinemaTitleColor')?.value || '#ffffff',
+                titleShadow: $('#cinemaTitleShadow')?.value || 'subtle',
+                metadataOpacity: parseInt($('#cinemaMetadataOpacity')?.value || '80', 10),
+            },
+            poster: {
+                style: $('#cinemaPosterStyle')?.value || 'floating',
+                animation: $('#cinemaPosterAnimation')?.value || 'fade',
+                transitionDuration: parseFloat($('#cinemaPosterTransition')?.value || '1.5'),
+                frameColor: $('#cinemaFrameColor')?.value || '#333333',
+                frameWidth: parseInt($('#cinemaFrameWidth')?.value || '8', 10),
+            },
+            background: {
+                mode: $('#cinemaBackgroundMode')?.value || 'solid',
+                solidColor: $('#cinemaBackgroundColor')?.value || '#000000',
+                blurAmount: parseInt($('#cinemaBackgroundBlur')?.value || '20', 10),
+                vignette: $('#cinemaVignette')?.value || 'subtle',
+            },
+            metadata: {
+                showTitle: $('#cinemaShowTitle')?.checked !== false,
+                showYear: $('#cinemaShowYear')?.checked !== false,
+                showRuntime: $('#cinemaShowRuntime')?.checked !== false,
+                showRating: $('#cinemaShowRating')?.checked !== false,
+                showCertification: !!$('#cinemaShowCertification')?.checked,
+                showGenre: !!$('#cinemaShowGenre')?.checked,
+                showDirector: !!$('#cinemaShowDirector')?.checked,
+                showCast: !!$('#cinemaShowCast')?.checked,
+                showPlot: !!$('#cinemaShowPlot')?.checked,
+                showStudioLogo: !!$('#cinemaShowStudioLogo')?.checked,
+                position: $('#cinemaMetadataPosition')?.value || 'bottom',
+            },
+            promotional: {
+                comingSoonBadge: !!$('#cinemaComingSoonBadge')?.checked,
+                showReleaseCountdown: !!$('#cinemaReleaseCountdown')?.checked,
+                qrCode: {
+                    enabled: !!$('#cinemaQREnabled')?.checked,
+                    url: $('#cinemaQRUrl')?.value || '',
+                    position: $('#cinemaQRPosition')?.value || 'bottomRight',
+                    size: parseInt($('#cinemaQRSize')?.value || '100', 10),
+                },
+                announcementBanner: {
+                    enabled: !!$('#cinemaAnnouncementEnabled')?.checked,
+                    text: $('#cinemaAnnouncementText')?.value || '',
+                    style: $('#cinemaAnnouncementStyle')?.value || 'ticker',
+                },
+            },
+        };
+    }
+
     function collectCinemaOnly(baseCfg) {
         const cfg = baseCfg || {};
         const header = {
@@ -729,7 +930,19 @@
                     ? [...footerPresets]
                     : cfg.cinema?.presets?.footerTexts || [],
         };
-        return { orientation, header, footer, ambilight, rotationIntervalMinutes, presets };
+
+        // Merge enhanced settings (Issue #35)
+        const enhanced = collectEnhancedSettings();
+
+        return {
+            orientation,
+            header,
+            footer,
+            ambilight,
+            rotationIntervalMinutes,
+            presets,
+            ...enhanced,
+        };
     }
 
     async function init() {
@@ -738,6 +951,8 @@
         if (!cm) return;
         mountHeader($('#cinema-header-mount'), cfg);
         mountFooter($('#cinema-footer-mount'), cfg);
+        // Mount enhanced controls (Issue #35)
+        mountEnhancedControls(cfg);
         mountAmbilight($('#cinema-ambilight-mount'), cfg);
         mountNowPlaying(cfg);
         // Mount presets card

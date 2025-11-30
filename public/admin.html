@@ -1219,6 +1219,246 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-window-maximize"></i> Footer</div>
                     <div id="cinema-footer-mount"></div>
                   </div>
+
+                  <!-- Typography Settings (Issue #35) -->
+                  <div class="mode-card" data-card-key="cinema-typography" id="cinema-typography-card" style="padding:12px; grid-column: 1;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-font"></i> Typography</div>
+                    <div id="cinema-typography-mount">
+                      <div class="form-grid">
+                        <div class="form-row">
+                          <label for="cinemaFontFamily">Font Family</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaFontFamily">
+                              <option value="system">System (Default)</option>
+                              <option value="cinematic">Cinematic (Bebas Neue)</option>
+                              <option value="classic">Classic (Playfair)</option>
+                              <option value="modern">Modern (Montserrat)</option>
+                              <option value="elegant">Elegant (Cormorant)</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div class="form-row">
+                          <label for="cinemaTitleSize">Title Size</label>
+                          <div class="cinema-range-row">
+                            <input type="range" id="cinemaTitleSize" min="50" max="200" step="5" value="100" />
+                            <span id="cinemaTitleSizeValue">100%</span>
+                          </div>
+                        </div>
+                        <div class="form-row">
+                          <label for="cinemaTitleColor">Title Color</label>
+                          <input type="color" id="cinemaTitleColor" value="#ffffff" />
+                        </div>
+                        <div class="form-row">
+                          <label for="cinemaTitleShadow">Title Shadow</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaTitleShadow">
+                              <option value="none">None</option>
+                              <option value="subtle">Subtle</option>
+                              <option value="dramatic">Dramatic</option>
+                              <option value="neon">Neon Glow</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div class="form-row">
+                          <label for="cinemaMetadataOpacity">Metadata Opacity</label>
+                          <div class="cinema-range-row">
+                            <input type="range" id="cinemaMetadataOpacity" min="0" max="100" step="5" value="80" />
+                            <span id="cinemaMetadataOpacityValue">80%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Background Settings (Issue #35) -->
+                  <div class="mode-card" data-card-key="cinema-background" id="cinema-background-card" style="padding:12px; grid-column: 1;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-fill-drip"></i> Background</div>
+                    <div id="cinema-background-mount">
+                      <div class="form-grid">
+                        <div class="form-row">
+                          <label for="cinemaBackgroundMode">Background Mode</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaBackgroundMode">
+                              <option value="solid">Solid Color</option>
+                              <option value="blurred">Blurred Poster</option>
+                              <option value="gradient">Dynamic Gradient</option>
+                              <option value="ambient">Ambient Color</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div class="form-row" id="cinemaBackgroundColorRow">
+                          <label for="cinemaBackgroundColor">Background Color</label>
+                          <input type="color" id="cinemaBackgroundColor" value="#000000" />
+                        </div>
+                        <div class="form-row" id="cinemaBackgroundBlurRow" style="display:none;">
+                          <label for="cinemaBackgroundBlur">Blur Amount</label>
+                          <div class="cinema-range-row">
+                            <input type="range" id="cinemaBackgroundBlur" min="5" max="50" step="1" value="20" />
+                            <span id="cinemaBackgroundBlurValue">20px</span>
+                          </div>
+                        </div>
+                        <div class="form-row">
+                          <label for="cinemaVignette">Vignette</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaVignette">
+                              <option value="none">None</option>
+                              <option value="subtle">Subtle</option>
+                              <option value="dramatic">Dramatic</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Poster Style Settings (Issue #35) -->
+                  <div class="mode-card" data-card-key="cinema-poster" id="cinema-poster-card" style="padding:12px; grid-column: 1;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-image"></i> Poster Style</div>
+                    <div id="cinema-poster-mount">
+                      <div class="form-grid">
+                        <div class="form-row">
+                          <label for="cinemaPosterStyle">Display Style</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaPosterStyle">
+                              <option value="fullBleed">Full Bleed (Edge to Edge)</option>
+                              <option value="framed">Framed (Border)</option>
+                              <option value="floating">Floating (Shadow)</option>
+                              <option value="perspective">Perspective (3D Tilt)</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div class="form-row">
+                          <label for="cinemaPosterAnimation">Transition Animation</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaPosterAnimation">
+                              <option value="fade">Fade</option>
+                              <option value="zoomIn">Zoom In</option>
+                              <option value="slideUp">Slide Up</option>
+                              <option value="cinematic">Cinematic Reveal</option>
+                              <option value="kenBurns">Ken Burns</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div class="form-row">
+                          <label for="cinemaPosterTransition">Transition Duration</label>
+                          <div class="cinema-range-row">
+                            <input type="range" id="cinemaPosterTransition" min="0.5" max="5" step="0.5" value="1.5" />
+                            <span id="cinemaPosterTransitionValue">1.5s</span>
+                          </div>
+                        </div>
+                        <div class="form-row" id="cinemaFrameColorRow" style="display:none;">
+                          <label for="cinemaFrameColor">Frame Color</label>
+                          <input type="color" id="cinemaFrameColor" value="#333333" />
+                        </div>
+                        <div class="form-row" id="cinemaFrameWidthRow" style="display:none;">
+                          <label for="cinemaFrameWidth">Frame Width</label>
+                          <div class="cinema-range-row">
+                            <input type="range" id="cinemaFrameWidth" min="2" max="20" step="1" value="8" />
+                            <span id="cinemaFrameWidthValue">8px</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Metadata Display Settings (Issue #35) -->
+                  <div class="mode-card" data-card-key="cinema-metadata" id="cinema-metadata-card" style="padding:12px; grid-column: 1;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-info-circle"></i> Metadata Display</div>
+                    <div id="cinema-metadata-mount">
+                      <div class="form-grid">
+                        <div class="form-row">
+                          <label for="cinemaMetadataPosition">Position</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaMetadataPosition">
+                              <option value="bottom">Bottom (Below Poster)</option>
+                              <option value="side">Side (Next to Poster)</option>
+                              <option value="overlay">Overlay (On Poster)</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div class="cinema-checkbox-grid">
+                          <label class="cinema-check"><input type="checkbox" id="cinemaShowTitle" checked /> <span>Title</span></label>
+                          <label class="cinema-check"><input type="checkbox" id="cinemaShowYear" checked /> <span>Year</span></label>
+                          <label class="cinema-check"><input type="checkbox" id="cinemaShowRuntime" checked /> <span>Runtime</span></label>
+                          <label class="cinema-check"><input type="checkbox" id="cinemaShowRating" checked /> <span>Rating</span></label>
+                          <label class="cinema-check"><input type="checkbox" id="cinemaShowCertification" /> <span>Certification</span></label>
+                          <label class="cinema-check"><input type="checkbox" id="cinemaShowGenre" /> <span>Genre</span></label>
+                          <label class="cinema-check"><input type="checkbox" id="cinemaShowDirector" /> <span>Director</span></label>
+                          <label class="cinema-check"><input type="checkbox" id="cinemaShowCast" /> <span>Cast</span></label>
+                          <label class="cinema-check"><input type="checkbox" id="cinemaShowPlot" /> <span>Plot</span></label>
+                          <label class="cinema-check"><input type="checkbox" id="cinemaShowStudioLogo" /> <span>Studio Logo</span></label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Promotional Features (Issue #35) -->
+                  <div class="mode-card" data-card-key="cinema-promotional" id="cinema-promotional-card" style="padding:12px; grid-column: 1;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-bullhorn"></i> Promotional</div>
+                    <div id="cinema-promotional-mount">
+                      <div class="form-grid">
+                        <div class="cinema-checkbox-grid" style="margin-bottom:12px;">
+                          <label class="cinema-check"><input type="checkbox" id="cinemaComingSoonBadge" /> <span>Coming Soon Badge</span></label>
+                          <label class="cinema-check"><input type="checkbox" id="cinemaReleaseCountdown" /> <span>Release Countdown</span></label>
+                        </div>
+                        <div class="form-row">
+                          <label class="cinema-check" style="margin-bottom:8px;"><input type="checkbox" id="cinemaQREnabled" /> <span>QR Code Overlay</span></label>
+                          <div id="cinemaQRSettings" style="display:none; padding-left:24px;">
+                            <div class="form-row">
+                              <label for="cinemaQRUrl">QR URL (empty = auto trailer link)</label>
+                              <input type="text" id="cinemaQRUrl" placeholder="https://..." />
+                            </div>
+                            <div class="form-row">
+                              <label for="cinemaQRPosition">Position</label>
+                              <div class="select-wrap has-caret">
+                                <select id="cinemaQRPosition">
+                                  <option value="bottomRight">Bottom Right</option>
+                                  <option value="bottomLeft">Bottom Left</option>
+                                  <option value="topRight">Top Right</option>
+                                  <option value="topLeft">Top Left</option>
+                                </select>
+                                <span class="select-caret" aria-hidden="true">▾</span>
+                              </div>
+                            </div>
+                            <div class="form-row">
+                              <label for="cinemaQRSize">Size</label>
+                              <div class="cinema-range-row">
+                                <input type="range" id="cinemaQRSize" min="60" max="200" step="10" value="100" />
+                                <span id="cinemaQRSizeValue">100px</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="form-row">
+                          <label class="cinema-check" style="margin-bottom:8px;"><input type="checkbox" id="cinemaAnnouncementEnabled" /> <span>Announcement Banner</span></label>
+                          <div id="cinemaAnnouncementSettings" style="display:none; padding-left:24px;">
+                            <div class="form-row">
+                              <label for="cinemaAnnouncementText">Banner Text</label>
+                              <input type="text" id="cinemaAnnouncementText" placeholder="Special announcement..." />
+                            </div>
+                            <div class="form-row">
+                              <label for="cinemaAnnouncementStyle">Style</label>
+                              <div class="select-wrap has-caret">
+                                <select id="cinemaAnnouncementStyle">
+                                  <option value="ticker">Ticker (Scrolling)</option>
+                                  <option value="static">Static</option>
+                                  <option value="flash">Flash (Attention)</option>
+                                </select>
+                                <span class="select-caret" aria-hidden="true">▾</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   
                 </div>
               </fieldset>

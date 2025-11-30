@@ -555,3 +555,457 @@ body.cinema-landscape-flipped {
     width: 100vw;
     height: 100vh;
 }
+
+/* =================================================================
+   TYPOGRAPHY CUSTOMIZATION (Issue #35)
+   ================================================================= */
+
+/* CSS Variables for dynamic typography */
+:root {
+    --cinema-font-family: 'Bebas Neue', 'Impact', sans-serif;
+    --cinema-title-scale: 1;
+    --cinema-title-color: #ffffff;
+    --cinema-title-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    --cinema-metadata-opacity: 0.8;
+}
+
+/* Font imports via Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap');
+
+/* Apply typography to cinema titles */
+.cinema-header {
+    font-family: var(--cinema-font-family);
+    color: var(--cinema-title-color);
+    text-shadow: var(--cinema-title-shadow);
+}
+
+#title {
+    font-family: var(--cinema-font-family);
+    color: var(--cinema-title-color);
+    text-shadow: var(--cinema-title-shadow);
+    transform: scale(var(--cinema-title-scale));
+    transform-origin: center center;
+}
+
+/* Metadata with configurable opacity */
+#meta-info,
+.cinema-footer-specs,
+.cinema-footer-tagline {
+    opacity: var(--cinema-metadata-opacity);
+}
+
+/* Typography variants body classes */
+body.cinema-typography-system {
+    --cinema-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body.cinema-typography-cinematic {
+    --cinema-font-family: 'Bebas Neue', 'Impact', sans-serif;
+}
+
+body.cinema-typography-classic {
+    --cinema-font-family: 'Playfair Display', Georgia, serif;
+}
+
+body.cinema-typography-modern {
+    --cinema-font-family: 'Montserrat', 'Helvetica Neue', sans-serif;
+}
+
+body.cinema-typography-elegant {
+    --cinema-font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+}
+
+/* =================================================================
+   BACKGROUND MODES (Issue #35)
+   ================================================================= */
+
+:root {
+    --cinema-bg-color: #000000;
+    --cinema-bg-blur: 20px;
+    --cinema-vignette: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+/* Solid background (default) */
+body.cinema-bg-solid {
+    background: var(--cinema-bg-color);
+}
+
+body.cinema-bg-solid #info-container {
+    background: var(--cinema-bg-color);
+}
+
+/* Blurred poster background */
+body.cinema-bg-blurred {
+    position: relative;
+}
+
+body.cinema-bg-blurred::before {
+    content: '';
+    position: fixed;
+    top: -5%;
+    left: -5%;
+    width: 110%;
+    height: 110%;
+    background-image: var(--cinema-poster-url, none);
+    background-size: cover;
+    background-position: center;
+    filter: blur(var(--cinema-bg-blur)) brightness(0.4);
+    z-index: -2;
+}
+
+/* Gradient background - dynamic based on poster colors */
+body.cinema-bg-gradient {
+    background: linear-gradient(
+        135deg,
+        var(--cinema-gradient-start, #0f0f0f) 0%,
+        var(--cinema-gradient-mid, #1a1a2e) 50%,
+        var(--cinema-gradient-end, #0f0f0f) 100%
+    );
+}
+
+/* Ambient background - color extracted from poster */
+body.cinema-bg-ambient {
+    position: relative;
+}
+
+body.cinema-bg-ambient::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        ellipse at center,
+        var(--cinema-ambient-color, rgba(30, 30, 50, 0.8)) 0%,
+        #000 70%
+    );
+    z-index: -2;
+}
+
+/* Vignette overlay */
+body.cinema-bg-solid::after,
+body.cinema-bg-blurred::after,
+body.cinema-bg-gradient::after,
+body.cinema-bg-ambient::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--cinema-vignette);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* =================================================================
+   POSTER STYLES (Issue #35)
+   ================================================================= */
+
+:root {
+    --cinema-poster-transition: 1.5s;
+    --cinema-frame-color: #333333;
+    --cinema-frame-width: 8px;
+}
+
+/* Full Bleed - edge to edge, no borders */
+body.cinema-poster-fullBleed #poster {
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* Framed - elegant border */
+body.cinema-poster-framed #poster {
+    border: var(--cinema-frame-width) solid var(--cinema-frame-color);
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.1),
+        0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Floating - elevated with shadow */
+body.cinema-poster-floating #poster {
+    border-radius: 8px;
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.6),
+        0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Perspective - 3D tilt effect */
+body.cinema-poster-perspective #poster {
+    transform: perspective(1000px) rotateY(-2deg) rotateX(1deg);
+    box-shadow:
+        -20px 20px 40px rgba(0, 0, 0, 0.5),
+        10px -10px 20px rgba(255, 255, 255, 0.05);
+}
+
+/* =================================================================
+   POSTER ANIMATIONS (Issue #35)
+   ================================================================= */
+
+/* Fade transition */
+body.cinema-anim-fade #poster {
+    transition: opacity var(--cinema-poster-transition) ease-in-out;
+}
+
+/* Zoom In transition */
+body.cinema-anim-zoomIn #poster {
+    animation: cinemaZoomIn var(--cinema-poster-transition) ease-out forwards;
+}
+
+@keyframes cinemaZoomIn {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Slide Up transition */
+body.cinema-anim-slideUp #poster {
+    animation: cinemaSlideUp var(--cinema-poster-transition) ease-out forwards;
+}
+
+@keyframes cinemaSlideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Cinematic reveal - dramatic fade with scale */
+body.cinema-anim-cinematic #poster {
+    animation: cinemaCinematic var(--cinema-poster-transition) cubic-bezier(0.25, 0.46, 0.45, 0.94)
+        forwards;
+}
+
+@keyframes cinemaCinematic {
+    0% {
+        transform: scale(1.1);
+        opacity: 0;
+        filter: brightness(0.3);
+    }
+    50% {
+        opacity: 0.6;
+        filter: brightness(0.8);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+        filter: brightness(1);
+    }
+}
+
+/* Ken Burns - subtle zoom and pan effect */
+body.cinema-anim-kenBurns #poster {
+    animation: cinemaKenBurns 20s ease-in-out infinite alternate;
+}
+
+@keyframes cinemaKenBurns {
+    0% {
+        transform: scale(1) translate(0, 0);
+    }
+    100% {
+        transform: scale(1.08) translate(-2%, -1%);
+    }
+}
+
+/* =================================================================
+   METADATA POSITION VARIANTS (Issue #35)
+   ================================================================= */
+
+/* Bottom position (default) - metadata below poster */
+body.cinema-metadata-bottom .cinema-metadata-panel {
+    position: fixed;
+    bottom: var(--poster-bottom, 0);
+    left: 0;
+    right: 0;
+    padding: 1rem 2rem;
+    text-align: center;
+}
+
+/* Side position - metadata beside poster */
+body.cinema-metadata-side {
+    display: flex;
+    flex-direction: row;
+}
+
+body.cinema-metadata-side #poster-wrapper {
+    width: 60%;
+}
+
+body.cinema-metadata-side .cinema-metadata-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 40%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 3rem;
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.8) 20%);
+}
+
+/* Overlay position - metadata on top of poster */
+body.cinema-metadata-overlay .cinema-metadata-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 3rem 2rem;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+}
+
+/* =================================================================
+   PROMOTIONAL FEATURES (Issue #35)
+   ================================================================= */
+
+/* Coming Soon badge */
+.cinema-badge-coming-soon {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+    font-family: var(--cinema-font-family);
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    box-shadow: 0 4px 15px rgba(238, 90, 36, 0.4);
+    animation: badgePulse 2s ease-in-out infinite;
+    z-index: 100;
+}
+
+@keyframes badgePulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* Release countdown */
+.cinema-countdown {
+    position: absolute;
+    bottom: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    font-family: var(--cinema-font-family);
+    font-size: 2rem;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    text-align: center;
+    z-index: 100;
+}
+
+.cinema-countdown-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    opacity: 0.7;
+    margin-bottom: 0.5rem;
+}
+
+/* QR Code overlay */
+.cinema-qr-code {
+    position: fixed;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+.cinema-qr-code.position-bottomRight {
+    bottom: calc(var(--poster-bottom, 0) + 2rem);
+    right: 2rem;
+}
+
+.cinema-qr-code.position-bottomLeft {
+    bottom: calc(var(--poster-bottom, 0) + 2rem);
+    left: 2rem;
+}
+
+.cinema-qr-code.position-topRight {
+    top: calc(var(--poster-top, 0) + 2rem);
+    right: 2rem;
+}
+
+.cinema-qr-code.position-topLeft {
+    top: calc(var(--poster-top, 0) + 2rem);
+    left: 2rem;
+}
+
+/* Announcement banner */
+.cinema-announcement {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(90deg, #ff6b6b, #ee5a24, #ff6b6b);
+    color: white;
+    font-family: var(--cinema-font-family);
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 1rem;
+    text-align: center;
+    z-index: 200;
+}
+
+/* Ticker style - scrolling text */
+.cinema-announcement.style-ticker {
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.cinema-announcement.style-ticker .announcement-text {
+    display: inline-block;
+    animation: tickerScroll 15s linear infinite;
+}
+
+@keyframes tickerScroll {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+/* Static style */
+.cinema-announcement.style-static {
+    /* Default styling */
+}
+
+/* Flash style - attention grabbing */
+.cinema-announcement.style-flash {
+    animation: announcementFlash 1.5s ease-in-out infinite;
+}
+
+@keyframes announcementFlash {
+    0%,
+    100% {
+        background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+    }
+    50% {
+        background: linear-gradient(90deg, #ee5a24, #ff6b6b);
+    }
+}

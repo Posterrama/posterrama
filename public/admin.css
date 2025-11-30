@@ -16468,6 +16468,141 @@ select.input-error:focus {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
+/* =================================================================
+   CINEMA MODE ENHANCED CONTROLS (Issue #35)
+   ================================================================= */
+
+/* Range row with value display */
+.cinema-range-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cinema-range-row input[type='range'] {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--surface-layer-3);
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.cinema-range-row input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--color-accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.cinema-range-row input[type='range']::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--color-accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.cinema-range-row span {
+    min-width: 50px;
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+/* Checkbox grid for metadata toggles */
+.cinema-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.cinema-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.cinema-check:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.cinema-check input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-accent);
+    cursor: pointer;
+}
+
+.cinema-check span {
+    flex: 1;
+}
+
+/* Color picker styling */
+#cinema-typography-mount input[type='color'],
+#cinema-background-mount input[type='color'],
+#cinema-poster-mount input[type='color'] {
+    width: 60px;
+    height: 32px;
+    padding: 2px;
+    border: 1px solid var(--surface-layer-3);
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+}
+
+#cinema-typography-mount input[type='color']::-webkit-color-swatch-wrapper,
+#cinema-background-mount input[type='color']::-webkit-color-swatch-wrapper,
+#cinema-poster-mount input[type='color']::-webkit-color-swatch-wrapper {
+    padding: 2px;
+}
+
+#cinema-typography-mount input[type='color']::-webkit-color-swatch,
+#cinema-background-mount input[type='color']::-webkit-color-swatch,
+#cinema-poster-mount input[type='color']::-webkit-color-swatch {
+    border: none;
+    border-radius: 2px;
+}
+
+/* Cinema promotional QR/Announcement nested settings */
+#cinemaQRSettings,
+#cinemaAnnouncementSettings {
+    border-left: 2px solid var(--surface-layer-3);
+    padding-left: 16px;
+    margin-top: 8px;
+}
+
+#cinemaQRSettings input[type='text'],
+#cinemaAnnouncementSettings input[type='text'] {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--surface-layer-2);
+    border: 1px solid var(--surface-layer-3);
+    border-radius: 4px;
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+}
+
+#cinemaQRSettings input[type='text']:focus,
+#cinemaAnnouncementSettings input[type='text']:focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
 #wallartMode_musicMode_artistCards_accentColor_reset:active {
     transform: translateY(0);
 }

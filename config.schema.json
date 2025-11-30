@@ -658,6 +658,295 @@
                     "default": 0,
                     "description": "Poster rotation interval in minutes (0 = disabled, shows single random poster)"
                 },
+                "typography": {
+                    "type": "object",
+                    "description": "Typography customization for cinema mode text elements",
+                    "properties": {
+                        "fontFamily": {
+                            "type": "string",
+                            "enum": ["system", "cinematic", "classic", "modern", "elegant"],
+                            "default": "cinematic",
+                            "description": "Font family: system (default), cinematic (Bebas Neue), classic (Playfair Display), modern (Montserrat), elegant (Cormorant Garamond)"
+                        },
+                        "titleSize": {
+                            "type": "integer",
+                            "minimum": 50,
+                            "maximum": 200,
+                            "default": 100,
+                            "description": "Title size as percentage (50-200%)"
+                        },
+                        "titleColor": {
+                            "type": "string",
+                            "pattern": "^#[0-9A-Fa-f]{6}$",
+                            "default": "#ffffff",
+                            "description": "Title text color (hex)"
+                        },
+                        "titleShadow": {
+                            "type": "string",
+                            "enum": ["none", "subtle", "dramatic", "neon"],
+                            "default": "subtle",
+                            "description": "Title text shadow effect"
+                        },
+                        "metadataOpacity": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "default": 80,
+                            "description": "Opacity for metadata text (year, runtime, rating) 0-100%"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "fontFamily": "cinematic",
+                        "titleSize": 100,
+                        "titleColor": "#ffffff",
+                        "titleShadow": "subtle",
+                        "metadataOpacity": 80
+                    }
+                },
+                "poster": {
+                    "type": "object",
+                    "description": "Poster presentation settings",
+                    "properties": {
+                        "style": {
+                            "type": "string",
+                            "enum": ["fullBleed", "framed", "floating", "perspective"],
+                            "default": "floating",
+                            "description": "Poster display style: fullBleed (edge to edge), framed (with border), floating (with shadow), perspective (3D tilt)"
+                        },
+                        "animation": {
+                            "type": "string",
+                            "enum": ["fade", "zoomIn", "slideUp", "cinematic", "kenBurns"],
+                            "default": "fade",
+                            "description": "Poster transition animation"
+                        },
+                        "transitionDuration": {
+                            "type": "number",
+                            "minimum": 0.5,
+                            "maximum": 5,
+                            "default": 1.5,
+                            "description": "Transition animation duration in seconds"
+                        },
+                        "frameColor": {
+                            "type": "string",
+                            "pattern": "^#[0-9A-Fa-f]{6}$",
+                            "default": "#333333",
+                            "description": "Frame color when style is 'framed' (hex)"
+                        },
+                        "frameWidth": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 20,
+                            "default": 8,
+                            "description": "Frame width in pixels when style is 'framed'"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "style": "floating",
+                        "animation": "fade",
+                        "transitionDuration": 1.5,
+                        "frameColor": "#333333",
+                        "frameWidth": 8
+                    }
+                },
+                "background": {
+                    "type": "object",
+                    "description": "Background display settings",
+                    "properties": {
+                        "mode": {
+                            "type": "string",
+                            "enum": ["solid", "blurred", "gradient", "ambient"],
+                            "default": "solid",
+                            "description": "Background mode: solid (black), blurred (poster blur), gradient (dynamic), ambient (color extraction)"
+                        },
+                        "solidColor": {
+                            "type": "string",
+                            "pattern": "^#[0-9A-Fa-f]{6}$",
+                            "default": "#000000",
+                            "description": "Background color when mode is 'solid' (hex)"
+                        },
+                        "blurAmount": {
+                            "type": "integer",
+                            "minimum": 5,
+                            "maximum": 50,
+                            "default": 20,
+                            "description": "Blur intensity when mode is 'blurred' (pixels)"
+                        },
+                        "vignette": {
+                            "type": "string",
+                            "enum": ["none", "subtle", "dramatic"],
+                            "default": "subtle",
+                            "description": "Vignette effect (dark edges)"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "mode": "solid",
+                        "solidColor": "#000000",
+                        "blurAmount": 20,
+                        "vignette": "subtle"
+                    }
+                },
+                "metadata": {
+                    "type": "object",
+                    "description": "Metadata display toggles",
+                    "properties": {
+                        "showTitle": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Display movie/series title"
+                        },
+                        "showYear": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Display release year"
+                        },
+                        "showRuntime": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Display runtime (e.g., 2h 15m)"
+                        },
+                        "showRating": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Display rating (IMDB/Rotten Tomatoes)"
+                        },
+                        "showCertification": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Display content certification (PG, R, etc.)"
+                        },
+                        "showGenre": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Display genre tags"
+                        },
+                        "showDirector": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Display director name"
+                        },
+                        "showCast": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Display top cast members"
+                        },
+                        "showPlot": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Display plot summary (first 2 sentences)"
+                        },
+                        "showStudioLogo": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Display studio/production company logo"
+                        },
+                        "position": {
+                            "type": "string",
+                            "enum": ["bottom", "side", "overlay"],
+                            "default": "bottom",
+                            "description": "Metadata position: bottom (under poster), side (next to poster), overlay (on poster)"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "showTitle": true,
+                        "showYear": true,
+                        "showRuntime": true,
+                        "showRating": true,
+                        "showCertification": false,
+                        "showGenre": false,
+                        "showDirector": false,
+                        "showCast": false,
+                        "showPlot": false,
+                        "showStudioLogo": false,
+                        "position": "bottom"
+                    }
+                },
+                "promotional": {
+                    "type": "object",
+                    "description": "Promotional overlay features for commercial use",
+                    "properties": {
+                        "comingSoonBadge": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Show 'Coming Soon' badge overlay"
+                        },
+                        "showReleaseCountdown": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Show countdown to release date (if available)"
+                        },
+                        "qrCode": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Show QR code overlay"
+                                },
+                                "url": {
+                                    "type": "string",
+                                    "default": "",
+                                    "description": "URL to encode in QR code (leave empty for auto trailer link)"
+                                },
+                                "position": {
+                                    "type": "string",
+                                    "enum": ["bottomRight", "bottomLeft", "topRight", "topLeft"],
+                                    "default": "bottomRight",
+                                    "description": "QR code position"
+                                },
+                                "size": {
+                                    "type": "integer",
+                                    "minimum": 60,
+                                    "maximum": 200,
+                                    "default": 100,
+                                    "description": "QR code size in pixels"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "announcementBanner": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Show announcement banner"
+                                },
+                                "text": {
+                                    "type": "string",
+                                    "default": "",
+                                    "description": "Announcement text"
+                                },
+                                "style": {
+                                    "type": "string",
+                                    "enum": ["ticker", "static", "flash"],
+                                    "default": "ticker",
+                                    "description": "Banner style: ticker (scrolling), static, flash (attention)"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "comingSoonBadge": false,
+                        "showReleaseCountdown": false,
+                        "qrCode": {
+                            "enabled": false,
+                            "url": "",
+                            "position": "bottomRight",
+                            "size": 100
+                        },
+                        "announcementBanner": {
+                            "enabled": false,
+                            "text": "",
+                            "style": "ticker"
+                        }
+                    }
+                },
                 "orientation": {
                     "type": "string",
                     "enum": ["auto", "portrait", "portrait-flipped"],
