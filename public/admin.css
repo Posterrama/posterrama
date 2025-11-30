@@ -12273,6 +12273,53 @@ body.page-logs {
     width: 30px;
 }
 
+/* Film Cards number input with suffix styling */
+.number-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    border-radius: 10px;
+    padding: 8px 12px;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.number-input-wrap:focus-within {
+    border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+}
+
+.number-input-wrap input[type='number'] {
+    flex: 1;
+    min-width: 60px;
+    background: transparent;
+    color: var(--color-text-primary);
+    border: none;
+    outline: none;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.number-input-wrap input[type='number']::-webkit-outer-spin-button,
+.number-input-wrap input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.number-input-wrap .number-suffix {
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    user-select: none;
+}
+
 /* Modern slider and number input styles for Display */
 #section-display .modern-slider input[type='range'] {
     width: 100%;
