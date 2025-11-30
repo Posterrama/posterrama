@@ -5,6 +5,38 @@
  */
 
 /**
+ * Apply orientation (fallback for bootstrap phase before screensaver.js loads)
+ */
+function applyOrientationBootstrap(orientation) {
+    const body = document.body;
+
+    // Remove existing orientation classes
+    body.classList.remove(
+        'orientation-auto',
+        'orientation-portrait',
+        'orientation-landscape',
+        'orientation-portrait-flipped',
+        'orientation-landscape-flipped'
+    );
+
+    // Handle auto orientation: use sensor if available, otherwise aspect ratio
+    let resolvedOrientation = orientation;
+    if (orientation === 'auto') {
+        // Try screen orientation API first
+        if (window.screen?.orientation?.type) {
+            const type = window.screen.orientation.type;
+            resolvedOrientation = type.includes('portrait') ? 'portrait' : 'landscape';
+        } else {
+            // Fallback: use aspect ratio (width > height = landscape)
+            resolvedOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+        }
+    }
+
+    // Add resolved orientation class
+    body.classList.add(`orientation-${resolvedOrientation}`);
+}
+
+/**
  * Force service worker update if available
  */
 async function forceServiceWorkerUpdate() {
@@ -137,6 +169,22 @@ export async function startScreensaver() {
 
         // Load config and media
         await ensureConfig();
+
+        // Apply screensaver orientation from config
+        try {
+            const orientation = window.appConfig?.screensaverMode?.orientation || 'auto';
+            if (
+                window.PosterramaScreensaver &&
+                typeof window.PosterramaScreensaver.applyOrientation === 'function'
+            ) {
+                window.PosterramaScreensaver.applyOrientation(orientation);
+            } else {
+                // Fallback: apply orientation directly if screensaver module not loaded yet
+                applyOrientationBootstrap(orientation);
+            }
+        } catch (_) {
+            // Orientation application is optional
+        }
 
         // Initialize device management (optional)
         try {

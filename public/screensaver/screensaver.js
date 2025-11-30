@@ -1129,6 +1129,11 @@
                         document.body.classList.toggle('preview-landscape', !isPortrait);
                     }
 
+                    // Apply screensaver orientation (auto/portrait/landscape/flipped variants)
+                    if (patch.screensaverMode?.orientation) {
+                        applyOrientation(patch.screensaverMode.orientation);
+                    }
+
                     // Only restart cycler if timing/effect changed
                     if (needsRestart) {
                         api.startCycler();
@@ -1137,7 +1142,39 @@
                     console.error('[Screensaver.applySettings] Error:', e);
                 }
             },
+            applyOrientation,
         };
+
+        // Apply orientation with auto detection and flipped support
+        function applyOrientation(orientation) {
+            const body = document.body;
+
+            // Remove existing orientation classes
+            body.classList.remove(
+                'orientation-auto',
+                'orientation-portrait',
+                'orientation-landscape',
+                'orientation-portrait-flipped',
+                'orientation-landscape-flipped'
+            );
+
+            // Handle auto orientation: use sensor if available, otherwise aspect ratio
+            let resolvedOrientation = orientation;
+            if (orientation === 'auto') {
+                // Try screen orientation API first
+                if (window.screen?.orientation?.type) {
+                    const type = window.screen.orientation.type;
+                    resolvedOrientation = type.includes('portrait') ? 'portrait' : 'landscape';
+                } else {
+                    // Fallback: use aspect ratio (width > height = landscape)
+                    resolvedOrientation =
+                        window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+                }
+            }
+
+            // Add resolved orientation class
+            body.classList.add(`orientation-${resolvedOrientation}`);
+        }
 
         // Attach to window; only on the screensaver page we actually use it, on others wrappers will no-op
         window.PosterramaScreensaver = api;

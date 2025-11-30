@@ -2399,3 +2399,20 @@ body.preview-landscape {
         max-width: 90%;
     }
 }
+
+/* Orientation transforms for flipped modes */
+body.orientation-portrait-flipped,
+body.orientation-landscape-flipped {
+    transform: rotate(180deg);
+    transform-origin: center center;
+}
+
+/* Ensure body fills viewport when rotated */
+body.orientation-portrait-flipped,
+body.orientation-landscape-flipped {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+}

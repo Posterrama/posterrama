@@ -3,6 +3,37 @@
 (function initWallartModule() {
     window.debugLog && window.debugLog('WALLART_MODULE_INIT', { timestamp: Date.now() });
     try {
+        // Apply wallart orientation with auto detection and flipped support
+        function applyWallartOrientation(orientation) {
+            const body = document.body;
+
+            // Remove existing orientation classes
+            body.classList.remove(
+                'orientation-auto',
+                'orientation-portrait',
+                'orientation-landscape',
+                'orientation-portrait-flipped',
+                'orientation-landscape-flipped'
+            );
+
+            // Handle auto orientation: use sensor if available, otherwise aspect ratio
+            let resolvedOrientation = orientation;
+            if (orientation === 'auto') {
+                // Try screen orientation API first
+                if (window.screen?.orientation?.type) {
+                    const type = window.screen.orientation.type;
+                    resolvedOrientation = type.includes('portrait') ? 'portrait' : 'landscape';
+                } else {
+                    // Fallback: use aspect ratio (width > height = landscape)
+                    resolvedOrientation =
+                        window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+                }
+            }
+
+            // Add resolved orientation class
+            body.classList.add(`orientation-${resolvedOrientation}`);
+        }
+
         const logDebug = msg => {
             try {
                 window.logger && typeof window.logger.debug === 'function'
@@ -1959,6 +1990,10 @@
                                 document.body.classList.toggle('preview-portrait', isPortrait);
                                 document.body.classList.toggle('preview-landscape', !isPortrait);
                             }
+                            // Apply wallart orientation on first load
+                            if (settings.wallartMode?.orientation) {
+                                applyWallartOrientation(settings.wallartMode.orientation);
+                            }
                             return;
                         }
 
@@ -1971,6 +2006,11 @@
 
                             document.body.classList.toggle('preview-portrait', isPortrait);
                             document.body.classList.toggle('preview-landscape', !isPortrait);
+
+                            // Apply wallart mode orientation (with flipped support)
+                            if (settings.wallartMode?.orientation) {
+                                applyWallartOrientation(settings.wallartMode.orientation);
+                            }
 
                             // If orientation changed, rebuild layout WITHOUT reload to avoid infinite loop
                             if (wasPortrait !== isPortrait) {
