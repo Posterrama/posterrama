@@ -1107,19 +1107,11 @@ module.exports = function createMediaRouter({
                     if (quality >= 50 && width === 0) {
                         // High quality request - use ORIGINAL image directly (no transcode)
                         imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}${imagePath}`;
-                        logger.info(`[Image Proxy] ORIGINAL Plex request`, {
-                            path: imagePath,
-                            resolution: 'original',
-                        });
                     } else {
                         // Low quality thumbnail - transcode to small size for fast loading
                         const thumbWidth = width || 400;
                         const thumbHeight = Math.round(thumbWidth * 1.5); // Poster aspect ratio
                         imageUrl = `http://${serverConfig.hostname}:${serverConfig.port}/photo/:/transcode?width=${thumbWidth}&height=${thumbHeight}&minSize=1&upscale=0&url=${encodedPath}&X-Plex-Token=${token}`;
-                        logger.info(`[Image Proxy] THUMBNAIL Plex request`, {
-                            path: imagePath,
-                            resolution: `${thumbWidth}x${thumbHeight}`,
-                        });
                     }
                     fetchOptions.headers['X-Plex-Token'] = token;
                 } else if (serverConfig.type === 'jellyfin') {

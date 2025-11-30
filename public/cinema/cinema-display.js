@@ -855,7 +855,6 @@
     let trailerAutohideTimer = null; // Timer for time-based autohide
     let trailerReshowTimer = null; // Timer for re-showing trailer
     let trailerHidden = false; // Track if trailer is hidden (autohide active)
-    let currentTrailerMedia = null; // Store current media for reshow
 
     // Load YouTube IFrame API (once)
     function loadYouTubeAPI() {
@@ -915,7 +914,6 @@
         // Reset state for new trailer
         trailerLoopCount = 0;
         trailerHidden = false;
-        currentTrailerMedia = media;
 
         // Remove existing trailer if disabled or no media
         if (!trailerConfig.enabled || !media) {
@@ -1280,7 +1278,6 @@
         // Reset state
         trailerLoopCount = 0;
         trailerHidden = false;
-        currentTrailerMedia = null;
     }
 
     // ===== Rating Badge (Promotional) =====
