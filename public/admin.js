@@ -6112,7 +6112,13 @@
 
         function collectPreviewPayload() {
             // Reuse existing patch builder; it produces the shape expected by /preview runtime
-            return collectDisplayFormPatch();
+            const payload = collectDisplayFormPatch();
+
+            // Set previewOrientation based on current container state for accurate wallart rebuild
+            const isPortrait = container.classList.contains('portrait');
+            payload.previewOrientation = isPortrait ? 'portrait' : 'landscape';
+
+            return payload;
         }
 
         function shouldHardReset(prev, next) {
