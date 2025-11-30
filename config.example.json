@@ -23,6 +23,13 @@
                 "heroSide": "right",
                 "heroRotationMinutes": 8,
                 "biasAmbientToHero": true
+            },
+            "filmCards": {
+                "groupBy": "director",
+                "cardRotationSeconds": 60,
+                "posterRotationSeconds": 15,
+                "minGroupSize": 3,
+                "accentColor": "#b40f0f"
             }
         },
         "parallaxDepth": {

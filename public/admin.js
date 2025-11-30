@@ -3588,6 +3588,23 @@
         setIf('wallartMode_filmCards_cardRotationSeconds', filmCards.cardRotationSeconds ?? 60);
         setIf('wallartMode_filmCards_posterRotationSeconds', filmCards.posterRotationSeconds ?? 15);
         setIf('wallartMode_filmCards_minGroupSize', filmCards.minGroupSize ?? 3);
+        setIf('wallartMode_filmCards_accentColor', filmCards.accentColor || '#b40f0f');
+        setIf('wallartMode_filmCards_accentColor_text', filmCards.accentColor || '#b40f0f');
+
+        // Sync color picker and text input
+        const colorPicker = document.getElementById('wallartMode_filmCards_accentColor');
+        const colorText = document.getElementById('wallartMode_filmCards_accentColor_text');
+        if (colorPicker && colorText) {
+            colorPicker.addEventListener('input', e => {
+                colorText.value = e.target.value.toUpperCase();
+            });
+            colorText.addEventListener('input', e => {
+                const hex = e.target.value.trim();
+                if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+                    colorPicker.value = hex;
+                }
+            });
+        }
 
         // Parallax Depth settings
         const parallaxDepth = w.parallaxDepth || {};
@@ -5582,6 +5599,7 @@
                         posterRotationSeconds:
                             parseInt(val('wallartMode_filmCards_posterRotationSeconds')) || 15,
                         minGroupSize: parseInt(val('wallartMode_filmCards_minGroupSize')) || 3,
+                        accentColor: val('wallartMode_filmCards_accentColor') || '#b40f0f',
                     },
                 },
             },

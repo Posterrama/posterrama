@@ -220,6 +220,12 @@
                                     "maximum": 20,
                                     "default": 3,
                                     "description": "Minimum films required per group to display"
+                                },
+                                "accentColor": {
+                                    "type": "string",
+                                    "pattern": "^#[0-9A-Fa-f]{6}$",
+                                    "default": "#b40f0f",
+                                    "description": "Accent color for the cinematic filter effect (hex color code)"
                                 }
                             }
                         }

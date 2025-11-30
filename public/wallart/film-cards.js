@@ -51,12 +51,14 @@
             const minGroupSize = parseInt(filmCardsCfg.minGroupSize) || 3;
             const cardRotationSeconds = parseInt(filmCardsCfg.cardRotationSeconds) || 60;
             const posterRotationSeconds = parseInt(filmCardsCfg.posterRotationSeconds) || 15;
+            const accentColor = filmCardsCfg.accentColor || '#b40f0f';
 
             console.log('[Film Cards] Config:', {
                 groupBy,
                 minGroupSize,
                 cardRotationSeconds,
                 posterRotationSeconds,
+                accentColor,
             });
 
             // Group films by selected criteria
@@ -136,7 +138,7 @@
 
                 const groupData = groups[currentGroupIndex];
                 console.log('[Film Cards] Creating card for group:', groupData.name);
-                currentCard = this.createFilmCard(groupData, groupBy);
+                currentCard = this.createFilmCard(groupData, groupBy, accentColor);
                 container.appendChild(currentCard);
 
                 // Start poster rotation for this group's card
@@ -469,9 +471,10 @@
          * Create a single film card
          * @param {object} groupData - Group data with films
          * @param {string} groupBy - Group type (director/genre/actor/collection)
+         * @param {string} accentColor - Hex color for cinematic filter effect
          * @returns {HTMLElement} Card element
          */
-        createFilmCard(groupData, groupBy) {
+        createFilmCard(groupData, groupBy, accentColor = '#b40f0f') {
             // Detect portrait orientation
             const isPortrait = window.innerHeight > window.innerWidth;
 
@@ -547,10 +550,17 @@
                     redContainer.appendChild(redPhoto);
 
                     const redOverlay = document.createElement('div');
+                    // Convert hex to RGB for gradient
+                    const rgb = this.hexToRgb(accentColor);
+                    const darkRgb = {
+                        r: Math.floor(rgb.r * 0.67),
+                        g: Math.floor(rgb.g * 0.67),
+                        b: Math.floor(rgb.b * 0.67),
+                    };
                     redOverlay.style.cssText = `
                         position: absolute;
                         inset: 0;
-                        background: linear-gradient(135deg, rgba(180, 15, 15, 0.92), rgba(120, 5, 5, 0.95));
+                        background: linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.92), rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.95));
                         mix-blend-mode: multiply;
                         pointer-events: none;
                     `;
@@ -600,10 +610,17 @@
                     redContainer.appendChild(redPhoto);
 
                     const redOverlay = document.createElement('div');
+                    // Convert hex to RGB for gradient
+                    const rgb = this.hexToRgb(accentColor);
+                    const darkRgb = {
+                        r: Math.floor(rgb.r * 0.67),
+                        g: Math.floor(rgb.g * 0.67),
+                        b: Math.floor(rgb.b * 0.67),
+                    };
                     redOverlay.style.cssText = `
                         position: absolute;
                         inset: 0;
-                        background: linear-gradient(135deg, rgba(180, 15, 15, 0.92), rgba(120, 5, 5, 0.95));
+                        background: linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.92), rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.95));
                         mix-blend-mode: multiply;
                         pointer-events: none;
                     `;
@@ -1040,6 +1057,22 @@
                     });
                 }
             }, rotationSeconds * 1000);
+        },
+
+        /**
+         * Convert hex color to RGB object
+         * @param {string} hex - Hex color code (e.g. '#b40f0f')
+         * @returns {object} RGB object with r, g, b properties
+         */
+        hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result
+                ? {
+                      r: parseInt(result[1], 16),
+                      g: parseInt(result[2], 16),
+                      b: parseInt(result[3], 16),
+                  }
+                : { r: 180, g: 15, b: 15 }; // Fallback to default red
         },
     };
 
