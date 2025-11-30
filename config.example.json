@@ -137,6 +137,7 @@
             "showAwardsBadge": false,
             "trailer": {
                 "enabled": false,
+                "delay": 5,
                 "muted": true,
                 "loop": true
             },

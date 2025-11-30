@@ -1095,6 +1095,13 @@
                                     "default": false,
                                     "description": "Show trailer video overlay"
                                 },
+                                "delay": {
+                                    "type": "integer",
+                                    "default": 5,
+                                    "minimum": 0,
+                                    "maximum": 60,
+                                    "description": "Delay in seconds before trailer starts playing"
+                                },
                                 "muted": {
                                     "type": "boolean",
                                     "default": true,
