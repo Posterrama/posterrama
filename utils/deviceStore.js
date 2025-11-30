@@ -243,7 +243,7 @@ async function generatePairingCode(id, { ttlMs = 10 * 60 * 1000, requireToken = 
     return { code, token, expiresAt };
 }
 
-async function claimByPairingCode({ code, token, name, location } = {}) {
+async function claimByPairingCode({ code, token, name, location } = /** @type {any} */ ({})) {
     if (!code) return null;
     const all = await readAll();
     const now = Date.now();
@@ -513,13 +513,9 @@ function screensEqual(a, b) {
 }
 
 // Best-effort duplicate pruning to counter early multi-tab races
-async function pruneLikelyDuplicates({
-    keepId,
-    userAgent,
-    screen,
-    hardwareId,
-    maxDelete = 5,
-} = {}) {
+async function pruneLikelyDuplicates(
+    { keepId, userAgent, screen, hardwareId, maxDelete = 5 } = /** @type {any} */ ({})
+) {
     try {
         const all = await readAll();
         const keep = all.find(d => d.id === keepId);
