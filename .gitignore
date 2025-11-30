@@ -65,6 +65,10 @@ coverage/
 *.lcov
 jest-results.json
 
+# Mutation testing
+.stryker-tmp/
+reports/mutation/
+
 # Development/test files
 test-*.html
 list-*.js
