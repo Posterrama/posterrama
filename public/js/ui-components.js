@@ -30,11 +30,6 @@ export const COLOR_PRESETS = [
         gradient: 'linear-gradient(135deg, #0e7490 0%, #084c61 100%)',
     },
     {
-        color: '#7c2d12',
-        name: 'Warm Brown',
-        gradient: 'linear-gradient(135deg, #7c2d12 0%, #531e0c 100%)',
-    },
-    {
         color: '#6b21a8',
         name: 'Royal Purple',
         gradient: 'linear-gradient(135deg, #6b21a8 0%, #471670 100%)',
@@ -211,6 +206,25 @@ export function createColorPicker(options) {
     container.className = 'form-row color-picker-component';
     container.style.display = 'block';
 
+    // Add styles to hide number input spinners
+    const styleId = `${pickerId}-styles`;
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            #${pickerId}-r::-webkit-inner-spin-button,
+            #${pickerId}-r::-webkit-outer-spin-button,
+            #${pickerId}-g::-webkit-inner-spin-button,
+            #${pickerId}-g::-webkit-outer-spin-button,
+            #${pickerId}-b::-webkit-inner-spin-button,
+            #${pickerId}-b::-webkit-outer-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     // Build HTML structure with custom picker popup
     container.innerHTML = `
         <label style="display: block; margin-bottom: 12px; font-weight: 600;">
@@ -219,7 +233,7 @@ export function createColorPicker(options) {
         
         <div style="display: flex; align-items: center; gap: 16px; position: relative;">
             <!-- Color Circle Preview -->
-            <div id="${circleId}" style="width: 48px; height: 48px; border-radius: 12px; background: ${color}; border: 2px solid var(--color-border); box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden;">
+            <div id="${circleId}" style="width: 48px; height: 48px; border-radius: 50%; background: ${color}; border: 2px solid var(--color-border); box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden;">
                 <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.2) 100%);"></div>
             </div>
             
@@ -227,7 +241,7 @@ export function createColorPicker(options) {
             <input type="text" id="${textId}" value="${color.toUpperCase()}" pattern="^#[0-9A-Fa-f]{6}$" maxlength="7" style="flex: 1; font-family: 'Courier New', monospace; font-weight: 600; letter-spacing: 0.5px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-tertiary);" placeholder="#FFFFFF" />
             
             <!-- Reset Button -->
-            <button type="button" id="${resetId}" style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-tertiary); cursor: pointer; transition: all 0.2s ease; font-weight: 600;" title="Reset to default">
+            <button type="button" id="${resetId}" style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg-tertiary); cursor: pointer; transition: all 0.2s ease; font-weight: 600; color: var(--color-text-secondary);" title="Reset to default">
                 <i class="fas fa-undo"></i>
             </button>
             
@@ -250,15 +264,15 @@ export function createColorPicker(options) {
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px;">
                     <div>
                         <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--color-text-secondary);">R</label>
-                        <input type="number" id="${pickerId}-r" min="0" max="255" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid var(--color-border); background: var(--color-bg-tertiary); text-align: center; font-weight: 600;" />
+                        <input type="number" id="${pickerId}-r" min="0" max="255" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid var(--color-border); background: var(--color-bg-tertiary); text-align: center; font-weight: 600; -moz-appearance: textfield;" />
                     </div>
                     <div>
                         <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--color-text-secondary);">G</label>
-                        <input type="number" id="${pickerId}-g" min="0" max="255" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid var(--color-border); background: var(--color-bg-tertiary); text-align: center; font-weight: 600;" />
+                        <input type="number" id="${pickerId}-g" min="0" max="255" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid var(--color-border); background: var(--color-bg-tertiary); text-align: center; font-weight: 600; -moz-appearance: textfield;" />
                     </div>
                     <div>
                         <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--color-text-secondary);">B</label>
-                        <input type="number" id="${pickerId}-b" min="0" max="255" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid var(--color-border); background: var(--color-bg-tertiary); text-align: center; font-weight: 600;" />
+                        <input type="number" id="${pickerId}-b" min="0" max="255" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid var(--color-border); background: var(--color-bg-tertiary); text-align: center; font-weight: 600; -moz-appearance: textfield;" />
                     </div>
                 </div>
                 
