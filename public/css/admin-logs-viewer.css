@@ -1,6 +1,6 @@
 /**
  * Admin Logs Viewer Styles
- * Dark theme styling matching admin interface
+ * Tokyo Night Storm theme - matching admin interface
  */
 
 .logs-viewer {
@@ -13,11 +13,11 @@
     overflow-x: hidden;
     margin-top: 16px;
     border-radius: 10px;
-    background: #1a1f2e;
+    background: #24283b;
 }
 
 .logs-viewer h2 {
-    color: #e8e9eb;
+    color: #c0caf5;
     font-size: 24px;
     font-weight: 600;
     margin: 0 0 20px 0;
@@ -27,7 +27,7 @@
 }
 
 .logs-viewer h2 i {
-    color: #6366f1;
+    color: #7aa2f7;
 }
 
 /* Remove all focus outlines and blue rings */
@@ -37,20 +37,21 @@
     box-shadow: none !important;
 }
 
-/* Controls Bar - Match log container darkness - FIXED */
+/* Controls Bar - Tokyo Night lighter card */
 .logs-controls {
-    background: linear-gradient(135deg, #1a1f2e 0%, #1e2330 100%) !important;
+    background: #24283b !important;
     border: 1px solid rgba(255, 255, 255, 0.06) !important;
     border-radius: 10px !important;
     padding: 16px !important;
     margin-bottom: 0 !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: none !important;
     position: relative !important;
     z-index: 10 !important;
 }
 
 /* Override Bootstrap border colors */
 .logs-controls.bg-dark {
+    background: #24283b !important;
     border-color: rgba(255, 255, 255, 0.06) !important;
 }
 
@@ -62,11 +63,11 @@
     gap: 12px;
 }
 
-/* Search Input - Subtle dark style */
+/* Search Input - Theme style */
 .logs-controls .form-control {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: #f0f1f3 !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: #c0caf5 !important;
     border-radius: 8px;
     padding: 8px 12px;
     font-size: 14px;
@@ -74,17 +75,17 @@
 }
 
 .logs-controls .form-control:focus {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border-color: #6366f1 !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: #7aa2f7 !important;
     box-shadow: none !important;
     outline: none !important;
 }
 
 .logs-controls .form-control::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: #565f89;
 }
 
-/* Level Filter Dropdown - Override Bootstrap classes with maximum specificity */
+/* Level Filter Dropdown - Theme style */
 .logs-viewer .logs-controls .form-select,
 .logs-viewer .logs-controls .form-select.form-select-sm,
 .logs-viewer .logs-controls .form-select.bg-dark.text-light,
@@ -94,12 +95,12 @@
 .logs-controls .form-select.bg-dark,
 .logs-controls select {
     background-color: rgba(255, 255, 255, 0.04) !important;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2360a5fa' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237aa2f7' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
     background-repeat: no-repeat !important;
     background-position: right 12px center !important;
     background-size: 12px !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    color: #e4e7ec !important;
+    color: #c0caf5 !important;
     border-radius: 8px !important;
     padding: 8px 36px 8px 12px !important;
     font-size: 14px !important;
@@ -115,20 +116,14 @@
 .logs-controls .form-select:hover,
 .logs-controls select:hover {
     background-color: rgba(255, 255, 255, 0.06) !important;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2360a5fa' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
-    background-repeat: no-repeat !important;
-    background-position: right 12px center !important;
     border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 .logs-viewer .logs-controls .form-select:focus,
 .logs-controls .form-select:focus,
 .logs-controls select:focus {
-    background-color: rgba(255, 255, 255, 0.08) !important;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2360a5fa' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
-    background-repeat: no-repeat !important;
-    background-position: right 12px center !important;
-    border-color: #6366f1 !important;
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border-color: #7aa2f7 !important;
     box-shadow: none !important;
     outline: none !important;
 }
@@ -136,36 +131,25 @@
 /* Dropdown option styling */
 .logs-controls .form-select option,
 .logs-controls select option {
-    background: #1e2230 !important;
-    color: #e4e7ec !important;
+    background: #1f2335 !important;
+    color: #c0caf5 !important;
     padding: 10px 12px !important;
     font-weight: 500 !important;
 }
 
-.logs-controls .form-select option:hover,
-.logs-controls select option:hover {
-    background: #252938 !important;
-}
-
-.logs-controls .form-select option:checked,
-.logs-controls select option:checked {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
-    color: #fff !important;
-}
-
 /* Input Group Styling */
 .logs-controls .input-group-text {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: rgba(255, 255, 255, 0.6) !important;
-    border-radius: 6px 0 0 6px;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: #a9b1d6 !important;
+    border-radius: 8px 0 0 8px;
 }
 
-/* Buttons - Subtle dark style matching container */
+/* Buttons - Theme style */
 .logs-controls .btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #a9b1d6;
     border-radius: 8px;
     padding: 8px 14px;
     font-size: 13px;
@@ -182,75 +166,80 @@
 }
 
 .logs-controls .btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.18);
-    color: #fff;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #c0caf5;
 }
 
 .logs-controls .btn.active {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    border-color: #6366f1;
+    background: #7aa2f7;
+    border-color: #7aa2f7;
     color: #fff;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
+/* Button variants - Tokyo Night theme colors */
 .logs-controls .btn-outline-success {
-    border-color: rgba(16, 185, 129, 0.3);
-    color: #10b981;
+    border-color: rgba(158, 206, 106, 0.3);
+    color: #9ece6a;
 }
 
 .logs-controls .btn-outline-success:hover,
 .logs-controls .btn-outline-success.active {
-    background: rgba(16, 185, 129, 0.15);
-    border-color: #10b981;
-    color: #10b981;
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+    background: rgba(158, 206, 106, 0.15);
+    border-color: #9ece6a;
+    color: #9ece6a;
 }
 
 .logs-controls .btn-outline-warning {
-    border-color: rgba(251, 191, 36, 0.3);
-    color: #fbbf24;
+    border-color: rgba(224, 175, 104, 0.3);
+    color: #e0af68;
 }
 
 .logs-controls .btn-outline-warning:hover,
 .logs-controls .btn-outline-warning.active {
-    background: rgba(251, 191, 36, 0.15);
-    border-color: #fbbf24;
-    color: #fbbf24;
-    box-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+    background: rgba(224, 175, 104, 0.15);
+    border-color: #e0af68;
+    color: #e0af68;
 }
 
 .logs-controls .btn-outline-info {
-    border-color: rgba(96, 165, 250, 0.3);
-    color: #60a5fa;
+    border-color: rgba(122, 162, 247, 0.3);
+    color: #7aa2f7;
 }
 
 .logs-controls .btn-outline-info:hover {
-    background: rgba(96, 165, 250, 0.15);
-    border-color: #60a5fa;
-    color: #60a5fa;
-    box-shadow: 0 0 12px rgba(96, 165, 250, 0.2);
+    background: rgba(122, 162, 247, 0.15);
+    border-color: #7aa2f7;
+    color: #7aa2f7;
 }
 
 .logs-controls .btn-outline-danger {
-    border-color: rgba(239, 68, 68, 0.3);
-    color: #ef4444;
+    border-color: rgba(247, 118, 142, 0.3);
+    color: #f7768e;
 }
 
 .logs-controls .btn-outline-danger:hover {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: #ef4444;
-    color: #ef4444;
-    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+    background: rgba(247, 118, 142, 0.15);
+    border-color: #f7768e;
+    color: #f7768e;
 }
 
-/* Status Row - HIGH visibility */
+.logs-controls .btn-outline-secondary {
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #a9b1d6;
+}
+
+.logs-controls .btn-outline-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #c0caf5;
+}
+
+/* Status Row */
 .logs-controls small,
 .logs-controls small.text-muted,
 .logs-controls .text-muted {
-    color: rgba(255, 255, 255, 0.95) !important;
+    color: #a9b1d6 !important;
     font-size: 12px !important;
     font-weight: 500 !important;
     letter-spacing: 0.3px !important;
@@ -261,7 +250,7 @@
     margin-right: 4px;
 }
 
-/* Logs Container - Lighter terminal style */
+/* Logs Container */
 .logs-container {
     background: transparent !important;
     border: none;
@@ -270,10 +259,10 @@
     padding: 12px 0;
 }
 
-/* Log Entries - Lighter clean terminal style */
+/* Log Entries - Clean terminal style */
 .log-entry {
     padding: 10px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', 'Courier New', monospace;
     font-size: 13px;
     line-height: 1.6;
@@ -284,39 +273,39 @@
 }
 
 .log-entry:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
 }
 
 .log-entry:last-child {
     border-bottom: none !important;
 }
 
-/* Level-specific styling with softer colors */
+/* Level-specific styling with Tokyo Night theme colors */
 .log-entry[data-level='ERROR'],
 .log-entry[data-level='FATAL'] {
     background: linear-gradient(
         90deg,
-        rgba(239, 68, 68, 0.1) 0%,
-        rgba(239, 68, 68, 0.02) 100%
+        rgba(247, 118, 142, 0.1) 0%,
+        rgba(247, 118, 142, 0.02) 100%
     ) !important;
-    border-left: 3px solid #ef4444;
+    border-left: 3px solid #f7768e;
 }
 
 .log-entry[data-level='WARN'] {
     background: linear-gradient(
         90deg,
-        rgba(251, 191, 36, 0.08) 0%,
-        rgba(251, 191, 36, 0.015) 100%
+        rgba(224, 175, 104, 0.08) 0%,
+        rgba(224, 175, 104, 0.015) 100%
     ) !important;
-    border-left: 3px solid #fbbf24;
+    border-left: 3px solid #e0af68;
 }
 
 .log-entry[data-level='INFO'] {
-    border-left: 3px solid rgba(96, 165, 250, 0.25);
+    border-left: 3px solid rgba(122, 162, 247, 0.25);
 }
 
 .log-entry[data-level='DEBUG'] {
-    border-left: 3px solid rgba(148, 163, 184, 0.25);
+    border-left: 3px solid rgba(169, 177, 214, 0.25);
     opacity: 0.85;
 }
 
@@ -325,7 +314,7 @@
     opacity: 0.65;
 }
 
-/* Badge styling - Modern pills */
+/* Badge styling - Modern pills with theme colors */
 .log-entry .badge {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 10px;
@@ -338,117 +327,98 @@
     letter-spacing: 0.5px;
 }
 
-/* Softer badge colors */
+/* Badge colors - Tokyo Night theme */
 .log-entry .badge.bg-danger {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
-    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
-    animation: badge-pulse-error 2s ease-in-out infinite;
+    background: linear-gradient(135deg, #f7768e 0%, #db4b4b 100%) !important;
+    box-shadow: 0 2px 6px rgba(247, 118, 142, 0.25);
 }
 
 .log-entry .badge.bg-warning {
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
-    color: #1f2937 !important;
-    box-shadow: 0 2px 6px rgba(251, 191, 36, 0.25);
-    animation: badge-pulse-warning 2s ease-in-out infinite;
+    background: linear-gradient(135deg, #e0af68 0%, #d19a66 100%) !important;
+    color: #1a1b26 !important;
+    box-shadow: 0 2px 6px rgba(224, 175, 104, 0.25);
 }
 
 .log-entry .badge.bg-info {
-    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%) !important;
-    box-shadow: 0 2px 6px rgba(96, 165, 250, 0.2);
+    background: linear-gradient(135deg, #7aa2f7 0%, #5d8fdd 100%) !important;
+    box-shadow: 0 2px 6px rgba(122, 162, 247, 0.2);
 }
 
 .log-entry .badge.bg-secondary {
-    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%) !important;
-    box-shadow: 0 2px 6px rgba(148, 163, 184, 0.2);
+    background: linear-gradient(135deg, #565f89 0%, #414868 100%) !important;
+    box-shadow: 0 2px 6px rgba(86, 95, 137, 0.2);
 }
 
-/* Pulse only for errors and warnings */
-@keyframes badge-pulse-error {
-    0%,
-    100% {
-        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
-    }
-    50% {
-        box-shadow:
-            0 2px 12px rgba(239, 68, 68, 0.45),
-            0 0 20px rgba(239, 68, 68, 0.2);
-    }
-}
-
-@keyframes badge-pulse-warning {
-    0%,
-    100% {
-        box-shadow: 0 2px 6px rgba(251, 191, 36, 0.25);
-    }
-    50% {
-        box-shadow:
-            0 2px 12px rgba(251, 191, 36, 0.45),
-            0 0 20px rgba(251, 191, 36, 0.2);
-    }
-}
-
-/* Timestamp styling - More visible */
+/* Timestamp styling */
 .log-entry .text-muted {
-    color: rgba(255, 255, 255, 0.6) !important;
+    color: #565f89 !important;
     font-size: 12px;
     font-weight: 500;
     font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
 }
 
-/* Message text - High contrast */
+/* Message text */
 .log-entry .text-light {
-    color: rgba(255, 255, 255, 0.98) !important;
+    color: #c0caf5 !important;
     font-weight: 400;
 }
 
-/* Stack trace / multiline styling - Indented and dimmed */
+/* Stack trace / multiline styling */
 .log-entry .ms-4 {
     margin-left: 2rem !important;
     font-size: 12px;
     opacity: 0.7;
-    color: rgba(255, 255, 255, 0.6);
+    color: #a9b1d6;
     line-height: 1.5;
 }
 
-/* Scrollbar styling - Sleek modern */
+/* Scrollbar styling - Theme colors */
+.logs-viewer::-webkit-scrollbar,
 .logs-container::-webkit-scrollbar {
     width: 8px;
 }
 
+.logs-viewer::-webkit-scrollbar-track,
 .logs-container::-webkit-scrollbar-track {
     background: transparent;
 }
 
+.logs-viewer::-webkit-scrollbar-thumb,
 .logs-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
 }
 
+.logs-viewer::-webkit-scrollbar-thumb:hover,
 .logs-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.2);
 }
 
-/* Button group spacing - Compact */
+/* Button group spacing */
 .logs-controls .btn-group {
     gap: 4px;
 }
 
 .logs-controls .btn-group .btn {
-    border-radius: 6px !important;
+    border-radius: 8px !important;
 }
 
-/* Status indicator - Subtle glow */
+/* Status indicator */
 .logs-controls .fa-circle.text-success {
-    color: #10b981 !important;
-    filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.5));
+    color: #9ece6a !important;
+    filter: drop-shadow(0 0 3px rgba(158, 206, 106, 0.5));
 }
 
 .logs-controls .fa-circle.text-danger {
-    color: #ef4444 !important;
-    filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.5));
+    color: #f7768e !important;
+    filter: drop-shadow(0 0 3px rgba(247, 118, 142, 0.5));
 }
 
-/* Unread badge - Attention grabbing */
+.logs-controls .fa-circle.text-secondary {
+    color: #565f89 !important;
+}
+
+/* Unread badge */
 #logs-unread-badge {
     display: inline-flex;
     align-items: center;
@@ -456,31 +426,18 @@
 }
 
 #logs-unread-badge .badge {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    animation: badge-pulse-unread 1.5s ease-in-out infinite;
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
-}
-
-@keyframes badge-pulse-unread {
-    0%,
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
-    }
-    50% {
-        transform: scale(1.08);
-        box-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
-    }
+    background: linear-gradient(135deg, #7aa2f7 0%, #5d8fdd 100%);
+    box-shadow: 0 0 12px rgba(122, 162, 247, 0.4);
 }
 
 /* Loading state */
 .logs-container .fa-spinner {
-    color: #6c757d;
+    color: #a9b1d6;
 }
 
 /* Empty state */
 .logs-container .fa-inbox {
-    color: #6c757d;
+    color: #a9b1d6;
 }
 
 /* Empty state styling */
@@ -490,14 +447,13 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: rgba(255, 255, 255, 0.3);
+    color: #565f89;
     font-size: 14px;
     font-weight: 500;
 }
 
-/* Responsive adjustments - Better mobile experience */
+/* Responsive adjustments */
 @media (max-width: 768px) {
-    /* Override main-content padding for logs section */
     #section-logs {
         margin-left: -12px !important;
         margin-right: -12px !important;
@@ -505,7 +461,6 @@
         padding: 0 4px 8px 4px !important;
     }
 
-    /* Parent container - full flex layout */
     #logs-viewer-container {
         padding: 0 !important;
         display: flex !important;
@@ -568,15 +523,7 @@
     }
 }
 
-/* Focus states for accessibility */
-.logs-controls .form-control:focus,
-.logs-controls .form-select:focus,
-.logs-controls .btn:focus {
-    outline: 2px solid #0d6efd;
-    outline-offset: 2px;
-}
-
-/* Print styles - Clean and readable */
+/* Print styles */
 @media print {
     .logs-viewer {
         background: #fff !important;
@@ -627,7 +574,7 @@
     width: 32px;
     height: 32px;
     border: 3px solid rgba(255, 255, 255, 0.1);
-    border-top-color: #0d6efd;
+    border-top-color: #7aa2f7;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -636,9 +583,4 @@
     to {
         transform: translate(-50%, -50%) rotate(360deg);
     }
-}
-
-/* Smooth transitions */
-* {
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }

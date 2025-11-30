@@ -2699,6 +2699,11 @@ import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
             const arr = r.ok ? await r.json() : [];
             if (!Array.isArray(arr) || !arr.length) {
                 list.innerHTML = '<div class="subtle">No backups found</div>';
+                const summaryEl = document.getElementById('cfg-backup-summary');
+                if (summaryEl) summaryEl.innerHTML = '';
+                // Update collapsible badge
+                const badge = document.getElementById('cfg-backup-count-badge');
+                if (badge) badge.textContent = '0';
                 return;
             }
             list.innerHTML = '';
@@ -2706,13 +2711,15 @@ import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
             const totalBytes = arr.reduce((sum, b) => sum + (b.sizeBytes || 0), 0);
             const totalSize = formatBytes(totalBytes);
 
-            // Show total at top
-            const header = document.createElement('div');
-            header.className = 'backup-header';
-            header.innerHTML = `<div class="subtle"><i class="fas fa-database"></i> Total: ${totalSize} (${arr.length} backups)</div>`;
-            header.style.cssText =
-                'padding:8px 12px;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1);';
-            list.appendChild(header);
+            // Update collapsible badge with backup count
+            const badge = document.getElementById('cfg-backup-count-badge');
+            if (badge) badge.textContent = String(arr.length);
+
+            // Show total in summary element
+            const summaryEl = document.getElementById('cfg-backup-summary');
+            if (summaryEl) {
+                summaryEl.innerHTML = `<i class="fas fa-database"></i> Total: ${totalSize} (${arr.length} backup${arr.length !== 1 ? 's' : ''})`;
+            }
 
             arr.forEach(b => {
                 const item = document.createElement('div');

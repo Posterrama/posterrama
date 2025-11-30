@@ -1233,14 +1233,14 @@
     <!-- Media Sources Section (top-level sibling, not nested under dashboard) -->
     <section id="section-media-sources" class="app-section" hidden>
       <div class="panel" id="panel-media-sources" style="border: none; background: transparent; box-shadow: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0; border: none; background: transparent;">
           <h2 style="margin: 0; display: flex; align-items: center;">
             <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
               <i class="fas fa-server" style="opacity: 0.8;"></i>
               Media Sources
             </span>
           </h2>
-          <div style="display: flex; gap: 12px; align-items: center;"></div>
+          <div class="panel-actions" style="display: flex; gap: 12px; align-items: center;"></div>
         </div>
         <div class="panel-content" style="padding: 0;">
       <!-- Sources tabs with expandable dropdowns -->
@@ -1349,7 +1349,13 @@
             </div>
             <div class="form-group">
               <label for="plex_port">Port</label>
-              <input type="number" id="plex_port" min="1" max="65535" placeholder="32400" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+              <div class="number-input-wrapper niw-compact">
+                <input type="number" id="plex_port" min="1" max="65535" placeholder="32400" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+                <div class="number-controls" role="group">
+                  <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                  <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label for="plex_token">API Token</label>
@@ -1570,7 +1576,13 @@
           <div class="form-grid plex-dense" id="plex-recent-grid">
             <!-- hidden form checkbox kept for saving is removed per request; header toggle will be the single source -->
             <div class="form-group">
-              <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
+              <div class="number-input-wrapper niw-compact">
+                <input type="number" id="plex.recentDays" min="1" max="365" placeholder="30">
+                <div class="number-controls" role="group">
+                  <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                  <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1757,7 +1769,13 @@
           <div class="form-grid plex-dense" id="jf-recent-grid">
             <!-- removed hidden checkbox; header toggle is the only control now -->
             <div class="form-group">
-              <input type="number" id="jf.recentDays" min="1" max="365" placeholder="30">
+              <div class="number-input-wrapper niw-compact">
+                <input type="number" id="jf.recentDays" min="1" max="365" placeholder="30">
+                <div class="number-controls" role="group">
+                  <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                  <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2490,14 +2508,17 @@
 
     <!-- Performance Section -->
     <section id="section-performance" class="app-section" hidden>
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
-            <i class="fas fa-chart-line"></i>
-            <h2>Performance Dashboard</h2>
-          </div>
+      <div class="panel" style="border: none; background: transparent; box-shadow: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0; display: flex; align-items: center;">
+            <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
+              <i class="fas fa-chart-line" style="opacity: 0.8;"></i>
+              Performance Dashboard
+            </span>
+          </h2>
+          <div style="display: flex; gap: 12px; align-items: center;"></div>
         </div>
-        <div class="panel-content">
+        <div class="panel-content" style="padding: 0;">
           <!-- KPI Cards -->
           <section class="card-grid" id="perf-kpi-cards" style="margin-bottom: 32px;">
             <div class="status-card status-info" title="Current request rate per minute">
@@ -2801,7 +2822,13 @@
               <div class="actions sub-actions">
                 <div class="input-row">
                   <div class="form-group" style="margin:0;">
-                    <input type="number" id="input-keep-backups" min="1" max="20" value="5" class="w-90" />
+                    <div class="number-input-wrapper niw-compact">
+                      <input type="number" id="input-keep-backups" min="1" max="20" value="5" />
+                      <div class="number-controls" role="group">
+                        <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                        <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                      </div>
+                    </div>
                   </div>
                   <button type="button" id="btn-cleanup-backups" class="btn btn-secondary btn-sm"><i class="fas fa-trash"></i><span>Cleanup Old</span></button>
                 </div>
@@ -2827,94 +2854,99 @@
             </section>
 
             <!-- Entry Route (moved here to left column) -->
-            <section class="perf-card" aria-label="Entry Route">
+            <section class="perf-card entry-route-card" aria-label="Entry Route">
               <h3><i class="fas fa-signs-post"></i> Entry Route</h3>
-              <div class="card-subtext">What should "/" do?</div>
-              <!-- Compact dual-row layout: behavior + status on one row; bypass + action on next row -->
-              <div class="metric-row mt-6 entry-row">
-                <div class="form-group inline-field nowrap entry-col">
-                  <label for="rootRoute_behavior" style="margin:0;display:inline-flex;align-items:center;" title="Show the landing page at '/' or redirect to a specific mode." aria-describedby="entry-route-tip">Behavior</label>
-                  <div class="select-wrap has-caret compact">
-                    <select id="rootRoute_behavior">
+              
+              <!-- Settings grid -->
+              <div class="entry-route-settings">
+                <div class="setting-row">
+                  <span class="setting-label">Behavior</span>
+                  <div class="setting-controls">
+                    <select id="rootRoute_behavior" class="entry-select">
                       <option value="landing">Show landing</option>
                       <option value="redirect">Redirect to a mode</option>
                     </select>
-                    <span class="select-caret" aria-hidden="true">▾</span>
                   </div>
                 </div>
-                <div id="rootRoute_status_wrap" class="form-group inline-field nowrap entry-col">
-                  <label for="rootRoute_statusCode" style="margin:0;display:inline-flex;align-items:center;" title="302: method may change to GET. 307: method/body preserved. 302 suits browsers, 307 is safer for API flows.">Redirect status</label>
-                  <div class="select-wrap has-caret compact">
-                    <select id="rootRoute_statusCode">
+                <div class="setting-row" id="rootRoute_status_wrap">
+                  <span class="setting-label">Redirect status</span>
+                  <div class="setting-controls">
+                    <select id="rootRoute_statusCode" class="entry-select">
                       <option value="302">302 Temporary</option>
                       <option value="307">307 Temporary (preserve method)</option>
                     </select>
-                    <span class="select-caret" aria-hidden="true">▾</span>
                   </div>
                 </div>
-              </div>
-              <div class="metric-row mt-6 entry-row">
-                <div class="form-group inline-field nowrap entry-col">
-                  <label for="rootRoute_bypassParam" style="margin:0;display:inline-flex;align-items:center;" title="Append ?flag to '/' to skip redirect and show the landing page (default: ?landing).">Bypass query flag</label>
-                  <input id="rootRoute_bypassParam" type="text" placeholder="landing" class="w-160 compact-input" maxlength="32" pattern="[A-Za-z][A-Za-z0-9_-]*" title="Start with a letter; then letters, numbers, '_' or '-' (max 32). Leave empty to disable bypass." />
-                </div>
-                <div class="actions sub-actions" style="margin-left:auto; display:flex; align-items:center;">
-                  <a id="rootRoute_bypass_open" href="/?landing" target="_blank" rel="noopener" class="btn btn-link btn-sm" title="Open landing (bypass)">Open /?landing</a>
+                <div class="setting-row">
+                  <span class="setting-label">Bypass query flag</span>
+                  <div class="setting-controls">
+                    <input id="rootRoute_bypassParam" type="text" placeholder="landing" class="input-bypass" maxlength="32" pattern="[A-Za-z][A-Za-z0-9_-]*" />
+                    <a id="rootRoute_bypass_open" href="/?landing" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Open /?landing</a>
+                  </div>
                 </div>
               </div>
             </section>
 
             <!-- MQTT Operations -->
-            <section class="perf-card" aria-label="MQTT Operations">
-              <h3><i class="fas fa-broadcast-tower"></i> MQTT Integration</h3>
-              <div class="card-pill-spot">
-                <span class="status-pill status-warning" id="mqtt-status-pill">Disabled</span>
+            <section class="perf-card mqtt-card" aria-label="MQTT Operations">
+              <!-- Header with title and status pill -->
+              <div class="mqtt-header">
+                <h3><i class="fas fa-broadcast-tower"></i> MQTT Integration</h3>
+                <span class="header-pill status-warning" id="mqtt-status-pill">Disabled</span>
               </div>
               
-              <div class="metric-row mt-6">
-                <div class="form-group checkbox-group">
-                  <label class="checkbox" for="mqtt.enabled">
-                    <input type="checkbox" id="mqtt.enabled" />
-                    <span class="checkmark"></span>
-                    <span>Enable MQTT Integration</span>
-                  </label>
-                </div>
-                <div class="form-group checkbox-group">
-                  <label class="checkbox" for="mqtt.discovery.enabled">
-                    <input type="checkbox" id="mqtt.discovery.enabled" />
-                    <span class="checkmark"></span>
-                    <span>Enable Home Assistant Discovery</span>
-                  </label>
-                </div>
+              <!-- Enable toggles -->
+              <div class="mqtt-toggles">
+                <label class="checkbox">
+                  <input type="checkbox" id="mqtt.enabled" />
+                  <span class="checkmark"></span>
+                  <span>Enable MQTT Integration</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="mqtt.discovery.enabled" />
+                  <span class="checkmark"></span>
+                  <span>Enable Home Assistant Discovery</span>
+                </label>
               </div>
 
-              <div id="mqtt-settings-group" style="display:none;">
-                <div class="metric-row mt-6" style="display:flex;gap:20px;flex-wrap:wrap;">
-                  <div class="form-group" style="flex:0 0 auto;">
-                    <label for="mqtt.broker" style="margin:0 0 4px 0;display:block;">Broker Host</label>
-                    <input type="text" id="mqtt.broker" style="width:280px;height:36px;" placeholder="192.168.1.100" 
-                           title="MQTT broker hostname or IP address" />
+              <!-- Settings (shown when enabled) -->
+              <div id="mqtt-settings-group" class="mqtt-settings" style="display:none;">
+                <div class="mqtt-settings-grid">
+                  <div class="setting-row">
+                    <span class="setting-label">Connection</span>
+                    <div class="setting-controls">
+                      <div class="input-group">
+                        <label for="mqtt.broker">Host</label>
+                        <input type="text" id="mqtt.broker" placeholder="192.168.1.100" class="input-host" />
+                      </div>
+                      <div class="input-group">
+                        <label for="mqtt.port">Port</label>
+                        <div class="number-input-wrapper niw-compact">
+                          <input type="number" id="mqtt.port" min="1" max="65535" value="1883" />
+                          <div class="number-controls" role="group">
+                            <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                            <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div class="form-group" style="flex:0 0 auto;">
-                    <label for="mqtt.port" style="margin:0 0 4px 0;display:block;">Broker Port</label>
-                    <input type="number" id="mqtt.port" min="1" max="65535" value="1883" style="width:110px;height:36px;" 
-                           title="MQTT broker port (default: 1883)" />
-                  </div>
-                </div>
-                <div class="metric-row mt-6" style="display:flex;gap:20px;flex-wrap:wrap;">
-                  <div class="form-group" style="flex:0 0 auto;">
-                    <label for="mqtt.username" style="margin:0 0 4px 0;display:block;">Username</label>
-                    <input type="text" id="mqtt.username" style="width:280px;height:36px;" placeholder="mqtt-user" 
-                           title="MQTT broker username (optional)" />
-                  </div>
-                  <div class="form-group" style="flex:0 0 auto;">
-                    <label for="mqtt.password" style="margin:0 0 4px 0;display:block;">Password</label>
-                    <input type="password" id="mqtt.password" style="width:280px;height:36px;" placeholder="••••••••" 
-                           title="MQTT broker password (optional)" />
+                  <div class="setting-row">
+                    <span class="setting-label">Authentication</span>
+                    <div class="setting-controls">
+                      <div class="input-group">
+                        <label for="mqtt.username">Username</label>
+                        <input type="text" id="mqtt.username" placeholder="mqtt-user" class="input-auth" />
+                      </div>
+                      <div class="input-group">
+                        <label for="mqtt.password">Password</label>
+                        <input type="password" id="mqtt.password" placeholder="••••••••" class="input-auth" />
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
-                <div class="actions main-actions" style="margin-top:16px;">
+                <div class="mqtt-actions">
                   <button type="button" id="btn-republish-mqtt" class="btn btn-success btn-sm">
                     <i class="fas fa-paper-plane"></i><span>Republish All Devices</span>
                   </button>
@@ -2982,7 +3014,13 @@
               <div class="metric-row">
                 <div class="form-group inline-field nowrap" style="display: block;">
                   <label for="SERVER_PORT" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
-                  <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" class="w-110" />
+                  <div class="number-input-wrapper niw-compact" style="display:inline-flex;">
+                    <input type="number" id="SERVER_PORT" min="1024" max="65535" step="1" />
+                    <div class="number-controls" role="group">
+                      <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                      <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="metric-row mt-6">
@@ -2999,64 +3037,109 @@
               </div>
             </section>
 
-            <!-- Config Backups (compact list) -->
-            <section class="perf-card" aria-label="Config Backups">
-              <h3><i class="fas fa-archive"></i> Config Backups</h3>
-              <div class="card-pill-spot">
-                <span id="cfg-backup-schedule-pill" class="status-pill status-warning">Disabled</span>
+            <!-- Config Backups (redesigned) -->
+            <section class="perf-card config-backups-card" aria-label="Config Backups">
+              <!-- Header row with title and status pill -->
+              <div class="config-backups-header">
+                <h3><i class="fas fa-archive"></i> Config Backups</h3>
+                <span id="cfg-backup-schedule-pill" class="header-pill status-info">Disabled</span>
               </div>
 
-              <div class="actions main-actions">
-                <button type="button" id="btn-create-cfg-backup" class="btn btn-success btn-sm"><i class="fas fa-plus-circle"></i><span>Backup now</span></button>
-                <button type="button" id="btn-cleanup-cfg-backups" class="btn btn-secondary btn-sm"><i class="fas fa-broom"></i><span>Cleanup old backups</span></button>
+              <!-- Action buttons -->
+              <div class="config-backups-actions">
+                <button type="button" id="btn-create-cfg-backup" class="btn btn-success btn-sm">
+                  <i class="fas fa-plus-circle"></i><span>Backup now</span>
+                </button>
+                <button type="button" id="btn-cleanup-cfg-backups" class="btn btn-secondary btn-sm">
+                  <i class="fas fa-broom"></i><span>Cleanup old backups</span>
+                </button>
               </div>
 
-              <div class="actions sub-actions" style="display:grid;grid-template-columns:1fr;gap:12px;">
-                <div class="inline-field" style="display:flex;align-items:center;gap:12px;">
-                  <label style="margin:0;min-width:110px;font-weight:500;">Daily schedule</label>
-                  <label class="checkbox" style="margin:0;">
-                    <input type="checkbox" id="input-cfg-backup-enabled" />
-                    <span class="checkmark"></span>
-                    <span>Enabled</span>
-                  </label>
-                  <div class="time-input" title="Run time" style="margin-left:8px;">
-                    <i class="fas fa-clock" aria-hidden="true"></i>
-                    <input type="time" id="input-cfg-backup-time" value="02:30" class="w-110" aria-label="Backup time" />
+              <!-- Settings grid -->
+              <div class="config-backups-settings">
+                <div class="setting-row">
+                  <span class="setting-label">Daily schedule</span>
+                  <div class="setting-controls">
+                    <label class="checkbox">
+                      <input type="checkbox" id="input-cfg-backup-enabled" />
+                      <span class="checkmark"></span>
+                      <span>Enabled</span>
+                    </label>
+                    <div class="time-input-compact">
+                      <i class="fas fa-clock"></i>
+                      <input type="time" id="input-cfg-backup-time" value="02:30" aria-label="Backup time" />
+                    </div>
                   </div>
                 </div>
-                <div class="inline-field" style="display:flex;align-items:center;gap:12px;">
-                  <label style="margin:0;min-width:110px;font-weight:500;position:relative;">
-                    Retention
-                  </label>
-                  <label for="input-cfg-backup-retention-count" style="font-size:0.9em;margin:0;">Keep</label>
-                  <input type="number" id="input-cfg-backup-retention-count" min="1" max="60" value="5" style="width:70px;height:40px;padding:8px 12px;" />
-                  <label for="input-cfg-backup-retention-days" style="font-size:0.9em;margin:0;margin-left:8px;">Max age (days)</label>
-                  <input type="number" id="input-cfg-backup-retention-days" min="0" max="365" value="0" style="width:70px;height:40px;padding:8px 12px;" />
+                <div class="setting-row">
+                  <span class="setting-label">Retention</span>
+                  <div class="setting-controls">
+                    <span class="setting-sublabel">Keep</span>
+                    <div class="number-input-wrapper niw-compact">
+                      <input type="number" id="input-cfg-backup-retention-count" min="1" max="60" value="5" />
+                      <div class="number-controls">
+                        <button type="button" class="number-btn number-inc"><i class="fas fa-chevron-up"></i></button>
+                        <button type="button" class="number-btn number-dec"><i class="fas fa-chevron-down"></i></button>
+                      </div>
+                    </div>
+                    <span class="setting-sublabel">Max age (days)</span>
+                    <div class="number-input-wrapper niw-compact">
+                      <input type="number" id="input-cfg-backup-retention-days" min="0" max="365" value="0" />
+                      <div class="number-controls">
+                        <button type="button" class="number-btn number-inc"><i class="fas fa-chevron-up"></i></button>
+                        <button type="button" class="number-btn number-dec"><i class="fas fa-chevron-down"></i></button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div id="cfg-backup-list" class="compact-backup-list"></div>
+              <!-- Backup summary -->
+              <div id="cfg-backup-summary" class="config-backups-summary"></div>
+
+              <!-- Backup list (collapsible) -->
+              <details class="backup-list-collapsible" id="cfg-backup-details">
+                <summary class="backup-list-toggle">
+                  <i class="fas fa-chevron-right toggle-icon"></i>
+                  <span>View Backups</span>
+                  <span class="backup-count-badge" id="cfg-backup-count-badge">0</span>
+                </summary>
+                <div id="cfg-backup-list" class="compact-backup-list"></div>
+              </details>
             </section>
 
-  <!-- Promobox Site -->
-            <section class="perf-card" aria-label="Promobox Site">
-              <h3><i class="fas fa-bullhorn"></i> Promobox Site</h3>
-              <div class="card-pill-spot">
-                <span class="status-pill status-warning" id="siteServer-pill">Disabled</span>
+            <!-- Promobox Site -->
+            <section class="perf-card promobox-card" aria-label="Promobox Site">
+              <!-- Header with title and status pill -->
+              <div class="promobox-header">
+                <h3><i class="fas fa-bullhorn"></i> Promobox Site</h3>
+                <span class="header-pill status-warning" id="siteServer-pill">Disabled</span>
               </div>
-              <div class="metric-row mt-6">
-                <div class="form-group checkbox-group">
-                  <label class="checkbox" for="siteServer.enabled">
-                    <input type="checkbox" id="siteServer.enabled" />
-                    <span class="checkmark"></span>
-                    <span>Enable Promobox Site</span>
-                  </label>
+              
+              <!-- Enable toggle -->
+              <div class="promobox-toggle">
+                <label class="checkbox">
+                  <input type="checkbox" id="siteServer.enabled" />
+                  <span class="checkmark"></span>
+                  <span>Enable Promobox Site</span>
+                </label>
+              </div>
+
+              <!-- Settings (shown when enabled) -->
+              <div id="siteServerPortGroup" class="promobox-settings" style="display:none;">
+                <div class="setting-row">
+                  <span class="setting-label">Port</span>
+                  <div class="setting-controls">
+                    <div class="number-input-wrapper niw-compact">
+                      <input type="number" id="siteServer.port" min="1024" max="65535" value="4001" />
+                      <div class="number-controls" role="group">
+                        <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                        <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div class="form-group inline-field nowrap" id="siteServerPortGroup" style="display:none;">
-                  <label for="siteServer.port" style="margin:0;display:inline-flex;align-items:center;padding-right:12px;">Port</label>
-                  <input type="number" id="siteServer.port" min="1024" max="65535" value="4001" class="w-110" />
-                </div>
-                <div id="siteServerStatus" class="subtle" style="display:none;"></div>
+                <div class="setting-row" id="siteServerStatus" style="display:none;"></div>
               </div>
             </section>
 
@@ -3093,7 +3176,13 @@
               <div class="metric-row mt-6">
                 <div class="form-group inline-field nowrap" style="display: block;">
                   <label for="ops.backgroundRefreshMinutes" style="margin:0;display:inline-flex;align-items:center;padding-right:12px; white-space:nowrap;">Background Refresh (minutes)</label>
-                  <input type="number" id="ops.backgroundRefreshMinutes" min="5" max="1440" step="1" class="w-110" value="60" />
+                  <div class="number-input-wrapper niw-compact" style="display:inline-flex;">
+                    <input type="number" id="ops.backgroundRefreshMinutes" min="5" max="1440" step="1" value="60" />
+                    <div class="number-controls" role="group">
+                      <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                      <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                  </div>
                 </div>
               </div>
         <div class="actions main-actions">
@@ -4002,18 +4091,21 @@
               <span style="font-weight: 600; font-size: 0.85rem;">Maximum Cache Size</span>
             </div>
             <div style="display: flex; gap: 6px; align-items: center; justify-content: center;">
-              <input 
-                id="input-cache-size-gb" 
-                type="number" 
-                inputmode="decimal" 
-                step="0.1" 
-                min="0.1" 
-                placeholder="2.0"
-                style="
-                  flex: 0 0 auto;
-                  text-align: center;
-                "
-              />
+              <div class="number-input-wrapper niw-compact">
+                <input 
+                  id="input-cache-size-gb" 
+                  type="number" 
+                  inputmode="decimal" 
+                  step="0.1" 
+                  min="0.1" 
+                  placeholder="2.0"
+                  style="text-align: center;"
+                />
+                <div class="number-controls" role="group">
+                  <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                  <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
+                </div>
+              </div>
               <div style="
                 padding: 12px 16px;
                 background: rgba(var(--color-warning-rgb), 0.15);
