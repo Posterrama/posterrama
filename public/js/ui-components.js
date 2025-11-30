@@ -233,7 +233,7 @@ export function createColorPicker(options) {
         
         <div style="display: flex; align-items: center; gap: 16px; position: relative;">
             <!-- Color Circle Preview -->
-            <div id="${circleId}" style="width: 48px; height: 48px; border-radius: 50%; background: ${color}; border: 2px solid var(--color-border); box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden;">
+            <div id="${circleId}" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; background: ${color}; border: 2px solid var(--color-border); box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden;">
                 <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.2) 100%);"></div>
             </div>
             
