@@ -417,6 +417,12 @@
             "type": "boolean",
             "default": false
         },
+        "cinemaOrientation": {
+            "description": "Screen orientation for cinema mode displays.",
+            "type": "string",
+            "enum": ["auto", "portrait", "portrait-flipped", "landscape", "landscape-flipped"],
+            "default": "auto"
+        },
         "cinema": {
             "description": "Cinema mode overlays and presentation settings (header/footer, marquee, specs, ambilight).",
             "type": "object",

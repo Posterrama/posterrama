@@ -18313,20 +18313,6 @@ import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
                 if (legacyPort) {
                     legacyPort.value = plex.port != null ? plex.port : '32400';
                 }
-                // Inject a one-time small badge to visually confirm script executed & values loaded
-                if (!document.getElementById('plex-loaded-badge')) {
-                    const badge = document.createElement('span');
-                    badge.id = 'plex-loaded-badge';
-                    badge.textContent = 'Plex cfg loaded';
-                    badge.style.cssText =
-                        'margin-left:8px;padding:2px 6px;font-size:11px;border-radius:10px;background:#2d6a4f;color:#fff;';
-                    const hdr = document.querySelector(
-                        '#plex-panel h2, #plex-panel h3, #plex-panel .panel-header, #plex-panel .panel-title'
-                    );
-                    (hdr || document.getElementById('plex-panel') || document.body).appendChild(
-                        badge
-                    );
-                }
             } catch (_) {
                 /* plex header toggle text force refresh failed (label may be stale) */
             }
@@ -18404,53 +18390,6 @@ import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
                 }
             } catch (_) {
                 /* plex host/port population failed (inputs may be empty) */
-            }
-            // Install / update Plex health indicator
-            try {
-                let health = document.getElementById('plex-health-indicator');
-                if (!health) {
-                    health = document.createElement('div');
-                    health.id = 'plex-health-indicator';
-                    health.style.cssText = 'margin-top:4px;font-size:11px;opacity:0.85;';
-                    const container = document.getElementById('plex-panel') || document.body;
-                    container.appendChild(health);
-                }
-                const updateHealth = (status, extra = '') => {
-                    const ts = new Date().toLocaleTimeString();
-                    health.textContent = `Plex health: ${status}${extra ? ' - ' + extra : ''} (${ts})`;
-                    health.style.color =
-                        status === 'OK' ? '#2d6a4f' : status === 'Testing' ? '#555' : '#c92a2a';
-                };
-                // Periodic lightweight health check using test-plex endpoint if enabled
-                if (plexEnabled && plex.hostname && plex.port) {
-                    window.__plexHealthTimer && clearTimeout(window.__plexHealthTimer);
-                    const doCheck = () => {
-                        updateHealth('Testing');
-                        fetch('/api/admin/test-plex', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({ hostname: plex.hostname, port: plex.port }),
-                        })
-                            .then(r =>
-                                r
-                                    .json()
-                                    .then(j => ({ r, j }))
-                                    .catch(() => ({ r, j: {} }))
-                            )
-                            .then(({ r, j }) => {
-                                if (r.ok) updateHealth('OK');
-                                else updateHealth('Error', j?.error || r.status);
-                            })
-                            .catch(err => updateHealth('Error', err?.message || 'network'))
-                            .finally(() => {
-                                window.__plexHealthTimer = setTimeout(doCheck, 300000); // every 5 minutes
-                            });
-                    };
-                    doCheck();
-                }
-            } catch (e) {
-                console.warn('Plex health indicator init failed', e);
             }
 
             // ---------------- Jellyfin auto wiring (mirror + auto test + libraries) ----------------

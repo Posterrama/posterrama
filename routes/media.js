@@ -329,6 +329,14 @@ module.exports = function createMediaRouter({
         // Otherwise cache will return cached movies instead of fetching games
         asyncHandler(async (req, res, next) => {
             const wallartMode = config?.wallartMode || {};
+
+            // Lazy-load PlexSource once for all modes that need it
+            let PlexSource = null;
+            const getPlexSource = () => {
+                if (!PlexSource) PlexSource = require('../sources/plex');
+                return PlexSource;
+            };
+
             const isGamesOnlyEnabled = wallartMode.gamesOnly === true;
             const isGamesOnlyRequest =
                 req.query?.gamesOnly === '1' ||
@@ -399,7 +407,7 @@ module.exports = function createMediaRouter({
             if (isMusicModeEnabled && isMusicModeRequest) {
                 try {
                     // Find enabled Plex server
-                    const PlexSource = require('../sources/plex');
+                    const PlexSourceClass = getPlexSource();
                     const plexServer = (config.mediaServers || []).find(
                         s => s.enabled && s.type === 'plex'
                     );
@@ -420,7 +428,7 @@ module.exports = function createMediaRouter({
                     const musicFilters = plexServer.musicFilters || {};
 
                     // Initialize Plex source with all required dependencies
-                    const plexSource = new PlexSource(
+                    const plexSource = new PlexSourceClass(
                         plexServer,
                         getPlexClient,
                         processPlexItem,
@@ -464,7 +472,7 @@ module.exports = function createMediaRouter({
             if (isFilmCardsModeEnabled && isFilmCardsModeRequest) {
                 try {
                     // Find enabled Plex server
-                    const PlexSource = require('../sources/plex');
+                    const PlexSourceClass = getPlexSource();
                     const plexServer = (config.mediaServers || []).find(
                         s => s.enabled && s.type === 'plex'
                     );
@@ -516,7 +524,7 @@ module.exports = function createMediaRouter({
                     );
 
                     // Initialize Plex source with all required dependencies
-                    const plexSource = new PlexSource(
+                    const plexSource = new PlexSourceClass(
                         plexServer,
                         getPlexClient,
                         processPlexItem,
