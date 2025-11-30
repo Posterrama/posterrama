@@ -514,6 +514,23 @@
                 }
             }
 
+            // VIGNETTE EFFECT - Classic cinema darkened edges
+            const vignette = document.createElement('div');
+            vignette.style.cssText = `
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                z-index: 3;
+                background: radial-gradient(
+                    ellipse 70% 60% at center,
+                    transparent 0%,
+                    transparent 40%,
+                    rgba(0, 0, 0, 0.3) 70%,
+                    rgba(0, 0, 0, 0.6) 100%
+                );
+            `;
+            card.appendChild(vignette);
+
             // INFO SECTION - Adapts to portrait/landscape
             const infoSection = document.createElement('div');
             infoSection.style.cssText = isPortrait
