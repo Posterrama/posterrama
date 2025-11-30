@@ -6174,11 +6174,20 @@
                 modeOrientation = payload.screensaverMode?.orientation || 'auto';
             }
 
-            // Auto orientation uses aspect ratio detection (width > height = landscape)
-            const portrait =
-                modeOrientation === 'auto'
-                    ? window.innerWidth < window.innerHeight
-                    : modeOrientation === 'portrait' || modeOrientation === 'portrait-flipped';
+            // Cinema preview: always portrait EXCEPT for landscape/landscape-flipped
+            let portrait;
+            if (isCinema) {
+                // Cinema is portrait by default, only landscape for landscape modes
+                portrait = !(
+                    modeOrientation === 'landscape' || modeOrientation === 'landscape-flipped'
+                );
+            } else {
+                // Other modes: auto uses aspect ratio, otherwise check orientation
+                portrait =
+                    modeOrientation === 'auto'
+                        ? window.innerWidth < window.innerHeight
+                        : modeOrientation === 'portrait' || modeOrientation === 'portrait-flipped';
+            }
 
             container.classList.toggle('portrait', portrait);
             container.classList.toggle('landscape', !portrait);

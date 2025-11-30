@@ -514,3 +514,18 @@ body[data-orientation='portrait-flipped'] {
         height: 48px;
     }
 }
+
+/* =================================================================
+   ORIENTATION TRANSFORMS
+   ================================================================= */
+/* Flipped orientations: rotate entire viewport 180 degrees */
+body.cinema-portrait-flipped,
+body.cinema-landscape-flipped {
+    transform: rotate(180deg);
+    transform-origin: center center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+}
