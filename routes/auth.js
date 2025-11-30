@@ -7,12 +7,29 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
-const rateLimit = require('express-rate-limit');
+const { rateLimit } = require('express-rate-limit');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
 const logger = require('../utils/logger');
+
+/**
+ * @typedef {Object} SessionData
+ * @property {{username: string}} [user] - Authenticated user object
+ * @property {boolean} [twoFactorPassed] - Whether 2FA has been completed
+ * @property {string} [tempUsername] - Temporary username during 2FA flow
+ * @property {boolean} [requirePasswordChange] - Whether user must change password
+ * @property {boolean} [tfa_required] - Whether 2FA is required for current login
+ * @property {{username: string}} [tfa_user] - Temporary user info during 2FA flow
+ * @property {any} [pendingAutoRegister] - Pending auto-registration data
+ * @property {(callback: (err?: any) => void) => void} [regenerate] - Session regeneration method
+ * @property {(callback: (err?: any) => void) => void} [destroy] - Session destruction method
+ */
+
+/**
+ * @typedef {import('express').Request & { session: SessionData & { sessionID?: string }, sessionID?: string }} RequestWithSession
+ */
 
 /**
  * Create authentication router with dependency injection
@@ -60,7 +77,7 @@ module.exports = function createAuthRouter({
      *       302:
      *         description: Redirects to admin panel if setup is already complete
      */
-    router.get('/setup', (req, res) => {
+    router.get('/setup', (/** @type {RequestWithSession} */ req, res) => {
         // If setup is already done, normally redirect to /admin
         // But if the completion flag is present, serve the setup page so it can show the completion message
         const hasCompleteFlag = typeof req.query?.complete !== 'undefined';
@@ -132,18 +149,21 @@ module.exports = function createAuthRouter({
             if (isAdminSetup()) {
                 if (isDebug)
                     logger.debug('[Admin Setup] Aborted: Admin user is already configured.');
-                throw new ApiError(403, 'Admin user is already configured.');
+                throw new /** @type {any} */ (ApiError)(403, 'Admin user is already configured.');
             }
 
             const { username, password, enable2fa } = req.body;
             if (!username || !password) {
                 if (isDebug) logger.debug('[Admin Setup] Aborted: Username or password missing.');
-                throw new ApiError(400, 'Username and password are required.');
+                throw new /** @type {any} */ (ApiError)(400, 'Username and password are required.');
             }
 
             if (password.length < 8) {
                 if (isDebug) logger.debug('[Admin Setup] Aborted: Password too short.');
-                throw new ApiError(400, 'Password must be at least 8 characters long.');
+                throw new /** @type {any} */ (ApiError)(
+                    400,
+                    'Password must be at least 8 characters long.'
+                );
             }
 
             const saltRounds = 10;
@@ -238,7 +258,7 @@ module.exports = function createAuthRouter({
      *       302:
      *         description: Redirects to setup page or admin panel as appropriate
      */
-    router.get('/login', (req, res) => {
+    router.get('/login', (/** @type {RequestWithSession} */ req, res) => {
         if (!isAdminSetup()) {
             return res.redirect('/admin/setup');
         }
@@ -353,7 +373,7 @@ module.exports = function createAuthRouter({
         '/login',
         loginLimiter,
         express.urlencoded({ extended: true }),
-        async (req, res) => {
+        async (/** @type {RequestWithSession} */ req, res) => {
             try {
                 logger.info(`[Admin Login] POST /admin/login route hit`);
                 if (isDebug) logger.debug(`[Admin Login] Received login request:`, req.body);
@@ -487,7 +507,7 @@ module.exports = function createAuthRouter({
      *       302:
      *         description: Redirect to login if 2FA not required
      */
-    router.get('/2fa-verify', (req, res) => {
+    router.get('/2fa-verify', (/** @type {RequestWithSession} */ req, res) => {
         // Only show this page if the user has passed the first step of login.
         if (!req.session.tfa_required) {
             return res.redirect('/admin/login');
@@ -658,7 +678,7 @@ module.exports = function createAuthRouter({
      *       500:
      *         description: Error destroying session
      */
-    router.get('/logout', (req, res, next) => {
+    router.get('/logout', (/** @type {RequestWithSession} */ req, res, next) => {
         const user = req.session.user;
         if (isDebug) logger.debug(`[Admin Logout] User "${user?.username}" logging out.`);
 
@@ -679,7 +699,7 @@ module.exports = function createAuthRouter({
                         error: err.message,
                         stack: err.stack,
                     });
-                return next(new ApiError(500, 'Could not log out.'));
+                return next(new /** @type {any} */ (ApiError)(500, 'Could not log out.'));
             }
             if (isDebug) logger.debug('[Admin Logout] Session destroyed successfully.');
             // Clear cookie explicitly
@@ -712,6 +732,7 @@ module.exports = function createAuthRouter({
      *       401:
      *         description: Unauthorized.
      */
+    // @ts-ignore - asyncHandler wrapper causes TypeScript overload issue
     router.post(
         '/api/admin/2fa/generate',
         authLimiter,
@@ -721,7 +742,7 @@ module.exports = function createAuthRouter({
             const isEnabled = secret.trim() !== '';
             // Prevent generating a new secret if one is already active
             if (isEnabled) {
-                throw new ApiError(400, '2FA is already enabled.');
+                throw new /** @type {any} */ (ApiError)(400, '2FA is already enabled.');
             }
 
             const newSecret = speakeasy.generateSecret({
@@ -767,6 +788,7 @@ module.exports = function createAuthRouter({
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - asyncHandler wrapper causes TypeScript overload issue
     router.post(
         '/api/admin/2fa/verify',
         authLimiter,
@@ -777,7 +799,10 @@ module.exports = function createAuthRouter({
             const pendingSecret = req.session.tfa_pending_secret;
 
             if (!pendingSecret) {
-                throw new ApiError(400, 'No 2FA setup process is pending. Please try again.');
+                throw new /** @type {any} */ (ApiError)(
+                    400,
+                    'No 2FA setup process is pending. Please try again.'
+                );
             }
 
             const verified = speakeasy.totp.verify({
@@ -807,7 +832,10 @@ module.exports = function createAuthRouter({
                     logger.debug(
                         `[Admin 2FA] 2FA verification failed for user "${req.session.user.username}".`
                     );
-                throw new ApiError(400, 'Invalid verification code. Please try again.');
+                throw new /** @type {any} */ (ApiError)(
+                    400,
+                    'Invalid verification code. Please try again.'
+                );
             }
         })
     );
@@ -841,6 +869,7 @@ module.exports = function createAuthRouter({
      *       401:
      *         description: Invalid password or unauthorized.
      */
+    // @ts-ignore - asyncHandler wrapper causes TypeScript overload issue
     router.post(
         '/api/admin/2fa/disable',
         authLimiter,
@@ -848,9 +877,14 @@ module.exports = function createAuthRouter({
         express.json(),
         asyncHandler(async (req, res) => {
             const { password } = req.body;
-            if (!password) throw new ApiError(400, 'Password is required to disable 2FA.');
+            if (!password)
+                throw new /** @type {any} */ (ApiError)(
+                    400,
+                    'Password is required to disable 2FA.'
+                );
             const isValidPassword = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
-            if (!isValidPassword) throw new ApiError(401, 'Incorrect password.');
+            if (!isValidPassword)
+                throw new /** @type {any} */ (ApiError)(401, 'Incorrect password.');
 
             // Clear 2FA secret from .env file (writeEnvFile updates process.env automatically)
             await writeEnvFile({ ADMIN_2FA_SECRET: '' });
