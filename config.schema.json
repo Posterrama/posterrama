@@ -196,9 +196,9 @@
                             "properties": {
                                 "groupBy": {
                                     "type": "string",
-                                    "enum": ["director", "genre", "actor", "random"],
+                                    "enum": ["director", "genre", "actor", "collection", "random"],
                                     "default": "director",
-                                    "description": "Group films by: director, genre, actor, or random (picks random group type each session)"
+                                    "description": "Group films by: director, genre, actor, collection (Plex collections like 'James Bond Collection'), or random (picks random group type each session)"
                                 },
                                 "cardRotationSeconds": {
                                     "type": "integer",

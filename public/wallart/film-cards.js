@@ -71,18 +71,23 @@
                 case 'actor':
                     groupsMap = this.groupByActor(mediaQueue, minGroupSize);
                     break;
+                case 'collection':
+                    groupsMap = this.groupByCollection(mediaQueue, minGroupSize);
+                    break;
                 case 'random':
                 default: {
                     // Random: pick random groupBy each time
-                    const modes = ['director', 'genre', 'actor'];
+                    const modes = ['director', 'genre', 'actor', 'collection'];
                     const randomMode = modes[Math.floor(Math.random() * modes.length)];
                     console.log('[Film Cards] Random mode selected:', randomMode);
                     if (randomMode === 'director') {
                         groupsMap = this.groupByDirector(mediaQueue, minGroupSize);
                     } else if (randomMode === 'genre') {
                         groupsMap = this.groupByGenre(mediaQueue, minGroupSize);
-                    } else {
+                    } else if (randomMode === 'actor') {
                         groupsMap = this.groupByActor(mediaQueue, minGroupSize);
+                    } else {
+                        groupsMap = this.groupByCollection(mediaQueue, minGroupSize);
                     }
                     break;
                 }
@@ -266,7 +271,8 @@
 
                 // Use backdrop from highest rated film
                 if (!groupData.backdrop || (item.rating && item.rating > 7.5)) {
-                    groupData.backdrop = item.backdropUrl || item.backgroundArt;
+                    groupData.backdrop =
+                        item.backgroundUrl || item.backdropUrl || item.backgroundArt;
                 }
             });
 
@@ -314,43 +320,40 @@
                 const cast = item.cast || [];
                 if (cast.length === 0) return;
 
-                // Use first cast member as primary
-                const actorName = cast[0].name || cast[0];
+                // Process ALL cast members (not just first one) to get complete actor filmographies
+                cast.forEach(actor => {
+                    const actorName = actor.name || actor;
+                    if (!actorName) return;
 
-                if (!groupMap.has(actorName)) {
-                    groupMap.set(actorName, {
-                        name: actorName,
-                        films: [],
-                        backdrop: null,
-                        photo: null,
-                        genres: new Set(),
-                    });
-                } else {
-                    // Update photo if we didn't have one yet
-                    const existingData = groupMap.get(actorName);
-                    if (!existingData.photo && cast[0].thumbUrl) {
-                        existingData.photo = cast[0].thumbUrl;
+                    if (!groupMap.has(actorName)) {
+                        groupMap.set(actorName, {
+                            name: actorName,
+                            films: [],
+                            backdrop: null,
+                            photo: actor.thumbUrl || null,
+                            genres: new Set(),
+                        });
                     }
-                }
 
-                const groupData = groupMap.get(actorName);
-                groupData.films.push(item);
+                    const groupData = groupMap.get(actorName);
+                    groupData.films.push(item);
 
-                // Store actor photo from first film with thumbnail
-                if (!groupData.photo && cast[0].thumbUrl) {
-                    groupData.photo = cast[0].thumbUrl;
-                }
+                    // Store actor photo from first film with thumbnail
+                    if (!groupData.photo && actor.thumbUrl) {
+                        groupData.photo = actor.thumbUrl;
+                    }
 
-                // Use backdrop from highest rated film
-                if (!groupData.backdrop || (item.rating && item.rating > 7.5)) {
-                    groupData.backdrop =
-                        item.backgroundUrl || item.backdropUrl || item.backgroundArt;
-                }
+                    // Use backdrop from highest rated film
+                    if (!groupData.backdrop || (item.rating && item.rating > 7.5)) {
+                        groupData.backdrop =
+                            item.backgroundUrl || item.backdropUrl || item.backgroundArt;
+                    }
 
-                // Collect genres
-                if (item.genres && Array.isArray(item.genres)) {
-                    item.genres.forEach(g => groupData.genres.add(g));
-                }
+                    // Collect genres
+                    if (item.genres && Array.isArray(item.genres)) {
+                        item.genres.forEach(g => groupData.genres.add(g));
+                    }
+                });
             });
 
             // Filter by minimum group size
@@ -381,9 +384,83 @@
         },
 
         /**
+         * Group films by collection
+         * @param {array} films - Array of film objects
+         * @param {number} minSize - Minimum group size
+         * @returns {Map} Map of collection name to group data
+         */
+        groupByCollection(mediaQueue, minSize) {
+            const groupMap = new Map();
+
+            console.log('[Film Cards] Grouping', mediaQueue.length, 'films by collection');
+
+            const validItems = mediaQueue.filter(item => item != null);
+
+            validItems.forEach(item => {
+                const collections = item.collections || [];
+                if (collections.length === 0) return;
+
+                // Process all collections for this film
+                collections.forEach(collection => {
+                    const collectionName = collection.name;
+                    if (!collectionName) return;
+
+                    if (!groupMap.has(collectionName)) {
+                        groupMap.set(collectionName, {
+                            name: collectionName,
+                            films: [],
+                            backdrop: null,
+                            genres: new Set(),
+                        });
+                    }
+
+                    const groupData = groupMap.get(collectionName);
+                    groupData.films.push(item);
+
+                    // Use backdrop from highest rated film
+                    if (!groupData.backdrop || (item.rating && item.rating > 7.5)) {
+                        groupData.backdrop =
+                            item.backgroundUrl || item.backdropUrl || item.backgroundArt;
+                    }
+
+                    // Collect genres
+                    if (item.genres && Array.isArray(item.genres)) {
+                        item.genres.forEach(g => groupData.genres.add(g));
+                    }
+                });
+            });
+
+            // Filter by minimum group size
+            const filtered = new Map();
+            groupMap.forEach((data, name) => {
+                if (data.films.length >= minSize) {
+                    filtered.set(name, data);
+                }
+            });
+
+            console.log(
+                `[Film Cards] Collections: ${groupMap.size} total, ${filtered.size} after min size filter (${minSize})`
+            );
+
+            // Log top collections
+            const largeGroups = Array.from(filtered.values())
+                .filter(g => g.films.length >= 3)
+                .sort((a, b) => b.films.length - a.films.length)
+                .slice(0, 10);
+            if (largeGroups.length > 0) {
+                console.log(
+                    '[Film Cards] Top collections:',
+                    largeGroups.map(g => `${g.name} (${g.films.length} films)`).join(', ')
+                );
+            }
+
+            return filtered;
+        },
+
+        /**
          * Create a single film card
          * @param {object} groupData - Group data with films
-         * @param {string} groupBy - Group type (director/genre/actor)
+         * @param {string} groupBy - Group type (director/genre/actor/collection)
          * @returns {HTMLElement} Card element
          */
         createFilmCard(groupData, groupBy) {
@@ -586,7 +663,13 @@
             // Group Type Label
             const typeLabel = document.createElement('div');
             const typeLabelText =
-                groupBy === 'director' ? 'Director' : groupBy === 'genre' ? 'Genre' : 'Actor';
+                groupBy === 'director'
+                    ? 'Director'
+                    : groupBy === 'genre'
+                      ? 'Genre'
+                      : groupBy === 'actor'
+                        ? 'Actor'
+                        : 'Collection';
             typeLabel.textContent = typeLabelText;
             typeLabel.style.cssText = isPortrait
                 ? `

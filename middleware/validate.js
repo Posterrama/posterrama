@@ -128,7 +128,12 @@ const getMediaQuerySchema = Joi.object({
     gamesOnly: Joi.alternatives()
         .try(Joi.boolean(), Joi.string().valid('1', 'true', 'false', '0'), Joi.number().valid(0, 1))
         .optional(),
-    // Optional count parameter for limiting results (used with music mode and games mode)
+    // Optional flag to enable film cards mode (fetch more movies directly from Plex, bypass cache)
+    // Accepts boolean or string values: true, "true", "1", 1
+    filmCards: Joi.alternatives()
+        .try(Joi.boolean(), Joi.string().valid('1', 'true', 'false', '0'), Joi.number().valid(0, 1))
+        .optional(),
+    // Optional count parameter for limiting results (used with music mode, games mode, and film cards mode)
     count: Joi.number().integer().min(1).max(1000).optional(),
     // Optional nocache flag to bypass cache
     nocache: Joi.alternatives()

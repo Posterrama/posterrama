@@ -371,6 +371,12 @@
                         if (musicMode) {
                             url += '&musicMode=1';
                         }
+                        
+                        // If film cards layout, add filmCards parameter to bypass cache limits
+                        const layoutVariant = window.appConfig?.wallartMode?.layoutVariant;
+                        if (layoutVariant === 'filmCards') {
+                            url += '&filmCards=1';
+                        }
                     }
                     
                     window.debugLog && window.debugLog('WALLART_FETCH_MEDIA', { url, gamesOnly, userAgent: navigator.userAgent });

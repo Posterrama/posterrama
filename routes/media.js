@@ -389,40 +389,7 @@ module.exports = function createMediaRouter({
                 }
             }
 
-            // Not games mode - continue to normal cache middleware
-            next();
-        }),
-        apiCacheMiddleware.media,
-        asyncHandler(async (req, res) => {
-            // Helper: apply optional source filter to cached playlist
-            const applySourceFilter = (items, src) => {
-                if (!src || !Array.isArray(items)) return items;
-                const norm = String(src).toLowerCase();
-                return items.filter(it => {
-                    const s = (it.source || it.serverType || '').toString().toLowerCase();
-                    const key = (it.key || '').toString().toLowerCase();
-                    if (norm === 'plex') return s === 'plex' || key.startsWith('plex-');
-                    if (norm === 'jellyfin') return s === 'jellyfin' || key.startsWith('jellyfin_');
-                    if (norm === 'romm') return s === 'romm' || key.startsWith('romm_');
-                    if (norm === 'tmdb') {
-                        // Include classic TMDB plus streaming-provider items fetched via TMDB
-                        return s === 'tmdb' || key.startsWith('tmdb-') || !!it.tmdbId;
-                    }
-                    if (norm === 'local') {
-                        // Include local directory items
-                        return s === 'local' || key.startsWith('local-');
-                    }
-                    return s === norm;
-                });
-            };
-            // Skip caching if nocache param is present (for admin invalidation)
-            if (req.query.nocache === '1') {
-                res.setHeader('Cache-Control', 'no-store');
-            }
-
             // Check if music mode is requested
-            // (games mode is handled earlier by middleware before cache)
-            const wallartMode = config?.wallartMode || {};
             const musicMode = wallartMode.musicMode || {};
             const isMusicModeEnabled = musicMode.enabled === true;
             const isMusicModeRequest =
@@ -487,6 +454,135 @@ module.exports = function createMediaRouter({
                     return res.json([]);
                 }
             }
+
+            // Check if film cards mode is requested
+            const isFilmCardsModeEnabled = wallartMode.layoutVariant === 'filmCards';
+            const isFilmCardsModeRequest =
+                req.query?.filmCards === '1' || req.query?.filmCards === 'true';
+
+            // If film cards mode is active, fetch more items directly from source (bypass 300-item cache)
+            if (isFilmCardsModeEnabled && isFilmCardsModeRequest) {
+                try {
+                    // Find enabled Plex server
+                    const PlexSource = require('../sources/plex');
+                    const plexServer = (config.mediaServers || []).find(
+                        s => s.enabled && s.type === 'plex'
+                    );
+
+                    if (!plexServer) {
+                        logger.warn('Film Cards mode requested but no Plex server is configured');
+                        return res.json([]);
+                    }
+
+                    // Get movie library names from server config
+                    const movieLibraries =
+                        plexServer.movieLibraryNames || plexServer.libraryNames || [];
+                    if (movieLibraries.length === 0) {
+                        logger.warn('Film Cards mode enabled but no movie libraries configured');
+                        return res.json([]);
+                    }
+
+                    const count = parseInt(req.query?.count, 10) || 1000;
+
+                    // Film Cards cache: 30 minute TTL (library content rarely changes)
+                    // Cache key based on libraries + count for proper invalidation
+                    global.__filmCardsCache = global.__filmCardsCache || {
+                        ts: 0,
+                        data: null,
+                        key: '',
+                    };
+                    const cacheKey = `${movieLibraries.join(',')}:${count}`;
+                    const cacheTTL = 30 * 60 * 1000; // 30 minutes
+                    const now = Date.now();
+
+                    // Check cache validity
+                    if (
+                        global.__filmCardsCache.key === cacheKey &&
+                        global.__filmCardsCache.data &&
+                        now - global.__filmCardsCache.ts < cacheTTL
+                    ) {
+                        const cacheAge = Math.round((now - global.__filmCardsCache.ts) / 1000);
+                        logger.info(
+                            `[Film Cards Mode] Returning ${global.__filmCardsCache.data.length} cached movies (age: ${cacheAge}s)`
+                        );
+                        res.set('X-Cache', 'HIT');
+                        res.set('X-Cache-Age', `${cacheAge}s`);
+                        return res.json(global.__filmCardsCache.data);
+                    }
+
+                    // Cache miss - fetch from Plex
+                    logger.info(
+                        `[Film Cards Mode] Fetching ${count} movies from libraries: ${movieLibraries.join(', ')}`
+                    );
+
+                    // Initialize Plex source with all required dependencies
+                    const plexSource = new PlexSource(
+                        plexServer,
+                        getPlexClient,
+                        processPlexItem,
+                        getPlexLibraries,
+                        shuffleArray,
+                        config.rottenTomatoesMinimumScore || 0,
+                        isDebug
+                    );
+
+                    const movies = await plexSource.fetchMedia(movieLibraries, 'movie', count);
+
+                    logger.info(
+                        `[Film Cards Mode] Returning ${movies.length} movies (cached for 30min)`
+                    );
+
+                    // Update cache
+                    global.__filmCardsCache = {
+                        ts: now,
+                        data: movies,
+                        key: cacheKey,
+                    };
+
+                    res.set('X-Cache', 'MISS');
+                    return res.json(movies);
+                } catch (err) {
+                    logger.error(`[Film Cards Mode] Failed to fetch movies: ${err.message}`, {
+                        error: err.stack,
+                    });
+                    // Return empty array on error
+                    return res.json([]);
+                }
+            }
+
+            // Not special mode - continue to normal cache middleware
+            next();
+        }),
+        apiCacheMiddleware.media,
+        asyncHandler(async (req, res) => {
+            // Helper: apply optional source filter to cached playlist
+            const applySourceFilter = (items, src) => {
+                if (!src || !Array.isArray(items)) return items;
+                const norm = String(src).toLowerCase();
+                return items.filter(it => {
+                    const s = (it.source || it.serverType || '').toString().toLowerCase();
+                    const key = (it.key || '').toString().toLowerCase();
+                    if (norm === 'plex') return s === 'plex' || key.startsWith('plex-');
+                    if (norm === 'jellyfin') return s === 'jellyfin' || key.startsWith('jellyfin_');
+                    if (norm === 'romm') return s === 'romm' || key.startsWith('romm_');
+                    if (norm === 'tmdb') {
+                        // Include classic TMDB plus streaming-provider items fetched via TMDB
+                        return s === 'tmdb' || key.startsWith('tmdb-') || !!it.tmdbId;
+                    }
+                    if (norm === 'local') {
+                        // Include local directory items
+                        return s === 'local' || key.startsWith('local-');
+                    }
+                    return s === norm;
+                });
+            };
+            // Skip caching if nocache param is present (for admin invalidation)
+            if (req.query.nocache === '1') {
+                res.setHeader('Cache-Control', 'no-store');
+            }
+
+            // NOTE: Music mode, Film Cards mode, and Games mode are all handled by middleware BEFORE cache
+            // This handler only deals with cached playlist responses
 
             // If the cache is not null, it means the initial fetch has completed (even if it found no items).
             // An empty array is a valid state if no servers are configured or no media is found.

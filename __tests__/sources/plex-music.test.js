@@ -87,7 +87,9 @@ describe('PlexSource - Music Support', () => {
 
             const result = await plexSource.fetchMusic(['Music'], 10);
 
-            expect(mockPlexClient.query).toHaveBeenCalledWith('/library/sections/1/albums');
+            expect(mockPlexClient.query).toHaveBeenCalledWith(
+                '/library/sections/1/albums?X-Plex-Container-Size=1000'
+            );
             expect(result).toHaveLength(2);
             expect(result[0]).toMatchObject({
                 type: 'music',

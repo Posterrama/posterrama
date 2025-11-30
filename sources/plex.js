@@ -171,7 +171,7 @@ class PlexSource {
                         executeWithRetry(
                             () =>
                                 this.plex.query(
-                                    `/library/sections/${library.key}/all?includeExtras=1`
+                                    `/library/sections/${library.key}/all?includeExtras=1&X-Plex-Container-Size=1000`
                                 ),
                             {
                                 source: 'plex',
@@ -424,7 +424,10 @@ class PlexSource {
                 try {
                     // Fetch all albums from the music library using the /albums endpoint
                     const content = await executeWithRetry(
-                        () => this.plex.query(`/library/sections/${library.key}/albums`),
+                        () =>
+                            this.plex.query(
+                                `/library/sections/${library.key}/albums?X-Plex-Container-Size=1000`
+                            ),
                         {
                             source: 'plex',
                             operation: 'fetchAlbums',
