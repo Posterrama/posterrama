@@ -5309,7 +5309,9 @@
                 applySummary();
                 try {
                     window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                } catch (_) {}
+                } catch (_) {
+                    /* preview update failed (non-critical) */
+                }
             };
 
             btnMusicVinyl?.addEventListener('click', () =>
