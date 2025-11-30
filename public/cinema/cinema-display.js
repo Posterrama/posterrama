@@ -494,7 +494,7 @@
     }
 
     // ===== Background Settings =====
-    function applyBackgroundSettings() {
+    function applyBackgroundSettings(media) {
         const root = document.documentElement;
         const bg = cinemaConfig.background;
 
@@ -510,6 +510,21 @@
         // Set CSS variables
         root.style.setProperty('--cinema-bg-color', bg.solidColor);
         root.style.setProperty('--cinema-bg-blur', `${bg.blurAmount}px`);
+
+        // Set poster URL for blurred background
+        if (media) {
+            const posterUrl = media.posterUrl || media.poster_path || '';
+            if (posterUrl) {
+                root.style.setProperty('--cinema-poster-url', `url('${posterUrl}')`);
+            }
+
+            // Set gradient/ambient colors from dominant color
+            const dominantColor = media.dominantColor || '#1a1a2e';
+            root.style.setProperty('--cinema-ambient-color', dominantColor);
+            root.style.setProperty('--cinema-gradient-start', '#0f0f0f');
+            root.style.setProperty('--cinema-gradient-mid', dominantColor);
+            root.style.setProperty('--cinema-gradient-end', '#0f0f0f');
+        }
 
         // Vignette presets
         const vignetteMap = {
@@ -527,22 +542,20 @@
         const root = document.documentElement;
         const poster = cinemaConfig.poster;
 
-        // Remove existing poster style classes
+        // Remove existing poster style classes (perspective removed)
         document.body.classList.remove(
             'cinema-poster-fullBleed',
             'cinema-poster-framed',
-            'cinema-poster-floating',
-            'cinema-poster-perspective'
+            'cinema-poster-floating'
         );
         document.body.classList.add(`cinema-poster-${poster.style}`);
 
-        // Remove existing animation classes
+        // Remove existing animation classes (kenBurns removed)
         document.body.classList.remove(
             'cinema-anim-fade',
             'cinema-anim-zoomIn',
             'cinema-anim-slideUp',
-            'cinema-anim-cinematic',
-            'cinema-anim-kenBurns'
+            'cinema-anim-cinematic'
         );
         document.body.classList.add(`cinema-anim-${poster.animation}`);
 
@@ -633,7 +646,7 @@
 
         // Apply new visual settings
         applyTypographySettings();
-        applyBackgroundSettings();
+        applyBackgroundSettings(null); // No media yet at init
         applyPosterSettings();
 
         // Create cinema UI elements
@@ -735,6 +748,9 @@
 
         // Map Plex/Jellyfin/TMDB properties to cinema format
         const cinemaMedia = mapMediaToCinemaFormat(media);
+
+        // Update background with media info (for blurred/gradient/ambient modes)
+        applyBackgroundSettings(media);
 
         // Update footer with current media info
         createFooter(cinemaMedia);
@@ -1013,7 +1029,7 @@
                     ...cinemaConfig.background,
                     ...newConfig.cinema.background,
                 };
-                applyBackgroundSettings();
+                applyBackgroundSettings(currentMedia);
             }
 
             // Update metadata settings

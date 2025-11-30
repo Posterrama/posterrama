@@ -696,7 +696,7 @@ body.cinema-bg-ambient::after {
     height: 100%;
     background: var(--cinema-vignette);
     pointer-events: none;
-    z-index: 0;
+    z-index: 100;
 }
 
 /* =================================================================
@@ -718,9 +718,7 @@ body.cinema-poster-fullBleed #poster {
 /* Framed - elegant border */
 body.cinema-poster-framed #poster {
     border: var(--cinema-frame-width) solid var(--cinema-frame-color);
-    box-shadow:
-        0 0 0 2px rgba(255, 255, 255, 0.1),
-        0 10px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
 /* Floating - elevated with shadow */
@@ -729,14 +727,6 @@ body.cinema-poster-floating #poster {
     box-shadow:
         0 20px 60px rgba(0, 0, 0, 0.6),
         0 10px 20px rgba(0, 0, 0, 0.4);
-}
-
-/* Perspective - 3D tilt effect */
-body.cinema-poster-perspective #poster {
-    transform: perspective(1000px) rotateY(-2deg) rotateX(1deg);
-    box-shadow:
-        -20px 20px 40px rgba(0, 0, 0, 0.5),
-        10px -10px 20px rgba(255, 255, 255, 0.05);
 }
 
 /* =================================================================
@@ -1108,6 +1098,21 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 
 .anim-slide {
     animation: textSlide 8s linear infinite !important;
+}
+
+/* Marquee scroll animation for header */
+.anim-marquee {
+    animation: headerMarquee 15s linear infinite !important;
+    white-space: nowrap;
+}
+
+@keyframes headerMarquee {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
 }
 
 @keyframes textPulse {

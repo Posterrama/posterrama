@@ -701,13 +701,13 @@
                     "properties": {
                         "style": {
                             "type": "string",
-                            "enum": ["fullBleed", "framed", "floating", "perspective"],
+                            "enum": ["fullBleed", "framed", "floating"],
                             "default": "floating",
-                            "description": "Poster display style: fullBleed (edge to edge), framed (with border), floating (with shadow), perspective (3D tilt)"
+                            "description": "Poster display style: fullBleed (edge to edge), framed (with border), floating (with shadow)"
                         },
                         "animation": {
                             "type": "string",
-                            "enum": ["fade", "zoomIn", "slideUp", "cinematic", "kenBurns"],
+                            "enum": ["fade", "zoomIn", "slideUp", "cinematic"],
                             "default": "fade",
                             "description": "Poster transition animation"
                         },
