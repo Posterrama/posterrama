@@ -273,7 +273,7 @@
   <section class="content-grid" style="margin-top: var(--space-lg);">
       <!-- Unified System Performance Dashboard -->
       <section id="panel-perf-dashboard" style="display: flex; flex-direction: column; gap: var(--space-lg);">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="perf-header" style="display: flex; justify-content: space-between; align-items: center;">
           <h2 style="margin: 0; display: flex; align-items: center;">
             <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
               <i class="fas fa-gauge-high" style="opacity: 0.8;"></i>
@@ -282,7 +282,7 @@
           </h2>
           
           <!-- Status pills in header -->
-          <div style="display: flex; gap: 16px; align-items: center;">
+          <div class="perf-pills" style="display: flex; gap: 16px; align-items: center;">
             <span class="header-pill status-success" id="perf-app-status" title="Application server status">
               <i class="fas fa-rocket"></i>
               <span class="label">Application</span>
@@ -434,14 +434,14 @@
     <section id="section-display" class="app-section" hidden>
       
       <div class="panel" id="panel-display" style="border: none; background: transparent; box-shadow: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
           <h2 style="margin: 0; display: flex; align-items: center;">
             <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
               <i class="fas fa-desktop" style="opacity: 0.8;"></i>
               Display Settings
             </span>
           </h2>
-          <div style="display: flex; gap: 12px; align-items: center;">
+          <div class="section-header-actions" style="display: flex; gap: 12px; align-items: center;">
             <span class="status-pill status-info" id="display-mode-pill" title="Current display mode">Mode: —</span>
             <button class="btn btn-primary btn-sm" id="btn-save-display"><span class="spinner" style="display:none"></span><i class="fas fa-save"></i><span>Save Settings</span></button>
           </div>
@@ -1233,14 +1233,14 @@
     <!-- Media Sources Section (top-level sibling, not nested under dashboard) -->
     <section id="section-media-sources" class="app-section" hidden>
       <div class="panel" id="panel-media-sources" style="border: none; background: transparent; box-shadow: none;">
-        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0; border: none; background: transparent;">
+        <div class="section-header panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0; border: none; background: transparent;">
           <h2 style="margin: 0; display: flex; align-items: center;">
             <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
               <i class="fas fa-server" style="opacity: 0.8;"></i>
               Media Sources
             </span>
           </h2>
-          <div class="panel-actions" style="display: flex; gap: 12px; align-items: center;"></div>
+          <div class="section-header-actions panel-actions" style="display: flex; gap: 12px; align-items: center;"></div>
         </div>
         <div class="panel-content" style="padding: 0;">
       <!-- Sources tabs with expandable dropdowns -->
@@ -2509,14 +2509,14 @@
     <!-- Performance Section -->
     <section id="section-performance" class="app-section" hidden>
       <div class="panel" style="border: none; background: transparent; box-shadow: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
           <h2 style="margin: 0; display: flex; align-items: center;">
             <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
               <i class="fas fa-chart-line" style="opacity: 0.8;"></i>
               Performance Dashboard
             </span>
           </h2>
-          <div style="display: flex; gap: 12px; align-items: center;"></div>
+          <div class="section-header-actions" style="display: flex; gap: 12px; align-items: center;"></div>
         </div>
         <div class="panel-content" style="padding: 0;">
           <!-- KPI Cards -->
@@ -2660,7 +2660,7 @@
     <section id="section-devices" class="app-section" hidden>
       <!-- Device Management Tabs header (mirrors Media Sources/Display) -->
       <div class="panel" id="panel-device-management" style="border: none; background: transparent; box-shadow: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
           <h2 style="margin: 0; display: flex; align-items: center;">
             <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
               <i class="fas fa-laptop" style="opacity: 0.8;"></i>
@@ -2668,7 +2668,7 @@
               <span class="badge badge-beta" style="margin-left: 4px;">BETA</span>
             </span>
           </h2>
-          <div style="display: flex; gap: 12px; align-items: center;"></div>
+          <div class="section-header-actions" style="display: flex; gap: 12px; align-items: center;"></div>
         </div>
         <div class="panel-content" style="padding: 0;">
           <div class="form-section" id="device-tabs">
@@ -2778,14 +2778,14 @@
     <!-- Operations Section (top-level sibling) -->
   <section id="section-operations" class="app-section" hidden>
     <section class="panel operations-panel" style="border: none; background: transparent; box-shadow: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
           <h2 style="margin: 0; display: flex; align-items: center;">
             <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
               <i class="fas fa-screwdriver-wrench" style="opacity: 0.8;"></i>
               Operations
             </span>
           </h2>
-          <div style="display: flex; gap: 12px; align-items: center;">
+          <div class="section-header-actions" style="display: flex; gap: 12px; align-items: center;">
             <button type="button" id="btn-restart-server" class="btn btn-secondary btn-sm" title="Restart server">
               <i class="fas fa-rotate"></i><span>Restart Server</span>
             </button>

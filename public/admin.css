@@ -5373,8 +5373,12 @@ body.sidebar-open {
         opacity: 1;
     }
 
-    /* Overlay only visible when sidebar is closed on tablets */
+    /* Overlay hidden by default, shown via JS when sidebar opens */
     .sidebar-overlay {
+        display: block;
+    }
+
+    .sidebar-overlay[hidden] {
         display: none;
     }
 }
@@ -5387,6 +5391,17 @@ body.sidebar-open {
     }
     .sidebar {
         box-shadow: var(--shadow-xl);
+    }
+
+    /* Larger nav items for touch on mobile */
+    .sidebar .nav-item {
+        padding: 12px 16px;
+        font-size: 1rem;
+        gap: 12px;
+    }
+
+    .sidebar .nav-item i {
+        font-size: 1.1rem;
     }
 }
 
@@ -14536,18 +14551,19 @@ select:focus-visible {
 
 /* ===== MOBILE RESPONSIVE STYLES ===== */
 
-/* Mobile optimization for System Performance section */
+/* Mobile optimization for section headers */
 @media (max-width: 768px) {
-    /* Stack the performance header vertically */
-    #panel-perf-dashboard .panel-header {
+    /* Stack all section headers vertically on mobile */
+    .section-header,
+    .perf-header {
         flex-direction: column !important;
         align-items: flex-start !important;
-        gap: 16px !important;
-        padding: 16px !important;
+        gap: 12px !important;
     }
 
-    /* Make status pills wrap and stack */
-    #panel-perf-dashboard .panel-header > div {
+    /* Make header actions (pills, buttons) wrap */
+    .section-header-actions,
+    .perf-pills {
         display: flex !important;
         flex-wrap: wrap !important;
         gap: 8px !important;
