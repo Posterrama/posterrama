@@ -433,20 +433,20 @@
     <!-- Display Settings -->
     <section id="section-display" class="app-section" hidden>
       
-      <div class="panel" id="panel-display">
-        <div class="panel-header">
-          <div class="panel-title" style="flex-direction:column; align-items:flex-start; gap:4px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <i class="fas fa-desktop" aria-hidden="true"></i>
-              <h2 style="margin:0;">Display Settings</h2>
-            </div>
-          </div>
-          <div class="panel-actions">
+      <div class="panel" id="panel-display" style="border: none; background: transparent; box-shadow: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0; display: flex; align-items: center;">
+            <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
+              <i class="fas fa-desktop" style="opacity: 0.8;"></i>
+              Display Settings
+            </span>
+          </h2>
+          <div style="display: flex; gap: 12px; align-items: center;">
             <span class="status-pill status-info" id="display-mode-pill" title="Current display mode">Mode: —</span>
             <button class="btn btn-primary btn-sm" id="btn-save-display"><span class="spinner" style="display:none"></span><i class="fas fa-save"></i><span>Save Settings</span></button>
           </div>
         </div>
-        <div class="panel-content">
+        <div class="panel-content" style="padding: 0;">
           
           <!-- Floating Live Preview (reuses /preview page) -->
           <div id="display-preview-container" class="pip-mode screensaver-mode">
@@ -1232,17 +1232,17 @@
 
     <!-- Media Sources Section (top-level sibling, not nested under dashboard) -->
     <section id="section-media-sources" class="app-section" hidden>
-      <div class="panel" id="panel-media-sources">
-  <div class="panel-header">
-          <div class="panel-title" style="flex-direction:column; align-items:flex-start; gap:4px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <i class="fas fa-server" aria-hidden="true"></i>
-              <h2 style="margin:0;">Media Sources</h2>
-            </div>
-          </div>
-          <div class="panel-actions"></div>
+      <div class="panel" id="panel-media-sources" style="border: none; background: transparent; box-shadow: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0; display: flex; align-items: center;">
+            <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
+              <i class="fas fa-server" style="opacity: 0.8;"></i>
+              Media Sources
+            </span>
+          </h2>
+          <div style="display: flex; gap: 12px; align-items: center;"></div>
         </div>
-        <div class="panel-content">
+        <div class="panel-content" style="padding: 0;">
       <!-- Sources tabs with expandable dropdowns -->
       <div class="form-section" id="sources-tabs">
         <div class="section-title"><i class="fas fa-layer-group"></i> Source</div>
@@ -2638,18 +2638,18 @@
     <!-- Devices Section (top-level sibling) -->
     <section id="section-devices" class="app-section" hidden>
       <!-- Device Management Tabs header (mirrors Media Sources/Display) -->
-      <div class="panel" id="panel-device-management">
-        <div class="panel-header">
-          <div class="panel-title" style="flex-direction:column; align-items:flex-start; gap:4px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <i class="fas fa-laptop" aria-hidden="true"></i>
-              <h2 style="margin:0;">Device Management</h2>
-              <span class="badge badge-beta">BETA</span>
-            </div>
-          </div>
-          <div class="panel-actions"></div>
+      <div class="panel" id="panel-device-management" style="border: none; background: transparent; box-shadow: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0; display: flex; align-items: center;">
+            <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
+              <i class="fas fa-laptop" style="opacity: 0.8;"></i>
+              Device Management
+              <span class="badge badge-beta" style="margin-left: 4px;">BETA</span>
+            </span>
+          </h2>
+          <div style="display: flex; gap: 12px; align-items: center;"></div>
         </div>
-        <div class="panel-content">
+        <div class="panel-content" style="padding: 0;">
           <div class="form-section" id="device-tabs">
             <div class="section-title"><i class="fas fa-layer-group"></i> Manage</div>
             <div class="form-row">
@@ -2756,15 +2756,15 @@
 
     <!-- Operations Section (top-level sibling) -->
   <section id="section-operations" class="app-section" hidden>
-    <section class="panel operations-panel">
-        <div class="panel-header">
-          <div class="panel-title" style="flex-direction:column; align-items:flex-start; gap:4px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <i class="fas fa-screwdriver-wrench"></i>
-              <h2 style="margin:0;">Operations</h2>
-            </div>
-          </div>
-          <div class="panel-actions">
+    <section class="panel operations-panel" style="border: none; background: transparent; box-shadow: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0; display: flex; align-items: center;">
+            <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
+              <i class="fas fa-screwdriver-wrench" style="opacity: 0.8;"></i>
+              Operations
+            </span>
+          </h2>
+          <div style="display: flex; gap: 12px; align-items: center;">
             <button type="button" id="btn-restart-server" class="btn btn-secondary btn-sm" title="Restart server">
               <i class="fas fa-rotate"></i><span>Restart Server</span>
             </button>
@@ -2773,7 +2773,7 @@
             </button>
           </div>
         </div>
-        <div class="panel-content">
+        <div class="panel-content" style="padding: 0;">
   <div class="content-grid" style="gap:12px;">
         <div class="ops-col">
             <!-- Auto-Update Operations (moved to top-left) -->
