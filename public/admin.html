@@ -105,9 +105,9 @@
       <button class="btn btn-icon mobile-only" id="mobile-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
         <i class="fas fa-bars"></i>
       </button>
-      <img src="/logo.png" alt="Posterrama Logo" class="nav-logo" />
+      <img src="/logo.png" alt="Posterrama Logo" class="nav-logo" id="nav-logo-img" style="cursor: pointer;" title="Go to Dashboard" />
       <span>posterrama</span>
-  <span class="version" id="app-version" title="Current version" style="margin-left:8px;">—</span>
+  <span class="version" id="app-version" title="Click to check for updates" style="margin-left:8px; cursor: pointer;">—</span>
   <span class="nav-badge" id="update-available-pill" hidden title="" style="margin-left:6px;">Update available</span>
     </div>
     <div class="nav-actions">
@@ -4671,6 +4671,33 @@
           }
         });
       });
+
+      // Handle version click to go to updates
+      const versionEl = document.getElementById('app-version');
+      if (versionEl) {
+        versionEl.addEventListener('click', function() {
+          const opsNav = document.querySelector('[data-nav="operations"]');
+          if (opsNav) {
+            opsNav.click();
+            // Scroll to top of operations section to ensure updates are visible
+            setTimeout(() => {
+                 const opsSection = document.getElementById('section-operations');
+                 if (opsSection) opsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
+          }
+        });
+      }
+
+      // Handle logo click to go to dashboard
+      const logoEl = document.getElementById('nav-logo-img');
+      if (logoEl) {
+        logoEl.addEventListener('click', function() {
+          const dashNav = document.querySelector('[data-nav="dashboard"]');
+          if (dashNav) {
+            dashNav.click();
+          }
+        });
+      }
     });
     
     // Handle hash navigation on page load (for direct links like /admin#performance)
