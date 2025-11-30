@@ -2178,11 +2178,11 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     transform: translateX(-50%);
     /* Position at bottom of poster area */
     bottom: calc(var(--poster-bottom, 0px) + var(--cinema-frame-width, 8px) + 10px);
-    /* Width - 85% of poster width */
+    /* Width will be set by JavaScript for floating/fullBleed styles */
     width: calc(var(--poster-width, 400px) * 0.85);
     /* 16:9 aspect ratio for video */
     aspect-ratio: 16 / 9;
-    max-height: 25vh;
+    /* No max-height - let aspect-ratio control the height based on width */
     z-index: 50;
     overflow: hidden;
     background: #000;
@@ -2192,6 +2192,12 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     box-shadow:
         0 4px 20px rgba(0, 0, 0, 0.6),
         inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* For floating and fullBleed, remove max-height limit */
+body.cinema-poster-floating .cinema-trailer-overlay,
+body.cinema-poster-fullBleed .cinema-trailer-overlay {
+    max-height: none;
 }
 
 .cinema-trailer-overlay #yt-trailer-player,

@@ -1124,10 +1124,23 @@
         $('#cinemaTrailerDelay') && ($('#cinemaTrailerDelay').value = trailer.delay ?? 5);
         $('#cinemaTrailerMuted') && ($('#cinemaTrailerMuted').checked = trailer.muted !== false);
         $('#cinemaTrailerLoop') && ($('#cinemaTrailerLoop').checked = trailer.loop !== false);
+        $('#cinemaTrailerQuality') &&
+            ($('#cinemaTrailerQuality').value = trailer.quality || 'default');
+        $('#cinemaTrailerAutohide') &&
+            ($('#cinemaTrailerAutohide').value = trailer.autohide || 'never');
+        $('#cinemaTrailerReshow') && ($('#cinemaTrailerReshow').value = trailer.reshow || 'never');
+
+        // Show/hide re-show row based on autohide value
+        const reshowRow = $('#cinemaTrailerReshowRow');
+        if (reshowRow) {
+            reshowRow.style.display =
+                trailer.autohide && trailer.autohide !== 'never' ? '' : 'none';
+        }
 
         // QR Code settings
         const qr = promo.qrCode || {};
         $('#cinemaQREnabled') && ($('#cinemaQREnabled').checked = !!qr.enabled);
+        $('#cinemaQRUrlType') && ($('#cinemaQRUrlType').value = qr.urlType || 'trailer');
         $('#cinemaQRUrl') && ($('#cinemaQRUrl').value = qr.url || '');
         $('#cinemaQRPosition') && ($('#cinemaQRPosition').value = qr.position || 'bottomRight');
         $('#cinemaQRSize') && ($('#cinemaQRSize').value = qr.size || 100);
@@ -1176,15 +1189,67 @@
             syncSoundWarning();
         }
 
+        // Trailer: show re-show row when autohide is not 'never'
+        const trailerAutohide = $('#cinemaTrailerAutohide');
+        const trailerReshowRow = $('#cinemaTrailerReshowRow');
+        if (trailerAutohide && trailerReshowRow) {
+            const syncReshowVisibility = () => {
+                trailerReshowRow.style.display = trailerAutohide.value !== 'never' ? '' : 'none';
+            };
+            trailerAutohide.addEventListener('change', syncReshowVisibility);
+            syncReshowVisibility();
+        }
+
         // QR Code: show settings when enabled
         const qrEnabled = $('#cinemaQREnabled');
         const qrSettings = $('#cinemaQRSettings');
+        const qrUrlType = $('#cinemaQRUrlType');
+        const qrCustomUrlRow = $('#cinemaQRCustomUrlRow');
+        const qrUrlInput = $('#cinemaQRUrl');
+        const qrUrlError = $('#cinemaQRUrlError');
+
         if (qrEnabled && qrSettings) {
             const syncQRVisibility = () => {
                 qrSettings.style.display = qrEnabled.checked ? '' : 'none';
             };
             qrEnabled.addEventListener('change', syncQRVisibility);
             syncQRVisibility();
+        }
+
+        // QR URL Type: show custom URL input when 'custom' is selected
+        if (qrUrlType && qrCustomUrlRow) {
+            const syncCustomUrlVisibility = () => {
+                const isCustom = qrUrlType.value === 'custom';
+                qrCustomUrlRow.style.display = isCustom ? '' : 'none';
+                // Clear error when switching away from custom
+                if (!isCustom && qrUrlError) {
+                    qrUrlError.style.display = 'none';
+                }
+            };
+            qrUrlType.addEventListener('change', syncCustomUrlVisibility);
+            syncCustomUrlVisibility();
+        }
+
+        // QR Custom URL: validate URL format
+        if (qrUrlInput && qrUrlError) {
+            const validateQRUrl = () => {
+                const value = qrUrlInput.value.trim();
+                if (!value) {
+                    qrUrlError.style.display = 'none';
+                    return true; // Empty is valid (will fallback)
+                }
+                try {
+                    const url = new URL(value);
+                    const isValid = url.protocol === 'http:' || url.protocol === 'https:';
+                    qrUrlError.style.display = isValid ? 'none' : '';
+                    return isValid;
+                } catch {
+                    qrUrlError.style.display = '';
+                    return false;
+                }
+            };
+            qrUrlInput.addEventListener('input', validateQRUrl);
+            qrUrlInput.addEventListener('blur', validateQRUrl);
         }
 
         // Announcement: show settings when enabled
@@ -1652,9 +1717,13 @@
                     delay: parseInt($('#cinemaTrailerDelay')?.value || '5', 10),
                     muted: $('#cinemaTrailerMuted')?.checked !== false,
                     loop: $('#cinemaTrailerLoop')?.checked !== false,
+                    quality: $('#cinemaTrailerQuality')?.value || 'default',
+                    autohide: $('#cinemaTrailerAutohide')?.value || 'never',
+                    reshow: $('#cinemaTrailerReshow')?.value || 'never',
                 },
                 qrCode: {
                     enabled: !!$('#cinemaQREnabled')?.checked,
+                    urlType: $('#cinemaQRUrlType')?.value || 'trailer',
                     url: $('#cinemaQRUrl')?.value || '',
                     position: $('#cinemaQRPosition')?.value || 'bottomRight',
                     size: parseInt($('#cinemaQRSize')?.value || '100', 10),

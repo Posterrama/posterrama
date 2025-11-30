@@ -139,10 +139,14 @@
                 "enabled": false,
                 "delay": 5,
                 "muted": true,
-                "loop": true
+                "loop": true,
+                "quality": "default",
+                "autohide": "never",
+                "reshow": "never"
             },
             "qrCode": {
                 "enabled": false,
+                "urlType": "trailer",
                 "url": "",
                 "position": "bottomRight",
                 "size": 100

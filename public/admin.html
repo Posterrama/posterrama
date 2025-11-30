@@ -1490,124 +1490,192 @@
                   <div class="mode-card" data-card-key="cinema-promotional" id="cinema-promotional-card" style="padding:12px; grid-column: 1;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-bullhorn"></i> Promotional</div>
                     <div id="cinema-promotional-mount">
-                      <div class="form-grid">
-                        <!-- Rating Badge -->
-                        <div class="form-row">
-                          <label>Rating Badge</label>
-                          <label class="checkbox" for="cinemaRatingBadge"><input type="checkbox" id="cinemaRatingBadge" /><span class="checkmark"></span><span>Show Rating</span></label>
+                      <!-- Main toggles row -->
+                      <div class="promo-toggles-grid">
+                        <div class="promo-toggle-item">
+                          <label class="checkbox" for="cinemaRatingBadge"><input type="checkbox" id="cinemaRatingBadge" /><span class="checkmark"></span><span>Rating Badge</span></label>
                         </div>
-                        <div class="cinema-nested-settings" id="cinemaRatingSettings" style="display:none;">
-                          <div class="form-row">
-                            <label for="cinemaRatingSource">Rating Source</label>
-                            <div class="select-wrap has-caret">
-                              <select id="cinemaRatingSource">
-                                <option value="auto">Auto (Best Available)</option>
-                                <option value="imdb">IMDB</option>
-                                <option value="tmdb">TMDB</option>
-                                <option value="rotten">Rotten Tomatoes</option>
-                              </select>
-                              <span class="select-caret" aria-hidden="true">▾</span>
+                        <div class="promo-toggle-item">
+                          <label class="checkbox" for="cinemaWatchProviders"><input type="checkbox" id="cinemaWatchProviders" /><span class="checkmark"></span><span>Watch Providers</span></label>
+                        </div>
+                        <div class="promo-toggle-item">
+                          <label class="checkbox" for="cinemaAwardsBadge"><input type="checkbox" id="cinemaAwardsBadge" /><span class="checkmark"></span><span>Awards Badge</span></label>
+                        </div>
+                        <div class="promo-toggle-item">
+                          <label class="checkbox" for="cinemaTrailerEnabled"><input type="checkbox" id="cinemaTrailerEnabled" /><span class="checkmark"></span><span>Trailer</span></label>
+                        </div>
+                        <div class="promo-toggle-item">
+                          <label class="checkbox" for="cinemaQREnabled"><input type="checkbox" id="cinemaQREnabled" /><span class="checkmark"></span><span>QR Code</span></label>
+                        </div>
+                      </div>
+                      
+                      <!-- Nested Settings Panels -->
+                      <div class="promo-settings-panels">
+                        <!-- Rating Badge Settings -->
+                        <div class="cinema-nested-settings promo-settings-panel" id="cinemaRatingSettings" style="display:none;">
+                          <div class="promo-panel-title"><i class="fas fa-star"></i> Rating Badge</div>
+                          <div class="promo-settings-grid">
+                            <div class="form-row">
+                              <label for="cinemaRatingSource">Source</label>
+                              <div class="select-wrap has-caret">
+                                <select id="cinemaRatingSource">
+                                  <option value="auto">Auto (Best Available)</option>
+                                  <option value="imdb">IMDB</option>
+                                  <option value="tmdb">TMDB</option>
+                                  <option value="rotten">Rotten Tomatoes</option>
+                                </select>
+                                <span class="select-caret" aria-hidden="true">▾</span>
+                              </div>
                             </div>
-                          </div>
-                          <div class="form-row">
-                            <label for="cinemaRatingPosition">Position</label>
-                            <div class="select-wrap has-caret">
-                              <select id="cinemaRatingPosition">
-                                <option value="topLeft">Top Left</option>
-                                <option value="topRight">Top Right</option>
-                                <option value="bottomLeft">Bottom Left</option>
-                                <option value="bottomRight">Bottom Right</option>
-                              </select>
-                              <span class="select-caret" aria-hidden="true">▾</span>
+                            <div class="form-row">
+                              <label for="cinemaRatingPosition">Position</label>
+                              <div class="select-wrap has-caret">
+                                <select id="cinemaRatingPosition">
+                                  <option value="topLeft">Top Left</option>
+                                  <option value="topRight">Top Right</option>
+                                  <option value="bottomLeft">Bottom Left</option>
+                                  <option value="bottomRight">Bottom Right</option>
+                                </select>
+                                <span class="select-caret" aria-hidden="true">▾</span>
+                              </div>
                             </div>
                           </div>
                         </div>
 
-                        <!-- Watch Providers -->
-                        <div class="form-row">
-                          <label>Watch Providers</label>
-                          <label class="checkbox" for="cinemaWatchProviders"><input type="checkbox" id="cinemaWatchProviders" /><span class="checkmark"></span><span>Show Streaming Services</span></label>
-                        </div>
-                        <div class="cinema-nested-settings" id="cinemaWatchProviderSettings" style="display:none;">
-                          <div class="form-row">
-                            <label for="cinemaWatchProviderPosition">Position</label>
-                            <div class="select-wrap has-caret">
-                              <select id="cinemaWatchProviderPosition">
-                                <option value="topRight">Top Right</option>
-                                <option value="topLeft">Top Left</option>
-                                <option value="bottomRight">Bottom Right</option>
-                                <option value="bottomLeft">Bottom Left</option>
-                              </select>
-                              <span class="select-caret" aria-hidden="true">▾</span>
+                        <!-- Watch Providers Settings -->
+                        <div class="cinema-nested-settings promo-settings-panel" id="cinemaWatchProviderSettings" style="display:none;">
+                          <div class="promo-panel-title"><i class="fas fa-tv"></i> Watch Providers</div>
+                          <div class="promo-settings-grid">
+                            <div class="form-row">
+                              <label for="cinemaWatchProviderPosition">Position</label>
+                              <div class="select-wrap has-caret">
+                                <select id="cinemaWatchProviderPosition">
+                                  <option value="topRight">Top Right</option>
+                                  <option value="topLeft">Top Left</option>
+                                  <option value="bottomRight">Bottom Right</option>
+                                  <option value="bottomLeft">Bottom Left</option>
+                                </select>
+                                <span class="select-caret" aria-hidden="true">▾</span>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-
-                        <!-- Awards Badge -->
-                        <div class="form-row">
-                          <label>Awards</label>
-                          <label class="checkbox" for="cinemaAwardsBadge"><input type="checkbox" id="cinemaAwardsBadge" /><span class="checkmark"></span><span>Show Awards Badge</span></label>
-                        </div>
-                        
-                        <!-- Trailer -->
-                        <div class="form-row">
-                          <label>Trailer</label>
-                          <label class="checkbox" for="cinemaTrailerEnabled"><input type="checkbox" id="cinemaTrailerEnabled" /><span class="checkmark"></span><span>Show Trailer</span></label>
-                        </div>
-                        <div class="cinema-nested-settings" id="cinemaTrailerSettings" style="display:none;">
-                          <div class="form-row">
-                            <label for="cinemaTrailerDelay">Delay <span class="help-text">(seconds before trailer starts)</span></label>
-                            <div class="modern-slider">
-                              <input type="range" id="cinemaTrailerDelay" min="0" max="30" step="1" value="5" />
-                              <div class="slider-bar"><div class="fill"></div></div>
-                            </div>
-                            <div class="slider-percentage" data-target="cinema.promotional.trailer.delay">5s</div>
-                          </div>
-                          <div class="form-row">
-                            <label for="cinemaTrailerMuted">Sound</label>
-                            <label class="checkbox" for="cinemaTrailerMuted"><input type="checkbox" id="cinemaTrailerMuted" checked /><span class="checkmark"></span><span>Muted</span></label>
-                          </div>
-                          <div class="form-row trailer-sound-warning" id="trailerSoundWarning" style="display:none;">
-                            <div class="warning-box">
-                              <i class="fas fa-exclamation-triangle"></i>
-                              <span>Sound requires browser settings change. On display devices, go to <code>chrome://flags/#autoplay-policy</code> and set to <strong>"No user gesture is required"</strong>, then restart Chrome.</span>
-                            </div>
-                          </div>
-                          <div class="form-row">
-                            <label for="cinemaTrailerLoop">Repeat</label>
-                            <label class="checkbox" for="cinemaTrailerLoop"><input type="checkbox" id="cinemaTrailerLoop" checked /><span class="checkmark"></span><span>Loop trailer</span></label>
                           </div>
                         </div>
                         
-                        <!-- QR Code -->
-                        <div class="form-row">
-                          <label>QR Code</label>
-                          <label class="checkbox" for="cinemaQREnabled"><input type="checkbox" id="cinemaQREnabled" /><span class="checkmark"></span><span>Enable Overlay</span></label>
+                        <!-- Trailer Settings -->
+                        <div class="cinema-nested-settings promo-settings-panel" id="cinemaTrailerSettings" style="display:none;">
+                          <div class="promo-panel-title"><i class="fas fa-film"></i> Trailer</div>
+                          <div class="promo-settings-grid">
+                            <div class="form-row">
+                              <label for="cinemaTrailerDelay">Delay</label>
+                              <div class="slider-with-value">
+                                <div class="modern-slider">
+                                  <input type="range" id="cinemaTrailerDelay" min="0" max="30" step="1" value="5" />
+                                  <div class="slider-bar"><div class="fill"></div></div>
+                                </div>
+                                <div class="slider-percentage" data-target="cinema.promotional.trailer.delay">5s</div>
+                              </div>
+                            </div>
+                            <div class="form-row">
+                              <label>Options</label>
+                              <div class="checkbox-row">
+                                <label class="checkbox" for="cinemaTrailerMuted"><input type="checkbox" id="cinemaTrailerMuted" checked /><span class="checkmark"></span><span>Muted</span></label>
+                                <label class="checkbox" for="cinemaTrailerLoop"><input type="checkbox" id="cinemaTrailerLoop" checked /><span class="checkmark"></span><span>Loop</span></label>
+                              </div>
+                            </div>
+                            <div class="form-row trailer-sound-warning" id="trailerSoundWarning" style="display:none; grid-column: 1 / -1;">
+                              <div class="warning-box">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Sound requires browser settings. Set <code>chrome://flags/#autoplay-policy</code> to <strong>"No user gesture is required"</strong></span>
+                              </div>
+                            </div>
+                            <div class="form-row">
+                              <label for="cinemaTrailerQuality">Quality</label>
+                              <div class="select-wrap has-caret">
+                                <select id="cinemaTrailerQuality">
+                                  <option value="default">Auto</option>
+                                  <option value="hd1080">1080p (Full HD)</option>
+                                  <option value="hd720">720p (HD)</option>
+                                  <option value="large">480p</option>
+                                  <option value="medium">360p</option>
+                                </select>
+                                <span class="select-caret" aria-hidden="true">▾</span>
+                              </div>
+                            </div>
+                            <div class="form-row">
+                              <label for="cinemaTrailerAutohide">Autohide after</label>
+                              <div class="select-wrap has-caret">
+                                <select id="cinemaTrailerAutohide">
+                                  <option value="never">Never</option>
+                                  <option value="1loop">1 loop</option>
+                                  <option value="2loops">2 loops</option>
+                                  <option value="3loops">3 loops</option>
+                                  <option value="1min">1 minute</option>
+                                  <option value="2min">2 minutes</option>
+                                  <option value="5min">5 minutes</option>
+                                </select>
+                                <span class="select-caret" aria-hidden="true">▾</span>
+                              </div>
+                            </div>
+                            <div class="form-row" id="cinemaTrailerReshowRow" style="display:none;">
+                              <label for="cinemaTrailerReshow">Re-show after</label>
+                              <div class="select-wrap has-caret">
+                                <select id="cinemaTrailerReshow">
+                                  <option value="never">Never</option>
+                                  <option value="nextposter">Next poster</option>
+                                  <option value="1min">1 minute</option>
+                                  <option value="2min">2 minutes</option>
+                                  <option value="5min">5 minutes</option>
+                                  <option value="10min">10 minutes</option>
+                                </select>
+                                <span class="select-caret" aria-hidden="true">▾</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div class="cinema-nested-settings" id="cinemaQRSettings" style="display:none;">
-                          <div class="form-row">
-                            <label for="cinemaQRUrl">Custom URL <span class="help-text">(leave empty for IMDb link)</span></label>
-                            <input type="text" id="cinemaQRUrl" placeholder="https://example.com/tickets" />
-                          </div>
-                          <div class="form-row">
-                            <label for="cinemaQRPosition">Position</label>
-                            <div class="select-wrap has-caret">
-                              <select id="cinemaQRPosition">
-                                <option value="bottomRight">Bottom Right</option>
-                                <option value="bottomLeft">Bottom Left</option>
-                                <option value="topRight">Top Right</option>
-                                <option value="topLeft">Top Left</option>
-                              </select>
-                              <span class="select-caret" aria-hidden="true">▾</span>
+                        
+                        <!-- QR Code Settings -->
+                        <div class="cinema-nested-settings promo-settings-panel" id="cinemaQRSettings" style="display:none;">
+                          <div class="promo-panel-title"><i class="fas fa-qrcode"></i> QR Code</div>
+                          <div class="promo-settings-grid">
+                            <div class="form-row">
+                              <label for="cinemaQRUrlType">Link Type</label>
+                              <div class="select-wrap has-caret">
+                                <select id="cinemaQRUrlType">
+                                  <option value="trailer">Trailer URL (YouTube)</option>
+                                  <option value="imdb">IMDb URL</option>
+                                  <option value="tmdb">TMDB URL</option>
+                                  <option value="custom">Custom URL</option>
+                                </select>
+                                <span class="select-caret" aria-hidden="true">▾</span>
+                              </div>
                             </div>
-                          </div>
-                          <div class="form-row">
-                            <label for="cinemaQRSize">Size</label>
-                            <div class="modern-slider">
-                              <input type="range" id="cinemaQRSize" min="60" max="200" step="10" value="100" />
-                              <div class="slider-bar"><div class="fill"></div></div>
+                            <div class="form-row" id="cinemaQRCustomUrlRow" style="display:none;">
+                              <label for="cinemaQRUrl">Custom URL</label>
+                              <input type="url" id="cinemaQRUrl" class="input-url" placeholder="https://example.com/tickets" />
+                              <span class="help-text error-text" id="cinemaQRUrlError" style="display:none; color:#ef5350;">Please enter a valid URL</span>
                             </div>
-                            <div class="slider-percentage" data-target="cinema.promotional.qrCode.size">100px</div>
+                            <div class="form-row">
+                              <label for="cinemaQRPosition">Position</label>
+                              <div class="select-wrap has-caret">
+                                <select id="cinemaQRPosition">
+                                  <option value="bottomRight">Bottom Right</option>
+                                  <option value="bottomLeft">Bottom Left</option>
+                                  <option value="topRight">Top Right</option>
+                                  <option value="topLeft">Top Left</option>
+                                </select>
+                                <span class="select-caret" aria-hidden="true">▾</span>
+                              </div>
+                            </div>
+                            <div class="form-row">
+                              <label for="cinemaQRSize">Size</label>
+                              <div class="slider-with-value">
+                                <div class="modern-slider">
+                                  <input type="range" id="cinemaQRSize" min="60" max="200" step="10" value="100" />
+                                  <div class="slider-bar"><div class="fill"></div></div>
+                                </div>
+                                <div class="slider-percentage" data-target="cinema.promotional.qrCode.size">100%</div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>

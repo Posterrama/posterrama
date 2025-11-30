@@ -698,7 +698,7 @@
 
     // ===== QR Code (Promotional) =====
     let qrCodeEl = null;
-    function createQRCode(currentMedia) {
+    async function createQRCode(currentMedia) {
         const promo = cinemaConfig.promotional || {};
         const qrConfig = promo.qrCode || {};
 
@@ -712,11 +712,79 @@
             return;
         }
 
-        // Determine URL: custom URL or fallback to IMDb link from media
-        let targetUrl = qrConfig.url;
-        if (!targetUrl && currentMedia) {
-            // Try IMDb URL from media metadata
-            targetUrl = currentMedia.imdbUrl || null;
+        // Determine URL based on urlType setting
+        const urlType = qrConfig.urlType || 'trailer';
+        let targetUrl = null;
+
+        switch (urlType) {
+            case 'trailer':
+                // Fetch actual YouTube trailer URL from backend
+                if (currentMedia) {
+                    const tmdbId =
+                        currentMedia.tmdbId ||
+                        currentMedia.tmdb_id ||
+                        (Array.isArray(currentMedia.guids)
+                            ? currentMedia.guids.find(g => g.source === 'tmdb')?.id
+                            : null);
+                    if (tmdbId) {
+                        const type =
+                            currentMedia.type === 'show' || currentMedia.type === 'episode'
+                                ? 'tv'
+                                : 'movie';
+                        try {
+                            const response = await fetch(
+                                `/get-trailer?tmdbId=${tmdbId}&type=${type}`
+                            );
+                            if (response.ok) {
+                                const data = await response.json();
+                                if (data.success && data.trailer?.key) {
+                                    // Create YouTube watch URL from video key
+                                    targetUrl = `https://www.youtube.com/watch?v=${data.trailer.key}`;
+                                }
+                            }
+                        } catch (err) {
+                            log('Failed to fetch trailer for QR code', { error: err.message });
+                        }
+                    }
+                }
+                break;
+            case 'imdb':
+                // Use IMDb URL from media metadata
+                if (currentMedia) {
+                    targetUrl = currentMedia.imdbUrl || null;
+                    // Fallback: construct from imdbId if we have it
+                    if (!targetUrl && currentMedia.imdbId) {
+                        targetUrl = `https://www.imdb.com/title/${currentMedia.imdbId}`;
+                    }
+                }
+                break;
+            case 'tmdb':
+                // Use TMDB URL
+                if (currentMedia) {
+                    const tmdbId =
+                        currentMedia.tmdbId ||
+                        currentMedia.tmdb_id ||
+                        (Array.isArray(currentMedia.guids)
+                            ? currentMedia.guids.find(g => g.source === 'tmdb')?.id
+                            : null);
+                    if (tmdbId) {
+                        const type =
+                            currentMedia.type === 'show' || currentMedia.type === 'episode'
+                                ? 'tv'
+                                : 'movie';
+                        targetUrl = `https://www.themoviedb.org/${type}/${tmdbId}`;
+                    }
+                }
+                break;
+            case 'custom':
+                // Use custom URL from config
+                targetUrl = qrConfig.url || null;
+                break;
+            default:
+                // Fallback to IMDb for backwards compatibility
+                if (currentMedia) {
+                    targetUrl = currentMedia.imdbUrl || null;
+                }
         }
 
         if (!targetUrl) {
@@ -772,8 +840,8 @@
 
         log('QR Code created', {
             url: targetUrl,
+            urlType: urlType,
             position: qrConfig.position,
-            isImdb: !qrConfig.url,
         });
     }
 
@@ -783,6 +851,11 @@
     let ytPlayer = null; // YouTube Player instance
     let ytApiReady = false; // Track if YouTube API is loaded
     let trailerDelayTimer = null; // Timer for delayed trailer start
+    let trailerLoopCount = 0; // Count trailer loops for autohide
+    let trailerAutohideTimer = null; // Timer for time-based autohide
+    let trailerReshowTimer = null; // Timer for re-showing trailer
+    let trailerHidden = false; // Track if trailer is hidden (autohide active)
+    let currentTrailerMedia = null; // Store current media for reshow
 
     // Load YouTube IFrame API (once)
     function loadYouTubeAPI() {
@@ -825,11 +898,24 @@
         const promo = cinemaConfig.promotional || {};
         const trailerConfig = promo.trailer || {};
 
-        // Clear any pending trailer delay timer
+        // Clear any pending timers
         if (trailerDelayTimer) {
             clearTimeout(trailerDelayTimer);
             trailerDelayTimer = null;
         }
+        if (trailerAutohideTimer) {
+            clearTimeout(trailerAutohideTimer);
+            trailerAutohideTimer = null;
+        }
+        if (trailerReshowTimer) {
+            clearTimeout(trailerReshowTimer);
+            trailerReshowTimer = null;
+        }
+
+        // Reset state for new trailer
+        trailerLoopCount = 0;
+        trailerHidden = false;
+        currentTrailerMedia = media;
 
         // Remove existing trailer if disabled or no media
         if (!trailerConfig.enabled || !media) {
@@ -850,6 +936,118 @@
         } else {
             // No delay, start immediately
             startTrailerPlayback(media, trailerConfig);
+        }
+    }
+
+    // Hide trailer (autohide triggered)
+    function hideTrailer() {
+        trailerHidden = true;
+        if (trailerEl) {
+            trailerEl.style.display = 'none';
+        }
+        if (ytPlayer) {
+            try {
+                ytPlayer.pauseVideo();
+            } catch (e) {
+                // Player may not be ready
+            }
+        }
+        log('Trailer hidden (autohide)');
+    }
+
+    // Show trailer again (reshow triggered)
+    function reshowTrailer() {
+        if (!trailerHidden || !trailerEl) return;
+
+        trailerHidden = false;
+        trailerLoopCount = 0; // Reset loop count
+        trailerEl.style.display = '';
+
+        if (ytPlayer) {
+            try {
+                ytPlayer.seekTo(0);
+                ytPlayer.playVideo();
+            } catch (e) {
+                // Player may not be ready
+            }
+        }
+
+        // Restart autohide timer if time-based
+        const promo = cinemaConfig.promotional || {};
+        const trailerConfig = promo.trailer || {};
+        setupAutohideTimer(trailerConfig);
+
+        log('Trailer re-shown');
+    }
+
+    // Setup autohide timer for time-based autohide
+    function setupAutohideTimer(trailerConfig) {
+        if (trailerAutohideTimer) {
+            clearTimeout(trailerAutohideTimer);
+            trailerAutohideTimer = null;
+        }
+
+        const autohide = trailerConfig.autohide || 'never';
+        if (autohide === 'never') return;
+
+        // Time-based autohide
+        const timeMatch = autohide.match(/^(\d+)min$/);
+        if (timeMatch) {
+            const minutes = parseInt(timeMatch[1], 10);
+            trailerAutohideTimer = setTimeout(
+                () => {
+                    trailerAutohideTimer = null;
+                    hideTrailer();
+                    setupReshowTimer(trailerConfig);
+                },
+                minutes * 60 * 1000
+            );
+            log('Trailer autohide timer set', { minutes });
+        }
+    }
+
+    // Setup reshow timer
+    function setupReshowTimer(trailerConfig) {
+        if (trailerReshowTimer) {
+            clearTimeout(trailerReshowTimer);
+            trailerReshowTimer = null;
+        }
+
+        const reshow = trailerConfig.reshow || 'never';
+        if (reshow === 'never' || reshow === 'nextposter') return;
+
+        // Time-based reshow
+        const timeMatch = reshow.match(/^(\d+)min$/);
+        if (timeMatch) {
+            const minutes = parseInt(timeMatch[1], 10);
+            trailerReshowTimer = setTimeout(
+                () => {
+                    trailerReshowTimer = null;
+                    reshowTrailer();
+                },
+                minutes * 60 * 1000
+            );
+            log('Trailer reshow timer set', { minutes });
+        }
+    }
+
+    // Handle trailer loop end (for loop-based autohide)
+    function handleTrailerLoopEnd(trailerConfig) {
+        trailerLoopCount++;
+
+        const autohide = trailerConfig.autohide || 'never';
+        if (autohide === 'never') return;
+
+        // Loop-based autohide
+        const loopMatch = autohide.match(/^(\d+)loops?$/);
+        if (loopMatch) {
+            const targetLoops = parseInt(loopMatch[1], 10);
+            log('Trailer loop completed', { count: trailerLoopCount, target: targetLoops });
+
+            if (trailerLoopCount >= targetLoops) {
+                hideTrailer();
+                setupReshowTimer(trailerConfig);
+            }
         }
     }
 
@@ -907,15 +1105,69 @@
             trailerEl = document.createElement('div');
             trailerEl.className = 'cinema-trailer-overlay';
 
+            // For floating and fullBleed styles, calculate 95% of actual visible poster width
+            const posterStyle = cinemaConfig.poster?.style || 'floating';
+            if (posterStyle === 'floating' || posterStyle === 'fullBleed') {
+                // Get the actual rendered poster element dimensions
+                const posterEl = document.getElementById('poster');
+                let actualPosterWidth;
+
+                if (posterEl) {
+                    // Get the actual rendered dimensions
+                    const rect = posterEl.getBoundingClientRect();
+                    // The poster image uses background-size: contain, so we need to calculate
+                    // the actual image dimensions within the element
+                    const elementWidth = rect.width;
+                    const elementHeight = rect.height;
+
+                    // Poster aspect ratio is 2:3 (width:height)
+                    // Calculate what the poster width would be if it fills the height
+                    const widthFromHeight = elementHeight * (2 / 3);
+                    // Calculate what the poster height would be if it fills the width
+                    const heightFromWidth = elementWidth * 1.5;
+
+                    if (heightFromWidth <= elementHeight) {
+                        // Width is limiting - poster fills width
+                        actualPosterWidth = elementWidth;
+                    } else {
+                        // Height is limiting - poster fills height
+                        actualPosterWidth = widthFromHeight;
+                    }
+                } else {
+                    // Fallback to viewport calculation
+                    const vw = window.innerWidth;
+                    const vh = window.innerHeight;
+                    const posterWidthByHeight = vh * (2 / 3);
+                    const posterHeightByWidth = vw * 1.5;
+                    actualPosterWidth = posterHeightByWidth <= vh ? vw : posterWidthByHeight;
+                }
+
+                const trailerWidth = Math.round(actualPosterWidth * 0.95);
+                trailerEl.style.setProperty('width', trailerWidth + 'px', 'important');
+            }
+
             // Create player container div (required by YouTube API)
             const playerDiv = document.createElement('div');
             playerDiv.id = 'yt-trailer-player';
             trailerEl.appendChild(playerDiv);
             document.body.appendChild(trailerEl);
 
+            // Re-apply width after DOM insertion to ensure it sticks
+            if (posterStyle === 'floating' || posterStyle === 'fullBleed') {
+                const posterEl = document.getElementById('poster');
+                if (posterEl) {
+                    const rect = posterEl.getBoundingClientRect();
+                    const elementHeight = rect.height;
+                    const widthFromHeight = elementHeight * (2 / 3);
+                    const trailerWidth = Math.round(widthFromHeight * 0.95);
+                    trailerEl.style.cssText = `width: ${trailerWidth}px !important;`;
+                }
+            }
+
             // Get loop setting and muted setting
             const shouldLoop = trailerConfig.loop !== false;
             const shouldMute = trailerConfig.muted !== false;
+            const quality = trailerConfig.quality || 'default';
 
             // Create YouTube player using the API
             // Note: Autoplay with sound requires browser flag: chrome://flags/#autoplay-policy → "No user gesture is required"
@@ -936,27 +1188,46 @@
                 },
                 events: {
                     onReady: event => {
-                        log('YouTube player ready (muted)');
+                        log('YouTube player ready');
+                        // Set playback quality if specified
+                        if (quality && quality !== 'default') {
+                            try {
+                                event.target.setPlaybackQuality(quality);
+                                log('Trailer quality set', { quality });
+                            } catch (e) {
+                                log('Could not set trailer quality', { error: e.message });
+                            }
+                        }
                         event.target.playVideo();
+                        // Setup time-based autohide timer
+                        setupAutohideTimer(trailerConfig);
                     },
                     onError: event => {
                         const errorCodes = {
                             2: 'Invalid video ID',
                             5: 'HTML5 player error',
                             100: 'Video not found or private',
-                            101: 'Embedding disabled by owner',
-                            150: 'Embedding disabled by owner',
+                            101: 'Embedding disabled (age-restricted or blocked)',
+                            150: 'Embedding disabled (age-restricted or blocked)',
                         };
-                        log('YouTube player error', {
+                        log('YouTube player error - removing trailer', {
                             code: event.data,
                             message: errorCodes[event.data] || 'Unknown error',
                         });
+                        // Remove the trailer overlay on any error
+                        removeTrailerOverlay();
                     },
                     onStateChange: event => {
-                        // Loop video when it ends (if enabled)
-                        if (shouldLoop && event.data === window.YT.PlayerState.ENDED) {
-                            event.target.seekTo(0);
-                            event.target.playVideo();
+                        // Video ended
+                        if (event.data === window.YT.PlayerState.ENDED) {
+                            // Handle loop-based autohide
+                            handleTrailerLoopEnd(trailerConfig);
+
+                            // Loop video (if enabled and not hidden)
+                            if (shouldLoop && !trailerHidden) {
+                                event.target.seekTo(0);
+                                event.target.playVideo();
+                            }
                         }
                     },
                 },
@@ -977,6 +1248,20 @@
     }
 
     function removeTrailerOverlay() {
+        // Clear all timers
+        if (trailerDelayTimer) {
+            clearTimeout(trailerDelayTimer);
+            trailerDelayTimer = null;
+        }
+        if (trailerAutohideTimer) {
+            clearTimeout(trailerAutohideTimer);
+            trailerAutohideTimer = null;
+        }
+        if (trailerReshowTimer) {
+            clearTimeout(trailerReshowTimer);
+            trailerReshowTimer = null;
+        }
+
         // Destroy YouTube player if exists
         if (ytPlayer) {
             try {
@@ -991,6 +1276,11 @@
             trailerEl = null;
             currentTrailerKey = null;
         }
+
+        // Reset state
+        trailerLoopCount = 0;
+        trailerHidden = false;
+        currentTrailerMedia = null;
     }
 
     // ===== Rating Badge (Promotional) =====
@@ -1793,7 +2083,8 @@
             'cinema-poster-doubleBorder',
             'cinema-poster-ornate'
         );
-        document.body.classList.add(`cinema-poster-${poster.style}`);
+        const posterStyleClass = `cinema-poster-${poster.style}`;
+        document.body.classList.add(posterStyleClass);
 
         // Remove existing overlay classes
         document.body.classList.remove(

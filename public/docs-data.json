@@ -475,13 +475,24 @@
             "setting": "cinemaQREnabled"
         },
         {
-            "id": "cinema-qr-url",
-            "title": "QR Code URL",
+            "id": "cinema-qr-url-type",
+            "title": "QR Code Link Type",
             "category": "Cinema",
-            "keywords": ["qr", "url", "link", "address"],
-            "description": "The link the QR code points to.",
-            "help": "Enter the URL that opens when someone scans the QR code. Can be any valid web address.",
-            "example": "https://www.imdb.com/title/tt1234567",
+            "keywords": ["qr", "url", "link", "type", "trailer", "imdb", "tmdb", "custom"],
+            "description": "What link the QR code should point to.",
+            "help": "Choose what the QR code links to when scanned: Trailer URL (opens the movie trailer on TMDB), IMDb URL (opens the IMDb page), TMDB URL (opens the TMDB page), or Custom (enter your own URL).",
+            "section": "display",
+            "showMode": "cinema",
+            "setting": "cinemaQRUrlType"
+        },
+        {
+            "id": "cinema-qr-url",
+            "title": "Custom QR Code URL",
+            "category": "Cinema",
+            "keywords": ["qr", "url", "link", "address", "custom"],
+            "description": "Custom URL for the QR code (when Link Type is set to Custom).",
+            "help": "Enter a custom URL that opens when someone scans the QR code. Must be a valid web address starting with http:// or https://. Only used when Link Type is set to 'Custom'.",
+            "example": "https://www.example.com/tickets",
             "section": "display",
             "showMode": "cinema",
             "setting": "cinemaQRUrl"

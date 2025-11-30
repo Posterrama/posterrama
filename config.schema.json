@@ -1111,6 +1111,39 @@
                                     "type": "boolean",
                                     "default": true,
                                     "description": "Loop trailer when it ends"
+                                },
+                                "quality": {
+                                    "type": "string",
+                                    "enum": ["default", "hd1080", "hd720", "large", "medium"],
+                                    "default": "default",
+                                    "description": "YouTube playback quality (default=auto, hd1080=1080p, hd720=720p, large=480p, medium=360p)"
+                                },
+                                "autohide": {
+                                    "type": "string",
+                                    "enum": [
+                                        "never",
+                                        "1loop",
+                                        "2loops",
+                                        "3loops",
+                                        "1min",
+                                        "2min",
+                                        "5min"
+                                    ],
+                                    "default": "never",
+                                    "description": "Automatically hide trailer after specified loops or time"
+                                },
+                                "reshow": {
+                                    "type": "string",
+                                    "enum": [
+                                        "never",
+                                        "nextposter",
+                                        "1min",
+                                        "2min",
+                                        "5min",
+                                        "10min"
+                                    ],
+                                    "default": "never",
+                                    "description": "Re-show trailer after specified time (only applies if autohide is not 'never')"
                                 }
                             },
                             "additionalProperties": false
@@ -1123,10 +1156,16 @@
                                     "default": false,
                                     "description": "Show QR code overlay"
                                 },
+                                "urlType": {
+                                    "type": "string",
+                                    "enum": ["trailer", "imdb", "tmdb", "custom"],
+                                    "default": "trailer",
+                                    "description": "Type of URL to encode in QR code: trailer (YouTube/TMDB trailer), imdb (IMDb page), tmdb (TMDB page), or custom (user-defined URL)"
+                                },
                                 "url": {
                                     "type": "string",
                                     "default": "",
-                                    "description": "URL to encode in QR code (leave empty for auto trailer link)"
+                                    "description": "Custom URL to encode in QR code (only used when urlType is 'custom')"
                                 },
                                 "position": {
                                     "type": "string",
@@ -1158,6 +1197,7 @@
                         },
                         "qrCode": {
                             "enabled": false,
+                            "urlType": "trailer",
                             "url": "",
                             "position": "bottomRight",
                             "size": 100

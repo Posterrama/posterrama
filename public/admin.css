@@ -12702,6 +12702,7 @@ body.page-logs {
 
 /* Inputs inside Display (Screensaver/Wallart/Cinema): Tokyo Night styling */
 #section-display input[type='text'],
+#section-display input[type='url'],
 #section-display input[type='number'],
 #section-display input[type='password'],
 #section-display input[type='time'],
@@ -12716,6 +12717,7 @@ body.page-logs {
         box-shadow 0.2s ease;
 }
 #section-display input[type='text']:hover,
+#section-display input[type='url']:hover,
 #section-display input[type='number']:hover,
 #section-display input[type='password']:hover,
 #section-display input[type='time']:hover,
@@ -12724,12 +12726,14 @@ body.page-logs {
     border-color: var(--color-border-light);
 }
 #section-display input[type='text']:focus,
+#section-display input[type='url']:focus,
 #section-display input[type='number']:focus,
 #section-display input[type='password']:focus,
 #section-display input[type='time']:focus,
 #section-display textarea:focus,
 #section-display select:focus,
 #section-display input[type='text']:focus-visible,
+#section-display input[type='url']:focus-visible,
 #section-display input[type='number']:focus-visible,
 #section-display input[type='password']:focus-visible,
 #section-display input[type='time']:focus-visible,
@@ -12745,6 +12749,34 @@ body.page-logs {
     #section-display .number-input-wrapper {
         height: 44px; /* align with mobile min-height for form controls */
     }
+}
+
+/* URL input styling for Cinema QR Custom URL */
+#section-display input.input-url {
+    width: 100%;
+    height: 40px;
+    padding: 8px 12px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+
+#section-display input.input-url:hover {
+    border-color: var(--color-border-light);
+}
+
+#section-display input.input-url:focus {
+    border-color: var(--color-secondary);
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-secondary) 15%, transparent);
+}
+
+#section-display input.input-url::placeholder {
+    color: var(--color-text-tertiary);
+    opacity: 0.5;
 }
 
 /* ============================
@@ -15235,15 +15267,6 @@ select:focus-visible {
         margin-bottom: var(--space-xs);
     }
 
-    /* Compact mode cards on mobile */
-    #section-display .mode-card {
-        margin-bottom: var(--space-sm);
-    }
-
-    #section-display .form-section {
-        padding: var(--space-sm);
-    }
-
     /* Force all grids to single column on mobile - override masonry */
     #section-display .form-grid,
     #section-display .form-grid.masonry,
@@ -15251,36 +15274,17 @@ select:focus-visible {
     #section-display #saver-cards,
     #section-display #wallart-cards,
     #section-display #cinema-cards {
-        display: grid !important; /* Override masonry column layout */
-        grid-template-columns: 1fr !important;
-        column-width: auto !important; /* Disable masonry */
-        column-count: 1 !important;
-        gap: var(--space-sm) !important;
-    }
-
-    /* Nested cards within mode cards */
-    #section-display .mode-card .mode-card {
-        padding: var(--space-sm) !important;
-    }
-
-    /* Compact preset buttons */
-    #section-display .scaling-presets {
-        gap: 6px !important;
-    }
-
-    #section-display .scaling-presets .btn {
-        font-size: 0.8rem;
-        padding: 6px 10px;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
     }
 
     /* Make status pills wrap */
-    #section-display #saver-summary {
-        gap: 6px !important;
-    }
-
-    #section-display .status-pill {
-        font-size: 0.7rem;
-        padding: 4px 8px;
+    #section-display #saver-summary,
+    #saver-summary {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
     }
 
     /* Panel header adjustments */
@@ -16333,6 +16337,223 @@ select:focus-visible {
         text-align: center;
         width: 100%;
     }
+
+    /* ========================================
+       OPERATIONS - MQTT SETTINGS MOBILE
+       ======================================== */
+
+    .mqtt-settings .setting-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    .mqtt-settings .setting-label {
+        min-width: auto !important;
+        padding-top: 0 !important;
+    }
+
+    .mqtt-settings .setting-controls {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        gap: 12px !important;
+    }
+
+    .mqtt-settings .input-group {
+        width: 100% !important;
+    }
+
+    .mqtt-settings .input-host,
+    .mqtt-settings .input-auth {
+        width: 100% !important;
+    }
+
+    .mqtt-actions {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    .mqtt-actions .btn {
+        width: 100% !important;
+    }
+
+    /* MQTT stats grid - 2 columns on mobile */
+    #mqtt-stats-cards > div {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    #mqtt-stats-cards > div > div {
+        padding: 12px 8px !important;
+    }
+
+    #mqtt-broker-info > div {
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
+
+    /* ========================================
+       OPERATIONS - ENTRY ROUTE MOBILE
+       ======================================== */
+
+    .entry-route-settings .setting-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    .entry-route-settings .setting-label {
+        min-width: auto !important;
+    }
+
+    .entry-route-settings .setting-controls {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        gap: 8px !important;
+    }
+
+    .entry-route-settings select.entry-select {
+        width: 100% !important;
+    }
+
+    .entry-route-settings .input-bypass {
+        width: 100% !important;
+    }
+
+    .entry-route-settings .btn {
+        width: 100% !important;
+    }
+
+    /* ========================================
+       OPERATIONS - CONFIG BACKUPS MOBILE
+       ======================================== */
+
+    .config-backups-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    .config-backups-actions {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    .config-backups-actions .btn {
+        width: 100% !important;
+    }
+
+    .config-backups-settings .setting-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    .config-backups-settings .setting-label {
+        min-width: auto !important;
+    }
+
+    .config-backups-settings .setting-controls {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        gap: 8px !important;
+    }
+
+    .config-backups-settings .setting-sublabel {
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .config-backups-settings .number-input-wrapper {
+        width: 100% !important;
+    }
+
+    .config-backups-settings .time-input-compact {
+        width: 100% !important;
+    }
+
+    .config-backups-settings .time-input-compact input {
+        width: 100% !important;
+    }
+
+    /* ========================================
+       OPERATIONS - PROMOBOX MOBILE
+       ======================================== */
+
+    .promobox-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    .promobox-settings .setting-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    .promobox-settings .setting-controls {
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 8px !important;
+    }
+
+    .promobox-settings input,
+    .promobox-settings select {
+        width: 100% !important;
+    }
+
+    /* ========================================
+       OPERATIONS - API ACCESS MOBILE
+       ======================================== */
+
+    #section-operations [aria-label='API Access Management'] .setting-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    #section-operations [aria-label='API Access Management'] .setting-controls {
+        width: 100% !important;
+    }
+
+    #section-operations [aria-label='API Access Management'] input {
+        width: 100% !important;
+    }
+
+    /* ========================================
+       OPERATIONS - GENERAL MOBILE FIXES
+       ======================================== */
+
+    /* Section header actions */
+    #section-operations .section-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+    }
+
+    #section-operations .section-header-actions {
+        width: 100% !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    #section-operations .section-header-actions .btn {
+        width: 100% !important;
+        justify-content: center;
+    }
+
+    /* Number input wrappers in operations */
+    #section-operations .number-input-wrapper {
+        min-width: 80px;
+    }
+
+    #section-operations .number-input-wrapper input {
+        width: 100% !important;
+    }
 }
 
 /* ===================================================================
@@ -16791,33 +17012,41 @@ select.input-error:focus {
 /* Search icon in circle on right */
 .doc-search-icon-circle {
     position: absolute;
-    right: 3px;
+    right: 4px;
     top: 50%;
     transform: translateY(-50%);
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 50%;
     color: var(--color-secondary);
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     pointer-events: none;
 }
 
 /* Fixed search input */
 .doc-search-inline .doc-search-input {
-    width: 170px;
-    height: 32px;
-    padding: 0 34px 0 12px;
+    width: 200px;
+    height: 38px;
+    padding: 0 42px 0 14px;
     background: var(--surface-layer-1);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
+    border-radius: 20px;
     color: var(--color-text-primary);
-    font-size: 0.8rem;
+    font-size: 0.875rem;
     font-family: inherit;
     outline: none;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.doc-search-inline .doc-search-input:focus {
+    border-color: var(--color-success);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
 }
 
 .doc-search-inline .doc-search-input::placeholder {
@@ -17171,5 +17400,153 @@ select.input-error:focus {
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
+    }
+}
+
+/* ============================================= */
+/* Promotional Section - Improved Layout        */
+/* ============================================= */
+
+/* Main toggles grid - horizontal row of checkboxes */
+.promo-toggles-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    padding: 8px 0 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 12px;
+}
+
+.promo-toggle-item {
+    display: flex;
+    align-items: center;
+}
+
+.promo-toggle-item .checkbox {
+    margin: 0;
+}
+
+/* Settings panels container */
+.promo-settings-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Individual settings panel */
+.promo-settings-panel {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    padding: 12px 14px;
+}
+
+.promo-panel-title {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.promo-panel-title i {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+/* Settings grid inside each panel */
+.promo-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px 16px;
+}
+
+.promo-settings-grid .form-row {
+    margin: 0;
+}
+
+.promo-settings-grid .form-row label:first-child {
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+}
+
+/* Slider with value inline */
+.slider-with-value {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.slider-with-value .modern-slider {
+    flex: 1;
+}
+
+.slider-with-value .slider-percentage {
+    min-width: 40px;
+    text-align: right;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+}
+
+/* Checkbox row for multiple checkboxes inline */
+.checkbox-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.checkbox-row .checkbox {
+    margin: 0;
+}
+
+/* Warning box compact */
+.promo-settings-grid .warning-box {
+    font-size: 0.7rem;
+    padding: 8px 10px;
+}
+
+.promo-settings-grid .warning-box code {
+    font-size: 0.65rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .promo-toggles-grid {
+        gap: 8px 16px;
+    }
+
+    .promo-settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Hide logo on mobile */
+    .nav-logo {
+        display: none;
+    }
+
+    /* Tighter spacing for nav icons on mobile */
+    .nav-actions {
+        gap: 2px;
+    }
+
+    .nav-actions .btn.btn-icon {
+        padding: 6px 8px;
+    }
+
+    /* Smaller search field on mobile */
+    .doc-search-inline .doc-search-input {
+        width: 160px;
+    }
+
+    /* Full-width search dropdown on mobile */
+    .doc-search-dropdown {
+        position: fixed;
+        top: var(--navbar-height, 56px);
+        left: 8px;
+        right: 8px;
+        width: auto;
+        max-height: calc(100vh - var(--navbar-height, 56px) - 20px);
     }
 }

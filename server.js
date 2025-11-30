@@ -3123,7 +3123,9 @@ app.get('/admin', (req, res) => {
                     // Replace any existing query string after admin.css?v=... (including extra params)
                     .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${cssCacheBuster}`)
                     // Replace any existing query string after admin.js?v=... (including extra params)
-                    .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${jsCacheBuster}`);
+                    .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${jsCacheBuster}`)
+                    // Replace all remaining {{ASSET_VERSION}} placeholders with app version
+                    .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION);
 
                 res.setHeader('Content-Type', 'text/html');
                 // AGGRESSIVE cache headers to force reload
@@ -3155,7 +3157,9 @@ app.get('/admin', (req, res) => {
 
                 const updatedHtml = data
                     .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${fallbackCacheBuster}`)
-                    .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${fallbackCacheBuster}`);
+                    .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${fallbackCacheBuster}`)
+                    // Replace all remaining {{ASSET_VERSION}} placeholders with app version
+                    .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION);
 
                 res.setHeader('Content-Type', 'text/html');
                 res.setHeader(
