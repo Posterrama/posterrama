@@ -437,7 +437,7 @@
                     redOverlay.style.cssText = `
                         position: absolute;
                         inset: 0;
-                        background: linear-gradient(135deg, rgba(140, 20, 20, 0.8), rgba(80, 10, 10, 0.85));
+                        background: linear-gradient(135deg, rgba(180, 15, 15, 0.92), rgba(120, 5, 5, 0.95));
                         mix-blend-mode: multiply;
                         pointer-events: none;
                     `;
@@ -488,7 +488,7 @@
                     redOverlay.style.cssText = `
                         position: absolute;
                         inset: 0;
-                        background: linear-gradient(135deg, rgba(140, 20, 20, 0.8), rgba(80, 10, 10, 0.85));
+                        background: linear-gradient(135deg, rgba(180, 15, 15, 0.92), rgba(120, 5, 5, 0.95));
                         mix-blend-mode: multiply;
                         pointer-events: none;
                     `;
