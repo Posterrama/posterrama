@@ -32,6 +32,13 @@
 
             // Add resolved orientation class
             body.classList.add(`orientation-${resolvedOrientation}`);
+            console.log(
+                '[Wallart] Applied orientation:',
+                resolvedOrientation,
+                'from:',
+                orientation
+            );
+            console.log('[Wallart] Body classes:', body.className);
         }
 
         const logDebug = msg => {

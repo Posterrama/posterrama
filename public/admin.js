@@ -6201,6 +6201,9 @@
 
             // Hide orientation toggle button since it's now per-mode
             if (orientBtn) orientBtn.style.display = 'none';
+
+            // Update frame scale after orientation change
+            updateFrameScale();
         }
 
         function updateFrameScale() {
