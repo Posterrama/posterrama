@@ -216,15 +216,34 @@
      */
     function updateLayers(deltaTime) {
         const speed = parseFloat(state.config.speed) || 1.0;
+        const smoothScroll = state.config.smoothScroll !== false;
         const baseSpeed = state.scrollSpeed * speed;
 
         state.layers.forEach(layer => {
             // Calculate scroll distance for this frame
             const scrollDistance = baseSpeed * deltaTime * layer.speedMultiplier;
-            layer.scrollPosition += scrollDistance;
+
+            // Apply smooth scroll interpolation if enabled
+            if (smoothScroll) {
+                // Ease-out interpolation for smoother movement
+                const easeFactor = 0.92;
+                const targetPosition = layer.scrollPosition + scrollDistance;
+                layer.scrollPosition += (targetPosition - layer.scrollPosition) * (1 - easeFactor);
+            } else {
+                // Linear movement (no interpolation)
+                layer.scrollPosition += scrollDistance;
+            }
 
             // Update layer position for continuous scroll
             const yOffset = -layer.scrollPosition % window.innerHeight;
+
+            // Apply CSS transition for additional smoothness if enabled
+            if (smoothScroll && !layer.container.style.transition) {
+                layer.container.style.transition = 'top 0.1s ease-out';
+            } else if (!smoothScroll && layer.container.style.transition) {
+                layer.container.style.transition = 'none';
+            }
+
             layer.container.style.top = `${yOffset}px`;
 
             // Recycle posters when layer scrolls full height
@@ -307,6 +326,16 @@
 
         // Update scroll speed
         state.scrollSpeed = 20 * (parseFloat(newConfig.speed) || 1.0);
+
+        // Update smooth scroll transition on layers
+        const smoothScroll = newConfig.smoothScroll !== false;
+        state.layers.forEach(layer => {
+            if (smoothScroll) {
+                layer.container.style.transition = 'top 0.1s ease-out';
+            } else {
+                layer.container.style.transition = 'none';
+            }
+        });
     }
 
     // Export public API
