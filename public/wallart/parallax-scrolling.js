@@ -113,29 +113,68 @@
         // Speed multiplier: background slower, foreground faster
         const speedMultiplier = 0.3 + depthRatio * 0.7; // 0.3x to 1.0x
 
+        // Calculate responsive grid columns based on viewport
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Determine optimal poster width based on resolution
+        let posterWidth;
+        if (viewportWidth >= 3840) {
+            // 4K and above: smaller posters, more columns
+            posterWidth = 280;
+        } else if (viewportWidth >= 2560) {
+            // 2K: medium posters
+            posterWidth = 250;
+        } else if (viewportWidth >= 1920) {
+            // 1080p: standard posters
+            posterWidth = 220;
+        } else {
+            // Lower resolutions: larger posters
+            posterWidth = 200;
+        }
+
+        const columns = Math.floor(viewportWidth / (posterWidth + 20)); // 20px gap
+        const gap = 20;
+        const padding = 20;
+
+        // Calculate how many posters we need for smooth infinite scroll
+        // Need enough to fill ~3x viewport height to ensure no gaps during scroll
+        const posterHeight = Math.round(posterWidth * 1.5); // 2:3 aspect ratio
+        const rowsNeeded = Math.ceil((viewportHeight * 3) / (posterHeight + gap));
+        const posterCount = columns * rowsNeeded;
+
         container.style.cssText = `
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 200%;
+            height: ${viewportHeight * 3}px;
             transform: translateZ(${translateZ}px) scale(${scale});
             transform-style: preserve-3d;
             will-change: transform;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            padding: 20px;
+            grid-template-columns: repeat(${columns}, ${posterWidth}px);
+            gap: ${gap}px;
+            padding: ${padding}px;
             align-content: start;
+            justify-content: center;
         `;
 
-        // Fill layer with posters in grid
-        const posterCount = Math.ceil((window.innerWidth / 270) * 4); // ~4 rows worth
-        for (let i = 0; i < posterCount; i++) {
-            const poster = getNextPoster(layerIndex);
-            if (!poster) continue;
+        // Fill layer with calculated poster count
+        console.log(
+            `[ParallaxScrolling] Layer ${layerIndex}: ${columns} columns × ${rowsNeeded} rows = ${posterCount} posters`
+        );
 
-            const posterEl = createPosterElement(poster);
+        for (let i = 0; i < posterCount; i++) {
+            const poster = getNextPoster();
+            if (!poster) {
+                console.warn(
+                    `[ParallaxScrolling] Not enough posters for layer ${layerIndex}, only got ${i}/${posterCount}`
+                );
+                break;
+            }
+
+            const posterEl = createPosterElement(poster, posterWidth);
             container.appendChild(posterEl);
         }
 
@@ -152,13 +191,16 @@
     /**
      * Create a poster element
      * @param {Object} poster - Poster data
+     * @param {number} width - Poster width in pixels
      * @returns {HTMLElement} Poster element
      */
-    function createPosterElement(poster) {
+    function createPosterElement(poster, width = 250) {
         const posterEl = document.createElement('div');
         posterEl.className = 'parallax-poster';
+        const height = Math.round(width * 1.5);
         posterEl.style.cssText = `
-            aspect-ratio: 2/3;
+            width: ${width}px;
+            height: ${height}px;
             background: #111;
             border-radius: 8px;
             overflow: hidden;
@@ -322,7 +364,8 @@
             }
 
             // Update layer position for continuous scroll
-            const yOffset = -layer.scrollPosition % window.innerHeight;
+            const layerHeight = window.innerHeight * 3;
+            const yOffset = -layer.scrollPosition % layerHeight;
 
             // Apply CSS transition for additional smoothness if enabled
             if (smoothScroll && !layer.container.style.transition) {
@@ -333,10 +376,10 @@
 
             layer.container.style.top = `${yOffset}px`;
 
-            // Recycle posters when layer scrolls full height
+            // Recycle posters when layer scrolls past viewport height
             if (layer.scrollPosition > window.innerHeight) {
                 layer.scrollPosition -= window.innerHeight;
-                recyclePoster(layer.container, layer.layerIndex);
+                recyclePoster(layer.container);
             }
         });
     }
@@ -344,19 +387,19 @@
     /**
      * Recycle posters by updating the first row with new content
      * @param {HTMLElement} container - Layer container
-     * @param {number} layerIndex - Layer index
      */
-    function recyclePoster(container, layerIndex) {
+    function recyclePoster(container) {
         const posters = container.querySelectorAll('.parallax-poster');
         if (posters.length === 0) return;
 
-        // Calculate columns in grid
-        const cols = Math.floor(window.innerWidth / 270);
+        // Get actual column count from grid
+        const computedStyle = window.getComputedStyle(container);
+        const gridColumns = computedStyle.gridTemplateColumns.split(' ').length;
 
-        // Recycle first row (first 'cols' number of posters)
-        for (let i = 0; i < Math.min(cols, posters.length); i++) {
+        // Recycle first row (first 'gridColumns' number of posters)
+        for (let i = 0; i < Math.min(gridColumns, posters.length); i++) {
             const posterEl = posters[i];
-            const newPoster = getNextPoster(layerIndex);
+            const newPoster = getNextPoster();
             if (!newPoster) continue;
 
             // Update image
