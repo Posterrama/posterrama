@@ -514,7 +514,7 @@
                 }
             }
 
-            // VIGNETTE EFFECT - Classic cinema darkened edges
+            // VIGNETTE EFFECT - Subtle cinema darkened edges
             const vignette = document.createElement('div');
             vignette.style.cssText = `
                 position: absolute;
@@ -522,11 +522,11 @@
                 pointer-events: none;
                 z-index: 3;
                 background: radial-gradient(
-                    ellipse 70% 60% at center,
+                    ellipse 85% 80% at center,
                     transparent 0%,
-                    transparent 40%,
-                    rgba(0, 0, 0, 0.3) 70%,
-                    rgba(0, 0, 0, 0.6) 100%
+                    transparent 60%,
+                    rgba(0, 0, 0, 0.15) 85%,
+                    rgba(0, 0, 0, 0.25) 100%
                 );
             `;
             card.appendChild(vignette);
