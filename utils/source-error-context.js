@@ -14,14 +14,15 @@
  * @returns {object} Structured error context
  */
 function createSourceErrorContext({ source, operation, error, metadata = {} }) {
+    const err = /** @type {any} */ (error);
     return {
         source,
         operation,
         error: {
             message: error.message,
             name: error.name,
-            code: error.code,
-            statusCode: error.statusCode || error.response?.status,
+            code: err.code,
+            statusCode: err.statusCode || err.response?.status,
         },
         metadata,
         timestamp: new Date().toISOString(),
@@ -67,13 +68,16 @@ function logSourceError(logger, { source, operation, error, metadata = {}, level
  * @returns {Error} Enhanced error with context
  */
 function createEnhancedError({ source, operation, originalError, metadata = {} }) {
-    const error = new Error(`[${source}] ${operation} failed: ${originalError.message}`);
+    const error = /** @type {any} */ (
+        new Error(`[${source}] ${operation} failed: ${originalError.message}`)
+    );
+    const origErr = /** @type {any} */ (originalError);
     error.name = 'SourceAdapterError';
     error.originalError = originalError;
     error.source = source;
     error.operation = operation;
     error.metadata = metadata;
-    error.statusCode = originalError.statusCode || originalError.response?.status || 500;
+    error.statusCode = origErr.statusCode || origErr.response?.status || 500;
 
     // Preserve original stack trace
     if (originalError.stack) {

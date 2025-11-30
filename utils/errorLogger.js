@@ -6,6 +6,15 @@
 const logger = require('./logger');
 
 /**
+ * @typedef {Object} ErrorContext
+ * @property {string} [operation] - What operation was being performed
+ * @property {string} [module] - Which module/file the error occurred in
+ * @property {string} [requestId] - Request ID if applicable
+ * @property {string} [userId] - User ID if applicable
+ * @property {Object} [metadata] - Additional metadata
+ */
+
+/**
  * Standardized error logging with context
  */
 class ErrorLogger {
@@ -13,12 +22,7 @@ class ErrorLogger {
      * Log error with full context and consistent structure
      *
      * @param {Error} error - The error object
-     * @param {Object} context - Additional context
-     * @param {string} context.operation - What operation was being performed
-     * @param {string} context.module - Which module/file the error occurred in
-     * @param {string} context.requestId - Request ID if applicable
-     * @param {string} context.userId - User ID if applicable
-     * @param {Object} context.metadata - Additional metadata
+     * @param {ErrorContext} context - Additional context
      * @param {string} level - Log level (error, warn, info)
      * @returns {Object} Structured error log object
      */
@@ -32,11 +36,12 @@ class ErrorLogger {
         } = context;
 
         // Build standardized error object
+        const err = /** @type {any} */ (error);
         const errorLog = {
             // Error details
             errorMessage: error.message || String(error),
             errorName: error.name || 'Error',
-            errorCode: error.code || error.statusCode || null,
+            errorCode: err.code || err.statusCode || null,
 
             // Stack trace (sanitized)
             stack: this.sanitizeStack(error.stack),
