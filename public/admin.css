@@ -962,9 +962,10 @@
     --color-text-muted: #787c99; /* Darker Muted */
     --color-text-inverse: #15161e;
 
-    --color-border: #414868;
-    --color-border-light: #565f89;
-    --color-border-dark: #24283b;
+    /* Borders - Subtler, transparent based for smoother blending */
+    --color-border: rgba(255, 255, 255, 0.06);
+    --color-border-light: rgba(255, 255, 255, 0.1);
+    --color-border-dark: rgba(0, 0, 0, 0.2);
 
     /* Spacing */
     --space-xs: 0.25rem;
@@ -1036,7 +1037,7 @@ body {
     right: 0;
     height: var(--navbar-height);
     background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-tertiary));
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1059,7 +1060,8 @@ body {
 }
 
 .nav-brand > span:first-of-type {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    /* Restore original brand gradient (Teal -> Blue/Purple) */
+    background: linear-gradient(135deg, #00d4aa, #667eea);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
