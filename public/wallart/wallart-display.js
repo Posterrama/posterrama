@@ -1087,6 +1087,15 @@
                         // Apply base grid CSS according to layoutInfo
                         const cols = layoutInfo.columns;
                         const rows = layoutInfo.rows;
+
+                        // Check if parallaxDepth mode is enabled
+                        const animationType = wallartConfig.animationType || 'fade';
+                        const isParallaxDepth = animationType.toLowerCase() === 'parallaxdepth';
+                        const parallaxConfig = wallartConfig.parallaxDepth || {};
+                        const perspective = isParallaxDepth
+                            ? parseInt(parallaxConfig.perspective) || 1000
+                            : 0;
+
                         wallartGrid.style.cssText = `
                             display: grid !important;
                             grid-template-columns: repeat(${cols}, ${layoutInfo.actualPosterWidth}px) !important;
@@ -1102,6 +1111,15 @@
                             left: ${layoutInfo.gridLeft}px !important;
                             z-index: 10000 !important;
                             overflow: visible !important;
+                            ${
+                                isParallaxDepth
+                                    ? `
+                                perspective: ${perspective}px !important;
+                                perspective-origin: 50% 50% !important;
+                                transform-style: preserve-3d !important;
+                            `
+                                    : ''
+                            }
                         `;
                         wallartGrid.dataset.columns = String(cols);
                         wallartGrid.dataset.rows = String(rows);
@@ -1621,6 +1639,32 @@
                         // Check if this is a music item
                         const isMusicItem = item.type === 'music';
 
+                        // Check if parallaxDepth mode is enabled
+                        const wallartConfig = window.appConfig?.wallartMode || {};
+                        const animationType = wallartConfig.animationType || 'fade';
+                        const isParallaxDepth = animationType.toLowerCase() === 'parallaxdepth';
+
+                        // Assign layer for parallax depth effect
+                        let layerStyle = '';
+                        if (isParallaxDepth) {
+                            const parallaxConfig = wallartConfig.parallaxDepth || {};
+                            const layerCount = parseInt(parallaxConfig.layerCount) || 3;
+                            const depthScale = parseFloat(parallaxConfig.depthScale) || 1.3;
+
+                            // Distribute posters across layers (0 = background, layerCount-1 = foreground)
+                            const layer = index % layerCount;
+                            posterItem.dataset.parallaxLayer = layer;
+
+                            // Calculate z-index and scale based on layer
+                            const zIndex = layer * 10;
+                            const scale = 1 + (layer / (layerCount - 1)) * (depthScale - 1);
+
+                            layerStyle = `
+                                z-index: ${zIndex};
+                                transform: translateZ(${layer * 50}px) scale(${scale.toFixed(2)});
+                            `;
+                        }
+
                         posterItem.style.cssText = `
                             background: #000;
                             overflow: hidden;
@@ -1630,6 +1674,7 @@
                             height: 100%;
                             position: relative;
                             pointer-events: auto;
+                            ${layerStyle}
                             ${isMobile ? 'will-change: opacity;' : ''}
                         `;
 
@@ -2178,7 +2223,41 @@
                     }
 
                     // Apply animation based on type
-                    if (
+                    if (anim === 'parallaxdepth') {
+                        // Parallax depth animation with layer-based movement
+                        const parallaxConfig = window.appConfig?.wallartMode?.parallaxDepth || {};
+                        const speed = parseFloat(parallaxConfig.speed) || 1.0;
+                        const smoothScroll = parallaxConfig.smoothScroll !== false;
+                        const layer = parseInt(element.dataset.parallaxLayer) || 0;
+
+                        // Layers move at different speeds (background slower, foreground faster)
+                        const layerSpeed = 1 + layer * 0.3 * speed;
+                        const fadeTime = smoothScroll ? '0.7s' : '0.5s';
+                        const waitTime = smoothScroll ? 700 : 500;
+                        const moveDistance = 30 * layerSpeed; // px
+
+                        // Step 1: Fade out and move slightly
+                        img.style.transition = `all ${fadeTime} cubic-bezier(0.4, 0, 0.2, 1)`;
+                        img.style.opacity = '0';
+                        img.style.transform = `translateY(${moveDistance}px)`;
+
+                        // Step 2: Change image and slide in from opposite direction
+                        setTimeout(() => {
+                            img.src = newItem.posterUrl;
+                            img.alt = newItem.title || 'Movie Poster';
+                            img.style.transition = 'none';
+                            img.style.transform = `translateY(-${moveDistance}px)`;
+                            img.style.opacity = '0';
+                            img.offsetHeight; // Force reflow
+
+                            // Step 3: Fade in and move to center
+                            img.style.transition = `all ${fadeTime} cubic-bezier(0.4, 0, 0.2, 1)`;
+                            setTimeout(() => {
+                                img.style.opacity = '1';
+                                img.style.transform = 'translateY(0)';
+                            }, 50);
+                        }, waitTime);
+                    } else if (
                         anim === 'fade' ||
                         anim === 'staggered' ||
                         anim === 'ripple' ||
