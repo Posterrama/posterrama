@@ -297,9 +297,11 @@
 
     /**
      * Get next poster with automatic API fetching when queue runs low
+     * Prevents duplicates currently visible on screen
+     * @param {Set<string>} visiblePosters - Set of currently visible poster URLs
      * @returns {Object|null} Poster object
      */
-    function getNextPoster() {
+    function getNextPoster(visiblePosters = new Set()) {
         if (state.allPosters.length === 0) return null;
 
         // If queue is running low, fetch more posters
@@ -313,8 +315,30 @@
             state.posterQueue = shuffleArray([...state.allPosters]);
         }
 
-        // Get next poster from queue
-        const poster = state.posterQueue.shift();
+        // Find next poster that isn't currently visible on screen
+        let poster = null;
+        let attempts = 0;
+        const maxAttempts = Math.min(50, state.posterQueue.length);
+
+        while (attempts < maxAttempts && poster === null) {
+            const candidate = state.posterQueue.shift();
+            if (!candidate) break;
+
+            // If not visible on screen, use it
+            if (!visiblePosters.has(candidate.posterUrl)) {
+                poster = candidate;
+            } else {
+                // Put back at end of queue and try next
+                state.posterQueue.push(candidate);
+            }
+            attempts++;
+        }
+
+        // If all posters are visible (small pool), just return next one
+        if (!poster && state.posterQueue.length > 0) {
+            poster = state.posterQueue.shift();
+        }
+
         return poster || null;
     }
 
@@ -376,9 +400,9 @@
 
             layer.container.style.top = `${yOffset}px`;
 
-            // Recycle posters when layer scrolls past viewport height
-            if (layer.scrollPosition > window.innerHeight) {
-                layer.scrollPosition -= window.innerHeight;
+            // Recycle posters when layer scrolls past full layer height (3x viewport)
+            if (layer.scrollPosition > layerHeight) {
+                layer.scrollPosition -= layerHeight;
                 recyclePoster(layer.container);
             }
         });
@@ -392,6 +416,15 @@
         const posters = container.querySelectorAll('.parallax-poster');
         if (posters.length === 0) return;
 
+        // Collect all currently visible poster URLs across all layers to prevent duplicates
+        const visiblePosters = new Set();
+        state.layers.forEach(layer => {
+            const layerPosters = layer.container.querySelectorAll('.parallax-poster img');
+            layerPosters.forEach(img => {
+                if (img.src) visiblePosters.add(img.src);
+            });
+        });
+
         // Get actual column count from grid
         const computedStyle = window.getComputedStyle(container);
         const gridColumns = computedStyle.gridTemplateColumns.split(' ').length;
@@ -399,14 +432,21 @@
         // Recycle first row (first 'gridColumns' number of posters)
         for (let i = 0; i < Math.min(gridColumns, posters.length); i++) {
             const posterEl = posters[i];
-            const newPoster = getNextPoster();
+
+            // Remove old poster from visible set before getting new one
+            const img = posterEl.querySelector('img');
+            if (img && img.src) {
+                visiblePosters.delete(img.src);
+            }
+
+            const newPoster = getNextPoster(visiblePosters);
             if (!newPoster) continue;
 
             // Update image
-            const img = posterEl.querySelector('img');
             if (img) {
                 img.src = newPoster.posterUrl;
                 img.alt = newPoster.title || 'Poster';
+                visiblePosters.add(newPoster.posterUrl);
             }
 
             // Move to end
