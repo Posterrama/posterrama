@@ -188,11 +188,6 @@
                             "default": 1.3,
                             "description": "Scale factor for foreground layers to create depth perception"
                         },
-                        "interactive": {
-                            "type": "boolean",
-                            "default": false,
-                            "description": "Enable interactive parallax (follows mouse/touch movement)"
-                        },
                         "smoothScroll": {
                             "type": "boolean",
                             "default": true,

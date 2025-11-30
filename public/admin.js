@@ -3587,7 +3587,6 @@
         setIf('wallartMode_parallaxDepth_layerCount', parallaxDepth.layerCount ?? 3);
         setIf('wallartMode_parallaxDepth_speed', parallaxDepth.speed ?? 1.0);
         setIf('wallartMode_parallaxDepth_depthScale', parallaxDepth.depthScale ?? 1.3);
-        setIf('wallartMode_parallaxDepth_interactive', parallaxDepth.interactive === true);
         setIf('wallartMode_parallaxDepth_smoothScroll', parallaxDepth.smoothScroll !== false);
         setIf('wallartMode_parallaxDepth_perspective', parallaxDepth.perspective ?? 1000);
 
@@ -5293,7 +5292,6 @@
                     layerCount: parseInt(val('wallartMode_parallaxDepth_layerCount')) || 3,
                     speed: parseFloat(val('wallartMode_parallaxDepth_speed')) || 1.0,
                     depthScale: parseFloat(val('wallartMode_parallaxDepth_depthScale')) || 1.3,
-                    interactive: val('wallartMode_parallaxDepth_interactive'),
                     smoothScroll: val('wallartMode_parallaxDepth_smoothScroll'),
                     perspective: parseInt(val('wallartMode_parallaxDepth_perspective')) || 1000,
                 },
