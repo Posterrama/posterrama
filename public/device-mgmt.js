@@ -661,8 +661,27 @@
         }
     }
 
+    // Track if overlay is already shown to prevent duplicates
+    let welcomeOverlayShown = false;
+
     // --- Welcome overlay: pairing or register when no identity ---
     function showWelcomeOverlay() {
+        // Prevent duplicate overlays
+        if (welcomeOverlayShown) {
+            console.log('[DeviceMgmt] Welcome overlay already shown, skipping duplicate');
+            return Promise.resolve(true);
+        }
+
+        // Also check if overlay already exists in DOM
+        const existingOverlay = document.getElementById('pr-welcome-overlay');
+        if (existingOverlay) {
+            console.log('[DeviceMgmt] Welcome overlay already exists in DOM, skipping');
+            return Promise.resolve(true);
+        }
+
+        welcomeOverlayShown = true;
+        console.log('[DeviceMgmt] Creating welcome overlay...');
+
         return new Promise(resolve => {
             const overlay = document.createElement('div');
             overlay.id = 'pr-welcome-overlay';
@@ -873,6 +892,9 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 } catch (_) {
                     /* noop: ignore removeChild */
                 }
+
+                // Reset flag so overlay can be shown again if needed
+                welcomeOverlayShown = false;
                 resolve(true);
             }
 
