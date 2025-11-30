@@ -195,7 +195,8 @@
 
                 // Use backdrop from highest rated film
                 if (!groupData.backdrop || (item.rating && item.rating > 7.5)) {
-                    groupData.backdrop = item.backdropUrl || item.backgroundArt;
+                    groupData.backdrop =
+                        item.backgroundUrl || item.backdropUrl || item.backgroundArt;
                 }
 
                 // Collect genres
@@ -342,7 +343,8 @@
 
                 // Use backdrop from highest rated film
                 if (!groupData.backdrop || (item.rating && item.rating > 7.5)) {
-                    groupData.backdrop = item.backdropUrl || item.backgroundArt;
+                    groupData.backdrop =
+                        item.backgroundUrl || item.backdropUrl || item.backgroundArt;
                 }
 
                 // Collect genres
