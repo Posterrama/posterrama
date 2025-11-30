@@ -226,7 +226,7 @@
             // Apply smooth scroll interpolation if enabled
             if (smoothScroll) {
                 // Ease-out interpolation for smoother movement
-                const easeFactor = 0.92;
+                const easeFactor = 0.15; // Lower = less dampening, faster response
                 const targetPosition = layer.scrollPosition + scrollDistance;
                 layer.scrollPosition += (targetPosition - layer.scrollPosition) * (1 - easeFactor);
             } else {
