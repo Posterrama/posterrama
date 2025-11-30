@@ -352,7 +352,14 @@
                         if (musicMode) {
                             count = 500; // Balanced count for reasonable loading time and variety
                         } else {
-                            count = Math.max(60, Math.min(400, Math.floor((window.innerWidth * window.innerHeight) / 8000)));
+                            // Check if filmCards layout is active - needs more films for grouping
+                            const layoutVariant = window.appConfig?.wallartMode?.layoutVariant;
+                            if (layoutVariant === 'filmCards') {
+                                // Fetch significantly more films to ensure complete director/genre/actor collections
+                                count = 1000;
+                            } else {
+                                count = Math.max(60, Math.min(400, Math.floor((window.innerWidth * window.innerHeight) / 8000)));
+                            }
                         }
                         
                         // Determine media type

@@ -884,7 +884,10 @@
                           Card Rotation Interval
                           <span class="help-text">Switch to next group (seconds)</span>
                         </label>
-                        <input type="number" id="wallartMode_filmCards_cardRotationSeconds" min="10" max="300" value="60" class="form-control" />
+                        <div class="number-input-wrap">
+                          <input type="number" id="wallartMode_filmCards_cardRotationSeconds" min="10" max="300" value="60" step="10" />
+                          <span class="number-suffix">s</span>
+                        </div>
                       </div>
 
                       <!-- Poster Rotation Interval -->
@@ -893,7 +896,10 @@
                           Poster Rotation Interval
                           <span class="help-text">Rotate posters within group (seconds)</span>
                         </label>
-                        <input type="number" id="wallartMode_filmCards_posterRotationSeconds" min="5" max="120" value="15" class="form-control" />
+                        <div class="number-input-wrap">
+                          <input type="number" id="wallartMode_filmCards_posterRotationSeconds" min="5" max="120" value="15" step="5" />
+                          <span class="number-suffix">s</span>
+                        </div>
                       </div>
 
                       <!-- Minimum Group Size -->
@@ -902,7 +908,10 @@
                           Minimum Group Size
                           <span class="help-text">Min films per group to display</span>
                         </label>
-                        <input type="number" id="wallartMode_filmCards_minGroupSize" min="1" max="20" value="3" class="form-control" />
+                        <div class="number-input-wrap">
+                          <input type="number" id="wallartMode_filmCards_minGroupSize" min="1" max="20" value="3" step="1" />
+                          <span class="number-suffix">films</span>
+                        </div>
                       </div>
                     </div>
                   </div>

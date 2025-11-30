@@ -3864,6 +3864,12 @@
 
                 const filmCardsCard = document.getElementById('wallart-filmcards-card');
                 if (filmCardsCard) filmCardsCard.style.display = isFilmCards ? '' : 'none';
+
+                // Hide density for filmCards (doesn't apply to fullscreen cards)
+                const densityRow = document
+                    .getElementById('wallartMode_density')
+                    ?.closest('.form-row');
+                if (densityRow) densityRow.style.display = isFilmCards ? 'none' : '';
             };
             layoutSel?.addEventListener('change', applyLayoutVis);
             applyLayoutVis();

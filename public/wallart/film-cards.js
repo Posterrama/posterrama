@@ -216,6 +216,18 @@
                 `[Film Cards] Directors: ${groupMap.size} total, ${filtered.size} after min size filter (${minSize})`
             );
 
+            // Log directors with potentially incomplete collections
+            const largeGroups = Array.from(filtered.values())
+                .filter(g => g.films.length >= 5)
+                .sort((a, b) => b.films.length - a.films.length)
+                .slice(0, 10);
+            if (largeGroups.length > 0) {
+                console.log(
+                    '[Film Cards] Top directors:',
+                    largeGroups.map(g => `${g.name} (${g.films.length} films)`).join(', ')
+                );
+            }
+
             return filtered;
         },
 
@@ -268,6 +280,18 @@
             console.log(
                 `[Film Cards] Genres: ${groupMap.size} total, ${filtered.size} after min size filter (${minSize})`
             );
+
+            // Log top genres
+            const largeGroups = Array.from(filtered.values())
+                .filter(g => g.films.length >= 5)
+                .sort((a, b) => b.films.length - a.films.length)
+                .slice(0, 10);
+            if (largeGroups.length > 0) {
+                console.log(
+                    '[Film Cards] Top genres:',
+                    largeGroups.map(g => `${g.name} (${g.films.length} films)`).join(', ')
+                );
+            }
 
             return filtered;
         },
@@ -339,6 +363,18 @@
                 `[Film Cards] Actors: ${groupMap.size} total, ${filtered.size} after min size filter (${minSize})`
             );
 
+            // Log top actors
+            const largeGroups = Array.from(filtered.values())
+                .filter(g => g.films.length >= 5)
+                .sort((a, b) => b.films.length - a.films.length)
+                .slice(0, 10);
+            if (largeGroups.length > 0) {
+                console.log(
+                    '[Film Cards] Top actors:',
+                    largeGroups.map(g => `${g.name} (${g.films.length} films)`).join(', ')
+                );
+            }
+
             return filtered;
         },
 
@@ -357,7 +393,7 @@
             card.style.cssText = `
                 width: 100%;
                 height: 100%;
-                background: transparent;
+                background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
                 border-radius: 24px;
                 overflow: hidden;
                 position: relative;
