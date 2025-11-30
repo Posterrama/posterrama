@@ -5,6 +5,14 @@
 
 const express = require('express');
 const deviceOps = require('../lib/device-operations');
+/**
+ * @typedef {Object} DeviceRequestExtensions
+ * @property {boolean} [deviceBypass] - Whether device bypass mode is enabled
+ */
+
+/**
+ * @typedef {import('express').Request & DeviceRequestExtensions} DeviceRequest
+ */
 
 /**
  * Create devices router with dependency injection
@@ -155,30 +163,40 @@ module.exports = function createDevicesRouter({
      *       500:
      *         description: Register failed
      */
-    router.post('/register', deviceRegisterLimiter, express.json(), async (req, res) => {
-        try {
-            const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip;
+    router.post(
+        '/register',
+        deviceRegisterLimiter,
+        express.json(),
+        async (/** @type {DeviceRequest} */ req, res) => {
+            try {
+                const ip = Array.isArray(req.headers['x-forwarded-for'])
+                    ? req.headers['x-forwarded-for'][0]
+                    : (Array.isArray(req.headers['x-forwarded-for'])
+                          ? req.headers['x-forwarded-for'][0]
+                          : req.headers['x-forwarded-for']?.split(',')[0]
+                      )?.trim() || req.ip;
 
-            const result = await deviceOps.processDeviceRegistration(deviceStore, {
-                body: req.body,
-                headers: req.headers,
-                ip,
-                deviceBypass: req.deviceBypass,
-            });
+                const result = await deviceOps.processDeviceRegistration(deviceStore, {
+                    body: req.body,
+                    headers: req.headers,
+                    ip,
+                    deviceBypass: req.deviceBypass,
+                });
 
-            res.json({
-                deviceId: result.device.id,
-                secret: result.secret,
-                message: 'registered',
-            });
-        } catch (e) {
-            logger.error('[Device Register] Unexpected error', {
-                error: e.message,
-                stack: e.stack,
-            });
-            res.status(500).json({ error: 'register_failed' });
+                res.json({
+                    deviceId: result.device.id,
+                    secret: result.secret,
+                    message: 'registered',
+                });
+            } catch (e) {
+                logger.error('[Device Register] Unexpected error', {
+                    error: e.message,
+                    stack: e.stack,
+                });
+                res.status(500).json({ error: 'register_failed' });
+            }
         }
-    });
+    );
 
     /**
      * @swagger
@@ -245,8 +263,8 @@ module.exports = function createDevicesRouter({
     router.post('/check', express.json(), async (req, res) => {
         try {
             const { deviceId, secret } = req.body || {};
-            const hardwareId = req.headers['x-hardware-id'];
-            const installId = req.headers['x-install-id'];
+            const hardwareId = String(req.headers['x-hardware-id'] || '');
+            const installId = String(req.headers['x-install-id'] || '');
 
             const result = await deviceOps.checkDeviceStatus(deviceStore, {
                 deviceId,
@@ -360,10 +378,13 @@ module.exports = function createDevicesRouter({
      *                   type: string
      *                   description: The detected IP address
      */
-    router.get('/bypass-check', (req, res) => {
+    router.get('/bypass-check', (/** @type {DeviceRequest} */ req, res) => {
         const bypass = !!req.deviceBypass;
         const ip =
-            req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+            (Array.isArray(req.headers['x-forwarded-for'])
+                ? req.headers['x-forwarded-for'][0]
+                : req.headers['x-forwarded-for']?.split(',')[0]
+            )?.trim() ||
             req.connection?.remoteAddress ||
             req.ip ||
             'unknown';
