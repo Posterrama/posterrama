@@ -71,9 +71,9 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
      *       500:
      *         description: Server error retrieving cache metrics
      */
-    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/api/admin/cache/metrics',
+        // @ts-ignore - Express router overload issue with asyncHandler
         adminAuth,
         asyncHandler(async (req, res) => {
             if (!cacheManager) {
@@ -161,9 +161,9 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
      *       401:
      *         description: Unauthorized
      */
-    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/api/admin/cache/metrics/summary',
+        // @ts-ignore - Express router overload issue with asyncHandler
         adminAuth,
         asyncHandler(async (req, res) => {
             if (!cacheManager) {
@@ -235,9 +235,9 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
      *       401:
      *         description: Unauthorized
      */
-    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/api/admin/cache/recommendations',
+        // @ts-ignore - Express router overload issue with asyncHandler
         adminAuth,
         asyncHandler(async (req, res) => {
             if (!cacheManager) {
@@ -293,9 +293,9 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
      *       401:
      *         description: Unauthorized
      */
-    // @ts-ignore - Express router overload issue with asyncHandler
     router.post(
         '/api/admin/cache/reset',
+        // @ts-ignore - Express router overload issue with asyncHandler
         adminAuth,
         asyncHandler(async (req, res) => {
             if (!cacheManager) {
@@ -335,9 +335,9 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
      *       401:
      *         description: Unauthorized
      */
-    // @ts-ignore - Express router overload issue with asyncHandler
     router.post(
         '/api/admin/cache/clear',
+        // @ts-ignore - Express router overload issue with asyncHandler
         adminAuth,
         asyncHandler(async (req, res) => {
             if (!cacheManager) {
