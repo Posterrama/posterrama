@@ -75,9 +75,15 @@ const metricsMiddleware = (req, res, next) => {
                 req.path === '/logs/stream' ||
                 req.path === '/api/admin/logs/stream';
 
-            if (responseTime > 3000 && !isSSE) {
+            // Skip slow warnings for heavy admin endpoints (expected to be slow)
+            const isHeavyAdminEndpoint =
+                req.path === '/api/admin/jellyfin-qualities-with-counts' ||
+                req.path === '/api/admin/plex-libraries' ||
+                req.path === '/get-music-artists';
+
+            if (responseTime > 3000 && !isSSE && !isHeavyAdminEndpoint) {
                 logger.warn('🐌 Very slow request', performanceData);
-            } else if (responseTime > 1500 && !isSSE) {
+            } else if (responseTime > 1500 && !isSSE && !isHeavyAdminEndpoint) {
                 logger.info('⏱️ Slow request', performanceData);
             } else if (statusCode >= 500) {
                 logger.error('💥 Server error', performanceData);
