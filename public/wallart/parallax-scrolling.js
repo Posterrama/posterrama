@@ -21,8 +21,10 @@
         layers: [],
         config: null,
         posterQueue: [],
-        originalPosters: [], // Keep original list for reshuffling
-        usedPosters: new Set(),
+        allPosters: [], // Growing pool of all loaded posters
+        isFetching: false,
+        lastFetchTime: 0,
+        fetchCount: 0,
         animationFrame: null,
         lastTime: 0,
         scrollSpeed: 20, // Base pixels per second
@@ -40,9 +42,11 @@
         cleanup();
 
         state.config = config.parallaxDepth || {};
-        state.originalPosters = [...posters];
+        state.allPosters = [...posters];
         state.posterQueue = shuffleArray([...posters]);
-        state.usedPosters = new Set();
+        state.isFetching = false;
+        state.lastFetchTime = Date.now();
+        state.fetchCount = 0;
         state.isActive = true;
 
         // Create layer containers
@@ -188,46 +192,88 @@
     }
 
     /**
-     * Get next poster with smart selection and auto-reshuffle
+     * Fetch more posters from API
+     */
+    async function fetchMorePosters() {
+        if (state.isFetching) return;
+
+        // Rate limit: don't fetch more than once per 10 seconds
+        const now = Date.now();
+        if (now - state.lastFetchTime < 10000) return;
+
+        state.isFetching = true;
+        state.lastFetchTime = now;
+        state.fetchCount++;
+
+        console.log(`[ParallaxScrolling] Fetching more posters (batch ${state.fetchCount})...`);
+
+        try {
+            const baseUrl = window.location.origin;
+            const count = 100; // Fetch 100 more posters each time
+            const type = window.appConfig?.type || 'movie';
+            const musicMode = window.appConfig?.wallartMode?.musicMode?.enabled === true;
+
+            let url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
+            if (musicMode) {
+                url += '&musicMode=1';
+            }
+
+            const res = await fetch(url, {
+                cache: 'no-cache',
+                headers: { Accept: 'application/json' },
+            });
+
+            if (!res.ok) {
+                console.warn('[ParallaxScrolling] Failed to fetch more posters:', res.status);
+                state.isFetching = false;
+                return;
+            }
+
+            const data = await res.json();
+            const newPosters = Array.isArray(data)
+                ? data
+                : Array.isArray(data?.results)
+                  ? data.results
+                  : [];
+
+            if (newPosters.length > 0) {
+                console.log(`[ParallaxScrolling] Loaded ${newPosters.length} new posters`);
+
+                // Add new posters to pool
+                state.allPosters.push(...newPosters);
+
+                // Add shuffled new posters to queue
+                const shuffledNew = shuffleArray(newPosters);
+                state.posterQueue.push(...shuffledNew);
+            }
+        } catch (err) {
+            console.error('[ParallaxScrolling] Error fetching more posters:', err);
+        } finally {
+            state.isFetching = false;
+        }
+    }
+
+    /**
+     * Get next poster with automatic API fetching when queue runs low
      * @returns {Object|null} Poster object
      */
     function getNextPoster() {
-        if (state.originalPosters.length === 0) return null;
+        if (state.allPosters.length === 0) return null;
 
-        // If all posters have been used, reshuffle and reset
-        if (state.usedPosters.size >= state.originalPosters.length) {
-            console.log('[ParallaxScrolling] All posters used, reshuffling...');
-            state.usedPosters.clear();
-            state.posterQueue = shuffleArray([...state.originalPosters]);
+        // If queue is running low, fetch more posters
+        if (state.posterQueue.length < 20 && !state.isFetching) {
+            fetchMorePosters();
         }
 
-        // If queue is empty, reshuffle
+        // If queue is empty, add shuffled posters from existing pool while waiting for fetch
         if (state.posterQueue.length === 0) {
-            state.posterQueue = shuffleArray([...state.originalPosters]);
+            console.log('[ParallaxScrolling] Queue empty, reshuffling existing pool...');
+            state.posterQueue = shuffleArray([...state.allPosters]);
         }
 
-        // Get next unused poster from queue
-        let poster = state.posterQueue.shift();
-        let attempts = 0;
-
-        // Try to find an unused poster (max 10 attempts to avoid infinite loop)
-        while (
-            state.usedPosters.has(poster?.id || poster?.posterUrl) &&
-            attempts < 10 &&
-            state.posterQueue.length > 0
-        ) {
-            state.posterQueue.push(poster); // Put it back at end
-            poster = state.posterQueue.shift();
-            attempts++;
-        }
-
-        // Mark as used
-        if (poster) {
-            const posterId = poster.id || poster.posterUrl;
-            state.usedPosters.add(posterId);
-        }
-
-        return poster;
+        // Get next poster from queue
+        const poster = state.posterQueue.shift();
+        return poster || null;
     }
 
     /**
@@ -347,9 +393,10 @@
         // Reset state
         state.layers = [];
         state.scrollPosition = 0;
-        state.usedPosters.clear();
         state.posterQueue = [];
-        state.originalPosters = [];
+        state.allPosters = [];
+        state.isFetching = false;
+        state.fetchCount = 0;
     }
 
     /**
