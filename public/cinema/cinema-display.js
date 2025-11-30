@@ -937,28 +937,6 @@
     // ===== Typography Settings (Global CSS Variables) =====
 
     /**
-     * Check if a color is light or dark based on luminance.
-     * Uses WCAG relative luminance formula.
-     * @param {string} color - Color in hex format
-     * @returns {boolean} True if light, false if dark
-     */
-    function isLightColor(color) {
-        let hex = (color || '#000000').replace('#', '');
-        if (hex.length === 3) {
-            hex = hex
-                .split('')
-                .map(c => c + c)
-                .join('');
-        }
-        const r = parseInt(hex.substr(0, 2), 16) || 0;
-        const g = parseInt(hex.substr(2, 2), 16) || 0;
-        const b = parseInt(hex.substr(4, 2), 16) || 0;
-        // WCAG relative luminance formula
-        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        return luminance > 0.5;
-    }
-
-    /**
      * Calculate ton-sur-ton (tonal) color based on background color.
      * Creates an elegant, readable text color in the same hue family.
      * @param {string} bgColor - Background color in hex format
