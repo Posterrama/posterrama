@@ -8,6 +8,10 @@
 // Import UI Components
 import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
 
+// Export to window for use by other scripts (e.g., cinema-ui.js)
+window.createColorPicker = createColorPicker;
+window.COLOR_PRESETS = COLOR_PRESETS;
+
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 

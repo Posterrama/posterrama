@@ -803,9 +803,19 @@
     ];
 
     function initColorPickers(typo, bg, poster) {
-        // Check if createColorPicker is available (from ui-components.js)
+        // Check if createColorPicker is available (from ui-components.js via admin.js)
         if (typeof window.createColorPicker !== 'function') {
-            console.warn('createColorPicker not available, color pickers will not be initialized');
+            // Retry after a short delay - admin.js module may still be loading
+            setTimeout(() => {
+                if (typeof window.createColorPicker === 'function') {
+                    initColorPickers(typo, bg, poster);
+                } else {
+                    console.warn(
+                        'createColorPicker not available after retry, using fallback color inputs'
+                    );
+                    initFallbackColorPickers(typo, bg, poster);
+                }
+            }, 500);
             return;
         }
 
@@ -888,6 +898,52 @@
             frameColorContainer.appendChild(hiddenInput);
             frameColorContainer.appendChild(picker);
         }
+    }
+
+    // Fallback color pickers when createColorPicker is not available
+    function initFallbackColorPickers(typo, bg, poster) {
+        const createSimpleColorPicker = (containerId, inputId, label, defaultColor) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="form-row">
+                    <label for="${inputId}">${label}</label>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="color" id="${inputId}" value="${defaultColor}" 
+                               style="width: 48px; height: 48px; border: none; border-radius: 50%; cursor: pointer; padding: 0;" />
+                        <span id="${inputId}Hex" style="font-family: monospace; color: var(--color-text-muted);">${defaultColor.toUpperCase()}</span>
+                    </div>
+                </div>
+            `;
+
+            const input = document.getElementById(inputId);
+            const hex = document.getElementById(`${inputId}Hex`);
+            if (input && hex) {
+                input.addEventListener('input', () => {
+                    hex.textContent = input.value.toUpperCase();
+                });
+            }
+        };
+
+        createSimpleColorPicker(
+            'cinema-title-color-picker-container',
+            'cinemaTitleColor',
+            'Title Color',
+            typo.titleColor || '#ffffff'
+        );
+        createSimpleColorPicker(
+            'cinema-background-color-picker-container',
+            'cinemaBackgroundColor',
+            'Background Color',
+            bg.solidColor || '#000000'
+        );
+        createSimpleColorPicker(
+            'cinema-frame-color-picker-container',
+            'cinemaFrameColor',
+            'Frame Color',
+            poster.frameColor || '#333333'
+        );
     }
 
     function wireModernSliders() {
