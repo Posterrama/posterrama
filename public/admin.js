@@ -3582,6 +3582,15 @@
         setIf('wallartMode_ambientGradient', w.ambientGradient === true);
         setIf('wallartMode_gamesOnly', w.gamesOnly === true);
 
+        // Parallax Depth settings
+        const parallaxDepth = w.parallaxDepth || {};
+        setIf('wallartMode_parallaxDepth_layerCount', parallaxDepth.layerCount ?? 3);
+        setIf('wallartMode_parallaxDepth_speed', parallaxDepth.speed ?? 1.0);
+        setIf('wallartMode_parallaxDepth_depthScale', parallaxDepth.depthScale ?? 1.3);
+        setIf('wallartMode_parallaxDepth_interactive', parallaxDepth.interactive === true);
+        setIf('wallartMode_parallaxDepth_smoothScroll', parallaxDepth.smoothScroll !== false);
+        setIf('wallartMode_parallaxDepth_perspective', parallaxDepth.perspective ?? 1000);
+
         // Music Mode
         const musicMode = w.musicMode || {};
         setIf('wallartMode_musicMode_enabled', musicMode.enabled === true);
@@ -5032,6 +5041,7 @@
                     ripple: 'Ripple',
                     scanline: 'Scanline',
                     parallax: 'Parallax',
+                    parallaxDepth: 'Parallax Depth',
                     neonPulse: 'Neon Pulse',
                     chromaticShift: 'Chromatic Shift',
                     mosaicShatter: 'Mosaic Shatter',
@@ -5041,6 +5051,11 @@
             const applyHeroVisibility = () => {
                 const isHero = String(elLayout?.value || '') === 'heroGrid';
                 if (heroCard) heroCard.style.display = isHero ? '' : 'none';
+            };
+            const applyParallaxDepthVisibility = () => {
+                const isParallaxDepth = String(elAnim?.value || '') === 'parallaxDepth';
+                const parallaxCard = document.getElementById('wallart-parallax-depth-card');
+                if (parallaxCard) parallaxCard.style.display = isParallaxDepth ? '' : 'none';
             };
             const applySummary = () => {
                 if (pillDensity && elDensity)
@@ -5056,7 +5071,10 @@
                     applyHeroVisibility();
                     applySummary();
                 });
-                elAnim?.addEventListener(ev, applySummary);
+                elAnim?.addEventListener(ev, () => {
+                    applyParallaxDepthVisibility();
+                    applySummary();
+                });
                 elRefresh?.addEventListener(ev, applySummary);
                 elRand?.addEventListener(ev, applySummary);
                 elAmbient?.addEventListener(ev, applySummary);
@@ -5065,7 +5083,36 @@
                 elHeroRot?.addEventListener(ev, applySummary);
             });
             applyHeroVisibility();
+            applyParallaxDepthVisibility();
             applySummary();
+
+            // Parallax Depth slider value updates
+            const updateSliderValue = (sliderId, valueId, formatter = v => v) => {
+                const slider = document.getElementById(sliderId);
+                const valueSpan = document.getElementById(valueId);
+                if (slider && valueSpan) {
+                    const update = () => {
+                        valueSpan.textContent = formatter(slider.value);
+                    };
+                    slider.addEventListener('input', update);
+                    update();
+                }
+            };
+            updateSliderValue(
+                'wallartMode_parallaxDepth_speed',
+                'wallartMode_parallaxDepth_speed_value',
+                v => `${v}x`
+            );
+            updateSliderValue(
+                'wallartMode_parallaxDepth_depthScale',
+                'wallartMode_parallaxDepth_depthScale_value',
+                v => `${v}x`
+            );
+            updateSliderValue(
+                'wallartMode_parallaxDepth_perspective',
+                'wallartMode_parallaxDepth_perspective_value',
+                v => `${v}px`
+            );
 
             // Presets
             const btnGallery = document.getElementById('wallart-preset-gallery');
@@ -5242,6 +5289,14 @@
                 layoutVariant: val('wallartMode_layoutVariant'),
                 ambientGradient: val('wallartMode_ambientGradient'),
                 gamesOnly: val('wallartMode_gamesOnly'),
+                parallaxDepth: {
+                    layerCount: parseInt(val('wallartMode_parallaxDepth_layerCount')) || 3,
+                    speed: parseFloat(val('wallartMode_parallaxDepth_speed')) || 1.0,
+                    depthScale: parseFloat(val('wallartMode_parallaxDepth_depthScale')) || 1.3,
+                    interactive: val('wallartMode_parallaxDepth_interactive'),
+                    smoothScroll: val('wallartMode_parallaxDepth_smoothScroll'),
+                    perspective: parseInt(val('wallartMode_parallaxDepth_perspective')) || 1000,
+                },
                 musicMode: {
                     enabled: val('wallartMode_musicMode_enabled'),
                     displayStyle: val('wallartMode_musicMode_displayStyle'),

@@ -25,6 +25,14 @@
                 "biasAmbientToHero": true
             }
         },
+        "parallaxDepth": {
+            "layerCount": 3,
+            "speed": 1.0,
+            "depthScale": 1.3,
+            "interactive": false,
+            "smoothScroll": true,
+            "perspective": 1000
+        },
         "musicMode": {
             "enabled": false,
             "displayStyle": "covers-only",
