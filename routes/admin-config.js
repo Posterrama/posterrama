@@ -1400,7 +1400,7 @@ module.exports = function createAdminConfigRouter({
 
                 const client = new RommHttpClient({
                     hostname,
-                    port: parseInt(port, 10),
+                    port: parseInt(String(port), 10),
                     username,
                     password,
                     basePath,

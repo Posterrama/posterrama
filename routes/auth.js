@@ -732,9 +732,9 @@ module.exports = function createAuthRouter({
      *       401:
      *         description: Unauthorized.
      */
-    // @ts-ignore - asyncHandler wrapper causes TypeScript overload issue
     router.post(
         '/api/admin/2fa/generate',
+        // @ts-ignore - asyncHandler wrapper causes TypeScript overload issue
         authLimiter,
         isAuthenticated,
         asyncHandler(async (req, res) => {
@@ -788,9 +788,9 @@ module.exports = function createAuthRouter({
      *       401:
      *         description: Unauthorized
      */
-    // @ts-ignore - asyncHandler wrapper causes TypeScript overload issue
     router.post(
         '/api/admin/2fa/verify',
+        // @ts-ignore - asyncHandler wrapper causes TypeScript overload issue
         authLimiter,
         isAuthenticated,
         express.json(),
@@ -869,9 +869,9 @@ module.exports = function createAuthRouter({
      *       401:
      *         description: Invalid password or unauthorized.
      */
-    // @ts-ignore - asyncHandler wrapper causes TypeScript overload issue
     router.post(
         '/api/admin/2fa/disable',
+        // @ts-ignore - asyncHandler wrapper causes TypeScript overload issue
         authLimiter,
         isAuthenticated,
         express.json(),

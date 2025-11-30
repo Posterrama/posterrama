@@ -59,9 +59,9 @@ module.exports = function createAdminPerformanceRouter({
      *       500:
      *         description: Server error
      */
-    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/api/admin/performance/metrics',
+        // @ts-ignore - Express router overload issue with asyncHandler
         adminAuth,
         asyncHandler(async (req, res) => {
             const period = req.query.period || '24h';
@@ -201,9 +201,9 @@ module.exports = function createAdminPerformanceRouter({
      *       401:
      *         description: Unauthorized
      */
-    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/api/admin/performance/summary',
+        // @ts-ignore - Express router overload issue with asyncHandler
         adminAuth,
         asyncHandler(async (req, res) => {
             try {

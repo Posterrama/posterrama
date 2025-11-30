@@ -208,9 +208,9 @@ module.exports = function createAdminObservableRouter({
      *       500:
      *         description: Failed to update log level
      */
-    // @ts-ignore - Express router overload issue with isAuthenticated middleware
     router.post(
         '/api/admin/logs/level',
+        // @ts-ignore - Express router overload issue with isAuthenticated middleware
         isAuthenticated,
         (/** @type {ObservableRequest} */ req, res) => {
             try {
@@ -402,8 +402,8 @@ module.exports = function createAdminObservableRouter({
      */
     router.get(
         '/api/admin/events',
+        // @ts-ignore - Express router overload issue with isAuthenticated middleware
         isAuthenticated,
-        // @ts-ignore - asyncHandler typing issue
         asyncHandler(async (req, res) => {
             // SSE headers
             res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
