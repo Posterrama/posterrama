@@ -275,8 +275,8 @@
 
   <section class="content-grid" style="margin-top: 16px;">
       <!-- Unified System Performance Dashboard -->
-      <section class="panel" id="panel-perf-dashboard" style="background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-md);">
-        <header class="panel-header" style="background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); border-radius: 12px 12px 0 0; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+      <section class="panel" id="panel-perf-dashboard">
+        <header class="panel-header">
           <h2 style="color: var(--color-text-primary); font-size: 1.25rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-gauge-high" style="color: var(--color-accent);"></i> System Performance</h2>
           
           <!-- Status pills in header -->
@@ -576,7 +576,7 @@
                   <!-- Clock Widget -->
                   <div class="mode-card" id="sec-clock" data-card-key="clock">
                     <div class="card-title" style="margin-bottom:10px;"><i class="fas fa-clock"></i> Clock Widget
-                      <label class="header-toggle" for="clockWidget">
+                      <label class="header-toggle" for="clockWidget" style="margin-left:auto;">
                         <input type="checkbox" id="clockWidget" />
                         <span class="ht-switch" aria-hidden="true"></span>
                         <span class="ht-text">Show clock</span>
@@ -612,7 +612,7 @@
                   <!-- Sync -->
                   <div class="mode-card" id="sec-sync" data-card-key="sync">
                     <div class="card-title" style="margin-bottom:10px;"><i class="fas fa-link"></i> Sync
-                      <label class="header-toggle" for="syncEnabled">
+                      <label class="header-toggle" for="syncEnabled" style="margin-left:auto;">
                         <input type="checkbox" id="syncEnabled" />
                         <span class="ht-switch" aria-hidden="true"></span>
                         <span class="ht-text">Enable device sync</span>
@@ -1887,14 +1887,6 @@
                   <div class="ms-options" id="romm-ms-platforms-options"></div>
                 </div>
               </div>
-              <small class="form-help">Select one or more gaming platforms. Populated from RomM.</small>
-            </div>
-          </div>
-          
-          <div class="info-box info-box-info">
-            <i class="fas fa-info-circle"></i>
-            <div>
-              <p><strong>Note:</strong> Only games with poster artwork are included in the playlist.</p>
             </div>
           </div>
         </div>

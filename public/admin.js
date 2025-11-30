@@ -1479,7 +1479,7 @@ import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
 
                     // User as mini-header for each session
                     rows.push(
-                        `<div class="hc-row" style="margin-top:${idx > 0 ? '12px' : '0'};background:rgba(0,0,0,0.3);padding-left:12px;"><i class="fas fa-user"></i><span>Watching</span><span class="mono value">${escape(user)}</span></div>`
+                        `<div class="hc-row" style="margin-top:${idx > 0 ? '12px' : '0'};background:rgba(0,0,0,0.3);margin-left:-12px;margin-right:-12px;padding-left:12px;padding-right:12px;"><i class="fas fa-user"></i><span>Watching</span><span class="mono value">${escape(user)}</span></div>`
                     );
 
                     if (isEpisode) {
@@ -3765,7 +3765,11 @@ import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
 
                     // Update games settings visibility
                     if (gamesSettings) {
-                        gamesSettings.style.display = gamesOnlyCheckbox.checked ? '' : 'none';
+                        if (gamesOnlyCheckbox.checked) {
+                            gamesSettings.style.removeProperty('display');
+                        } else {
+                            gamesSettings.style.setProperty('display', 'none', 'important');
+                        }
                     }
                 });
 
@@ -3775,13 +3779,17 @@ import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
                         gamesOnlyCheckbox.checked = false;
                         // Update games settings visibility when unchecked
                         if (gamesSettings) {
-                            gamesSettings.style.display = 'none';
+                            gamesSettings.style.setProperty('display', 'none', 'important');
                         }
                     }
 
                     // Update music settings visibility
                     if (musicSettings) {
-                        musicSettings.style.display = musicModeCheckbox.checked ? '' : 'none';
+                        if (musicModeCheckbox.checked) {
+                            musicSettings.style.removeProperty('display');
+                        } else {
+                            musicSettings.style.setProperty('display', 'none', 'important');
+                        }
                     }
 
                     // Toggle preset buttons visibility
@@ -5757,7 +5765,11 @@ import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
                 const musicModeCheckbox = document.getElementById('wallartMode_musicMode_enabled');
                 const musicSettings = document.getElementById('music-mode-settings');
                 if (musicModeCheckbox && musicSettings) {
-                    musicSettings.style.display = musicModeCheckbox.checked ? '' : 'none';
+                    if (musicModeCheckbox.checked) {
+                        musicSettings.style.removeProperty('display');
+                    } else {
+                        musicSettings.style.setProperty('display', 'none', 'important');
+                    }
                 }
             } catch (_) {
                 /* music mode visibility trigger failed */
@@ -5772,8 +5784,11 @@ import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
                 const rommEnabled = rommServer?.enabled && rommServer?.url;
 
                 if (gamesSettings) {
-                    gamesSettings.style.display =
-                        gamesOnlyCheckbox?.checked && rommEnabled ? '' : 'none';
+                    if (gamesOnlyCheckbox?.checked && rommEnabled) {
+                        gamesSettings.style.removeProperty('display');
+                    } else {
+                        gamesSettings.style.setProperty('display', 'none', 'important');
+                    }
                 }
             } catch (_) {
                 /* games mode visibility trigger failed */
@@ -28447,7 +28462,11 @@ if (!document.__niwDelegatedFallback) {
         // Toggle music settings visibility
         if (enabledCheckbox && musicSettings) {
             const toggleSettings = () => {
-                musicSettings.style.display = enabledCheckbox.checked ? '' : 'none';
+                if (enabledCheckbox.checked) {
+                    musicSettings.style.removeProperty('display');
+                } else {
+                    musicSettings.style.setProperty('display', 'none', 'important');
+                }
             };
             enabledCheckbox.addEventListener('change', toggleSettings);
             toggleSettings();

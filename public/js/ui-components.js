@@ -233,8 +233,9 @@ export function createColorPicker(options) {
         
         <div style="display: flex; align-items: center; gap: 16px; position: relative;">
             <!-- Color Circle Preview -->
-            <div id="${circleId}" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; background: ${color}; border: 2px solid var(--color-border); box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden;">
+            <div id="${circleId}" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; background: ${color}; border: 2px solid var(--color-border); box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
                 <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.2) 100%);"></div>
+                <i class="fas fa-paint-brush" style="color: white; font-size: 1.2rem; opacity: 0; transform: scale(0.8); transition: all 0.2s ease; text-shadow: 0 2px 4px rgba(0,0,0,0.5); position: relative; z-index: 2;"></i>
             </div>
             
             <!-- Hex Input -->
@@ -515,11 +516,21 @@ export function createColorPicker(options) {
     colorCircle.addEventListener('mouseenter', function () {
         this.style.transform = 'scale(1.05)';
         this.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)';
+        const icon = this.querySelector('i');
+        if (icon) {
+            icon.style.opacity = '1';
+            icon.style.transform = 'scale(1)';
+        }
     });
 
     colorCircle.addEventListener('mouseleave', function () {
         this.style.transform = 'scale(1)';
         this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.2)';
+        const icon = this.querySelector('i');
+        if (icon) {
+            icon.style.opacity = '0';
+            icon.style.transform = 'scale(0.8)';
+        }
     });
 
     // Store references for external access
