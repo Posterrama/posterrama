@@ -1115,6 +1115,16 @@
         $('#cinemaWatchProviders') &&
             ($('#cinemaWatchProviders').checked = !!promo.showWatchProviders);
         $('#cinemaAwardsBadge') && ($('#cinemaAwardsBadge').checked = !!promo.showAwardsBadge);
+
+        // Trailer settings
+        const trailer = promo.trailer || {};
+        $('#cinemaTrailerEnabled') && ($('#cinemaTrailerEnabled').checked = !!trailer.enabled);
+        $('#cinemaTrailerAutoplay') &&
+            ($('#cinemaTrailerAutoplay').checked = trailer.autoplay !== false);
+        $('#cinemaTrailerMuted') && ($('#cinemaTrailerMuted').checked = trailer.muted !== false);
+        $('#cinemaTrailerHeight') && ($('#cinemaTrailerHeight').value = trailer.height || 30);
+
+        // QR Code settings
         const qr = promo.qrCode || {};
         $('#cinemaQREnabled') && ($('#cinemaQREnabled').checked = !!qr.enabled);
         $('#cinemaQRUrl') && ($('#cinemaQRUrl').value = qr.url || '');
@@ -1141,6 +1151,17 @@
             };
             specsStyle.addEventListener('change', syncIconVisibility);
             syncIconVisibility();
+        }
+
+        // Trailer: show settings when enabled
+        const trailerEnabled = $('#cinemaTrailerEnabled');
+        const trailerSettings = $('#cinemaTrailerSettings');
+        if (trailerEnabled && trailerSettings) {
+            const syncTrailerVisibility = () => {
+                trailerSettings.style.display = trailerEnabled.checked ? '' : 'none';
+            };
+            trailerEnabled.addEventListener('change', syncTrailerVisibility);
+            syncTrailerVisibility();
         }
 
         // QR Code: show settings when enabled
@@ -1584,6 +1605,12 @@
                 showRating: !!$('#cinemaRatingBadge')?.checked,
                 showWatchProviders: !!$('#cinemaWatchProviders')?.checked,
                 showAwardsBadge: !!$('#cinemaAwardsBadge')?.checked,
+                trailer: {
+                    enabled: !!$('#cinemaTrailerEnabled')?.checked,
+                    autoplay: $('#cinemaTrailerAutoplay')?.checked !== false,
+                    muted: $('#cinemaTrailerMuted')?.checked !== false,
+                    height: parseInt($('#cinemaTrailerHeight')?.value || '30', 10),
+                },
                 qrCode: {
                     enabled: !!$('#cinemaQREnabled')?.checked,
                     url: $('#cinemaQRUrl')?.value || '',

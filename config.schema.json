@@ -1080,6 +1080,34 @@
                             "default": false,
                             "description": "Show awards badge for award-winning content"
                         },
+                        "trailer": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Show trailer video overlay at bottom of poster"
+                                },
+                                "autoplay": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Automatically start playing trailer"
+                                },
+                                "muted": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Play trailer without sound"
+                                },
+                                "height": {
+                                    "type": "integer",
+                                    "minimum": 20,
+                                    "maximum": 50,
+                                    "default": 30,
+                                    "description": "Trailer overlay height as percentage of poster"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "qrCode": {
                             "type": "object",
                             "properties": {
@@ -1115,6 +1143,12 @@
                         "showRating": false,
                         "showWatchProviders": false,
                         "showAwardsBadge": false,
+                        "trailer": {
+                            "enabled": false,
+                            "autoplay": true,
+                            "muted": true,
+                            "height": 30
+                        },
                         "qrCode": {
                             "enabled": false,
                             "url": "",

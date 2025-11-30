@@ -1517,6 +1517,30 @@
                           <label class="checkbox" for="cinemaAwardsBadge"><input type="checkbox" id="cinemaAwardsBadge" /><span class="checkmark"></span><span>Show Awards Badge</span></label>
                         </div>
                         
+                        <!-- Trailer -->
+                        <div class="form-row">
+                          <label>Trailer</label>
+                          <label class="checkbox" for="cinemaTrailerEnabled"><input type="checkbox" id="cinemaTrailerEnabled" /><span class="checkmark"></span><span>Show Trailer</span></label>
+                        </div>
+                        <div class="cinema-nested-settings" id="cinemaTrailerSettings" style="display:none;">
+                          <div class="form-row">
+                            <label for="cinemaTrailerAutoplay">Autoplay</label>
+                            <label class="checkbox" for="cinemaTrailerAutoplay"><input type="checkbox" id="cinemaTrailerAutoplay" checked /><span class="checkmark"></span><span>Start automatically</span></label>
+                          </div>
+                          <div class="form-row">
+                            <label for="cinemaTrailerMuted">Muted</label>
+                            <label class="checkbox" for="cinemaTrailerMuted"><input type="checkbox" id="cinemaTrailerMuted" checked /><span class="checkmark"></span><span>Play without sound</span></label>
+                          </div>
+                          <div class="form-row">
+                            <label for="cinemaTrailerHeight">Height</label>
+                            <div class="modern-slider">
+                              <input type="range" id="cinemaTrailerHeight" min="20" max="50" step="5" value="30" />
+                              <div class="slider-bar"><div class="fill"></div></div>
+                            </div>
+                            <div class="slider-percentage" data-target="cinema.promotional.trailer.height">30%</div>
+                          </div>
+                        </div>
+                        
                         <!-- QR Code -->
                         <div class="form-row">
                           <label>QR Code</label>

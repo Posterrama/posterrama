@@ -135,6 +135,12 @@
             "showRating": false,
             "showWatchProviders": false,
             "showAwardsBadge": false,
+            "trailer": {
+                "enabled": false,
+                "autoplay": true,
+                "muted": true,
+                "height": 30
+            },
             "qrCode": {
                 "enabled": false,
                 "url": "",

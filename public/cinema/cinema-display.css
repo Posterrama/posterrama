@@ -2258,6 +2258,48 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     left: 2rem;
 }
 
+/* Trailer overlay - positioned at bottom of poster */
+.cinema-trailer-overlay {
+    --trailer-height: 30%;
+    position: fixed;
+    bottom: var(--poster-bottom, 0);
+    left: 50%;
+    transform: translateX(-50%);
+    width: var(--poster-width, 100%);
+    height: var(--trailer-height);
+    z-index: 50;
+    overflow: hidden;
+    pointer-events: none;
+    /* Gradient mask to blend with poster */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
+}
+
+.cinema-trailer-overlay iframe {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    /* Make iframe taller to hide YouTube branding/controls at top */
+    height: 200%;
+    border: none;
+    pointer-events: none;
+}
+
+/* Adjust trailer position for different poster styles */
+.cinema-poster-framed .cinema-trailer-overlay,
+.cinema-poster-doubleBorder .cinema-trailer-overlay {
+    /* Account for frame width */
+    bottom: calc(var(--poster-bottom, 0) + var(--cinema-frame-width, 8px));
+    width: calc(var(--poster-width, 100%) - 2 * var(--cinema-frame-width, 8px));
+}
+
+.cinema-poster-polaroid .cinema-trailer-overlay {
+    /* Polaroid has larger bottom border */
+    bottom: calc(var(--poster-bottom, 0) + 60px);
+    width: calc(var(--poster-width, 100%) - 40px);
+}
+
 /* Announcement banner */
 .cinema-announcement {
     position: fixed;

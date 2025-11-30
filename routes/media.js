@@ -1316,6 +1316,144 @@ module.exports = function createMediaRouter({
         })
     );
 
+    // ===== TRAILER ENDPOINT =====
+    // Fetches YouTube trailer URL for a movie/show via TMDB API
+    /**
+     * @swagger
+     * /get-trailer:
+     *   get:
+     *     tags: [Media]
+     *     summary: Get YouTube trailer URL for a movie or show
+     *     description: |
+     *       Fetches the official YouTube trailer URL from TMDB for a given movie or TV show.
+     *       Returns the first available trailer (prefers official trailers).
+     *     parameters:
+     *       - name: tmdbId
+     *         in: query
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: TMDB ID of the movie or show
+     *       - name: type
+     *         in: query
+     *         required: false
+     *         schema:
+     *           type: string
+     *           enum: [movie, tv]
+     *           default: movie
+     *         description: Media type (movie or tv)
+     *     responses:
+     *       200:
+     *         description: Trailer information
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                 trailer:
+     *                   type: object
+     *                   properties:
+     *                     key:
+     *                       type: string
+     *                       description: YouTube video ID
+     *                     name:
+     *                       type: string
+     *                       description: Trailer title
+     *                     site:
+     *                       type: string
+     *                       description: Video site (YouTube)
+     *                     type:
+     *                       type: string
+     *                       description: Video type (Trailer, Teaser, etc.)
+     *                     official:
+     *                       type: boolean
+     *                       description: Whether this is an official trailer
+     *                     embedUrl:
+     *                       type: string
+     *                       description: Full YouTube embed URL
+     *       400:
+     *         description: Missing tmdbId parameter
+     *       404:
+     *         description: No trailer found
+     *       500:
+     *         description: TMDB API error
+     */
+    router.get(
+        '/get-trailer',
+        asyncHandler(async (req, res) => {
+            const { tmdbId, type = 'movie' } = req.query;
+
+            if (!tmdbId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Missing required parameter: tmdbId',
+                });
+            }
+
+            // Get TMDB API key from config
+            const tmdbApiKey = config.tmdbSource?.apiKey || config.tmdb?.apiKey;
+            if (!tmdbApiKey) {
+                return res.status(500).json({
+                    success: false,
+                    error: 'TMDB API key not configured',
+                });
+            }
+
+            try {
+                const mediaType = type === 'tv' ? 'tv' : 'movie';
+                const url = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}/videos?api_key=${tmdbApiKey}`;
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    logger.warn(`[get-trailer] TMDB API error: ${response.status}`);
+                    return res.status(response.status).json({
+                        success: false,
+                        error: `TMDB API returned ${response.status}`,
+                    });
+                }
+
+                const data = await response.json();
+                const videos = data.results || [];
+
+                // Find the best trailer (prefer official YouTube trailers)
+                const trailer =
+                    videos.find(
+                        v => v.site === 'YouTube' && v.type === 'Trailer' && v.official === true
+                    ) ||
+                    videos.find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
+                    videos.find(v => v.site === 'YouTube' && v.type === 'Teaser') ||
+                    videos.find(v => v.site === 'YouTube');
+
+                if (!trailer) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'No trailer found for this title',
+                    });
+                }
+
+                res.json({
+                    success: true,
+                    trailer: {
+                        key: trailer.key,
+                        name: trailer.name,
+                        site: trailer.site,
+                        type: trailer.type,
+                        official: trailer.official || false,
+                        embedUrl: `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0`,
+                    },
+                });
+            } catch (err) {
+                logger.error(`[get-trailer] Error fetching trailer: ${err.message}`);
+                return res.status(500).json({
+                    success: false,
+                    error: 'Failed to fetch trailer',
+                });
+            }
+        })
+    );
+
     // Metrics endpoint for monitoring image proxy fallback health
     router.get('/api/media/fallback-metrics', (req, res) => {
         res.json({

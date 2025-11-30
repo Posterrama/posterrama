@@ -91,6 +91,12 @@
             showRating: false,
             showWatchProviders: false,
             showAwardsBadge: false,
+            trailer: {
+                enabled: false,
+                autoplay: true,
+                muted: true,
+                height: 30,
+            },
             qrCode: {
                 enabled: false,
                 url: '',
@@ -764,6 +770,99 @@
             position: qrConfig.position,
             isImdb: !qrConfig.url,
         });
+    }
+
+    // ===== Trailer Overlay (Promotional) =====
+    let trailerEl = null;
+    let currentTrailerKey = null; // Track current trailer to avoid reloading
+
+    async function createTrailerOverlay(media) {
+        const promo = cinemaConfig.promotional || {};
+        const trailerConfig = promo.trailer || {};
+
+        // Remove existing trailer if disabled or no media
+        if (!trailerConfig.enabled || !media) {
+            removeTrailerOverlay();
+            return;
+        }
+
+        // Get TMDB ID from media (can be in different fields)
+        const tmdbId = media.tmdbId || media.tmdb_id;
+        if (!tmdbId) {
+            log('Trailer skipped - no TMDB ID', { title: media.title });
+            removeTrailerOverlay();
+            return;
+        }
+
+        // Determine media type (movie or tv)
+        const type = media.type === 'show' || media.type === 'episode' ? 'tv' : 'movie';
+
+        // Check if we already have this trailer loaded
+        const trailerKey = `${tmdbId}-${type}`;
+        if (currentTrailerKey === trailerKey && trailerEl) {
+            log('Trailer already loaded for this media');
+            return;
+        }
+
+        try {
+            // Fetch trailer URL from backend
+            const response = await fetch(`/get-trailer?tmdbId=${tmdbId}&type=${type}`);
+            if (!response.ok) {
+                log('Trailer fetch failed', { status: response.status, title: media.title });
+                removeTrailerOverlay();
+                return;
+            }
+
+            const data = await response.json();
+            if (!data.success || !data.trailer) {
+                log('No trailer available', { title: media.title });
+                removeTrailerOverlay();
+                return;
+            }
+
+            // Build embed URL with settings
+            const autoplay = trailerConfig.autoplay !== false ? '1' : '0';
+            const muted = trailerConfig.muted !== false ? '1' : '0';
+            const embedUrl = `https://www.youtube.com/embed/${data.trailer.key}?autoplay=${autoplay}&mute=${muted}&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${data.trailer.key}`;
+
+            // Remove existing trailer
+            removeTrailerOverlay();
+
+            // Create trailer container
+            trailerEl = document.createElement('div');
+            trailerEl.className = 'cinema-trailer-overlay';
+            trailerEl.style.setProperty('--trailer-height', `${trailerConfig.height || 30}%`);
+
+            // Create iframe
+            const iframe = document.createElement('iframe');
+            iframe.src = embedUrl;
+            iframe.allow =
+                'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+            iframe.allowFullscreen = false;
+            iframe.frameBorder = '0';
+
+            trailerEl.appendChild(iframe);
+            document.body.appendChild(trailerEl);
+
+            currentTrailerKey = trailerKey;
+
+            log('Trailer overlay created', {
+                title: media.title,
+                trailerName: data.trailer.name,
+                height: trailerConfig.height,
+            });
+        } catch (err) {
+            log('Trailer error', { error: err.message, title: media.title });
+            removeTrailerOverlay();
+        }
+    }
+
+    function removeTrailerOverlay() {
+        if (trailerEl) {
+            trailerEl.remove();
+            trailerEl = null;
+            currentTrailerKey = null;
+        }
     }
 
     // ===== Rating Badge (Promotional) =====
@@ -1887,6 +1986,7 @@
         createRatingBadge(cinemaMedia);
         createWatchProviders(cinemaMedia);
         createAwardsBadge(cinemaMedia);
+        createTrailerOverlay(cinemaMedia);
 
         // Update ambilight based on poster colors
         if (cinemaConfig.ambilight.enabled && media && media.dominantColor) {
@@ -2217,6 +2317,7 @@
                     createRatingBadge(cinemaMedia);
                     createWatchProviders(cinemaMedia);
                     createAwardsBadge(cinemaMedia);
+                    createTrailerOverlay(cinemaMedia);
                 }
             }
 
