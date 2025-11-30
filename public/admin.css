@@ -3672,14 +3672,14 @@ input[type='range']::-moz-range-thumb {
 .bulk-bar .bulk-actions .btn {
     background: transparent !important;
     border-color: transparent !important;
-    color: #e5e7eb !important; /* light/white-ish */
+    color: var(--color-text-primary) !important; /* light/white-ish */
     box-shadow: none !important;
     min-width: 0;
     padding: 6px; /* smaller tap target */
 }
 .bulk-bar .bulk-actions .btn .icon,
 .bulk-bar .bulk-actions .btn i {
-    color: #e5e7eb !important;
+    color: var(--color-text-primary) !important;
     font-size: 16px !important; /* smaller icons */
     line-height: 1;
 }
@@ -5735,7 +5735,7 @@ select:not([multiple]) {
 }
 /* Apply button: green icon accent only */
 #modal-override #btn-override-apply i {
-    color: var(--color-success, #22c55e);
+    color: var(--color-success);
 }
 /* Override modal enhancements */
 #modal-override .override-helper {
@@ -6091,11 +6091,11 @@ select:not([multiple]) {
     justify-content: center;
     gap: 10px;
     font-weight: 700;
-    color: var(--color-success, #22c55e);
+    color: var(--color-success);
     padding: 24px 8px;
 }
 .pairing-success i {
-    color: var(--color-success, #22c55e);
+    color: var(--color-success);
     font-size: 20px;
 }
 .pairing-success span {
@@ -6417,7 +6417,7 @@ select:not([multiple]) {
 }
 .tile-badge.status-error {
     background: rgba(239, 68, 68, 0.15);
-    color: #fca5a5;
+    color: var(--color-error-light);
 }
 /* Theme alignment for dropdown links */
 .dropdown-menu a.dropdown-item {
@@ -6791,7 +6791,7 @@ select:not([multiple]) {
 .dropdown-menu .dropdown-item.text-danger:hover {
     background: rgba(239, 68, 68, 0.1) !important;
     border-color: rgba(239, 68, 68, 0.2) !important;
-    color: #fca5a5 !important;
+    color: var(--color-error-light) !important;
 }
 
 /* Dropdown divider */
@@ -7046,7 +7046,7 @@ body.page-logs {
 .dropdown-menu .dropdown-item.text-danger:hover {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.05));
     border-color: rgba(239, 68, 68, 0.15);
-    color: #fca5a5;
+    color: var(--color-error-light);
     box-shadow: 0 0 20px rgba(239, 68, 68, 0.05);
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -7394,7 +7394,7 @@ body.page-logs {
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(20, 20, 28, 0.95);
-    color: var(--color-text-primary, #e5e7eb);
+    color: var(--color-text-primary);
     box-shadow:
         0 10px 30px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -7532,11 +7532,11 @@ body.page-logs {
 
 /* Pinned state for Pin button: only icon turns magenta (strong specificity) */
 #section-devices .device-card .device-tools .btn-pin.is-pinned > i {
-    color: #ff00a7 !important;
+    color: var(--color-primary) !important;
 }
 /* Powered-off state for Power button: only icon turns magenta (same as pin) */
 #section-devices .device-card .device-tools .btn-power.is-off > i {
-    color: #ff00a7 !important;
+    color: var(--color-primary) !important;
 }
 
 /* Synced indicator: top-right pulsing green dot with tooltip */
@@ -7598,7 +7598,7 @@ body.page-logs {
     height: 10px;
     display: inline-block;
     border-radius: 50%;
-    background: #22c55e;
+    background: var(--color-success);
     box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
     position: relative;
 }
@@ -7643,10 +7643,10 @@ body.page-logs {
 #section-devices .device-badges .status-pill.sp-poweredoff {
     background: rgba(239, 68, 68, 0.12);
     border: 1px solid rgba(239, 68, 68, 0.35);
-    color: #fca5a5;
+    color: var(--color-error-light);
 }
 #section-devices .device-badges .status-pill.sp-poweredoff i {
-    color: #fca5a5;
+    color: var(--color-error-light);
 }
 
 /* Status change flash animation (applies to any status when it changes) */
@@ -7713,7 +7713,7 @@ body.page-logs {
     box-shadow:
         0 12px 32px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    color: var(--color-text-primary, #e5e7eb);
+    color: var(--color-text-primary);
     font-size: 0.88rem;
 }
 .hovercard.open {
@@ -7741,8 +7741,8 @@ body.page-logs {
     display: inline-block;
 }
 .hovercard .hc-title .sd-live {
-    background: var(--color-success, #22c55e);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success, #22c55e) 25%, transparent);
+    background: var(--color-success);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success) 25%, transparent);
 }
 .hovercard .hc-title .sd-online {
     background: var(--color-info, var(--color-info-light));
@@ -7761,8 +7761,8 @@ body.page-logs {
 }
 /* Powered off (live but blacked out) — magenta like pin */
 .hovercard .hc-title .sd-poweredoff {
-    background: #ff00a7;
-    box-shadow: 0 0 0 3px color-mix(in srgb, #ff00a7 25%, transparent);
+    background: var(--color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 .hovercard .hc-list {
     display: flex;
@@ -7792,7 +7792,7 @@ body.page-logs {
 }
 .hovercard .hc-row i {
     opacity: 0.88;
-    color: var(--color-text-primary, #e5e7eb);
+    color: var(--color-text-primary);
 }
 .hovercard .hc-row .mono {
     font-family:
@@ -7809,7 +7809,7 @@ body.page-logs {
     justify-self: start;
     text-align: left;
     font-weight: 400;
-    color: var(--color-text-primary, #e5e7eb);
+    color: var(--color-text-primary);
 }
 .hovercard .hc-row.hc-ua .value {
     justify-self: start;
@@ -8005,7 +8005,7 @@ body.page-logs {
 }
 .operations-panel .status-pill.status-error {
     background: rgba(239, 68, 68, 0.15);
-    color: #fca5a5;
+    color: var(--color-error-light);
 }
 .operations-panel .card-subtext {
     font-size: 0.85rem;
