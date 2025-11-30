@@ -15,7 +15,7 @@ const express = require('express');
  * @param {Function} deps.adminAuth - Admin authentication middleware
  * @returns {express.Router} Configured router
  */
-module.exports = function createAdminCacheRouter({ _logger, asyncHandler, adminAuth }) {
+module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler, adminAuth }) {
     const router = express.Router();
 
     // Cache instances (set via initCacheReferences)
@@ -26,6 +26,7 @@ module.exports = function createAdminCacheRouter({ _logger, asyncHandler, adminA
      * Initialize cache references
      * Called from server.js after cache instances are created
      */
+    // @ts-ignore - Custom property on Express router
     router.initCacheReferences = function (cacheManagerInstance, apiCacheInstance) {
         cacheManager = cacheManagerInstance;
         apiCache = apiCacheInstance;
@@ -70,6 +71,7 @@ module.exports = function createAdminCacheRouter({ _logger, asyncHandler, adminA
      *       500:
      *         description: Server error retrieving cache metrics
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/api/admin/cache/metrics',
         adminAuth,
@@ -159,6 +161,7 @@ module.exports = function createAdminCacheRouter({ _logger, asyncHandler, adminA
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/api/admin/cache/metrics/summary',
         adminAuth,
@@ -232,6 +235,7 @@ module.exports = function createAdminCacheRouter({ _logger, asyncHandler, adminA
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/api/admin/cache/recommendations',
         adminAuth,
@@ -289,6 +293,7 @@ module.exports = function createAdminCacheRouter({ _logger, asyncHandler, adminA
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.post(
         '/api/admin/cache/reset',
         adminAuth,
@@ -330,6 +335,7 @@ module.exports = function createAdminCacheRouter({ _logger, asyncHandler, adminA
      *       401:
      *         description: Unauthorized
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.post(
         '/api/admin/cache/clear',
         adminAuth,

@@ -58,6 +58,7 @@ module.exports = function createGroupsRouter({ adminAuth, cacheManager }) {
      *       500:
      *         description: Groups list failed
      */
+    // @ts-ignore - Express router overload issue
     router.get('/', adminAuth, async (_req, res) => {
         try {
             const list = await groupsStore.getAll();
@@ -160,16 +161,19 @@ module.exports = function createGroupsRouter({ adminAuth, cacheManager }) {
      *       500:
      *         description: Group create failed
      */
+    // @ts-ignore - Express router overload issue
     router.post('/', adminAuth, express.json(), async (req, res) => {
         try {
             const { id, name, description, settingsTemplate, order } = req.body || {};
-            const g = await groupsStore.createGroup({
-                id,
-                name,
-                description,
-                settingsTemplate,
-                order,
-            });
+            const g = await groupsStore.createGroup(
+                /** @type {any} */ ({
+                    id,
+                    name,
+                    description,
+                    settingsTemplate,
+                    order,
+                })
+            );
             // Invalidate cached /get-config so group templates take effect
             try {
                 if (cacheManager && typeof cacheManager.clear === 'function') {
@@ -219,6 +223,7 @@ module.exports = function createGroupsRouter({ adminAuth, cacheManager }) {
      *       500:
      *         description: Group patch failed
      */
+    // @ts-ignore - Express router overload issue
     router.patch('/:id', adminAuth, express.json(), async (req, res) => {
         try {
             const g = await groupsStore.patchGroup(req.params.id, req.body || {});
@@ -313,6 +318,7 @@ module.exports = function createGroupsRouter({ adminAuth, cacheManager }) {
      *       500:
      *         description: Group delete failed
      */
+    // @ts-ignore - Express router overload issue
     router.delete('/:id', adminAuth, async (req, res) => {
         try {
             const ok = await groupsStore.deleteGroup(req.params.id);
@@ -371,6 +377,7 @@ module.exports = function createGroupsRouter({ adminAuth, cacheManager }) {
      *       500:
      *         description: Group command failed
      */
+    // @ts-ignore - Express router overload issue
     router.post('/:id/command', adminAuth, express.json(), async (req, res) => {
         try {
             const { type, payload } = req.body || {};
