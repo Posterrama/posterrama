@@ -105,24 +105,19 @@
         // Speed multiplier: background slower, foreground faster
         const speedMultiplier = 0.3 + depthRatio * 0.7; // 0.3x to 1.0x
 
-        // Calculate poster size based on depth scale
-        // Background posters smaller, foreground posters larger
-        const basePosterSize = 250;
-        const posterSize = Math.round(basePosterSize * scale);
-
         container.style.cssText = `
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 200%;
-            transform: translateZ(${translateZ}px);
+            transform: translateZ(${translateZ}px) scale(${scale});
             transform-style: preserve-3d;
             will-change: transform;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(${posterSize}px, 1fr));
-            gap: ${Math.round(20 * scale)}px;
-            padding: ${Math.round(20 * scale)}px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
             align-content: start;
         `;
 
@@ -143,7 +138,6 @@
             scrollPosition: 0,
             translateZ,
             scale,
-            depthScale, // Store for reference
         };
     }
 
@@ -222,34 +216,15 @@
      */
     function updateLayers(deltaTime) {
         const speed = parseFloat(state.config.speed) || 1.0;
-        const smoothScroll = state.config.smoothScroll !== false;
         const baseSpeed = state.scrollSpeed * speed;
 
         state.layers.forEach(layer => {
             // Calculate scroll distance for this frame
             const scrollDistance = baseSpeed * deltaTime * layer.speedMultiplier;
-
-            // Apply smooth scroll interpolation if enabled
-            if (smoothScroll) {
-                // Ease-out interpolation: gradually slow down movement
-                const easeFactor = 0.92; // Higher = smoother but slower response
-                const targetPosition = layer.scrollPosition + scrollDistance;
-                layer.scrollPosition += (targetPosition - layer.scrollPosition) * (1 - easeFactor);
-            } else {
-                // Linear movement (no interpolation)
-                layer.scrollPosition += scrollDistance;
-            }
+            layer.scrollPosition += scrollDistance;
 
             // Update layer position for continuous scroll
             const yOffset = -layer.scrollPosition % window.innerHeight;
-
-            // Apply CSS transition for smooth scroll if enabled
-            if (smoothScroll && !layer.container.style.transition) {
-                layer.container.style.transition = 'top 0.1s ease-out';
-            } else if (!smoothScroll && layer.container.style.transition) {
-                layer.container.style.transition = 'none';
-            }
-
             layer.container.style.top = `${yOffset}px`;
 
             // Recycle posters when layer scrolls full height
@@ -321,7 +296,6 @@
     function updateConfig(newConfig) {
         console.log('[ParallaxScrolling] Updating config:', newConfig);
 
-        const oldConfig = state.config || {};
         state.config = newConfig;
 
         // Update perspective
@@ -333,35 +307,6 @@
 
         // Update scroll speed
         state.scrollSpeed = 20 * (parseFloat(newConfig.speed) || 1.0);
-
-        // Update depth scale if changed
-        const oldDepthScale = parseFloat(oldConfig.depthScale) || 1.3;
-        const newDepthScale = parseFloat(newConfig.depthScale) || 1.3;
-        if (oldDepthScale !== newDepthScale) {
-            // Recalculate and update layer grid sizes
-            state.layers.forEach((layer, index) => {
-                const totalLayers = state.layers.length;
-                const depthRatio = index / (totalLayers - 1);
-                const scale = 1 + depthRatio * (newDepthScale - 1);
-                const basePosterSize = 250;
-                const posterSize = Math.round(basePosterSize * scale);
-
-                layer.container.style.gridTemplateColumns = `repeat(auto-fit, minmax(${posterSize}px, 1fr))`;
-                layer.container.style.gap = `${Math.round(20 * scale)}px`;
-                layer.container.style.padding = `${Math.round(20 * scale)}px`;
-                layer.scale = scale;
-            });
-        }
-
-        // Update smooth scroll transition on layers
-        const smoothScroll = newConfig.smoothScroll !== false;
-        state.layers.forEach(layer => {
-            if (smoothScroll) {
-                layer.container.style.transition = 'top 0.1s ease-out';
-            } else {
-                layer.container.style.transition = 'none';
-            }
-        });
     }
 
     // Export public API
