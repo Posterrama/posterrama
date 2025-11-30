@@ -2,7 +2,7 @@
 /**
  * Cinema Display Mode
  * Author: Posterrama Team
- * Last Modified: 2025-10-12
+ * Last Modified: 2025-12-01
  * License: GPL-3.0-or-later
  *
  * This module handles cinema-specific display functionality:
@@ -13,10 +13,12 @@
  */
 
 (function () {
+    console.log('[Cinema] cinema-display.js loaded');
+
     // ===== Cinema Mode Configuration =====
     const cinemaConfig = {
         orientation: 'auto', // auto, portrait, portrait-flipped
-        rotationIntervalMinutes: 0, // 0 = disabled (single poster)
+        rotationIntervalMinutes: 0, // 0 = disabled, supports decimals (0.5 = 30 seconds)
         header: {
             enabled: true,
             text: 'Now Playing',
@@ -1032,7 +1034,9 @@
         // Always fetch media queue for fallback scenarios
         // Even when Now Playing is enabled, we need the queue for when sessions end
         (async () => {
+            console.log('[Cinema Display] Fetching media queue...');
             mediaQueue = await fetchMediaQueue();
+            console.log('[Cinema Display] Media queue loaded:', mediaQueue.length, 'items');
             if (mediaQueue.length > 0) {
                 log('Media queue loaded', { count: mediaQueue.length });
 
@@ -1052,16 +1056,44 @@
         })();
 
         // Initialize Now Playing if enabled (takes priority over rotation)
+        console.log('[Cinema Display] Now Playing check:', {
+            nowPlayingEnabled: cinemaConfig.nowPlaying?.enabled,
+            rotationInterval: cinemaConfig.rotationIntervalMinutes,
+        });
+
         if (cinemaConfig.nowPlaying?.enabled) {
+            console.log('[Cinema Display] Starting Now Playing mode');
             startNowPlaying();
         } else {
+            console.log('[Cinema Display] Now Playing disabled, setting up rotation');
+            log('Now Playing disabled, checking rotation', {
+                rotationInterval: cinemaConfig.rotationIntervalMinutes,
+                nowPlayingEnabled: cinemaConfig.nowPlaying?.enabled,
+            });
             // Start rotation if enabled and Now Playing is disabled
             if (cinemaConfig.rotationIntervalMinutes > 0) {
+                console.log('[Cinema Display] Rotation enabled, waiting for queue...');
                 // Wait for queue to load before starting rotation
                 (async () => {
                     await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure queue is loaded
+                    console.log('[Cinema Display] Queue ready, length:', mediaQueue.length);
                     if (mediaQueue.length > 0) {
+                        // Show first random poster immediately
+                        console.log('[Cinema Display] Showing first poster and starting rotation');
+                        showNextPoster();
+                        // Then start rotation timer
                         startRotation();
+                    } else {
+                        console.log('[Cinema Display] Queue empty, cannot start rotation');
+                    }
+                })();
+            } else {
+                console.log('[Cinema Display] Rotation disabled (interval = 0)');
+                // No rotation, but still show a random poster
+                (async () => {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    if (mediaQueue.length > 0) {
+                        showNextPoster();
                     }
                 })();
             }
@@ -1100,6 +1132,14 @@
         const posterEl = document.getElementById('poster');
         if (posterEl && media && media.posterUrl) {
             const url = media.posterUrl;
+
+            // Re-trigger animation by removing and re-adding the animation class
+            const animClass = `cinema-anim-${cinemaConfig.poster.animation}`;
+            document.body.classList.remove(animClass);
+            // Force reflow to restart animation
+            void posterEl.offsetWidth;
+            document.body.classList.add(animClass);
+
             // Show low-quality thumbnail immediately
             const thumbUrl = url.includes('?')
                 ? `${url}&quality=30&width=400`
@@ -1539,7 +1579,9 @@
     };
 
     // ===== Poster Rotation Functions =====
-    let currentMediaIndex = 0;
+    let currentMediaIndex = -1; // Start at -1 so first showNextPoster() shows index 0
+    let currentSessionIndex = 0; // For multi-stream Now Playing rotation
+    let nowPlayingSessions = []; // Store all active sessions for rotation
 
     function startRotation() {
         try {
@@ -1612,7 +1654,19 @@
                 : Array.isArray(data?.results)
                   ? data.results
                   : [];
-            log('Fetched media queue', { count: items.length });
+
+            // Shuffle the queue for random order on each page load
+            // Fisher-Yates shuffle algorithm
+            for (let i = items.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [items[i], items[j]] = [items[j], items[i]];
+            }
+
+            log('Fetched media queue', {
+                count: items.length,
+                shuffled: true,
+                firstTitle: items[0]?.title,
+            });
             return items;
         } catch (e) {
             error('Failed to fetch media queue', e);
@@ -1814,52 +1868,200 @@
         }
     }
 
+    // Track if initial Now Playing check has been done
+    let initialNowPlayingCheckDone = false;
+
     async function checkNowPlaying() {
         try {
             const nowPlayingConfig = cinemaConfig.nowPlaying;
             if (!nowPlayingConfig?.enabled) return;
 
             const sessions = await fetchPlexSessions();
-            const selectedSession = selectSession(sessions);
 
-            if (selectedSession) {
-                const sessionId = selectedSession.ratingKey || selectedSession.key;
+            // Filter sessions based on config (user filter, device username)
+            const filteredSessions = filterSessions(sessions);
 
-                // Stop rotation when we have an active session
+            console.log('[Cinema Display] checkNowPlaying:', {
+                sessionCount: filteredSessions?.length || 0,
+                nowPlayingActive,
+                initialCheckDone: initialNowPlayingCheckDone,
+            });
+
+            if (filteredSessions && filteredSessions.length > 0) {
+                // Stop poster rotation when we have active sessions
                 if (!nowPlayingActive) {
                     stopRotation();
                 }
 
-                // Only update if session changed
-                if (sessionId !== lastSessionId) {
-                    log('New active session detected', { sessionId, title: selectedSession.title });
-                    lastSessionId = sessionId;
-                    nowPlayingActive = true;
+                nowPlayingActive = true;
+                nowPlayingSessions = filteredSessions;
 
-                    const media = convertSessionToMedia(selectedSession);
-                    if (media) {
-                        updateCinemaDisplay(media);
+                // Multi-stream rotation: use rotationIntervalMinutes to cycle through sessions
+                const intervalMinutes = cinemaConfig.rotationIntervalMinutes || 0;
+
+                if (filteredSessions.length > 1 && intervalMinutes > 0) {
+                    // Multiple streams - rotation will be handled by startNowPlayingRotation
+                    if (!nowPlayingRotationTimer) {
+                        // Show first session immediately
+                        currentSessionIndex = 0;
+                        const media = convertSessionToMedia(filteredSessions[0]);
+                        if (media) {
+                            updateCinemaDisplay(media);
+                            lastSessionId =
+                                filteredSessions[0].ratingKey || filteredSessions[0].key;
+                        }
+                        startNowPlayingRotation();
+                    }
+                } else {
+                    // Single stream or no rotation - show first/selected session
+                    const selectedSession = selectSession(filteredSessions);
+                    const sessionId = selectedSession.ratingKey || selectedSession.key;
+
+                    // Only update if session changed
+                    if (sessionId !== lastSessionId) {
+                        log('New active session detected', {
+                            sessionId,
+                            title: selectedSession.title,
+                        });
+                        lastSessionId = sessionId;
+
+                        const media = convertSessionToMedia(selectedSession);
+                        if (media) {
+                            updateCinemaDisplay(media);
+                        }
                     }
                 }
             } else {
                 // No active sessions
-                if (nowPlayingActive) {
-                    log('No active sessions, applying fallback behavior');
-                    lastSessionId = null;
-                    nowPlayingActive = false;
+                const wasActive = nowPlayingActive;
+                const isFirstCheck = !initialNowPlayingCheckDone;
 
-                    // Apply fallback behavior - restart rotation
-                    if (nowPlayingConfig.fallbackToRotation) {
-                        // Return to rotation mode
-                        startRotation();
-                        if (mediaQueue.length > 0) {
-                            showNextPoster();
+                lastSessionId = null;
+                nowPlayingActive = false;
+                nowPlayingSessions = [];
+                stopNowPlayingRotation();
+
+                // Apply fallback behavior if:
+                // 1. Was previously showing Now Playing and sessions ended, OR
+                // 2. This is the first check and there are no sessions (initial fallback)
+                if ((wasActive || isFirstCheck) && nowPlayingConfig.fallbackToRotation !== false) {
+                    console.log('[Cinema Display] No sessions, starting rotation fallback', {
+                        wasActive,
+                        isFirstCheck,
+                        fallbackToRotation: nowPlayingConfig.fallbackToRotation,
+                        queueLength: mediaQueue.length,
+                    });
+                    log('No active sessions, applying fallback behavior');
+
+                    // Wait for media queue if this is the first check and queue is empty
+                    if (isFirstCheck && mediaQueue.length === 0) {
+                        console.log('[Cinema Display] Waiting for media queue to load...');
+                        // Poll for queue to be loaded (max 3 seconds)
+                        for (let i = 0; i < 30 && mediaQueue.length === 0; i++) {
+                            await new Promise(resolve => setTimeout(resolve, 100));
                         }
+                        console.log(
+                            '[Cinema Display] Queue after waiting:',
+                            mediaQueue.length,
+                            'items'
+                        );
+                    }
+
+                    // Return to rotation mode
+                    if (mediaQueue.length > 0) {
+                        console.log(
+                            '[Cinema Display] Starting rotation with',
+                            mediaQueue.length,
+                            'items'
+                        );
+                        showNextPoster();
+                        if (cinemaConfig.rotationIntervalMinutes > 0) {
+                            startRotation();
+                        }
+                    } else {
+                        console.log('[Cinema Display] Queue still empty, cannot start rotation');
                     }
                 }
             }
+
+            initialNowPlayingCheckDone = true;
         } catch (e) {
             error('Failed to check Now Playing', e);
+        }
+    }
+
+    // Filter sessions based on filterUser and device username
+    function filterSessions(sessions) {
+        if (!sessions || sessions.length === 0) return [];
+
+        const nowPlayingConfig = cinemaConfig.nowPlaying || {};
+        const filterUser = nowPlayingConfig.filterUser;
+        const deviceUsername = getDevicePlexUsername();
+
+        // Priority 1: Use filterUser if set
+        if (filterUser) {
+            return sessions.filter(s => s.username === filterUser);
+        }
+
+        // Priority 2: If device has plexUsername configured, filter by that
+        if (deviceUsername) {
+            const userSessions = sessions.filter(s => s.username === deviceUsername);
+            if (userSessions.length > 0) {
+                return userSessions;
+            }
+        }
+
+        return sessions;
+    }
+
+    // Now Playing rotation timer for multiple streams
+    let nowPlayingRotationTimer = null;
+
+    function startNowPlayingRotation() {
+        if (nowPlayingRotationTimer) {
+            clearInterval(nowPlayingRotationTimer);
+        }
+
+        const intervalMinutes = cinemaConfig.rotationIntervalMinutes || 0;
+        if (intervalMinutes <= 0) return;
+
+        // Support decimal minutes (e.g., 0.5 = 30 seconds)
+        const intervalMs = intervalMinutes * 60 * 1000;
+
+        log('Starting Now Playing rotation', {
+            intervalMinutes,
+            intervalMs,
+            sessionCount: nowPlayingSessions.length,
+        });
+
+        nowPlayingRotationTimer = setInterval(() => {
+            if (!nowPlayingActive || nowPlayingSessions.length <= 1) {
+                stopNowPlayingRotation();
+                return;
+            }
+
+            // Cycle to next session
+            currentSessionIndex = (currentSessionIndex + 1) % nowPlayingSessions.length;
+            const session = nowPlayingSessions[currentSessionIndex];
+
+            log('Switching to next Now Playing stream', {
+                index: currentSessionIndex,
+                title: session.title,
+            });
+
+            const media = convertSessionToMedia(session);
+            if (media) {
+                updateCinemaDisplay(media);
+                lastSessionId = session.ratingKey || session.key;
+            }
+        }, intervalMs);
+    }
+
+    function stopNowPlayingRotation() {
+        if (nowPlayingRotationTimer) {
+            clearInterval(nowPlayingRotationTimer);
+            nowPlayingRotationTimer = null;
+            log('Now Playing rotation stopped');
         }
     }
 
@@ -1923,21 +2125,31 @@
     };
 
     // ===== Auto-Initialize on DOM Ready =====
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', async () => {
+    async function autoInit() {
+        try {
+            console.log('[Cinema Display] Auto-init starting...');
             const config = await loadCinemaConfig();
-            initCinemaMode(config);
+            console.log('[Cinema Display] Config loaded:', config);
+            console.log('[Cinema Display] Calling initCinemaMode...');
+            try {
+                initCinemaMode(config);
+                console.log('[Cinema Display] initCinemaMode completed successfully');
+            } catch (initError) {
+                console.error('[Cinema Display] initCinemaMode CRASHED:', initError);
+                console.error('[Cinema Display] Stack:', initError.stack);
+            }
+        } catch (e) {
+            console.error('[Cinema Display] Auto-init failed:', e);
+        }
+    }
 
-            // Debug overlay removed
-        });
+    if (document.readyState === 'loading') {
+        console.log('[Cinema Display] DOM loading, adding DOMContentLoaded listener');
+        document.addEventListener('DOMContentLoaded', autoInit);
     } else {
         // DOM already loaded
-        (async () => {
-            const config = await loadCinemaConfig();
-            initCinemaMode(config);
-
-            // Debug overlay removed
-        })();
+        console.log('[Cinema Display] DOM already ready, calling autoInit');
+        autoInit();
     }
 
     // ===== Listen for Media Changes =====

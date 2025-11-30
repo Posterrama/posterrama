@@ -699,8 +699,9 @@
                 "rotationIntervalMinutes": {
                     "type": "number",
                     "minimum": 0,
+                    "maximum": 60,
                     "default": 0,
-                    "description": "Poster rotation interval in minutes (0 = disabled, shows single random poster)"
+                    "description": "Poster/stream rotation interval in minutes. Supports decimals (0.5 = 30 seconds). 0 = disabled. Also used for multi-stream Now Playing rotation."
                 },
                 "poster": {
                     "type": "object",
@@ -858,6 +859,12 @@
                             "default": "bottom",
                             "description": "Metadata position: bottom (under poster), overlay (on poster)"
                         },
+                        "layout": {
+                            "type": "string",
+                            "enum": ["compact", "comfortable", "spacious"],
+                            "default": "comfortable",
+                            "description": "Layout density: compact (smallest), comfortable (balanced), spacious (largest)"
+                        },
                         "specs": {
                             "type": "object",
                             "description": "Technical specs display options",
@@ -890,9 +897,9 @@
                                 },
                                 "iconSet": {
                                     "type": "string",
-                                    "enum": ["filled", "outline"],
-                                    "default": "filled",
-                                    "description": "Icon style when using icons display"
+                                    "enum": ["tabler", "mediaflags"],
+                                    "default": "tabler",
+                                    "description": "Icon style: tabler (Tabler Icons webfont), mediaflags (custom SVG badges)"
                                 }
                             },
                             "additionalProperties": false,
@@ -902,7 +909,7 @@
                                 "showAspectRatio": false,
                                 "showHDR": true,
                                 "style": "badges",
-                                "iconSet": "filled"
+                                "iconSet": "tabler"
                             }
                         }
                     },
@@ -921,13 +928,14 @@
                         "showPlot": false,
                         "showStudioLogo": false,
                         "position": "bottom",
+                        "layout": "comfortable",
                         "specs": {
                             "showResolution": true,
                             "showAudio": true,
                             "showAspectRatio": false,
                             "showHDR": true,
                             "style": "badges",
-                            "iconSet": "filled"
+                            "iconSet": "tabler"
                         }
                     }
                 },

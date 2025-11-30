@@ -1158,7 +1158,11 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-sync-alt"></i> Poster Rotation Interval</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <div class="number-input-wrapper"><input type="number" min="0" step="1" id="cinemaRotationInterval" placeholder="0=disabled" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                        <label for="cinemaRotationInterval">
+                          Minutes
+                          <span class="help-text">0.5 = 30 sec, 0 = off</span>
+                        </label>
+                        <div class="number-input-wrapper"><input type="number" min="0" step="0.5" id="cinemaRotationInterval" placeholder="0=disabled" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
                       </div>
                     </div>
                   </div>

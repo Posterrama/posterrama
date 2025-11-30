@@ -117,8 +117,9 @@ function migrateConfig(cfg) {
         footerShadow: ['none', 'subtle', 'dramatic'],
         // Metadata
         metadataPosition: ['bottom', 'overlay'],
+        metadataLayout: ['compact', 'comfortable', 'spacious'],
         specsStyle: ['subtle', 'badges', 'icons'],
-        specsIconSet: ['filled', 'outline'],
+        specsIconSet: ['tabler', 'mediaflags'],
         // Background
         backgroundMode: ['solid', 'blur', 'gradient'],
         vignette: ['none', 'subtle', 'dramatic'],
@@ -337,6 +338,14 @@ function migrateConfig(cfg) {
     modified =
         fixEnum(metadata, 'position', VALID.metadataPosition, 'bottom', 'metadata') || modified;
 
+    // Ensure layout has valid value (new property)
+    if (metadata.layout === undefined) {
+        metadata.layout = 'comfortable';
+        modified = true;
+    }
+    modified =
+        fixEnum(metadata, 'layout', VALID.metadataLayout, 'comfortable', 'metadata') || modified;
+
     // === METADATA SPECS ===
     modified = ensureObj(metadata, 'specs') || modified;
     const specs = metadata.specs;
@@ -350,8 +359,15 @@ function migrateConfig(cfg) {
     }
 
     modified = fixEnum(specs, 'style', VALID.specsStyle, 'badges', 'metadata.specs') || modified;
+
+    // Migrate old iconSet values (filled/outline) to new values (tabler/mediaflags)
+    if (specs.iconSet === 'filled' || specs.iconSet === 'outline') {
+        console.log(`[Config Migration] Changed specs.iconSet from "${specs.iconSet}" to "tabler"`);
+        specs.iconSet = 'tabler';
+        modified = true;
+    }
     modified =
-        fixEnum(specs, 'iconSet', VALID.specsIconSet, 'filled', 'metadata.specs') || modified;
+        fixEnum(specs, 'iconSet', VALID.specsIconSet, 'tabler', 'metadata.specs') || modified;
 
     // === BACKGROUND ===
     if (cinema.background) {

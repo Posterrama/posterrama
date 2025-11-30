@@ -92,7 +92,14 @@
                   ? data.results
                   : [];
 
-            // If rotation enabled, return all items; otherwise return first one
+            // Shuffle items for random order on each page load
+            // Fisher-Yates shuffle algorithm
+            for (let i = items.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [items[i], items[j]] = [items[j], items[i]];
+            }
+
+            // If rotation enabled, return all items; otherwise return first one (now randomized)
             return rotationEnabled ? items : items[0] || null;
         } catch (err) {
             console.error('[Cinema Bootstrap] Fetch media failed:', err.message, err.name);
