@@ -135,11 +135,11 @@ Display a beautiful grid of posters, updating dynamically with new content. Choo
 Perfect for vertical screens or digital signage. Show a rotating selection of posters in portrait orientation, with smooth transitions and optional info overlays. Ideal for hallway displays, kiosks, or a true cinema entrance feel.
 
 <p>
-  <img src="./screenshots/cinema_1.png" alt="Cinema Mode - Classic" width="145">&nbsp;
-  <img src="./screenshots/cinema_2.png" alt="Cinema Mode - Metadata" width="145">&nbsp;
-  <img src="./screenshots/cinema_3.png" alt="Cinema Mode - QR Code" width="145">&nbsp;
-  <img src="./screenshots/cinema_4.png" alt="Cinema Mode - Specs" width="145">&nbsp;
-  <img src="./screenshots/cinema_5.png" alt="Cinema Mode - Now Playing" width="145">
+  <img src="./screenshots/cinema_1.png" alt="Cinema Mode - Classic" width="155">&nbsp;
+  <img src="./screenshots/cinema_2.png" alt="Cinema Mode - Metadata" width="155">&nbsp;
+  <img src="./screenshots/cinema_3.png" alt="Cinema Mode - QR Code" width="155">&nbsp;
+  <img src="./screenshots/cinema_4.png" alt="Cinema Mode - Specs" width="155">&nbsp;
+  <img src="./screenshots/cinema_5.png" alt="Cinema Mode - Now Playing" width="155">
 </p>
 
 _From left to right: "Feature Presentation" banner with metadata footer showing year, rating score, content rating, and genres plus technical badges (4K, Dolby Atmos, Dolby Vision); "Now Playing" mode displaying the movie tagline; vintage-style header with logo art integration; and QR code overlay for quick mobile access alongside rich technical specifications._
