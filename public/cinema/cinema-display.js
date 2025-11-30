@@ -2931,7 +2931,7 @@
     // NOTE: Cinema mode manages its own media queue and display updates.
     // The bootstrap's mediaUpdated event should be ignored entirely in cinema mode
     // to prevent duplicate poster displays.
-    window.addEventListener('mediaUpdated', event => {
+    window.addEventListener('mediaUpdated', _event => {
         // Cinema mode handles its own media - ignore bootstrap events entirely
         log('mediaUpdated event blocked: Cinema mode manages its own media');
         return;
