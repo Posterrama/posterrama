@@ -465,7 +465,7 @@ class MqttBridge extends EventEmitter {
             const now = new Date();
 
             let payload = 'offline';
-            if (lastSeen && (now - lastSeen) / 1000 < timeout) {
+            if (lastSeen && (now.getTime() - lastSeen.getTime()) / 1000 < timeout) {
                 payload = 'online';
             }
 
@@ -513,9 +513,10 @@ class MqttBridge extends EventEmitter {
 
             if (posterUrl.startsWith('/')) {
                 // Local path - fetch from localhost for binary, use external URL for HA
-                const localUrl = `http://localhost:${config.serverPort || 4000}${posterUrl}`;
+                const cfg = /** @type {any} */ (config);
+                const localUrl = `http://localhost:${cfg.serverPort || 4000}${posterUrl}`;
                 const baseUrl =
-                    this.config.externalUrl || `http://192.168.10.20:${config.serverPort || 4000}`;
+                    this.config.externalUrl || `http://192.168.10.20:${cfg.serverPort || 4000}`;
                 imageUrl = `${baseUrl}${posterUrl}`;
 
                 // Fetch image for binary publishing (thumbnail)
@@ -524,6 +525,7 @@ class MqttBridge extends EventEmitter {
                     url: localUrl.substring(0, 80),
                 });
 
+                // @ts-ignore - axios.get exists but TypeScript doesn't recognize require('axios') type
                 const response = await axios.get(localUrl, {
                     responseType: 'arraybuffer',
                     timeout: 5000,
@@ -888,11 +890,12 @@ class MqttBridge extends EventEmitter {
                 };
 
                 // Add optional sensor fields
+                const config = /** @type {any} */ (sensorConfig);
                 if (capability.unitOfMeasurement) {
-                    sensorConfig.unit_of_measurement = capability.unitOfMeasurement;
+                    config.unit_of_measurement = capability.unitOfMeasurement;
                 }
                 if (capability.deviceClass) {
-                    sensorConfig.device_class = capability.deviceClass;
+                    config.device_class = capability.deviceClass;
                 }
 
                 return sensorConfig;

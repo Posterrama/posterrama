@@ -249,7 +249,9 @@ class JellyfinHttpClient extends BaseHttpClient {
                             status: e2.response?.status,
                             originalError: e2.message,
                         });
-                        const cfError = new Error(`Cloudflare Proxy Error: ${cfCheck.message}`);
+                        const cfError = /** @type {any} */ (
+                            new Error(`Cloudflare Proxy Error: ${cfCheck.message}`)
+                        );
                         cfError.isCloudflare = true;
                         cfError.originalError = e2;
                         throw cfError;
@@ -311,7 +313,9 @@ class JellyfinHttpClient extends BaseHttpClient {
                                 status: e2.response.status,
                                 hint: 'Check if API key is valid and has correct permissions',
                             });
-                            const err = new Error('401 Unauthorized: Jellyfin API key rejected');
+                            const err = /** @type {any} */ (
+                                new Error('401 Unauthorized: Jellyfin API key rejected')
+                            );
                             err.code = 'EJELLYFIN_UNAUTHORIZED';
                             throw err;
                         }
@@ -319,7 +323,9 @@ class JellyfinHttpClient extends BaseHttpClient {
                             logger.error('[JellyfinHttpClient] Endpoint not found', {
                                 hint: 'Check if basePath is correctly configured',
                             });
-                            const err = new Error('404 Not Found: Check Jellyfin base path');
+                            const err = /** @type {any} */ (
+                                new Error('404 Not Found: Check Jellyfin base path')
+                            );
                             err.code = 'EJELLYFIN_NOT_FOUND';
                             throw err;
                         }
@@ -334,7 +340,7 @@ class JellyfinHttpClient extends BaseHttpClient {
                                 code: e2.code,
                                 hint: 'Enable "insecureHttps" option in config or install valid certificate',
                             });
-                            const err = new Error('TLS certificate error');
+                            const err = /** @type {any} */ (new Error('TLS certificate error'));
                             err.code = 'EJELLYFIN_CERT';
                             throw err;
                         }
@@ -344,7 +350,9 @@ class JellyfinHttpClient extends BaseHttpClient {
                     logger.error('[JellyfinHttpClient] Endpoint not found', {
                         hint: 'Check if basePath is correctly configured',
                     });
-                    const err = new Error('404 Not Found: Check Jellyfin base path');
+                    const err = /** @type {any} */ (
+                        new Error('404 Not Found: Check Jellyfin base path')
+                    );
                     err.code = 'EJELLYFIN_NOT_FOUND';
                     throw err;
                 } else if (
@@ -357,7 +365,7 @@ class JellyfinHttpClient extends BaseHttpClient {
                         code: e.code,
                         hint: 'Enable "insecureHttps" option in config or install valid certificate',
                     });
-                    const err = new Error('TLS certificate error');
+                    const err = /** @type {any} */ (new Error('TLS certificate error'));
                     err.code = 'EJELLYFIN_CERT';
                     throw err;
                 } else if (
