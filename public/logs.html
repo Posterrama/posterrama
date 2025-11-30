@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Custom Logs Viewer CSS -->
-    <link rel="stylesheet" href="/css/admin-logs-viewer.css?v=3.0.3">
+    <link rel="stylesheet" href="/css/admin-logs-viewer.css?v=3.0.4">
     
     <style>
         body {
@@ -24,6 +24,36 @@
         .logs-viewer-wrapper {
             max-width: 1600px;
             margin: 0 auto;
+        }
+        /* Mobile: reduce padding and maximize space */
+        @media (max-width: 768px) {
+            html, body {
+                height: 100dvh;
+                height: 100vh; /* fallback */
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+            body {
+                padding: 4px 4px 4px 4px;
+                display: flex;
+                flex-direction: column;
+            }
+            .logs-viewer-wrapper {
+                margin: 0;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
+                overflow: hidden;
+            }
+            #logs-viewer-container {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
+                overflow: hidden;
+            }
         }
     </style>
 </head>

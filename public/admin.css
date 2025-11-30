@@ -3329,6 +3329,39 @@ input[type='range']::-moz-range-thumb {
         grid-template-columns: 1fr;
     }
 
+    /* Dashboard cards: single column on mobile */
+    .dashboard-cards-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+
+    /* Resource row text: allow wrapping on mobile */
+    .dashboard-cards-grid .resource-row {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .dashboard-cards-grid .resource-value {
+        font-size: 0.8rem !important;
+        word-break: break-word;
+    }
+
+    /* Load average: stack vertically or smaller badges on mobile */
+    .load-average-row {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    .load-average-badges {
+        gap: 4px !important;
+    }
+
+    .load-badge {
+        padding: 3px 8px !important;
+        font-size: 0.75rem !important;
+        min-width: 42px !important;
+    }
+
     .panel-header {
         flex-direction: column;
         align-items: stretch;

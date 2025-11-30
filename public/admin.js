@@ -9773,6 +9773,17 @@
                     .querySelectorAll('.sidebar-nav .nav-item')
                     .forEach(n => n.classList.remove('active'));
                 item.classList.add('active');
+
+                // Close sidebar on mobile after selecting a menu item
+                if (window.innerWidth <= 1024) {
+                    const sidebar = document.querySelector('.sidebar');
+                    const overlay = document.getElementById('sidebar-overlay');
+                    const toggle = document.getElementById('sidebar-toggle');
+                    sidebar?.classList.remove('open');
+                    overlay && (overlay.hidden = true);
+                    toggle?.setAttribute('aria-expanded', 'false');
+                }
+
                 if (nav === 'dashboard') {
                     showSection('section-dashboard');
                 } else if (nav === 'display') {
@@ -10372,6 +10383,17 @@
                         ?.forEach(s => s.classList.remove('active'));
                     // Always open Devices tab by default when clicking the group header
                     showSection('section-devices');
+
+                    // Close sidebar on mobile after selecting a group header
+                    if (window.innerWidth <= 1024) {
+                        const sidebarEl = document.querySelector('.sidebar');
+                        const overlay = document.getElementById('sidebar-overlay');
+                        const toggleBtn = document.getElementById('sidebar-toggle');
+                        sidebarEl?.classList.remove('open');
+                        overlay && (overlay.hidden = true);
+                        toggleBtn?.setAttribute('aria-expanded', 'false');
+                    }
+
                     try {
                         document.getElementById('seg-devices')?.click();
                     } catch (_) {
@@ -10397,6 +10419,17 @@
                         ?.querySelectorAll('.nav-subitem')
                         .forEach(s => s.classList.remove('active'));
                     sub.classList.add('active');
+
+                    // Close sidebar on mobile after selecting a sub-menu item
+                    if (window.innerWidth <= 1024) {
+                        const sidebar = document.querySelector('.sidebar');
+                        const overlay = document.getElementById('sidebar-overlay');
+                        const toggle = document.getElementById('sidebar-toggle');
+                        sidebar?.classList.remove('open');
+                        overlay && (overlay.hidden = true);
+                        toggle?.setAttribute('aria-expanded', 'false');
+                    }
+
                     const key = sub.getAttribute('data-sub');
                     if (key === 'devices') {
                         showSection('section-devices');

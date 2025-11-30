@@ -348,6 +348,10 @@ module.exports = function createFrontendPagesRouter({
                         `admin-utils.js?v=${versions['admin-utils.js'] || ASSET_VERSION}`
                     )
                     .replace(
+                        /\/css\/admin-logs-viewer\.css\?v=[^"&\s]+/g,
+                        `/css/admin-logs-viewer.css?v=${versions['css/admin-logs-viewer.css'] || ASSET_VERSION}`
+                    )
+                    .replace(
                         /\/client-logger\.js(\?v=[^"'\s>]+)?/g,
                         `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
                     );

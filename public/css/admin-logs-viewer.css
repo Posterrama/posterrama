@@ -497,33 +497,50 @@
 
 /* Responsive adjustments - Better mobile experience */
 @media (max-width: 768px) {
-    /* Parent container padding on mobile */
+    /* Override main-content padding for logs section */
+    #section-logs {
+        margin-left: -12px !important;
+        margin-right: -12px !important;
+        margin-bottom: -12px !important;
+        padding: 0 4px 8px 4px !important;
+    }
+
+    /* Parent container - full flex layout */
     #logs-viewer-container {
-        padding: 0 12px !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    .logs-controls {
+        padding: 10px 8px !important;
+        margin: 0 !important;
+        flex-shrink: 0 !important;
+        border-radius: 8px 8px 0 0 !important;
     }
 
     .logs-viewer {
         padding: 0 !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-        margin-top: 16px !important;
-        max-height: calc(100vh - 300px) !important;
-        /* Keep rounded corners on mobile */
-        border-radius: 10px !important;
-    }
-
-    .logs-controls {
-        padding: 12px !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-        margin-bottom: 0 !important;
-        /* Keep rounded corners on mobile */
-        border-radius: 10px !important;
+        margin: 0 !important;
+        flex: 1 !important;
+        max-height: none !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        border-radius: 0 0 8px 8px !important;
+        overflow: hidden !important;
     }
 
     .logs-container {
-        /* Keep rounded corners on mobile */
-        border-radius: 10px !important;
+        border-radius: 0 0 8px 8px !important;
+        padding: 4px 0 !important;
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
     }
 
     .logs-controls .row {
@@ -536,7 +553,7 @@
     }
 
     .log-entry {
-        padding: 8px 12px;
+        padding: 8px 6px;
         font-size: 12px;
     }
 

@@ -307,7 +307,7 @@
         <div class="panel-content" style="padding: 24px;">
           
           <!-- Resource usage cards -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="dashboard-cards-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             
             <!-- Resources card -->
             <div style="background: var(--color-bg-card); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-md); border: 1px solid var(--color-border);">
@@ -352,15 +352,15 @@
 
                 <!-- Load Average under Disk Usage -->
                 <div id="perf-loadavg-container" style="margin-top: 8px;">
-                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px;">
+                  <div class="load-average-row" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px;">
                     <div style="display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary);">
                       <i class="fas fa-chart-line" style="color: var(--color-info);"></i>
                       <span style="font-size: 0.9rem; font-weight: 500;">Load</span>
                     </div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                      <span style="background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; min-width: 48px; text-align: center; font-variant-numeric: tabular-nums;" id="perf-loadavg-1">—</span>
-                      <span style="background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; min-width: 48px; text-align: center; font-variant-numeric: tabular-nums;" id="perf-loadavg-5">—</span>
-                      <span style="background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; min-width: 48px; text-align: center; font-variant-numeric: tabular-nums;" id="perf-loadavg-15">—</span>
+                    <div class="load-average-badges" style="display: flex; gap: 8px; align-items: center;">
+                      <span class="load-badge" style="background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; min-width: 48px; text-align: center; font-variant-numeric: tabular-nums;" id="perf-loadavg-1">—</span>
+                      <span class="load-badge" style="background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; min-width: 48px; text-align: center; font-variant-numeric: tabular-nums;" id="perf-loadavg-5">—</span>
+                      <span class="load-badge" style="background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; min-width: 48px; text-align: center; font-variant-numeric: tabular-nums;" id="perf-loadavg-15">—</span>
                     </div>
                   </div>
                   
