@@ -4,6 +4,10 @@
 /* global initMsForSelect, rebuildMsForSelect, getMultiSelectValues, fetchPlexLibraries */
 /* global fetchJellyfinLibraries, populatePosterpackLibraries */
 /* global loadMusicGenresForMultiselect, loadMusicArtistsForMultiselect */
+
+// Import UI Components
+import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
+
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -3588,135 +3592,33 @@
         setIf('wallartMode_filmCards_cardRotationSeconds', filmCards.cardRotationSeconds ?? 60);
         setIf('wallartMode_filmCards_posterRotationSeconds', filmCards.posterRotationSeconds ?? 15);
         setIf('wallartMode_filmCards_minGroupSize', filmCards.minGroupSize ?? 3);
-        setIf('wallartMode_filmCards_accentColor', filmCards.accentColor || '#b40f0f');
-        setIf('wallartMode_filmCards_accentColor_text', filmCards.accentColor || '#b40f0f');
+        // Film Cards Accent Color - Using reusable component
+        const filmCardsColorContainer = document.getElementById('filmcards-color-picker-container');
+        if (filmCardsColorContainer) {
+            // Create hidden input for form submission
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'wallartMode_filmCards_accentColor';
+            hiddenInput.value = filmCards.accentColor || '#b40f0f';
 
-        // Sync color picker, text input, circle preview + live preview
-        const colorPicker = document.getElementById('wallartMode_filmCards_accentColor');
-        const colorText = document.getElementById('wallartMode_filmCards_accentColor_text');
-        const colorCircle = document.getElementById('wallartMode_filmCards_accentColor_circle');
-        const colorReset = document.getElementById('wallartMode_filmCards_accentColor_reset');
-        const colorPresets = document.querySelectorAll('.color-preset');
-
-        if (colorPicker && colorText && colorCircle) {
-            // Helper: Send color update to preview iframe
-            const sendColorToPreview = color => {
-                const previewIframe = document.getElementById('display-preview-frame');
-                console.log('[Admin] Sending color to preview:', color, 'iframe:', previewIframe);
-                if (previewIframe && previewIframe.contentWindow) {
-                    console.log('[Admin] Posting message to iframe contentWindow');
-                    previewIframe.contentWindow.postMessage(
-                        {
-                            type: 'FILMCARDS_ACCENT_COLOR_UPDATE',
-                            color: color,
-                        },
-                        '*'
-                    );
-                } else {
-                    console.warn('[Admin] Preview iframe not found or not ready');
-                }
-            };
-
-            // Helper: Update all color displays
-            const updateColor = hex => {
-                colorPicker.value = hex;
-                colorText.value = hex.toUpperCase();
-                colorCircle.style.background = hex;
-                sendColorToPreview(hex);
-
-                // Trigger preview refresh to apply new color
-                const previewIframe = document.getElementById('display-preview-frame');
-                if (previewIframe) {
-                    const currentSrc = previewIframe.src;
-                    const url = new URL(currentSrc);
-                    url.searchParams.set('cb', Date.now());
-                    previewIframe.src = url.toString();
-                }
-
-                // Update preset selection indicator
-                colorPresets.forEach(preset => {
-                    if (preset.dataset.color.toLowerCase() === hex.toLowerCase()) {
-                        preset.style.border = '2px solid rgb(169, 173, 186)';
-                        preset.style.transform = 'scale(1.1)';
-                    } else {
-                        preset.style.border = '2px solid transparent';
-                        preset.style.transform = 'scale(1)';
-                    }
-                });
-            };
-
-            // Initialize color circle with current value
-            updateColor(colorPicker.value);
-
-            // Click on circle opens native color picker
-            colorCircle.addEventListener('click', () => {
-                colorPicker.click();
+            const filmCardsPicker = createColorPicker({
+                label: 'Accent Color',
+                color: filmCards.accentColor || '#b40f0f',
+                defaultColor: '#b40f0f',
+                presets: COLOR_PRESETS,
+                onColorChange: color => {
+                    // Update hidden input for form submission
+                    hiddenInput.value = color;
+                },
+                messageType: 'FILMCARDS_ACCENT_COLOR_UPDATE',
+                refreshIframe: false, // Don't refresh - postMessage listener handles live update
+                iframeId: 'display-preview-frame',
             });
 
-            // Color picker change
-            colorPicker.addEventListener('input', e => {
-                updateColor(e.target.value);
-            });
-
-            // Text input change
-            colorText.addEventListener('input', e => {
-                const hex = e.target.value.trim();
-                if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-                    updateColor(hex);
-                }
-            });
-
-            // Color preset clicks
-            colorPresets.forEach(preset => {
-                preset.addEventListener('click', () => {
-                    updateColor(preset.dataset.color);
-                });
-
-                // Hover effect
-                preset.addEventListener('mouseenter', function () {
-                    if (this.style.border !== '2px solid rgb(169, 173, 186)') {
-                        this.style.transform = 'scale(1.15)';
-                        this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
-                    }
-                });
-                preset.addEventListener('mouseleave', function () {
-                    if (this.style.border !== '2px solid rgb(169, 173, 186)') {
-                        this.style.transform = 'scale(1)';
-                        this.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
-                    }
-                });
-            });
-
-            // Reset button
-            if (colorReset) {
-                colorReset.addEventListener('click', () => {
-                    updateColor('#b40f0f');
-                });
-
-                // Hover effect for reset button
-                colorReset.addEventListener('mouseenter', function () {
-                    this.style.background = 'var(--primary)';
-                    this.style.color = 'white';
-                    this.style.borderColor = 'var(--primary)';
-                });
-                colorReset.addEventListener('mouseleave', function () {
-                    this.style.background = 'var(--bg-light)';
-                    this.style.color = 'var(--text)';
-                    this.style.borderColor = 'var(--border)';
-                });
-            }
-
-            // Circle hover effect
-            colorCircle.addEventListener('mouseenter', function () {
-                this.style.transform = 'scale(1.1)';
-                this.style.boxShadow =
-                    '0 6px 16px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.2)';
-            });
-            colorCircle.addEventListener('mouseleave', function () {
-                this.style.transform = 'scale(1)';
-                this.style.boxShadow =
-                    '0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.2)';
-            });
+            // Replace old HTML with component + hidden input
+            filmCardsColorContainer.innerHTML = '';
+            filmCardsColorContainer.appendChild(hiddenInput);
+            filmCardsColorContainer.appendChild(filmCardsPicker);
         }
 
         // Parallax Depth settings
@@ -3764,157 +3666,36 @@
             sortWeightsRow.style.display = sortModeSelect.value === 'weighted-random' ? '' : 'none';
         }
 
-        // Artist Cards Accent Color
+        // Artist Cards Accent Color - Using reusable component
         const artistCards = musicMode.artistCards || {};
-        setIf(
-            'wallartMode_musicMode_artistCards_accentColor',
-            artistCards.accentColor || '#143c8c'
+        const artistCardsColorContainer = document.getElementById(
+            'artistcards-color-picker-container'
         );
-        setIf(
-            'wallartMode_musicMode_artistCards_accentColor_text',
-            artistCards.accentColor || '#143c8c'
-        );
+        if (artistCardsColorContainer) {
+            // Create hidden input for form submission
+            const hiddenInputMusic = document.createElement('input');
+            hiddenInputMusic.type = 'hidden';
+            hiddenInputMusic.id = 'wallartMode_musicMode_artistCards_accentColor';
+            hiddenInputMusic.value = artistCards.accentColor || '#143c8c';
 
-        // Sync color picker, text input, circle preview + live preview for Artist Cards
-        const colorPickerMusic = document.getElementById(
-            'wallartMode_musicMode_artistCards_accentColor'
-        );
-        const colorTextMusic = document.getElementById(
-            'wallartMode_musicMode_artistCards_accentColor_text'
-        );
-        const colorCircleMusic = document.getElementById(
-            'wallartMode_musicMode_artistCards_accentColor_circle'
-        );
-        const colorResetMusic = document.getElementById(
-            'wallartMode_musicMode_artistCards_accentColor_reset'
-        );
-        const colorPresetsMusic = document.querySelectorAll('.color-preset-music');
-
-        if (colorPickerMusic && colorTextMusic && colorCircleMusic) {
-            // Helper: Send color update to preview iframe
-            const sendColorToPreviewMusic = color => {
-                const previewIframe = document.getElementById('display-preview-frame');
-                console.log(
-                    '[Admin] Sending color to preview (Music):',
-                    color,
-                    'iframe:',
-                    previewIframe
-                );
-                if (previewIframe && previewIframe.contentWindow) {
-                    console.log('[Admin] Posting message to iframe contentWindow (Music)');
-                    previewIframe.contentWindow.postMessage(
-                        {
-                            type: 'ARTISTCARDS_ACCENT_COLOR_UPDATE',
-                            color: color,
-                        },
-                        '*'
-                    );
-                } else {
-                    console.warn('[Admin] Preview iframe not found or not ready (Music)');
-                }
-            };
-
-            // Helper: Update all color displays
-            const updateColorMusic = hex => {
-                colorPickerMusic.value = hex;
-                colorTextMusic.value = hex.toUpperCase();
-                colorCircleMusic.style.background = hex;
-                sendColorToPreviewMusic(hex);
-
-                // Trigger preview refresh to apply new color
-                const previewIframe = document.getElementById('display-preview-frame');
-                if (previewIframe) {
-                    const currentSrc = previewIframe.src;
-                    const url = new URL(currentSrc);
-                    url.searchParams.set('cb', Date.now());
-                    previewIframe.src = url.toString();
-                }
-
-                // Update preset selection indicator
-                colorPresetsMusic.forEach(preset => {
-                    if (preset.dataset.color.toLowerCase() === hex.toLowerCase()) {
-                        preset.style.border = '2px solid rgb(169, 173, 186)';
-                        preset.style.transform = 'scale(1.1)';
-                    } else {
-                        preset.style.border = '2px solid transparent';
-                        preset.style.transform = 'scale(1)';
-                    }
-                });
-            };
-
-            // Initialize color circle with current value
-            updateColorMusic(colorPickerMusic.value);
-
-            // Click on circle opens native color picker
-            colorCircleMusic.addEventListener('click', () => {
-                colorPickerMusic.click();
+            const artistCardsPicker = createColorPicker({
+                label: 'Accent Color',
+                color: artistCards.accentColor || '#143c8c',
+                defaultColor: '#143c8c',
+                presets: COLOR_PRESETS,
+                onColorChange: color => {
+                    // Update hidden input for form submission
+                    hiddenInputMusic.value = color;
+                },
+                messageType: 'ARTISTCARDS_ACCENT_COLOR_UPDATE',
+                refreshIframe: false, // Don't refresh - postMessage listener handles live update
+                iframeId: 'display-preview-frame',
             });
 
-            // Color picker change
-            colorPickerMusic.addEventListener('input', e => {
-                updateColorMusic(e.target.value);
-            });
-
-            // Text input change
-            colorTextMusic.addEventListener('input', e => {
-                const hex = e.target.value.trim();
-                if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-                    updateColorMusic(hex);
-                }
-            });
-
-            // Color preset clicks
-            colorPresetsMusic.forEach(preset => {
-                preset.addEventListener('click', () => {
-                    updateColorMusic(preset.dataset.color);
-                });
-
-                // Hover effect
-                preset.addEventListener('mouseenter', function () {
-                    if (this.style.border !== '2px solid rgb(169, 173, 186)') {
-                        this.style.transform = 'scale(1.15)';
-                        this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
-                    }
-                });
-                preset.addEventListener('mouseleave', function () {
-                    if (this.style.border !== '2px solid rgb(169, 173, 186)') {
-                        this.style.transform = 'scale(1)';
-                        this.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
-                    }
-                });
-            });
-
-            // Reset button (Deep Blue default)
-            if (colorResetMusic) {
-                colorResetMusic.addEventListener('click', () => {
-                    updateColorMusic('#143c8c');
-                });
-
-                // Set initial color and hover effect for reset button
-                colorResetMusic.style.color = 'var(--text)';
-                colorResetMusic.addEventListener('mouseenter', function () {
-                    this.style.background = 'var(--primary)';
-                    this.style.color = 'white';
-                    this.style.borderColor = 'var(--primary)';
-                });
-                colorResetMusic.addEventListener('mouseleave', function () {
-                    this.style.background = 'var(--bg-light)';
-                    this.style.color = 'var(--text)';
-                    this.style.borderColor = 'var(--border)';
-                });
-            }
-
-            // Circle hover effect
-            colorCircleMusic.addEventListener('mouseenter', function () {
-                this.style.transform = 'scale(1.1)';
-                this.style.boxShadow =
-                    '0 6px 16px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.2)';
-            });
-            colorCircleMusic.addEventListener('mouseleave', function () {
-                this.style.transform = 'scale(1)';
-                this.style.boxShadow =
-                    '0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.2)';
-            });
+            // Replace old HTML with component + hidden input
+            artistCardsColorContainer.innerHTML = '';
+            artistCardsColorContainer.appendChild(hiddenInputMusic);
+            artistCardsColorContainer.appendChild(artistCardsPicker);
         }
 
         // Columns / Items per screen / Grid transition removed in Admin v2; Density controls layout.
