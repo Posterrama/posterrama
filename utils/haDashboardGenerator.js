@@ -15,7 +15,7 @@ class HADashboardGenerator {
     /**
      * Generate dashboard YAML for selected devices
      * @param {Array} devices - Array of device objects to include
-     * @param {Array} deviceIds - Device IDs to include
+     * @param {Array} [_deviceIds] - Device IDs to include (unused)
      * @returns {string} YAML configuration
      */
     generateDashboard(devices = [], _deviceIds = []) {
