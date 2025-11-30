@@ -845,12 +845,76 @@
                         <div class="select-wrap has-caret">
                           <select id="wallartMode_layoutVariant">
                             <option value="heroGrid">Hero Grid</option>
+                            <option value="filmCards">Film Cards</option>
                             <option value="classic">Classic</option>
                           </select>
                           <span class="select-caret" aria-hidden="true">▾</span>
                         </div>
                       </div>
                       
+                    </div>
+                  </div>
+
+                  <!-- Film Cards Settings card -->
+                  <div class="mode-card" id="wallart-filmcards-card" data-card-key="filmcards" style="padding:12px; display:none;">
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;">
+                      <i class="fas fa-th-large"></i> Film Cards Settings
+                    </div>
+                    <div class="form-grid">
+                      <!-- Card Gap -->
+                      <div class="form-row">
+                        <label for="wallartMode_filmCards_cardGap">
+                          Card Gap
+                          <span class="help-text">Space between cards (px)</span>
+                        </label>
+                        <input type="range" id="wallartMode_filmCards_cardGap" min="0" max="40" value="12" step="2" class="slider" />
+                        <output for="wallartMode_filmCards_cardGap" class="slider-value">12px</output>
+                      </div>
+
+                      <!-- Border Radius -->
+                      <div class="form-row">
+                        <label for="wallartMode_filmCards_cardBorderRadius">
+                          Border Radius
+                          <span class="help-text">Roundness of card corners (px)</span>
+                        </label>
+                        <input type="range" id="wallartMode_filmCards_cardBorderRadius" min="0" max="24" value="10" step="2" class="slider" />
+                        <output for="wallartMode_filmCards_cardBorderRadius" class="slider-value">10px</output>
+                      </div>
+
+                      <!-- Card Elevation -->
+                      <div class="form-row">
+                        <label for="wallartMode_filmCards_cardElevation">Shadow Depth</label>
+                        <div class="select-wrap has-caret">
+                          <select id="wallartMode_filmCards_cardElevation">
+                            <option value="subtle">Subtle</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                      </div>
+
+                      <!-- Metadata Style -->
+                      <div class="form-row">
+                        <label for="wallartMode_filmCards_metadataStyle">Metadata Style</label>
+                        <div class="select-wrap has-caret">
+                          <select id="wallartMode_filmCards_metadataStyle">
+                            <option value="gradient" selected>Gradient Overlay</option>
+                            <option value="solid">Solid Bar</option>
+                            <option value="minimal">Minimal</option>
+                          </select>
+                          <span class="select-caret" aria-hidden="true">▾</span>
+                        </div>
+                      </div>
+
+                      <!-- Show Metadata Toggle -->
+                      <div class="form-row">
+                        <label class="checkbox" for="wallartMode_filmCards_showMetadata">
+                          <input type="checkbox" id="wallartMode_filmCards_showMetadata" checked />
+                          <span class="checkmark"></span>
+                          <span>Show title & metadata</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
 

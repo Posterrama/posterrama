@@ -3582,6 +3582,14 @@
         setIf('wallartMode_ambientGradient', w.ambientGradient === true);
         setIf('wallartMode_gamesOnly', w.gamesOnly === true);
 
+        // Film Cards settings
+        const filmCards = (w.layoutSettings || {}).filmCards || {};
+        setIf('wallartMode_filmCards_cardGap', filmCards.cardGap ?? 12);
+        setIf('wallartMode_filmCards_cardBorderRadius', filmCards.cardBorderRadius ?? 10);
+        setIf('wallartMode_filmCards_cardElevation', filmCards.cardElevation || 'medium');
+        setIf('wallartMode_filmCards_metadataStyle', filmCards.metadataStyle || 'gradient');
+        setIf('wallartMode_filmCards_showMetadata', filmCards.showMetadata !== false);
+
         // Parallax Depth settings
         const parallaxDepth = w.parallaxDepth || {};
         setIf('wallartMode_parallaxDepth_layerCount', parallaxDepth.layerCount ?? 3);
@@ -3832,7 +3840,7 @@
             /* mutual exclusivity logic failed */
         }
 
-        // Wallart: show hero settings only for heroGrid layout
+        // Wallart: show hero settings only for heroGrid layout, filmCards settings for filmCards
         try {
             const layoutSel = document.getElementById('wallartMode_layoutVariant');
             const heroSideRow = document
@@ -3844,18 +3852,24 @@
             const heroBiasRow = document
                 .getElementById('wallartMode_biasAmbientToHero')
                 ?.closest('.form-row');
-            const applyHeroVis = () => {
-                const isHero = layoutSel?.value === 'heroGrid';
+            const applyLayoutVis = () => {
+                const layout = layoutSel?.value || 'heroGrid';
+                const isHero = layout === 'heroGrid';
+                const isFilmCards = layout === 'filmCards';
+
                 [heroSideRow, heroRotRow, heroBiasRow].forEach(row => {
                     if (row) row.style.display = isHero ? '' : 'none';
                 });
                 const heroCard = document.getElementById('wallart-hero-card');
                 if (heroCard) heroCard.style.display = isHero ? '' : 'none';
+
+                const filmCardsCard = document.getElementById('wallart-filmcards-card');
+                if (filmCardsCard) filmCardsCard.style.display = isFilmCards ? '' : 'none';
             };
-            layoutSel?.addEventListener('change', applyHeroVis);
-            applyHeroVis();
+            layoutSel?.addEventListener('change', applyLayoutVis);
+            applyLayoutVis();
         } catch (_) {
-            /* hero layout visibility toggle failed (defaults still sensible) */
+            /* layout visibility toggle failed (defaults still sensible) */
         }
 
         // Wallart: Ambience — keep Bias visible regardless of Ambient Gradient state (as requested)
@@ -5555,6 +5569,14 @@
                         heroSide: val('wallartMode_heroSide'),
                         heroRotationMinutes: val('wallartMode_heroRotationMinutes'),
                         biasAmbientToHero: val('wallartMode_biasAmbientToHero'),
+                    },
+                    filmCards: {
+                        cardGap: parseInt(val('wallartMode_filmCards_cardGap')) || 12,
+                        cardBorderRadius:
+                            parseInt(val('wallartMode_filmCards_cardBorderRadius')) || 10,
+                        cardElevation: val('wallartMode_filmCards_cardElevation') || 'medium',
+                        metadataStyle: val('wallartMode_filmCards_metadataStyle') || 'gradient',
+                        showMetadata: val('wallartMode_filmCards_showMetadata'),
                     },
                 },
             },

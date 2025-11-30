@@ -1540,6 +1540,98 @@
                                     occupied[r][c] = true;
                                 }
                             }
+                        } else if (effectiveLayoutVariant === 'filmCards') {
+                            // Film Cards layout - Premium Netflix/Apple TV+ style
+                            const cardCfg = (wallartConfig.layoutSettings || {}).filmCards || {};
+                            const cardGap = parseInt(cardCfg.cardGap) ?? 12;
+                            const borderRadius = parseInt(cardCfg.cardBorderRadius) ?? 10;
+                            const elevation = cardCfg.cardElevation || 'medium';
+                            const metadataStyle = cardCfg.metadataStyle || 'gradient';
+                            const showMetadata = cardCfg.showMetadata !== false;
+
+                            // Shadow presets for elevation
+                            const shadows = {
+                                subtle: '0 2px 8px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1)',
+                                medium: '0 4px 12px rgba(0,0,0,0.25), 0 2px 6px rgba(0,0,0,0.15)',
+                                high: '0 8px 24px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.2)',
+                            };
+
+                            wallartGrid.style.gap = `${cardGap}px`;
+                            wallartGrid.dataset.layoutVariant = 'filmCards';
+
+                            // Create metadata overlay helper
+                            const createMetadataOverlay = item => {
+                                const overlay = document.createElement('div');
+                                overlay.className = `wallart-card-metadata wallart-card-metadata-${metadataStyle}`;
+
+                                const title = item.title || item.name || 'Unknown Title';
+                                const year = item.year || item.releaseDate?.split('-')[0] || '';
+                                const rating = item.rating
+                                    ? parseFloat(item.rating).toFixed(1)
+                                    : null;
+
+                                let metadataHTML = `
+                                    <div class="card-title">${title}</div>
+                                `;
+
+                                if (year || rating) {
+                                    metadataHTML += `<div class="card-info">`;
+                                    if (year)
+                                        metadataHTML += `<span class="card-year">${year}</span>`;
+                                    if (rating && year)
+                                        metadataHTML += `<span class="card-separator">•</span>`;
+                                    if (rating)
+                                        metadataHTML += `<span class="card-rating"><i class="fas fa-star"></i> ${rating}</span>`;
+                                    metadataHTML += `</div>`;
+                                }
+
+                                overlay.innerHTML = metadataHTML;
+                                return overlay;
+                            };
+
+                            // Place cards with staggered animation
+                            for (let i = 0; i < posterCount; i++) {
+                                const poster = pickUnique(null);
+                                if (!poster) break;
+                                currentPosters.push(poster);
+
+                                const el = api.runtime.createPosterElement(
+                                    poster,
+                                    i,
+                                    1,
+                                    layoutInfo.actualPosterWidth
+                                );
+                                if (!el) continue;
+
+                                // Apply premium card styling
+                                el.style.borderRadius = `${borderRadius}px`;
+                                el.style.boxShadow = shadows[elevation];
+                                el.style.overflow = 'hidden';
+                                el.style.transition =
+                                    'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, opacity 0.5s ease';
+                                el.dataset.cardElevation = elevation;
+
+                                // Add metadata overlay if enabled
+                                if (showMetadata) {
+                                    const overlay = createMetadataOverlay(poster);
+                                    el.appendChild(overlay);
+                                }
+
+                                // Staggered reveal animation
+                                const col = i % cols;
+                                const row = Math.floor(i / cols);
+                                const delay = col * 50 + row * 80;
+
+                                el.style.opacity = '0';
+                                el.style.transform = 'translateY(20px) scale(0.95)';
+
+                                setTimeout(() => {
+                                    el.style.opacity = '1';
+                                    el.style.transform = 'translateY(0) scale(1)';
+                                }, delay);
+
+                                wallartGrid.appendChild(el);
+                            }
                         } else {
                             // Classic layout
                             wallartGrid.dataset.layoutVariant = 'classic';

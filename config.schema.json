@@ -156,9 +156,9 @@
                 },
                 "layoutVariant": {
                     "type": "string",
-                    "enum": ["classic", "heroGrid"],
+                    "enum": ["classic", "heroGrid", "filmCards"],
                     "default": "heroGrid",
-                    "description": "Wallart layout variant - heroGrid recommended for modern look"
+                    "description": "Wallart layout variant - heroGrid recommended for modern look, filmCards for elegant card-based display"
                 },
                 "ambientGradient": {
                     "type": "boolean",
@@ -188,6 +188,42 @@
                                     "type": "boolean",
                                     "default": true,
                                     "description": "Weight ambient gradient sampling more toward the hero image"
+                                }
+                            }
+                        },
+                        "filmCards": {
+                            "type": "object",
+                            "properties": {
+                                "cardGap": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 40,
+                                    "default": 12,
+                                    "description": "Gap between cards in pixels (0-40)"
+                                },
+                                "cardBorderRadius": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 24,
+                                    "default": 10,
+                                    "description": "Border radius for cards in pixels (0-24)"
+                                },
+                                "showMetadata": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Show title and metadata overlay on cards"
+                                },
+                                "cardElevation": {
+                                    "type": "string",
+                                    "enum": ["subtle", "medium", "high"],
+                                    "default": "medium",
+                                    "description": "Shadow depth for card elevation effect"
+                                },
+                                "metadataStyle": {
+                                    "type": "string",
+                                    "enum": ["gradient", "solid", "minimal"],
+                                    "default": "gradient",
+                                    "description": "Visual style for metadata overlay"
                                 }
                             }
                         }
