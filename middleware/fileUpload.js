@@ -171,8 +171,10 @@ function createFileFilter(config) {
 
             // Check if extension is supported
             if (!supportedFormats.includes(ext)) {
-                const error = new Error(
-                    `File type .${ext} not supported for ${targetDirectory}. Supported: ${supportedFormats.join(', ')}`
+                const error = /** @type {any} */ (
+                    new Error(
+                        `File type .${ext} not supported for ${targetDirectory}. Supported: ${supportedFormats.join(', ')}`
+                    )
                 );
                 error.code = 'INVALID_FILE_TYPE';
                 return cb(error, false);
@@ -226,7 +228,7 @@ function createUploadMiddleware(config) {
  * Handle file upload completion
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
- * @param {Function} next - Express next function
+ * @param {Function} _next - Express next function (unused)
  */
 async function handleUploadComplete(req, res, _next) {
     try {
@@ -325,7 +327,7 @@ async function handleUploadComplete(req, res, _next) {
  * Validate uploaded file
  * @param {string} filePath - Path to uploaded file
  * @param {Object} config - Application configuration
- * @returns {boolean} True if file is valid
+ * @returns {Promise<boolean>} True if file is valid
  */
 async function validateUploadedFile(filePath, config) {
     try {
@@ -351,7 +353,7 @@ async function validateUploadedFile(filePath, config) {
 /**
  * Validate file type by reading file header
  * @param {string} filePath - Path to file
- * @returns {boolean} True if file type is valid
+ * @returns {Promise<boolean>} True if file type is valid
  */
 async function validateFileTypeFromHeader(filePath) {
     try {
@@ -388,7 +390,7 @@ async function validateFileTypeFromHeader(filePath) {
  * @param {Object} file - Multer file object
  * @param {string} originalName - Original filename
  * @param {Object} req - Express request object (for auth context)
- * @returns {Object} Generated metadata
+ * @returns {Promise<Object>} Generated metadata
  */
 async function generateFileMetadata(file, originalName, req) {
     const nameWithoutExt = path.parse(originalName).name;
@@ -446,29 +448,30 @@ function getMetadataPath(filePath) {
  * @param {Error} error - Error object
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
- * @param {Function} next - Express next function
+ * @param {Function} _next - Express next function (unused)
  */
 function handleUploadError(error, req, res, _next) {
     logger.error('FileUpload: Upload error:', error);
 
+    const err = /** @type {any} */ (error);
     // Handle specific error types
-    if (error.code === 'LIMIT_FILE_SIZE') {
+    if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({
             success: false,
             error: 'File too large',
-            message: `Maximum file size exceeded. Limit: ${Math.round(error.limit / 1024 / 1024)}MB`,
+            message: `Maximum file size exceeded. Limit: ${Math.round(err.limit / 1024 / 1024)}MB`,
         });
     }
 
-    if (error.code === 'LIMIT_FILE_COUNT') {
+    if (err.code === 'LIMIT_FILE_COUNT') {
         return res.status(413).json({
             success: false,
             error: 'Too many files',
-            message: `Maximum ${error.limit} files allowed per upload`,
+            message: `Maximum ${err.limit} files allowed per upload`,
         });
     }
 
-    if (error.code === 'INVALID_FILE_TYPE') {
+    if (err.code === 'INVALID_FILE_TYPE') {
         return res.status(400).json({
             success: false,
             error: 'Invalid file type',
