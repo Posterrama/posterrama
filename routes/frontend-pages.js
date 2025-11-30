@@ -605,6 +605,18 @@ module.exports = function createFrontendPagesRouter({
                     `/wallart/artist-cards.js?v=${versions['wallart/artist-cards.js'] || ASSET_VERSION}`
                 )
                 .replace(
+                    /\/wallart\/film-cards\.js(\?v=[^"'\s>]+)?/g,
+                    `/wallart/film-cards.js?v=${versions['wallart/film-cards.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/wallart\/parallax-scrolling\.js(\?v=[^"'\s>]+)?/g,
+                    `/wallart/parallax-scrolling.js?v=${versions['wallart/parallax-scrolling.js'] || ASSET_VERSION}`
+                )
+                .replace(
+                    /\/core\.js(\?v=[^"'\s>]+)?/g,
+                    `/core.js?v=${versions['core.js'] || ASSET_VERSION}`
+                )
+                .replace(
                     /device-mgmt\.js\?v=[^"&\s]+/g,
                     `device-mgmt.js?v=${versions['device-mgmt.js'] || ASSET_VERSION}`
                 )

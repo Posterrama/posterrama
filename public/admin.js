@@ -3601,8 +3601,10 @@
         if (colorPicker && colorText && colorCircle) {
             // Helper: Send color update to preview iframe
             const sendColorToPreview = color => {
-                const previewIframe = document.getElementById('preview-iframe');
+                const previewIframe = document.getElementById('display-preview-frame');
+                console.log('[Admin] Sending color to preview:', color, 'iframe:', previewIframe);
                 if (previewIframe && previewIframe.contentWindow) {
+                    console.log('[Admin] Posting message to iframe contentWindow');
                     previewIframe.contentWindow.postMessage(
                         {
                             type: 'FILMCARDS_ACCENT_COLOR_UPDATE',
@@ -3610,6 +3612,8 @@
                         },
                         '*'
                     );
+                } else {
+                    console.warn('[Admin] Preview iframe not found or not ready');
                 }
             };
 
@@ -3620,10 +3624,19 @@
                 colorCircle.style.background = hex;
                 sendColorToPreview(hex);
 
+                // Trigger preview refresh to apply new color
+                const previewIframe = document.getElementById('display-preview-frame');
+                if (previewIframe) {
+                    const currentSrc = previewIframe.src;
+                    const url = new URL(currentSrc);
+                    url.searchParams.set('cb', Date.now());
+                    previewIframe.src = url.toString();
+                }
+
                 // Update preset selection indicator
                 colorPresets.forEach(preset => {
                     if (preset.dataset.color.toLowerCase() === hex.toLowerCase()) {
-                        preset.style.border = '2px solid #3b82f6';
+                        preset.style.border = '2px solid rgb(169, 173, 186)';
                         preset.style.transform = 'scale(1.1)';
                     } else {
                         preset.style.border = '2px solid transparent';
@@ -3661,13 +3674,13 @@
 
                 // Hover effect
                 preset.addEventListener('mouseenter', function () {
-                    if (this.style.border !== '2px solid rgb(59, 130, 246)') {
+                    if (this.style.border !== '2px solid rgb(169, 173, 186)') {
                         this.style.transform = 'scale(1.15)';
                         this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
                     }
                 });
                 preset.addEventListener('mouseleave', function () {
-                    if (this.style.border !== '2px solid rgb(59, 130, 246)') {
+                    if (this.style.border !== '2px solid rgb(169, 173, 186)') {
                         this.style.transform = 'scale(1)';
                         this.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
                     }
@@ -3749,6 +3762,159 @@
         const sortModeSelect = document.getElementById('wallartMode_musicMode_sortMode');
         if (sortWeightsRow && sortModeSelect) {
             sortWeightsRow.style.display = sortModeSelect.value === 'weighted-random' ? '' : 'none';
+        }
+
+        // Artist Cards Accent Color
+        const artistCards = musicMode.artistCards || {};
+        setIf(
+            'wallartMode_musicMode_artistCards_accentColor',
+            artistCards.accentColor || '#143c8c'
+        );
+        setIf(
+            'wallartMode_musicMode_artistCards_accentColor_text',
+            artistCards.accentColor || '#143c8c'
+        );
+
+        // Sync color picker, text input, circle preview + live preview for Artist Cards
+        const colorPickerMusic = document.getElementById(
+            'wallartMode_musicMode_artistCards_accentColor'
+        );
+        const colorTextMusic = document.getElementById(
+            'wallartMode_musicMode_artistCards_accentColor_text'
+        );
+        const colorCircleMusic = document.getElementById(
+            'wallartMode_musicMode_artistCards_accentColor_circle'
+        );
+        const colorResetMusic = document.getElementById(
+            'wallartMode_musicMode_artistCards_accentColor_reset'
+        );
+        const colorPresetsMusic = document.querySelectorAll('.color-preset-music');
+
+        if (colorPickerMusic && colorTextMusic && colorCircleMusic) {
+            // Helper: Send color update to preview iframe
+            const sendColorToPreviewMusic = color => {
+                const previewIframe = document.getElementById('display-preview-frame');
+                console.log(
+                    '[Admin] Sending color to preview (Music):',
+                    color,
+                    'iframe:',
+                    previewIframe
+                );
+                if (previewIframe && previewIframe.contentWindow) {
+                    console.log('[Admin] Posting message to iframe contentWindow (Music)');
+                    previewIframe.contentWindow.postMessage(
+                        {
+                            type: 'ARTISTCARDS_ACCENT_COLOR_UPDATE',
+                            color: color,
+                        },
+                        '*'
+                    );
+                } else {
+                    console.warn('[Admin] Preview iframe not found or not ready (Music)');
+                }
+            };
+
+            // Helper: Update all color displays
+            const updateColorMusic = hex => {
+                colorPickerMusic.value = hex;
+                colorTextMusic.value = hex.toUpperCase();
+                colorCircleMusic.style.background = hex;
+                sendColorToPreviewMusic(hex);
+
+                // Trigger preview refresh to apply new color
+                const previewIframe = document.getElementById('display-preview-frame');
+                if (previewIframe) {
+                    const currentSrc = previewIframe.src;
+                    const url = new URL(currentSrc);
+                    url.searchParams.set('cb', Date.now());
+                    previewIframe.src = url.toString();
+                }
+
+                // Update preset selection indicator
+                colorPresetsMusic.forEach(preset => {
+                    if (preset.dataset.color.toLowerCase() === hex.toLowerCase()) {
+                        preset.style.border = '2px solid rgb(169, 173, 186)';
+                        preset.style.transform = 'scale(1.1)';
+                    } else {
+                        preset.style.border = '2px solid transparent';
+                        preset.style.transform = 'scale(1)';
+                    }
+                });
+            };
+
+            // Initialize color circle with current value
+            updateColorMusic(colorPickerMusic.value);
+
+            // Click on circle opens native color picker
+            colorCircleMusic.addEventListener('click', () => {
+                colorPickerMusic.click();
+            });
+
+            // Color picker change
+            colorPickerMusic.addEventListener('input', e => {
+                updateColorMusic(e.target.value);
+            });
+
+            // Text input change
+            colorTextMusic.addEventListener('input', e => {
+                const hex = e.target.value.trim();
+                if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+                    updateColorMusic(hex);
+                }
+            });
+
+            // Color preset clicks
+            colorPresetsMusic.forEach(preset => {
+                preset.addEventListener('click', () => {
+                    updateColorMusic(preset.dataset.color);
+                });
+
+                // Hover effect
+                preset.addEventListener('mouseenter', function () {
+                    if (this.style.border !== '2px solid rgb(169, 173, 186)') {
+                        this.style.transform = 'scale(1.15)';
+                        this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
+                    }
+                });
+                preset.addEventListener('mouseleave', function () {
+                    if (this.style.border !== '2px solid rgb(169, 173, 186)') {
+                        this.style.transform = 'scale(1)';
+                        this.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
+                    }
+                });
+            });
+
+            // Reset button (Deep Blue default)
+            if (colorResetMusic) {
+                colorResetMusic.addEventListener('click', () => {
+                    updateColorMusic('#143c8c');
+                });
+
+                // Set initial color and hover effect for reset button
+                colorResetMusic.style.color = 'var(--text)';
+                colorResetMusic.addEventListener('mouseenter', function () {
+                    this.style.background = 'var(--primary)';
+                    this.style.color = 'white';
+                    this.style.borderColor = 'var(--primary)';
+                });
+                colorResetMusic.addEventListener('mouseleave', function () {
+                    this.style.background = 'var(--bg-light)';
+                    this.style.color = 'var(--text)';
+                    this.style.borderColor = 'var(--border)';
+                });
+            }
+
+            // Circle hover effect
+            colorCircleMusic.addEventListener('mouseenter', function () {
+                this.style.transform = 'scale(1.1)';
+                this.style.boxShadow =
+                    '0 6px 16px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.2)';
+            });
+            colorCircleMusic.addEventListener('mouseleave', function () {
+                this.style.transform = 'scale(1)';
+                this.style.boxShadow =
+                    '0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.2)';
+            });
         }
 
         // Columns / Items per screen / Grid transition removed in Admin v2; Density controls layout.
@@ -3851,7 +4017,17 @@
                     }
 
                     // Hide wallart cards that don't affect Music Mode
-                    const isMusicMode = musicModeCheckbox.checked;
+                    updateMusicModeCardVisibility();
+                });
+
+                // Helper function to update card visibility based on music mode state
+                const updateMusicModeCardVisibility = () => {
+                    const isMusicMode = musicModeCheckbox?.checked || false;
+                    console.log(
+                        '[Admin] updateMusicModeCardVisibility called, isMusicMode:',
+                        isMusicMode
+                    );
+
                     const tempoCard = document.querySelector('.mode-card[data-card-key="tempo"]');
                     const animationCard = document.querySelector(
                         '.mode-card[data-card-key="animation"]'
@@ -3861,13 +4037,36 @@
                         '.mode-card[data-card-key="ambience"]'
                     );
                     const heroCard = document.querySelector('.mode-card[data-card-key="hero"]');
+                    const filmcardsCard = document.querySelector(
+                        '.mode-card[data-card-key="filmcards"]'
+                    );
+
+                    console.log('[Admin] Found cards:', {
+                        tempo: !!tempoCard,
+                        animation: !!animationCard,
+                        layout: !!layoutCard,
+                        ambience: !!ambienceCard,
+                        hero: !!heroCard,
+                        filmcards: !!filmcardsCard,
+                    });
 
                     if (tempoCard) tempoCard.style.display = isMusicMode ? 'none' : '';
                     if (animationCard) animationCard.style.display = isMusicMode ? 'none' : '';
                     if (layoutCard) layoutCard.style.display = isMusicMode ? 'none' : '';
                     if (ambienceCard) ambienceCard.style.display = isMusicMode ? 'none' : '';
                     if (heroCard) heroCard.style.display = isMusicMode ? 'none' : '';
-                });
+                    if (filmcardsCard) {
+                        console.log(
+                            '[Admin] Setting filmcardsCard display to:',
+                            isMusicMode ? 'none' : ''
+                        );
+                        filmcardsCard.style.display = isMusicMode ? 'none' : '';
+                    }
+                };
+
+                // Apply initial visibility state immediately
+                console.log('[Admin] Calling updateMusicModeCardVisibility on page load');
+                updateMusicModeCardVisibility();
 
                 // Hide density and display options for artist-cards mode
                 const displayStyleSelect = document.getElementById(
@@ -3878,6 +4077,7 @@
                 const displayOptionsRow = document.getElementById('musicMode_displayOptionsRow');
                 const artistRotationRow = document.getElementById('musicMode_artistRotationRow');
                 const albumRotationRow = document.getElementById('musicMode_albumRotationRow');
+                const accentColorRow = document.getElementById('musicMode_accentColorRow');
 
                 const toggleMusicModeOptions = () => {
                     const displayStyle = displayStyleSelect?.value;
@@ -3902,6 +4102,9 @@
                     // Show album rotation slider only for artist-cards mode
                     if (albumRotationRow)
                         albumRotationRow.style.display = isArtistCards ? '' : 'none';
+
+                    // Show accent color only for artist-cards mode
+                    if (accentColorRow) accentColorRow.style.display = isArtistCards ? '' : 'none';
                 };
 
                 displayStyleSelect?.addEventListener('change', toggleMusicModeOptions);
@@ -3973,6 +4176,10 @@
                 const isHero = layout === 'heroGrid';
                 const isFilmCards = layout === 'filmCards';
 
+                // Check if Music Mode is enabled - if so, hide Film Cards card regardless of layout
+                const musicModeCheckbox = document.getElementById('wallartMode_musicMode_enabled');
+                const isMusicMode = musicModeCheckbox?.checked || false;
+
                 [heroSideRow, heroRotRow, heroBiasRow].forEach(row => {
                     if (row) row.style.display = isHero ? '' : 'none';
                 });
@@ -3980,7 +4187,9 @@
                 if (heroCard) heroCard.style.display = isHero ? '' : 'none';
 
                 const filmCardsCard = document.getElementById('wallart-filmcards-card');
-                if (filmCardsCard) filmCardsCard.style.display = isFilmCards ? '' : 'none';
+                // Only show Film Cards card if layout is filmCards AND Music Mode is NOT enabled
+                if (filmCardsCard)
+                    filmCardsCard.style.display = isFilmCards && !isMusicMode ? '' : 'none';
 
                 // Hide density for filmCards (doesn't apply to fullscreen cards)
                 const densityRow = document
@@ -5684,6 +5893,10 @@
                         recent: parseInt(val('wallartMode_musicMode_sortWeight_recent')) || 20,
                         popular: parseInt(val('wallartMode_musicMode_sortWeight_popular')) || 30,
                         random: parseInt(val('wallartMode_musicMode_sortWeight_random')) || 50,
+                    },
+                    artistCards: {
+                        accentColor:
+                            val('wallartMode_musicMode_artistCards_accentColor') || '#143c8c',
                     },
                 },
                 layoutSettings: {

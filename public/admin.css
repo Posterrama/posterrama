@@ -16124,3 +16124,51 @@ select.input-error:focus {
 #wallartMode_filmCards_accentColor_reset:active {
     transform: translateY(0);
 }
+
+/* Artist Cards Accent Color Picker Enhancements */
+.color-preset-music {
+    position: relative;
+}
+
+.color-preset-music::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+    pointer-events: none;
+}
+
+#wallartMode_musicMode_artistCards_accentColor_circle {
+    position: relative;
+}
+
+#wallartMode_musicMode_artistCards_accentColor_circle::before {
+    content: '\f1fc';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 24px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    z-index: 1;
+}
+
+#wallartMode_musicMode_artistCards_accentColor_circle:hover::before {
+    opacity: 0.8;
+}
+
+#wallartMode_musicMode_artistCards_accentColor_reset:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+#wallartMode_musicMode_artistCards_accentColor_reset:active {
+    transform: translateY(0);
+}

@@ -1196,8 +1196,23 @@
                                 excludeId
                             );
 
-                        // Music mode uses the same layout as configured in wallart
-                        const effectiveLayoutVariant = layoutVariant;
+                        // Determine effective layout - Music mode overrides filmCards unless artist-cards is active
+                        const isMusicModeEnabled =
+                            appConfig?.wallartMode?.musicMode?.enabled === true;
+                        const musicDisplayStyle = appConfig?.wallartMode?.musicMode?.displayStyle;
+                        let effectiveLayoutVariant = layoutVariant;
+
+                        // If Music Mode is enabled and layout is filmCards, override to classic unless artist-cards is the display style
+                        if (
+                            isMusicModeEnabled &&
+                            layoutVariant === 'filmCards' &&
+                            musicDisplayStyle !== 'artist-cards'
+                        ) {
+                            console.log(
+                                '[Wallart Display] Music Mode enabled with non-artist-cards style, overriding filmCards layout to classic'
+                            );
+                            effectiveLayoutVariant = 'classic';
+                        }
 
                         if (effectiveLayoutVariant === 'heroGrid') {
                             // Determine hero settings

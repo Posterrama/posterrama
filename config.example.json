@@ -57,6 +57,9 @@
                 "recent": 20,
                 "popular": 30,
                 "random": 50
+            },
+            "artistCards": {
+                "accentColor": "#143c8c"
             }
         }
     },

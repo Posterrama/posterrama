@@ -927,8 +927,7 @@
                       <!-- Accent Color -->
                       <div class="form-row" style="display: block;">
                         <label for="wallartMode_filmCards_accentColor" style="display: block; margin-bottom: 12px;">
-                          <i class="fas fa-palette"></i> Cinematic Filter Color
-                          <span class="help-text">Custom accent color for film cards</span>
+                          <i class="fas fa-palette"></i> Accent Color
                         </label>
                         
                         <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -936,7 +935,7 @@
                           <div style="display: flex; align-items: center; gap: 16px;">
                             <div style="position: relative;">
                               <input type="color" id="wallartMode_filmCards_accentColor" value="#b40f0f" style="opacity: 0; position: absolute; width: 0; height: 0;" />
-                              <div id="wallartMode_filmCards_accentColor_circle" style="width: 64px; height: 64px; border-radius: 50%; background: #b40f0f; border: 3px solid #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.2); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden;">
+                              <div id="wallartMode_filmCards_accentColor_circle" style="width: 64px; height: 64px; border-radius: 50%; background: #b40f0f; border: 3px solid rgb(40, 46, 62); box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.2); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden;">
                                 <div style="position: absolute; inset: 0; background: linear-gradient(135deg, transparent 0%, rgba(0,0,0,0.2) 100%);"></div>
                               </div>
                             </div>
@@ -946,8 +945,10 @@
                               <div class="color-preset" data-color="#b40f0f" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #b40f0f 0%, #780505 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Classic Red (Default)"></div>
                               <div class="color-preset" data-color="#1e40af" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #1e40af 0%, #0f2a6e 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Deep Blue"></div>
                               <div class="color-preset" data-color="#15803d" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #15803d 0%, #0d5528 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Forest Green"></div>
+                              <div class="color-preset" data-color="#0e7490" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #0e7490 0%, #084c61 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Ocean Teal"></div>
                               <div class="color-preset" data-color="#7c2d12" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #7c2d12 0%, #531e0c 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Warm Brown"></div>
                               <div class="color-preset" data-color="#6b21a8" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6b21a8 0%, #471670 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Royal Purple"></div>
+                              <div class="color-preset" data-color="#be123c" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #be123c 0%, #7f0c28 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Deep Rose"></div>
                               <div class="color-preset" data-color="#d97706" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #d97706 0%, #905004 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Golden Amber"></div>
                             </div>
                           </div>
@@ -1102,6 +1103,43 @@
                           </div>
                         </div>
                         <small class="form-help">How often album covers rotate within artist cards (artist-cards style only)</small>
+                      </div>
+
+                      <!-- Accent Color (only for artist-cards) -->
+                      <div class="form-row" id="musicMode_accentColorRow" style="display: none;">
+                        <label for="wallartMode_musicMode_artistCards_accentColor" style="display: block; margin-bottom: 12px;">
+                          <i class="fas fa-palette"></i> Accent Color
+                        </label>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                          <!-- Color Picker Circle + Presets -->
+                          <div style="display: flex; align-items: center; gap: 16px;">
+                            <!-- Circular Color Preview -->
+                            <div id="wallartMode_musicMode_artistCards_accentColor_circle" style="position: relative; width: 64px; height: 64px; border-radius: 50%; cursor: pointer; border: 3px solid rgb(40, 46, 62); box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: all 0.2s ease; overflow: hidden;">
+                              <input type="color" id="wallartMode_musicMode_artistCards_accentColor" value="#143c8c" style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;" />
+                            </div>
+                            
+                            <!-- Color Presets -->
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; flex: 1;">
+                              <div class="color-preset-music" data-color="#143c8c" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #143c8c 0%, #0c2555 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Deep Blue (Default)"></div>
+                              <div class="color-preset-music" data-color="#b40f0f" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #b40f0f 0%, #780505 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Classic Red"></div>
+                              <div class="color-preset-music" data-color="#15803d" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #15803d 0%, #0d5528 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Forest Green"></div>
+                              <div class="color-preset-music" data-color="#0e7490" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #0e7490 0%, #084c61 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Ocean Teal"></div>
+                              <div class="color-preset-music" data-color="#7c2d12" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #7c2d12 0%, #531e0c 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Warm Brown"></div>
+                              <div class="color-preset-music" data-color="#6b21a8" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6b21a8 0%, #471670 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Royal Purple"></div>
+                              <div class="color-preset-music" data-color="#be123c" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #be123c 0%, #7f0c28 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Deep Rose"></div>
+                              <div class="color-preset-music" data-color="#d97706" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #d97706 0%, #905004 100%); cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Golden Amber"></div>
+                            </div>
+                          </div>
+                          
+                          <!-- Hex Input + Reset Button -->
+                          <div style="display: flex; gap: 12px; align-items: center;">
+                            <input type="text" id="wallartMode_musicMode_artistCards_accentColor_text" pattern="^#[0-9A-Fa-f]{6}$" placeholder="#143c8c" style="flex: 1; font-family: 'Courier New', monospace; font-weight: 600; text-transform: uppercase; padding: 10px 14px; border: 2px solid var(--border); border-radius: 6px; background: var(--bg-light);" maxlength="7" />
+                            <button type="button" id="wallartMode_musicMode_artistCards_accentColor_reset" style="padding: 10px 18px; background: var(--bg-light); border: 2px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s ease; white-space: nowrap;">
+                              <i class="fas fa-undo"></i> Reset
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       <!-- Album Sorting Mode -->

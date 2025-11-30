@@ -3,6 +3,8 @@
  * Fullscreen animated cards showing grouped films (like artist-cards for music)
  */
 
+console.log('[Film Cards] Script loaded - setting up message listener');
+
 (function () {
     'use strict';
 
@@ -1140,7 +1142,9 @@
     document.head.appendChild(style);
 
     // Listen for live accent color updates from admin interface
+    console.log('[Film Cards] Registering message listener for accent color updates');
     window.addEventListener('message', event => {
+        console.log('[Film Cards] Received message:', event.data);
         if (event.data && event.data.type === 'FILMCARDS_ACCENT_COLOR_UPDATE') {
             const newColor = event.data.color;
             console.log('[Film Cards] Received live color update:', newColor);

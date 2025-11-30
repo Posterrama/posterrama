@@ -3,6 +3,8 @@
  * Shows artist photos with metadata and rotating album covers
  */
 
+console.log('[Artist Cards] Script loaded - setting up message listener');
+
 (function () {
     'use strict';
 
@@ -44,6 +46,13 @@
                 `;
                 document.head.appendChild(style);
             }
+
+            // Extract accent color from config (default Deep Blue)
+            const accentColor =
+                appConfig?.wallartMode?.musicMode?.artistCards?.accentColor || '#143c8c';
+            console.log('[Artist Cards] Config:', {
+                accentColor: accentColor,
+            });
 
             // Group albums by artist
             const artistMap = this.groupByArtist(mediaQueue);
@@ -94,7 +103,7 @@
 
                 const artistData = artists[currentArtistIndex];
                 console.log('[Artist Cards] Creating card for artist:', artistData.name);
-                currentCard = this.createArtistCard(artistData);
+                currentCard = this.createArtistCard(artistData, accentColor);
                 container.appendChild(currentCard);
 
                 // Start album rotation for this artist's card
@@ -188,10 +197,18 @@
         /**
          * Create a single artist card
          * @param {object} artistData - Artist data with albums
-         * @param {number} index - Card index for animation delay
+         * @param {string} accentColor - Hex color for overlay (default #143c8c)
          * @returns {HTMLElement} Card element
          */
-        createArtistCard(artistData) {
+        createArtistCard(artistData, accentColor = '#143c8c') {
+            // Convert hex to RGB for gradient
+            const rgb = this.hexToRgb(accentColor);
+            const darkRgb = {
+                r: Math.floor(rgb.r * 0.67),
+                g: Math.floor(rgb.g * 0.67),
+                b: Math.floor(rgb.b * 0.67),
+            };
+
             // Detect portrait orientation (9:16 or similar)
             const isPortrait = window.innerHeight > window.innerWidth;
 
@@ -239,12 +256,13 @@
                     `;
                     blueContainer.appendChild(bluePhoto);
 
-                    // Blue overlay
+                    // Accent color overlay
                     const blueOverlay = document.createElement('div');
+                    blueOverlay.className = 'artist-card-overlay';
                     blueOverlay.style.cssText = `
                         position: absolute;
                         inset: 0;
-                        background: rgba(20, 60, 140, 0.75);
+                        background: linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.75), rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.80));
                         mix-blend-mode: multiply;
                         pointer-events: none;
                     `;
@@ -292,12 +310,13 @@
                     `;
                     blueContainer.appendChild(bluePhoto);
 
-                    // Blue overlay
+                    // Accent color overlay
                     const blueOverlay = document.createElement('div');
+                    blueOverlay.className = 'artist-card-overlay';
                     blueOverlay.style.cssText = `
                         position: absolute;
                         inset: 0;
-                        background: rgba(20, 60, 140, 0.75);
+                        background: linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.75), rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.80));
                         mix-blend-mode: multiply;
                         pointer-events: none;
                     `;
@@ -670,6 +689,22 @@
                 });
             }, albumRotationSeconds * 1000); // Use configured interval
         },
+
+        /**
+         * Convert hex color to RGB object
+         * @param {string} hex - Hex color string (e.g. '#143c8c')
+         * @returns {object} RGB object with r, g, b properties
+         */
+        hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result
+                ? {
+                      r: parseInt(result[1], 16),
+                      g: parseInt(result[2], 16),
+                      b: parseInt(result[3], 16),
+                  }
+                : { r: 20, g: 60, b: 140 }; // Default Deep Blue
+        },
     };
 
     // Add CSS animations
@@ -702,4 +737,26 @@
         }
     `;
     document.head.appendChild(style);
+
+    // Listen for live accent color updates from admin interface
+    console.log('[Artist Cards] Registering message listener for accent color updates');
+    window.addEventListener('message', event => {
+        console.log('[Artist Cards] Received message:', event.data);
+        if (event.data && event.data.type === 'ARTISTCARDS_ACCENT_COLOR_UPDATE') {
+            const newColor = event.data.color;
+            console.log('[Artist Cards] Received live color update:', newColor);
+
+            // Update all overlay elements with new gradient
+            const overlays = document.querySelectorAll('.artist-card-overlay');
+            overlays.forEach(overlay => {
+                const rgb = window.ArtistCards.hexToRgb(newColor);
+                const darkRgb = {
+                    r: Math.floor(rgb.r * 0.67),
+                    g: Math.floor(rgb.g * 0.67),
+                    b: Math.floor(rgb.b * 0.67),
+                };
+                overlay.style.background = `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.75), rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.80))`;
+            });
+        }
+    });
 })();

@@ -393,6 +393,19 @@
                                 }
                             },
                             "additionalProperties": false
+                        },
+                        "artistCards": {
+                            "type": "object",
+                            "description": "Artist Cards specific settings",
+                            "properties": {
+                                "accentColor": {
+                                    "type": "string",
+                                    "pattern": "^#[0-9A-Fa-f]{6}$",
+                                    "default": "#143c8c",
+                                    "description": "Accent color for artist cards overlay (Deep Blue default)"
+                                }
+                            },
+                            "additionalProperties": false
                         }
                     },
                     "additionalProperties": false
