@@ -543,7 +543,7 @@
                     el('option', { value: 'none' }, 'None'),
                     el('option', { value: 'frame' }, 'Frame'),
                     el('option', { value: 'underline' }, 'Underline'),
-                    el('option', { value: 'inverted' }, 'Inverted'),
+                    el('option', { value: 'backdrop' }, 'Backdrop'),
                 ]),
                 el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
             ]),
@@ -574,12 +574,26 @@
         // Wire decoration visibility based on animation
         const decorationRow = document.getElementById('cin-h-decoration-row');
         const animSelect = document.getElementById('cin-h-anim');
+        const decorationSelect = document.getElementById('cin-h-decoration');
+        const shadowRow = document.getElementById('cin-h-shadow')?.closest('.form-row');
+
         const syncDecorationVisibility = () => {
             const isNoAnim = animSelect?.value === 'none';
             if (decorationRow) decorationRow.style.display = isNoAnim ? '' : 'none';
         };
-        animSelect?.addEventListener('change', syncDecorationVisibility);
+
+        const syncShadowVisibility = () => {
+            // Shadow is always visible for all decorations
+            if (shadowRow) shadowRow.style.display = '';
+        };
+
+        animSelect?.addEventListener('change', () => {
+            syncDecorationVisibility();
+            syncShadowVisibility();
+        });
+        decorationSelect?.addEventListener('change', syncShadowVisibility);
         syncDecorationVisibility();
+        syncShadowVisibility();
 
         // Initialize header text preset
         (function () {

@@ -313,8 +313,8 @@ body:hover #controls-container {
     /* Shrink width to content */
     width: fit-content !important;
     /* Keep header height but shrink visually with margin */
-    margin: 0.8rem auto;
-    height: calc(var(--poster-top, 3rem) - 1.6rem) !important;
+    margin: 1.2rem auto 1.8rem auto;
+    height: calc(var(--poster-top, 3rem) - 3.4rem) !important;
     /* Inner padding - less on right to compensate for letter-spacing after last char */
     padding: 0.1em 0.15em 0em 0.3em;
     /* Never wrap text */
@@ -407,32 +407,48 @@ body:hover #controls-container {
         0 0 40px currentColor;
 }
 
-/* Inverted decoration - swap text/bg colors */
-.cinema-header.decoration-inverted {
-    /* Shrink to fit text */
-    width: fit-content !important;
-    height: calc(var(--poster-top, 3rem) - 1.6rem) !important;
-    /* Center in header */
-    margin: 0.8rem auto;
+/* Backdrop decoration - frosted glass effect behind text */
+.cinema-header.decoration-backdrop {
+    /* Fill most of header area with equal padding on all sides */
+    width: calc(100% - 2.5rem) !important;
+    height: calc(var(--poster-top, 3rem) - 2.6rem) !important;
+    /* Center in header - slightly more margin at bottom */
+    margin: 1rem auto 1.6rem auto;
     left: 50% !important;
     transform: translateX(-50%);
     right: auto !important;
-    /* Inner padding - compensate for letter-spacing */
-    padding: 0.1em 0.15em 0em 0.3em;
     /* Never wrap */
     white-space: nowrap;
     line-height: 1;
-    /* Inverted colors */
-    background-color: currentColor;
-    border-radius: 4px;
+    /* Frosted glass effect */
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
-/* Fallback for dark backgrounds */
-.cinema-header.decoration-inverted.inverted-dark-text {
-    color: #0a0a0a !important;
+
+/* Apply shadow effects to backdrop */
+.cinema-header.decoration-backdrop.shadow-subtle {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
-/* Fallback for light backgrounds */
-.cinema-header.decoration-inverted.inverted-light-text {
-    color: #f5f5f5 !important;
+.cinema-header.decoration-backdrop.shadow-dramatic {
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.6),
+        0 0 40px rgba(0, 0, 0, 0.3);
+}
+.cinema-header.decoration-backdrop.shadow-glow {
+    box-shadow:
+        0 0 15px currentColor,
+        0 0 30px currentColor;
+    border-color: currentColor;
+}
+.cinema-header.decoration-backdrop.shadow-neon {
+    box-shadow:
+        0 0 10px currentColor,
+        0 0 20px currentColor,
+        0 0 40px currentColor;
+    border-color: currentColor;
 }
 
 /* =================================================================

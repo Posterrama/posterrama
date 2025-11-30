@@ -111,7 +111,7 @@ function migrateConfig(cfg) {
         ],
         headerShadow: ['none', 'subtle', 'dramatic', 'neon', 'glow'],
         headerAnimation: ['none', 'pulse', 'flicker', 'marquee'],
-        headerDecoration: ['none', 'frame', 'underline', 'inverted'],
+        headerDecoration: ['none', 'frame', 'underline', 'backdrop'],
         // Footer
         footerType: ['marquee', 'metadata', 'tagline'],
         footerFontFamily: ['system', 'cinematic', 'classic', 'modern', 'elegant'],

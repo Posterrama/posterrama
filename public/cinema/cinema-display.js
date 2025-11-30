@@ -246,13 +246,7 @@
         }
         headerEl.style.setProperty('--header-color', headerColor);
         headerEl.style.color = headerColor; // Direct color application for reliability
-
-        // Handle inverted decoration - need contrasting text color for the background
-        if (decorationClass === 'decoration-inverted') {
-            // For inverted, the headerColor becomes the background, so we need contrasting text
-            const isLightBg = isLightColor(headerColor);
-            headerEl.classList.add(isLightBg ? 'inverted-dark-text' : 'inverted-light-text');
-        }
+        headerEl.style.backgroundColor = ''; // Reset any previous background
 
         // Set header text
         const headerText = cinemaConfig.header.text || 'Now Playing';
