@@ -1234,20 +1234,30 @@
                               <option value="classic">Classic (Playfair)</option>
                               <option value="modern">Modern (Montserrat)</option>
                               <option value="elegant">Elegant (Cormorant)</option>
+                              <option value="custom">Custom Google Font...</option>
                             </select>
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
+                        </div>
+                        <div class="form-row cinema-conditional-row" id="cinemaCustomFontRow" style="display:none;">
+                          <label for="cinemaCustomFont">Google Font Name</label>
+                          <input type="text" id="cinemaCustomFont" class="form-input" placeholder="e.g., Oswald, Lato, Roboto Condensed" />
                         </div>
                         <div class="form-row">
                           <label for="cinemaTitleSize">Title Size</label>
                           <div class="cinema-range-row">
                             <input type="range" id="cinemaTitleSize" min="50" max="200" step="5" value="100" />
-                            <span id="cinemaTitleSizeValue">100%</span>
+                            <span class="range-value" id="cinemaTitleSizeValue">100%</span>
                           </div>
                         </div>
                         <div class="form-row">
                           <label for="cinemaTitleColor">Title Color</label>
-                          <input type="color" id="cinemaTitleColor" value="#ffffff" />
+                          <div class="cinema-color-picker">
+                            <div class="cinema-color-circle" id="cinemaTitleColorCircle" style="background-color: #ffffff;">
+                              <input type="color" id="cinemaTitleColor" value="#ffffff" />
+                            </div>
+                            <span class="cinema-color-hex" id="cinemaTitleColorHex">#FFFFFF</span>
+                          </div>
                         </div>
                         <div class="form-row">
                           <label for="cinemaTitleShadow">Title Shadow</label>
@@ -1265,7 +1275,23 @@
                           <label for="cinemaMetadataOpacity">Metadata Opacity</label>
                           <div class="cinema-range-row">
                             <input type="range" id="cinemaMetadataOpacity" min="0" max="100" step="5" value="80" />
-                            <span id="cinemaMetadataOpacityValue">80%</span>
+                            <span class="range-value" id="cinemaMetadataOpacityValue">80%</span>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Live Preview -->
+                      <div class="cinema-preview-panel" id="cinemaTypographyPreview">
+                        <div class="cinema-preview-header">
+                          <span class="cinema-preview-title"><i class="fas fa-eye"></i> Live Preview</span>
+                          <button type="button" class="cinema-preview-refresh" id="cinemaPreviewRefresh" title="Refresh preview"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <div class="cinema-preview-content">
+                          <div class="cinema-preview-poster" id="cinemaPreviewPoster">
+                            <img src="/api/poster/random?mode=cinema&t=preview" alt="Preview" onerror="this.style.display='none'" />
+                          </div>
+                          <div class="cinema-preview-meta">
+                            <div class="cinema-preview-meta-title" id="cinemaPreviewTitle">Movie Title</div>
+                            <div class="cinema-preview-meta-info" id="cinemaPreviewInfo">2024 • 2h 15m • ★ 8.5</div>
                           </div>
                         </div>
                       </div>
@@ -1289,15 +1315,20 @@
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
                         </div>
-                        <div class="form-row" id="cinemaBackgroundColorRow">
+                        <div class="form-row cinema-conditional-row" id="cinemaBackgroundColorRow">
                           <label for="cinemaBackgroundColor">Background Color</label>
-                          <input type="color" id="cinemaBackgroundColor" value="#000000" />
+                          <div class="cinema-color-picker">
+                            <div class="cinema-color-circle" id="cinemaBackgroundColorCircle" style="background-color: #000000;">
+                              <input type="color" id="cinemaBackgroundColor" value="#000000" />
+                            </div>
+                            <span class="cinema-color-hex" id="cinemaBackgroundColorHex">#000000</span>
+                          </div>
                         </div>
-                        <div class="form-row" id="cinemaBackgroundBlurRow" style="display:none;">
+                        <div class="form-row cinema-conditional-row" id="cinemaBackgroundBlurRow" style="display:none;">
                           <label for="cinemaBackgroundBlur">Blur Amount</label>
                           <div class="cinema-range-row">
                             <input type="range" id="cinemaBackgroundBlur" min="5" max="50" step="1" value="20" />
-                            <span id="cinemaBackgroundBlurValue">20px</span>
+                            <span class="range-value" id="cinemaBackgroundBlurValue">20px</span>
                           </div>
                         </div>
                         <div class="form-row">
@@ -1332,6 +1363,23 @@
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
                         </div>
+                        <div class="form-row cinema-conditional-row" id="cinemaFrameColorRow" style="display:none;">
+                          <label for="cinemaFrameColor">Frame Color</label>
+                          <div class="cinema-color-picker">
+                            <div class="cinema-color-circle" id="cinemaFrameColorCircle" style="background-color: #333333;">
+                              <input type="color" id="cinemaFrameColor" value="#333333" />
+                            </div>
+                            <span class="cinema-color-hex" id="cinemaFrameColorHex">#333333</span>
+                          </div>
+                        </div>
+                        <div class="form-row cinema-conditional-row" id="cinemaFrameWidthRow" style="display:none;">
+                          <label for="cinemaFrameWidth">Frame Width</label>
+                          <div class="cinema-range-row">
+                            <input type="range" id="cinemaFrameWidth" min="2" max="20" step="1" value="8" />
+                            <span class="range-value" id="cinemaFrameWidthValue">8px</span>
+                          </div>
+                        </div>
+                        <div class="cinema-section-header">Animation</div>
                         <div class="form-row">
                           <label for="cinemaPosterAnimation">Transition Animation</label>
                           <div class="select-wrap has-caret">
@@ -1349,18 +1397,7 @@
                           <label for="cinemaPosterTransition">Transition Duration</label>
                           <div class="cinema-range-row">
                             <input type="range" id="cinemaPosterTransition" min="0.5" max="5" step="0.5" value="1.5" />
-                            <span id="cinemaPosterTransitionValue">1.5s</span>
-                          </div>
-                        </div>
-                        <div class="form-row" id="cinemaFrameColorRow" style="display:none;">
-                          <label for="cinemaFrameColor">Frame Color</label>
-                          <input type="color" id="cinemaFrameColor" value="#333333" />
-                        </div>
-                        <div class="form-row" id="cinemaFrameWidthRow" style="display:none;">
-                          <label for="cinemaFrameWidth">Frame Width</label>
-                          <div class="cinema-range-row">
-                            <input type="range" id="cinemaFrameWidth" min="2" max="20" step="1" value="8" />
-                            <span id="cinemaFrameWidthValue">8px</span>
+                            <span class="range-value" id="cinemaPosterTransitionValue">1.5s</span>
                           </div>
                         </div>
                       </div>
@@ -1404,55 +1441,60 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-bullhorn"></i> Promotional</div>
                     <div id="cinema-promotional-mount">
                       <div class="form-grid">
-                        <div class="cinema-checkbox-grid" style="margin-bottom:12px;">
+                        <div class="cinema-section-header">Badges</div>
+                        <div class="cinema-checkbox-grid">
                           <label class="cinema-check"><input type="checkbox" id="cinemaComingSoonBadge" /> <span>Coming Soon Badge</span></label>
                           <label class="cinema-check"><input type="checkbox" id="cinemaReleaseCountdown" /> <span>Release Countdown</span></label>
                         </div>
+                        
+                        <div class="cinema-section-header">QR Code</div>
                         <div class="form-row">
-                          <label class="cinema-check" style="margin-bottom:8px;"><input type="checkbox" id="cinemaQREnabled" /> <span>QR Code Overlay</span></label>
-                          <div id="cinemaQRSettings" style="display:none; padding-left:24px;">
-                            <div class="form-row">
-                              <label for="cinemaQRUrl">QR URL (empty = auto trailer link)</label>
-                              <input type="text" id="cinemaQRUrl" placeholder="https://..." />
+                          <label class="cinema-check"><input type="checkbox" id="cinemaQREnabled" /> <span>Enable QR Code Overlay</span></label>
+                        </div>
+                        <div class="cinema-nested-settings" id="cinemaQRSettings" style="display:none;">
+                          <div class="form-row">
+                            <label for="cinemaQRUrl">QR URL <span class="help-text">(empty = auto trailer link)</span></label>
+                            <input type="text" id="cinemaQRUrl" placeholder="https://example.com/tickets" />
+                          </div>
+                          <div class="form-row">
+                            <label for="cinemaQRPosition">Position</label>
+                            <div class="select-wrap has-caret">
+                              <select id="cinemaQRPosition">
+                                <option value="bottomRight">Bottom Right</option>
+                                <option value="bottomLeft">Bottom Left</option>
+                                <option value="topRight">Top Right</option>
+                                <option value="topLeft">Top Left</option>
+                              </select>
+                              <span class="select-caret" aria-hidden="true">▾</span>
                             </div>
-                            <div class="form-row">
-                              <label for="cinemaQRPosition">Position</label>
-                              <div class="select-wrap has-caret">
-                                <select id="cinemaQRPosition">
-                                  <option value="bottomRight">Bottom Right</option>
-                                  <option value="bottomLeft">Bottom Left</option>
-                                  <option value="topRight">Top Right</option>
-                                  <option value="topLeft">Top Left</option>
-                                </select>
-                                <span class="select-caret" aria-hidden="true">▾</span>
-                              </div>
-                            </div>
-                            <div class="form-row">
-                              <label for="cinemaQRSize">Size</label>
-                              <div class="cinema-range-row">
-                                <input type="range" id="cinemaQRSize" min="60" max="200" step="10" value="100" />
-                                <span id="cinemaQRSizeValue">100px</span>
-                              </div>
+                          </div>
+                          <div class="form-row">
+                            <label for="cinemaQRSize">Size</label>
+                            <div class="cinema-range-row">
+                              <input type="range" id="cinemaQRSize" min="60" max="200" step="10" value="100" />
+                              <span class="range-value" id="cinemaQRSizeValue">100px</span>
                             </div>
                           </div>
                         </div>
+                        
+                        <div class="cinema-section-header">Announcement Banner</div>
                         <div class="form-row">
-                          <label class="cinema-check" style="margin-bottom:8px;"><input type="checkbox" id="cinemaAnnouncementEnabled" /> <span>Announcement Banner</span></label>
-                          <div id="cinemaAnnouncementSettings" style="display:none; padding-left:24px;">
-                            <div class="form-row">
-                              <label for="cinemaAnnouncementText">Banner Text</label>
-                              <input type="text" id="cinemaAnnouncementText" placeholder="Special announcement..." />
-                            </div>
-                            <div class="form-row">
-                              <label for="cinemaAnnouncementStyle">Style</label>
-                              <div class="select-wrap has-caret">
-                                <select id="cinemaAnnouncementStyle">
-                                  <option value="ticker">Ticker (Scrolling)</option>
-                                  <option value="static">Static</option>
-                                  <option value="flash">Flash (Attention)</option>
-                                </select>
-                                <span class="select-caret" aria-hidden="true">▾</span>
-                              </div>
+                          <label class="cinema-check"><input type="checkbox" id="cinemaAnnouncementEnabled" /> <span>Enable Announcement Banner</span></label>
+                        </div>
+                        <div class="cinema-nested-settings" id="cinemaAnnouncementSettings" style="display:none;">
+                          <div class="form-row">
+                            <label for="cinemaAnnouncementText">Banner Text</label>
+                            <input type="text" id="cinemaAnnouncementText" placeholder="🎬 Special announcement..." />
+                          </div>
+                          <div class="form-row">
+                            <label for="cinemaAnnouncementStyle">Style</label>
+                            <div class="select-wrap has-caret">
+                              <select id="cinemaAnnouncementStyle">
+                                <option value="ticker">Ticker (Scrolling)</option>
+                                <option value="static">Static</option>
+                                <option value="flash">Flash (Attention)</option>
+                              </select>
+                              <span class="select-caret" aria-hidden="true">▾</span>
                             </div>
                           </div>
                         </div>

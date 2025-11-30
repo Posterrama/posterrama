@@ -773,6 +773,7 @@
             if (slider && valueEl) {
                 slider.addEventListener('input', () => {
                     valueEl.textContent = slider.value + suffix;
+                    updateLivePreview(); // Trigger preview update
                 });
             }
         };
@@ -783,8 +784,46 @@
         wireRange('#cinemaFrameWidth', '#cinemaFrameWidthValue', 'px');
         wireRange('#cinemaQRSize', '#cinemaQRSizeValue', 'px');
 
+        // Wire up color pickers with hex display and circle preview
+        const wireColorPicker = (inputId, circleId, hexId) => {
+            const input = $(inputId);
+            const circle = $(circleId);
+            const hex = $(hexId);
+            if (input) {
+                const updateColor = () => {
+                    const color = input.value;
+                    if (circle) circle.style.backgroundColor = color;
+                    if (hex) hex.textContent = color.toUpperCase();
+                    updateLivePreview(); // Trigger preview update
+                };
+                input.addEventListener('input', updateColor);
+                input.addEventListener('change', updateColor);
+                updateColor(); // Initial sync
+            }
+        };
+        wireColorPicker('#cinemaTitleColor', '#cinemaTitleColorCircle', '#cinemaTitleColorHex');
+        wireColorPicker(
+            '#cinemaBackgroundColor',
+            '#cinemaBackgroundColorCircle',
+            '#cinemaBackgroundColorHex'
+        );
+        wireColorPicker('#cinemaFrameColor', '#cinemaFrameColorCircle', '#cinemaFrameColorHex');
+
         // Wire up conditional visibility
-        // Background: show blur settings only when mode is 'blurred'
+        // Font Family: show custom font input when 'custom' is selected
+        const fontFamilySelect = $('#cinemaFontFamily');
+        const customFontRow = $('#cinemaCustomFontRow');
+        if (fontFamilySelect && customFontRow) {
+            const syncFontVisibility = () => {
+                const isCustom = fontFamilySelect.value === 'custom';
+                customFontRow.style.display = isCustom ? '' : 'none';
+                updateLivePreview();
+            };
+            fontFamilySelect.addEventListener('change', syncFontVisibility);
+            syncFontVisibility();
+        }
+
+        // Background: show blur settings only when mode is 'blurred', color only when 'solid'
         const bgModeSelect = $('#cinemaBackgroundMode');
         const blurRow = $('#cinemaBackgroundBlurRow');
         const colorRow = $('#cinemaBackgroundColorRow');
@@ -793,6 +832,7 @@
                 const mode = bgModeSelect.value;
                 blurRow.style.display = mode === 'blurred' ? '' : 'none';
                 colorRow.style.display = mode === 'solid' ? '' : 'none';
+                updateLivePreview();
             };
             bgModeSelect.addEventListener('change', syncBgVisibility);
             syncBgVisibility();
@@ -808,9 +848,16 @@
                 const show = style === 'framed';
                 frameColorRow.style.display = show ? '' : 'none';
                 frameWidthRow.style.display = show ? '' : 'none';
+                updateLivePreview();
             };
             posterStyleSelect.addEventListener('change', syncPosterVisibility);
             syncPosterVisibility();
+        }
+
+        // Shadow select change also updates preview
+        const shadowSelect = $('#cinemaTitleShadow');
+        if (shadowSelect) {
+            shadowSelect.addEventListener('change', updateLivePreview);
         }
 
         // QR Code: show settings when enabled
@@ -834,13 +881,117 @@
             annEnabled.addEventListener('change', syncAnnVisibility);
             syncAnnVisibility();
         }
+
+        // Initialize live preview
+        initLivePreview();
+    }
+
+    // === Live Preview System ===
+    function initLivePreview() {
+        const refreshBtn = $('#cinemaPreviewRefresh');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                // Reload poster image
+                const posterImg = $('#cinemaPreviewPoster img');
+                if (posterImg) {
+                    posterImg.src = `/api/poster/random?mode=cinema&t=${Date.now()}`;
+                }
+                updateLivePreview();
+            });
+        }
+        // Initial preview update
+        updateLivePreview();
+    }
+
+    function updateLivePreview() {
+        const titleEl = $('#cinemaPreviewTitle');
+        const infoEl = $('#cinemaPreviewInfo');
+        const posterEl = $('#cinemaPreviewPoster');
+
+        if (!titleEl) return;
+
+        // Get current settings
+        const fontFamily = $('#cinemaFontFamily')?.value || 'cinematic';
+        const customFont = $('#cinemaCustomFont')?.value || '';
+        const titleSize = parseInt($('#cinemaTitleSize')?.value || '100', 10);
+        const titleColor = $('#cinemaTitleColor')?.value || '#ffffff';
+        const titleShadow = $('#cinemaTitleShadow')?.value || 'subtle';
+        const metaOpacity = parseInt($('#cinemaMetadataOpacity')?.value || '80', 10);
+        const posterStyle = $('#cinemaPosterStyle')?.value || 'floating';
+        const frameColor = $('#cinemaFrameColor')?.value || '#333333';
+        const frameWidth = parseInt($('#cinemaFrameWidth')?.value || '8', 10);
+
+        // Apply font family
+        titleEl.className = 'cinema-preview-meta-title';
+        if (fontFamily === 'custom' && customFont) {
+            // Load custom Google Font dynamically
+            loadGoogleFont(customFont);
+            titleEl.style.fontFamily = `'${customFont}', sans-serif`;
+        } else {
+            titleEl.classList.add(`font-${fontFamily}`);
+            titleEl.style.fontFamily = '';
+        }
+
+        // Apply title size
+        titleEl.style.fontSize = `${titleSize / 100}rem`;
+
+        // Apply title color
+        titleEl.style.color = titleColor;
+
+        // Apply shadow
+        titleEl.classList.add(`shadow-${titleShadow}`);
+
+        // Apply metadata opacity
+        if (infoEl) {
+            infoEl.style.opacity = metaOpacity / 100;
+        }
+
+        // Apply poster style
+        if (posterEl) {
+            posterEl.className = 'cinema-preview-poster';
+            posterEl.classList.add(`style-${posterStyle}`);
+            if (posterStyle === 'framed') {
+                posterEl.style.setProperty('--preview-frame-color', frameColor);
+                posterEl.style.setProperty(
+                    '--preview-frame-width',
+                    `${Math.max(2, frameWidth / 3)}px`
+                );
+            }
+        }
+    }
+
+    // Google Fonts loader cache
+    const loadedFonts = new Set();
+
+    function loadGoogleFont(fontName) {
+        if (!fontName || loadedFonts.has(fontName)) return;
+
+        // Sanitize font name for URL
+        const urlFontName = fontName.replace(/\s+/g, '+');
+        const linkId = `google-font-${urlFontName.toLowerCase().replace(/\+/g, '-')}`;
+
+        if (document.getElementById(linkId)) {
+            loadedFonts.add(fontName);
+            return;
+        }
+
+        const link = document.createElement('link');
+        link.id = linkId;
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${urlFontName}:wght@400;600;700&display=swap`;
+        document.head.appendChild(link);
+        loadedFonts.add(fontName);
     }
 
     // === NEW: Collect enhanced settings for save ===
     function collectEnhancedSettings() {
+        const fontFamily = $('#cinemaFontFamily')?.value || 'cinematic';
+        const customFont = $('#cinemaCustomFont')?.value || '';
+
         return {
             typography: {
-                fontFamily: $('#cinemaFontFamily')?.value || 'cinematic',
+                fontFamily: fontFamily,
+                customFont: fontFamily === 'custom' ? customFont : '',
                 titleSize: parseInt($('#cinemaTitleSize')?.value || '100', 10),
                 titleColor: $('#cinemaTitleColor')?.value || '#ffffff',
                 titleShadow: $('#cinemaTitleShadow')?.value || 'subtle',
