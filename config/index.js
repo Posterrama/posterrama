@@ -93,6 +93,7 @@ class Config {
         try {
             const Ajv = require('ajv');
             const schema = require('../config.schema.json');
+            // @ts-ignore - Ajv constructor is valid but TypeScript doesn't recognize it from require()
             const ajv = new Ajv({ allErrors: true });
             const validate = ajv.compile(schema);
             const valid = validate(this.config);
