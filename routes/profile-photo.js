@@ -9,6 +9,20 @@ const fs = require('fs');
 const fsp = fs.promises;
 
 /**
+ * @typedef {Object} SessionData
+ * @property {Object} [user] - Authenticated user
+ */
+
+/**
+ * @typedef {Object} ProfileRequestExtensions
+ * @property {SessionData} [session] - Express session
+ */
+
+/**
+ * @typedef {import('express').Request & ProfileRequestExtensions} ProfileRequest
+ */
+
+/**
  * Create profile photo router
  * @param {Object} deps - Dependencies
  * @param {Function} deps.adminAuth - Admin authentication middleware
@@ -82,7 +96,8 @@ module.exports = function createProfilePhotoRouter({ adminAuth, getAvatarPath, a
      *       204:
      *         description: No avatar set
      */
-    router.get('/api/admin/profile/photo', adminAuth, (req, res) => {
+    // @ts-ignore - Express router overload issue
+    router.get('/api/admin/profile/photo', adminAuth, (/** @type {ProfileRequest} */ req, res) => {
         const username = req.session?.user?.username || 'admin';
         const p = getAvatarPath(username, avatarDir);
         if (!p) return res.status(204).end();
@@ -121,6 +136,7 @@ module.exports = function createProfilePhotoRouter({ adminAuth, getAvatarPath, a
      *       400:
      *         description: Invalid input or unsupported file type
      */
+    // @ts-ignore - Express router overload issue
     router.post('/api/admin/profile/photo', adminAuth, (req, res, _next) => {
         avatarUpload.single('avatar')(req, res, err => {
             if (err) {
@@ -151,16 +167,21 @@ module.exports = function createProfilePhotoRouter({ adminAuth, getAvatarPath, a
      *       500:
      *         description: Failed to delete avatar
      */
-    router.delete('/api/admin/profile/photo', adminAuth, async (req, res) => {
-        try {
-            const username = req.session?.user?.username || 'admin';
-            const p = getAvatarPath(username, avatarDir);
-            if (p) await fsp.unlink(p).catch(() => {});
-            res.json({ success: true });
-        } catch (e) {
-            res.status(500).json({ error: 'Failed to delete avatar' });
+    // @ts-ignore - Express router overload issue
+    router.delete(
+        '/api/admin/profile/photo',
+        adminAuth,
+        async (/** @type {ProfileRequest} */ req, res) => {
+            try {
+                const username = req.session?.user?.username || 'admin';
+                const p = getAvatarPath(username, avatarDir);
+                if (p) await fsp.unlink(p).catch(() => {});
+                res.json({ success: true });
+            } catch (e) {
+                res.status(500).json({ error: 'Failed to delete avatar' });
+            }
         }
-    });
+    );
 
     return router;
 };

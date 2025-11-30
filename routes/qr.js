@@ -6,6 +6,16 @@
 const express = require('express');
 
 /**
+ * @typedef {Object} QRRequestExtensions
+ * @property {boolean} [deviceBypass] - Device bypass mode enabled
+ * @property {Function} [isAuthenticated] - Check if user is authenticated
+ */
+
+/**
+ * @typedef {import('express').Request & QRRequestExtensions} QRRequest
+ */
+
+/**
  * Create QR code router with dependency injection
  * @param {Object} deps - Dependencies
  * @param {Function} deps.isAuthenticated - Authentication middleware
@@ -56,7 +66,7 @@ module.exports = function createQRRouter({ isAuthenticated }) {
      */
     router.get(
         '/api/qr',
-        (req, res, next) => {
+        (/** @type {QRRequest} */ req, res, next) => {
             // Allow unauthenticated access for device setup (QR codes in pairing modal)
             // But still pass through authentication for logged-in admin users
             if (req.deviceBypass || !req.isAuthenticated || req.isAuthenticated()) {

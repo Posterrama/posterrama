@@ -8,6 +8,15 @@ const logger = require('../utils/logger');
 const deepMerge = require('../utils/deep-merge');
 
 /**
+ * @typedef {Object} ConfigRequestExtensions
+ * @property {boolean} [deviceBypass] - Device bypass mode enabled
+ */
+
+/**
+ * @typedef {import('express').Request & ConfigRequestExtensions} ConfigRequest
+ */
+
+/**
  * Create public config router with dependency injection
  * @param {Object} deps - Dependencies
  * @param {Object} deps.config - Global config object
@@ -75,6 +84,7 @@ module.exports = function createConfigPublicRouter({
      *               message: 'Failed to retrieve configuration'
      *               statusCode: 500
      */
+    // @ts-ignore - Express router overload issue with cacheMiddleware
     router.get(
         '/',
         validateGetConfigQuery,
@@ -100,7 +110,7 @@ module.exports = function createConfigPublicRouter({
                 return `${req.method}:${req.originalUrl}${devPart ? `#${devPart}` : ''}`;
             },
         }),
-        async (req, res) => {
+        async (/** @type {ConfigRequest} */ req, res) => {
             // Helper: normalize to a JSON-safe plain structure (drop functions/symbols, handle BigInt, Dates, NaN/Infinity)
             function toPlainJSONSafe(value, seen = new WeakSet()) {
                 const t = typeof value;
@@ -327,8 +337,9 @@ module.exports = function createConfigPublicRouter({
             // If device bypass is active for this request, surface a lightweight flag so frontend can avoid loading device-mgmt.js logic.
             try {
                 if (req.deviceBypass) {
-                    safeObjToSend.deviceMgmt = safeObjToSend.deviceMgmt || {};
-                    safeObjToSend.deviceMgmt.bypassActive = true;
+                    /** @type {any} */ (safeObjToSend).deviceMgmt =
+                        /** @type {any} */ (safeObjToSend).deviceMgmt || {};
+                    /** @type {any} */ (safeObjToSend).deviceMgmt.bypassActive = true;
                 }
             } catch (_) {
                 // ignore inability to append bypass flag

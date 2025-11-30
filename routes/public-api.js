@@ -292,6 +292,7 @@ module.exports = function createPublicApiRouter({
      *     description: Admin-only. Returns cache hit/miss and size metrics for rating caches.
      *     tags: ['Admin']
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.get(
         '/api/admin/rating-cache/stats',
         isAuthenticated,
@@ -312,6 +313,7 @@ module.exports = function createPublicApiRouter({
      *     description: Admin-only. Invalidates and rebuilds the rating cache for the given source type.
      *     tags: ['Admin']
      */
+    // @ts-ignore - Express router overload issue with asyncHandler
     router.post(
         '/api/admin/rating-cache/:sourceType/refresh',
         isAuthenticated,
