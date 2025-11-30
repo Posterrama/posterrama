@@ -2641,6 +2641,16 @@
             /* noop: animation helper is optional */
         }
 
+        // Apply initial orientation from appConfig on module load
+        try {
+            const initialOrientation = window.appConfig?.wallartMode?.orientation;
+            if (initialOrientation) {
+                applyWallartOrientation(initialOrientation);
+            }
+        } catch (e) {
+            console.warn('[Wallart] Failed to apply initial orientation:', e);
+        }
+
         try {
             const debugOn =
                 (window.logger &&
