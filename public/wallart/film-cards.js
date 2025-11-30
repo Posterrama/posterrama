@@ -862,7 +862,7 @@
         },
     };
 
-    // Add CSS animations
+    // Add CSS animations and film grain texture
     const style = document.createElement('style');
     style.textContent = `
         @keyframes filmCardFadeIn {
@@ -876,6 +876,37 @@
             to {
                 opacity: 1;
             }
+        }
+        
+        @keyframes filmGrain {
+            0%, 100% { transform: translate(0, 0); }
+            10% { transform: translate(-5%, -5%); }
+            20% { transform: translate(-10%, 5%); }
+            30% { transform: translate(5%, -10%); }
+            40% { transform: translate(-5%, 15%); }
+            50% { transform: translate(-10%, 5%); }
+            60% { transform: translate(15%, 0); }
+            70% { transform: translate(0, 10%); }
+            80% { transform: translate(-15%, 0); }
+            90% { transform: translate(10%, 5%); }
+        }
+        
+        .film-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px);
+            background-size: 200% 200%;
+            opacity: 0.15;
+            z-index: 10;
+            pointer-events: none;
+            animation: filmGrain 8s steps(10) infinite;
+            mix-blend-mode: overlay;
         }
         
         .film-card {
