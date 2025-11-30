@@ -51,7 +51,7 @@ class JobQueue extends EventEmitter {
      * @param {string} sourceType - 'plex' or 'jellyfin'
      * @param {Array} libraryIds - Array of library IDs
      * @param {Object} options - Generation options
-     * @returns {string} Job ID
+     * @returns {Promise<string>} Job ID
      */
     async addPosterpackGenerationJob(sourceType, libraryIds, options = {}) {
         const jobId = this.generateJobId();
@@ -618,7 +618,8 @@ class JobQueue extends EventEmitter {
      * @param {Object} item - Media item
      * @param {string} sourceType - Source type (plex/jellyfin)
      * @param {Object} options - Generation options
-     * @returns {Object} Generation result
+     * @param {Object|null} exportLogger - Optional logger
+     * @returns {Promise<Object>} Generation result
      */
     async generatePosterpackForItem(item, sourceType, options, exportLogger = null) {
         // Debug: Log item structure
@@ -993,8 +994,8 @@ class JobQueue extends EventEmitter {
                         logger.info(`JobQueue: Fetching trailer details from ${trailer.key}`);
 
                         // Fetch trailer metadata directly from Plex using axios
-                        const axios = require('axios');
                         const trailerMetadataUrl = `${plexUrl}${trailer.key}?X-Plex-Token=${plexToken}`;
+                        // @ts-ignore - axios.get exists but TypeScript doesn't recognize require('axios') type
                         const trailerResp = await axios.get(trailerMetadataUrl, {
                             timeout: 30000,
                             validateStatus: status => status === 200,
@@ -1027,7 +1028,7 @@ class JobQueue extends EventEmitter {
                             }
 
                             // Download the video file directly using axios with streaming
-                            const axios = require('axios');
+                            // @ts-ignore - axios.get exists but TypeScript doesn't recognize require('axios') type
                             const response = await axios.get(videoUrl, {
                                 responseType: 'arraybuffer',
                                 timeout: 120000, // 2 minutes for large videos
@@ -1105,9 +1106,9 @@ class JobQueue extends EventEmitter {
                         }
 
                         // Jellyfin Download API: /Items/{ItemId}/Download
-                        const axios = require('axios');
                         const downloadUrl = `${jellyfinUrl}/Items/${trailer.key}/Download?api_key=${apiKey}`;
 
+                        // @ts-ignore - axios.get exists but TypeScript doesn't recognize require('axios') type
                         const response = await axios.get(downloadUrl, {
                             responseType: 'arraybuffer',
                             timeout: 120000, // 2 minutes for large videos
@@ -1197,12 +1198,12 @@ class JobQueue extends EventEmitter {
 
                 if (plexUrl && plexToken) {
                     // Theme key is directly downloadable (e.g., /library/metadata/{id}/theme/{timestamp})
-                    const axios = require('axios');
                     const separator = theme.key.includes('?') ? '&' : '?';
                     const themeUrl = `${plexUrl}${theme.key}${separator}X-Plex-Token=${plexToken}`;
 
                     logger.info(`JobQueue: Downloading theme music from ${theme.key}`);
 
+                    // @ts-ignore - axios.get exists but TypeScript doesn't recognize require('axios') type
                     const response = await axios.get(themeUrl, {
                         responseType: 'arraybuffer',
                         timeout: 60000,
@@ -1281,9 +1282,9 @@ class JobQueue extends EventEmitter {
                         });
 
                         // Download theme music using /Items/{ItemId}/Download
-                        const axios = require('axios');
                         const downloadUrl = `${jellyfinUrl}/Items/${themeSongId}/Download?api_key=${apiKey}`;
 
+                        // @ts-ignore - axios.get exists but TypeScript doesn't recognize require('axios') type
                         const response = await axios.get(downloadUrl, {
                             responseType: 'arraybuffer',
                             timeout: 60000,
@@ -1685,7 +1686,7 @@ class JobQueue extends EventEmitter {
     /**
      * Generate posterpack filename
      * @param {Object} item - Media item
-     * @param {Object} options - Generation options
+     * @param {Object} _options - Generation options (unused)
      * @returns {string} Filename
      */
     generatePosterpackFilename(item, _options) {
@@ -1711,7 +1712,8 @@ class JobQueue extends EventEmitter {
      * Download asset from source
      * @param {string} assetUrl - Asset URL (can be full URL or path)
      * @param {string} sourceType - Source type
-     * @returns {Buffer} Asset data
+     * @param {Object|null} exportLogger - Optional logger
+     * @returns {Promise<Buffer>} Asset data
      */
     async downloadAsset(assetUrl, sourceType, exportLogger = null) {
         // Configurable retry params
@@ -1768,6 +1770,7 @@ class JobQueue extends EventEmitter {
                 // Create localhost client for Posterrama's /image endpoint
                 const port = process.env.PORT || this.config?.server?.port || 4000;
                 const baseURL = `http://localhost:${port}`;
+                // @ts-ignore - axios.create exists but TypeScript doesn't recognize require('axios') type
                 httpClient = axios.create({
                     baseURL,
                     timeout: 30000,
