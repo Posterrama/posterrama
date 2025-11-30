@@ -63,6 +63,9 @@ class Config {
         delete require.cache[configPath];
         this.config = require('../config.json');
 
+        // Validate config against schema at runtime
+        this.validateConfig();
+
         // CRITICAL FIX: Copy all config.json properties to private backing fields
         // This ensures config.wallartMode, config.mediaServers etc. work correctly
         // without needing to access config.config.xxx
@@ -79,6 +82,36 @@ class Config {
             this._mqtt = this.config.mqtt;
             this._clientDebugViewer = this.config.clientDebugViewer;
             this._siteServer = this.config.siteServer;
+        }
+    }
+
+    /**
+     * Validate config.json against schema at runtime
+     * Logs warnings for validation errors but doesn't block startup
+     */
+    validateConfig() {
+        try {
+            const Ajv = require('ajv');
+            const schema = require('../config.schema.json');
+            const ajv = new Ajv({ allErrors: true });
+            const validate = ajv.compile(schema);
+            const valid = validate(this.config);
+
+            if (!valid) {
+                console.warn('⚠️  Config validation warnings:');
+                validate.errors.forEach(err => {
+                    const path = err.instancePath || 'root';
+                    const msg = err.message || 'validation error';
+                    console.warn(`   ${path}: ${msg}`);
+                    if (err.params?.allowedValues) {
+                        console.warn(`   Allowed: ${err.params.allowedValues.join(', ')}`);
+                    }
+                });
+                console.warn('   Run "npm run config:validate" for details');
+            }
+        } catch (err) {
+            // Don't crash if validation fails - just log warning
+            console.warn('⚠️  Could not validate config:', err.message);
         }
     }
 

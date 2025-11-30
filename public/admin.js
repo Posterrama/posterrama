@@ -3533,7 +3533,6 @@
                     const displayStyle = displayStyleSelect?.value;
                     const isArtistCards = displayStyle === 'artist-cards';
                     const isCoversOnly = displayStyle === 'covers-only';
-                    const isGrid = displayStyle === 'grid';
 
                     // Hide animation for artist-cards mode
                     if (animationRow) animationRow.style.display = isArtistCards ? 'none' : '';
@@ -3541,10 +3540,10 @@
                     // Hide density for artist-cards mode
                     if (densityRow) densityRow.style.display = isArtistCards ? 'none' : '';
 
-                    // Hide display options for covers-only, artist-cards, and grid modes
+                    // Hide display options for covers-only and artist-cards modes
                     if (displayOptionsRow)
                         displayOptionsRow.style.display =
-                            isArtistCards || isCoversOnly || isGrid ? 'none' : '';
+                            isArtistCards || isCoversOnly ? 'none' : '';
 
                     // Show artist rotation slider only for artist-cards mode
                     if (artistRotationRow)
