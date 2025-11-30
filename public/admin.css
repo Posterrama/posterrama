@@ -16639,6 +16639,38 @@ select.input-error:focus {
     color: var(--color-text-muted, #606070);
 }
 
+/* Trailer sound warning box */
+.trailer-sound-warning .warning-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(255, 170, 0, 0.1);
+    border: 1px solid rgba(255, 170, 0, 0.3);
+    border-radius: 6px;
+    color: #ffaa00;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.trailer-sound-warning .warning-box i {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.trailer-sound-warning .warning-box code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.75rem;
+    word-break: break-all;
+}
+
+.trailer-sound-warning .warning-box strong {
+    color: #ffcc00;
+}
+
 /* Conditional visibility helper classes */
 .cinema-conditional-row {
     transition: all 0.2s ease;

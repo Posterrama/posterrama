@@ -1119,10 +1119,8 @@
         // Trailer settings
         const trailer = promo.trailer || {};
         $('#cinemaTrailerEnabled') && ($('#cinemaTrailerEnabled').checked = !!trailer.enabled);
-        $('#cinemaTrailerAutoplay') &&
-            ($('#cinemaTrailerAutoplay').checked = trailer.autoplay !== false);
         $('#cinemaTrailerMuted') && ($('#cinemaTrailerMuted').checked = trailer.muted !== false);
-        $('#cinemaTrailerHeight') && ($('#cinemaTrailerHeight').value = trailer.height || 30);
+        $('#cinemaTrailerLoop') && ($('#cinemaTrailerLoop').checked = trailer.loop !== false);
 
         // QR Code settings
         const qr = promo.qrCode || {};
@@ -1162,6 +1160,17 @@
             };
             trailerEnabled.addEventListener('change', syncTrailerVisibility);
             syncTrailerVisibility();
+        }
+
+        // Trailer: show sound warning when muted is unchecked
+        const trailerMuted = $('#cinemaTrailerMuted');
+        const trailerSoundWarning = $('#trailerSoundWarning');
+        if (trailerMuted && trailerSoundWarning) {
+            const syncSoundWarning = () => {
+                trailerSoundWarning.style.display = trailerMuted.checked ? 'none' : '';
+            };
+            trailerMuted.addEventListener('change', syncSoundWarning);
+            syncSoundWarning();
         }
 
         // QR Code: show settings when enabled
@@ -1607,9 +1616,8 @@
                 showAwardsBadge: !!$('#cinemaAwardsBadge')?.checked,
                 trailer: {
                     enabled: !!$('#cinemaTrailerEnabled')?.checked,
-                    autoplay: $('#cinemaTrailerAutoplay')?.checked !== false,
                     muted: $('#cinemaTrailerMuted')?.checked !== false,
-                    height: parseInt($('#cinemaTrailerHeight')?.value || '30', 10),
+                    loop: $('#cinemaTrailerLoop')?.checked !== false,
                 },
                 qrCode: {
                     enabled: !!$('#cinemaQREnabled')?.checked,

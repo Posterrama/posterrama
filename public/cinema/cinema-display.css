@@ -2260,44 +2260,40 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
 
 /* Trailer overlay - positioned at bottom of poster */
 .cinema-trailer-overlay {
-    --trailer-height: 30%;
     position: fixed;
-    bottom: var(--poster-bottom, 0);
+    /* Center horizontally */
     left: 50%;
     transform: translateX(-50%);
-    width: var(--poster-width, 100%);
-    height: var(--trailer-height);
+    /* Position at bottom of poster area */
+    bottom: calc(var(--poster-bottom, 0px) + var(--cinema-frame-width, 8px) + 10px);
+    /* Width - 85% of poster width */
+    width: calc(var(--poster-width, 400px) * 0.85);
+    /* 16:9 aspect ratio for video */
+    aspect-ratio: 16 / 9;
+    max-height: 25vh;
     z-index: 50;
     overflow: hidden;
-    pointer-events: none;
-    /* Gradient mask to blend with poster */
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
-    mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
+    background: #000;
+    /* Elegant frame matching cinema style */
+    border: 4px solid #000000;
+    border-radius: 3px;
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.6),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
+.cinema-trailer-overlay #yt-trailer-player,
 .cinema-trailer-overlay iframe {
     position: absolute;
-    bottom: 0;
+    top: 50%;
     left: 0;
+    transform: translateY(-50%);
+    /* Full width, height scales to maintain video aspect ratio */
     width: 100%;
-    /* Make iframe taller to hide YouTube branding/controls at top */
-    height: 200%;
+    /* YouTube embeds are 16:9, so height = width / 16 * 9 */
+    height: 56.25vw; /* This ensures video fills width */
+    min-height: 100%;
     border: none;
-    pointer-events: none;
-}
-
-/* Adjust trailer position for different poster styles */
-.cinema-poster-framed .cinema-trailer-overlay,
-.cinema-poster-doubleBorder .cinema-trailer-overlay {
-    /* Account for frame width */
-    bottom: calc(var(--poster-bottom, 0) + var(--cinema-frame-width, 8px));
-    width: calc(var(--poster-width, 100%) - 2 * var(--cinema-frame-width, 8px));
-}
-
-.cinema-poster-polaroid .cinema-trailer-overlay {
-    /* Polaroid has larger bottom border */
-    bottom: calc(var(--poster-bottom, 0) + 60px);
-    width: calc(var(--poster-width, 100%) - 40px);
 }
 
 /* Announcement banner */

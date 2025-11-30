@@ -1524,20 +1524,18 @@
                         </div>
                         <div class="cinema-nested-settings" id="cinemaTrailerSettings" style="display:none;">
                           <div class="form-row">
-                            <label for="cinemaTrailerAutoplay">Autoplay</label>
-                            <label class="checkbox" for="cinemaTrailerAutoplay"><input type="checkbox" id="cinemaTrailerAutoplay" checked /><span class="checkmark"></span><span>Start automatically</span></label>
+                            <label for="cinemaTrailerMuted">Sound</label>
+                            <label class="checkbox" for="cinemaTrailerMuted"><input type="checkbox" id="cinemaTrailerMuted" checked /><span class="checkmark"></span><span>Muted</span></label>
                           </div>
-                          <div class="form-row">
-                            <label for="cinemaTrailerMuted">Muted</label>
-                            <label class="checkbox" for="cinemaTrailerMuted"><input type="checkbox" id="cinemaTrailerMuted" checked /><span class="checkmark"></span><span>Play without sound</span></label>
-                          </div>
-                          <div class="form-row">
-                            <label for="cinemaTrailerHeight">Height</label>
-                            <div class="modern-slider">
-                              <input type="range" id="cinemaTrailerHeight" min="20" max="50" step="5" value="30" />
-                              <div class="slider-bar"><div class="fill"></div></div>
+                          <div class="form-row trailer-sound-warning" id="trailerSoundWarning" style="display:none;">
+                            <div class="warning-box">
+                              <i class="fas fa-exclamation-triangle"></i>
+                              <span>Sound requires browser settings change. On display devices, go to <code>chrome://flags/#autoplay-policy</code> and set to <strong>"No user gesture is required"</strong>, then restart Chrome.</span>
                             </div>
-                            <div class="slider-percentage" data-target="cinema.promotional.trailer.height">30%</div>
+                          </div>
+                          <div class="form-row">
+                            <label for="cinemaTrailerLoop">Repeat</label>
+                            <label class="checkbox" for="cinemaTrailerLoop"><input type="checkbox" id="cinemaTrailerLoop" checked /><span class="checkmark"></span><span>Loop trailer</span></label>
                           </div>
                         </div>
                         

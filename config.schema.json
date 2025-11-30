@@ -1086,24 +1086,17 @@
                                 "enabled": {
                                     "type": "boolean",
                                     "default": false,
-                                    "description": "Show trailer video overlay at bottom of poster"
-                                },
-                                "autoplay": {
-                                    "type": "boolean",
-                                    "default": true,
-                                    "description": "Automatically start playing trailer"
+                                    "description": "Show trailer video overlay"
                                 },
                                 "muted": {
                                     "type": "boolean",
                                     "default": true,
                                     "description": "Play trailer without sound"
                                 },
-                                "height": {
-                                    "type": "integer",
-                                    "minimum": 20,
-                                    "maximum": 50,
-                                    "default": 30,
-                                    "description": "Trailer overlay height as percentage of poster"
+                                "loop": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Loop trailer when it ends"
                                 }
                             },
                             "additionalProperties": false

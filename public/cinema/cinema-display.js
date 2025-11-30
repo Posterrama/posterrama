@@ -93,9 +93,8 @@
             showAwardsBadge: false,
             trailer: {
                 enabled: false,
-                autoplay: true,
                 muted: true,
-                height: 30,
+                loop: true,
             },
             qrCode: {
                 enabled: false,
@@ -139,9 +138,12 @@
             // Poster native aspect ratio is 2:3 (width:height)
             const posterHeightByWidth = Math.round(vw * 1.5);
             const posterHeight = Math.min(vh, posterHeightByWidth);
+            const posterWidth = Math.round(posterHeight / 1.5); // width = height / 1.5
             const bar = Math.max(0, Math.round((vh - posterHeight) / 2));
             document.documentElement.style.setProperty('--poster-top', bar + 'px');
             document.documentElement.style.setProperty('--poster-bottom', bar + 'px');
+            document.documentElement.style.setProperty('--poster-width', posterWidth + 'px');
+            document.documentElement.style.setProperty('--poster-height', posterHeight + 'px');
         } catch (e) {
             console.warn('updatePosterLayout error', e);
         }
@@ -775,6 +777,45 @@
     // ===== Trailer Overlay (Promotional) =====
     let trailerEl = null;
     let currentTrailerKey = null; // Track current trailer to avoid reloading
+    let ytPlayer = null; // YouTube Player instance
+    let ytApiReady = false; // Track if YouTube API is loaded
+
+    // Load YouTube IFrame API (once)
+    function loadYouTubeAPI() {
+        return new Promise(resolve => {
+            if (ytApiReady) {
+                resolve();
+                return;
+            }
+            if (window.YT && window.YT.Player) {
+                ytApiReady = true;
+                resolve();
+                return;
+            }
+            // Check if script is already being loaded
+            if (document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+                // Wait for it to load
+                const checkReady = setInterval(() => {
+                    if (window.YT && window.YT.Player) {
+                        ytApiReady = true;
+                        clearInterval(checkReady);
+                        resolve();
+                    }
+                }, 100);
+                return;
+            }
+            // Load the API
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+            window.onYouTubeIframeAPIReady = () => {
+                ytApiReady = true;
+                resolve();
+            };
+        });
+    }
 
     async function createTrailerOverlay(media) {
         const promo = cinemaConfig.promotional || {};
@@ -786,8 +827,17 @@
             return;
         }
 
-        // Get TMDB ID from media (can be in different fields)
-        const tmdbId = media.tmdbId || media.tmdb_id;
+        // Get TMDB ID from media (can be in different fields or in guids array)
+        let tmdbId = media.tmdbId || media.tmdb_id;
+
+        // Check guids array if tmdbId not found directly
+        if (!tmdbId && Array.isArray(media.guids)) {
+            const tmdbGuid = media.guids.find(g => g.source === 'tmdb');
+            if (tmdbGuid) {
+                tmdbId = tmdbGuid.id;
+            }
+        }
+
         if (!tmdbId) {
             log('Trailer skipped - no TMDB ID', { title: media.title });
             removeTrailerOverlay();
@@ -820,10 +870,8 @@
                 return;
             }
 
-            // Build embed URL with settings
-            const autoplay = trailerConfig.autoplay !== false ? '1' : '0';
-            const muted = trailerConfig.muted !== false ? '1' : '0';
-            const embedUrl = `https://www.youtube.com/embed/${data.trailer.key}?autoplay=${autoplay}&mute=${muted}&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&playlist=${data.trailer.key}`;
+            // Load YouTube API if needed
+            await loadYouTubeAPI();
 
             // Remove existing trailer
             removeTrailerOverlay();
@@ -831,25 +879,69 @@
             // Create trailer container
             trailerEl = document.createElement('div');
             trailerEl.className = 'cinema-trailer-overlay';
-            trailerEl.style.setProperty('--trailer-height', `${trailerConfig.height || 30}%`);
 
-            // Create iframe
-            const iframe = document.createElement('iframe');
-            iframe.src = embedUrl;
-            iframe.allow =
-                'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-            iframe.allowFullscreen = false;
-            iframe.frameBorder = '0';
-
-            trailerEl.appendChild(iframe);
+            // Create player container div (required by YouTube API)
+            const playerDiv = document.createElement('div');
+            playerDiv.id = 'yt-trailer-player';
+            trailerEl.appendChild(playerDiv);
             document.body.appendChild(trailerEl);
+
+            // Get loop setting and muted setting
+            const shouldLoop = trailerConfig.loop !== false;
+            const shouldMute = trailerConfig.muted !== false;
+
+            // Create YouTube player using the API
+            // Note: Autoplay with sound requires browser flag: chrome://flags/#autoplay-policy → "No user gesture is required"
+            ytPlayer = new window.YT.Player('yt-trailer-player', {
+                videoId: data.trailer.key,
+                playerVars: {
+                    autoplay: 1,
+                    mute: shouldMute ? 1 : 0, // Respect muted setting
+                    controls: 0,
+                    disablekb: 1,
+                    fs: 0,
+                    iv_load_policy: 3, // Hide annotations
+                    modestbranding: 1,
+                    rel: 0,
+                    showinfo: 0,
+                    playsinline: 1,
+                    origin: window.location.origin,
+                },
+                events: {
+                    onReady: event => {
+                        log('YouTube player ready (muted)');
+                        event.target.playVideo();
+                    },
+                    onError: event => {
+                        const errorCodes = {
+                            2: 'Invalid video ID',
+                            5: 'HTML5 player error',
+                            100: 'Video not found or private',
+                            101: 'Embedding disabled by owner',
+                            150: 'Embedding disabled by owner',
+                        };
+                        log('YouTube player error', {
+                            code: event.data,
+                            message: errorCodes[event.data] || 'Unknown error',
+                        });
+                    },
+                    onStateChange: event => {
+                        // Loop video when it ends (if enabled)
+                        if (shouldLoop && event.data === window.YT.PlayerState.ENDED) {
+                            event.target.seekTo(0);
+                            event.target.playVideo();
+                        }
+                    },
+                },
+            });
 
             currentTrailerKey = trailerKey;
 
-            log('Trailer overlay created', {
+            log('Trailer overlay created (YouTube API)', {
                 title: media.title,
                 trailerName: data.trailer.name,
-                height: trailerConfig.height,
+                muted: trailerConfig.muted,
+                loop: shouldLoop,
             });
         } catch (err) {
             log('Trailer error', { error: err.message, title: media.title });
@@ -858,6 +950,15 @@
     }
 
     function removeTrailerOverlay() {
+        // Destroy YouTube player if exists
+        if (ytPlayer) {
+            try {
+                ytPlayer.destroy();
+            } catch (e) {
+                // Player may already be destroyed
+            }
+            ytPlayer = null;
+        }
         if (trailerEl) {
             trailerEl.remove();
             trailerEl = null;
@@ -1793,7 +1894,7 @@
 
         // Always fetch media queue for fallback scenarios
         // Even when Now Playing is enabled, we need the queue for when sessions end
-        (async () => {
+        const queuePromise = (async () => {
             console.log('[Cinema Display] Fetching media queue...');
             mediaQueue = await fetchMediaQueue();
             console.log('[Cinema Display] Media queue loaded:', mediaQueue.length, 'items');
@@ -1813,6 +1914,7 @@
                     /* optional performance optimization */
                 }
             }
+            return mediaQueue;
         })();
 
         // Initialize Now Playing if enabled (takes priority over rotation)
@@ -1833,11 +1935,10 @@
             // Start rotation if enabled and Now Playing is disabled
             if (cinemaConfig.rotationIntervalMinutes > 0) {
                 console.log('[Cinema Display] Rotation enabled, waiting for queue...');
-                // Wait for queue to load before starting rotation
-                (async () => {
-                    await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure queue is loaded
-                    console.log('[Cinema Display] Queue ready, length:', mediaQueue.length);
-                    if (mediaQueue.length > 0) {
+                // Wait for queue to actually load before starting rotation
+                queuePromise.then(queue => {
+                    console.log('[Cinema Display] Queue ready, length:', queue.length);
+                    if (queue.length > 0) {
                         // Show first random poster immediately
                         console.log('[Cinema Display] Showing first poster and starting rotation');
                         showNextPoster();
@@ -1846,16 +1947,15 @@
                     } else {
                         console.log('[Cinema Display] Queue empty, cannot start rotation');
                     }
-                })();
+                });
             } else {
                 console.log('[Cinema Display] Rotation disabled (interval = 0)');
                 // No rotation, but still show a random poster
-                (async () => {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (mediaQueue.length > 0) {
+                queuePromise.then(queue => {
+                    if (queue.length > 0) {
                         showNextPoster();
                     }
-                })();
+                });
             }
         }
 

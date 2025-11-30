@@ -137,9 +137,8 @@
             "showAwardsBadge": false,
             "trailer": {
                 "enabled": false,
-                "autoplay": true,
                 "muted": true,
-                "height": 30
+                "loop": true
             },
             "qrCode": {
                 "enabled": false,

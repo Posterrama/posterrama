@@ -539,20 +539,7 @@ function migrateConfig(cfg) {
 
     // === PROMOTIONAL ===
     if (cinema.promotional) {
-        // Trailer settings
-        if (cinema.promotional.trailer) {
-            // Validate height
-            if (cinema.promotional.trailer.height !== undefined) {
-                if (
-                    typeof cinema.promotional.trailer.height !== 'number' ||
-                    cinema.promotional.trailer.height < 20 ||
-                    cinema.promotional.trailer.height > 50
-                ) {
-                    cinema.promotional.trailer.height = 30;
-                    modified = true;
-                }
-            }
-        }
+        // Trailer settings - no validation needed, just boolean options
 
         // QR Code settings
         if (cinema.promotional.qrCode) {
