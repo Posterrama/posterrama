@@ -16472,6 +16472,46 @@ select.input-error:focus {
    CINEMA MODE ENHANCED CONTROLS (Issue #35)
    ================================================================= */
 
+/* Header/Footer cards use standard form-grid but single column on narrow cards */
+#cinema-header-card .form-grid,
+#cinema-footer-card .form-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+/* Slider row: slider + percentage inline, not full width */
+#cinema-header-card .slider-row,
+#cinema-footer-card .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 320px;
+}
+
+#cinema-header-card .slider-row .modern-slider,
+#cinema-footer-card .slider-row .modern-slider {
+    flex: 1;
+    min-width: 150px;
+}
+
+#cinema-header-card .slider-row .slider-percentage,
+#cinema-footer-card .slider-row .slider-percentage {
+    flex: 0 0 auto;
+    min-width: 45px;
+    text-align: right;
+    font-size: 0.9rem;
+    color: var(--color-text-primary);
+}
+
+/* Footer conditional blocks */
+.cin-footer-col {
+    display: none;
+}
+
+.cin-footer-col.active {
+    display: block;
+}
+
 /* Nested settings panel - for QR/Announcement */
 .cinema-nested-settings {
     border-left: 3px solid var(--color-primary, #3b82f6);
@@ -16546,8 +16586,14 @@ select.input-error:focus {
     margin: 16px 0 8px 0;
     padding-bottom: 4px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    grid-column: 1 / -1;
 }
 
 .cinema-section-header:first-child {
     margin-top: 0;
+}
+
+/* Checkbox groups in mode cards should span full width */
+.mode-card .checkbox-group {
+    grid-column: 1 / -1;
 }

@@ -1160,14 +1160,10 @@
                   </div>
                   <!-- Rotation Interval -->
                   <div class="mode-card" data-card-key="cinema-rotation" style="padding:12px; grid-column: 1;">
-                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-sync-alt"></i> Poster Rotation</div>
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-sync-alt"></i> Poster Rotation Interval</div>
                     <div class="form-grid">
                       <div class="form-row">
-                        <label for="cinemaRotationInterval">
-                          Rotation Interval
-                          <span class="help-text">Minutes between poster changes (0 = disabled)</span>
-                        </label>
-                        <div class="number-input-wrapper"><input type="number" min="0" step="1" id="cinemaRotationInterval" placeholder="0" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                        <div class="number-input-wrapper"><input type="number" min="0" step="1" id="cinemaRotationInterval" placeholder="0=disabled" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
                       </div>
                     </div>
                   </div>
@@ -1218,63 +1214,6 @@
                   <div class="mode-card" data-card-key="cinema-footer" id="cinema-footer-card" style="padding:12px; break-before: column; -webkit-column-break-before: always;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-window-maximize"></i> Footer</div>
                     <div id="cinema-footer-mount"></div>
-                  </div>
-
-                  <!-- Typography Settings (Issue #35) -->
-                  <div class="mode-card" data-card-key="cinema-typography" id="cinema-typography-card" style="padding:12px; grid-column: 1;">
-                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-font"></i> Typography</div>
-                    <div id="cinema-typography-mount">
-                      <div class="form-grid">
-                        <div class="form-row">
-                          <label for="cinemaFontFamily">Font Family</label>
-                          <div class="select-wrap has-caret">
-                            <select id="cinemaFontFamily">
-                              <option value="system">System (Default)</option>
-                              <option value="cinematic">Cinematic (Bebas Neue)</option>
-                              <option value="classic">Classic (Playfair)</option>
-                              <option value="modern">Modern (Montserrat)</option>
-                              <option value="elegant">Elegant (Cormorant)</option>
-                              <option value="custom">Custom Google Font...</option>
-                            </select>
-                            <span class="select-caret" aria-hidden="true">▾</span>
-                          </div>
-                        </div>
-                        <div class="form-row cinema-conditional-row" id="cinemaCustomFontRow" style="display:none;">
-                          <label for="cinemaCustomFont">Google Font Name</label>
-                          <input type="text" id="cinemaCustomFont" class="form-input" placeholder="e.g., Oswald, Lato, Roboto Condensed" />
-                        </div>
-                        <div class="form-row">
-                          <label for="cinemaTitleSize">Title Size</label>
-                          <div class="modern-slider">
-                            <input type="range" id="cinemaTitleSize" min="50" max="200" step="5" value="100" />
-                            <div class="slider-bar"><div class="fill"></div></div>
-                          </div>
-                          <div class="slider-percentage" data-target="cinema.typography.titleSize">100%</div>
-                        </div>
-                        <!-- Title Color - Component Container -->
-                        <div id="cinema-title-color-picker-container"></div>
-                        <div class="form-row">
-                          <label for="cinemaTitleShadow">Title Shadow</label>
-                          <div class="select-wrap has-caret">
-                            <select id="cinemaTitleShadow">
-                              <option value="none">None</option>
-                              <option value="subtle">Subtle</option>
-                              <option value="dramatic">Dramatic</option>
-                              <option value="neon">Neon Glow</option>
-                            </select>
-                            <span class="select-caret" aria-hidden="true">▾</span>
-                          </div>
-                        </div>
-                        <div class="form-row">
-                          <label for="cinemaMetadataOpacity">Metadata Opacity</label>
-                          <div class="modern-slider">
-                            <input type="range" id="cinemaMetadataOpacity" min="0" max="100" step="5" value="80" />
-                            <div class="slider-bar"><div class="fill"></div></div>
-                          </div>
-                          <div class="slider-percentage" data-target="cinema.typography.metadataOpacity">80%</div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   <!-- Background Settings (Issue #35) -->
@@ -1373,22 +1312,38 @@
                   </div>
 
                   <!-- Metadata Display Settings (Issue #35) -->
-                  <div class="mode-card" data-card-key="cinema-metadata" id="cinema-metadata-card" style="padding:12px; grid-column: 1;">
+                  <div class="mode-card" data-card-key="cinema-metadata" id="cinema-metadata-card" style="padding:12px; grid-column: 1; display:none;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-info-circle"></i> Metadata Display</div>
                     <div id="cinema-metadata-mount">
                       <div class="form-grid">
+                        <div class="form-row" style="grid-column: 1 / -1;">
+                          <label class="checkbox" for="cinemaMetadataEnabled" style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="cinemaMetadataEnabled" checked />
+                            <span class="checkmark"></span>
+                            <span>Enable Metadata Display</span>
+                          </label>
+                        </div>
+                        <div class="form-row">
+                          <label for="cinemaMetadataOpacity">Opacity</label>
+                          <div class="modern-slider">
+                            <input type="range" id="cinemaMetadataOpacity" min="0" max="100" step="5" value="80" />
+                            <div class="slider-bar"><div class="fill"></div></div>
+                          </div>
+                          <div class="slider-percentage">80%</div>
+                        </div>
                         <div class="form-row">
                           <label for="cinemaMetadataPosition">Position</label>
                           <div class="select-wrap has-caret">
                             <select id="cinemaMetadataPosition">
                               <option value="bottom">Bottom (Below Poster)</option>
-                              <option value="side">Side (Next to Poster)</option>
                               <option value="overlay">Overlay (On Poster)</option>
                             </select>
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
                         </div>
-                        <div class="checkbox-group" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;">
+                        
+                        <div class="cinema-section-header">Movie Info</div>
+                        <div class="checkbox-group" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;">
                           <label class="checkbox" for="cinemaShowTitle"><input type="checkbox" id="cinemaShowTitle" checked /><span class="checkmark"></span><span>Title</span></label>
                           <label class="checkbox" for="cinemaShowYear"><input type="checkbox" id="cinemaShowYear" checked /><span class="checkmark"></span><span>Year</span></label>
                           <label class="checkbox" for="cinemaShowRuntime"><input type="checkbox" id="cinemaShowRuntime" checked /><span class="checkmark"></span><span>Runtime</span></label>
@@ -1398,7 +1353,36 @@
                           <label class="checkbox" for="cinemaShowDirector"><input type="checkbox" id="cinemaShowDirector" /><span class="checkmark"></span><span>Director</span></label>
                           <label class="checkbox" for="cinemaShowCast"><input type="checkbox" id="cinemaShowCast" /><span class="checkmark"></span><span>Cast</span></label>
                           <label class="checkbox" for="cinemaShowPlot"><input type="checkbox" id="cinemaShowPlot" /><span class="checkmark"></span><span>Plot</span></label>
-                          <label class="checkbox" for="cinemaShowStudioLogo"><input type="checkbox" id="cinemaShowStudioLogo" /><span class="checkmark"></span><span>Studio Logo</span></label>
+                          <label class="checkbox" for="cinemaShowStudioLogo"><input type="checkbox" id="cinemaShowStudioLogo" /><span class="checkmark"></span><span>Studio</span></label>
+                        </div>
+                        
+                        <div class="cinema-section-header">Technical Specs</div>
+                        <div class="checkbox-group" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;">
+                          <label class="checkbox" for="cinemaShowResolution"><input type="checkbox" id="cinemaShowResolution" checked /><span class="checkmark"></span><span>Resolution</span></label>
+                          <label class="checkbox" for="cinemaShowAudio"><input type="checkbox" id="cinemaShowAudio" checked /><span class="checkmark"></span><span>Audio</span></label>
+                          <label class="checkbox" for="cinemaShowHDR"><input type="checkbox" id="cinemaShowHDR" checked /><span class="checkmark"></span><span>HDR</span></label>
+                          <label class="checkbox" for="cinemaShowAspectRatio"><input type="checkbox" id="cinemaShowAspectRatio" /><span class="checkmark"></span><span>Aspect Ratio</span></label>
+                        </div>
+                        <div class="form-row" style="margin-top: 12px; grid-column: 1 / -1;">
+                          <label for="cinemaSpecsStyle">Specs Display Style</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaSpecsStyle">
+                              <option value="subtle">Subtle (Text Only)</option>
+                              <option value="badges">Badges (Colored)</option>
+                              <option value="icons">Icons</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div class="form-row cinema-conditional-row" id="cinemaSpecsIconSetRow" style="display:none;">
+                          <label for="cinemaSpecsIconSet">Icon Set</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaSpecsIconSet">
+                              <option value="filled">Filled</option>
+                              <option value="outline">Outline</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1409,15 +1393,17 @@
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-bullhorn"></i> Promotional</div>
                     <div id="cinema-promotional-mount">
                       <div class="form-grid">
-                        <div class="cinema-section-header">Badges</div>
-                        <div class="checkbox-group" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
-                          <label class="checkbox" for="cinemaComingSoonBadge"><input type="checkbox" id="cinemaComingSoonBadge" /><span class="checkmark"></span><span>Coming Soon Badge</span></label>
-                          <label class="checkbox" for="cinemaReleaseCountdown"><input type="checkbox" id="cinemaReleaseCountdown" /><span class="checkmark"></span><span>Release Countdown</span></label>
+                        <div class="form-row">
+                          <label>Badges</label>
+                          <div class="checkbox-group" style="display: flex; flex-wrap: wrap; gap: 12px;">
+                            <label class="checkbox" for="cinemaComingSoonBadge"><input type="checkbox" id="cinemaComingSoonBadge" /><span class="checkmark"></span><span>Coming Soon</span></label>
+                            <label class="checkbox" for="cinemaReleaseCountdown"><input type="checkbox" id="cinemaReleaseCountdown" /><span class="checkmark"></span><span>Release Countdown</span></label>
+                          </div>
                         </div>
                         
-                        <div class="cinema-section-header">QR Code</div>
                         <div class="form-row">
-                          <label class="checkbox" for="cinemaQREnabled"><input type="checkbox" id="cinemaQREnabled" /><span class="checkmark"></span><span>Enable QR Code Overlay</span></label>
+                          <label>QR Code</label>
+                          <label class="checkbox" for="cinemaQREnabled"><input type="checkbox" id="cinemaQREnabled" /><span class="checkmark"></span><span>Enable Overlay</span></label>
                         </div>
                         <div class="cinema-nested-settings" id="cinemaQRSettings" style="display:none;">
                           <div class="form-row">
@@ -1446,9 +1432,9 @@
                           </div>
                         </div>
                         
-                        <div class="cinema-section-header">Announcement Banner</div>
                         <div class="form-row">
-                          <label class="checkbox" for="cinemaAnnouncementEnabled"><input type="checkbox" id="cinemaAnnouncementEnabled" /><span class="checkmark"></span><span>Enable Announcement Banner</span></label>
+                          <label>Banner</label>
+                          <label class="checkbox" for="cinemaAnnouncementEnabled"><input type="checkbox" id="cinemaAnnouncementEnabled" /><span class="checkmark"></span><span>Enable Announcement</span></label>
                         </div>
                         <div class="cinema-nested-settings" id="cinemaAnnouncementSettings" style="display:none;">
                           <div class="form-row">

@@ -70,19 +70,40 @@
         "header": {
             "enabled": true,
             "text": "Super Cool",
-            "style": "classic"
+            "typography": {
+                "fontFamily": "cinematic",
+                "fontSize": 120,
+                "color": "#ffd700",
+                "shadow": "glow",
+                "animation": "none"
+            }
         },
         "footer": {
             "enabled": true,
-            "type": "specs",
+            "type": "marquee",
             "marqueeText": "Feature Presentation",
-            "marqueeStyle": "classic",
+            "typography": {
+                "fontFamily": "cinematic",
+                "fontSize": 100,
+                "color": "#ffffff",
+                "shadow": "subtle"
+            }
+        },
+        "metadata": {
+            "enabled": true,
+            "position": "bottom",
+            "opacity": 80,
+            "showTitle": true,
+            "showYear": true,
+            "showRating": true,
+            "showRuntime": true,
+            "showGenre": true,
             "specs": {
                 "showResolution": true,
                 "showAudio": true,
                 "showAspectRatio": true,
-                "showFlags": true,
-                "style": "outline",
+                "showHDR": true,
+                "style": "badges",
                 "iconSet": "filled"
             }
         },

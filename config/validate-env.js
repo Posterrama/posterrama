@@ -87,6 +87,406 @@ try {
     process.exit(1);
 }
 
+/**
+ * Migrate and repair config to ensure it always validates against schema.
+ * This handles breaking changes and invalid values automatically.
+ * @param {object} cfg - The config object to migrate/repair
+ * @returns {boolean} - True if config was modified and needs saving
+ */
+function migrateConfig(cfg) {
+    let modified = false;
+
+    // === VALID ENUM VALUES (from schema) ===
+    const VALID = {
+        // Header typography
+        headerFontFamily: [
+            'system',
+            'cinematic',
+            'classic',
+            'modern',
+            'elegant',
+            'marquee',
+            'retro',
+            'neon',
+        ],
+        headerShadow: ['none', 'subtle', 'dramatic', 'neon', 'glow'],
+        headerAnimation: ['none', 'pulse', 'flicker', 'marquee'],
+        // Footer
+        footerType: ['marquee', 'metadata', 'tagline'],
+        footerFontFamily: ['system', 'cinematic', 'classic', 'modern', 'elegant'],
+        footerShadow: ['none', 'subtle', 'dramatic'],
+        // Metadata
+        metadataPosition: ['bottom', 'overlay'],
+        specsStyle: ['subtle', 'badges', 'icons'],
+        specsIconSet: ['filled', 'outline'],
+        // Background
+        backgroundMode: ['solid', 'blur', 'gradient'],
+        vignette: ['none', 'subtle', 'dramatic'],
+        // Poster
+        posterStyle: ['floating', 'framed', 'minimal', 'shadow'],
+        posterAnimation: ['fade', 'slide', 'zoom', 'flip'],
+        // Promotional
+        qrPosition: ['topLeft', 'topRight', 'bottomLeft', 'bottomRight'],
+        announcementStyle: ['ticker', 'static', 'flash'],
+        // Orientation
+        orientation: ['auto', 'portrait', 'portrait-flipped', 'landscape', 'landscape-flipped'],
+    };
+
+    // Helper: validate and fix enum value
+    const fixEnum = (obj, key, validValues, defaultValue, path) => {
+        if (obj && obj[key] !== undefined && !validValues.includes(obj[key])) {
+            console.log(
+                `[Config Repair] Invalid ${path}.${key}: "${obj[key]}" → "${defaultValue}"`
+            );
+            obj[key] = defaultValue;
+            return true;
+        }
+        return false;
+    };
+
+    // Helper: ensure object exists
+    const ensureObj = (parent, key) => {
+        if (!parent[key] || typeof parent[key] !== 'object') {
+            parent[key] = {};
+            return true;
+        }
+        return false;
+    };
+
+    // Helper: remove invalid property
+    const removeProperty = (obj, key, path) => {
+        if (obj && obj[key] !== undefined) {
+            delete obj[key];
+            console.log(`[Config Repair] Removed invalid property: ${path}.${key}`);
+            return true;
+        }
+        return false;
+    };
+
+    // === TOP-LEVEL ORIENTATION ===
+    modified = fixEnum(cfg, 'cinemaOrientation', VALID.orientation, 'auto', 'config') || modified;
+
+    // === CINEMA OBJECT ===
+    if (!cfg.cinema) {
+        cfg.cinema = {};
+        modified = true;
+    }
+    const cinema = cfg.cinema;
+
+    modified = fixEnum(cinema, 'orientation', VALID.orientation, 'auto', 'cinema') || modified;
+
+    // === HEADER ===
+    modified = ensureObj(cinema, 'header') || modified;
+    const header = cinema.header;
+
+    // Remove deprecated header.style
+    modified = removeProperty(header, 'style', 'cinema.header') || modified;
+
+    // Ensure header has required fields
+    if (header.enabled === undefined) {
+        header.enabled = true;
+        modified = true;
+    }
+    if (!header.text) {
+        header.text = 'Now Playing';
+        modified = true;
+    }
+
+    // === HEADER TYPOGRAPHY ===
+    // Migrate from cinema.typography if exists
+    if (cinema.typography && !header.typography) {
+        const oldTypo = cinema.typography;
+        header.typography = {
+            fontFamily: VALID.headerFontFamily.includes(oldTypo.fontFamily)
+                ? oldTypo.fontFamily
+                : 'cinematic',
+            fontSize: typeof oldTypo.titleSize === 'number' ? oldTypo.titleSize : 100,
+            color: /^#[0-9A-Fa-f]{6}$/.test(oldTypo.titleColor) ? oldTypo.titleColor : '#ffffff',
+            shadow: VALID.headerShadow.includes(oldTypo.titleShadow)
+                ? oldTypo.titleShadow
+                : 'subtle',
+            animation: 'none',
+        };
+        console.log('[Config Migration] Migrated cinema.typography to header.typography');
+        modified = true;
+    }
+
+    modified = ensureObj(header, 'typography') || modified;
+    const hTypo = header.typography;
+
+    // Validate/fix header typography values
+    modified =
+        fixEnum(hTypo, 'fontFamily', VALID.headerFontFamily, 'cinematic', 'header.typography') ||
+        modified;
+    modified =
+        fixEnum(hTypo, 'shadow', VALID.headerShadow, 'subtle', 'header.typography') || modified;
+    modified =
+        fixEnum(hTypo, 'animation', VALID.headerAnimation, 'none', 'header.typography') || modified;
+
+    // Remove invalid properties from header.typography
+    modified = removeProperty(hTypo, 'effect', 'header.typography') || modified;
+
+    // Ensure valid fontSize
+    if (typeof hTypo.fontSize !== 'number' || hTypo.fontSize < 50 || hTypo.fontSize > 200) {
+        hTypo.fontSize = 100;
+        modified = true;
+    }
+    // Ensure valid color
+    if (!/^#[0-9A-Fa-f]{6}$/.test(hTypo.color)) {
+        hTypo.color = '#ffffff';
+        modified = true;
+    }
+
+    // === FOOTER ===
+    modified = ensureObj(cinema, 'footer') || modified;
+    const footer = cinema.footer;
+
+    // Remove deprecated properties
+    modified = removeProperty(footer, 'marqueeStyle', 'cinema.footer') || modified;
+    modified = removeProperty(footer, 'specs', 'cinema.footer') || modified;
+
+    // Ensure footer has required fields
+    if (footer.enabled === undefined) {
+        footer.enabled = true;
+        modified = true;
+    }
+    if (!footer.marqueeText) {
+        footer.marqueeText = 'Feature Presentation';
+        modified = true;
+    }
+
+    // Fix footer.type (migrate "specs" to "metadata")
+    if (footer.type === 'specs') {
+        footer.type = 'metadata';
+        console.log('[Config Migration] Changed footer.type from "specs" to "metadata"');
+        modified = true;
+    }
+    modified = fixEnum(footer, 'type', VALID.footerType, 'marquee', 'cinema.footer') || modified;
+
+    // === FOOTER TYPOGRAPHY ===
+    // Migrate from cinema.typography if exists (for footer)
+    if (cinema.typography && !footer.typography) {
+        footer.typography = {
+            fontFamily: 'system',
+            fontSize: 100,
+            color: '#cccccc',
+            shadow: 'none',
+        };
+        console.log('[Config Migration] Created footer.typography');
+        modified = true;
+    }
+
+    modified = ensureObj(footer, 'typography') || modified;
+    const fTypo = footer.typography;
+
+    // Validate/fix footer typography values
+    modified =
+        fixEnum(fTypo, 'fontFamily', VALID.footerFontFamily, 'system', 'footer.typography') ||
+        modified;
+    modified =
+        fixEnum(fTypo, 'shadow', VALID.footerShadow, 'none', 'footer.typography') || modified;
+
+    // Remove invalid properties from footer.typography
+    modified = removeProperty(fTypo, 'effect', 'footer.typography') || modified;
+    modified = removeProperty(fTypo, 'animation', 'footer.typography') || modified;
+
+    // Ensure valid fontSize
+    if (typeof fTypo.fontSize !== 'number' || fTypo.fontSize < 50 || fTypo.fontSize > 200) {
+        fTypo.fontSize = 100;
+        modified = true;
+    }
+    // Ensure valid color
+    if (!/^#[0-9A-Fa-f]{6}$/.test(fTypo.color)) {
+        fTypo.color = '#cccccc';
+        modified = true;
+    }
+
+    // === REMOVE OLD cinema.typography ===
+    if (cinema.typography) {
+        // Move metadataOpacity to metadata before deleting
+        if (cinema.typography.metadataOpacity !== undefined) {
+            if (!cinema.metadata) cinema.metadata = {};
+            if (cinema.metadata.opacity === undefined) {
+                cinema.metadata.opacity = cinema.typography.metadataOpacity;
+            }
+        }
+        delete cinema.typography;
+        console.log('[Config Migration] Removed deprecated cinema.typography');
+        modified = true;
+    }
+
+    // === METADATA ===
+    modified = ensureObj(cinema, 'metadata') || modified;
+    const metadata = cinema.metadata;
+
+    // Ensure metadata has required fields
+    if (metadata.enabled === undefined) {
+        metadata.enabled = true;
+        modified = true;
+    }
+    if (metadata.opacity === undefined) {
+        metadata.opacity = 80;
+        modified = true;
+    }
+
+    // Fix position (remove "side" option)
+    if (metadata.position === 'side') {
+        metadata.position = 'bottom';
+        console.log('[Config Migration] Changed metadata.position from "side" to "bottom"');
+        modified = true;
+    }
+    modified =
+        fixEnum(metadata, 'position', VALID.metadataPosition, 'bottom', 'metadata') || modified;
+
+    // === METADATA SPECS ===
+    modified = ensureObj(metadata, 'specs') || modified;
+    const specs = metadata.specs;
+
+    // Migrate showFlags to showHDR
+    if (specs.showFlags !== undefined) {
+        specs.showHDR = specs.showFlags;
+        delete specs.showFlags;
+        console.log('[Config Migration] Renamed specs.showFlags to specs.showHDR');
+        modified = true;
+    }
+
+    modified = fixEnum(specs, 'style', VALID.specsStyle, 'badges', 'metadata.specs') || modified;
+    modified =
+        fixEnum(specs, 'iconSet', VALID.specsIconSet, 'filled', 'metadata.specs') || modified;
+
+    // === BACKGROUND ===
+    if (cinema.background) {
+        modified =
+            fixEnum(cinema.background, 'mode', VALID.backgroundMode, 'solid', 'background') ||
+            modified;
+        modified =
+            fixEnum(cinema.background, 'vignette', VALID.vignette, 'subtle', 'background') ||
+            modified;
+
+        // Validate blurAmount
+        if (cinema.background.blurAmount !== undefined) {
+            if (
+                typeof cinema.background.blurAmount !== 'number' ||
+                cinema.background.blurAmount < 5 ||
+                cinema.background.blurAmount > 50
+            ) {
+                cinema.background.blurAmount = 20;
+                modified = true;
+            }
+        }
+        // Validate solidColor
+        if (
+            cinema.background.solidColor &&
+            !/^#[0-9A-Fa-f]{6}$/.test(cinema.background.solidColor)
+        ) {
+            cinema.background.solidColor = '#000000';
+            modified = true;
+        }
+    }
+
+    // === POSTER ===
+    if (cinema.poster) {
+        modified =
+            fixEnum(cinema.poster, 'style', VALID.posterStyle, 'floating', 'poster') || modified;
+        modified =
+            fixEnum(cinema.poster, 'animation', VALID.posterAnimation, 'fade', 'poster') ||
+            modified;
+
+        // Validate frameColor
+        if (cinema.poster.frameColor && !/^#[0-9A-Fa-f]{6}$/.test(cinema.poster.frameColor)) {
+            cinema.poster.frameColor = '#333333';
+            modified = true;
+        }
+        // Validate frameWidth
+        if (cinema.poster.frameWidth !== undefined) {
+            if (
+                typeof cinema.poster.frameWidth !== 'number' ||
+                cinema.poster.frameWidth < 2 ||
+                cinema.poster.frameWidth > 20
+            ) {
+                cinema.poster.frameWidth = 8;
+                modified = true;
+            }
+        }
+        // Validate transitionDuration
+        if (cinema.poster.transitionDuration !== undefined) {
+            if (
+                typeof cinema.poster.transitionDuration !== 'number' ||
+                cinema.poster.transitionDuration < 0.5 ||
+                cinema.poster.transitionDuration > 5
+            ) {
+                cinema.poster.transitionDuration = 1.5;
+                modified = true;
+            }
+        }
+    }
+
+    // === PROMOTIONAL ===
+    if (cinema.promotional) {
+        if (cinema.promotional.qrCode) {
+            modified =
+                fixEnum(
+                    cinema.promotional.qrCode,
+                    'position',
+                    VALID.qrPosition,
+                    'bottomRight',
+                    'promotional.qrCode'
+                ) || modified;
+
+            // Validate size
+            if (cinema.promotional.qrCode.size !== undefined) {
+                if (
+                    typeof cinema.promotional.qrCode.size !== 'number' ||
+                    cinema.promotional.qrCode.size < 60 ||
+                    cinema.promotional.qrCode.size > 200
+                ) {
+                    cinema.promotional.qrCode.size = 100;
+                    modified = true;
+                }
+            }
+        }
+        if (cinema.promotional.announcementBanner) {
+            modified =
+                fixEnum(
+                    cinema.promotional.announcementBanner,
+                    'style',
+                    VALID.announcementStyle,
+                    'ticker',
+                    'promotional.announcementBanner'
+                ) || modified;
+        }
+    }
+
+    // === AMBILIGHT ===
+    if (cinema.ambilight) {
+        if (cinema.ambilight.strength !== undefined) {
+            if (
+                typeof cinema.ambilight.strength !== 'number' ||
+                cinema.ambilight.strength < 0 ||
+                cinema.ambilight.strength > 100
+            ) {
+                cinema.ambilight.strength = 60;
+                modified = true;
+            }
+        }
+    }
+
+    // === SAVE IF MODIFIED ===
+    if (modified) {
+        try {
+            fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf-8');
+            console.log('[Config Migration] ✓ Config file repaired and saved');
+        } catch (err) {
+            console.error('[Config Migration] Failed to save repaired config:', err.message);
+        }
+    }
+
+    return modified;
+}
+
+// Run migrations before validation
+migrateConfig(config);
+
 // Export the validation function for use by other modules
 function validateEnvironment() {
     // Defer config schema validation error output until after env var checks to match test expectations

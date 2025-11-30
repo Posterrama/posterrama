@@ -437,21 +437,75 @@
                         },
                         "text": {
                             "type": "string",
-                            "default": "Super Cool",
+                            "default": "Now Playing",
                             "description": "Text to display in cinema header"
                         },
-                        "style": {
-                            "type": "string",
-                            "enum": ["classic", "neon", "minimal", "theatre"],
-                            "default": "classic",
-                            "description": "Visual style for the header"
+                        "typography": {
+                            "type": "object",
+                            "description": "Header typography settings",
+                            "properties": {
+                                "fontFamily": {
+                                    "type": "string",
+                                    "enum": [
+                                        "system",
+                                        "cinematic",
+                                        "classic",
+                                        "modern",
+                                        "elegant",
+                                        "marquee",
+                                        "retro",
+                                        "neon"
+                                    ],
+                                    "default": "cinematic",
+                                    "description": "Font family for header text"
+                                },
+                                "fontSize": {
+                                    "type": "integer",
+                                    "minimum": 50,
+                                    "maximum": 200,
+                                    "default": 100,
+                                    "description": "Font size as percentage (50-200%)"
+                                },
+                                "color": {
+                                    "type": "string",
+                                    "pattern": "^#[0-9A-Fa-f]{6}$",
+                                    "default": "#ffffff",
+                                    "description": "Text color (hex)"
+                                },
+                                "shadow": {
+                                    "type": "string",
+                                    "enum": ["none", "subtle", "dramatic", "neon", "glow"],
+                                    "default": "subtle",
+                                    "description": "Text shadow/glow effect"
+                                },
+                                "animation": {
+                                    "type": "string",
+                                    "enum": ["none", "pulse", "flicker", "marquee"],
+                                    "default": "none",
+                                    "description": "Text animation effect"
+                                }
+                            },
+                            "additionalProperties": false,
+                            "default": {
+                                "fontFamily": "cinematic",
+                                "fontSize": 100,
+                                "color": "#ffffff",
+                                "shadow": "subtle",
+                                "animation": "none"
+                            }
                         }
                     },
                     "additionalProperties": false,
                     "default": {
                         "enabled": true,
-                        "text": "Super Cool",
-                        "style": "classic"
+                        "text": "Now Playing",
+                        "typography": {
+                            "fontFamily": "cinematic",
+                            "fontSize": 100,
+                            "color": "#ffffff",
+                            "shadow": "subtle",
+                            "animation": "none"
+                        }
                     }
                 },
                 "footer": {
@@ -464,81 +518,64 @@
                         },
                         "type": {
                             "type": "string",
-                            "enum": ["marquee", "specs", "tagline"],
-                            "default": "specs",
-                            "description": "Footer type - marquee scrolling text, technical specs, or movie tagline"
+                            "enum": ["marquee", "metadata", "tagline"],
+                            "default": "metadata",
+                            "description": "Footer type - marquee scrolling text, metadata/specs display, or movie tagline"
                         },
                         "marqueeText": {
                             "type": "string",
                             "default": "Feature Presentation",
                             "description": "Text for marquee-style footer"
                         },
-                        "marqueeStyle": {
-                            "type": "string",
-                            "enum": ["classic", "neon", "minimal", "theatre"],
-                            "default": "classic",
-                            "description": "Visual style for the marquee"
-                        },
-                        "specs": {
+                        "typography": {
                             "type": "object",
+                            "description": "Footer typography settings (for marquee and tagline types)",
                             "properties": {
-                                "showResolution": {
-                                    "type": "boolean",
-                                    "default": true,
-                                    "description": "Display video resolution (e.g., 4K, 1080p)"
-                                },
-                                "showAudio": {
-                                    "type": "boolean",
-                                    "default": true,
-                                    "description": "Display audio format (e.g., Dolby Atmos, DTS)"
-                                },
-                                "showAspectRatio": {
-                                    "type": "boolean",
-                                    "default": true,
-                                    "description": "Display aspect ratio (e.g., 2.39:1)"
-                                },
-                                "showFlags": {
-                                    "type": "boolean",
-                                    "default": true,
-                                    "description": "Display content flags/badges"
-                                },
-                                "style": {
+                                "fontFamily": {
                                     "type": "string",
-                                    "enum": ["subtle", "filled", "outline"],
-                                    "default": "outline",
-                                    "description": "Visual style for specs display"
+                                    "enum": ["system", "cinematic", "classic", "modern", "elegant"],
+                                    "default": "system",
+                                    "description": "Font family for footer text"
                                 },
-                                "iconSet": {
+                                "fontSize": {
+                                    "type": "integer",
+                                    "minimum": 50,
+                                    "maximum": 200,
+                                    "default": 100,
+                                    "description": "Font size as percentage (50-200%)"
+                                },
+                                "color": {
                                     "type": "string",
-                                    "enum": ["filled", "line"],
-                                    "default": "filled",
-                                    "description": "Icon style for specs - filled or line art"
+                                    "pattern": "^#[0-9A-Fa-f]{6}$",
+                                    "default": "#cccccc",
+                                    "description": "Text color (hex)"
+                                },
+                                "shadow": {
+                                    "type": "string",
+                                    "enum": ["none", "subtle", "dramatic"],
+                                    "default": "none",
+                                    "description": "Text shadow effect"
                                 }
                             },
                             "additionalProperties": false,
                             "default": {
-                                "showResolution": true,
-                                "showAudio": true,
-                                "showAspectRatio": true,
-                                "showFlags": true,
-                                "style": "outline",
-                                "iconSet": "filled"
+                                "fontFamily": "system",
+                                "fontSize": 100,
+                                "color": "#cccccc",
+                                "shadow": "none"
                             }
                         }
                     },
                     "additionalProperties": false,
                     "default": {
                         "enabled": true,
-                        "type": "specs",
+                        "type": "metadata",
                         "marqueeText": "Feature Presentation",
-                        "marqueeStyle": "classic",
-                        "specs": {
-                            "showResolution": true,
-                            "showAudio": true,
-                            "showAspectRatio": true,
-                            "showFlags": true,
-                            "style": "outline",
-                            "iconSet": "filled"
+                        "typography": {
+                            "fontFamily": "system",
+                            "fontSize": 100,
+                            "color": "#cccccc",
+                            "shadow": "none"
                         }
                     }
                 },
@@ -658,52 +695,6 @@
                     "default": 0,
                     "description": "Poster rotation interval in minutes (0 = disabled, shows single random poster)"
                 },
-                "typography": {
-                    "type": "object",
-                    "description": "Typography customization for cinema mode text elements",
-                    "properties": {
-                        "fontFamily": {
-                            "type": "string",
-                            "enum": ["system", "cinematic", "classic", "modern", "elegant"],
-                            "default": "cinematic",
-                            "description": "Font family: system (default), cinematic (Bebas Neue), classic (Playfair Display), modern (Montserrat), elegant (Cormorant Garamond)"
-                        },
-                        "titleSize": {
-                            "type": "integer",
-                            "minimum": 50,
-                            "maximum": 200,
-                            "default": 100,
-                            "description": "Title size as percentage (50-200%)"
-                        },
-                        "titleColor": {
-                            "type": "string",
-                            "pattern": "^#[0-9A-Fa-f]{6}$",
-                            "default": "#ffffff",
-                            "description": "Title text color (hex)"
-                        },
-                        "titleShadow": {
-                            "type": "string",
-                            "enum": ["none", "subtle", "dramatic", "neon"],
-                            "default": "subtle",
-                            "description": "Title text shadow effect"
-                        },
-                        "metadataOpacity": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 100,
-                            "default": 80,
-                            "description": "Opacity for metadata text (year, runtime, rating) 0-100%"
-                        }
-                    },
-                    "additionalProperties": false,
-                    "default": {
-                        "fontFamily": "cinematic",
-                        "titleSize": 100,
-                        "titleColor": "#ffffff",
-                        "titleShadow": "subtle",
-                        "metadataOpacity": 80
-                    }
-                },
                 "poster": {
                     "type": "object",
                     "description": "Poster presentation settings",
@@ -792,6 +783,18 @@
                     "type": "object",
                     "description": "Metadata display toggles",
                     "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Enable metadata display"
+                        },
+                        "opacity": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "default": 80,
+                            "description": "Metadata opacity percentage"
+                        },
                         "showTitle": {
                             "type": "boolean",
                             "default": true,
@@ -844,13 +847,62 @@
                         },
                         "position": {
                             "type": "string",
-                            "enum": ["bottom", "side", "overlay"],
+                            "enum": ["bottom", "overlay"],
                             "default": "bottom",
-                            "description": "Metadata position: bottom (under poster), side (next to poster), overlay (on poster)"
+                            "description": "Metadata position: bottom (under poster), overlay (on poster)"
+                        },
+                        "specs": {
+                            "type": "object",
+                            "description": "Technical specs display options",
+                            "properties": {
+                                "showResolution": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Display video resolution (e.g., 4K, 1080p)"
+                                },
+                                "showAudio": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Display audio format (e.g., Dolby Atmos, DTS)"
+                                },
+                                "showAspectRatio": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Display aspect ratio (e.g., 2.39:1)"
+                                },
+                                "showHDR": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Display HDR format (HDR10, Dolby Vision, etc.)"
+                                },
+                                "style": {
+                                    "type": "string",
+                                    "enum": ["subtle", "badges", "icons"],
+                                    "default": "badges",
+                                    "description": "Specs display style: subtle (text only), badges (colored badges), icons (icon-based)"
+                                },
+                                "iconSet": {
+                                    "type": "string",
+                                    "enum": ["filled", "outline"],
+                                    "default": "filled",
+                                    "description": "Icon style when using icons display"
+                                }
+                            },
+                            "additionalProperties": false,
+                            "default": {
+                                "showResolution": true,
+                                "showAudio": true,
+                                "showAspectRatio": false,
+                                "showHDR": true,
+                                "style": "badges",
+                                "iconSet": "filled"
+                            }
                         }
                     },
                     "additionalProperties": false,
                     "default": {
+                        "enabled": true,
+                        "opacity": 80,
                         "showTitle": true,
                         "showYear": true,
                         "showRuntime": true,
@@ -861,7 +913,15 @@
                         "showCast": false,
                         "showPlot": false,
                         "showStudioLogo": false,
-                        "position": "bottom"
+                        "position": "bottom",
+                        "specs": {
+                            "showResolution": true,
+                            "showAudio": true,
+                            "showAspectRatio": false,
+                            "showHDR": true,
+                            "style": "badges",
+                            "iconSet": "filled"
+                        }
                     }
                 },
                 "promotional": {

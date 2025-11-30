@@ -263,7 +263,8 @@
 
     function mountHeader(container, cfg) {
         const c = cfg.cinema || {};
-        const h = c.header || { enabled: true, text: 'Now Playing', style: 'classic' };
+        const h = c.header || { enabled: true, text: 'Now Playing', typography: {} };
+        const typo = h.typography || {};
         const wsH = getWorkingState();
         headerPresets =
             Array.isArray(wsH.presets?.headerTexts) && wsH.presets.headerTexts.length
@@ -296,6 +297,7 @@
             void 0;
         }
 
+        // Header Text row
         const rowText = el('div', { class: 'form-row cin-col' }, [
             el('label', { for: 'cin-h-presets' }, 'Header text'),
             el('div', { class: 'cinema-inline' }, [
@@ -313,20 +315,106 @@
             ]),
         ]);
 
-        const rowStyle = el('div', { class: 'form-row cin-col' }, [
-            el('label', { for: 'cin-h-style' }, 'Marquee style'),
-            el(
-                'select',
-                { id: 'cin-h-style' },
-                ['classic', 'neon', 'minimal', 'theatre'].map(s => el('option', {}, s))
-            ),
+        // Typography section header
+        const typoHeader = el(
+            'div',
+            { class: 'cinema-section-header', style: 'margin-top: 16px;' },
+            'Typography'
+        );
+
+        // Font Family row
+        const rowFont = el('div', { class: 'form-row' }, [
+            el('label', { for: 'cin-h-font' }, 'Font Family'),
+            el('div', { class: 'select-wrap has-caret' }, [
+                el('select', { id: 'cin-h-font' }, [
+                    el('option', { value: 'system' }, 'System (Default)'),
+                    el('option', { value: 'cinematic' }, 'Cinematic (Bebas Neue)'),
+                    el('option', { value: 'classic' }, 'Classic (Playfair)'),
+                    el('option', { value: 'modern' }, 'Modern (Montserrat)'),
+                    el('option', { value: 'elegant' }, 'Elegant (Cormorant)'),
+                    el('option', { value: 'marquee' }, 'Marquee (Broadway)'),
+                    el('option', { value: 'retro' }, 'Retro (Press Start)'),
+                    el('option', { value: 'neon' }, 'Neon (Tilt Neon)'),
+                ]),
+                el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
+            ]),
         ]);
 
-        const grid = el('div', { class: 'cin-grid-2' }, [rowText, rowStyle]);
+        // Font Size row - with slider and percentage on same line
+        const rowSize = el('div', { class: 'form-row' }, [
+            el('label', { for: 'cin-h-size' }, 'Font Size'),
+            el('div', { class: 'slider-row' }, [
+                el('div', { class: 'modern-slider' }, [
+                    el('input', {
+                        type: 'range',
+                        id: 'cin-h-size',
+                        min: '50',
+                        max: '200',
+                        step: '5',
+                        value: String(typo.fontSize || 100),
+                    }),
+                    el('div', { class: 'slider-bar' }, [el('div', { class: 'fill' })]),
+                ]),
+                el(
+                    'div',
+                    {
+                        class: 'slider-percentage',
+                        'data-target': 'cinema.header.typography.fontSize',
+                    },
+                    `${typo.fontSize || 100}%`
+                ),
+            ]),
+        ]);
+
+        // Color picker container
+        const rowColor = el('div', { id: 'cin-h-color-picker', class: 'form-row' });
+
+        // Shadow row
+        const rowShadow = el('div', { class: 'form-row' }, [
+            el('label', { for: 'cin-h-shadow' }, 'Text Effect'),
+            el('div', { class: 'select-wrap has-caret' }, [
+                el('select', { id: 'cin-h-shadow' }, [
+                    el('option', { value: 'none' }, 'None'),
+                    el('option', { value: 'subtle' }, 'Subtle Shadow'),
+                    el('option', { value: 'dramatic' }, 'Dramatic Shadow'),
+                    el('option', { value: 'neon' }, 'Neon Glow'),
+                    el('option', { value: 'glow' }, 'Soft Glow'),
+                ]),
+                el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
+            ]),
+        ]);
+
+        // Animation row
+        const rowAnim = el('div', { class: 'form-row' }, [
+            el('label', { for: 'cin-h-anim' }, 'Animation'),
+            el('div', { class: 'select-wrap has-caret' }, [
+                el('select', { id: 'cin-h-anim' }, [
+                    el('option', { value: 'none' }, 'None'),
+                    el('option', { value: 'pulse' }, 'Pulse'),
+                    el('option', { value: 'flicker' }, 'Flicker (Neon)'),
+                    el('option', { value: 'marquee' }, 'Marquee Scroll'),
+                ]),
+                el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
+            ]),
+        ]);
+
+        const grid = el('div', { class: 'form-grid' }, [
+            rowText,
+            typoHeader,
+            rowFont,
+            rowSize,
+            rowColor,
+            rowShadow,
+            rowAnim,
+        ]);
         container.replaceChildren(grid);
 
-        // initialize values
-        $('#cin-h-style').value = h.style || 'classic';
+        // Initialize values
+        $('#cin-h-font').value = typo.fontFamily || 'cinematic';
+        $('#cin-h-shadow').value = typo.shadow || 'subtle';
+        $('#cin-h-anim').value = typo.animation || 'none';
+
+        // Initialize header text preset
         (function () {
             const sel = document.getElementById('cin-h-presets');
             const desired =
@@ -337,6 +425,36 @@
                       : headerPresets[0];
             populateSimpleSelect(sel, headerPresets, desired);
         })();
+
+        // Wire modern slider for font size
+        wireModernSliders();
+
+        // Wire color picker
+        const colorContainer = document.getElementById('cin-h-color-picker');
+        if (colorContainer && window.createColorPicker) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'cin-h-color';
+            hiddenInput.value = typo.color || '#ffffff';
+
+            const picker = window.createColorPicker({
+                label: 'Text Color',
+                color: typo.color || '#ffffff',
+                defaultColor: '#ffffff',
+                presets: CINEMA_COLOR_PRESETS,
+                onColorChange: color => {
+                    hiddenInput.value = color;
+                },
+                messageType: 'CINEMA_HEADER_COLOR_UPDATE',
+                refreshIframe: false,
+                iframeId: 'display-preview-frame',
+            });
+
+            colorContainer.innerHTML = '';
+            colorContainer.appendChild(hiddenInput);
+            colorContainer.appendChild(picker);
+        }
+
         // Wire Manage button for header texts
         document.getElementById('cin-h-manage')?.addEventListener('click', () =>
             openManageModal({
@@ -353,6 +471,7 @@
                 placeholder: 'Type header text…',
             })
         );
+
         // Simple change hook to allow live summary/preview to react
         $('#cin-h-presets').addEventListener('change', () => {
             const ws = getWorkingState();
@@ -367,27 +486,17 @@
                 void e;
             }
         });
-
-        // Simple preset CRUD stored in config.json under cinema.presets.headerTexts
-        // Note: individual buttons removed; management happens through the dropdown options above
     }
 
     function mountFooter(container, cfg) {
         const c = cfg.cinema || {};
         const f = c.footer || {
             enabled: true,
-            type: 'specs',
+            type: 'metadata',
             marqueeText: 'Feature Presentation',
-            marqueeStyle: 'classic',
-            specs: {
-                showResolution: true,
-                showAudio: true,
-                showAspectRatio: true,
-                showFlags: false,
-                style: 'subtle',
-                iconSet: 'filled',
-            },
+            typography: {},
         };
+        const typo = f.typography || {};
         const wsF = getWorkingState();
         footerPresets =
             Array.isArray(wsF.presets?.footerTexts) && wsF.presets.footerTexts.length
@@ -420,20 +529,21 @@
             void 0;
         }
 
-        // Controls row: Footer type (left) + contextual Style (right)
+        // Footer type row
         const ctrlType = el('div', { class: 'form-row' }, [
             el('label', { for: 'cin-f-type' }, 'Footer type'),
-            el(
-                'select',
-                { id: 'cin-f-type', class: 'cin-compact' },
-                ['marquee', 'specs', 'tagline'].map(s => el('option', {}, s))
-            ),
+            el('div', { class: 'select-wrap has-caret' }, [
+                el('select', { id: 'cin-f-type' }, [
+                    el('option', { value: 'marquee' }, 'Marquee Text'),
+                    el('option', { value: 'metadata' }, 'Metadata & Specs'),
+                    el('option', { value: 'tagline' }, 'Movie Tagline'),
+                ]),
+                el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
+            ]),
         ]);
-        const styleSlot = el('div', { id: 'cin-f-style-slot' }, []);
-        const controlsGrid = el('div', { class: 'cin-footer-controls' }, [ctrlType, styleSlot]);
 
-        // Marquee: Footer text
-        const mRowText = el('div', { class: 'form-row cin-col' }, [
+        // === Marquee Block ===
+        const mRowText = el('div', { class: 'form-row' }, [
             el('label', { for: 'cin-f-presets' }, 'Footer text'),
             el('div', { class: 'cinema-inline' }, [
                 el('select', { id: 'cin-f-presets', class: 'cin-compact' }, []),
@@ -449,84 +559,96 @@
                 ),
             ]),
         ]);
-        const marqueeStyleRow = el('div', { class: 'form-row cin-col' }, [
-            el('label', { for: 'cin-f-style' }, 'Style'),
+        const marqueeBlock = el('div', { id: 'cin-f-marquee', class: 'cin-footer-col' }, [
+            mRowText,
+        ]);
+
+        // === Tagline Block (just shows movie tagline, no config needed) ===
+        const taglineBlock = el('div', { id: 'cin-f-tagline', class: 'cin-footer-col' }, [
             el(
-                'select',
-                { id: 'cin-f-style', class: 'cin-compact' },
-                ['classic', 'neon', 'minimal', 'theatre'].map(s => el('option', {}, s))
+                'p',
+                { class: 'help-text', style: 'margin: 8px 0; color: var(--color-text-secondary);' },
+                'Displays the movie/series tagline from metadata.'
             ),
         ]);
-        const marqueeBlock = el('div', { id: 'cin-f-marquee', class: 'cin-footer-col' }, [
-            el('div', { class: 'cin-grid-2' }, [mRowText]),
-        ]);
 
-        // Specs in a two-column inner grid: left (Show checklist), right (Style + Icons)
-        const sLeft = el('div', { class: 'form-row' }, [
-            el('label', {}, 'Show:'),
-            el('div', { class: 'cin-vert' }, [
-                el('label', { class: 'checkbox', for: 'cin-f-s-res' }, [
-                    el('input', {
-                        type: 'checkbox',
-                        id: 'cin-f-s-res',
-                        checked: f.specs?.showResolution ? 'checked' : null,
-                    }),
-                    el('span', { class: 'checkmark', 'aria-hidden': 'true' }),
-                    el('span', {}, ' Resolution'),
+        // === Typography Block (for marquee and tagline) ===
+        const typoHeader = el(
+            'div',
+            { class: 'cinema-section-header', style: 'margin-top: 12px;' },
+            'Typography'
+        );
+
+        const rowFont = el('div', { class: 'form-row' }, [
+            el('label', { for: 'cin-f-font' }, 'Font Family'),
+            el('div', { class: 'select-wrap has-caret' }, [
+                el('select', { id: 'cin-f-font' }, [
+                    el('option', { value: 'system' }, 'System (Default)'),
+                    el('option', { value: 'cinematic' }, 'Cinematic (Bebas Neue)'),
+                    el('option', { value: 'classic' }, 'Classic (Playfair)'),
+                    el('option', { value: 'modern' }, 'Modern (Montserrat)'),
+                    el('option', { value: 'elegant' }, 'Elegant (Cormorant)'),
                 ]),
-                el('label', { class: 'checkbox', for: 'cin-f-s-aud' }, [
-                    el('input', {
-                        type: 'checkbox',
-                        id: 'cin-f-s-aud',
-                        checked: f.specs?.showAudio ? 'checked' : null,
-                    }),
-                    el('span', { class: 'checkmark', 'aria-hidden': 'true' }),
-                    el('span', {}, ' Audio'),
-                ]),
-                el('label', { class: 'checkbox', for: 'cin-f-s-asp' }, [
-                    el('input', {
-                        type: 'checkbox',
-                        id: 'cin-f-s-asp',
-                        checked: f.specs?.showAspectRatio ? 'checked' : null,
-                    }),
-                    el('span', { class: 'checkmark', 'aria-hidden': 'true' }),
-                    el('span', {}, ' Aspect Ratio'),
-                ]),
-                el('label', { class: 'checkbox', for: 'cin-f-s-flag' }, [
-                    el('input', {
-                        type: 'checkbox',
-                        id: 'cin-f-s-flag',
-                        checked: f.specs?.showFlags ? 'checked' : null,
-                    }),
-                    el('span', { class: 'checkmark', 'aria-hidden': 'true' }),
-                    el('span', {}, ' Flags'),
-                ]),
+                el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
             ]),
-            // Icons dropdown moved under the Show list for left alignment
-            (function () {
-                const wrap = document.createElement('div');
-                wrap.className = 'icons-row';
-                wrap.appendChild(el('label', { for: 'cin-f-s-icons' }, 'Icons'));
-                wrap.appendChild(
-                    el(
-                        'select',
-                        { id: 'cin-f-s-icons', class: 'cin-compact' },
-                        ['filled', 'line'].map(s => el('option', {}, s))
-                    )
-                );
-                return wrap;
-            })(),
-        ]);
-        const specsBlock = el('div', { id: 'cin-f-specs', class: 'cin-footer-col' }, [
-            el('div', { class: 'specs-grid' }, [sLeft]),
         ]);
 
-        // Compose new layout: controls row + content blocks
-        container.replaceChildren(controlsGrid, marqueeBlock, specsBlock);
+        const rowSize = el('div', { class: 'form-row' }, [
+            el('label', { for: 'cin-f-size' }, 'Font Size'),
+            el('div', { class: 'slider-row' }, [
+                el('div', { class: 'modern-slider' }, [
+                    el('input', {
+                        type: 'range',
+                        id: 'cin-f-size',
+                        min: '50',
+                        max: '200',
+                        step: '5',
+                        value: String(typo.fontSize || 100),
+                    }),
+                    el('div', { class: 'slider-bar' }, [el('div', { class: 'fill' })]),
+                ]),
+                el(
+                    'div',
+                    {
+                        class: 'slider-percentage',
+                        'data-target': 'cinema.footer.typography.fontSize',
+                    },
+                    `${typo.fontSize || 100}%`
+                ),
+            ]),
+        ]);
 
-        // init values & logic
-        $('#cin-f-type').value = f.type || 'specs';
-        // Defer setting #cin-f-style until it's inserted into the DOM by syncBlocks
+        const rowColor = el('div', { id: 'cin-f-color-picker', class: 'form-row' });
+
+        const rowShadow = el('div', { class: 'form-row' }, [
+            el('label', { for: 'cin-f-shadow' }, 'Text Shadow'),
+            el('div', { class: 'select-wrap has-caret' }, [
+                el('select', { id: 'cin-f-shadow' }, [
+                    el('option', { value: 'none' }, 'None'),
+                    el('option', { value: 'subtle' }, 'Subtle'),
+                    el('option', { value: 'dramatic' }, 'Dramatic'),
+                ]),
+                el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
+            ]),
+        ]);
+
+        const typoBlock = el('div', { id: 'cin-f-typo', class: 'cin-footer-col' }, [
+            typoHeader,
+            rowFont,
+            rowSize,
+            rowColor,
+            rowShadow,
+        ]);
+
+        // Compose layout
+        container.replaceChildren(ctrlType, marqueeBlock, taglineBlock, typoBlock);
+
+        // Initialize values
+        $('#cin-f-type').value = f.type || 'metadata';
+        $('#cin-f-font').value = typo.fontFamily || 'system';
+        $('#cin-f-shadow').value = typo.shadow || 'none';
+
+        // Initialize footer text preset
         const savedMarqueeText = f.marqueeText;
         (function () {
             const sel = document.getElementById('cin-f-presets');
@@ -538,6 +660,36 @@
                       : footerPresets[0];
             populateSimpleSelect(sel, footerPresets, desired);
         })();
+
+        // Wire modern slider
+        wireModernSliders();
+
+        // Wire color picker
+        const colorContainer = document.getElementById('cin-f-color-picker');
+        if (colorContainer && window.createColorPicker) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'cin-f-color';
+            hiddenInput.value = typo.color || '#cccccc';
+
+            const picker = window.createColorPicker({
+                label: 'Text Color',
+                color: typo.color || '#cccccc',
+                defaultColor: '#cccccc',
+                presets: CINEMA_COLOR_PRESETS,
+                onColorChange: color => {
+                    hiddenInput.value = color;
+                },
+                messageType: 'CINEMA_FOOTER_COLOR_UPDATE',
+                refreshIframe: false,
+                iframeId: 'display-preview-frame',
+            });
+
+            colorContainer.innerHTML = '';
+            colorContainer.appendChild(hiddenInput);
+            colorContainer.appendChild(picker);
+        }
+
         // Wire Manage button for footer texts
         document.getElementById('cin-f-manage')?.addEventListener('click', () =>
             openManageModal({
@@ -554,6 +706,7 @@
                 placeholder: 'Type footer text…',
             })
         );
+
         // Change hook for preview updates
         $('#cin-f-presets').addEventListener('change', () => {
             const ws = getWorkingState();
@@ -568,56 +721,27 @@
                 void e;
             }
         });
-        // Create the specs Style control; inserted in the style slot when type='specs'
-        const specsStyleRow = (function () {
-            const wrap = document.createElement('div');
-            wrap.className = 'form-row';
-            wrap.appendChild(el('label', { for: 'cin-f-s-style' }, 'Style'));
-            wrap.appendChild(
-                el(
-                    'select',
-                    { id: 'cin-f-s-style', class: 'cin-compact' },
-                    ['subtle', 'filled', 'outline'].map(s => el('option', {}, s))
-                )
-            );
-            return wrap;
-        })();
-        // Initialize default values
-        // Note: set after insertion by syncBlocks
-        $('#cin-f-s-icons').value = f.specs?.iconSet || 'filled';
 
+        // Sync visibility based on footer type
         const syncBlocks = () => {
             const t = $('#cin-f-type').value;
             const showMarq = t === 'marquee';
-            const showSpecs = t === 'specs';
+            const showTagline = t === 'tagline';
+            const showMetadata = t === 'metadata';
+            const showTypo = showMarq || showTagline;
+
             $('#cin-f-marquee').style.display = showMarq ? 'block' : 'none';
-            $('#cin-f-specs').style.display = showSpecs ? 'block' : 'none';
-            // Manage Style slot: show the appropriate Style control next to Footer type
-            const slot = document.getElementById('cin-f-style-slot');
-            if (slot) {
-                slot.replaceChildren();
-                if (showSpecs) {
-                    slot.appendChild(specsStyleRow);
-                    const sel = document.getElementById('cin-f-s-style');
-                    if (sel && !sel.dataset.init) {
-                        sel.value = f.specs?.style || 'subtle';
-                        sel.dataset.init = '1';
-                    }
-                } else if (showMarq) {
-                    slot.appendChild(marqueeStyleRow);
-                    const selM = document.getElementById('cin-f-style');
-                    if (selM && !selM.dataset.init) {
-                        selM.value = f.marqueeStyle || 'classic';
-                        selM.dataset.init = '1';
-                    }
-                }
+            $('#cin-f-tagline').style.display = showTagline ? 'block' : 'none';
+            $('#cin-f-typo').style.display = showTypo ? 'block' : 'none';
+
+            // Show/hide Metadata Display card based on footer type
+            const metadataCard = document.getElementById('cinema-metadata-card');
+            if (metadataCard) {
+                metadataCard.style.display = showMetadata ? '' : 'none';
             }
         };
         $('#cin-f-type').addEventListener('change', syncBlocks);
         syncBlocks();
-
-        // Footer presets CRUD stored in config.json under cinema.presets.footerTexts
-        // Buttons removed; management via dropdown special options
     }
 
     function mountNowPlaying(cfg) {
@@ -678,28 +802,46 @@
         }
         const rowStrength = el('div', { class: 'form-row' }, [
             el('label', { for: 'cin-a-strength' }, 'Intensity'),
-            el('input', {
-                type: 'range',
-                id: 'cin-a-strength',
-                min: '0',
-                max: '100',
-                value: String(a.strength ?? 60),
-            }),
+            el('div', { class: 'modern-slider' }, [
+                el('input', {
+                    type: 'range',
+                    id: 'cin-a-strength',
+                    min: '0',
+                    max: '100',
+                    step: '5',
+                    value: String(a.strength ?? 60),
+                }),
+                el('div', { class: 'slider-bar' }, [el('div', { class: 'fill' })]),
+            ]),
+            el(
+                'div',
+                { class: 'slider-percentage', 'data-target': 'cinema.ambilight.strength' },
+                `${a.strength ?? 60}%`
+            ),
         ]);
         container.replaceChildren(rowStrength);
+
+        // Wire the slider
+        const slider = document.getElementById('cin-a-strength');
+        if (slider) {
+            const updateSlider = () => {
+                const value = parseFloat(slider.value);
+                const percent = (value / 100) * 100;
+                const container = slider.closest('.modern-slider');
+                const fill = container?.querySelector('.slider-bar .fill');
+                const percentageEl =
+                    slider.parentElement?.parentElement?.querySelector('.slider-percentage');
+                if (fill) fill.style.width = `${percent}%`;
+                if (percentageEl) percentageEl.textContent = `${value}%`;
+            };
+            slider.addEventListener('input', updateSlider);
+            updateSlider();
+        }
     }
 
     // === NEW: Mount and initialize enhanced controls (Issue #35) ===
     function mountEnhancedControls(cfg) {
         const c = cfg.cinema || {};
-
-        // Typography controls
-        const typo = c.typography || {};
-        $('#cinemaFontFamily') && ($('#cinemaFontFamily').value = typo.fontFamily || 'cinematic');
-        $('#cinemaTitleSize') && ($('#cinemaTitleSize').value = typo.titleSize || 100);
-        $('#cinemaTitleShadow') && ($('#cinemaTitleShadow').value = typo.titleShadow || 'subtle');
-        $('#cinemaMetadataOpacity') &&
-            ($('#cinemaMetadataOpacity').value = typo.metadataOpacity || 80);
 
         // Background controls
         const bg = c.background || {};
@@ -718,6 +860,10 @@
 
         // Metadata controls
         const meta = c.metadata || {};
+        const specs = meta.specs || {};
+        $('#cinemaMetadataEnabled') &&
+            ($('#cinemaMetadataEnabled').checked = meta.enabled !== false);
+        $('#cinemaMetadataOpacity') && ($('#cinemaMetadataOpacity').value = meta.opacity || 80);
         $('#cinemaMetadataPosition') &&
             ($('#cinemaMetadataPosition').value = meta.position || 'bottom');
         $('#cinemaShowTitle') && ($('#cinemaShowTitle').checked = meta.showTitle !== false);
@@ -731,6 +877,16 @@
         $('#cinemaShowCast') && ($('#cinemaShowCast').checked = !!meta.showCast);
         $('#cinemaShowPlot') && ($('#cinemaShowPlot').checked = !!meta.showPlot);
         $('#cinemaShowStudioLogo') && ($('#cinemaShowStudioLogo').checked = !!meta.showStudioLogo);
+
+        // Specs controls
+        $('#cinemaShowResolution') &&
+            ($('#cinemaShowResolution').checked = specs.showResolution !== false);
+        $('#cinemaShowAudio') && ($('#cinemaShowAudio').checked = specs.showAudio !== false);
+        $('#cinemaShowHDR') && ($('#cinemaShowHDR').checked = specs.showHDR !== false);
+        $('#cinemaShowAspectRatio') &&
+            ($('#cinemaShowAspectRatio').checked = !!specs.showAspectRatio);
+        $('#cinemaSpecsStyle') && ($('#cinemaSpecsStyle').value = specs.style || 'badges');
+        $('#cinemaSpecsIconSet') && ($('#cinemaSpecsIconSet').value = specs.iconSet || 'filled');
 
         // Promotional controls
         const promo = c.promotional || {};
@@ -750,14 +906,25 @@
         $('#cinemaAnnouncementStyle') &&
             ($('#cinemaAnnouncementStyle').value = ann.style || 'ticker');
 
-        // Initialize color pickers using the reusable component (like Wallart)
-        initColorPickers(typo, bg, poster);
+        // Initialize color pickers for background and poster
+        initColorPickers(bg, poster);
 
         // Wire up modern sliders with fill bar and percentage display
         wireModernSliders();
 
         // Wire up conditional visibility
         wireConditionalVisibility();
+
+        // Specs icon set: show only when style = icons
+        const specsStyle = $('#cinemaSpecsStyle');
+        const iconSetRow = $('#cinemaSpecsIconSetRow');
+        if (specsStyle && iconSetRow) {
+            const syncIconVisibility = () => {
+                iconSetRow.style.display = specsStyle.value === 'icons' ? '' : 'none';
+            };
+            specsStyle.addEventListener('change', syncIconVisibility);
+            syncIconVisibility();
+        }
 
         // QR Code: show settings when enabled
         const qrEnabled = $('#cinemaQREnabled');
@@ -802,47 +969,21 @@
         },
     ];
 
-    function initColorPickers(typo, bg, poster) {
+    function initColorPickers(bg, poster) {
         // Check if createColorPicker is available (from ui-components.js via admin.js)
         if (typeof window.createColorPicker !== 'function') {
             // Retry after a short delay - admin.js module may still be loading
             setTimeout(() => {
                 if (typeof window.createColorPicker === 'function') {
-                    initColorPickers(typo, bg, poster);
+                    initColorPickers(bg, poster);
                 } else {
                     console.warn(
                         'createColorPicker not available after retry, using fallback color inputs'
                     );
-                    initFallbackColorPickers(typo, bg, poster);
+                    initFallbackColorPickers(bg, poster);
                 }
             }, 500);
             return;
-        }
-
-        // Title Color picker
-        const titleColorContainer = document.getElementById('cinema-title-color-picker-container');
-        if (titleColorContainer) {
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.id = 'cinemaTitleColor';
-            hiddenInput.value = typo.titleColor || '#ffffff';
-
-            const picker = window.createColorPicker({
-                label: 'Title Color',
-                color: typo.titleColor || '#ffffff',
-                defaultColor: '#ffffff',
-                presets: CINEMA_COLOR_PRESETS,
-                onColorChange: color => {
-                    hiddenInput.value = color;
-                },
-                messageType: 'CINEMA_TITLE_COLOR_UPDATE',
-                refreshIframe: false,
-                iframeId: 'display-preview-frame',
-            });
-
-            titleColorContainer.innerHTML = '';
-            titleColorContainer.appendChild(hiddenInput);
-            titleColorContainer.appendChild(picker);
         }
 
         // Background Color picker
@@ -901,7 +1042,7 @@
     }
 
     // Fallback color pickers when createColorPicker is not available
-    function initFallbackColorPickers(typo, bg, poster) {
+    function initFallbackColorPickers(bg, poster) {
         const createSimpleColorPicker = (containerId, inputId, label, defaultColor) => {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -927,12 +1068,6 @@
         };
 
         createSimpleColorPicker(
-            'cinema-title-color-picker-container',
-            'cinemaTitleColor',
-            'Title Color',
-            typo.titleColor || '#ffffff'
-        );
-        createSimpleColorPicker(
             'cinema-background-color-picker-container',
             'cinemaBackgroundColor',
             'Background Color',
@@ -949,7 +1084,8 @@
     function wireModernSliders() {
         // Wire up modern sliders with fill bar animation (like Wallart)
         const sliders = [
-            { id: 'cinemaTitleSize', suffix: '%', min: 50, max: 200 },
+            { id: 'cin-h-size', suffix: '%', min: 50, max: 200 },
+            { id: 'cin-f-size', suffix: '%', min: 50, max: 200 },
             { id: 'cinemaMetadataOpacity', suffix: '%', min: 0, max: 100 },
             { id: 'cinemaBackgroundBlur', suffix: 'px', min: 5, max: 50 },
             { id: 'cinemaPosterTransition', suffix: 's', min: 0.5, max: 5 },
@@ -1022,18 +1158,7 @@
 
     // === NEW: Collect enhanced settings for save ===
     function collectEnhancedSettings() {
-        const fontFamily = $('#cinemaFontFamily')?.value || 'cinematic';
-        const customFont = $('#cinemaCustomFont')?.value || '';
-
         return {
-            typography: {
-                fontFamily: fontFamily,
-                customFont: fontFamily === 'custom' ? customFont : '',
-                titleSize: parseInt($('#cinemaTitleSize')?.value || '100', 10),
-                titleColor: $('#cinemaTitleColor')?.value || '#ffffff',
-                titleShadow: $('#cinemaTitleShadow')?.value || 'subtle',
-                metadataOpacity: parseInt($('#cinemaMetadataOpacity')?.value || '80', 10),
-            },
             poster: {
                 style: $('#cinemaPosterStyle')?.value || 'floating',
                 animation: $('#cinemaPosterAnimation')?.value || 'fade',
@@ -1048,6 +1173,8 @@
                 vignette: $('#cinemaVignette')?.value || 'subtle',
             },
             metadata: {
+                enabled: $('#cinemaMetadataEnabled')?.checked !== false,
+                opacity: parseInt($('#cinemaMetadataOpacity')?.value || '80', 10),
                 showTitle: $('#cinemaShowTitle')?.checked !== false,
                 showYear: $('#cinemaShowYear')?.checked !== false,
                 showRuntime: $('#cinemaShowRuntime')?.checked !== false,
@@ -1059,6 +1186,14 @@
                 showPlot: !!$('#cinemaShowPlot')?.checked,
                 showStudioLogo: !!$('#cinemaShowStudioLogo')?.checked,
                 position: $('#cinemaMetadataPosition')?.value || 'bottom',
+                specs: {
+                    showResolution: $('#cinemaShowResolution')?.checked !== false,
+                    showAudio: $('#cinemaShowAudio')?.checked !== false,
+                    showHDR: $('#cinemaShowHDR')?.checked !== false,
+                    showAspectRatio: !!$('#cinemaShowAspectRatio')?.checked,
+                    style: $('#cinemaSpecsStyle')?.value || 'badges',
+                    iconSet: $('#cinemaSpecsIconSet')?.value || 'filled',
+                },
             },
             promotional: {
                 comingSoonBadge: !!$('#cinemaComingSoonBadge')?.checked,
@@ -1083,20 +1218,23 @@
         const header = {
             enabled: $('#cin-h-enabled')?.checked || false,
             text: $('#cin-h-presets')?.value || 'Now Playing',
-            style: $('#cin-h-style')?.value || 'classic',
+            typography: {
+                fontFamily: $('#cin-h-font')?.value || 'cinematic',
+                fontSize: parseInt($('#cin-h-size')?.value || '100', 10),
+                color: $('#cin-h-color')?.value || '#ffffff',
+                shadow: $('#cin-h-shadow')?.value || 'subtle',
+                animation: $('#cin-h-anim')?.value || 'none',
+            },
         };
         const footer = {
             enabled: $('#cin-f-enabled')?.checked || false,
-            type: $('#cin-f-type')?.value || 'specs',
+            type: $('#cin-f-type')?.value || 'metadata',
             marqueeText: $('#cin-f-presets')?.value || 'Feature Presentation',
-            marqueeStyle: $('#cin-f-style')?.value || 'classic',
-            specs: {
-                showResolution: $('#cin-f-s-res')?.checked || false,
-                showAudio: $('#cin-f-s-aud')?.checked || false,
-                showAspectRatio: $('#cin-f-s-asp')?.checked || false,
-                showFlags: $('#cin-f-s-flag')?.checked || false,
-                style: $('#cin-f-s-style')?.value || 'subtle',
-                iconSet: $('#cin-f-s-icons')?.value || 'filled',
+            typography: {
+                fontFamily: $('#cin-f-font')?.value || 'system',
+                fontSize: parseInt($('#cin-f-size')?.value || '100', 10),
+                color: $('#cin-f-color')?.value || '#cccccc',
+                shadow: $('#cin-f-shadow')?.value || 'none',
             },
         };
         const ambilight = {
