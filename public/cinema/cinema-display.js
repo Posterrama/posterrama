@@ -1164,7 +1164,9 @@
 
             // Get loop setting and muted setting
             const shouldLoop = trailerConfig.loop !== false;
-            const shouldMute = trailerConfig.muted !== false;
+            // Always mute trailers in admin preview mode (regardless of setting)
+            const isPreview = window.Core?.isPreviewMode?.() || false;
+            const shouldMute = isPreview ? true : trailerConfig.muted !== false;
             const quality = trailerConfig.quality || 'default';
 
             // Create YouTube player using the API
