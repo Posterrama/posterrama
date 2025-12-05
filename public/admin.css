@@ -16518,14 +16518,25 @@ select:focus-visible {
         width: 100% !important;
     }
 
-    /* MQTT stats grid - 2 columns on mobile */
-    #mqtt-stats-cards > div {
-        grid-template-columns: repeat(2, 1fr) !important;
+    /* MQTT stats grid - force 4 columns on mobile */
+    #section-operations #mqtt-stats-cards > div,
+    #mqtt-stats-cards > div[style],
+    #mqtt-stats-cards > div[style*='grid'] {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
         gap: 8px !important;
     }
 
     #mqtt-stats-cards > div > div {
-        padding: 12px 8px !important;
+        padding: 12px 6px !important;
+    }
+
+    #mqtt-stats-cards > div > div > div:first-child {
+        font-size: 1.3rem !important;
+    }
+
+    #mqtt-stats-cards > div > div > div:last-child {
+        font-size: 0.7rem !important;
     }
 
     #mqtt-broker-info > div {
