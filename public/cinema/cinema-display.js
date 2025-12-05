@@ -1101,8 +1101,20 @@
             // Load YouTube API if needed
             await loadYouTubeAPI();
 
-            // Remove existing trailer
-            removeTrailerOverlay();
+            console.log('[Trailer DEBUG] Before removeTrailerOverlay - DOM state:', {
+                trailerElsInDom: document.querySelectorAll('.cinema-trailer-overlay').length,
+                ytPlayerDivsInDom: document.querySelectorAll('[id^="yt-trailer-player"]').length,
+            });
+
+            // Remove existing trailer - must be synchronous to avoid duplicate player IDs
+            removeTrailerOverlaySync();
+
+            console.log('[Trailer DEBUG] After removeTrailerOverlay - creating new trailer for:', {
+                title: media.title,
+                trailerKey,
+                trailerElsInDom: document.querySelectorAll('.cinema-trailer-overlay').length,
+                ytPlayerDivsInDom: document.querySelectorAll('[id^="yt-trailer-player"]').length,
+            });
 
             // Create trailer container
             trailerEl = document.createElement('div');
@@ -1149,11 +1161,18 @@
                 trailerEl.style.setProperty('width', trailerWidth + 'px', 'important');
             }
 
-            // Create player container div (required by YouTube API)
+            // Create player container div with unique ID (required by YouTube API)
+            const playerId = `yt-trailer-player-${Date.now()}`;
             const playerDiv = document.createElement('div');
-            playerDiv.id = 'yt-trailer-player';
+            playerDiv.id = playerId;
             trailerEl.appendChild(playerDiv);
             document.body.appendChild(trailerEl);
+
+            console.log('[Trailer DEBUG] trailerEl + playerDiv appended to DOM:', {
+                playerId,
+                trailerElsInDom: document.querySelectorAll('.cinema-trailer-overlay').length,
+                ytPlayerDivsInDom: document.querySelectorAll('[id^="yt-trailer-player"]').length,
+            });
 
             // Re-apply width after DOM insertion to ensure it sticks
             if (posterStyle === 'floating' || posterStyle === 'fullBleed') {
@@ -1180,9 +1199,10 @@
             const shouldMute = isPreview ? true : trailerConfig.muted !== false;
             const quality = trailerConfig.quality || 'default';
 
-            // Create YouTube player using the API
+            // Create YouTube player using the API with unique player ID
             // Note: Autoplay with sound requires browser flag: chrome://flags/#autoplay-policy → "No user gesture is required"
-            ytPlayer = new window.YT.Player('yt-trailer-player', {
+            console.log('[Trailer DEBUG] Creating YouTube player with id:', playerId);
+            ytPlayer = new window.YT.Player(playerId, {
                 videoId: data.trailer.key,
                 playerVars: {
                     autoplay: 1,
@@ -1199,6 +1219,14 @@
                 },
                 events: {
                     onReady: event => {
+                        console.log('[Trailer DEBUG] YouTube onReady fired', {
+                            playerState: event.target.getPlayerState?.(),
+                            videoUrl: event.target.getVideoUrl?.(),
+                            trailerElExists: !!trailerEl,
+                            trailerElVisible: trailerEl?.classList.contains('visible'),
+                            trailerElsInDom:
+                                document.querySelectorAll('.cinema-trailer-overlay').length,
+                        });
                         log('YouTube player ready');
                         // Set playback quality if specified
                         if (quality && quality !== 'default') {
@@ -1214,8 +1242,15 @@
                         if (trailerEl) {
                             // Small delay to ensure video frame is rendered
                             setTimeout(() => {
+                                console.log('[Trailer DEBUG] Adding visible class to trailerEl', {
+                                    trailerElExists: !!trailerEl,
+                                    trailerElsInDom:
+                                        document.querySelectorAll('.cinema-trailer-overlay').length,
+                                });
                                 trailerEl.classList.add('visible');
                             }, 100);
+                        } else {
+                            console.warn('[Trailer DEBUG] trailerEl is NULL in onReady callback!');
                         }
                         // Setup time-based autohide timer
                         setupAutohideTimer(trailerConfig);
@@ -1236,6 +1271,21 @@
                         removeTrailerOverlay();
                     },
                     onStateChange: event => {
+                        const stateNames = {
+                            [-1]: 'UNSTARTED',
+                            [0]: 'ENDED',
+                            [1]: 'PLAYING',
+                            [2]: 'PAUSED',
+                            [3]: 'BUFFERING',
+                            [5]: 'CUED',
+                        };
+                        console.log('[Trailer DEBUG] YouTube onStateChange:', {
+                            state: event.data,
+                            stateName: stateNames[event.data] || 'UNKNOWN',
+                            trailerElExists: !!trailerEl,
+                            trailerElVisible: trailerEl?.classList.contains('visible'),
+                        });
+
                         // Video ended
                         if (event.data === window.YT.PlayerState.ENDED) {
                             // Handle loop-based autohide
@@ -1266,6 +1316,14 @@
     }
 
     function removeTrailerOverlay() {
+        console.log('[Trailer DEBUG] removeTrailerOverlay called', {
+            hasTrailerEl: !!trailerEl,
+            hasYtPlayer: !!ytPlayer,
+            currentTrailerKey,
+            trailerElInDom: document.querySelectorAll('.cinema-trailer-overlay').length,
+            ytPlayerDivInDom: document.querySelectorAll('#yt-trailer-player').length,
+        });
+
         // Clear all timers
         if (trailerDelayTimer) {
             clearTimeout(trailerDelayTimer);
@@ -1283,9 +1341,10 @@
         // Destroy YouTube player if exists
         if (ytPlayer) {
             try {
+                console.log('[Trailer DEBUG] Destroying YouTube player');
                 ytPlayer.destroy();
             } catch (e) {
-                // Player may already be destroyed
+                console.log('[Trailer DEBUG] Error destroying YouTube player:', e.message);
             }
             ytPlayer = null;
         }
@@ -1296,10 +1355,68 @@
             trailerEl = null;
             currentTrailerKey = null;
             // Remove after fade-out transition completes
+            console.log('[Trailer DEBUG] Scheduling trailerEl removal in 800ms');
             setTimeout(() => {
+                console.log('[Trailer DEBUG] Removing old trailerEl from DOM', {
+                    elStillExists: document.body.contains(el),
+                    trailerElsInDom: document.querySelectorAll('.cinema-trailer-overlay').length,
+                });
                 el.remove();
             }, 800);
         }
+
+        // Reset state
+        trailerLoopCount = 0;
+        trailerHidden = false;
+    }
+
+    // Synchronous version that removes immediately (used when creating new trailer)
+    function removeTrailerOverlaySync() {
+        console.log('[Trailer DEBUG] removeTrailerOverlaySync called', {
+            hasTrailerEl: !!trailerEl,
+            hasYtPlayer: !!ytPlayer,
+            currentTrailerKey,
+            trailerElInDom: document.querySelectorAll('.cinema-trailer-overlay').length,
+        });
+
+        // Clear all timers
+        if (trailerDelayTimer) {
+            clearTimeout(trailerDelayTimer);
+            trailerDelayTimer = null;
+        }
+        if (trailerAutohideTimer) {
+            clearTimeout(trailerAutohideTimer);
+            trailerAutohideTimer = null;
+        }
+        if (trailerReshowTimer) {
+            clearTimeout(trailerReshowTimer);
+            trailerReshowTimer = null;
+        }
+
+        // Destroy YouTube player if exists
+        if (ytPlayer) {
+            try {
+                console.log('[Trailer DEBUG] Destroying YouTube player (sync)');
+                ytPlayer.destroy();
+            } catch (e) {
+                console.log('[Trailer DEBUG] Error destroying YouTube player:', e.message);
+            }
+            ytPlayer = null;
+        }
+
+        // Remove element IMMEDIATELY (no fade-out delay) to prevent duplicate IDs
+        if (trailerEl) {
+            console.log('[Trailer DEBUG] Removing trailerEl from DOM immediately');
+            trailerEl.remove();
+            trailerEl = null;
+            currentTrailerKey = null;
+        }
+
+        // Also clean up any orphaned trailer overlays (safety net)
+        document.querySelectorAll('.cinema-trailer-overlay').forEach(el => {
+            console.log('[Trailer DEBUG] Cleaning up orphaned trailer overlay');
+            el.remove();
+        });
 
         // Reset state
         trailerLoopCount = 0;
