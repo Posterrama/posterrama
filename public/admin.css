@@ -9126,10 +9126,10 @@ body.page-logs {
 .compact-backup-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     margin-top: 0;
     padding: 12px;
-    max-height: 400px;
+    max-height: 600px;
     overflow-y: auto;
 }
 
@@ -9140,7 +9140,7 @@ body.page-logs {
 .compact-backup-list .backup-item {
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    overflow: hidden;
+    overflow: visible;
     background: rgba(255, 255, 255, 0.02);
     transition:
         border-color 0.2s ease,
@@ -9157,7 +9157,8 @@ body.page-logs {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 12px 14px;
+    padding: 14px 16px;
+    min-height: 56px;
 }
 
 .compact-backup-list .backup-summary .left {
@@ -9227,12 +9228,14 @@ body.page-logs {
 }
 
 .compact-backup-list .backup-details {
-    padding: 12px 14px;
+    padding: 16px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(0, 0, 0, 0.1);
+    overflow: visible;
+    max-height: none;
 }
 .compact-backup-list .backup-group {
-    margin: 6px 0 10px;
+    margin: 8px 0 14px;
 }
 .compact-backup-list .backup-group .group-title {
     /* Convert bullet label into a proper heading */
@@ -9242,7 +9245,7 @@ body.page-logs {
     color: var(--color-text-primary);
     font-weight: 700;
     opacity: 0.95;
-    margin: 8px 0 10px 0;
+    margin: 8px 0 12px 0;
     display: block;
     padding-left: 10px;
     border-left: 3px solid var(--color-border);
@@ -9255,17 +9258,18 @@ body.page-logs {
 .compact-backup-list .backup-files {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 .compact-backup-list .backup-file-row {
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
+    gap: 12px;
+    padding: 12px 14px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.03);
     border-radius: 10px;
+    min-height: 48px;
 }
 .compact-backup-list .backup-file-row .file-left {
     display: flex;
@@ -9276,16 +9280,18 @@ body.page-logs {
 .compact-backup-list .backup-file-row .file-left i {
     color: #fff;
     opacity: 0.9;
+    flex-shrink: 0;
 }
 .compact-backup-list .backup-file-row .file-text {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     min-width: 0;
 }
 .compact-backup-list .backup-file-row .file-title {
     font-weight: 600;
     opacity: 0.95;
+    word-break: break-word;
 }
 .compact-backup-list .backup-file-row .file-subtle {
     font-size: 0.8rem;
@@ -9295,13 +9301,16 @@ body.page-logs {
 .compact-backup-list .backup-file-row .btn-xs {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 8px 14px;
     font-size: 0.85rem;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.04);
     color: var(--color-text-secondary);
+    min-height: 36px;
+    flex-shrink: 0;
     transition: all 0.15s ease;
 }
 
@@ -16704,12 +16713,67 @@ select:focus-visible {
     #section-operations .number-input-wrapper input {
         width: 100% !important;
     }
+
+    /* ========================================
+       CONFIG BACKUPS - MOBILE LAYOUT FIXES
+       ======================================== */
+    .compact-backup-list {
+        padding: 10px !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    .compact-backup-list .backup-item {
+        overflow: visible !important;
+    }
+
+    .compact-backup-list .backup-summary {
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+        padding: 12px !important;
+        min-height: auto !important;
+    }
+
+    .compact-backup-list .backup-summary .left {
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+    }
+
+    .compact-backup-list .backup-summary .right {
+        flex: 1 1 100% !important;
+        justify-content: flex-end !important;
+    }
+
+    .compact-backup-list .backup-summary .right .btn.btn-link.btn-sm {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+    }
+
+    .compact-backup-list .backup-details {
+        padding: 14px !important;
+        overflow: visible !important;
+        max-height: none !important;
+    }
+
+    .compact-backup-list .backup-file-row {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        padding: 12px !important;
+    }
+
+    .compact-backup-list .backup-file-row .btn-xs {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 10px 14px !important;
+        min-height: 44px !important;
+    }
 }
 
 /* ===================================================================
    Dashboard Cards Configuration
    =================================================================== */
-.card-selection-item {
+*/ .card-selection-item {
     position: relative;
     display: flex;
     flex-direction: column;
