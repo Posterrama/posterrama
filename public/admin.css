@@ -15016,16 +15016,75 @@ select:focus-visible {
 
 /* Mobile optimization for section headers */
 @media (max-width: 768px) {
-    /* Stack all section headers vertically on mobile */
-    .section-header,
+    /* Keep section headers HORIZONTAL on mobile - pill left, actions right */
+    .section-header {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+        flex-wrap: nowrap !important;
+        padding: 0 14px !important; /* Align with content below */
+        margin-bottom: 12px !important;
+    }
+
+    /* Dashboard perf-header can stay vertical (exception) */
     .perf-header {
         flex-direction: column !important;
         align-items: flex-start !important;
         gap: 12px !important;
     }
 
-    /* Make header actions (pills, buttons) wrap */
+    /* Section header title (h2) - don't grow, stay left */
+    .section-header > h2 {
+        flex: 0 0 auto !important;
+        margin: 0 !important;
+    }
+
+    /* Compact pill sizing in headers */
+    .section-header h2 span {
+        font-size: 0.85rem !important;
+        padding: 5px 12px !important;
+        gap: 6px !important;
+        white-space: nowrap !important;
+    }
+
+    /* Header actions stay right, don't stretch */
     .section-header-actions,
+    .section-header .panel-actions {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 6px !important;
+        align-items: center !important;
+        flex: 0 0 auto !important;
+        margin-left: auto !important;
+    }
+
+    /* Compact buttons in section headers - icon only */
+    .section-header-actions .btn,
+    .section-header .panel-actions .btn {
+        padding: 6px 10px !important;
+        font-size: 0.8rem !important;
+    }
+
+    .section-header-actions .btn span:not(.spinner),
+    .section-header .panel-actions .btn span:not(.spinner) {
+        display: none !important; /* Hide button text on mobile */
+    }
+
+    .section-header-actions .btn i,
+    .section-header .panel-actions .btn i {
+        margin: 0 !important;
+    }
+
+    /* Status pills in headers - compact */
+    .section-header-actions .status-pill,
+    .section-header .panel-actions .status-pill {
+        font-size: 0.7rem !important;
+        padding: 4px 8px !important;
+        white-space: nowrap !important;
+    }
+
+    /* Perf pills can still wrap (dashboard) */
     .perf-pills {
         display: flex !important;
         flex-wrap: wrap !important;

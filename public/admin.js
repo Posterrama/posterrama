@@ -2792,6 +2792,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     buckets[coreNames.includes(f.name) ? 'Core' : 'Data'].push(f);
                 });
                 const makeGroup = (title, files) => {
+                    if (!files || files.length === 0) return null; // Don't create empty groups
                     const wrap = document.createElement('div');
                     wrap.className = 'backup-group';
                     wrap.setAttribute('data-group', title);
@@ -2876,8 +2877,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     wrap.appendChild(listWrap);
                     return wrap;
                 };
-                details.appendChild(makeGroup('Core', buckets.Core));
-                details.appendChild(makeGroup('Data', buckets.Data));
+                const coreGroup = makeGroup('Core', buckets.Core);
+                const dataGroup = makeGroup('Data', buckets.Data);
+                if (coreGroup) details.appendChild(coreGroup);
+                if (dataGroup) details.appendChild(dataGroup);
                 item.appendChild(details);
                 const [btnToggle, btnDelete] = summary.querySelectorAll('button');
                 btnToggle.addEventListener('click', () => {
