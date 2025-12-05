@@ -15084,6 +15084,51 @@ select:focus-visible {
         white-space: nowrap !important;
     }
 
+    /* ========================================
+       MEDIA SOURCES - SECTION HEADER FIX
+       ======================================== */
+    /* Override inline styles for horizontal header layout */
+    #panel-media-sources > .section-header.panel-header,
+    #section-media-sources .section-header {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+        flex-wrap: nowrap !important;
+        padding: 0 14px !important;
+        margin-bottom: 12px !important;
+    }
+
+    #panel-media-sources .section-header-actions.panel-actions,
+    #section-media-sources .section-header-actions {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 6px !important;
+        align-items: center !important;
+        flex: 0 0 auto !important;
+        margin-left: auto !important;
+        width: auto !important;
+    }
+
+    #panel-media-sources .section-header-actions .btn,
+    #section-media-sources .section-header-actions .btn {
+        width: auto !important;
+        padding: 6px 10px !important;
+        font-size: 0.8rem !important;
+    }
+
+    /* Hide button text, show only icons */
+    #panel-media-sources .section-header-actions .btn span,
+    #section-media-sources .section-header-actions .btn span {
+        display: none !important;
+    }
+
+    #panel-media-sources .section-header-actions .btn i,
+    #section-media-sources .section-header-actions .btn i {
+        margin: 0 !important;
+    }
+
     /* Perf pills can still wrap (dashboard) */
     .perf-pills {
         display: flex !important;
@@ -16614,22 +16659,41 @@ select:focus-visible {
        OPERATIONS - GENERAL MOBILE FIXES
        ======================================== */
 
-    /* Section header actions */
+    /* Section header: horizontal layout with icon-only buttons (same as Media Sources) */
     #section-operations .section-header {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 12px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+        flex-wrap: nowrap !important;
+        padding: 0 14px !important;
+        margin-bottom: 12px !important;
     }
 
     #section-operations .section-header-actions {
-        width: 100% !important;
-        flex-direction: column !important;
-        gap: 8px !important;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 6px !important;
+        align-items: center !important;
+        flex: 0 0 auto !important;
+        margin-left: auto !important;
+        width: auto !important;
     }
 
     #section-operations .section-header-actions .btn {
-        width: 100% !important;
-        justify-content: center;
+        width: auto !important;
+        padding: 6px 10px !important;
+        font-size: 0.8rem !important;
+    }
+
+    /* Hide button text, show only icons */
+    #section-operations .section-header-actions .btn span {
+        display: none !important;
+    }
+
+    #section-operations .section-header-actions .btn i {
+        margin: 0 !important;
     }
 
     /* Number input wrappers in operations */
