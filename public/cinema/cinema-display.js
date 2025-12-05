@@ -941,11 +941,15 @@
     function hideTrailer() {
         trailerHidden = true;
         if (trailerEl) {
-            trailerEl.style.display = 'none';
+            // Fade out smoothly
+            trailerEl.classList.remove('visible');
         }
         if (ytPlayer) {
             try {
-                ytPlayer.pauseVideo();
+                // Pause video after fade completes
+                setTimeout(() => {
+                    if (ytPlayer) ytPlayer.pauseVideo();
+                }, 800);
             } catch (e) {
                 // Player may not be ready
             }
@@ -959,7 +963,8 @@
 
         trailerHidden = false;
         trailerLoopCount = 0; // Reset loop count
-        trailerEl.style.display = '';
+        // Fade in smoothly
+        trailerEl.classList.add('visible');
 
         if (ytPlayer) {
             try {
@@ -1165,7 +1170,13 @@
             // Get loop setting and muted setting
             const shouldLoop = trailerConfig.loop !== false;
             // Always mute trailers in admin preview mode (regardless of setting)
-            const isPreview = window.Core?.isPreviewMode?.() || false;
+            // Check multiple ways: URL param, iframe detection, or Core.isPreviewMode()
+            const urlParams = new URLSearchParams(window.location.search);
+            const isPreview =
+                urlParams.get('preview') === '1' ||
+                window.self !== window.top ||
+                window.Core?.isPreviewMode?.() ||
+                false;
             const shouldMute = isPreview ? true : trailerConfig.muted !== false;
             const quality = trailerConfig.quality || 'default';
 
@@ -1199,6 +1210,13 @@
                             }
                         }
                         event.target.playVideo();
+                        // Fade in the trailer overlay smoothly
+                        if (trailerEl) {
+                            // Small delay to ensure video frame is rendered
+                            setTimeout(() => {
+                                trailerEl.classList.add('visible');
+                            }, 100);
+                        }
                         // Setup time-based autohide timer
                         setupAutohideTimer(trailerConfig);
                     },
@@ -1272,9 +1290,15 @@
             ytPlayer = null;
         }
         if (trailerEl) {
-            trailerEl.remove();
+            // Fade out before removing
+            trailerEl.classList.remove('visible');
+            const el = trailerEl;
             trailerEl = null;
             currentTrailerKey = null;
+            // Remove after fade-out transition completes
+            setTimeout(() => {
+                el.remove();
+            }, 800);
         }
 
         // Reset state

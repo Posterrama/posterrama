@@ -1561,8 +1561,15 @@ body {
 .status-card .metric {
     font-size: var(--font-size-3xl);
     font-weight: var(--font-weight-bold);
+    display: inline;
+    margin-bottom: var(--space-xs);
+}
+
+.status-card .metric-row {
     display: block;
     margin-bottom: var(--space-xs);
+    position: relative;
+    display: inline-block;
 }
 
 .status-card .trend {
@@ -1573,6 +1580,16 @@ body {
     text-overflow: ellipsis;
     display: block;
     padding-right: 12px;
+}
+
+.status-card .sources-sup {
+    font-size: 11px;
+    color: var(--color-text-tertiary, rgba(255, 255, 255, 0.5));
+    font-weight: 400;
+    position: absolute;
+    top: 2px;
+    margin-left: 2px;
+    white-space: nowrap;
 }
 
 .trend.positive {
@@ -12399,11 +12416,20 @@ body.page-logs {
         background 0.15s ease,
         box-shadow 0.15s ease,
         transform 0.12s ease;
+    /* Mobile touch improvements */
+    touch-action: manipulation; /* Remove 300ms delay, allow normal taps */
+    -webkit-tap-highlight-color: transparent; /* Remove blue highlight on iOS */
+    user-select: none;
+    -webkit-user-select: none;
 }
 #display-preview-container .preview-tools .pip-button:hover {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.12));
     box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
     transform: translateZ(0) scale(1.04);
+}
+#display-preview-container .preview-tools .pip-button:active {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
+    transform: translateZ(0) scale(0.96);
 }
 #display-preview-container .preview-tools .pip-button i {
     font-size: 0.9em;
@@ -15121,7 +15147,8 @@ select:focus-visible {
         width: 280px !important;
         height: auto !important;
         aspect-ratio: 16 / 9 !important;
-        transform: scale(1) !important;
+        /* Use CSS variable for zoom toggle to work on mobile */
+        transform: scale(var(--preview-scale, 1)) !important;
         transform-origin: center right !important;
         box-shadow: -6px 0 20px rgba(0, 0, 0, 0.6) !important;
         border-radius: 12px !important;
@@ -15187,8 +15214,8 @@ select:focus-visible {
     }
 
     #display-preview-container .preview-tools .pip-button {
-        padding: 5px 7px;
-        font-size: 0.7rem;
+        padding: 6px 8px;
+        font-size: 0.75rem;
     }
 
     /* Universal solution for segmented controls on mobile */
@@ -17039,6 +17066,8 @@ select.input-error:focus {
     font-size: 0.875rem;
     font-family: inherit;
     outline: none;
+    /* Inset shadow for depth effect */
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
     transition:
         border-color 0.2s ease,
         box-shadow 0.2s ease;
@@ -17046,7 +17075,9 @@ select.input-error:focus {
 
 .doc-search-inline .doc-search-input:focus {
     border-color: var(--color-success);
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 0 3px rgba(76, 175, 80, 0.15);
 }
 
 .doc-search-inline .doc-search-input::placeholder {

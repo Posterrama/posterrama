@@ -724,6 +724,31 @@ window.COLOR_PRESETS = COLOR_PRESETS;
     }
 
     /**
+     * Update the sources info display in the Media Items KPI card
+     * @param {string[]} breakdown - Array of source breakdown strings like "Plex: 123"
+     */
+    function updateSourcesInfo(breakdown) {
+        const sourcesInfoEl = document.getElementById('metric-sources-info');
+        if (!sourcesInfoEl) return;
+
+        // Extract source names from breakdown (e.g., "Plex: 123" -> "Plex")
+        const sourceNames = (breakdown || [])
+            .map(item => item.split(':')[0].trim())
+            .filter(Boolean);
+
+        const sourceCount = sourceNames.length;
+
+        if (sourceCount === 0) {
+            sourcesInfoEl.textContent = '';
+            sourcesInfoEl.title = 'No active sources configured';
+        } else {
+            const sourceWord = sourceCount === 1 ? 'source' : 'sources';
+            sourcesInfoEl.textContent = `(from ${sourceCount} ${sourceWord})`;
+            sourcesInfoEl.title = sourceNames.join(', ');
+        }
+    }
+
+    /**
      * Update dashboard media items count by summing enabled sources with filters applied:
      * - Plex/Jellyfin: Count items matching configured filters (from playlist)
      * - TMDB: Count items in queue
@@ -766,6 +791,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             mediaItemsEl.setAttribute('title', tooltipText);
                         }
 
+                        // Update sources info
+                        updateSourcesInfo(breakdown);
+
                         // Also restore to window for backwards compatibility
                         window.__mediaItemsCache = parsedData;
                         window.__mediaItemsCacheTime = timestamp;
@@ -804,6 +832,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             : 'No items (cached)';
                     mediaItemsEl.setAttribute('title', tooltipText);
                 }
+
+                // Update sources info
+                updateSourcesInfo(breakdown);
+
                 return total;
             }
 
@@ -891,6 +923,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
                             // Show fast estimate immediately
                             setText('metric-media-items', formatNumber(total));
+                            updateSourcesInfo(breakdown);
                             const mediaItemsEl = document.getElementById('metric-media-items');
                             if (mediaItemsEl) {
                                 mediaItemsEl.setAttribute(
@@ -1024,6 +1057,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
                             // Update the main display with games count
                             setText('metric-media-items', formatNumber(total));
+                            updateSourcesInfo(breakdown);
                         }
                     }
                 } catch (e) {
@@ -1095,6 +1129,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         : 'No items';
                 mediaItemsEl.setAttribute('title', tooltipText);
             }
+
+            // Update sources info
+            updateSourcesInfo(breakdown);
 
             // Cache the result for 5 minutes (both in-memory and localStorage)
             const cacheData = { total, breakdown, playlistCount };
@@ -1169,11 +1206,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             enabled: true,
             render: container => {
                 container.innerHTML = `
-                    <div class="status-card status-info" title="Total media items across connected sources">
+                    <div class="status-card status-info" id="media-items-card" title="Total media items across connected sources">
                         <div class="card-icon"><i class="fas fa-photo-film"></i></div>
                         <div class="card-content">
                             <h3>Media Items</h3>
-                            <span class="metric" id="metric-media-items">—</span>
+                            <div class="metric-row"><span class="metric" id="metric-media-items">—</span><sup class="sources-sup" id="metric-sources-info" title=""></sup></div>
                             <span class="trend" id="metric-media-sub">from sources</span>
                         </div>
                     </div>
@@ -6569,7 +6606,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         });
 
         // Zoom toggle: default 0.8x → 1.4x (and back). Preserve top-right anchor across zoom changes.
-        zoomBtn?.addEventListener('click', () => {
+        // On mobile, toggle between 1x and 1.5x for better visibility
+        // Use a shared handler for both click and touch to ensure mobile reliability
+        const isMobileView = () => window.innerWidth <= 768;
+        const handleZoomToggle = () => {
             try {
                 const shell = container.querySelector('.preview-shell');
                 if (!shell) return;
@@ -6578,8 +6618,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     ? lastUserAnchor || getTopRightAnchorPoint()
                     : getActiveModeAnchorPoint(ANCHOR_INSET);
                 const current = getComputedStyle(shell).getPropertyValue('--preview-scale').trim();
-                const currVal = current ? parseFloat(current) : 0.8;
-                const nextVal = Math.abs(currVal - 1.4) < 0.01 ? 0.8 : 1.4;
+                const currVal = current ? parseFloat(current) : isMobileView() ? 1 : 0.8;
+                // Mobile: toggle 1 <-> 1.5, Desktop: toggle 0.8 <-> 1.4
+                const baseVal = isMobileView() ? 1 : 0.8;
+                const zoomedVal = isMobileView() ? 1.5 : 1.4;
+                const nextVal = Math.abs(currVal - zoomedVal) < 0.01 ? baseVal : zoomedVal;
                 shell.style.setProperty('--preview-scale', String(nextVal));
                 // After transform, re-anchor twice to account for async layout/transform
                 requestAnimationFrame(() => {
@@ -6589,6 +6632,26 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             } catch (_) {
                 /* aria-hidden attribute sync failed (modal accessibility may be stale) */
             }
+        };
+        // Track if touch just fired to prevent double-triggering on devices that emit both
+        let zoomTouchFired = false;
+        zoomBtn?.addEventListener(
+            'touchend',
+            e => {
+                e.preventDefault(); // Prevent ghost click
+                zoomTouchFired = true;
+                handleZoomToggle();
+                // Reset flag after a short delay
+                setTimeout(() => {
+                    zoomTouchFired = false;
+                }, 300);
+            },
+            { passive: false }
+        );
+        zoomBtn?.addEventListener('click', () => {
+            // Skip if touch just handled it
+            if (zoomTouchFired) return;
+            handleZoomToggle();
         });
 
         // Orientation is now per-mode (screensaver, wallart, cinema), configured in each mode's settings

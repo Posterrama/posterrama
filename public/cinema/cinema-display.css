@@ -2192,6 +2192,13 @@ body.cinema-metadata-overlay .cinema-metadata-panel {
     box-shadow:
         0 4px 20px rgba(0, 0, 0, 0.6),
         inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    /* Fade-in animation */
+    opacity: 0;
+    transition: opacity 0.8s ease-in-out;
+}
+
+.cinema-trailer-overlay.visible {
+    opacity: 1;
 }
 
 /* For floating and fullBleed, remove max-height limit */
