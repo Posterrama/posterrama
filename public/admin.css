@@ -15549,11 +15549,7 @@ select:focus-visible {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: auto auto auto;
         gap: 8px !important;
-        padding: 12px !important;
-        background: var(--color-bg-card);
-        border-radius: 8px;
-        margin-bottom: 12px;
-        border: 1px solid var(--color-border);
+        padding: 10px !important;
     }
 
     /* Row 1: Status pills span full width */
