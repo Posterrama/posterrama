@@ -675,25 +675,23 @@
             "setting": "uiScaling_global"
         },
         {
-            "id": "screensaver-sync-enabled",
+            "id": "global-sync-enabled",
             "title": "Device Sync",
-            "category": "Screensaver",
-            "keywords": ["sync", "synchronized", "devices", "together"],
+            "category": "Global",
+            "keywords": ["sync", "synchronized", "devices", "together", "global"],
             "description": "Synchronize content across multiple devices.",
-            "help": "When enabled, all devices in the same group show the same content at the same time. Creates a unified experience across multiple screens.",
+            "help": "When enabled, all devices in the same group show the same content at the same time. Creates a unified experience across multiple screens. This setting applies to all display modes.",
             "section": "display",
-            "showMode": "screensaver",
             "setting": "syncEnabled"
         },
         {
-            "id": "screensaver-sync-delay",
+            "id": "global-sync-delay",
             "title": "Sync Align Delay",
-            "category": "Screensaver",
-            "keywords": ["sync", "delay", "align", "timing"],
+            "category": "Global",
+            "keywords": ["sync", "delay", "align", "timing", "global"],
             "description": "Maximum delay for sync alignment.",
-            "help": "Sets the maximum time (in milliseconds) devices will wait to synchronize transitions. Higher values improve sync accuracy but may cause brief pauses.",
+            "help": "Sets the maximum time (in milliseconds) devices will wait to synchronize transitions. Higher values improve sync accuracy but may cause brief pauses. This setting applies to all display modes.",
             "section": "display",
-            "showMode": "screensaver",
             "setting": "syncAlignMaxDelayMs"
         },
         {

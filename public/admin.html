@@ -501,6 +501,23 @@
 
             </div>
           </div>
+
+          <!-- Global Settings (apply to all modes) -->
+          <div id="card-global-settings" style="margin-bottom: 16px;">
+            <div class="mode-card" id="sec-sync" data-card-key="sync">
+              <div class="card-title" style="margin-bottom:10px;"><i class="fas fa-link"></i> Sync
+                <label class="header-toggle" for="syncEnabled" style="margin-left:auto;">
+                  <input type="checkbox" id="syncEnabled" />
+                  <span class="ht-switch" aria-hidden="true"></span>
+                  <span class="ht-text">Enable device sync</span>
+                </label>
+              </div>
+              <div class="form-grid">
+                <div class="form-row"><label for="syncAlignMaxDelayMs">Max align delay (ms)</label><div class="number-input-wrapper"><input type="number" id="syncAlignMaxDelayMs" min="0" step="50" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div></div>
+              </div>
+            </div>
+          </div>
+
           <!-- Mode-specific settings placed directly under Active Mode for better hierarchy -->
           <div id="mode-cards-top">
             <!-- Screensaver settings (active when mode = screensaver) -->
@@ -608,21 +625,6 @@
                         <button type="button" class="btn btn-secondary btn-sm" id="preset-ultrawide"><i class="fas fa-expand-arrows-alt"></i> <span>Ultrawide</span></button>
                         <button type="button" class="btn btn-outline btn-sm" id="reset-ui-scaling"><i class="fas fa-undo"></i> <span>Reset</span></button>
                       </div>
-                    </div>
-                  </div>
-
-                  <!-- Sync -->
-                  <div class="mode-card" id="sec-sync" data-card-key="sync">
-                    <div class="card-title" style="margin-bottom:10px;"><i class="fas fa-link"></i> Sync
-                      <label class="header-toggle" for="syncEnabled" style="margin-left:auto;">
-                        <input type="checkbox" id="syncEnabled" />
-                        <span class="ht-switch" aria-hidden="true"></span>
-                        <span class="ht-text">Enable device sync</span>
-                      </label>
-                    </div>
-                    <div class="form-grid">
-                      
-                      <div class="form-row"><label for="syncAlignMaxDelayMs">Max align delay (ms)</label><div class="number-input-wrapper"><input type="number" id="syncAlignMaxDelayMs" min="0" step="50" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div></div>
                     </div>
                   </div>
 
