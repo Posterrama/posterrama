@@ -1622,8 +1622,7 @@
             syncFrameColorPickerVisibility();
         }
 
-        // Wire presets and global typography master controls
-        wirePresets();
+        // Wire global typography master controls (presets are wired in init())
         wireGlobalTypographyControls();
     }
 
