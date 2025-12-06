@@ -2194,7 +2194,7 @@
         }
     }
 
-    function isSystemPreset(presetValue) {
+    function _isSystemPreset(presetValue) {
         return presetValue && !presetValue.startsWith('custom:');
     }
 
@@ -2261,7 +2261,7 @@
                 if (deleteBtn) deleteBtn.disabled = false;
 
                 // Show confirmation
-                showToast?.(`Preset "${name.trim()}" saved!`, 'success');
+                window.showToast?.(`Preset "${name.trim()}" saved!`, 'success');
             });
         }
 
@@ -2285,7 +2285,7 @@
                 presetSelect.value = '';
                 deleteBtn.disabled = true;
 
-                showToast?.(`Preset "${preset.name}" deleted`, 'info');
+                window.showToast?.(`Preset "${preset.name}" deleted`, 'info');
             });
         }
     }
