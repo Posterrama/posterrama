@@ -1157,7 +1157,7 @@
                       <!-- Custom presets section -->
                       <div class="card-title" style="font-size:.85rem; margin-bottom:8px;"><i class="fas fa-user"></i> My Presets</div>
                       <div style="display:flex; align-items:center; gap:8px;">
-                        <div class="select-wrap has-caret" style="flex:1;">
+                        <div class="select-wrap has-caret" style="min-width:140px; max-width:200px;">
                           <select id="cinemaPresetSelect">
                             <option value="">Select a saved preset...</option>
                           </select>
@@ -3005,6 +3005,41 @@
         <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end; padding: 12px 20px;">
           <button type="button" class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
           <button type="button" class="btn btn-secondary btn-sm btn-accent btn-cinema-accent" id="cinema-text-ok"><i class="fas fa-check" aria-hidden="true"></i><span>Save</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cinema Save Preset Modal -->
+    <div class="modal-overlay" id="modal-cinema-preset-save" hidden>
+      <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-cinema-preset-save-title">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-cinema-preset-save-title"><i class="fas fa-save"></i> Save Preset</div>
+          <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="display:grid; gap:10px; padding:16px 20px;">
+          <label for="cinema-preset-name-input" style="color:var(--color-text-secondary)">Preset name</label>
+          <input type="text" id="cinema-preset-name-input" placeholder="My awesome preset" maxlength="50" />
+        </div>
+        <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end; padding: 12px 20px;">
+          <button type="button" class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
+          <button type="button" class="btn btn-secondary btn-sm btn-accent btn-cinema-accent" id="cinema-preset-save-ok"><i class="fas fa-check" aria-hidden="true"></i><span>Save</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cinema Delete Preset Modal -->
+    <div class="modal-overlay" id="modal-cinema-preset-delete" hidden>
+      <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-cinema-preset-delete-title">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-cinema-preset-delete-title"><i class="fas fa-trash"></i> Delete Preset</div>
+          <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="padding:16px 20px;">
+          <p style="color:var(--color-text-secondary); margin:0;">Are you sure you want to delete "<span id="cinema-preset-delete-name" style="color:var(--color-text-primary); font-weight:500;"></span>"?</p>
+        </div>
+        <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end; padding: 12px 20px;">
+          <button type="button" class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
+          <button type="button" class="btn btn-secondary btn-sm" id="cinema-preset-delete-ok" style="background:var(--color-danger); border-color:var(--color-danger);"><i class="fas fa-trash" aria-hidden="true"></i><span>Delete</span></button>
         </div>
       </div>
     </div>

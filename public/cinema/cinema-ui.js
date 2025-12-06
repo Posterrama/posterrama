@@ -2272,35 +2272,78 @@
             }
         });
 
-        // Save current settings as new preset
+        // Save current settings as new preset (using modal)
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
-                const name = prompt('Enter a name for your preset:');
-                if (!name || !name.trim()) return;
+                const modal = document.getElementById('modal-cinema-preset-save');
+                const input = document.getElementById('cinema-preset-name-input');
+                const okBtn = document.getElementById('cinema-preset-save-ok');
+                if (!modal || !input || !okBtn) return;
 
-                const id = `custom_${Date.now()}`;
-                const settings = collectCurrentSettingsAsPreset();
+                // Clear input and show modal
+                input.value = '';
+                modal.hidden = false;
+                input.focus();
 
-                const newPreset = {
-                    id,
-                    name: name.trim(),
-                    ...settings,
+                // Handle save
+                const handleSave = () => {
+                    const name = input.value.trim();
+                    if (!name) return;
+
+                    const id = `custom_${Date.now()}`;
+                    const settings = collectCurrentSettingsAsPreset();
+
+                    const newPreset = {
+                        id,
+                        name,
+                        ...settings,
+                    };
+
+                    customPresets.push(newPreset);
+                    saveCustomPresetsToWorkingState();
+                    populateCustomPresetsDropdown();
+
+                    // Select the new preset
+                    presetSelect.value = `custom:${id}`;
+                    if (deleteBtn) deleteBtn.disabled = false;
+
+                    // Close modal and show toast
+                    modal.hidden = true;
+                    window.showToast?.(`Preset "${name}" saved!`, 'success');
+                    cleanup();
                 };
 
-                customPresets.push(newPreset);
-                saveCustomPresetsToWorkingState();
-                populateCustomPresetsDropdown();
+                const handleClose = () => {
+                    modal.hidden = true;
+                    cleanup();
+                };
 
-                // Select the new preset
-                presetSelect.value = `custom:${id}`;
-                if (deleteBtn) deleteBtn.disabled = false;
+                const cleanup = () => {
+                    okBtn.removeEventListener('click', handleSave);
+                    modal.querySelectorAll('[data-close-modal]').forEach(btn => {
+                        btn.removeEventListener('click', handleClose);
+                    });
+                    input.removeEventListener('keydown', handleKeydown);
+                };
 
-                // Show confirmation
-                window.showToast?.(`Preset "${name.trim()}" saved!`, 'success');
+                const handleKeydown = e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSave();
+                    } else if (e.key === 'Escape') {
+                        handleClose();
+                    }
+                };
+
+                okBtn.addEventListener('click', handleSave);
+                modal.querySelectorAll('[data-close-modal]').forEach(btn => {
+                    btn.addEventListener('click', handleClose);
+                });
+                input.addEventListener('keydown', handleKeydown);
             });
         }
 
-        // Delete selected custom preset
+        // Delete selected custom preset (using modal)
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => {
                 const presetKey = presetSelect.value;
@@ -2310,17 +2353,46 @@
                 const preset = getCustomPresetById(customId);
                 if (!preset) return;
 
-                if (!confirm(`Delete preset "${preset.name}"?`)) return;
+                const modal = document.getElementById('modal-cinema-preset-delete');
+                const nameSpan = document.getElementById('cinema-preset-delete-name');
+                const okBtn = document.getElementById('cinema-preset-delete-ok');
+                if (!modal || !okBtn) return;
 
-                customPresets = customPresets.filter(p => p.id !== customId);
-                saveCustomPresetsToWorkingState();
-                populateCustomPresetsDropdown();
+                // Set name and show modal
+                if (nameSpan) nameSpan.textContent = preset.name;
+                modal.hidden = false;
 
-                // Reset selection
-                presetSelect.value = '';
-                deleteBtn.disabled = true;
+                const handleDelete = () => {
+                    customPresets = customPresets.filter(p => p.id !== customId);
+                    saveCustomPresetsToWorkingState();
+                    populateCustomPresetsDropdown();
 
-                window.showToast?.(`Preset "${preset.name}" deleted`, 'info');
+                    // Reset selection
+                    presetSelect.value = '';
+                    deleteBtn.disabled = true;
+
+                    // Close modal and show toast
+                    modal.hidden = true;
+                    window.showToast?.(`Preset "${preset.name}" deleted`, 'info');
+                    cleanup();
+                };
+
+                const handleClose = () => {
+                    modal.hidden = true;
+                    cleanup();
+                };
+
+                const cleanup = () => {
+                    okBtn.removeEventListener('click', handleDelete);
+                    modal.querySelectorAll('[data-close-modal]').forEach(btn => {
+                        btn.removeEventListener('click', handleClose);
+                    });
+                };
+
+                okBtn.addEventListener('click', handleDelete);
+                modal.querySelectorAll('[data-close-modal]').forEach(btn => {
+                    btn.addEventListener('click', handleClose);
+                });
             });
         }
     }
