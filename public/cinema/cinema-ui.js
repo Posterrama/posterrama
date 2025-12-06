@@ -2114,10 +2114,10 @@
             select.appendChild(option);
         });
 
-        // Update placeholder text
+        // Update placeholder text (shorter for compact layout)
         if (select.options[0]) {
             select.options[0].textContent =
-                customPresets.length > 0 ? 'Select a saved preset...' : 'No saved presets yet';
+                customPresets.length > 0 ? 'Select preset...' : 'No saved presets';
         }
     }
 
