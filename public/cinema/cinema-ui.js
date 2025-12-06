@@ -2226,10 +2226,17 @@
 
     // Wire presets dropdown in Presets card
     function wirePresets() {
-        const presetSelect = $('#cinemaPresetSelect');
+        const presetSelect = document.getElementById('cinemaPresetSelect');
         const saveBtn = document.getElementById('cinemaPresetSave');
         const deleteBtn = document.getElementById('cinemaPresetDelete');
         const presetsMount = document.getElementById('cinema-presets-mount');
+
+        console.log('[Cinema] wirePresets called', {
+            presetSelect,
+            saveBtn,
+            deleteBtn,
+            presetsMount,
+        });
 
         // Wire quick preset buttons (icon buttons)
         if (presetsMount) {
@@ -2237,47 +2244,47 @@
                 const btn = e.target.closest('button[data-cin-preset]');
                 if (!btn) return;
                 const presetKey = btn.getAttribute('data-cin-preset');
-                if (presetKey === 'reset') {
-                    // Reset uses special handling
-                    applyPreset('reset');
-                } else {
-                    applyPreset(presetKey);
+                applyPreset(presetKey);
+            });
+        }
+
+        // Load custom presets and populate dropdown
+        loadCustomPresets();
+        if (presetSelect) {
+            populateCustomPresetsDropdown();
+
+            // Apply preset on selection (custom presets only now)
+            presetSelect.addEventListener('change', () => {
+                const presetKey = presetSelect.value;
+                if (!presetKey) {
+                    if (deleteBtn) deleteBtn.disabled = true;
+                    return;
+                }
+
+                if (presetKey.startsWith('custom:')) {
+                    const customId = presetKey.replace('custom:', '');
+                    const customPreset = getCustomPresetById(customId);
+                    if (customPreset) {
+                        applyCustomPreset(customPreset);
+                    }
+                    if (deleteBtn) deleteBtn.disabled = false;
                 }
             });
         }
 
-        if (!presetSelect) return;
-
-        // Load custom presets and populate dropdown
-        loadCustomPresets();
-        populateCustomPresetsDropdown();
-
-        // Apply preset on selection (custom presets only now)
-        presetSelect.addEventListener('change', () => {
-            const presetKey = presetSelect.value;
-            if (!presetKey) {
-                if (deleteBtn) deleteBtn.disabled = true;
-                return;
-            }
-
-            if (presetKey.startsWith('custom:')) {
-                // Custom preset
-                const customId = presetKey.replace('custom:', '');
-                const customPreset = getCustomPresetById(customId);
-                if (customPreset) {
-                    applyCustomPreset(customPreset);
-                }
-                if (deleteBtn) deleteBtn.disabled = false;
-            }
-        });
-
         // Save current settings as new preset (using modal)
         if (saveBtn) {
+            console.log('[Cinema] Wiring save button');
             saveBtn.addEventListener('click', () => {
+                console.log('[Cinema] Save button clicked');
                 const modal = document.getElementById('modal-cinema-preset-save');
                 const input = document.getElementById('cinema-preset-name-input');
                 const okBtn = document.getElementById('cinema-preset-save-ok');
-                if (!modal || !input || !okBtn) return;
+                console.log('[Cinema] Modal elements:', { modal, input, okBtn });
+                if (!modal || !input || !okBtn) {
+                    console.error('[Cinema] Missing modal elements for save');
+                    return;
+                }
 
                 // Clear input and show modal
                 input.value = '';
@@ -2303,7 +2310,9 @@
                     populateCustomPresetsDropdown();
 
                     // Select the new preset
-                    presetSelect.value = `custom:${id}`;
+                    if (presetSelect) {
+                        presetSelect.value = `custom:${id}`;
+                    }
                     if (deleteBtn) deleteBtn.disabled = false;
 
                     // Close modal and show toast
@@ -2344,7 +2353,10 @@
 
         // Delete selected custom preset (using modal)
         if (deleteBtn) {
+            console.log('[Cinema] Wiring delete button');
             deleteBtn.addEventListener('click', () => {
+                console.log('[Cinema] Delete button clicked');
+                if (!presetSelect) return;
                 const presetKey = presetSelect.value;
                 if (!presetKey || !presetKey.startsWith('custom:')) return;
 
