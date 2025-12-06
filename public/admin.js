@@ -23945,6 +23945,17 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 brmEl.value = Number.isFinite(v) && v > 0 ? String(v) : '60';
             }
 
+            // Device Sync
+            const syncEnabledEl = document.getElementById('syncEnabled');
+            if (syncEnabledEl) {
+                syncEnabledEl.checked = cfg?.syncEnabled !== false;
+            }
+            const syncDelayEl = document.getElementById('syncAlignMaxDelayMs');
+            if (syncDelayEl) {
+                const v = Number(cfg?.syncAlignMaxDelayMs ?? 1200);
+                syncDelayEl.value = Number.isFinite(v) && v >= 0 ? String(v) : '1200';
+            }
+
             // Client Debug Viewer
             const debugViewerEl = document.getElementById('clientDebugViewer.enabled');
             if (debugViewerEl) {
