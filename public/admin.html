@@ -1136,36 +1136,38 @@
                   <div class="mode-card" id="cinema-presets-card" data-card-key="cinema-presets" style="padding:12px;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-palette"></i> Presets</div>
                     <div id="cinema-presets-mount">
-                      <!-- Quick preset buttons -->
-                      <div class="scaling-presets" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="classicCinema" title="Classic Cinema"><i class="fas fa-film"></i></button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="noir" title="Noir"><i class="fas fa-moon"></i></button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="neonNights" title="Neon Nights"><i class="fas fa-bolt"></i></button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="vintageTheater" title="Vintage Theater"><i class="fas fa-ticket-alt"></i></button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="modernMinimal" title="Modern Minimal"><i class="fas fa-minus"></i></button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="filmProjector" title="Film Projector"><i class="fas fa-video"></i></button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="blockbuster" title="Blockbuster"><i class="fas fa-star"></i></button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="artDeco" title="Art Deco"><i class="fas fa-gem"></i></button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="driveIn" title="Drive-In"><i class="fas fa-car"></i></button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="imaxPremium" title="IMAX Premium"><i class="fas fa-expand"></i></button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="indieFilm" title="Indie Film"><i class="fas fa-camera"></i></button>
-                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="homeTheater" title="Home Theater"><i class="fas fa-couch"></i></button>
-                        <button type="button" class="btn btn-outline btn-sm" data-cin-preset="reset" title="Reset to defaults"><i class="fas fa-undo"></i></button>
+                      <!-- System preset buttons (exact same style as before) -->
+                      <div class="scaling-presets" style="display:flex; flex-wrap:wrap; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="classicCinema" title="Classic cinema experience"><i class="fas fa-film"></i> <span>Classic</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="noir" title="Film noir style"><i class="fas fa-moon"></i> <span>Noir</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="neonNights" title="Neon nights vibes"><i class="fas fa-bolt"></i> <span>Neon</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="vintageTheater" title="Vintage theater feel"><i class="fas fa-ticket-alt"></i> <span>Vintage</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="modernMinimal" title="Modern minimal look"><i class="fas fa-minus"></i> <span>Minimal</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="filmProjector" title="Film projector style"><i class="fas fa-video"></i> <span>Projector</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="blockbuster" title="Blockbuster premiere"><i class="fas fa-star"></i> <span>Blockbuster</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="artDeco" title="Art deco elegance"><i class="fas fa-gem"></i> <span>Art Deco</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="driveIn" title="Drive-in theater"><i class="fas fa-car"></i> <span>Drive-In</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="imaxPremium" title="IMAX premium experience"><i class="fas fa-expand"></i> <span>IMAX</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="indieFilm" title="Indie film aesthetic"><i class="fas fa-camera"></i> <span>Indie</span></button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-cin-preset="homeTheater" title="Home theater comfort"><i class="fas fa-couch"></i> <span>Home</span></button>
+                        <button type="button" class="btn btn-outline btn-sm" data-cin-preset="reset" title="Reset to defaults" style="color: var(--color-accent);"><i class="fas fa-undo"></i> <span>Reset</span></button>
                       </div>
-                      <!-- Custom presets dropdown + actions -->
-                      <div class="form-row" style="display:flex; align-items:center; gap:6px;">
+                      <!-- Separator -->
+                      <hr style="border: none; border-top: 1px solid var(--color-border); margin: 12px 0;">
+                      <!-- Custom presets section -->
+                      <div class="card-title" style="font-size:.85rem; margin-bottom:8px;"><i class="fas fa-user"></i> My Presets</div>
+                      <div style="display:flex; align-items:center; gap:8px;">
                         <div class="select-wrap has-caret" style="flex:1;">
-                          <select id="cinemaPresetSelect" style="font-size:0.85rem; padding:4px 8px;">
-                            <optgroup label="My Presets" id="cinemaCustomPresetsGroup">
-                            </optgroup>
+                          <select id="cinemaPresetSelect">
+                            <option value="">Select a saved preset...</option>
                           </select>
                           <span class="select-caret" aria-hidden="true">▾</span>
                         </div>
-                        <button type="button" class="btn btn-secondary btn-sm" id="cinemaPresetSave" title="Save current settings as preset" style="padding:4px 8px;">
-                          <i class="fas fa-save"></i>
+                        <button type="button" class="btn btn-secondary btn-sm" id="cinemaPresetSave" title="Save current settings as preset">
+                          <i class="fas fa-save"></i> <span>Save</span>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" id="cinemaPresetDelete" title="Delete selected preset" disabled style="padding:4px 8px;">
-                          <i class="fas fa-trash"></i>
+                        <button type="button" class="btn btn-secondary btn-sm" id="cinemaPresetDelete" title="Delete selected preset" disabled>
+                          <i class="fas fa-trash"></i> <span>Delete</span>
                         </button>
                       </div>
                     </div>

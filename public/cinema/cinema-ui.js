@@ -2098,22 +2098,27 @@
     }
 
     function populateCustomPresetsDropdown() {
-        const customGroup = document.getElementById('cinemaCustomPresetsGroup');
-        if (!customGroup) return;
+        const select = document.getElementById('cinemaPresetSelect');
+        if (!select) return;
 
-        // Clear existing custom options
-        customGroup.innerHTML = '';
+        // Clear existing options except the placeholder
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
 
         // Add custom presets
         customPresets.forEach(preset => {
             const option = document.createElement('option');
             option.value = `custom:${preset.id}`;
-            option.textContent = `⭐ ${preset.name}`;
-            customGroup.appendChild(option);
+            option.textContent = preset.name;
+            select.appendChild(option);
         });
 
-        // Show/hide group based on whether there are custom presets
-        customGroup.style.display = customPresets.length > 0 ? '' : 'none';
+        // Update placeholder text
+        if (select.options[0]) {
+            select.options[0].textContent =
+                customPresets.length > 0 ? 'Select a saved preset...' : 'No saved presets yet';
+        }
     }
 
     function collectCurrentSettingsAsPreset() {
