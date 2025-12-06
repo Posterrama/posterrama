@@ -15478,20 +15478,46 @@ select:focus-visible {
 
     /* Source tabs section - reduce padding */
     #section-media-sources #sources-tabs {
-        padding: 8px 10px !important;
+        padding: 12px !important;
         border-radius: 10px;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
     }
 
     #section-media-sources #sources-tabs .section-title {
-        font-size: 0.85rem;
-        margin: 0 0 6px 0 !important;
+        font-size: 0.9rem;
+        margin: 0 0 10px 0 !important;
+        padding-left: 0;
+        border-left: none;
     }
 
     #section-media-sources #sources-tabs .form-row {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 8px;
+    }
+
+    /* Segmented source tabs - horizontal row with icons only */
+    #section-media-sources #sources-tabs .segmented {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 6px !important;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    #section-media-sources #sources-tabs .segmented .seg {
+        flex: 0 0 auto;
+        padding: 10px 14px !important;
+        min-width: 48px;
+        justify-content: center;
+    }
+
+    #section-media-sources #sources-tabs .segmented .seg .seg-text {
+        display: none;
+    }
+
+    #section-media-sources #sources-tabs .segmented .seg i:first-of-type {
+        font-size: 1rem;
     }
 
     /* Move source-actions-right below segmented on mobile */
@@ -15499,61 +15525,126 @@ select:focus-visible {
         width: 100%;
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 8px;
         align-items: center;
+        margin-top: 4px;
     }
 
     #section-media-sources .source-actions-right .status-pill {
-        font-size: 0.7rem;
-        padding: 4px 8px;
+        font-size: 0.75rem;
+        padding: 5px 10px;
     }
 
     #section-media-sources .source-actions-right .btn {
-        font-size: 0.75rem;
-        padding: 6px 10px;
-    }
-
-    /* Actions home - wrap buttons */
-    #section-media-sources .actions-home {
-        flex-wrap: wrap;
-        gap: 6px !important;
-        padding: 8px !important;
-    }
-
-    #section-media-sources .actions-home .btn {
         font-size: 0.8rem;
         padding: 8px 12px;
     }
 
-    #section-media-sources .actions-home .status-pill {
-        font-size: 0.75rem;
-        padding: 4px 8px;
+    /* ========================================
+       ACTIONS HOME - Mobile Layout
+       Status pills, buttons, and toggle
+       ======================================== */
+    #section-media-sources .actions-home {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 8px !important;
+        padding: 12px !important;
+        background: var(--color-bg-card);
+        border-radius: 8px;
+        margin-bottom: 12px;
+        border: 1px solid var(--color-border);
     }
 
-    /* Form sections - compact cards */
+    /* Row 1: Status pills span full width */
+    #section-media-sources .actions-home .status-pill {
+        font-size: 0.8rem;
+        padding: 6px 12px;
+        text-align: center;
+        justify-content: center;
+    }
+
+    #section-media-sources .actions-home .status-pill:first-of-type {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    #section-media-sources .actions-home .status-pill:nth-of-type(2) {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    /* Row 2: Action buttons */
+    #section-media-sources .actions-home .btn.btn-icon {
+        grid-row: 2;
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+
+    #section-media-sources .actions-home #btn-plex-test,
+    #section-media-sources .actions-home #btn-jf-test,
+    #section-media-sources .actions-home #btn-tmdb-test {
+        grid-column: 1;
+    }
+
+    #section-media-sources .actions-home #btn-plex-libraries,
+    #section-media-sources .actions-home #btn-jf-libraries {
+        grid-column: 2;
+    }
+
+    /* Row 3: Toggle and Save button span full width */
+    #section-media-sources .actions-home .header-toggle {
+        grid-column: 1;
+        grid-row: 3;
+        justify-self: start;
+        align-self: center;
+    }
+
+    #section-media-sources .actions-home .btn-primary {
+        grid-column: 2;
+        grid-row: 3;
+        font-size: 0.85rem;
+        padding: 10px 14px;
+        justify-content: center;
+    }
+
+    /* Hide save button text on mobile, show icon only */
+    #section-media-sources .actions-home .btn-primary span:not(.spinner):not(.unsaved-indicator) {
+        display: none;
+    }
+
+    /* Form sections - card-like appearance */
     #section-media-sources .form-section {
-        margin: 6px 0 !important;
+        margin: 0 0 16px 0 !important;
         padding: 0 !important;
     }
 
     #section-media-sources .section-title {
-        font-size: 0.85rem;
-        margin: 0 0 6px 0 !important;
-        padding-left: 8px;
+        font-size: 0.9rem;
+        margin: 0 0 12px 0 !important;
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 6px;
+        border-left: 3px solid var(--color-primary);
     }
 
-    /* Server grid - keep as regular form groups, don't use grid override */
+    #section-media-sources .section-title i {
+        opacity: 0.7;
+    }
+
+    /* Server grid - vertical stacked layout */
     #section-media-sources #plex-server-grid,
     #section-media-sources #jf-server-grid,
     #section-media-sources #tmdb-server-grid {
-        display: block !important;
-        grid-template-columns: unset !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
     }
 
     #section-media-sources #plex-server-grid .form-group,
     #section-media-sources #jf-server-grid .form-group,
     #section-media-sources #tmdb-server-grid .form-group {
-        margin-bottom: var(--space-md);
+        margin-bottom: 0;
         display: block;
         width: 100%;
         grid-column: unset !important;
