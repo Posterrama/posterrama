@@ -809,13 +809,125 @@
     --accent-color: var(--color-warning);
 }
 #modal-cinema-text .btn-cinema-accent,
-#modal-cinema-manage .btn-cinema-accent,
-#modal-cinema-preset-save .btn-cinema-accent {
+#modal-cinema-manage .btn-cinema-accent {
     --accent-color: var(--color-accent);
 }
-#modal-cinema-preset-delete .btn-delete-accent {
-    --accent-color: var(--color-error);
+
+/* Cinema preset modals styling */
+#modal-cinema-preset-save input[type='text'],
+#modal-cinema-preset-delete input[type='text'] {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--color-bg-secondary, #2a2a3e);
+    border: 1px solid var(--color-primary, #7aa2f7) !important;
+    border-radius: 6px;
+    color: var(--color-text-primary, #ffffff);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
 }
+#modal-cinema-preset-save input[type='text']:focus,
+#modal-cinema-preset-delete input[type='text']:focus {
+    outline: none;
+    border-color: var(--color-primary, #7aa2f7) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #7aa2f7) 20%, transparent);
+}
+#modal-cinema-preset-save input[type='text']::placeholder,
+#modal-cinema-preset-delete input[type='text']::placeholder {
+    color: var(--color-text-muted, #606070);
+}
+
+/* Cinema preset modal buttons - dark surface style matching My Presets buttons */
+#modal-cinema-preset-save .modal-footer .btn,
+#modal-cinema-preset-delete .modal-footer .btn {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+}
+#modal-cinema-preset-save .modal-footer .btn i,
+#modal-cinema-preset-save .modal-footer .btn span,
+#modal-cinema-preset-delete .modal-footer .btn i,
+#modal-cinema-preset-delete .modal-footer .btn span {
+    color: inherit !important;
+}
+#modal-cinema-preset-save .modal-footer .btn:hover,
+#modal-cinema-preset-delete .modal-footer .btn:hover {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+
+/* Save button success/green text */
+#modal-cinema-preset-save .modal-footer .btn.text-accent,
+#modal-cinema-preset-save .modal-footer .btn.text-accent i,
+#modal-cinema-preset-save .modal-footer .btn.text-accent span {
+    color: var(--color-success, #9ece6a) !important;
+}
+
+/* Delete button error/magenta text */
+#modal-cinema-preset-delete .modal-footer .btn.text-error,
+#modal-cinema-preset-delete .modal-footer .btn.text-error i,
+#modal-cinema-preset-delete .modal-footer .btn.text-error span {
+    color: var(--color-error, #f7768e) !important;
+}
+
+/* Delete preset list styling */
+#cinema-preset-delete-list {
+    padding: 4px;
+    background: var(--color-bg-tertiary, #1a1a2e);
+    border-radius: 6px;
+}
+#cinema-preset-delete-list .cinema-preset-delete-item {
+    width: 100%;
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    transition: all 0.15s ease;
+}
+#cinema-preset-delete-list .cinema-preset-delete-item i,
+#cinema-preset-delete-list .cinema-preset-delete-item span {
+    color: inherit !important;
+}
+#cinema-preset-delete-list .cinema-preset-delete-item:hover {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    color: var(--color-text-primary) !important;
+}
+#cinema-preset-delete-list .cinema-preset-delete-item.selected {
+    box-shadow:
+        0 0 0 2px var(--color-error, #f7768e),
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    background: color-mix(in srgb, var(--color-error) 8%, var(--color-bg-card)) !important;
+}
+#cinema-preset-delete-list .cinema-preset-delete-item.selected,
+#cinema-preset-delete-list .cinema-preset-delete-item.selected i,
+#cinema-preset-delete-list .cinema-preset-delete-item.selected span {
+    color: var(--color-error, #f7768e) !important;
+}
+
 #modal-override .btn-override-accent {
     --accent-color: var(--color-success);
 }

@@ -1166,7 +1166,7 @@
                         <button type="button" class="btn btn-secondary btn-sm" id="cinemaPresetSave" title="Save current settings as preset">
                           <i class="fas fa-save"></i> <span>Save</span>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" id="cinemaPresetDelete" title="Delete selected preset" disabled>
+                        <button type="button" class="btn btn-secondary btn-sm" id="cinemaPresetDelete" title="Delete a saved preset">
                           <i class="fas fa-trash"></i> <span>Delete</span>
                         </button>
                       </div>
@@ -3021,8 +3021,8 @@
           <input type="text" id="cinema-preset-name-input" placeholder="My awesome preset" maxlength="50" />
         </div>
         <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end; padding: 12px 20px;">
-          <button type="button" class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
-          <button type="button" class="btn btn-secondary btn-sm btn-accent btn-cinema-accent" id="cinema-preset-save-ok"><i class="fas fa-check" aria-hidden="true"></i><span>Save</span></button>
+          <button type="button" class="btn btn-secondary btn-sm" data-close-modal><span>Cancel</span></button>
+          <button type="button" class="btn btn-secondary btn-sm text-accent" id="cinema-preset-save-ok"><i class="fas fa-check" aria-hidden="true"></i><span>Save</span></button>
         </div>
       </div>
     </div>
@@ -3034,12 +3034,14 @@
           <div class="modal-title" id="modal-cinema-preset-delete-title"><i class="fas fa-trash"></i> Delete Preset</div>
           <button class="modal-close" data-close-modal aria-label="Close"><i class="fas fa-times"></i></button>
         </div>
-        <div class="modal-body" style="padding:16px 20px;">
-          <p style="color:var(--color-text-secondary); margin:0;">Are you sure you want to delete "<span id="cinema-preset-delete-name" style="color:var(--color-text-primary); font-weight:500;"></span>"?</p>
+        <div class="modal-body" style="padding:16px 20px; display:grid; gap:12px;">
+          <p style="color:var(--color-text-secondary); margin:0;">Select a preset to delete:</p>
+          <div id="cinema-preset-delete-list" style="display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto;"></div>
+          <p id="cinema-preset-delete-empty" style="color:var(--color-text-muted); margin:0; font-style:italic; display:none;">No custom presets saved yet.</p>
         </div>
         <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end; padding: 12px 20px;">
-          <button type="button" class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
-          <button type="button" class="btn btn-secondary btn-sm btn-accent btn-delete-accent" id="cinema-preset-delete-ok"><i class="fas fa-trash" aria-hidden="true"></i><span>Delete</span></button>
+          <button type="button" class="btn btn-secondary btn-sm" data-close-modal><span>Cancel</span></button>
+          <button type="button" class="btn btn-secondary btn-sm text-error" id="cinema-preset-delete-ok" disabled><i class="fas fa-trash" aria-hidden="true"></i><span>Delete</span></button>
         </div>
       </div>
     </div>

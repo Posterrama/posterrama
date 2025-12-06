@@ -2257,7 +2257,6 @@
             presetSelect.addEventListener('change', () => {
                 const presetKey = presetSelect.value;
                 if (!presetKey) {
-                    if (deleteBtn) deleteBtn.disabled = true;
                     return;
                 }
 
@@ -2267,7 +2266,6 @@
                     if (customPreset) {
                         applyCustomPreset(customPreset);
                     }
-                    if (deleteBtn) deleteBtn.disabled = false;
                 }
             });
         }
@@ -2288,11 +2286,12 @@
 
                 // Clear input and show modal
                 input.value = '';
+                modal.removeAttribute('hidden');
                 modal.classList.add('open');
                 setTimeout(() => input.focus(), 50);
 
                 // Handle save
-                const handleSave = () => {
+                const handleSave = async () => {
                     const name = input.value.trim();
                     if (!name) return;
 
@@ -2306,23 +2305,44 @@
                     };
 
                     customPresets.push(newPreset);
-                    saveCustomPresetsToWorkingState();
                     populateCustomPresetsDropdown();
 
                     // Select the new preset
                     if (presetSelect) {
                         presetSelect.value = `custom:${id}`;
                     }
-                    if (deleteBtn) deleteBtn.disabled = false;
 
-                    // Close modal and show toast
+                    // Close modal
                     modal.classList.remove('open');
-                    window.showToast?.(`Preset "${name}" saved!`, 'success');
                     cleanup();
+
+                    // Save directly to server (bypass workingState to avoid "unsaved changes")
+                    try {
+                        if (typeof window.saveConfigPatch === 'function') {
+                            await window.saveConfigPatch({
+                                cinema: {
+                                    presets: {
+                                        customStyles: customPresets,
+                                    },
+                                },
+                            });
+                            window.showToast?.(`Preset "${name}" saved!`, 'success');
+                        } else {
+                            // Fallback: save to working state (will require Save Settings)
+                            saveCustomPresetsToWorkingState();
+                            window.showToast?.(
+                                `Preset "${name}" saved (save settings to persist)`,
+                                'warning'
+                            );
+                        }
+                    } catch (err) {
+                        console.error('[Cinema] Failed to save preset:', err);
+                        window.showToast?.('Failed to save preset', 'error');
+                    }
                 };
 
                 const handleClose = () => {
-                    modal.hidden = true;
+                    modal.classList.remove('open');
                     cleanup();
                 };
 
@@ -2351,41 +2371,97 @@
             });
         }
 
-        // Delete selected custom preset (using modal)
+        // Delete custom preset (using modal with preset list)
         if (deleteBtn) {
             console.log('[Cinema] Wiring delete button');
             deleteBtn.addEventListener('click', () => {
                 console.log('[Cinema] Delete button clicked');
-                if (!presetSelect) return;
-                const presetKey = presetSelect.value;
-                if (!presetKey || !presetKey.startsWith('custom:')) return;
-
-                const customId = presetKey.replace('custom:', '');
-                const preset = getCustomPresetById(customId);
-                if (!preset) return;
 
                 const modal = document.getElementById('modal-cinema-preset-delete');
-                const nameSpan = document.getElementById('cinema-preset-delete-name');
+                const listContainer = document.getElementById('cinema-preset-delete-list');
+                const emptyMsg = document.getElementById('cinema-preset-delete-empty');
                 const okBtn = document.getElementById('cinema-preset-delete-ok');
-                if (!modal || !okBtn) return;
+                if (!modal || !listContainer || !okBtn) return;
 
-                // Set name and show modal
-                if (nameSpan) nameSpan.textContent = preset.name;
+                // Track selected preset for deletion
+                let selectedPresetId = null;
+
+                // Populate the list with custom presets
+                listContainer.innerHTML = '';
+                okBtn.disabled = true;
+
+                if (customPresets.length === 0) {
+                    if (emptyMsg) emptyMsg.style.display = 'block';
+                } else {
+                    if (emptyMsg) emptyMsg.style.display = 'none';
+                    customPresets.forEach(preset => {
+                        const item = document.createElement('button');
+                        item.type = 'button';
+                        item.className = 'btn btn-secondary btn-sm cinema-preset-delete-item';
+                        item.style.cssText = 'text-align:left; justify-content:flex-start;';
+                        item.dataset.presetId = preset.id;
+                        item.innerHTML = `<i class="fas fa-palette" aria-hidden="true"></i> <span>${preset.name}</span>`;
+                        item.addEventListener('click', () => {
+                            // Deselect all, select this one
+                            listContainer
+                                .querySelectorAll('.cinema-preset-delete-item')
+                                .forEach(btn => {
+                                    btn.classList.remove('selected');
+                                    btn.style.borderColor = '';
+                                });
+                            item.classList.add('selected');
+                            item.style.borderColor = 'var(--color-error, #f7768e)';
+                            selectedPresetId = preset.id;
+                            okBtn.disabled = false;
+                        });
+                        listContainer.appendChild(item);
+                    });
+                }
+
+                // Show modal
+                modal.removeAttribute('hidden');
                 modal.classList.add('open');
 
-                const handleDelete = () => {
-                    customPresets = customPresets.filter(p => p.id !== customId);
-                    saveCustomPresetsToWorkingState();
+                const handleDelete = async () => {
+                    if (!selectedPresetId) return;
+
+                    const preset = customPresets.find(p => p.id === selectedPresetId);
+                    const presetName = preset?.name || 'Preset';
+
+                    customPresets = customPresets.filter(p => p.id !== selectedPresetId);
                     populateCustomPresetsDropdown();
 
-                    // Reset selection
-                    presetSelect.value = '';
-                    deleteBtn.disabled = true;
+                    // If deleted preset was selected in dropdown, reset it
+                    if (presetSelect && presetSelect.value === `custom:${selectedPresetId}`) {
+                        presetSelect.value = '';
+                    }
 
-                    // Close modal and show toast
+                    // Close modal
                     modal.classList.remove('open');
-                    window.showToast?.(`Preset "${preset.name}" deleted`, 'info');
                     cleanup();
+
+                    // Save directly to server
+                    try {
+                        if (typeof window.saveConfigPatch === 'function') {
+                            await window.saveConfigPatch({
+                                cinema: {
+                                    presets: {
+                                        customStyles: customPresets,
+                                    },
+                                },
+                            });
+                            window.showToast?.(`Preset "${presetName}" deleted`, 'info');
+                        } else {
+                            saveCustomPresetsToWorkingState();
+                            window.showToast?.(
+                                `Preset "${presetName}" deleted (save settings to persist)`,
+                                'warning'
+                            );
+                        }
+                    } catch (err) {
+                        console.error('[Cinema] Failed to delete preset:', err);
+                        window.showToast?.('Failed to delete preset', 'error');
+                    }
                 };
 
                 const handleClose = () => {
@@ -2398,6 +2474,7 @@
                     modal.querySelectorAll('[data-close-modal]').forEach(btn => {
                         btn.removeEventListener('click', handleClose);
                     });
+                    selectedPresetId = null;
                 };
 
                 okBtn.addEventListener('click', handleDelete);
