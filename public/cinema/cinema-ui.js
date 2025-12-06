@@ -2288,8 +2288,8 @@
 
                 // Clear input and show modal
                 input.value = '';
-                modal.hidden = false;
-                input.focus();
+                modal.classList.add('open');
+                setTimeout(() => input.focus(), 50);
 
                 // Handle save
                 const handleSave = () => {
@@ -2316,7 +2316,7 @@
                     if (deleteBtn) deleteBtn.disabled = false;
 
                     // Close modal and show toast
-                    modal.hidden = true;
+                    modal.classList.remove('open');
                     window.showToast?.(`Preset "${name}" saved!`, 'success');
                     cleanup();
                 };
@@ -2371,7 +2371,7 @@
 
                 // Set name and show modal
                 if (nameSpan) nameSpan.textContent = preset.name;
-                modal.hidden = false;
+                modal.classList.add('open');
 
                 const handleDelete = () => {
                     customPresets = customPresets.filter(p => p.id !== customId);
@@ -2383,13 +2383,13 @@
                     deleteBtn.disabled = true;
 
                     // Close modal and show toast
-                    modal.hidden = true;
+                    modal.classList.remove('open');
                     window.showToast?.(`Preset "${preset.name}" deleted`, 'info');
                     cleanup();
                 };
 
                 const handleClose = () => {
-                    modal.hidden = true;
+                    modal.classList.remove('open');
                     cleanup();
                 };
 
