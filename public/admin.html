@@ -3633,15 +3633,13 @@
                 </label>
               </div>
               <div class="card-subtext">Synchronize transitions across multiple devices so they show the same content at the same time.</div>
-              <div class="metric-row mt-6">
-                <div class="form-group inline-field nowrap" style="display: block;">
-                  <label for="syncAlignMaxDelayMs" style="margin:0;display:inline-flex;align-items:center;padding-right:12px; white-space:nowrap;">Max align delay (ms)</label>
-                  <div class="number-input-wrapper niw-compact" style="display:inline-flex;">
-                    <input type="number" id="syncAlignMaxDelayMs" min="0" step="50" />
-                    <div class="number-controls" role="group">
-                      <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
-                      <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
-                    </div>
+              <div class="sync-delay-row mt-6">
+                <label for="syncAlignMaxDelayMs">Max align delay (ms)</label>
+                <div class="number-input-wrapper niw-compact">
+                  <input type="number" id="syncAlignMaxDelayMs" min="0" step="50" />
+                  <div class="number-controls" role="group">
+                    <button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button>
+                    <button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button>
                   </div>
                 </div>
               </div>

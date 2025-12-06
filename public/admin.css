@@ -8454,6 +8454,25 @@ body.page-logs {
     margin: -2px 0 8px;
     opacity: 0.9;
 }
+
+/* Sync delay row */
+.sync-delay-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sync-delay-row label {
+    margin: 0;
+    white-space: nowrap;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+}
+
+.sync-delay-row .number-input-wrapper {
+    display: inline-flex;
+}
+
 /* Utilities for spacing and sizing */
 .mt-6 {
     margin-top: 6px !important;
@@ -16247,6 +16266,29 @@ select:focus-visible {
         flex-direction: column !important;
         gap: var(--space-sm) !important;
         align-items: flex-start !important;
+    }
+
+    /* Sync delay row - ensure visibility */
+    #section-operations .sync-delay-row {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+
+    #section-operations .sync-delay-row label {
+        display: block !important;
+    }
+
+    #section-operations .sync-delay-row .number-input-wrapper {
+        display: flex !important;
+        width: 100% !important;
+    }
+
+    #section-operations .sync-delay-row .number-input-wrapper input[type='number'] {
+        flex: 1 !important;
+        min-width: 80px !important;
+        width: auto !important;
     }
 
     /* Number input wrappers in Operations - ensure visibility */
