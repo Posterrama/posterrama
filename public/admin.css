@@ -15075,9 +15075,9 @@ select:focus-visible {
         font-size: 0.8rem !important;
     }
 
-    .section-header-actions .btn span:not(.spinner),
-    .section-header .panel-actions .btn span:not(.spinner) {
-        display: none !important; /* Hide button text on mobile */
+    .section-header-actions .btn span:not(.spinner):not(.unsaved-indicator),
+    .section-header .panel-actions .btn span:not(.spinner):not(.unsaved-indicator) {
+        display: none !important; /* Hide button text on mobile, but NOT the unsaved indicator */
     }
 
     .section-header-actions .btn i,
@@ -15127,9 +15127,9 @@ select:focus-visible {
         font-size: 0.8rem !important;
     }
 
-    /* Hide button text, show only icons */
-    #panel-media-sources .section-header-actions .btn span,
-    #section-media-sources .section-header-actions .btn span {
+    /* Hide button text, show only icons (but NOT unsaved indicator) */
+    #panel-media-sources .section-header-actions .btn span:not(.unsaved-indicator),
+    #section-media-sources .section-header-actions .btn span:not(.unsaved-indicator) {
         display: none !important;
     }
 
@@ -15715,8 +15715,8 @@ select:focus-visible {
         padding: 8px 12px;
     }
 
-    #panel-local .section-actions .btn span:not(.spinner) {
-        display: none; /* Hide text, keep icons only */
+    #panel-local .section-actions .btn span:not(.spinner):not(.unsaved-indicator) {
+        display: none; /* Hide text, keep icons only (but NOT unsaved indicator) */
     }
 
     #panel-local .section-actions .btn i {
@@ -16707,8 +16707,8 @@ select:focus-visible {
         font-size: 0.8rem !important;
     }
 
-    /* Hide button text, show only icons */
-    #section-operations .section-header-actions .btn span {
+    /* Hide button text, show only icons (but NOT unsaved indicator) */
+    #section-operations .section-header-actions .btn span:not(.unsaved-indicator) {
         display: none !important;
     }
 
@@ -17784,6 +17784,29 @@ select.input-error:focus {
    UNSAVED CHANGES INDICATOR
    ======================================== */
 
+/* Ensure save buttons allow overflow for the indicator badge */
+#btn-save-display,
+#btn-save-operations,
+#btn-save-mqtt,
+#btn-save-plex,
+#btn-save-jellyfin,
+#btn-save-tmdb,
+#btn-save-local,
+#btn-save-romm {
+    overflow: visible !important;
+}
+
+/* Ensure ALL parent containers don't clip the indicator */
+.section-header,
+.section-header-actions,
+.section-header .panel-actions,
+.panel-actions,
+.panel-header,
+#panel-display,
+#section-display {
+    overflow: visible !important;
+}
+
 /* Badge indicator on save button */
 .btn .unsaved-indicator {
     position: absolute;
@@ -17794,10 +17817,23 @@ select.input-error:focus {
     background: linear-gradient(135deg, var(--color-warning, #fbbf24), #f59e0b);
     border-radius: 50%;
     border: 2px solid var(--color-bg-secondary, #1e293b);
-    box-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
-    z-index: 5;
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+    z-index: 9999;
     animation: unsaved-indicator-pulse 1.5s ease-in-out infinite;
     pointer-events: none;
+}
+
+/* Mobile: position indicator inside button corner for better visibility */
+@media (max-width: 768px) {
+    .btn .unsaved-indicator {
+        /* Position inside top-right corner of button */
+        top: 2px;
+        right: 2px;
+        width: 8px;
+        height: 8px;
+        border-width: 1px;
+        box-shadow: 0 0 6px rgba(251, 191, 36, 0.8);
+    }
 }
 
 @keyframes unsaved-indicator-pulse {

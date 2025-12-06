@@ -7830,45 +7830,61 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         window.__unsavedTracker = unsavedTracker;
 
         // Setup change tracking for Display Settings and Operations
+        // Uses event delegation to catch ALL changes including dynamically created inputs
         function setupChangeTracking() {
             const sections = ['section-display', 'section-operations'];
+
+            const getInputValue = input => {
+                if (input.type === 'checkbox') return input.checked;
+                if (input.type === 'radio') return input.checked ? input.value : null;
+                return input.value;
+            };
+
+            // Capture initial values for all existing inputs
+            const captureInitialValues = (sectionId, container) => {
+                const inputs = container.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    if (!input.id) return;
+                    unsavedTracker.storeInitial(sectionId, input.id, getInputValue(input));
+                });
+            };
 
             sections.forEach(sectionId => {
                 const container = document.getElementById(sectionId);
                 if (!container) return;
 
-                const inputs = container.querySelectorAll('input, select, textarea');
-                inputs.forEach(input => {
-                    if (!input.id) return;
+                // Capture initial values for existing inputs
+                captureInitialValues(sectionId, container);
 
-                    const getValue = () => {
-                        if (input.type === 'checkbox') return input.checked;
-                        if (input.type === 'radio') return input.checked ? input.value : null;
-                        return input.value;
-                    };
+                // Use event delegation on the container - catches all current and future inputs
+                const handleChange = debounce(e => {
+                    const input = e.target;
+                    if (!input || !input.id) return;
+                    if (!['INPUT', 'SELECT', 'TEXTAREA'].includes(input.tagName)) return;
 
-                    // Store initial value on first focus
-                    input.addEventListener(
-                        'focus',
-                        () => {
-                            unsavedTracker.storeInitial(sectionId, input.id, getValue());
-                        },
-                        { once: true }
-                    );
+                    // Store initial value if not already stored (for dynamically created inputs)
+                    if (!unsavedTracker.initialValues.get(sectionId)?.has(input.id)) {
+                        // This is a new dynamic input - capture its current value as initial
+                        // before the change event fully processes
+                        unsavedTracker.storeInitial(sectionId, input.id, getInputValue(input));
+                    }
+                    unsavedTracker.markField(sectionId, input.id, getInputValue(input));
+                }, 100);
 
-                    // Track changes
-                    const handleChange = debounce(() => {
-                        // Ensure initial is stored
-                        if (!unsavedTracker.initialValues.get(sectionId)?.has(input.id)) {
-                            unsavedTracker.storeInitial(sectionId, input.id, getValue());
-                        }
-                        unsavedTracker.markField(sectionId, input.id, getValue());
-                    }, 150);
-
-                    input.addEventListener('change', handleChange);
-                    input.addEventListener('input', handleChange);
-                });
+                container.addEventListener('change', handleChange, true);
+                container.addEventListener('input', handleChange, true);
             });
+
+            // Re-capture initial values after config is loaded (delayed to ensure config loaded)
+            setTimeout(() => {
+                sections.forEach(sectionId => {
+                    const container = document.getElementById(sectionId);
+                    if (!container) return;
+                    // Clear and re-capture with loaded values
+                    unsavedTracker.initialValues.set(sectionId, new Map());
+                    captureInitialValues(sectionId, container);
+                });
+            }, 2000);
         }
 
         // Delay to let DOM stabilize
