@@ -7825,8 +7825,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             },
         };
 
-        // Expose globally
+        // Expose globally (both with and without underscore for compatibility)
         window.__unsavedTracker = unsavedTracker;
+        window.unsavedTracker = unsavedTracker;
 
         // Setup change tracking for Display Settings and Operations
         // Uses event delegation to catch ALL changes including dynamically created inputs

@@ -1833,6 +1833,28 @@
     };
 
     // === Apply Cinema Preset ===
+    // Helper to set field value and trigger change tracking
+    function setFieldValue(el, value, eventType = 'change') {
+        if (!el) return;
+        if (el.type === 'checkbox') {
+            el.checked = value;
+        } else {
+            el.value = value;
+        }
+        // Dispatch event with bubbles:true so unsavedTracker can catch it
+        el.dispatchEvent(new Event(eventType, { bubbles: true }));
+    }
+
+    // Mark cinema settings as dirty (forces unsaved changes indicator)
+    function markCinemaSettingsDirty() {
+        // Use the unsavedTracker directly if available
+        if (window.unsavedTracker) {
+            window.unsavedTracker.init('section-display');
+            window.unsavedTracker.changes.get('section-display')?.add('__cinemaPresetApplied');
+            window.unsavedTracker.updateIndicator('section-display');
+        }
+    }
+
     function applyPreset(presetKey) {
         if (!presetKey || !CINEMA_PRESETS[presetKey]) return;
 
@@ -1840,61 +1862,43 @@
 
         // Apply poster settings
         if (preset.poster) {
-            const posterStyleSelect = $('#cinemaPosterStyle');
-            const posterOverlaySelect = $('#cinemaPosterOverlay');
-            if (posterStyleSelect && preset.poster.style) {
-                posterStyleSelect.value = preset.poster.style;
-                posterStyleSelect.dispatchEvent(new Event('change'));
+            if (preset.poster.style) {
+                setFieldValue($('#cinemaPosterStyle'), preset.poster.style);
             }
-            if (posterOverlaySelect && preset.poster.overlay) {
-                posterOverlaySelect.value = preset.poster.overlay;
+            if (preset.poster.overlay) {
+                setFieldValue($('#cinemaPosterOverlay'), preset.poster.overlay);
             }
             if (preset.poster.frameColor) {
-                const frameColorInput = $('#cinemaFrameColor');
-                if (frameColorInput) frameColorInput.value = preset.poster.frameColor;
+                setFieldValue($('#cinemaFrameColor'), preset.poster.frameColor);
             }
             if (preset.poster.frameColorMode) {
-                const frameColorModeSelect = $('#cinemaFrameColorMode');
-                if (frameColorModeSelect) {
-                    frameColorModeSelect.value = preset.poster.frameColorMode;
-                    frameColorModeSelect.dispatchEvent(new Event('change'));
-                }
+                setFieldValue($('#cinemaFrameColorMode'), preset.poster.frameColorMode);
             }
         }
 
         // Apply background settings
         if (preset.background) {
-            const bgModeSelect = $('#cinemaBackgroundMode');
-            const vignetteSelect = $('#cinemaVignette');
-            const bgColorInput = $('#cinemaBackgroundColor');
-            if (bgModeSelect && preset.background.mode) {
-                bgModeSelect.value = preset.background.mode;
-                bgModeSelect.dispatchEvent(new Event('change'));
+            if (preset.background.mode) {
+                setFieldValue($('#cinemaBackgroundMode'), preset.background.mode);
             }
-            if (vignetteSelect && preset.background.vignette) {
-                vignetteSelect.value = preset.background.vignette;
+            if (preset.background.vignette) {
+                setFieldValue($('#cinemaVignette'), preset.background.vignette);
             }
-            if (bgColorInput && preset.background.solidColor) {
-                bgColorInput.value = preset.background.solidColor;
+            if (preset.background.solidColor) {
+                setFieldValue($('#cinemaBackgroundColor'), preset.background.solidColor);
             }
         }
 
         // Apply global effects
         if (preset.globalEffects) {
-            const colorFilterSelect = $('#cinemaColorFilter');
-            const contrastSlider = $('#cinemaContrast');
-            const brightnessSlider = $('#cinemaBrightness');
-            if (colorFilterSelect && preset.globalEffects.colorFilter) {
-                colorFilterSelect.value = preset.globalEffects.colorFilter;
-                colorFilterSelect.dispatchEvent(new Event('change'));
+            if (preset.globalEffects.colorFilter) {
+                setFieldValue($('#cinemaColorFilter'), preset.globalEffects.colorFilter);
             }
-            if (contrastSlider && preset.globalEffects.contrast !== undefined) {
-                contrastSlider.value = preset.globalEffects.contrast;
-                contrastSlider.dispatchEvent(new Event('input'));
+            if (preset.globalEffects.contrast !== undefined) {
+                setFieldValue($('#cinemaContrast'), preset.globalEffects.contrast, 'input');
             }
-            if (brightnessSlider && preset.globalEffects.brightness !== undefined) {
-                brightnessSlider.value = preset.globalEffects.brightness;
-                brightnessSlider.dispatchEvent(new Event('input'));
+            if (preset.globalEffects.brightness !== undefined) {
+                setFieldValue($('#cinemaBrightness'), preset.globalEffects.brightness, 'input');
             }
         }
 
@@ -1902,84 +1906,51 @@
         if (preset.typography) {
             applyGlobalTypography(preset.typography);
         }
+
+        // Force unsaved changes indicator
+        markCinemaSettingsDirty();
     }
 
     // === Apply Global Typography to Header + Footer ===
     function applyGlobalTypography(typo) {
         // Font Family
         if (typo.fontFamily) {
-            const globalFontSelect = $('#cinemaGlobalFont');
-            const headerFontSelect = $('#cin-h-font');
-            const footerFontSelect = $('#cin-f-font');
-            if (globalFontSelect) globalFontSelect.value = typo.fontFamily;
-            if (headerFontSelect) headerFontSelect.value = typo.fontFamily;
-            if (footerFontSelect) footerFontSelect.value = typo.fontFamily;
+            setFieldValue($('#cinemaGlobalFont'), typo.fontFamily);
+            setFieldValue($('#cin-h-font'), typo.fontFamily);
+            setFieldValue($('#cin-f-font'), typo.fontFamily);
         }
 
         // Text Color Mode (custom vs ton-sur-ton)
         if (typo.textColorMode) {
-            const globalColorModeSelect = $('#cinemaGlobalTextColorMode');
             const isTonSurTon = typo.textColorMode === 'tonSurTon';
-            if (globalColorModeSelect) globalColorModeSelect.value = typo.textColorMode;
-
-            // Header ton-sur-ton
-            const headerTst = $('#cin-h-tst');
-            if (headerTst) {
-                headerTst.checked = isTonSurTon;
-                headerTst.dispatchEvent(new Event('change'));
-            }
-
-            // Footer ton-sur-ton
-            const footerTst = $('#cin-f-tst');
-            if (footerTst) {
-                footerTst.checked = isTonSurTon;
-                footerTst.dispatchEvent(new Event('change'));
-            }
+            setFieldValue($('#cinemaGlobalTextColorMode'), typo.textColorMode);
+            setFieldValue($('#cin-h-tst'), isTonSurTon);
+            setFieldValue($('#cin-f-tst'), isTonSurTon);
         }
 
         // Text Color (when custom)
         if (typo.textColor && typo.textColorMode === 'custom') {
-            const globalColorInput = $('#cinemaGlobalTextColor');
-            const headerColorInput = $('#cin-h-color');
-            const footerColorInput = $('#cin-f-color');
-            if (globalColorInput) globalColorInput.value = typo.textColor;
-            if (headerColorInput) headerColorInput.value = typo.textColor;
-            if (footerColorInput) footerColorInput.value = typo.textColor;
+            setFieldValue($('#cinemaGlobalTextColor'), typo.textColor);
+            setFieldValue($('#cin-h-color'), typo.textColor);
+            setFieldValue($('#cin-f-color'), typo.textColor);
         }
 
         // Ton-sur-ton Intensity
         if (typo.tonSurTonIntensity !== undefined) {
-            const globalIntensitySlider = $('#cinemaGlobalTstIntensity');
-            const headerIntensitySlider = $('#cin-h-tst-intensity');
-            const footerIntensitySlider = $('#cin-f-tst-intensity');
-            if (globalIntensitySlider) {
-                globalIntensitySlider.value = typo.tonSurTonIntensity;
-                globalIntensitySlider.dispatchEvent(new Event('input'));
-            }
-            if (headerIntensitySlider) {
-                headerIntensitySlider.value = typo.tonSurTonIntensity;
-                headerIntensitySlider.dispatchEvent(new Event('input'));
-            }
-            if (footerIntensitySlider) {
-                footerIntensitySlider.value = typo.tonSurTonIntensity;
-                footerIntensitySlider.dispatchEvent(new Event('input'));
-            }
+            setFieldValue($('#cinemaGlobalTstIntensity'), typo.tonSurTonIntensity, 'input');
+            setFieldValue($('#cin-h-tst-intensity'), typo.tonSurTonIntensity, 'input');
+            setFieldValue($('#cin-f-tst-intensity'), typo.tonSurTonIntensity, 'input');
         }
 
         // Text Effect (shadow)
         if (typo.textEffect) {
-            const globalEffectSelect = $('#cinemaGlobalTextEffect');
-            const headerShadowSelect = $('#cin-h-shadow');
-            const footerShadowSelect = $('#cin-f-shadow');
-            if (globalEffectSelect) globalEffectSelect.value = typo.textEffect;
-            if (headerShadowSelect) headerShadowSelect.value = typo.textEffect;
+            setFieldValue($('#cinemaGlobalTextEffect'), typo.textEffect);
+            setFieldValue($('#cin-h-shadow'), typo.textEffect);
             // Footer has fewer options, map to closest match
-            if (footerShadowSelect) {
-                const footerValue = ['none', 'subtle', 'dramatic'].includes(typo.textEffect)
-                    ? typo.textEffect
-                    : 'subtle';
-                footerShadowSelect.value = footerValue;
-            }
+            const footerValue = ['none', 'subtle', 'dramatic'].includes(typo.textEffect)
+                ? typo.textEffect
+                : 'subtle';
+            setFieldValue($('#cin-f-shadow'), footerValue);
         }
     }
 
@@ -2154,59 +2125,42 @@
     function applyCustomPreset(preset) {
         // Apply poster settings
         if (preset.poster) {
-            $('#cinemaPosterStyle') &&
-                ($('#cinemaPosterStyle').value = preset.poster.style || 'floating');
-            $('#cinemaPosterStyle')?.dispatchEvent(new Event('change'));
-            $('#cinemaPosterOverlay') &&
-                ($('#cinemaPosterOverlay').value = preset.poster.overlay || 'none');
+            setFieldValue($('#cinemaPosterStyle'), preset.poster.style || 'floating');
+            setFieldValue($('#cinemaPosterOverlay'), preset.poster.overlay || 'none');
             if (preset.poster.frameColor) {
-                $('#cinemaFrameColor') && ($('#cinemaFrameColor').value = preset.poster.frameColor);
+                setFieldValue($('#cinemaFrameColor'), preset.poster.frameColor);
             }
             if (preset.poster.frameColorMode) {
-                $('#cinemaFrameColorMode') &&
-                    ($('#cinemaFrameColorMode').value = preset.poster.frameColorMode);
-                $('#cinemaFrameColorMode')?.dispatchEvent(new Event('change'));
+                setFieldValue($('#cinemaFrameColorMode'), preset.poster.frameColorMode);
             }
             if (preset.poster.frameWidth) {
-                $('#cinemaFrameWidth') && ($('#cinemaFrameWidth').value = preset.poster.frameWidth);
+                setFieldValue($('#cinemaFrameWidth'), preset.poster.frameWidth, 'input');
             }
         }
 
         // Apply background settings
         if (preset.background) {
-            $('#cinemaBackgroundMode') &&
-                ($('#cinemaBackgroundMode').value = preset.background.mode || 'solid');
-            $('#cinemaBackgroundMode')?.dispatchEvent(new Event('change'));
-            $('#cinemaVignette') &&
-                ($('#cinemaVignette').value = preset.background.vignette || 'subtle');
+            setFieldValue($('#cinemaBackgroundMode'), preset.background.mode || 'solid');
+            setFieldValue($('#cinemaVignette'), preset.background.vignette || 'subtle');
             if (preset.background.solidColor) {
-                $('#cinemaBackgroundColor') &&
-                    ($('#cinemaBackgroundColor').value = preset.background.solidColor);
+                setFieldValue($('#cinemaBackgroundColor'), preset.background.solidColor);
             }
             if (preset.background.blurAmount) {
-                $('#cinemaBackgroundBlur') &&
-                    ($('#cinemaBackgroundBlur').value = preset.background.blurAmount);
+                setFieldValue($('#cinemaBackgroundBlur'), preset.background.blurAmount, 'input');
             }
         }
 
         // Apply global effects
         if (preset.globalEffects) {
-            $('#cinemaColorFilter') &&
-                ($('#cinemaColorFilter').value = preset.globalEffects.colorFilter || 'none');
-            $('#cinemaColorFilter')?.dispatchEvent(new Event('change'));
+            setFieldValue($('#cinemaColorFilter'), preset.globalEffects.colorFilter || 'none');
             if (preset.globalEffects.contrast !== undefined) {
-                $('#cinemaContrast') &&
-                    ($('#cinemaContrast').value = preset.globalEffects.contrast);
-                $('#cinemaContrast')?.dispatchEvent(new Event('input'));
+                setFieldValue($('#cinemaContrast'), preset.globalEffects.contrast, 'input');
             }
             if (preset.globalEffects.brightness !== undefined) {
-                $('#cinemaBrightness') &&
-                    ($('#cinemaBrightness').value = preset.globalEffects.brightness);
-                $('#cinemaBrightness')?.dispatchEvent(new Event('input'));
+                setFieldValue($('#cinemaBrightness'), preset.globalEffects.brightness, 'input');
             }
             if (preset.globalEffects.tintColor) {
-                $('#cinemaTintColor') &&
-                    ($('#cinemaTintColor').value = preset.globalEffects.tintColor);
+                setFieldValue($('#cinemaTintColor'), preset.globalEffects.tintColor);
             }
         }
 
@@ -2214,6 +2168,9 @@
         if (preset.typography) {
             applyGlobalTypography(preset.typography);
         }
+
+        // Force unsaved changes indicator
+        markCinemaSettingsDirty();
     }
 
     function _isSystemPreset(presetValue) {
@@ -2326,6 +2283,8 @@
                                     },
                                 },
                             });
+                            // Also update workingState to keep in sync
+                            saveCustomPresetsToWorkingState();
                             window.showToast?.(`Preset "${name}" saved!`, 'success');
                         } else {
                             // Fallback: save to working state (will require Save Settings)
@@ -2450,6 +2409,8 @@
                                     },
                                 },
                             });
+                            // Also update workingState to keep in sync
+                            saveCustomPresetsToWorkingState();
                             window.showToast?.(`Preset "${presetName}" deleted`, 'info');
                         } else {
                             saveCustomPresetsToWorkingState();
