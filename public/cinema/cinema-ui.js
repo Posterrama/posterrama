@@ -1813,6 +1813,24 @@
                 textEffect: 'subtle',
             },
         },
+        reset: {
+            label: 'Reset to Defaults',
+            poster: {
+                style: 'floating',
+                overlay: 'none',
+                frameColor: '#ffffff',
+                frameColorMode: 'custom',
+            },
+            background: { mode: 'solid', solidColor: '#000000', vignette: 'subtle' },
+            globalEffects: { colorFilter: 'none', contrast: 100, brightness: 100 },
+            typography: {
+                fontFamily: 'cinematic',
+                textColorMode: 'custom',
+                textColor: '#C0C0C0',
+                tonSurTonIntensity: 45,
+                textEffect: 'subtle',
+            },
+        },
     };
 
     // === Apply Cinema Preset ===
@@ -2207,6 +2225,22 @@
         const presetSelect = $('#cinemaPresetSelect');
         const saveBtn = document.getElementById('cinemaPresetSave');
         const deleteBtn = document.getElementById('cinemaPresetDelete');
+        const presetsMount = document.getElementById('cinema-presets-mount');
+
+        // Wire quick preset buttons (icon buttons)
+        if (presetsMount) {
+            presetsMount.addEventListener('click', e => {
+                const btn = e.target.closest('button[data-cin-preset]');
+                if (!btn) return;
+                const presetKey = btn.getAttribute('data-cin-preset');
+                if (presetKey === 'reset') {
+                    // Reset uses special handling
+                    applyPreset('reset');
+                } else {
+                    applyPreset(presetKey);
+                }
+            });
+        }
 
         if (!presetSelect) return;
 
@@ -2214,7 +2248,7 @@
         loadCustomPresets();
         populateCustomPresetsDropdown();
 
-        // Apply preset on selection
+        // Apply preset on selection (custom presets only now)
         presetSelect.addEventListener('change', () => {
             const presetKey = presetSelect.value;
             if (!presetKey) {
@@ -2230,10 +2264,6 @@
                     applyCustomPreset(customPreset);
                 }
                 if (deleteBtn) deleteBtn.disabled = false;
-            } else {
-                // System preset
-                applyPreset(presetKey);
-                if (deleteBtn) deleteBtn.disabled = true;
             }
         });
 
