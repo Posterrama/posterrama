@@ -809,8 +809,12 @@
     --accent-color: var(--color-warning);
 }
 #modal-cinema-text .btn-cinema-accent,
-#modal-cinema-manage .btn-cinema-accent {
+#modal-cinema-manage .btn-cinema-accent,
+#modal-cinema-preset-save .btn-cinema-accent {
     --accent-color: var(--color-accent);
+}
+#modal-cinema-preset-delete .btn-delete-accent {
+    --accent-color: var(--color-error);
 }
 #modal-override .btn-override-accent {
     --accent-color: var(--color-success);
