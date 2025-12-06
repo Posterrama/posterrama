@@ -5966,6 +5966,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         message: 'Settings saved successfully',
                         duration: 2000,
                     });
+
+                    // Clear unsaved changes tracking
+                    if (window.__unsavedTracker) {
+                        window.__unsavedTracker.clear('section-display');
+                    }
                 } catch (e) {
                     window.notify?.toast({
                         type: 'error',
@@ -7532,10 +7537,343 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         });
     }
 
+    /**
+     * Show unsaved changes warning modal using theme styling.
+     * @param {Array} unsavedSections - Array of {id, name, count, fields}
+     * @returns {Promise<'save'|'discard'|'stay'>}
+     */
+    async function showUnsavedChangesModal(unsavedSections) {
+        return new Promise(resolve => {
+            // Build section list HTML
+            const sectionsHtml = unsavedSections
+                .map(
+                    s => `
+                <div class="unsaved-section-item">
+                    <div class="unsaved-section-name">
+                        <i class="fas fa-folder-open"></i> ${s.name}
+                    </div>
+                    <div class="unsaved-section-details">
+                        ${s.count} unsaved change${s.count > 1 ? 's' : ''}${s.fields.length > 0 ? ': ' + s.fields.join(', ') : ''}
+                    </div>
+                </div>
+            `
+                )
+                .join('');
+
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay open';
+            overlay.id = 'modal-unsaved-changes';
+
+            overlay.innerHTML = `
+                <div class="modal modal-sm">
+                    <div class="modal-header">
+                        <div class="modal-title">
+                            <i class="fas fa-exclamation-triangle" style="color: var(--color-warning, #fbbf24);"></i>
+                            Unsaved Changes
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin: 0 0 var(--space-md) 0; color: var(--color-text-secondary);">
+                            You have unsaved changes that will be lost if you navigate away:
+                        </p>
+                        <div class="unsaved-sections-list">
+                            ${sectionsHtml}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-sm" id="unsaved-stay">
+                            <i class="fas fa-arrow-left"></i><span>Stay</span>
+                        </button>
+                        <button type="button" class="btn btn-sm" id="unsaved-discard">
+                            <i class="fas fa-trash"></i><span>Discard</span>
+                        </button>
+                        <button type="button" class="btn btn-sm" id="unsaved-save">
+                            <i class="fas fa-save"></i><span>Save & Continue</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+
+            // Add inline styles for section items (theme-consistent)
+            const style = document.createElement('style');
+            style.id = 'unsaved-modal-styles';
+            style.textContent = `
+                .unsaved-sections-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: var(--space-sm, 8px);
+                }
+                .unsaved-section-item {
+                    background: var(--color-bg-tertiary, rgba(255,255,255,0.05));
+                    border-left: 3px solid var(--color-warning, #fbbf24);
+                    padding: var(--space-sm, 8px) var(--space-md, 12px);
+                    border-radius: var(--border-radius, 6px);
+                }
+                .unsaved-section-name {
+                    font-weight: var(--font-weight-semibold, 600);
+                    color: var(--color-warning, #fbbf24);
+                    margin-bottom: 4px;
+                    display: flex;
+                    align-items: center;
+                    gap: var(--space-sm, 8px);
+                }
+                .unsaved-section-details {
+                    font-size: var(--font-size-sm, 12px);
+                    color: var(--color-text-muted, #94a3b8);
+                }
+            `;
+            document.head.appendChild(style);
+
+            const cleanup = () => {
+                overlay.remove();
+                document.getElementById('unsaved-modal-styles')?.remove();
+            };
+
+            // Event handlers
+            document.getElementById('unsaved-stay')?.addEventListener('click', () => {
+                cleanup();
+                resolve('stay');
+            });
+
+            document.getElementById('unsaved-discard')?.addEventListener('click', () => {
+                cleanup();
+                resolve('discard');
+            });
+
+            document.getElementById('unsaved-save')?.addEventListener('click', () => {
+                cleanup();
+                resolve('save');
+            });
+
+            // Close on backdrop click
+            overlay.addEventListener('click', e => {
+                if (e.target === overlay) {
+                    cleanup();
+                    resolve('stay');
+                }
+            });
+
+            // Escape key
+            const escHandler = e => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    document.removeEventListener('keydown', escHandler);
+                    resolve('stay');
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        });
+    }
+
     function wireEvents() {
         // Prevent duplicate wiring (DOMContentLoaded + immediate call race)
         if (window.__admin2Wired) return;
         window.__admin2Wired = true;
+
+        // =====================================================================
+        // UNSAVED CHANGES TRACKING SYSTEM
+        // =====================================================================
+        const unsavedTracker = {
+            // Track changes per section: Map<sectionId, Set<fieldId>>
+            changes: new Map(),
+            // Initial values for comparison: Map<sectionId, Map<fieldId, value>>
+            initialValues: new Map(),
+
+            // Section ID to save button ID mapping
+            saveButtonMap: {
+                'section-display': 'btn-save-display',
+                'section-operations': 'btn-save-operations',
+            },
+
+            // Initialize a section for tracking
+            init(sectionId) {
+                if (!this.changes.has(sectionId)) {
+                    this.changes.set(sectionId, new Set());
+                    this.initialValues.set(sectionId, new Map());
+                }
+            },
+
+            // Store initial value of a field
+            storeInitial(sectionId, fieldId, value) {
+                this.init(sectionId);
+                const initials = this.initialValues.get(sectionId);
+                if (!initials.has(fieldId)) {
+                    initials.set(fieldId, value);
+                }
+            },
+
+            // Mark field as changed or unchanged
+            markField(sectionId, fieldId, currentValue) {
+                this.init(sectionId);
+                const initials = this.initialValues.get(sectionId);
+                const changes = this.changes.get(sectionId);
+                const initial = initials.get(fieldId);
+
+                if (initial !== currentValue) {
+                    changes.add(fieldId);
+                } else {
+                    changes.delete(fieldId);
+                }
+                this.updateIndicator(sectionId);
+            },
+
+            // Clear all changes for a section (after save)
+            clear(sectionId) {
+                if (this.changes.has(sectionId)) {
+                    this.changes.get(sectionId).clear();
+                    this.initialValues.get(sectionId).clear();
+                }
+                this.updateIndicator(sectionId);
+            },
+
+            // Revert all changed fields to their initial values (for discard)
+            revert(sectionId) {
+                const initials = this.initialValues.get(sectionId);
+                const changes = this.changes.get(sectionId);
+                if (!initials || !changes) return;
+
+                changes.forEach(fieldId => {
+                    const el = document.getElementById(fieldId);
+                    const initialValue = initials.get(fieldId);
+                    if (el && initialValue !== undefined) {
+                        if (el.type === 'checkbox') {
+                            el.checked = initialValue;
+                        } else if (el.type === 'radio') {
+                            el.checked = el.value === initialValue;
+                        } else {
+                            el.value = initialValue;
+                        }
+                        // Trigger change event so any dependent UI updates
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+
+                // Clear tracking after revert
+                this.clear(sectionId);
+            },
+
+            // Check if section has changes
+            hasChanges(sectionId) {
+                const changes = this.changes.get(sectionId);
+                return changes && changes.size > 0;
+            },
+
+            // Get all sections with unsaved changes
+            getUnsavedSections() {
+                const result = [];
+                this.changes.forEach((fields, sectionId) => {
+                    if (fields.size > 0) {
+                        result.push({
+                            id: sectionId,
+                            name: this.getSectionName(sectionId),
+                            count: fields.size,
+                            fields: this.getFieldLabels(sectionId),
+                        });
+                    }
+                });
+                return result;
+            },
+
+            // Get human-readable section name
+            getSectionName(sectionId) {
+                const names = {
+                    'section-display': 'Display Settings',
+                    'section-operations': 'Operations',
+                    'section-media-sources': 'Media Sources',
+                };
+                return names[sectionId] || sectionId;
+            },
+
+            // Get labels for changed fields
+            getFieldLabels(sectionId) {
+                const changes = this.changes.get(sectionId);
+                if (!changes) return [];
+                const labels = [];
+                changes.forEach(fieldId => {
+                    const el = document.getElementById(fieldId);
+                    if (el) {
+                        const label = document.querySelector(`label[for="${fieldId}"]`);
+                        if (label) {
+                            labels.push(label.textContent.trim().replace(/[:\*]/g, '').trim());
+                        } else if (el.placeholder) {
+                            labels.push(el.placeholder);
+                        }
+                    }
+                });
+                return labels.slice(0, 5);
+            },
+
+            // Update visual indicator on save button
+            updateIndicator(sectionId) {
+                const btnId = this.saveButtonMap[sectionId];
+                if (!btnId) return;
+                const btn = document.getElementById(btnId);
+                if (!btn) return;
+
+                const hasChanges = this.hasChanges(sectionId);
+                let indicator = btn.querySelector('.unsaved-indicator');
+
+                if (hasChanges && !indicator) {
+                    indicator = document.createElement('span');
+                    indicator.className = 'unsaved-indicator';
+                    btn.appendChild(indicator);
+                } else if (!hasChanges && indicator) {
+                    indicator.remove();
+                }
+            },
+        };
+
+        // Expose globally
+        window.__unsavedTracker = unsavedTracker;
+
+        // Setup change tracking for Display Settings and Operations
+        function setupChangeTracking() {
+            const sections = ['section-display', 'section-operations'];
+
+            sections.forEach(sectionId => {
+                const container = document.getElementById(sectionId);
+                if (!container) return;
+
+                const inputs = container.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    if (!input.id) return;
+
+                    const getValue = () => {
+                        if (input.type === 'checkbox') return input.checked;
+                        if (input.type === 'radio') return input.checked ? input.value : null;
+                        return input.value;
+                    };
+
+                    // Store initial value on first focus
+                    input.addEventListener(
+                        'focus',
+                        () => {
+                            unsavedTracker.storeInitial(sectionId, input.id, getValue());
+                        },
+                        { once: true }
+                    );
+
+                    // Track changes
+                    const handleChange = debounce(() => {
+                        // Ensure initial is stored
+                        if (!unsavedTracker.initialValues.get(sectionId)?.has(input.id)) {
+                            unsavedTracker.storeInitial(sectionId, input.id, getValue());
+                        }
+                        unsavedTracker.markField(sectionId, input.id, getValue());
+                    }, 150);
+
+                    input.addEventListener('change', handleChange);
+                    input.addEventListener('input', handleChange);
+                });
+            });
+        }
+
+        // Delay to let DOM stabilize
+        setTimeout(setupChangeTracking, 500);
+
         // Live updates via SSE (logs). Falls back to polling below.
         (function initAdminEvents() {
             try {
@@ -9969,10 +10307,39 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
         // Sidebar section switching (single-level items)
         document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
-            item.addEventListener('click', e => {
+            item.addEventListener('click', async e => {
                 e.preventDefault();
                 const nav = item.getAttribute('data-nav');
                 if (!nav) return; // skip items without target section
+
+                // Check for unsaved changes before navigating
+                const tracker = window.__unsavedTracker;
+                if (tracker) {
+                    const unsaved = tracker.getUnsavedSections();
+                    if (unsaved.length > 0) {
+                        const result = await showUnsavedChangesModal(unsaved);
+                        if (result === 'stay') {
+                            return; // User cancelled - stay on current section
+                        }
+                        if (result === 'save') {
+                            // Click save buttons for each section with changes
+                            for (const section of unsaved) {
+                                const btnId = tracker.saveButtonMap[section.id];
+                                if (btnId) {
+                                    const btn = document.getElementById(btnId);
+                                    if (btn) {
+                                        btn.click();
+                                        await new Promise(r => setTimeout(r, 400));
+                                    }
+                                }
+                            }
+                        } else if (result === 'discard') {
+                            // Revert fields to their original values
+                            unsaved.forEach(s => tracker.revert(s.id));
+                        }
+                    }
+                }
+
                 document
                     .querySelectorAll('.sidebar-nav .nav-item')
                     .forEach(n => n.classList.remove('active'));
@@ -23426,6 +23793,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             'Operations settings updated. Restart required for MQTT changes to take effect.',
                         duration: 4000,
                     });
+                }
+
+                // Clear unsaved changes tracking
+                if (window.__unsavedTracker) {
+                    window.__unsavedTracker.clear('section-operations');
                 }
             } catch (e) {
                 window.notify?.toast({

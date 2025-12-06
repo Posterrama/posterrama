@@ -17779,3 +17779,95 @@ select.input-error:focus {
         max-height: calc(100vh - var(--navbar-height, 56px) - 20px);
     }
 }
+
+/* ========================================
+   UNSAVED CHANGES INDICATOR
+   ======================================== */
+
+/* Badge indicator on save button */
+.btn .unsaved-indicator {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, var(--color-warning, #fbbf24), #f59e0b);
+    border-radius: 50%;
+    border: 2px solid var(--color-bg-secondary, #1e293b);
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
+    z-index: 5;
+    animation: unsaved-indicator-pulse 1.5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes unsaved-indicator-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
+    }
+}
+
+/* Unsaved changes modal - match theme button styling */
+#modal-unsaved-changes .modal-footer .btn {
+    border: none;
+    border-radius: 4px;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: var(--color-text-secondary);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.25s ease;
+}
+
+#modal-unsaved-changes .modal-footer .btn:hover,
+#modal-unsaved-changes .modal-footer .btn:focus-visible {
+    color: var(--color-text-primary);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+}
+
+#modal-unsaved-changes .modal-footer .btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+
+/* Save button - teal accent */
+#modal-unsaved-changes .modal-footer #unsaved-save {
+    color: color-mix(in srgb, var(--color-teal, #73daca) 78%, var(--color-text-secondary));
+}
+#modal-unsaved-changes .modal-footer #unsaved-save:hover,
+#modal-unsaved-changes .modal-footer #unsaved-save:focus-visible {
+    color: color-mix(in srgb, var(--color-teal, #73daca) 90%, var(--color-text-secondary));
+}
+
+/* Discard button - error/coral accent */
+#modal-unsaved-changes .modal-footer #unsaved-discard {
+    color: color-mix(in srgb, var(--color-error, #f7768e) 78%, var(--color-text-secondary));
+}
+#modal-unsaved-changes .modal-footer #unsaved-discard:hover,
+#modal-unsaved-changes .modal-footer #unsaved-discard:focus-visible {
+    color: color-mix(in srgb, var(--color-error, #f7768e) 90%, var(--color-text-secondary));
+}

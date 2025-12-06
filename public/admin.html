@@ -5053,8 +5053,8 @@
   <script>
     // Navigation handler for dropdown menu items with data-nav attribute
     document.addEventListener('DOMContentLoaded', function() {
-      // Handle all navigation items with data-nav attribute
-      document.querySelectorAll('[data-nav]').forEach(function(navItem) {
+      // Handle navigation items with data-nav attribute (excluding sidebar nav-items, handled in admin.js)
+      document.querySelectorAll('[data-nav]:not(.sidebar-nav .nav-item)').forEach(function(navItem) {
         navItem.addEventListener('click', function(e) {
           e.preventDefault();
           const targetSection = this.getAttribute('data-nav');
