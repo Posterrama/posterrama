@@ -1141,22 +1141,34 @@
                           <label for="cinemaPresetSelect">Apply Preset</label>
                           <div class="select-wrap has-caret">
                             <select id="cinemaPresetSelect">
-                              <option value="">Select a preset...</option>
-                              <option value="classicCinema">🎬 Classic Cinema</option>
-                              <option value="noir">🎞️ Noir</option>
-                              <option value="neonNights">✨ Neon Nights</option>
-                              <option value="vintageTheater">🎭 Vintage Theater</option>
-                              <option value="modernMinimal">⬜ Modern Minimal</option>
-                              <option value="filmProjector">📽️ Film Projector</option>
-                              <option value="blockbuster">🎥 Blockbuster</option>
-                              <option value="artDeco">🏛️ Art Deco</option>
-                              <option value="driveIn">🚗 Drive-In</option>
-                              <option value="imaxPremium">🖥️ IMAX Premium</option>
-                              <option value="indieFilm">🎬 Indie Film</option>
-                              <option value="homeTheater">🏠 Home Theater</option>
+                              <optgroup label="System Presets" id="cinemaSystemPresetsGroup">
+                                <option value="">Select a preset...</option>
+                                <option value="classicCinema">🎬 Classic Cinema</option>
+                                <option value="noir">🎞️ Noir</option>
+                                <option value="neonNights">✨ Neon Nights</option>
+                                <option value="vintageTheater">🎭 Vintage Theater</option>
+                                <option value="modernMinimal">⬜ Modern Minimal</option>
+                                <option value="filmProjector">📽️ Film Projector</option>
+                                <option value="blockbuster">🎥 Blockbuster</option>
+                                <option value="artDeco">🏛️ Art Deco</option>
+                                <option value="driveIn">🚗 Drive-In</option>
+                                <option value="imaxPremium">🖥️ IMAX Premium</option>
+                                <option value="indieFilm">🎬 Indie Film</option>
+                                <option value="homeTheater">🏠 Home Theater</option>
+                              </optgroup>
+                              <optgroup label="My Presets" id="cinemaCustomPresetsGroup">
+                              </optgroup>
                             </select>
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
+                        </div>
+                        <div class="form-row" style="display: flex; gap: 8px; margin-top: 8px;">
+                          <button type="button" class="btn btn-secondary btn-sm" id="cinemaPresetSave" title="Save current settings as new preset">
+                            <i class="fas fa-save"></i> Save as Preset
+                          </button>
+                          <button type="button" class="btn btn-secondary btn-sm" id="cinemaPresetDelete" title="Delete selected custom preset" disabled>
+                            <i class="fas fa-trash"></i> Delete
+                          </button>
                         </div>
                         <p class="help-text" style="margin-top: 8px; color: var(--color-text-secondary); font-size: 0.85rem;">
                           Presets apply a complete look including poster style, background, effects, and typography. You can customize individual settings after applying.

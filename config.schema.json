@@ -744,6 +744,37 @@
                                 "Home Cinema",
                                 "Feature Presentation"
                             ]
+                        },
+                        "customStyles": {
+                            "type": "array",
+                            "description": "User-created custom cinema style presets",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Unique identifier for the preset"
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Display name for the preset"
+                                    },
+                                    "poster": {
+                                        "type": "object"
+                                    },
+                                    "background": {
+                                        "type": "object"
+                                    },
+                                    "globalEffects": {
+                                        "type": "object"
+                                    },
+                                    "typography": {
+                                        "type": "object"
+                                    }
+                                },
+                                "required": ["id", "name"]
+                            },
+                            "default": []
                         }
                     },
                     "additionalProperties": false,
@@ -760,7 +791,8 @@
                             "Now Playing",
                             "Home Cinema",
                             "Feature Presentation"
-                        ]
+                        ],
+                        "customStyles": []
                     }
                 },
                 "ambilight": {

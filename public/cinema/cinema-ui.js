@@ -1052,6 +1052,13 @@
     function mountEnhancedControls(cfg) {
         const c = cfg.cinema || {};
 
+        // Load custom presets from config
+        const presets = c.presets || {};
+        if (Array.isArray(presets.customStyles) && presets.customStyles.length > 0) {
+            customPresets = presets.customStyles;
+            saveCustomPresetsToWorkingState();
+        }
+
         // Global Effects controls
         const globalEffects = c.globalEffects || {};
         $('#cinemaColorFilter') &&
@@ -2054,17 +2061,233 @@
         if (intensityRow) intensityRow.style.display = isTonSurTon ? '' : 'none';
     }
 
+    // === Custom Presets Storage ===
+    let customPresets = [];
+
+    function loadCustomPresets() {
+        // Load from config via working state or fetch from server
+        const ws = getWorkingState();
+        if (ws.customPresets) {
+            customPresets = ws.customPresets;
+        }
+        return customPresets;
+    }
+
+    function saveCustomPresetsToWorkingState() {
+        const ws = getWorkingState();
+        ws.customPresets = customPresets;
+        saveWorkingState();
+    }
+
+    function populateCustomPresetsDropdown() {
+        const customGroup = document.getElementById('cinemaCustomPresetsGroup');
+        if (!customGroup) return;
+
+        // Clear existing custom options
+        customGroup.innerHTML = '';
+
+        // Add custom presets
+        customPresets.forEach(preset => {
+            const option = document.createElement('option');
+            option.value = `custom:${preset.id}`;
+            option.textContent = `⭐ ${preset.name}`;
+            customGroup.appendChild(option);
+        });
+
+        // Show/hide group based on whether there are custom presets
+        customGroup.style.display = customPresets.length > 0 ? '' : 'none';
+    }
+
+    function collectCurrentSettingsAsPreset() {
+        return {
+            poster: {
+                style: $('#cinemaPosterStyle')?.value || 'floating',
+                overlay: $('#cinemaPosterOverlay')?.value || 'none',
+                frameColor: $('#cinemaFrameColor')?.value || '#333333',
+                frameColorMode: $('#cinemaFrameColorMode')?.value || 'custom',
+                frameWidth: parseInt($('#cinemaFrameWidth')?.value || '8', 10),
+            },
+            background: {
+                mode: $('#cinemaBackgroundMode')?.value || 'solid',
+                solidColor: $('#cinemaBackgroundColor')?.value || '#000000',
+                blurAmount: parseInt($('#cinemaBackgroundBlur')?.value || '20', 10),
+                vignette: $('#cinemaVignette')?.value || 'subtle',
+            },
+            globalEffects: {
+                colorFilter: $('#cinemaColorFilter')?.value || 'none',
+                tintColor: $('#cinemaTintColor')?.value || '#ff6b00',
+                contrast: parseInt($('#cinemaContrast')?.value || '100', 10),
+                brightness: parseInt($('#cinemaBrightness')?.value || '100', 10),
+            },
+            typography: {
+                fontFamily: $('#cinemaGlobalFont')?.value || 'cinematic',
+                textColorMode: $('#cinemaGlobalTextColorMode')?.value || 'custom',
+                textColor: $('#cinemaGlobalTextColor')?.value || '#ffffff',
+                tonSurTonIntensity: parseInt($('#cinemaGlobalTstIntensity')?.value || '45', 10),
+                textEffect: $('#cinemaGlobalTextEffect')?.value || 'subtle',
+            },
+        };
+    }
+
+    function applyCustomPreset(preset) {
+        // Apply poster settings
+        if (preset.poster) {
+            $('#cinemaPosterStyle') &&
+                ($('#cinemaPosterStyle').value = preset.poster.style || 'floating');
+            $('#cinemaPosterStyle')?.dispatchEvent(new Event('change'));
+            $('#cinemaPosterOverlay') &&
+                ($('#cinemaPosterOverlay').value = preset.poster.overlay || 'none');
+            if (preset.poster.frameColor) {
+                $('#cinemaFrameColor') && ($('#cinemaFrameColor').value = preset.poster.frameColor);
+            }
+            if (preset.poster.frameColorMode) {
+                $('#cinemaFrameColorMode') &&
+                    ($('#cinemaFrameColorMode').value = preset.poster.frameColorMode);
+                $('#cinemaFrameColorMode')?.dispatchEvent(new Event('change'));
+            }
+            if (preset.poster.frameWidth) {
+                $('#cinemaFrameWidth') && ($('#cinemaFrameWidth').value = preset.poster.frameWidth);
+            }
+        }
+
+        // Apply background settings
+        if (preset.background) {
+            $('#cinemaBackgroundMode') &&
+                ($('#cinemaBackgroundMode').value = preset.background.mode || 'solid');
+            $('#cinemaBackgroundMode')?.dispatchEvent(new Event('change'));
+            $('#cinemaVignette') &&
+                ($('#cinemaVignette').value = preset.background.vignette || 'subtle');
+            if (preset.background.solidColor) {
+                $('#cinemaBackgroundColor') &&
+                    ($('#cinemaBackgroundColor').value = preset.background.solidColor);
+            }
+            if (preset.background.blurAmount) {
+                $('#cinemaBackgroundBlur') &&
+                    ($('#cinemaBackgroundBlur').value = preset.background.blurAmount);
+            }
+        }
+
+        // Apply global effects
+        if (preset.globalEffects) {
+            $('#cinemaColorFilter') &&
+                ($('#cinemaColorFilter').value = preset.globalEffects.colorFilter || 'none');
+            $('#cinemaColorFilter')?.dispatchEvent(new Event('change'));
+            if (preset.globalEffects.contrast !== undefined) {
+                $('#cinemaContrast') &&
+                    ($('#cinemaContrast').value = preset.globalEffects.contrast);
+                $('#cinemaContrast')?.dispatchEvent(new Event('input'));
+            }
+            if (preset.globalEffects.brightness !== undefined) {
+                $('#cinemaBrightness') &&
+                    ($('#cinemaBrightness').value = preset.globalEffects.brightness);
+                $('#cinemaBrightness')?.dispatchEvent(new Event('input'));
+            }
+            if (preset.globalEffects.tintColor) {
+                $('#cinemaTintColor') &&
+                    ($('#cinemaTintColor').value = preset.globalEffects.tintColor);
+            }
+        }
+
+        // Apply typography
+        if (preset.typography) {
+            applyGlobalTypography(preset.typography);
+        }
+    }
+
+    function isSystemPreset(presetValue) {
+        return presetValue && !presetValue.startsWith('custom:');
+    }
+
+    function getCustomPresetById(id) {
+        return customPresets.find(p => p.id === id);
+    }
+
     // Wire presets dropdown in Presets card
     function wirePresets() {
         const presetSelect = $('#cinemaPresetSelect');
+        const saveBtn = document.getElementById('cinemaPresetSave');
+        const deleteBtn = document.getElementById('cinemaPresetDelete');
+
         if (!presetSelect) return;
 
+        // Load custom presets and populate dropdown
+        loadCustomPresets();
+        populateCustomPresetsDropdown();
+
+        // Apply preset on selection
         presetSelect.addEventListener('change', () => {
             const presetKey = presetSelect.value;
-            if (presetKey) {
+            if (!presetKey) {
+                if (deleteBtn) deleteBtn.disabled = true;
+                return;
+            }
+
+            if (presetKey.startsWith('custom:')) {
+                // Custom preset
+                const customId = presetKey.replace('custom:', '');
+                const customPreset = getCustomPresetById(customId);
+                if (customPreset) {
+                    applyCustomPreset(customPreset);
+                }
+                if (deleteBtn) deleteBtn.disabled = false;
+            } else {
+                // System preset
                 applyPreset(presetKey);
+                if (deleteBtn) deleteBtn.disabled = true;
             }
         });
+
+        // Save current settings as new preset
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                const name = prompt('Enter a name for your preset:');
+                if (!name || !name.trim()) return;
+
+                const id = `custom_${Date.now()}`;
+                const settings = collectCurrentSettingsAsPreset();
+
+                const newPreset = {
+                    id,
+                    name: name.trim(),
+                    ...settings,
+                };
+
+                customPresets.push(newPreset);
+                saveCustomPresetsToWorkingState();
+                populateCustomPresetsDropdown();
+
+                // Select the new preset
+                presetSelect.value = `custom:${id}`;
+                if (deleteBtn) deleteBtn.disabled = false;
+
+                // Show confirmation
+                showToast?.(`Preset "${name.trim()}" saved!`, 'success');
+            });
+        }
+
+        // Delete selected custom preset
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                const presetKey = presetSelect.value;
+                if (!presetKey || !presetKey.startsWith('custom:')) return;
+
+                const customId = presetKey.replace('custom:', '');
+                const preset = getCustomPresetById(customId);
+                if (!preset) return;
+
+                if (!confirm(`Delete preset "${preset.name}"?`)) return;
+
+                customPresets = customPresets.filter(p => p.id !== customId);
+                saveCustomPresetsToWorkingState();
+                populateCustomPresetsDropdown();
+
+                // Reset selection
+                presetSelect.value = '';
+                deleteBtn.disabled = true;
+
+                showToast?.(`Preset "${preset.name}" deleted`, 'info');
+            });
+        }
     }
 
     // === NEW: Collect enhanced settings for save ===
@@ -2179,7 +2402,7 @@
         const orientation = $('#cinemaOrientation')?.value || 'auto';
         // Rotation interval from new field
         const rotationIntervalMinutes = parseFloat($('#cinemaRotationInterval')?.value || '0');
-        // Presets reflect local working state
+        // Presets reflect local working state (including custom style presets)
         const presets = {
             headerTexts:
                 Array.isArray(headerPresets) && headerPresets.length
@@ -2189,6 +2412,7 @@
                 Array.isArray(footerPresets) && footerPresets.length
                     ? [...footerPresets]
                     : cfg.cinema?.presets?.footerTexts || [],
+            customStyles: customPresets || [],
         };
 
         // Merge enhanced settings (Issue #35)
@@ -2214,573 +2438,35 @@
         // Mount enhanced controls (Issue #35)
         mountEnhancedControls(cfg);
         mountNowPlaying(cfg);
-        // Mount presets card
+        // Initialize presets functionality (no longer overwrites the HTML mount)
         try {
             const slot = document.getElementById('cinema-presets-mount');
             if (slot) {
-                const presetsRow = document.createElement('div');
-                presetsRow.className = 'scaling-presets';
-                presetsRow.style.display = 'flex';
-                presetsRow.style.flexWrap = 'wrap';
-                presetsRow.style.gap = '8px';
-                presetsRow.innerHTML = [
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="classic" title="Classic cinema experience"><i class="fas fa-film"></i> <span>Classic</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="modern" title="Clean modern look"><i class="fas fa-tv"></i> <span>Modern</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="premiere" title="Red carpet premiere feel"><i class="fas fa-star"></i> <span>Premiere</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="imax" title="IMAX-inspired immersive"><i class="fas fa-expand"></i> <span>IMAX</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="minimal" title="Minimal distraction"><i class="fas fa-minus"></i> <span>Minimal</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="neon" title="Retro neon vibes"><i class="fas fa-bolt"></i> <span>Neon</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="elegant" title="Elegant and refined"><i class="fas fa-gem"></i> <span>Elegant</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="retro" title="Vintage cinema feel"><i class="fas fa-ticket-alt"></i> <span>Retro</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="showcase" title="Full metadata showcase"><i class="fas fa-info-circle"></i> <span>Showcase</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="dark" title="Dark ambient mode"><i class="fas fa-moon"></i> <span>Dark</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="lobby" title="Cinema lobby display"><i class="fas fa-door-open"></i> <span>Lobby</span></button>',
-                    '<button type="button" class="btn btn-secondary btn-sm" data-cin-preset="techspec" title="Technical specifications"><i class="fas fa-microchip"></i> <span>Tech Spec</span></button>',
-                    '<button type="button" class="btn btn-outline btn-sm" data-cin-preset="reset" title="Reset to defaults"><i class="fas fa-undo"></i> <span>Reset</span></button>',
-                ].join('');
+                // Wire up presets dropdown and buttons (defined at top of file)
+                wirePresets();
 
-                const summaryTitle = document.createElement('div');
-                summaryTitle.className = 'card-title';
-                summaryTitle.style.cssText = 'font-size:.95rem; margin:10px 0 6px;';
-                summaryTitle.innerHTML = '<i class="fas fa-info-circle"></i> Current Experience';
+                // Add summary section if not present
+                if (!document.getElementById('cinema-summary')) {
+                    const summaryTitle = document.createElement('div');
+                    summaryTitle.className = 'card-title';
+                    summaryTitle.style.cssText = 'font-size:.95rem; margin:10px 0 6px;';
+                    summaryTitle.innerHTML =
+                        '<i class="fas fa-info-circle"></i> Current Experience';
 
-                const summary = document.createElement('div');
-                summary.id = 'cinema-summary';
-                summary.style.cssText =
-                    'display:flex; flex-wrap:wrap; gap:8px; align-items:center;';
-                summary.innerHTML = [
-                    '<span class="status-pill" id="cin-sum-orient" title="Orientation">Orientation: —</span>',
-                    '<span class="status-pill" id="cin-sum-header" title="Header status">Header: —</span>',
-                    '<span class="status-pill" id="cin-sum-footer" title="Footer type">Footer: —</span>',
-                    '<span class="status-pill" id="cin-sum-ambilight" title="Ambilight strength">Ambilight: —</span>',
-                ].join('');
+                    const summary = document.createElement('div');
+                    summary.id = 'cinema-summary';
+                    summary.style.cssText =
+                        'display:flex; flex-wrap:wrap; gap:8px; align-items:center;';
+                    summary.innerHTML = [
+                        '<span class="status-pill" id="cin-sum-orient" title="Orientation">Orientation: —</span>',
+                        '<span class="status-pill" id="cin-sum-header" title="Header status">Header: —</span>',
+                        '<span class="status-pill" id="cin-sum-footer" title="Footer type">Footer: —</span>',
+                        '<span class="status-pill" id="cin-sum-ambilight" title="Ambilight strength">Ambilight: —</span>',
+                    ].join('');
 
-                slot.replaceChildren(presetsRow, summaryTitle, summary);
-
-                // removed unused helper q (was const q = sel => document.querySelector(sel))
-                const setVal = (id, value) => {
-                    const el = document.getElementById(id);
-                    if (!el) return;
-                    if (el.type === 'checkbox') {
-                        el.checked = !!value;
-                        el.dispatchEvent(new Event('change', { bubbles: true }));
-                        return;
-                    }
-                    el.value = String(value);
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                };
-                const applyPreset = name => {
-                    // Helper to set metadata toggles
-                    const setMeta = show => {
-                        setVal('cinemaShowYear', show.year !== false);
-                        setVal('cinemaShowRuntime', show.runtime !== false);
-                        setVal('cinemaShowRating', show.rating !== false);
-                        setVal('cinemaShowCertification', !!show.certification);
-                        setVal('cinemaShowGenre', !!show.genre);
-                        setVal('cinemaShowDirector', !!show.director);
-                        setVal('cinemaShowStudioLogo', !!show.studio);
-                    };
-                    const setSpecs = show => {
-                        setVal('cinemaShowResolution', show.resolution !== false);
-                        setVal('cinemaShowAudio', show.audio !== false);
-                        setVal('cinemaShowHDR', show.hdr !== false);
-                        setVal('cinemaShowAspectRatio', !!show.aspectRatio);
-                    };
-                    const setBackground = (mode, color) => {
-                        setVal('cinemaBackgroundMode', mode || 'solid');
-                        if (color) {
-                            const bgInput = document.getElementById('cinemaBackgroundColor');
-                            if (bgInput) bgInput.value = color;
-                        }
-                    };
-                    const setPoster = (style, anim) => {
-                        setVal('cinemaPosterStyle', style || 'floating');
-                        setVal('cinemaPosterAnimation', anim || 'fade');
-                    };
-
-                    switch (name) {
-                        case 'classic':
-                            // Classic cinema: gold header, marquee footer, warm ambilight
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 55);
-                            setVal('cin-h-enabled', true);
-                            setVal('cin-h-presets', 'Now Playing');
-                            setVal('cin-h-font', 'cinematic');
-                            setVal('cin-h-size', 110);
-                            setVal('cin-h-color', '#ffd700');
-                            setVal('cin-h-shadow', 'glow');
-                            setVal('cin-h-anim', 'none');
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'marquee');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-presets', 'Feature Presentation');
-                            setVal('cin-f-font', 'cinematic');
-                            setVal('cin-f-color', '#ffffff');
-                            setVal('cin-f-shadow', 'subtle');
-                            setBackground('solid', '#000000');
-                            setPoster('floating', 'fade');
-                            setMeta({ title: true, year: true, runtime: true, rating: true });
-                            setSpecs({ resolution: true, audio: true, hdr: true });
-                            setVal('cinemaSpecsStyle', 'icons-text');
-                            break;
-
-                        case 'modern':
-                            // Modern clean: white text, minimal, blurred background
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 40);
-                            setVal('cin-h-enabled', true);
-                            setVal('cin-h-presets', 'Now Playing');
-                            setVal('cin-h-font', 'modern');
-                            setVal('cin-h-size', 100);
-                            setVal('cin-h-color', '#ffffff');
-                            setVal('cin-h-shadow', 'subtle');
-                            setVal('cin-h-anim', 'none');
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'metadata');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-font', 'modern');
-                            setVal('cin-f-color', '#e0e0e0');
-                            setBackground('blurred', '#1a1a2e');
-                            setPoster('floating', 'fade');
-                            setMeta({ title: true, year: true, runtime: true, rating: true });
-                            setSpecs({ resolution: true, audio: true, hdr: true });
-                            setVal('cinemaSpecsStyle', 'dark-glass');
-                            break;
-
-                        case 'premiere':
-                            // Red carpet premiere: bold red accents, dramatic
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 70);
-                            setVal('cin-h-enabled', true);
-                            setVal('cin-h-presets', 'Feature Presentation');
-                            setVal('cin-h-font', 'elegant');
-                            setVal('cin-h-size', 120);
-                            setVal('cin-h-color', '#ff3333');
-                            setVal('cin-h-shadow', 'dramatic');
-                            setVal('cin-h-anim', 'none');
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'tagline');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-font', 'elegant');
-                            setVal('cin-f-color', '#cccccc');
-                            setBackground('curtain', '#0a0a0a');
-                            setPoster('doubleBorder', 'cinematic');
-                            setVal('cinemaFrameColor', '#cc0000');
-                            setMeta({
-                                title: true,
-                                year: true,
-                                runtime: true,
-                                rating: true,
-                                director: true,
-                            });
-                            setSpecs({
-                                resolution: true,
-                                audio: true,
-                                hdr: true,
-                                aspectRatio: true,
-                            });
-                            setVal('cinemaSpecsStyle', 'glass');
-                            break;
-
-                        case 'imax':
-                            // IMAX immersive: full specs, strong ambilight, cinematic
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 85);
-                            setVal('cin-h-enabled', true);
-                            setVal('cin-h-presets', 'Home Cinema');
-                            setVal('cin-h-font', 'cinematic');
-                            setVal('cin-h-size', 130);
-                            setVal('cin-h-color', '#3399ff');
-                            setVal('cin-h-shadow', 'glow');
-                            setVal('cin-h-anim', 'none');
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'metadata');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-font', 'modern');
-                            setVal('cin-f-color', '#ffffff');
-                            setBackground('spotlight', '#000000');
-                            setPoster('floating', 'zoomIn');
-                            setMeta({ title: true, year: true, runtime: true, rating: true });
-                            setSpecs({
-                                resolution: true,
-                                audio: true,
-                                hdr: true,
-                                aspectRatio: true,
-                            });
-                            setVal('cinemaSpecsStyle', 'icons-only');
-                            setVal('cinemaSpecsIconSet', 'tabler');
-                            break;
-
-                        case 'minimal':
-                            // Minimal: poster only, subtle ambilight, no text overlays
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 30);
-                            setVal('cin-h-enabled', false);
-                            setVal('cin-f-enabled', false);
-                            setBackground('solid', '#000000');
-                            setPoster('floating', 'fade');
-                            setMeta({});
-                            setSpecs({});
-                            break;
-
-                        case 'neon':
-                            // Neon retro: vibrant colors, neon glow effects
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 65);
-                            setVal('cin-h-enabled', true);
-                            setVal('cin-h-presets', 'Now Playing');
-                            setVal('cin-h-font', 'neon');
-                            setVal('cin-h-size', 110);
-                            setVal('cin-h-color', '#ff00ff');
-                            setVal('cin-h-shadow', 'neon');
-                            setVal('cin-h-anim', 'pulse');
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'marquee');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-presets', 'Feature Presentation');
-                            setVal('cin-f-font', 'neon');
-                            setVal('cin-f-color', '#00ffff');
-                            setVal('cin-f-shadow', 'neon');
-                            setBackground('starfield', '#000000');
-                            setPoster('neon', 'fade');
-                            setVal('cinemaFrameColor', '#ff00ff');
-                            setMeta({ title: true, year: true, rating: true });
-                            setSpecs({ resolution: true, audio: true, hdr: true });
-                            setVal('cinemaSpecsStyle', 'badges');
-                            break;
-
-                        case 'elegant':
-                            // Elegant: serif fonts, refined, sophisticated
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 45);
-                            setVal('cin-h-enabled', true);
-                            setVal('cin-h-presets', 'Now Playing');
-                            setVal('cin-h-font', 'elegant');
-                            setVal('cin-h-size', 105);
-                            setVal('cin-h-color', '#c0c0c0');
-                            setVal('cin-h-shadow', 'subtle');
-                            setVal('cin-h-anim', 'none');
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'tagline');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-font', 'elegant');
-                            setVal('cin-f-color', '#a0a0a0');
-                            setBackground('gradient', '#1a1a1a');
-                            setPoster('shadowBox', 'fade');
-                            setVal('cinemaFrameColor', '#333333');
-                            setMeta({
-                                title: true,
-                                year: true,
-                                runtime: true,
-                                rating: true,
-                                director: true,
-                            });
-                            setSpecs({ resolution: true, audio: true });
-                            setVal('cinemaSpecsStyle', 'subtle');
-                            break;
-
-                        case 'retro':
-                            // Retro: vintage cinema, marquee style, warm tones
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 50);
-                            setVal('cin-h-enabled', true);
-                            setVal('cin-h-presets', 'Coming Soon');
-                            setVal('cin-h-font', 'retro');
-                            setVal('cin-h-size', 100);
-                            setVal('cin-h-color', '#ffcc00');
-                            setVal('cin-h-shadow', 'dramatic');
-                            setVal('cin-h-anim', 'flicker');
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'marquee');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-presets', 'Feature Presentation');
-                            setVal('cin-f-font', 'retro');
-                            setVal('cin-f-color', '#ffaa00');
-                            setBackground('curtain', '#0d0d0d');
-                            setPoster('ornate', 'slideUp');
-                            setVal('cinemaFrameColor', '#8b4513');
-                            setMeta({ title: true, year: true, runtime: true });
-                            setSpecs({ resolution: true, audio: true });
-                            setVal('cinemaSpecsStyle', 'badges');
-                            break;
-
-                        case 'showcase':
-                            // Showcase: maximum metadata, everything visible
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 50);
-                            setVal('cin-h-enabled', true);
-                            setVal('cin-h-presets', 'Now Playing');
-                            setVal('cin-h-font', 'cinematic');
-                            setVal('cin-h-size', 100);
-                            setVal('cin-h-color', '#ffffff');
-                            setVal('cin-h-shadow', 'subtle');
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'metadata');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-font', 'system');
-                            setVal('cin-f-color', '#cccccc');
-                            setBackground('blurred', '#000000');
-                            setPoster('floating', 'fade');
-                            setMeta({
-                                title: true,
-                                year: true,
-                                runtime: true,
-                                rating: true,
-                                certification: true,
-                                genre: true,
-                                director: true,
-                                cast: true,
-                                plot: true,
-                            });
-                            setSpecs({
-                                resolution: true,
-                                audio: true,
-                                hdr: true,
-                                aspectRatio: true,
-                            });
-                            setVal('cinemaSpecsStyle', 'badges');
-                            break;
-
-                        case 'dark':
-                            // Dark ambient: subtle, low contrast, relaxing
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 25);
-                            setVal('cin-h-enabled', true);
-                            setVal('cin-h-presets', 'Now Playing');
-                            setVal('cin-h-font', 'system');
-                            setVal('cin-h-size', 90);
-                            setVal('cin-h-color', '#666666');
-                            setVal('cin-h-shadow', 'none');
-                            setVal('cin-h-anim', 'none');
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'metadata');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-font', 'system');
-                            setVal('cin-f-color', '#555555');
-                            setBackground('solid', '#000000');
-                            setPoster('floating', 'fade');
-                            setMeta({ title: true, year: true });
-                            setSpecs({ resolution: true, audio: true });
-                            setVal('cinemaSpecsStyle', 'subtle');
-                            break;
-
-                        case 'lobby':
-                            // Lobby display: bright, informative, eye-catching
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 60);
-                            setVal('cin-h-enabled', true);
-                            setVal('cin-h-presets', 'Coming Soon');
-                            setVal('cin-h-font', 'marquee');
-                            setVal('cin-h-size', 115);
-                            setVal('cin-h-color', '#ff6b6b');
-                            setVal('cin-h-shadow', 'dramatic');
-                            setVal('cin-h-anim', 'marquee');
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'metadata');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-font', 'modern');
-                            setVal('cin-f-color', '#ffffff');
-                            setBackground('gradient', '#1a1a2e');
-                            setPoster('floating', 'zoomIn');
-                            setMeta({
-                                title: true,
-                                year: true,
-                                runtime: true,
-                                rating: true,
-                                genre: true,
-                            });
-                            setSpecs({ resolution: true, audio: true, hdr: true });
-                            setVal('cinemaSpecsStyle', 'badges');
-                            break;
-
-                        case 'techspec':
-                            // Technical specifications: all specs, minimal else
-                            setVal('cin-a-enabled', false);
-                            setVal('cin-h-enabled', false);
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'metadata');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-font', 'modern');
-                            setVal('cin-f-color', '#00ff00');
-                            setBackground('solid', '#000000');
-                            setPoster('floating', 'fade');
-                            setMeta({ title: true, year: true });
-                            setSpecs({
-                                resolution: true,
-                                audio: true,
-                                hdr: true,
-                                aspectRatio: true,
-                            });
-                            setVal('cinemaSpecsStyle', 'icons');
-                            setVal('cinemaSpecsIconSet', 'tabler');
-                            break;
-
-                        default:
-                            // === FULL RESET TO CLEAN DEFAULTS ===
-                            // Goal: Full-bleed poster, normal colors, no effects, all metadata on
-
-                            // Global Effects - all off/neutral
-                            setVal('cinemaColorFilter', 'none');
-                            setVal('cinemaContrast', 100);
-                            setVal('cinemaBrightness', 100);
-                            setVal('cinemaHideAllUI', false);
-                            // Reset tint color if exists
-                            {
-                                const tintInput = document.getElementById('cinemaTintColor');
-                                if (tintInput) tintInput.value = '#ff6b35';
-                            }
-
-                            // Global Typography - reset to defaults
-                            setVal('cinemaGlobalFont', 'cinematic');
-                            setVal('cinemaGlobalTextColorMode', 'custom');
-                            setVal('cinemaGlobalTextColor', '#ffffff');
-                            setVal('cinemaGlobalTstIntensity', 45);
-                            setVal('cinemaGlobalTextEffect', 'subtle');
-
-                            // Preset - none selected
-                            setVal('cinemaPresetSelect', '');
-
-                            // Ambilight - subtle
-                            setVal('cin-a-enabled', true);
-                            setVal('cin-a-strength', 50);
-
-                            // Header - silver color, cinematic font, 150% size
-                            setVal('cin-h-enabled', true);
-                            setVal('cin-h-presets', 'Now Playing');
-                            setVal('cin-h-font', 'cinematic');
-                            setVal('cin-h-size', 150);
-                            setVal('cin-h-color', '#C0C0C0');
-                            setVal('cin-h-shadow', 'subtle');
-                            setVal('cin-h-anim', 'none');
-                            setVal('cin-h-tst', false); // ton-sur-ton off
-                            setVal('cin-h-tst-intensity', 45); // default intensity
-                            // Show header color picker, hide intensity slider
-                            {
-                                const hColorRow = document
-                                    .getElementById('cin-h-color')
-                                    ?.closest('.cin-row');
-                                if (hColorRow) hColorRow.style.display = '';
-                                const hIntensityRow =
-                                    document.getElementById('cin-h-tst-intensity-row');
-                                if (hIntensityRow) hIntensityRow.style.display = 'none';
-                            }
-
-                            // Footer - metadata type, system font, silver color, 150% size
-                            setVal('cin-f-enabled', true);
-                            setVal('cin-f-type', 'metadata');
-                            document
-                                .getElementById('cin-f-type')
-                                ?.dispatchEvent(new Event('change', { bubbles: true }));
-                            setVal('cin-f-font', 'system');
-                            setVal('cin-f-size', 150);
-                            setVal('cin-f-color', '#C0C0C0');
-                            setVal('cin-f-shadow', 'none');
-                            setVal('cin-f-tst', false); // ton-sur-ton off
-                            setVal('cin-f-tst-intensity', 45); // default intensity
-                            // Show footer color picker, hide intensity slider
-                            {
-                                const fColorRow = document
-                                    .getElementById('cin-f-color')
-                                    ?.closest('.cin-row');
-                                if (fColorRow) fColorRow.style.display = '';
-                                const fIntensityRow =
-                                    document.getElementById('cin-f-tst-intensity-row');
-                                if (fIntensityRow) fIntensityRow.style.display = 'none';
-                            }
-
-                            // Background - solid black, no blur, subtle vignette
-                            setBackground('solid', '#000000');
-                            setVal('cinemaBackgroundBlur', 20);
-                            setVal('cinemaVignette', 'subtle');
-
-                            // Poster - full bleed (floating), no frame effects
-                            setVal('cinemaPosterStyle', 'floating');
-                            setVal('cinemaPosterOverlay', 'none');
-                            setVal('cinemaPosterAnimation', 'fade');
-                            setVal('cinemaPosterTransition', 1.5);
-                            setVal('cinemaFrameWidth', 8);
-                            setVal('cinemaFrameColorMode', 'custom');
-                            // Reset frame color
-                            {
-                                const frameInput = document.getElementById('cinemaFrameColor');
-                                if (frameInput) frameInput.value = '#ffffff';
-                                // Update visibility
-                                const frameColorModeSelect =
-                                    document.getElementById('cinemaFrameColorMode');
-                                if (frameColorModeSelect) {
-                                    frameColorModeSelect.dispatchEvent(new Event('change'));
-                                }
-                            }
-
-                            // Metadata - ALL ON for full info display
-                            setMeta({
-                                title: true,
-                                year: true,
-                                runtime: true,
-                                rating: true,
-                                certification: true,
-                                genre: true,
-                                director: true,
-                                studio: true,
-                            });
-                            setVal('cinemaMetadataLayout', 'comfortable');
-                            setVal('cinemaMetadataOpacity', 80);
-
-                            // Specs - all on with badges style
-                            setSpecs({
-                                resolution: true,
-                                audio: true,
-                                hdr: true,
-                                aspectRatio: true,
-                            });
-                            setVal('cinemaSpecsStyle', 'badges');
-                            setVal('cinemaSpecsIconSet', 'tabler');
-
-                            // Promotional - all off for clean look
-                            setVal('cinemaRatingBadge', false);
-                            setVal('cinemaWatchProviders', false);
-                            setVal('cinemaAwardsBadge', false);
-                            setVal('cinemaQREnabled', false);
-                            // Hide QR settings
-                            {
-                                const qrSettings = document.getElementById('cinemaQRSettings');
-                                if (qrSettings) qrSettings.style.display = 'none';
-                            }
-                    }
-                    try {
-                        window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
-                    } catch (e) {
-                        // preset apply side-effect refresh failed (non-fatal)
-                    }
-                };
-                slot.addEventListener('click', e => {
-                    const btn = e.target.closest('button[data-cin-preset]');
-                    if (!btn) return;
-                    applyPreset(btn.getAttribute('data-cin-preset'));
-                });
+                    slot.appendChild(summaryTitle);
+                    slot.appendChild(summary);
+                }
 
                 // Live summary pills reflecting current controls
                 const pills = {
