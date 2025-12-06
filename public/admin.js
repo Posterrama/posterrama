@@ -3615,8 +3615,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         setIf('uiScaling_clock', us.clock ?? 100);
         // Sync
         setIf('syncEnabled', c.syncEnabled !== false);
-        if (typeof c.syncAlignMaxDelayMs !== 'undefined')
-            setIf('syncAlignMaxDelayMs', c.syncAlignMaxDelayMs);
+        setIf('syncAlignMaxDelayMs', c.syncAlignMaxDelayMs ?? 1200);
 
         // Sync card: keep contents visible regardless of switch state (per request)
         try {
