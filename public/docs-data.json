@@ -1442,12 +1442,45 @@
             "id": "cinema-quick-theme",
             "title": "Quick Theme",
             "category": "Cinema",
-            "keywords": ["theme", "quick", "preset", "style", "look"],
-            "description": "Apply a preset visual theme.",
-            "help": "Quickly apply a combination of visual effects (brightness, contrast, color filter) with one click. Good starting point before fine-tuning individual settings.",
+            "keywords": ["theme", "preset", "style", "look", "cinema"],
+            "description": "Apply a complete cinema preset.",
+            "help": "Apply a preset that configures poster style, background, global effects, and typography all at once. Choose from 12 curated looks like Classic Cinema, Noir, Neon Nights, and more.",
             "section": "display",
             "showMode": "cinema",
-            "setting": "cinemaQuickTheme"
+            "setting": "cinemaPresetSelect"
+        },
+        {
+            "id": "cinema-global-font",
+            "title": "Global Font Family",
+            "category": "Cinema",
+            "keywords": ["font", "typography", "text", "global", "header", "footer"],
+            "description": "Set the font for both header and footer.",
+            "help": "Master control for typography. When changed, this font is applied to both the header and footer. You can still customize them individually afterwards.",
+            "section": "display",
+            "showMode": "cinema",
+            "setting": "cinemaGlobalFont"
+        },
+        {
+            "id": "cinema-global-text-color-mode",
+            "title": "Global Text Color Mode",
+            "category": "Cinema",
+            "keywords": ["color", "text", "ton-sur-ton", "auto", "global"],
+            "description": "Choose custom color or automatic ton-sur-ton.",
+            "help": "Custom lets you pick a specific text color. Ton-sur-ton automatically calculates an elegant color based on the poster's dominant colors.",
+            "section": "display",
+            "showMode": "cinema",
+            "setting": "cinemaGlobalTextColorMode"
+        },
+        {
+            "id": "cinema-global-text-effect",
+            "title": "Global Text Effect",
+            "category": "Cinema",
+            "keywords": ["shadow", "glow", "neon", "text", "effect"],
+            "description": "Apply shadow or glow effect to all text.",
+            "help": "Master control for text effects. Options include subtle shadow, dramatic shadow, neon glow, and soft glow. Applied to both header and footer.",
+            "section": "display",
+            "showMode": "cinema",
+            "setting": "cinemaGlobalTextEffect"
         },
         {
             "id": "cinema-now-playing-priority",

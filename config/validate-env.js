@@ -142,6 +142,8 @@ function migrateConfig(cfg) {
         vignette: ['none', 'subtle', 'dramatic'],
         // Global Effects
         colorFilter: ['none', 'sepia', 'cool', 'warm', 'tint'],
+        textColorMode: ['custom', 'tonSurTon'],
+        textEffect: ['none', 'subtle', 'dramatic', 'neon', 'glow'],
         // Poster
         posterStyle: [
             'fullBleed',
@@ -250,6 +252,44 @@ function migrateConfig(cfg) {
             modified = true;
         }
     }
+
+    // Validate fontFamily (global typography)
+    modified =
+        fixEnum(
+            globalEffects,
+            'fontFamily',
+            VALID.headerFontFamily,
+            'cinematic',
+            'globalEffects'
+        ) || modified;
+
+    // Validate textColorMode
+    modified =
+        fixEnum(globalEffects, 'textColorMode', VALID.textColorMode, 'custom', 'globalEffects') ||
+        modified;
+
+    // Validate textColor
+    if (globalEffects.textColor && !/^#[0-9A-Fa-f]{6}$/.test(globalEffects.textColor)) {
+        globalEffects.textColor = '#ffffff';
+        modified = true;
+    }
+
+    // Validate tonSurTonIntensity (10-100)
+    if (globalEffects.tonSurTonIntensity !== undefined) {
+        if (
+            typeof globalEffects.tonSurTonIntensity !== 'number' ||
+            globalEffects.tonSurTonIntensity < 10 ||
+            globalEffects.tonSurTonIntensity > 100
+        ) {
+            globalEffects.tonSurTonIntensity = 45;
+            modified = true;
+        }
+    }
+
+    // Validate textEffect
+    modified =
+        fixEnum(globalEffects, 'textEffect', VALID.textEffect, 'subtle', 'globalEffects') ||
+        modified;
 
     // === HEADER ===
     modified = ensureObj(cinema, 'header') || modified;

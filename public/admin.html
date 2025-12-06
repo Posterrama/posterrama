@@ -1132,10 +1132,37 @@
             <div id="card-cinema" style="margin-top:12px;" hidden>
               <fieldset id="fs-cinema">
                 <div class="form-grid masonry" id="cinema-cards">
-                  <!-- Presets: first card (top-left) like Screensaver -->
+                  <!-- Presets: first card (top-left) -->
                   <div class="mode-card" id="cinema-presets-card" data-card-key="cinema-presets" style="padding:12px;">
-                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-sliders-h"></i> Presets</div>
-                    <div id="cinema-presets-mount"></div>
+                    <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-palette"></i> Presets</div>
+                    <div id="cinema-presets-mount">
+                      <div class="form-grid">
+                        <div class="form-row">
+                          <label for="cinemaPresetSelect">Apply Preset</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaPresetSelect">
+                              <option value="">Select a preset...</option>
+                              <option value="classicCinema">🎬 Classic Cinema</option>
+                              <option value="noir">🎞️ Noir</option>
+                              <option value="neonNights">✨ Neon Nights</option>
+                              <option value="vintageTheater">🎭 Vintage Theater</option>
+                              <option value="modernMinimal">⬜ Modern Minimal</option>
+                              <option value="filmProjector">📽️ Film Projector</option>
+                              <option value="blockbuster">🎥 Blockbuster</option>
+                              <option value="artDeco">🏛️ Art Deco</option>
+                              <option value="driveIn">🚗 Drive-In</option>
+                              <option value="imaxPremium">🖥️ IMAX Premium</option>
+                              <option value="indieFilm">🎬 Indie Film</option>
+                              <option value="homeTheater">🏠 Home Theater</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <p class="help-text" style="margin-top: 8px; color: var(--color-text-secondary); font-size: 0.85rem;">
+                          Presets apply a complete look including poster style, background, effects, and typography. You can customize individual settings after applying.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <!-- Right: Orientation -->
                   <div class="mode-card" data-card-key="orientation" style="padding:12px; grid-column: 1;">
@@ -1205,26 +1232,70 @@
                     </div>
                   </div>
 
-                  <!-- Global Effects Card (NEW) -->
+                  <!-- Global Effects Card -->
                   <div class="mode-card" data-card-key="cinema-global-effects" id="cinema-global-effects-card" style="padding:12px; grid-column: 1 / -1;">
                     <div class="card-title" style="font-size:.95rem; margin-bottom:6px;"><i class="fas fa-magic"></i> Global Effects</div>
                     <div id="cinema-global-effects-mount">
                       <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <!-- Typography Section Header -->
+                        <div style="grid-column: 1 / -1; margin-bottom: 4px; color: var(--color-text-secondary); font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Typography (syncs to Header & Footer)</div>
+                        
                         <div class="form-row">
-                          <label for="cinemaQuickTheme">Quick Theme</label>
+                          <label for="cinemaGlobalFont">Font Family</label>
                           <div class="select-wrap has-caret">
-                            <select id="cinemaQuickTheme">
-                              <option value="">Select a theme</option>
-                              <option value="classicCinema">Classic Cinema</option>
-                              <option value="noir">Noir</option>
-                              <option value="neonNights">Neon Nights</option>
-                              <option value="vintageTheater">Vintage Theater</option>
-                              <option value="modernMinimal">Modern Minimal</option>
-                              <option value="filmProjector">Film Projector</option>
+                            <select id="cinemaGlobalFont">
+                              <option value="system">System (Default)</option>
+                              <option value="cinematic">Cinematic (Bebas Neue)</option>
+                              <option value="classic">Classic (Playfair)</option>
+                              <option value="modern">Modern (Montserrat)</option>
+                              <option value="elegant">Elegant (Cormorant)</option>
+                              <option value="marquee">Marquee (Broadway)</option>
+                              <option value="retro">Retro (Press Start)</option>
+                              <option value="neon">Neon (Tilt Neon)</option>
+                              <option value="scifi">Sci-Fi (Space Grotesk)</option>
+                              <option value="poster">Poster (Oswald)</option>
+                              <option value="epic">Epic (Cinzel)</option>
+                              <option value="bold">Bold (Lilita One)</option>
                             </select>
                             <span class="select-caret" aria-hidden="true">▾</span>
                           </div>
                         </div>
+                        <div class="form-row">
+                          <label for="cinemaGlobalTextColorMode">Text Color Mode</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaGlobalTextColorMode">
+                              <option value="custom">Custom Color</option>
+                              <option value="tonSurTon">Ton-sur-ton (Auto)</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div id="cinema-global-text-color-picker-container" class="cinema-conditional-row"></div>
+                        <div class="form-row cinema-conditional-row" id="cinemaGlobalTstIntensityRow" style="display: none;">
+                          <label for="cinemaGlobalTstIntensity">Color Intensity</label>
+                          <div class="modern-slider">
+                            <input type="range" id="cinemaGlobalTstIntensity" min="10" max="100" step="5" value="45" />
+                            <div class="slider-bar"><div class="fill"></div></div>
+                          </div>
+                          <div class="slider-percentage" data-target="cinema.globalEffects.tonSurTonIntensity">45%</div>
+                        </div>
+                        <div class="form-row">
+                          <label for="cinemaGlobalTextEffect">Text Effect</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaGlobalTextEffect">
+                              <option value="none">None</option>
+                              <option value="subtle">Subtle Shadow</option>
+                              <option value="dramatic">Dramatic Shadow</option>
+                              <option value="neon">Neon Glow</option>
+                              <option value="glow">Soft Glow</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        
+                        <!-- Visual Effects Section Header -->
+                        <div style="grid-column: 1 / -1; margin-top: 12px; margin-bottom: 4px; color: var(--color-text-secondary); font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Visual Effects</div>
+                        
                         <div class="form-row">
                           <label for="cinemaColorFilter">Color Filter</label>
                           <div class="select-wrap has-caret">

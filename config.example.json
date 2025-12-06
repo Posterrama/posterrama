@@ -171,9 +171,14 @@
             "colorFilter": "none",
             "tintColor": "#ff6b00",
             "contrast": 100,
-            "brightness": 100
+            "brightness": 100,
+            "fontFamily": "cinematic",
+            "textColorMode": "custom",
+            "textColor": "#ffffff",
+            "tonSurTonIntensity": 45,
+            "textEffect": "subtle"
         },
-        "quickTheme": ""
+        "selectedPreset": ""
     },
     "transitionEffect": "kenburns",
     "effectPauseTime": 3,

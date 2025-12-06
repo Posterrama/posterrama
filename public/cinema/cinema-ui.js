@@ -1060,9 +1060,25 @@
         $('#cinemaBrightness') && ($('#cinemaBrightness').value = globalEffects.brightness || 100);
         $('#cinemaHideAllUI') && ($('#cinemaHideAllUI').checked = !!globalEffects.hideAllUI);
 
-        // Quick Theme - restore selection
-        if ($('#cinemaQuickTheme') && c.quickTheme) {
-            $('#cinemaQuickTheme').value = c.quickTheme;
+        // Global Typography controls
+        $('#cinemaGlobalFont') &&
+            ($('#cinemaGlobalFont').value = globalEffects.fontFamily || 'cinematic');
+        $('#cinemaGlobalTextColorMode') &&
+            ($('#cinemaGlobalTextColorMode').value = globalEffects.textColorMode || 'custom');
+        $('#cinemaGlobalTextColor') &&
+            ($('#cinemaGlobalTextColor').value = globalEffects.textColor || '#ffffff');
+        $('#cinemaGlobalTstIntensity') &&
+            ($('#cinemaGlobalTstIntensity').value = globalEffects.tonSurTonIntensity || 45);
+        $('#cinemaGlobalTextEffect') &&
+            ($('#cinemaGlobalTextEffect').value = globalEffects.textEffect || 'subtle');
+
+        // Update visibility based on text color mode
+        const isTonSurTon = (globalEffects.textColorMode || 'custom') === 'tonSurTon';
+        updateGlobalColorModeVisibility(isTonSurTon);
+
+        // Selected Preset - restore selection
+        if ($('#cinemaPresetSelect') && c.selectedPreset) {
+            $('#cinemaPresetSelect').value = c.selectedPreset;
         }
 
         // Background controls
@@ -1295,7 +1311,7 @@
                     console.warn(
                         'createColorPicker not available after retry, using fallback color inputs'
                     );
-                    initFallbackColorPickers(bg, poster);
+                    initFallbackColorPickers(bg, poster, globalEffects);
                 }
             }, 500);
             return;
@@ -1380,10 +1396,43 @@
             frameColorContainer.appendChild(hiddenInput);
             frameColorContainer.appendChild(picker);
         }
+
+        // Global Text Color picker
+        const globalTextColorContainer = document.getElementById(
+            'cinema-global-text-color-picker-container'
+        );
+        if (globalTextColorContainer) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'cinemaGlobalTextColor';
+            hiddenInput.value = (globalEffects && globalEffects.textColor) || '#ffffff';
+
+            const picker = window.createColorPicker({
+                label: 'Text Color',
+                color: (globalEffects && globalEffects.textColor) || '#ffffff',
+                defaultColor: '#ffffff',
+                presets: CINEMA_COLOR_PRESETS,
+                onColorChange: color => {
+                    hiddenInput.value = color;
+                    // Sync to header and footer color inputs
+                    const headerColorInput = $('#cin-h-color');
+                    const footerColorInput = $('#cin-f-color');
+                    if (headerColorInput) headerColorInput.value = color;
+                    if (footerColorInput) footerColorInput.value = color;
+                },
+                messageType: 'CINEMA_GLOBAL_TEXT_COLOR_UPDATE',
+                refreshIframe: false,
+                iframeId: 'display-preview-frame',
+            });
+
+            globalTextColorContainer.innerHTML = '';
+            globalTextColorContainer.appendChild(hiddenInput);
+            globalTextColorContainer.appendChild(picker);
+        }
     }
 
     // Fallback color pickers when createColorPicker is not available
-    function initFallbackColorPickers(bg, poster) {
+    function initFallbackColorPickers(bg, poster, globalEffects) {
         const createSimpleColorPicker = (containerId, inputId, label, defaultColor) => {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -1420,6 +1469,12 @@
             'Frame Color',
             poster.frameColor || '#333333'
         );
+        createSimpleColorPicker(
+            'cinema-global-text-color-picker-container',
+            'cinemaGlobalTextColor',
+            'Text Color',
+            (globalEffects && globalEffects.textColor) || '#ffffff'
+        );
     }
 
     function wireModernSliders() {
@@ -1429,6 +1484,7 @@
             { id: 'cin-f-size', suffix: '%', min: 50, max: 200 },
             { id: 'cin-h-tst-intensity', suffix: '%', min: 10, max: 100 },
             { id: 'cin-f-tst-intensity', suffix: '%', min: 10, max: 100 },
+            { id: 'cinemaGlobalTstIntensity', suffix: '%', min: 10, max: 100 },
             { id: 'cinemaMetadataOpacity', suffix: '%', min: 0, max: 100 },
             { id: 'cinemaBackgroundBlur', suffix: 'px', min: 5, max: 50 },
             { id: 'cinemaPosterTransition', suffix: 's', min: 0.5, max: 5 },
@@ -1559,120 +1615,455 @@
             syncFrameColorPickerVisibility();
         }
 
-        // Quick Theme: apply preset combinations
-        wireQuickThemes();
+        // Wire presets and global typography master controls
+        wirePresets();
+        wireGlobalTypographyControls();
     }
 
-    // === Quick Theme Presets ===
-    const QUICK_THEMES = {
+    // === Cinema Presets (12 complete looks) ===
+    const CINEMA_PRESETS = {
         classicCinema: {
             label: 'Classic Cinema',
-            poster: { style: 'shadowBox', overlay: 'none', frameColor: '#222222' },
+            poster: {
+                style: 'shadowBox',
+                overlay: 'none',
+                frameColor: '#222222',
+                frameColorMode: 'custom',
+            },
             background: { mode: 'gradient', vignette: 'subtle' },
             globalEffects: { colorFilter: 'none', contrast: 100, brightness: 100 },
+            typography: {
+                fontFamily: 'cinematic',
+                textColorMode: 'custom',
+                textColor: '#ffffff',
+                textEffect: 'subtle',
+            },
         },
         noir: {
             label: 'Noir',
-            poster: { style: 'framed', overlay: 'grain', frameColor: '#444444' },
+            poster: {
+                style: 'framed',
+                overlay: 'grain',
+                frameColor: '#444444',
+                frameColorMode: 'custom',
+            },
             background: { mode: 'solid', solidColor: '#0a0a0a', vignette: 'dramatic' },
             globalEffects: { colorFilter: 'sepia', contrast: 120, brightness: 90 },
+            typography: {
+                fontFamily: 'classic',
+                textColorMode: 'custom',
+                textColor: '#d4d4d4',
+                textEffect: 'dramatic',
+            },
         },
         neonNights: {
             label: 'Neon Nights',
-            poster: { style: 'neon', overlay: 'none', frameColor: '#ff00ff' },
+            poster: {
+                style: 'neon',
+                overlay: 'none',
+                frameColor: '#ff00ff',
+                frameColorMode: 'custom',
+            },
             background: { mode: 'starfield', vignette: 'none' },
             globalEffects: { colorFilter: 'cool', contrast: 110, brightness: 100 },
+            typography: {
+                fontFamily: 'neon',
+                textColorMode: 'custom',
+                textColor: '#00ffff',
+                textEffect: 'neon',
+            },
         },
         vintageTheater: {
             label: 'Vintage Theater',
-            poster: { style: 'ornate', overlay: 'none', frameColor: '#8b4513' },
+            poster: {
+                style: 'ornate',
+                overlay: 'none',
+                frameColor: '#8b4513',
+                frameColorMode: 'custom',
+            },
             background: { mode: 'curtain', vignette: 'subtle' },
             globalEffects: { colorFilter: 'warm', contrast: 105, brightness: 95 },
+            typography: {
+                fontFamily: 'classic',
+                textColorMode: 'custom',
+                textColor: '#f5deb3',
+                textEffect: 'subtle',
+            },
         },
         modernMinimal: {
             label: 'Modern Minimal',
-            poster: { style: 'fullBleed', overlay: 'none' },
+            poster: { style: 'fullBleed', overlay: 'none', frameColorMode: 'custom' },
             background: { mode: 'solid', solidColor: '#000000', vignette: 'none' },
             globalEffects: { colorFilter: 'none', contrast: 100, brightness: 100 },
+            typography: {
+                fontFamily: 'system',
+                textColorMode: 'custom',
+                textColor: '#ffffff',
+                textEffect: 'none',
+            },
         },
         filmProjector: {
             label: 'Film Projector',
-            poster: { style: 'floating', overlay: 'oldMovie' },
+            poster: { style: 'floating', overlay: 'oldMovie', frameColorMode: 'custom' },
             background: { mode: 'blurred', vignette: 'dramatic' },
             globalEffects: { colorFilter: 'sepia', contrast: 110, brightness: 95 },
+            typography: {
+                fontFamily: 'marquee',
+                textColorMode: 'custom',
+                textColor: '#ffe4b5',
+                textEffect: 'subtle',
+            },
+        },
+        blockbuster: {
+            label: 'Blockbuster',
+            poster: {
+                style: 'shadowBox',
+                overlay: 'none',
+                frameColor: '#1a1a2e',
+                frameColorMode: 'custom',
+            },
+            background: { mode: 'spotlight', vignette: 'dramatic' },
+            globalEffects: { colorFilter: 'none', contrast: 115, brightness: 105 },
+            typography: {
+                fontFamily: 'bold',
+                textColorMode: 'custom',
+                textColor: '#ffd700',
+                textEffect: 'dramatic',
+            },
+        },
+        artDeco: {
+            label: 'Art Deco',
+            poster: {
+                style: 'doubleBorder',
+                overlay: 'none',
+                frameColor: '#c9a227',
+                frameColorMode: 'custom',
+            },
+            background: { mode: 'solid', solidColor: '#1a1a1a', vignette: 'subtle' },
+            globalEffects: { colorFilter: 'warm', contrast: 105, brightness: 100 },
+            typography: {
+                fontFamily: 'elegant',
+                textColorMode: 'custom',
+                textColor: '#c9a227',
+                textEffect: 'glow',
+            },
+        },
+        driveIn: {
+            label: 'Drive-In',
+            poster: {
+                style: 'polaroid',
+                overlay: 'grain',
+                frameColor: '#ffffff',
+                frameColorMode: 'custom',
+            },
+            background: { mode: 'starfield', vignette: 'subtle' },
+            globalEffects: { colorFilter: 'none', contrast: 100, brightness: 95 },
+            typography: {
+                fontFamily: 'retro',
+                textColorMode: 'custom',
+                textColor: '#ff6b6b',
+                textEffect: 'neon',
+            },
+        },
+        imaxPremium: {
+            label: 'IMAX Premium',
+            poster: { style: 'floating', overlay: 'none', frameColorMode: 'custom' },
+            background: { mode: 'ambient', vignette: 'none' },
+            globalEffects: { colorFilter: 'none', contrast: 110, brightness: 100 },
+            typography: {
+                fontFamily: 'epic',
+                textColorMode: 'custom',
+                textColor: '#ffffff',
+                textEffect: 'subtle',
+            },
+        },
+        indieFilm: {
+            label: 'Indie Film',
+            poster: {
+                style: 'framed',
+                overlay: 'paper',
+                frameColor: '#2d2d2d',
+                frameColorMode: 'custom',
+            },
+            background: { mode: 'blurred', vignette: 'subtle' },
+            globalEffects: { colorFilter: 'none', contrast: 95, brightness: 95 },
+            typography: {
+                fontFamily: 'modern',
+                textColorMode: 'tonSurTon',
+                tonSurTonIntensity: 50,
+                textEffect: 'none',
+            },
+        },
+        homeTheater: {
+            label: 'Home Theater',
+            poster: { style: 'floating', overlay: 'none', frameColorMode: 'tonSurTonDark' },
+            background: { mode: 'ambient', vignette: 'subtle' },
+            globalEffects: { colorFilter: 'none', contrast: 100, brightness: 100 },
+            typography: {
+                fontFamily: 'cinematic',
+                textColorMode: 'tonSurTon',
+                tonSurTonIntensity: 45,
+                textEffect: 'subtle',
+            },
         },
     };
 
-    function wireQuickThemes() {
-        const themeSelect = $('#cinemaQuickTheme');
-        if (!themeSelect) return;
+    // === Apply Cinema Preset ===
+    function applyPreset(presetKey) {
+        if (!presetKey || !CINEMA_PRESETS[presetKey]) return;
 
-        themeSelect.addEventListener('change', () => {
-            const themeKey = themeSelect.value;
-            if (!themeKey || !QUICK_THEMES[themeKey]) return;
+        const preset = CINEMA_PRESETS[presetKey];
 
-            const theme = QUICK_THEMES[themeKey];
-
-            // Apply poster settings
-            if (theme.poster) {
-                const posterStyleSelect = $('#cinemaPosterStyle');
-                const posterOverlaySelect = $('#cinemaPosterOverlay');
-                if (posterStyleSelect && theme.poster.style) {
-                    posterStyleSelect.value = theme.poster.style;
-                    posterStyleSelect.dispatchEvent(new Event('change'));
-                }
-                if (posterOverlaySelect && theme.poster.overlay) {
-                    posterOverlaySelect.value = theme.poster.overlay;
-                }
-                if (theme.poster.frameColor) {
-                    const frameColorInput = $('#cinemaFrameColor');
-                    const frameColorModeSelect = $('#cinemaFrameColorMode');
-                    if (frameColorInput) frameColorInput.value = theme.poster.frameColor;
-                    // Reset to custom mode when applying theme with custom color
-                    if (frameColorModeSelect) {
-                        frameColorModeSelect.value = 'custom';
-                        frameColorModeSelect.dispatchEvent(new Event('change'));
-                    }
+        // Apply poster settings
+        if (preset.poster) {
+            const posterStyleSelect = $('#cinemaPosterStyle');
+            const posterOverlaySelect = $('#cinemaPosterOverlay');
+            if (posterStyleSelect && preset.poster.style) {
+                posterStyleSelect.value = preset.poster.style;
+                posterStyleSelect.dispatchEvent(new Event('change'));
+            }
+            if (posterOverlaySelect && preset.poster.overlay) {
+                posterOverlaySelect.value = preset.poster.overlay;
+            }
+            if (preset.poster.frameColor) {
+                const frameColorInput = $('#cinemaFrameColor');
+                if (frameColorInput) frameColorInput.value = preset.poster.frameColor;
+            }
+            if (preset.poster.frameColorMode) {
+                const frameColorModeSelect = $('#cinemaFrameColorMode');
+                if (frameColorModeSelect) {
+                    frameColorModeSelect.value = preset.poster.frameColorMode;
+                    frameColorModeSelect.dispatchEvent(new Event('change'));
                 }
             }
+        }
 
-            // Apply background settings
-            if (theme.background) {
-                const bgModeSelect = $('#cinemaBackgroundMode');
-                const vignetteSelect = $('#cinemaVignette');
-                const bgColorInput = $('#cinemaBackgroundColor');
-                if (bgModeSelect && theme.background.mode) {
-                    bgModeSelect.value = theme.background.mode;
-                    bgModeSelect.dispatchEvent(new Event('change'));
-                }
-                if (vignetteSelect && theme.background.vignette) {
-                    vignetteSelect.value = theme.background.vignette;
-                }
-                if (bgColorInput && theme.background.solidColor) {
-                    bgColorInput.value = theme.background.solidColor;
-                }
+        // Apply background settings
+        if (preset.background) {
+            const bgModeSelect = $('#cinemaBackgroundMode');
+            const vignetteSelect = $('#cinemaVignette');
+            const bgColorInput = $('#cinemaBackgroundColor');
+            if (bgModeSelect && preset.background.mode) {
+                bgModeSelect.value = preset.background.mode;
+                bgModeSelect.dispatchEvent(new Event('change'));
+            }
+            if (vignetteSelect && preset.background.vignette) {
+                vignetteSelect.value = preset.background.vignette;
+            }
+            if (bgColorInput && preset.background.solidColor) {
+                bgColorInput.value = preset.background.solidColor;
+            }
+        }
+
+        // Apply global effects
+        if (preset.globalEffects) {
+            const colorFilterSelect = $('#cinemaColorFilter');
+            const contrastSlider = $('#cinemaContrast');
+            const brightnessSlider = $('#cinemaBrightness');
+            if (colorFilterSelect && preset.globalEffects.colorFilter) {
+                colorFilterSelect.value = preset.globalEffects.colorFilter;
+                colorFilterSelect.dispatchEvent(new Event('change'));
+            }
+            if (contrastSlider && preset.globalEffects.contrast !== undefined) {
+                contrastSlider.value = preset.globalEffects.contrast;
+                contrastSlider.dispatchEvent(new Event('input'));
+            }
+            if (brightnessSlider && preset.globalEffects.brightness !== undefined) {
+                brightnessSlider.value = preset.globalEffects.brightness;
+                brightnessSlider.dispatchEvent(new Event('input'));
+            }
+        }
+
+        // Apply typography (synced to header + footer)
+        if (preset.typography) {
+            applyGlobalTypography(preset.typography);
+        }
+    }
+
+    // === Apply Global Typography to Header + Footer ===
+    function applyGlobalTypography(typo) {
+        // Font Family
+        if (typo.fontFamily) {
+            const globalFontSelect = $('#cinemaGlobalFont');
+            const headerFontSelect = $('#cin-h-font');
+            const footerFontSelect = $('#cin-f-font');
+            if (globalFontSelect) globalFontSelect.value = typo.fontFamily;
+            if (headerFontSelect) headerFontSelect.value = typo.fontFamily;
+            if (footerFontSelect) footerFontSelect.value = typo.fontFamily;
+        }
+
+        // Text Color Mode (custom vs ton-sur-ton)
+        if (typo.textColorMode) {
+            const globalColorModeSelect = $('#cinemaGlobalTextColorMode');
+            const isTonSurTon = typo.textColorMode === 'tonSurTon';
+            if (globalColorModeSelect) globalColorModeSelect.value = typo.textColorMode;
+
+            // Header ton-sur-ton
+            const headerTst = $('#cin-h-tst');
+            if (headerTst) {
+                headerTst.checked = isTonSurTon;
+                headerTst.dispatchEvent(new Event('change'));
             }
 
-            // Apply global effects
-            if (theme.globalEffects) {
-                const colorFilterSelect = $('#cinemaColorFilter');
-                const contrastSlider = $('#cinemaContrast');
-                const brightnessSlider = $('#cinemaBrightness');
-                if (colorFilterSelect && theme.globalEffects.colorFilter) {
-                    colorFilterSelect.value = theme.globalEffects.colorFilter;
-                    colorFilterSelect.dispatchEvent(new Event('change'));
-                }
-                if (contrastSlider && theme.globalEffects.contrast) {
-                    contrastSlider.value = theme.globalEffects.contrast;
-                    contrastSlider.dispatchEvent(new Event('input'));
-                }
-                if (brightnessSlider && theme.globalEffects.brightness) {
-                    brightnessSlider.value = theme.globalEffects.brightness;
-                    brightnessSlider.dispatchEvent(new Event('input'));
-                }
+            // Footer ton-sur-ton
+            const footerTst = $('#cin-f-tst');
+            if (footerTst) {
+                footerTst.checked = isTonSurTon;
+                footerTst.dispatchEvent(new Event('change'));
             }
+        }
 
-            // Keep selected theme visible (don't reset to placeholder)
+        // Text Color (when custom)
+        if (typo.textColor && typo.textColorMode === 'custom') {
+            const globalColorInput = $('#cinemaGlobalTextColor');
+            const headerColorInput = $('#cin-h-color');
+            const footerColorInput = $('#cin-f-color');
+            if (globalColorInput) globalColorInput.value = typo.textColor;
+            if (headerColorInput) headerColorInput.value = typo.textColor;
+            if (footerColorInput) footerColorInput.value = typo.textColor;
+        }
+
+        // Ton-sur-ton Intensity
+        if (typo.tonSurTonIntensity !== undefined) {
+            const globalIntensitySlider = $('#cinemaGlobalTstIntensity');
+            const headerIntensitySlider = $('#cin-h-tst-intensity');
+            const footerIntensitySlider = $('#cin-f-tst-intensity');
+            if (globalIntensitySlider) {
+                globalIntensitySlider.value = typo.tonSurTonIntensity;
+                globalIntensitySlider.dispatchEvent(new Event('input'));
+            }
+            if (headerIntensitySlider) {
+                headerIntensitySlider.value = typo.tonSurTonIntensity;
+                headerIntensitySlider.dispatchEvent(new Event('input'));
+            }
+            if (footerIntensitySlider) {
+                footerIntensitySlider.value = typo.tonSurTonIntensity;
+                footerIntensitySlider.dispatchEvent(new Event('input'));
+            }
+        }
+
+        // Text Effect (shadow)
+        if (typo.textEffect) {
+            const globalEffectSelect = $('#cinemaGlobalTextEffect');
+            const headerShadowSelect = $('#cin-h-shadow');
+            const footerShadowSelect = $('#cin-f-shadow');
+            if (globalEffectSelect) globalEffectSelect.value = typo.textEffect;
+            if (headerShadowSelect) headerShadowSelect.value = typo.textEffect;
+            // Footer has fewer options, map to closest match
+            if (footerShadowSelect) {
+                const footerValue = ['none', 'subtle', 'dramatic'].includes(typo.textEffect)
+                    ? typo.textEffect
+                    : 'subtle';
+                footerShadowSelect.value = footerValue;
+            }
+        }
+    }
+
+    // === Wire Global Typography Controls ===
+    function wireGlobalTypographyControls() {
+        // Global Font Family → sync to header + footer
+        const globalFontSelect = $('#cinemaGlobalFont');
+        if (globalFontSelect) {
+            globalFontSelect.addEventListener('change', () => {
+                const value = globalFontSelect.value;
+                const headerFontSelect = $('#cin-h-font');
+                const footerFontSelect = $('#cin-f-font');
+                if (headerFontSelect) headerFontSelect.value = value;
+                if (footerFontSelect) footerFontSelect.value = value;
+            });
+        }
+
+        // Global Text Color Mode → sync to header + footer ton-sur-ton
+        const globalColorModeSelect = $('#cinemaGlobalTextColorMode');
+        if (globalColorModeSelect) {
+            globalColorModeSelect.addEventListener('change', () => {
+                const isTonSurTon = globalColorModeSelect.value === 'tonSurTon';
+                const headerTst = $('#cin-h-tst');
+                const footerTst = $('#cin-f-tst');
+                if (headerTst) {
+                    headerTst.checked = isTonSurTon;
+                    headerTst.dispatchEvent(new Event('change'));
+                }
+                if (footerTst) {
+                    footerTst.checked = isTonSurTon;
+                    footerTst.dispatchEvent(new Event('change'));
+                }
+                // Show/hide color picker vs intensity slider
+                updateGlobalColorModeVisibility(isTonSurTon);
+            });
+        }
+
+        // Global Text Color → sync to header + footer color
+        const globalColorInput = $('#cinemaGlobalTextColor');
+        if (globalColorInput) {
+            globalColorInput.addEventListener('input', () => {
+                const value = globalColorInput.value;
+                const headerColorInput = $('#cin-h-color');
+                const footerColorInput = $('#cin-f-color');
+                if (headerColorInput) headerColorInput.value = value;
+                if (footerColorInput) footerColorInput.value = value;
+            });
+        }
+
+        // Global Ton-sur-ton Intensity → sync to header + footer intensity
+        const globalIntensitySlider = $('#cinemaGlobalTstIntensity');
+        if (globalIntensitySlider) {
+            globalIntensitySlider.addEventListener('input', () => {
+                const value = globalIntensitySlider.value;
+                const headerIntensitySlider = $('#cin-h-tst-intensity');
+                const footerIntensitySlider = $('#cin-f-tst-intensity');
+                if (headerIntensitySlider) {
+                    headerIntensitySlider.value = value;
+                    headerIntensitySlider.dispatchEvent(new Event('input'));
+                }
+                if (footerIntensitySlider) {
+                    footerIntensitySlider.value = value;
+                    footerIntensitySlider.dispatchEvent(new Event('input'));
+                }
+                // Update percentage display
+                const pctEl = document.querySelector(
+                    '[data-target="cinema.globalEffects.tonSurTonIntensity"]'
+                );
+                if (pctEl) pctEl.textContent = `${value}%`;
+            });
+        }
+
+        // Global Text Effect → sync to header + footer shadow
+        const globalEffectSelect = $('#cinemaGlobalTextEffect');
+        if (globalEffectSelect) {
+            globalEffectSelect.addEventListener('change', () => {
+                const value = globalEffectSelect.value;
+                const headerShadowSelect = $('#cin-h-shadow');
+                const footerShadowSelect = $('#cin-f-shadow');
+                if (headerShadowSelect) headerShadowSelect.value = value;
+                // Footer has fewer options
+                if (footerShadowSelect) {
+                    const footerValue = ['none', 'subtle', 'dramatic'].includes(value)
+                        ? value
+                        : 'subtle';
+                    footerShadowSelect.value = footerValue;
+                }
+            });
+        }
+    }
+
+    function updateGlobalColorModeVisibility(isTonSurTon) {
+        const colorContainer = document.getElementById('cinema-global-text-color-picker-container');
+        const intensityRow = document.getElementById('cinemaGlobalTstIntensityRow');
+        if (colorContainer) colorContainer.style.display = isTonSurTon ? 'none' : '';
+        if (intensityRow) intensityRow.style.display = isTonSurTon ? '' : 'none';
+    }
+
+    // Wire presets dropdown in Presets card
+    function wirePresets() {
+        const presetSelect = $('#cinemaPresetSelect');
+        if (!presetSelect) return;
+
+        presetSelect.addEventListener('change', () => {
+            const presetKey = presetSelect.value;
+            if (presetKey) {
+                applyPreset(presetKey);
+            }
         });
     }
 
@@ -1740,8 +2131,14 @@
                 tintColor: $('#cinemaTintColor')?.value || '#ff6b00',
                 contrast: parseInt($('#cinemaContrast')?.value || '100', 10),
                 brightness: parseInt($('#cinemaBrightness')?.value || '100', 10),
+                // Global typography master controls
+                fontFamily: $('#cinemaGlobalFont')?.value || 'cinematic',
+                textColorMode: $('#cinemaGlobalTextColorMode')?.value || 'custom',
+                textColor: $('#cinemaGlobalTextColor')?.value || '#ffffff',
+                tonSurTonIntensity: parseInt($('#cinemaGlobalTstIntensity')?.value || '45', 10),
+                textEffect: $('#cinemaGlobalTextEffect')?.value || 'subtle',
             },
-            quickTheme: $('#cinemaQuickTheme')?.value || '',
+            selectedPreset: $('#cinemaPresetSelect')?.value || '',
         };
     }
 
@@ -2256,8 +2653,15 @@
                                 if (tintInput) tintInput.value = '#ff6b35';
                             }
 
-                            // Quick Theme - none selected
-                            setVal('cinemaQuickTheme', '');
+                            // Global Typography - reset to defaults
+                            setVal('cinemaGlobalFont', 'cinematic');
+                            setVal('cinemaGlobalTextColorMode', 'custom');
+                            setVal('cinemaGlobalTextColor', '#ffffff');
+                            setVal('cinemaGlobalTstIntensity', 45);
+                            setVal('cinemaGlobalTextEffect', 'subtle');
+
+                            // Preset - none selected
+                            setVal('cinemaPresetSelect', '');
 
                             // Ambilight - subtle
                             setVal('cin-a-enabled', true);

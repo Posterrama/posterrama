@@ -429,7 +429,7 @@
             "properties": {
                 "globalEffects": {
                     "type": "object",
-                    "description": "Global visual effects applied to the entire cinema display",
+                    "description": "Global visual effects and typography master controls (synced to header/footer)",
                     "properties": {
                         "colorFilter": {
                             "type": "string",
@@ -456,6 +456,50 @@
                             "maximum": 150,
                             "default": 100,
                             "description": "Global brightness adjustment (50-150%)"
+                        },
+                        "fontFamily": {
+                            "type": "string",
+                            "enum": [
+                                "system",
+                                "cinematic",
+                                "classic",
+                                "modern",
+                                "elegant",
+                                "marquee",
+                                "retro",
+                                "neon",
+                                "scifi",
+                                "poster",
+                                "epic",
+                                "bold"
+                            ],
+                            "default": "cinematic",
+                            "description": "Global font family (syncs to header and footer)"
+                        },
+                        "textColorMode": {
+                            "type": "string",
+                            "enum": ["custom", "tonSurTon"],
+                            "default": "custom",
+                            "description": "Text color mode - custom color or auto ton-sur-ton"
+                        },
+                        "textColor": {
+                            "type": "string",
+                            "pattern": "^#[0-9A-Fa-f]{6}$",
+                            "default": "#ffffff",
+                            "description": "Global text color when textColorMode is 'custom'"
+                        },
+                        "tonSurTonIntensity": {
+                            "type": "integer",
+                            "minimum": 10,
+                            "maximum": 100,
+                            "default": 45,
+                            "description": "Intensity of ton-sur-ton color calculation (10-100)"
+                        },
+                        "textEffect": {
+                            "type": "string",
+                            "enum": ["none", "subtle", "dramatic", "neon", "glow"],
+                            "default": "subtle",
+                            "description": "Global text shadow/glow effect"
                         }
                     },
                     "additionalProperties": false,
@@ -463,7 +507,12 @@
                         "colorFilter": "none",
                         "tintColor": "#ff6b00",
                         "contrast": 100,
-                        "brightness": 100
+                        "brightness": 100,
+                        "fontFamily": "cinematic",
+                        "textColorMode": "custom",
+                        "textColor": "#ffffff",
+                        "tonSurTonIntensity": 45,
+                        "textEffect": "subtle"
                     }
                 },
                 "header": {
@@ -1210,10 +1259,10 @@
                     "default": "auto",
                     "description": "Cinema mode orientation (auto = portrait, or force specific orientation)"
                 },
-                "quickTheme": {
+                "selectedPreset": {
                     "type": "string",
                     "default": "",
-                    "description": "Selected quick theme preset (classicCinema, noir, neonNights, vintageTheater, modernMinimal, filmProjector)"
+                    "description": "Last applied cinema preset (classicCinema, noir, neonNights, vintageTheater, modernMinimal, filmProjector, blockbuster, artDeco, driveIn, imaxPremium, indieFilm, homeTheater)"
                 }
             },
             "additionalProperties": false,
@@ -1284,9 +1333,14 @@
                     "colorFilter": "none",
                     "tintColor": "#ff6b00",
                     "contrast": 100,
-                    "brightness": 100
+                    "brightness": 100,
+                    "fontFamily": "cinematic",
+                    "textColorMode": "custom",
+                    "textColor": "#ffffff",
+                    "tonSurTonIntensity": 45,
+                    "textEffect": "subtle"
                 },
-                "quickTheme": ""
+                "selectedPreset": ""
             }
         },
         "transitionEffect": {
