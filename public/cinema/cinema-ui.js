@@ -1444,7 +1444,13 @@
 
             const container = slider.closest('.modern-slider');
             const fill = container?.querySelector('.slider-bar .fill');
-            const percentageEl = container?.parentElement?.querySelector('.slider-percentage');
+            // Look for percentage element: first in parent, then as sibling of parent container
+            let percentageEl = container?.parentElement?.querySelector('.slider-percentage');
+            if (!percentageEl) {
+                // Try sibling of .slider-with-reset wrapper
+                const wrapper = slider.closest('.slider-with-reset');
+                percentageEl = wrapper?.parentElement?.querySelector('.slider-percentage');
+            }
             // Also support .modern-slider-wrap with .modern-slider-value
             const wrapContainer = slider.closest('.modern-slider-wrap');
             const valueEl = wrapContainer?.querySelector('.modern-slider-value');
