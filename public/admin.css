@@ -16249,6 +16249,19 @@ select:focus-visible {
         align-items: flex-start !important;
     }
 
+    /* Number input wrappers in Operations - ensure visibility */
+    #section-operations .metric-row .number-input-wrapper,
+    #section-operations .inline-field .number-input-wrapper {
+        width: 100% !important;
+        display: inline-flex !important;
+    }
+
+    #section-operations .metric-row .number-input-wrapper input[type='number'],
+    #section-operations .inline-field .number-input-wrapper input[type='number'] {
+        flex: 1 !important;
+        min-width: 80px !important;
+    }
+
     /* Entry Route specific */
     #section-operations .entry-row {
         flex-direction: column !important;
