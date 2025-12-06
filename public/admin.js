@@ -7797,7 +7797,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     if (el) {
                         const label = document.querySelector(`label[for="${fieldId}"]`);
                         if (label) {
-                            labels.push(label.textContent.trim().replace(/[:\*]/g, '').trim());
+                            labels.push(label.textContent.trim().replace(/[:*]/g, '').trim());
                         } else if (el.placeholder) {
                             labels.push(el.placeholder);
                         }
