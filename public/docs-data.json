@@ -675,23 +675,23 @@
             "setting": "uiScaling_global"
         },
         {
-            "id": "global-sync-enabled",
+            "id": "operations-sync-enabled",
             "title": "Device Sync",
-            "category": "Global",
-            "keywords": ["sync", "synchronized", "devices", "together", "global"],
+            "category": "Operations",
+            "keywords": ["sync", "synchronized", "devices", "together", "operations"],
             "description": "Synchronize content across multiple devices.",
             "help": "When enabled, all devices in the same group show the same content at the same time. Creates a unified experience across multiple screens. This setting applies to all display modes.",
-            "section": "display",
+            "section": "operations",
             "setting": "syncEnabled"
         },
         {
-            "id": "global-sync-delay",
+            "id": "operations-sync-delay",
             "title": "Sync Align Delay",
-            "category": "Global",
-            "keywords": ["sync", "delay", "align", "timing", "global"],
+            "category": "Operations",
+            "keywords": ["sync", "delay", "align", "timing", "operations"],
             "description": "Maximum delay for sync alignment.",
             "help": "Sets the maximum time (in milliseconds) devices will wait to synchronize transitions. Higher values improve sync accuracy but may cause brief pauses. This setting applies to all display modes.",
-            "section": "display",
+            "section": "operations",
             "setting": "syncAlignMaxDelayMs"
         },
         {
