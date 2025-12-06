@@ -15613,38 +15613,30 @@ select:focus-visible {
         display: none;
     }
 
-    /* Form sections - card-like appearance */
+    /* Form sections - compact cards */
     #section-media-sources .form-section {
-        margin: 0 0 16px 0 !important;
+        margin: 6px 0 !important;
         padding: 0 !important;
     }
 
     #section-media-sources .section-title {
-        font-size: 0.9rem;
-        margin: 0 0 12px 0 !important;
-        padding: 10px 12px;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 6px;
-        border-left: 3px solid var(--color-primary);
+        font-size: 0.85rem;
+        margin: 0 0 6px 0 !important;
+        padding-left: 8px;
     }
 
-    #section-media-sources .section-title i {
-        opacity: 0.7;
-    }
-
-    /* Server grid - vertical stacked layout */
+    /* Server grid - keep as regular form groups, don't use grid override */
     #section-media-sources #plex-server-grid,
     #section-media-sources #jf-server-grid,
     #section-media-sources #tmdb-server-grid {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 12px !important;
+        display: block !important;
+        grid-template-columns: unset !important;
     }
 
     #section-media-sources #plex-server-grid .form-group,
     #section-media-sources #jf-server-grid .form-group,
     #section-media-sources #tmdb-server-grid .form-group {
-        margin-bottom: 0;
+        margin-bottom: var(--space-md);
         display: block;
         width: 100%;
         grid-column: unset !important;
@@ -15667,7 +15659,6 @@ select:focus-visible {
         width: 100%;
         display: block;
     }
-
     /* Regular form grids - single column */
     #section-media-sources
         .form-grid:not(#plex-server-grid):not(#jellyfin-server-grid):not(#tmdb-server-grid) {
