@@ -15545,63 +15545,33 @@ select:focus-visible {
        Status pills, buttons, and toggle
        ======================================== */
     #section-media-sources .actions-home {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto auto;
+        display: flex !important;
+        flex-wrap: wrap;
         gap: 8px !important;
-        padding: 10px !important;
+        align-items: center;
     }
 
-    /* Row 1: Status pills span full width */
+    /* Status pills */
     #section-media-sources .actions-home .status-pill {
         font-size: 0.8rem;
         padding: 6px 12px;
-        text-align: center;
-        justify-content: center;
     }
 
-    #section-media-sources .actions-home .status-pill:first-of-type {
-        grid-column: 1;
-        grid-row: 1;
-    }
-
-    #section-media-sources .actions-home .status-pill:nth-of-type(2) {
-        grid-column: 2;
-        grid-row: 1;
-    }
-
-    /* Row 2: Action buttons */
+    /* Action buttons */
     #section-media-sources .actions-home .btn.btn-icon {
-        grid-row: 2;
-        padding: 10px;
-        font-size: 0.9rem;
-    }
-
-    #section-media-sources .actions-home #btn-plex-test,
-    #section-media-sources .actions-home #btn-jf-test,
-    #section-media-sources .actions-home #btn-tmdb-test {
-        grid-column: 1;
-    }
-
-    #section-media-sources .actions-home #btn-plex-libraries,
-    #section-media-sources .actions-home #btn-jf-libraries {
-        grid-column: 2;
-    }
-
-    /* Row 3: Toggle and Save button span full width */
-    #section-media-sources .actions-home .header-toggle {
-        grid-column: 1;
-        grid-row: 3;
-        justify-self: start;
-        align-self: center;
-    }
-
-    #section-media-sources .actions-home .btn-primary {
-        grid-column: 2;
-        grid-row: 3;
+        padding: 8px 10px;
         font-size: 0.85rem;
-        padding: 10px 14px;
-        justify-content: center;
+    }
+
+    /* Toggle */
+    #section-media-sources .actions-home .header-toggle {
+        margin-left: auto;
+    }
+
+    /* Save button - icon only */
+    #section-media-sources .actions-home .btn-primary {
+        font-size: 0.85rem;
+        padding: 8px 12px;
     }
 
     /* Hide save button text on mobile, show icon only */
