@@ -690,7 +690,7 @@
         {
             "id": "operations-sync-enabled",
             "title": "Device Sync",
-            "category": "Operations",
+            "category": "System",
             "keywords": ["sync", "synchronized", "devices", "together", "operations"],
             "description": "Synchronize content across multiple devices.",
             "help": "When enabled, all devices in the same group show the same content at the same time. Creates a unified experience across multiple screens. This setting applies to all display modes.",
@@ -701,7 +701,7 @@
         {
             "id": "operations-sync-delay",
             "title": "Sync Align Delay",
-            "category": "Operations",
+            "category": "System",
             "keywords": ["sync", "delay", "align", "timing", "operations"],
             "description": "Maximum delay for sync alignment.",
             "help": "Sets the maximum time (in milliseconds) devices will wait to synchronize transitions. Higher values improve sync accuracy but may cause brief pauses. This setting applies to all display modes.",
@@ -2202,7 +2202,7 @@
         {
             "id": "environment-variables",
             "title": "Environment Variables",
-            "category": "Environment Variables",
+            "category": "System",
             "keywords": [
                 "env",
                 "environment",
