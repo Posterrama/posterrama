@@ -49,24 +49,26 @@ Use it as:
 
 ## Features
 
-### Screensaver mode
+### Cinema mode
 
-<figure>
-  <img src="./screenshots/screensaver_2.png" alt="Screensaver Mode – Ken Burns and smooth fades" width="740">
-  <figcaption style="text-align:left; color:#6a6a6a;"><em>
-    Screensaver Mode feels like a living poster wall—bold artwork gliding in and out, always fresh and cinematic.
-  </em></figcaption>
-  
-</figure>
+Perfect for vertical screens or digital signage. Show a rotating selection of posters in portrait orientation, with smooth transitions and optional info overlays. Ideal for hallway displays, kiosks, or a true cinema entrance feel.
 
-Turn any screen into a cinematic slideshow. Enjoy smooth, full-screen poster transitions from your own collection. Choose from multiple animation types (fade, slide, zoom, flip, and more) and set the interval for how often posters change. Perfect for ambiance, parties, or just showing off your taste.
+<p>
+  <img src="./screenshots/cinema_1.png" alt="Cinema Mode - Classic" width="155">&nbsp;
+  <img src="./screenshots/cinema_2.png" alt="Cinema Mode - Metadata" width="155">&nbsp;
+  <img src="./screenshots/cinema_3.png" alt="Cinema Mode - QR Code" width="155">&nbsp;
+  <img src="./screenshots/cinema_4.png" alt="Cinema Mode - Specs" width="155">&nbsp;
+  <img src="./screenshots/cinema_5.png" alt="Cinema Mode - Now Playing" width="155">
+</p>
+
+_From left to right: "Feature Presentation" banner with metadata footer showing year, rating score, content rating, and genres plus technical badges (4K, Dolby Atmos, Dolby Vision); "Now Playing" mode displaying the movie tagline; vintage-style header with logo art integration; and QR code overlay for quick mobile access alongside rich technical specifications._
 
 **Key features:**
 
-- Multiple animation types: fade, slide, zoom, flip, rotate, and more
-- Adjustable transition speed and randomization
-- Option to show movie/series info, ratings, and logos
-- Works in both landscape and portrait orientation
+- Optimized for portrait/vertical screens
+- Smooth poster transitions
+- Optional info overlays and ratings
+- Now Playing mode — automatically displays posters from active Plex sessions. Perfect for showing what's currently being watched in real-time, with automatic fallback to rotation when playback stops
 
 ### Wallart mode
 
@@ -87,6 +89,12 @@ Display a beautiful grid of posters, updating dynamically with new content. Choo
 <figure>
   <img src="./screenshots/wallart_hero.png" alt="Wallart Hero + Grid" width="740">
   <figcaption style="text-align:left; color:#6a6a6a;"><em>Hero+Grid layout variant</em></figcaption>
+  
+</figure>
+
+<figure>
+  <img src="./screenshots/movie_director_card.png" alt="Movie Director Card" width="740">
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>Director Cards: cinematic split-screen featuring director portraits with their filmography</em></figcaption>
   
 </figure>
 
@@ -112,12 +120,6 @@ Display a beautiful grid of posters, updating dynamically with new content. Choo
   
 </figure>
 
-<figure>
-  <img src="./screenshots/movie_director_card.png" alt="Movie Director Card" width="740">
-  <figcaption style="text-align:left; color:#6a6a6a;"><em>Director Cards: cinematic split-screen featuring director portraits with their filmography</em></figcaption>
-  
-</figure>
-
 **Key features:**
 
 - Three display styles: covers-only (minimal grid), album-info (with metadata), artist-cards (full-screen artist showcase)
@@ -130,26 +132,24 @@ Display a beautiful grid of posters, updating dynamically with new content. Choo
 - Multiple animation styles including vinyl-spin, slide-fade, crossfade, and flip
 - Respects Plex ratings and music metadata
 
-### Cinema mode
+### Screensaver mode
 
-Perfect for vertical screens or digital signage. Show a rotating selection of posters in portrait orientation, with smooth transitions and optional info overlays. Ideal for hallway displays, kiosks, or a true cinema entrance feel.
+<figure>
+  <img src="./screenshots/screensaver_2.png" alt="Screensaver Mode – Ken Burns and smooth fades" width="740">
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>
+    Screensaver Mode feels like a living poster wall—bold artwork gliding in and out, always fresh and cinematic.
+  </em></figcaption>
+  
+</figure>
 
-<p>
-  <img src="./screenshots/cinema_1.png" alt="Cinema Mode - Classic" width="155">&nbsp;
-  <img src="./screenshots/cinema_2.png" alt="Cinema Mode - Metadata" width="155">&nbsp;
-  <img src="./screenshots/cinema_3.png" alt="Cinema Mode - QR Code" width="155">&nbsp;
-  <img src="./screenshots/cinema_4.png" alt="Cinema Mode - Specs" width="155">&nbsp;
-  <img src="./screenshots/cinema_5.png" alt="Cinema Mode - Now Playing" width="155">
-</p>
-
-_From left to right: "Feature Presentation" banner with metadata footer showing year, rating score, content rating, and genres plus technical badges (4K, Dolby Atmos, Dolby Vision); "Now Playing" mode displaying the movie tagline; vintage-style header with logo art integration; and QR code overlay for quick mobile access alongside rich technical specifications._
+Turn any screen into a cinematic slideshow. Enjoy smooth, full-screen poster transitions from your own collection. Choose from multiple animation types (fade, slide, zoom, flip, and more) and set the interval for how often posters change. Perfect for ambiance, parties, or just showing off your taste.
 
 **Key features:**
 
-- Optimized for portrait/vertical screens
-- Smooth poster transitions
-- Optional info overlays and ratings
-- Now Playing mode — automatically displays posters from active Plex sessions. Perfect for showing what's currently being watched in real-time, with automatic fallback to rotation when playback stops
+- Multiple animation types: fade, slide, zoom, flip, rotate, and more
+- Adjustable transition speed and randomization
+- Option to show movie/series info, ratings, and logos
+- Works in both landscape and portrait orientation
 
 ### Dashboard
 
