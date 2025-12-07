@@ -181,6 +181,7 @@
         selectEl,
         contextLabel = 'Preset text',
         placeholder = 'Type preset text…',
+        systemPresets = [],
     }) {
         try {
             const overlay = document.getElementById('modal-cinema-manage');
@@ -204,9 +205,20 @@
             )
                 return;
 
+            // Helper to get combined presets for dropdown
+            const getAllPresets = () => [
+                ...systemPresets,
+                ...(getItems() || []).filter(p => !systemPresets.includes(p)),
+            ];
+
             let selected = '';
             const renderList = () => {
                 const items = getItems() || [];
+                if (items.length === 0) {
+                    listEl.innerHTML =
+                        '<p style="color:var(--color-secondary);font-size:0.85rem;margin:8px 0;">No custom texts yet. Add one below.</p>';
+                    return;
+                }
                 listEl.replaceChildren(
                     ...items.map(v => {
                         const b = document.createElement('button');
@@ -239,15 +251,18 @@
             const onAdd = () => {
                 const val = (inputEl.value || '').trim();
                 if (!val) return;
+                // Don't allow adding system preset names as custom
+                if (systemPresets.includes(val)) return;
                 const cur = getItems() || [];
                 if (!cur.includes(val)) {
                     const next = [...cur, val];
                     setItems(next);
-                    populateSimpleSelect(selectEl, next, val);
+                    populateSimpleSelect(selectEl, getAllPresets(), val);
                 } else {
-                    populateSimpleSelect(selectEl, cur, val);
+                    populateSimpleSelect(selectEl, getAllPresets(), val);
                 }
                 selected = val;
+                inputEl.value = '';
                 renderList();
                 try {
                     window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
@@ -258,6 +273,8 @@
             const onRename = () => {
                 const val = (inputEl.value || '').trim();
                 if (!val || !selected) return;
+                // Don't allow renaming to system preset names
+                if (systemPresets.includes(val)) return;
                 const cur = getItems() || [];
                 const idx = cur.indexOf(selected);
                 if (idx < 0) return;
@@ -268,7 +285,7 @@
                 const next = [...cur];
                 next[idx] = val;
                 setItems(next);
-                populateSimpleSelect(selectEl, next, val);
+                populateSimpleSelect(selectEl, getAllPresets(), val);
                 selected = val;
                 renderList();
                 try {
@@ -283,7 +300,7 @@
                 if (!cur.includes(selected)) return;
                 const ok = await confirmActionShim({
                     title: 'Delete Text',
-                    message: `Remove “${selected}” from presets?`,
+                    message: `Remove “${selected}” from custom presets?`,
                     okText: 'Delete',
                     okClass: 'btn-danger',
                 });
@@ -291,7 +308,8 @@
                 const next = cur.filter(x => x !== selected);
                 setItems(next);
                 const desired = next.includes(selectEl.value) ? selectEl.value : next[0] || '';
-                populateSimpleSelect(selectEl, next, desired);
+                const allPresets = getAllPresets();
+                populateSimpleSelect(selectEl, allPresets, desired);
                 selected = desired;
                 inputEl.value = desired || '';
                 renderList();
@@ -354,21 +372,45 @@
     // Note: Saving is handled by the main Display Save button in admin.js.
     // This module only collects values and updates UI; no direct POSTs here.
 
-    // Local working state for presets (kept in-memory until main Save)
-    let headerPresets = ['Coming Soon', 'Now Playing', 'Home Cinema', 'Feature Presentation'];
-    let footerPresets = ['Coming Soon', 'Now Playing', 'Home Cinema', 'Feature Presentation'];
+    // System presets - always available, not editable via Manage
+    // Shared between Header and Footer
+    const SYSTEM_TEXT_PRESETS = [
+        'Now Playing',
+        'Coming Soon',
+        'Certified Fresh',
+        'Late Night Feature',
+        'Weekend Matinee',
+        'New Arrival',
+        '4K Ultra HD',
+        'Home Cinema',
+        'Feature Presentation',
+    ];
+
+    // Local working state for user presets (shared between header and footer)
+    let userTextPresets = [];
+
+    // Combined presets (system + user) for dropdowns - same for header and footer
+    function getAllTextPresets() {
+        return [
+            ...SYSTEM_TEXT_PRESETS,
+            ...userTextPresets.filter(p => !SYSTEM_TEXT_PRESETS.includes(p)),
+        ];
+    }
 
     function mountHeader(container, cfg) {
         const c = cfg.cinema || {};
         const h = c.header || { enabled: true, text: 'Now Playing', typography: {} };
         const typo = h.typography || {};
         const wsH = getWorkingState();
-        headerPresets =
+        // Load user presets (custom texts added via Manage, excluding system presets)
+        // User presets are shared between header and footer
+        const savedPresets =
             Array.isArray(wsH.presets?.headerTexts) && wsH.presets.headerTexts.length
-                ? [...wsH.presets.headerTexts]
+                ? wsH.presets.headerTexts
                 : Array.isArray(c.presets?.headerTexts) && c.presets.headerTexts.length
-                  ? [...c.presets.headerTexts]
-                  : ['Coming Soon', 'Now Playing', 'Home Cinema', 'Feature Presentation'];
+                  ? c.presets.headerTexts
+                  : [];
+        userTextPresets = savedPresets.filter(p => !SYSTEM_TEXT_PRESETS.includes(p));
 
         // Place the enable switch in the card title as a pill-style header toggle
         try {
@@ -411,6 +453,214 @@
                 ),
             ]),
         ]);
+
+        // Context Headers section
+        const ctx = h.contextHeaders || {};
+        // Default priority order (can be customized by user)
+        const defaultPriorityOrder = [
+            'nowPlaying',
+            'ultra4k',
+            'certifiedFresh',
+            'comingSoon',
+            'newArrival',
+            'lateNight',
+            'weekend',
+        ];
+        const contextMeta = {
+            default: {
+                label: 'Default (Fallback)',
+                defaultVal: 'Now Playing',
+                noInherit: true,
+                noPriority: true,
+            },
+            nowPlaying: {
+                label: 'Now Playing',
+                defaultVal: 'Now Playing',
+                hint: 'Active playback',
+            },
+            comingSoon: { label: 'Coming Soon', defaultVal: 'Coming Soon', hint: 'Unreleased' },
+            certifiedFresh: {
+                label: 'Certified Fresh',
+                defaultVal: 'Certified Fresh',
+                hint: 'RT ≥ 90%',
+            },
+            lateNight: {
+                label: 'Late Night',
+                defaultVal: 'Late Night Feature',
+                hint: '23:00-06:00',
+            },
+            weekend: { label: 'Weekend', defaultVal: 'Weekend Matinee', hint: 'Sat/Sun' },
+            newArrival: { label: 'New Arrival', defaultVal: 'New Arrival', hint: '< 7 days' },
+            ultra4k: { label: '4K Ultra HD', defaultVal: '4K Ultra HD', hint: '4K content' },
+        };
+        // Load saved priority order or use default
+        let priorityOrder =
+            Array.isArray(ctx.priorityOrder) &&
+            ctx.priorityOrder.length === defaultPriorityOrder.length
+                ? [...ctx.priorityOrder]
+                : [...defaultPriorityOrder];
+
+        // Context Headers enable toggle row
+        const contextHeaderToggle = el('div', { class: 'form-row', id: 'cin-ctx-toggle-row' }, [
+            el('label', { for: 'cin-ctx-enabled' }, 'Context Headers'),
+            el('label', { class: 'checkbox', for: 'cin-ctx-enabled' }, [
+                el('input', {
+                    type: 'checkbox',
+                    id: 'cin-ctx-enabled',
+                    checked: ctx.enabled ? 'checked' : null,
+                }),
+                el('span', { class: 'checkmark' }),
+                el('span', {}, 'Smart context-aware headers'),
+            ]),
+        ]);
+
+        // Build context header rows with priority numbers and drag handles
+        const allPresets = getAllTextPresets();
+
+        const buildContextRow = (key, priorityIndex) => {
+            const meta = contextMeta[key];
+            const selectOptions = [];
+            // Add "Inherit" option for non-default contexts
+            if (!meta.noInherit) {
+                selectOptions.push(el('option', { value: '__inherit__' }, '↩ Inherit'));
+            }
+            // Add all presets as options
+            allPresets.forEach(preset => {
+                selectOptions.push(el('option', { value: preset }, preset));
+            });
+
+            const currentValue = ctx[key] !== undefined ? ctx[key] : meta.defaultVal;
+            const selectId = `cin-ctx-${key}`;
+            const priorityLabel = meta.noPriority ? '' : `#${priorityIndex + 1}`;
+
+            const row = el(
+                'div',
+                {
+                    class: meta.noPriority ? 'ctx-default-row' : 'ctx-sortable',
+                    'data-ctx-key': key,
+                },
+                [
+                    // Drag handle (only for sortable items)
+                    !meta.noPriority
+                        ? el('span', { class: 'ctx-drag-handle', title: 'Drag to reorder' }, '⠿')
+                        : null,
+                    // Priority badge
+                    !meta.noPriority
+                        ? el('span', { class: 'ctx-priority-badge' }, priorityLabel)
+                        : null,
+                    // Label with hint
+                    el(
+                        'div',
+                        { class: 'ctx-label-wrap' },
+                        [
+                            el('label', { for: selectId, class: 'ctx-label' }, meta.label),
+                            meta.hint ? el('span', { class: 'ctx-hint' }, meta.hint) : null,
+                        ].filter(Boolean)
+                    ),
+                    // Dropdown
+                    el('div', { class: 'select-wrap has-caret ctx-select-wrap' }, [
+                        el('select', { id: selectId, class: 'cin-compact' }, selectOptions),
+                        el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
+                    ]),
+                ].filter(Boolean)
+            );
+
+            return row;
+        };
+
+        // Build default row (always first, not draggable)
+        const defaultRow = buildContextRow('default', -1);
+
+        // Build sortable rows based on priority order
+        const sortableContainer = el('div', {
+            id: 'cin-ctx-sortable',
+            class: 'ctx-sortable-container',
+        });
+
+        const rebuildSortableRows = () => {
+            const rows = priorityOrder.map((key, idx) => buildContextRow(key, idx));
+            sortableContainer.replaceChildren(...rows);
+            // Re-init select values
+            priorityOrder.forEach(key => {
+                const meta = contextMeta[key];
+                const sel = document.getElementById(`cin-ctx-${key}`);
+                if (sel) {
+                    const currentValue = ctx[key] !== undefined ? ctx[key] : meta.defaultVal;
+                    if (currentValue === null && !meta.noInherit) {
+                        sel.value = '__inherit__';
+                    } else if (currentValue !== null) {
+                        sel.value = currentValue;
+                    }
+                }
+            });
+            // Wire change events
+            priorityOrder.forEach(key => {
+                const sel = document.getElementById(`cin-ctx-${key}`);
+                sel?.addEventListener('change', () => {
+                    const ws = getWorkingState();
+                    ws.header = ws.header || {};
+                    ws.header.contextHeaders = ws.header.contextHeaders || {};
+                    const val = sel.value;
+                    if (val === '__inherit__') {
+                        ws.header.contextHeaders[key] = null;
+                    } else {
+                        ws.header.contextHeaders[key] = val;
+                    }
+                    saveWorkingState();
+                });
+            });
+        };
+
+        const contextContainer = el(
+            'div',
+            {
+                id: 'cin-ctx-container',
+                class: 'ctx-container',
+                style: ctx.enabled ? '' : 'display:none',
+            },
+            [
+                // Fallback row at top
+                el('div', { class: 'ctx-fallback-section' }, [
+                    el('div', { class: 'ctx-section-label' }, 'Fallback'),
+                    defaultRow,
+                ]),
+                // Priority section below
+                el('div', { class: 'ctx-priority-section' }, [
+                    el('div', { class: 'ctx-priority-header' }, [
+                        el('span', { class: 'ctx-priority-title' }, 'Priority Order'),
+                        el(
+                            'span',
+                            { class: 'ctx-priority-subtitle' },
+                            'Drag to reorder • First match wins'
+                        ),
+                        el(
+                            'button',
+                            {
+                                type: 'button',
+                                class: 'btn btn-small ctx-reset-priority',
+                                title: 'Reset priority order to default',
+                            },
+                            [el('i', { class: 'fas fa-undo' }), ' Reset']
+                        ),
+                    ]),
+                    sortableContainer,
+                ]),
+            ]
+        );
+
+        // Wire reset priority button
+        contextContainer.querySelector('.ctx-reset-priority')?.addEventListener('click', () => {
+            priorityOrder = [...defaultPriorityOrder];
+            rebuildSortableRows();
+            // Save to working state
+            const ws = getWorkingState();
+            ws.header = ws.header || {};
+            ws.header.contextHeaders = ws.header.contextHeaders || {};
+            ws.header.contextHeaders.priorityOrder = [...priorityOrder];
+            saveWorkingState();
+            // Mark as unsaved changes
+            markCinemaSettingsDirty();
+        });
 
         // Typography section header
         const typoHeader = el(
@@ -551,6 +801,8 @@
 
         const grid = el('div', { class: 'form-grid' }, [
             rowText,
+            contextHeaderToggle,
+            contextContainer,
             typoHeader,
             rowFont,
             rowSize,
@@ -570,6 +822,90 @@
         $('#cin-h-decoration').value = typo.decoration || 'none';
         $('#cin-h-tst').checked = typo.tonSurTon || false;
         $('#cin-h-tst-intensity').value = typo.tonSurTonIntensity || 45;
+
+        // Initialize default context header dropdown
+        const defaultSel = document.getElementById('cin-ctx-default');
+        if (defaultSel) {
+            const defaultVal =
+                ctx.default !== undefined ? ctx.default : contextMeta.default.defaultVal;
+            defaultSel.value = defaultVal;
+            defaultSel.addEventListener('change', () => {
+                const ws = getWorkingState();
+                ws.header = ws.header || {};
+                ws.header.contextHeaders = ws.header.contextHeaders || {};
+                ws.header.contextHeaders.default = defaultSel.value;
+                saveWorkingState();
+            });
+        }
+
+        // Build and initialize sortable context rows
+        rebuildSortableRows();
+
+        // Wire drag-and-drop for priority reordering
+        let draggedEl = null;
+        sortableContainer.addEventListener('dragstart', e => {
+            const row = e.target.closest('.ctx-sortable');
+            if (!row) return;
+            draggedEl = row;
+            row.classList.add('ctx-dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        sortableContainer.addEventListener('dragend', e => {
+            if (draggedEl) {
+                draggedEl.classList.remove('ctx-dragging');
+                draggedEl = null;
+            }
+        });
+        sortableContainer.addEventListener('dragover', e => {
+            e.preventDefault();
+            const row = e.target.closest('.ctx-sortable');
+            if (!row || row === draggedEl) return;
+            const rect = row.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (e.clientY < midY) {
+                row.parentNode.insertBefore(draggedEl, row);
+            } else {
+                row.parentNode.insertBefore(draggedEl, row.nextSibling);
+            }
+        });
+        sortableContainer.addEventListener('drop', e => {
+            e.preventDefault();
+            // Update priority order from DOM
+            const rows = sortableContainer.querySelectorAll('.ctx-sortable');
+            priorityOrder = Array.from(rows).map(r => r.getAttribute('data-ctx-key'));
+            // Update priority badges
+            rows.forEach((row, idx) => {
+                const badge = row.querySelector('.ctx-priority-badge');
+                if (badge) badge.textContent = `#${idx + 1}`;
+            });
+            // Save to working state
+            const ws = getWorkingState();
+            ws.header = ws.header || {};
+            ws.header.contextHeaders = ws.header.contextHeaders || {};
+            ws.header.contextHeaders.priorityOrder = [...priorityOrder];
+            saveWorkingState();
+            // Mark as unsaved changes
+            markCinemaSettingsDirty();
+        });
+        // Make rows draggable
+        sortableContainer.querySelectorAll('.ctx-sortable').forEach(row => {
+            row.setAttribute('draggable', 'true');
+        });
+
+        // Wire context headers enable toggle
+        const ctxEnabledCheckbox = document.getElementById('cin-ctx-enabled');
+        const ctxContainer = document.getElementById('cin-ctx-container');
+        ctxEnabledCheckbox?.addEventListener('change', () => {
+            if (ctxContainer) {
+                ctxContainer.style.display = ctxEnabledCheckbox.checked ? '' : 'none';
+            }
+            // Save to working state
+            const ws = getWorkingState();
+            ws.header = ws.header || {};
+            ws.header.contextHeaders = ws.header.contextHeaders || {};
+            ws.header.contextHeaders.enabled = ctxEnabledCheckbox.checked;
+            saveWorkingState();
+        });
 
         // Wire decoration visibility based on animation
         const decorationRow = document.getElementById('cin-h-decoration-row');
@@ -598,13 +934,14 @@
         // Initialize header text preset
         (function () {
             const sel = document.getElementById('cin-h-presets');
+            const presets = getAllTextPresets();
             const desired =
-                wsH.header?.text && headerPresets.includes(wsH.header.text)
+                wsH.header?.text && presets.includes(wsH.header.text)
                     ? wsH.header.text
-                    : headerPresets.includes(h.text)
+                    : presets.includes(h.text)
                       ? h.text
-                      : headerPresets[0];
-            populateSimpleSelect(sel, headerPresets, desired);
+                      : presets[0];
+            populateSimpleSelect(sel, presets, desired);
         })();
 
         // Wire modern slider for font size
@@ -647,20 +984,31 @@
             syncTstVisibility();
         }
 
-        // Wire Manage button for header texts
+        // Wire Manage button for header texts (only manages user presets, not system presets)
+        // User presets are shared between header and footer
         document.getElementById('cin-h-manage')?.addEventListener('click', () =>
             openManageModal({
-                title: 'Manage Header Texts',
-                getItems: () => headerPresets,
+                title: 'Manage Custom Texts',
+                getItems: () => userTextPresets,
                 setItems: next => {
-                    headerPresets = Array.isArray(next) ? [...next] : [];
+                    userTextPresets = Array.isArray(next) ? [...next] : [];
                     const ws = getWorkingState();
-                    ws.presets.headerTexts = [...headerPresets];
+                    // Save combined list for persistence (system presets will be filtered on load)
+                    const combined = [...SYSTEM_TEXT_PRESETS, ...userTextPresets];
+                    ws.presets.headerTexts = combined;
+                    ws.presets.footerTexts = combined;
                     saveWorkingState();
+                    // Also refresh footer dropdown
+                    const footerSel = document.getElementById('cin-f-presets');
+                    if (footerSel) {
+                        const currentVal = footerSel.value;
+                        populateSimpleSelect(footerSel, getAllTextPresets(), currentVal);
+                    }
                 },
                 selectEl: document.getElementById('cin-h-presets'),
-                contextLabel: 'Header text',
-                placeholder: 'Type header text…',
+                contextLabel: 'Custom text',
+                placeholder: 'Type custom text…',
+                systemPresets: SYSTEM_TEXT_PRESETS,
             })
         );
 
@@ -690,12 +1038,8 @@
         };
         const typo = f.typography || {};
         const wsF = getWorkingState();
-        footerPresets =
-            Array.isArray(wsF.presets?.footerTexts) && wsF.presets.footerTexts.length
-                ? [...wsF.presets.footerTexts]
-                : Array.isArray(c.presets?.footerTexts) && c.presets.footerTexts.length
-                  ? [...c.presets.footerTexts]
-                  : ['Coming Soon', 'Now Playing', 'Home Cinema', 'Feature Presentation'];
+        // User presets are already loaded in mountHeader and shared with footer
+        // No need to reload here - userTextPresets is already populated
 
         // Place the enable switch in the card title as a pill-style header toggle
         try {
@@ -907,13 +1251,14 @@
         const savedMarqueeText = f.marqueeText;
         (function () {
             const sel = document.getElementById('cin-f-presets');
+            const presets = getAllTextPresets();
             const desired =
-                wsF.footer?.marqueeText && footerPresets.includes(wsF.footer.marqueeText)
+                wsF.footer?.marqueeText && presets.includes(wsF.footer.marqueeText)
                     ? wsF.footer.marqueeText
-                    : footerPresets.includes(savedMarqueeText)
+                    : presets.includes(savedMarqueeText)
                       ? savedMarqueeText
-                      : footerPresets[0];
-            populateSimpleSelect(sel, footerPresets, desired);
+                      : presets[0];
+            populateSimpleSelect(sel, presets, desired);
         })();
 
         // Wire modern slider
@@ -956,20 +1301,31 @@
             syncTstVisibility();
         }
 
-        // Wire Manage button for footer texts
+        // Wire Manage button for footer texts (only manages user presets, not system presets)
+        // User presets are shared between header and footer
         document.getElementById('cin-f-manage')?.addEventListener('click', () =>
             openManageModal({
-                title: 'Manage Footer Texts',
-                getItems: () => footerPresets,
+                title: 'Manage Custom Texts',
+                getItems: () => userTextPresets,
                 setItems: next => {
-                    footerPresets = Array.isArray(next) ? [...next] : [];
+                    userTextPresets = Array.isArray(next) ? [...next] : [];
                     const ws = getWorkingState();
-                    ws.presets.footerTexts = [...footerPresets];
+                    // Save combined list for persistence (system presets will be filtered on load)
+                    const combined = [...SYSTEM_TEXT_PRESETS, ...userTextPresets];
+                    ws.presets.headerTexts = combined;
+                    ws.presets.footerTexts = combined;
                     saveWorkingState();
+                    // Also refresh header dropdown
+                    const headerSel = document.getElementById('cin-h-presets');
+                    if (headerSel) {
+                        const currentVal = headerSel.value;
+                        populateSimpleSelect(headerSel, getAllTextPresets(), currentVal);
+                    }
                 },
                 selectEl: document.getElementById('cin-f-presets'),
-                contextLabel: 'Footer text',
-                placeholder: 'Type footer text…',
+                contextLabel: 'Custom text',
+                placeholder: 'Type custom text…',
+                systemPresets: SYSTEM_TEXT_PRESETS,
             })
         );
 
@@ -2523,9 +2879,62 @@
 
     function collectCinemaOnly(baseCfg) {
         const cfg = baseCfg || {};
+
+        // Collect priority order from sortable container
+        const sortableContainer = document.querySelector('.ctx-sortable-container');
+        const priorityOrderArr = sortableContainer
+            ? Array.from(sortableContainer.querySelectorAll('.ctx-sortable')).map(r =>
+                  r.getAttribute('data-ctx-key')
+              )
+            : [
+                  'nowPlaying',
+                  'ultra4k',
+                  'certifiedFresh',
+                  'comingSoon',
+                  'newArrival',
+                  'lateNight',
+                  'weekend',
+              ];
+
+        // Collect context headers settings
+        const contextHeaders = {
+            enabled: $('#cin-ctx-enabled')?.checked || false,
+            default: $('#cin-ctx-default')?.value || 'Now Playing',
+            nowPlaying:
+                $('#cin-ctx-nowPlaying')?.value === '__inherit__'
+                    ? null
+                    : $('#cin-ctx-nowPlaying')?.value || 'Now Playing',
+            comingSoon:
+                $('#cin-ctx-comingSoon')?.value === '__inherit__'
+                    ? null
+                    : $('#cin-ctx-comingSoon')?.value || 'Coming Soon',
+            certifiedFresh:
+                $('#cin-ctx-certifiedFresh')?.value === '__inherit__'
+                    ? null
+                    : $('#cin-ctx-certifiedFresh')?.value || 'Certified Fresh',
+            lateNight:
+                $('#cin-ctx-lateNight')?.value === '__inherit__'
+                    ? null
+                    : $('#cin-ctx-lateNight')?.value || 'Late Night Feature',
+            weekend:
+                $('#cin-ctx-weekend')?.value === '__inherit__'
+                    ? null
+                    : $('#cin-ctx-weekend')?.value || 'Weekend Matinee',
+            newArrival:
+                $('#cin-ctx-newArrival')?.value === '__inherit__'
+                    ? null
+                    : $('#cin-ctx-newArrival')?.value || 'New Arrival',
+            ultra4k:
+                $('#cin-ctx-ultra4k')?.value === '__inherit__'
+                    ? null
+                    : $('#cin-ctx-ultra4k')?.value || '4K Ultra HD',
+            priorityOrder: priorityOrderArr,
+        };
+
         const header = {
             enabled: $('#cin-h-enabled')?.checked || false,
             text: $('#cin-h-presets')?.value || 'Now Playing',
+            contextHeaders,
             typography: {
                 fontFamily: $('#cin-h-font')?.value || 'cinematic',
                 fontSize: parseInt($('#cin-h-size')?.value || '100', 10),
@@ -2558,16 +2967,12 @@
         const orientation = $('#cinemaOrientation')?.value || 'auto';
         // Rotation interval from new field
         const rotationIntervalMinutes = parseFloat($('#cinemaRotationInterval')?.value || '0');
-        // Presets reflect local working state (including custom style presets)
+        // Presets reflect local working state (system + custom presets combined)
+        // Header and footer share the same text presets
+        const allTexts = getAllTextPresets();
         const presets = {
-            headerTexts:
-                Array.isArray(headerPresets) && headerPresets.length
-                    ? [...headerPresets]
-                    : cfg.cinema?.presets?.headerTexts || [],
-            footerTexts:
-                Array.isArray(footerPresets) && footerPresets.length
-                    ? [...footerPresets]
-                    : cfg.cinema?.presets?.footerTexts || [],
+            headerTexts: allTexts,
+            footerTexts: allTexts,
             customStyles: customPresets || [],
         };
 

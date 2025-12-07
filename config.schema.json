@@ -605,12 +605,113 @@
                                 "animation": "none",
                                 "decoration": "none"
                             }
+                        },
+                        "contextHeaders": {
+                            "type": "object",
+                            "description": "Context-aware header text overrides based on media type or time",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Enable context-aware header switching"
+                                },
+                                "default": {
+                                    "type": "string",
+                                    "default": "Now Playing",
+                                    "description": "Default header text when no context matches"
+                                },
+                                "nowPlaying": {
+                                    "type": ["string", "null"],
+                                    "default": null,
+                                    "description": "Header for currently playing media (null = inherit)"
+                                },
+                                "comingSoon": {
+                                    "type": ["string", "null"],
+                                    "default": "Coming Soon",
+                                    "description": "Header for upcoming/unreleased media (null = inherit)"
+                                },
+                                "certifiedFresh": {
+                                    "type": ["string", "null"],
+                                    "default": "Certified Fresh",
+                                    "description": "Header for highly rated media (null = inherit)"
+                                },
+                                "lateNight": {
+                                    "type": ["string", "null"],
+                                    "default": "Late Night Feature",
+                                    "description": "Header for late night time slot (null = inherit)"
+                                },
+                                "weekend": {
+                                    "type": ["string", "null"],
+                                    "default": "Weekend Matinee",
+                                    "description": "Header for weekend daytime (null = inherit)"
+                                },
+                                "newArrival": {
+                                    "type": ["string", "null"],
+                                    "default": "New Arrival",
+                                    "description": "Header for recently added media (null = inherit)"
+                                },
+                                "ultra4k": {
+                                    "type": ["string", "null"],
+                                    "default": "4K Ultra HD",
+                                    "description": "Header for 4K content (null = inherit)"
+                                },
+                                "priorityOrder": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "enum": [
+                                            "nowPlaying",
+                                            "ultra4k",
+                                            "certifiedFresh",
+                                            "comingSoon",
+                                            "newArrival",
+                                            "lateNight",
+                                            "weekend"
+                                        ]
+                                    },
+                                    "default": [
+                                        "nowPlaying",
+                                        "ultra4k",
+                                        "certifiedFresh",
+                                        "comingSoon",
+                                        "newArrival",
+                                        "lateNight",
+                                        "weekend"
+                                    ],
+                                    "description": "Order in which context conditions are checked (first match wins)"
+                                }
+                            },
+                            "additionalProperties": false,
+                            "default": {
+                                "enabled": false,
+                                "default": "Now Playing",
+                                "nowPlaying": null,
+                                "comingSoon": "Coming Soon",
+                                "certifiedFresh": "Certified Fresh",
+                                "lateNight": "Late Night Feature",
+                                "weekend": "Weekend Matinee",
+                                "newArrival": "New Arrival",
+                                "ultra4k": "4K Ultra HD",
+                                "priorityOrder": [
+                                    "nowPlaying",
+                                    "ultra4k",
+                                    "certifiedFresh",
+                                    "comingSoon",
+                                    "newArrival",
+                                    "lateNight",
+                                    "weekend"
+                                ]
+                            }
                         }
                     },
                     "additionalProperties": false,
                     "default": {
                         "enabled": true,
                         "text": "Now Playing",
+                        "contextHeaders": {
+                            "enabled": false,
+                            "default": "Now Playing"
+                        },
                         "typography": {
                             "fontFamily": "cinematic",
                             "fontSize": 100,

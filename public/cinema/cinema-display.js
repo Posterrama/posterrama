@@ -207,6 +207,231 @@
         log(`Applied cinema orientation: ${orientation} (resolved: ${resolvedOrientation})`);
     }
 
+    // ===== Context-Aware Header Text Selection =====
+    /**
+     * Determines the appropriate header text based on current context.
+     * Priority order is configurable via ctx.priorityOrder array.
+     * Default priority (highest to lowest):
+     * 1. Now Playing (if currently playing media)
+     * 2. 4K Ultra HD (if media is 4K)
+     * 3. Certified Fresh (if RT score > 90%)
+     * 4. Coming Soon (if unreleased)
+     * 5. New Arrival (if added < 7 days ago)
+     * 6. Late Night (23:00-06:00)
+     * 7. Weekend (Saturday/Sunday daytime)
+     * 8. Default
+     */
+    function getContextAwareHeaderText() {
+        const ctx = cinemaConfig.header?.contextHeaders;
+
+        // If context headers not enabled, use static header text
+        if (!ctx?.enabled) {
+            return cinemaConfig.header?.text || 'Now Playing';
+        }
+
+        const defaultText = ctx.default || cinemaConfig.header?.text || 'Now Playing';
+        const media = currentMedia;
+        const now = new Date();
+        const hour = now.getHours();
+        const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
+
+        // Debug: Log all context values for current media
+        console.group('🎬 Context Header Detection');
+        console.log(
+            'Current time:',
+            now.toLocaleString(),
+            `(hour: ${hour}, dayOfWeek: ${dayOfWeek})`
+        );
+        console.log('nowPlayingActive:', nowPlayingActive);
+        console.log('Media object:', media);
+        if (media) {
+            const resolution =
+                media.videoResolution ||
+                media.resolution ||
+                media.qualityLabel ||
+                media.quality ||
+                '';
+            const rtScore =
+                media.rottenTomatoesScore ||
+                media.audienceRating ||
+                media.rottenTomatoes?.score ||
+                0;
+            const releaseDate = media.releaseDate || media.originallyAvailableAt;
+            const addedAt = media.addedAt || media.addedAtMs || media.dateAdded;
+            const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+            // Normalize addedAt to Date if it's a timestamp in ms
+            const addedAtDate = addedAt
+                ? typeof addedAt === 'number'
+                    ? new Date(addedAt)
+                    : new Date(addedAt)
+                : null;
+
+            console.table({
+                'Now Playing': { value: nowPlayingActive, matches: nowPlayingActive === true },
+                '4K Ultra HD': {
+                    value: `resolution="${resolution}", width=${media.width}, qualityLabel=${media.qualityLabel}`,
+                    matches:
+                        resolution === '4k' ||
+                        resolution === '4K' ||
+                        resolution === '2160' ||
+                        resolution === '2160p' ||
+                        (media.width && media.width >= 3840) ||
+                        media.Media?.[0]?.videoResolution === '4k',
+                },
+                'Certified Fresh': { value: `RT score: ${rtScore}`, matches: rtScore >= 90 },
+                'Coming Soon': {
+                    value: `releaseDate: ${releaseDate}`,
+                    matches: releaseDate && new Date(releaseDate) > now,
+                },
+                'New Arrival': {
+                    value: `addedAt: ${addedAt}, fourteenDaysAgo: ${fourteenDaysAgo.toISOString()}`,
+                    matches: addedAtDate && addedAtDate > fourteenDaysAgo,
+                },
+                'Late Night': { value: `hour: ${hour}`, matches: hour >= 23 || hour < 6 },
+                Weekend: {
+                    value: `dayOfWeek: ${dayOfWeek}, hour: ${hour}`,
+                    matches: (dayOfWeek === 0 || dayOfWeek === 6) && hour >= 6 && hour < 23,
+                },
+            });
+        }
+        console.log('Priority order:', ctx.priorityOrder || 'default');
+        console.log('Context config:', ctx);
+        console.groupEnd();
+
+        // Helper to get context text or inherit from default
+        const getText = key => {
+            const val = ctx[key];
+            return val === null || val === undefined ? null : val;
+        };
+
+        // Context detection functions
+        const contextDetectors = {
+            nowPlaying: () => {
+                if (nowPlayingActive && getText('nowPlaying')) {
+                    log('Context header: Now Playing');
+                    return getText('nowPlaying');
+                }
+                return null;
+            },
+            ultra4k: () => {
+                if (media && getText('ultra4k')) {
+                    const resolution =
+                        media.videoResolution ||
+                        media.resolution ||
+                        media.qualityLabel ||
+                        media.quality ||
+                        '';
+                    const is4K =
+                        resolution === '4k' ||
+                        resolution === '4K' ||
+                        resolution === '2160' ||
+                        resolution === '2160p' ||
+                        (media.width && media.width >= 3840) ||
+                        media.Media?.[0]?.videoResolution === '4k';
+                    if (is4K) {
+                        log('Context header: 4K Ultra HD');
+                        return getText('ultra4k');
+                    }
+                }
+                return null;
+            },
+            certifiedFresh: () => {
+                if (media && getText('certifiedFresh')) {
+                    const rtScore =
+                        media.rottenTomatoesScore ||
+                        media.audienceRating ||
+                        media.rottenTomatoes?.score ||
+                        0;
+                    if (rtScore >= 90) {
+                        log('Context header: Certified Fresh', { rtScore });
+                        return getText('certifiedFresh');
+                    }
+                }
+                return null;
+            },
+            comingSoon: () => {
+                if (media && getText('comingSoon')) {
+                    const releaseDate = media.releaseDate || media.originallyAvailableAt;
+                    if (releaseDate) {
+                        const release = new Date(releaseDate);
+                        if (release > now) {
+                            log('Context header: Coming Soon', { releaseDate });
+                            return getText('comingSoon');
+                        }
+                    }
+                }
+                return null;
+            },
+            newArrival: () => {
+                if (media && getText('newArrival')) {
+                    const addedAt = media.addedAt || media.addedAtMs || media.dateAdded;
+                    if (addedAt) {
+                        // Handle both timestamps (ms) and ISO strings
+                        const added =
+                            typeof addedAt === 'number' ? new Date(addedAt) : new Date(addedAt);
+                        const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+                        if (added > fourteenDaysAgo) {
+                            log('Context header: New Arrival', { addedAt });
+                            return getText('newArrival');
+                        }
+                    }
+                }
+                return null;
+            },
+            lateNight: () => {
+                if (getText('lateNight') && (hour >= 23 || hour < 6)) {
+                    log('Context header: Late Night', { hour });
+                    return getText('lateNight');
+                }
+                return null;
+            },
+            weekend: () => {
+                if (
+                    getText('weekend') &&
+                    (dayOfWeek === 0 || dayOfWeek === 6) &&
+                    hour >= 6 &&
+                    hour < 23
+                ) {
+                    log('Context header: Weekend', { dayOfWeek });
+                    return getText('weekend');
+                }
+                return null;
+            },
+        };
+
+        // Default priority order
+        const defaultPriorityOrder = [
+            'nowPlaying',
+            'ultra4k',
+            'certifiedFresh',
+            'comingSoon',
+            'newArrival',
+            'lateNight',
+            'weekend',
+        ];
+
+        // Use configured priority order or fallback to default
+        const priorityOrder =
+            Array.isArray(ctx.priorityOrder) &&
+            ctx.priorityOrder.length === defaultPriorityOrder.length
+                ? ctx.priorityOrder
+                : defaultPriorityOrder;
+
+        // Check contexts in priority order
+        for (const key of priorityOrder) {
+            const detector = contextDetectors[key];
+            if (detector) {
+                const result = detector();
+                if (result) return result;
+            }
+        }
+
+        // Fallback to default
+        log('Context header: Default');
+        return defaultText;
+    }
+
     // ===== Cinema Header =====
     function createHeader() {
         if (!cinemaConfig.header.enabled) {
@@ -257,8 +482,8 @@
         headerEl.style.color = headerColor; // Direct color application for reliability
         headerEl.style.backgroundColor = ''; // Reset any previous background
 
-        // Set header text
-        const headerText = cinemaConfig.header.text || 'Now Playing';
+        // Set header text - use context-aware text if enabled
+        const headerText = getContextAwareHeaderText();
         headerEl.textContent = headerText;
 
         // Show header now that styling is complete (was hidden to prevent FOUC)
@@ -271,7 +496,8 @@
         updatePosterLayout();
 
         log('Cinema header created/updated', {
-            text: cinemaConfig.header.text,
+            text: headerText,
+            contextEnabled: cinemaConfig.header?.contextHeaders?.enabled,
             typography: typo,
         });
     }
@@ -2587,8 +2813,9 @@
         // Must await to ensure effectiveBgColor is set before ton-sur-ton calculation
         await applyBackgroundSettings(media);
 
-        // Update header if ton-sur-ton is enabled (needs effectiveBgColor from background)
-        if (cinemaConfig.header?.typography?.tonSurTon) {
+        // Update header - always refresh when media changes for context-aware headers
+        // Also needed if ton-sur-ton is enabled (needs effectiveBgColor from background)
+        if (cinemaConfig.header?.enabled) {
             createHeader();
         }
 
@@ -3283,6 +3510,9 @@
 
     function convertSessionToMedia(session) {
         try {
+            // Debug: log full session data to see what's available
+            console.log('[Cinema] Raw Plex session data:', session);
+
             // Determine which thumb to use (movie vs episode)
             let thumbPath = session.thumb;
             if (session.type === 'episode' && session.grandparentThumb) {
@@ -3311,6 +3541,12 @@
                 ? `/image?server=${encodeURIComponent(serverName)}&path=${encodeURIComponent(session.art)}`
                 : null;
 
+            // Extract video resolution from Media array if available
+            const mediaInfo = session.Media?.[0];
+            const videoResolution =
+                session.videoResolution || mediaInfo?.videoResolution || session.resolution || null;
+            const width = mediaInfo?.width || session.width || null;
+
             return {
                 id: session.ratingKey || session.key || `session-${Date.now()}`,
                 key: `plex-session-${session.ratingKey || session.key}`,
@@ -3319,7 +3555,7 @@
                 rating: session.contentRating || null,
                 overview: session.summary || null,
                 tagline: session.tagline || null,
-                posterUrl: posterUrl, // Use posterUrl not poster_path for Cinema compatibility
+                posterUrl: posterUrl,
                 backgroundUrl: backdropUrl,
                 thumbnailUrl: posterUrl,
                 genres: session.genres || [],
@@ -3328,12 +3564,26 @@
                 source: 'plex-session',
                 // Technical specs from session
                 resolution: session.resolution || null,
-                videoCodec: session.videoCodec || null,
-                audioCodec: session.audioCodec || null,
-                audioChannels: session.audioChannels || null,
-                aspectRatio: session.aspectRatio || null,
+                videoResolution: videoResolution,
+                width: width,
+                videoCodec: session.videoCodec || mediaInfo?.videoCodec || null,
+                audioCodec: session.audioCodec || mediaInfo?.audioCodec || null,
+                audioChannels: session.audioChannels || mediaInfo?.audioChannels || null,
+                aspectRatio: session.aspectRatio || mediaInfo?.aspectRatio || null,
                 hasHDR: session.hasHDR || false,
                 hasDolbyVision: session.hasDolbyVision || false,
+                // Context-aware header fields
+                // Plex addedAt is Unix timestamp in seconds, convert to ISO string
+                addedAt: session.addedAt ? new Date(session.addedAt * 1000).toISOString() : null,
+                originallyAvailableAt: session.originallyAvailableAt || null,
+                releaseDate: session.originallyAvailableAt || null,
+                audienceRating: session.audienceRating || null,
+                // Plex rating is 0-10 scale, audienceRating might be percentage
+                rottenTomatoesScore:
+                    session.audienceRating ||
+                    (session.rating ? Math.round(session.rating * 10) : null),
+                // Keep reference to original session for debugging
+                _rawSession: session,
             };
         } catch (e) {
             error('Failed to convert session to media', e);

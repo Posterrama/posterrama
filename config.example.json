@@ -70,6 +70,17 @@
         "header": {
             "enabled": true,
             "text": "Super Cool",
+            "contextHeaders": {
+                "enabled": false,
+                "default": "Now Playing",
+                "nowPlaying": null,
+                "comingSoon": "Coming Soon",
+                "certifiedFresh": "Certified Fresh",
+                "lateNight": "Late Night Feature",
+                "weekend": "Weekend Matinee",
+                "newArrival": "New Arrival",
+                "ultra4k": "4K Ultra HD"
+            },
             "typography": {
                 "fontFamily": "cinematic",
                 "fontSize": 120,

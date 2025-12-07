@@ -210,10 +210,18 @@ class PlexSessionsPoller extends EventEmitter {
                     grandparentThumb: session.grandparentThumb,
                     duration: session.duration || 0,
                     rating: session.rating,
+                    audienceRating: session.audienceRating,
+                    audienceRatingImage: session.audienceRatingImage,
                     contentRating: session.contentRating,
                     tagline: session.tagline,
                     summary: session.summary,
                     genres: session.Genre ? session.Genre.map(g => g.tag) : [],
+                    // Date fields for context-aware headers
+                    addedAt: session.addedAt, // Unix timestamp when added to Plex
+                    originallyAvailableAt: session.originallyAvailableAt, // Release date (YYYY-MM-DD)
+                    // Video resolution for 4K detection
+                    videoResolution: session.Media?.[0]?.videoResolution || null,
+                    width: session.Media?.[0]?.width || null,
 
                     // Technical specs
                     resolution,

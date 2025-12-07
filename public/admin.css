@@ -17420,6 +17420,20 @@ select.input-error:focus {
     margin-bottom: 4px;
 }
 
+/* Context Headers section */
+#cinema-header-card #cin-ctx-toggle-row {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Context Headers container - styled via cinema.css */
+#cinema-header-card #cin-ctx-container {
+    grid-column: 1 / -1;
+    margin: 4px 0 8px 0;
+}
+
 /* Footer card - optimized 2 column layout */
 #cinema-footer-card .form-grid {
     display: grid;
