@@ -114,9 +114,10 @@
 
             await ensureConfig();
             // Initialize device management (WebSocket, heartbeat, etc.)
+            // IMPORTANT: await init() so setup overlay completes before media check
             try {
                 if (window.PosterramaDevice && window.PosterramaDevice.init) {
-                    window.PosterramaDevice.init(window.appConfig || {});
+                    await window.PosterramaDevice.init(window.appConfig || {});
                 }
             } catch (e) {
                 console.warn('[Cinema Bootstrap] Failed to init device management:', e);

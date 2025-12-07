@@ -6,12 +6,14 @@
 
 /**
  * Initialize device management for a display mode
+ * Returns a promise that resolves when device setup is complete
+ * (including setup overlay if shown)
  */
 export async function initDevice() {
     try {
         if (window.PosterramaDevice && window.PosterramaDevice.init) {
             const cfg = await window.PosterramaCore.fetchConfig();
-            window.PosterramaDevice.init(cfg || {}); // Don't await - let it run in background
+            await window.PosterramaDevice.init(cfg || {}); // Await so setup overlay completes first
         }
     } catch (e) {
         console.warn('[Display Mode] Device init failed:', e);

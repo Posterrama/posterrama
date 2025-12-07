@@ -187,9 +187,10 @@ export async function startScreensaver() {
         }
 
         // Initialize device management (optional)
+        // IMPORTANT: await init() so setup overlay completes before media check
         try {
             if (window.PosterramaDevice && window.PosterramaDevice.init) {
-                window.PosterramaDevice.init(window.appConfig || {});
+                await window.PosterramaDevice.init(window.appConfig || {});
             }
         } catch (_) {
             // Device init is optional

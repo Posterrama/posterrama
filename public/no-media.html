@@ -13,6 +13,8 @@
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         />
+        <!-- Device management for setup overlay -->
+        <script src="/device-mgmt.js" defer></script>
         <style>
             :root {
                 /* Admin theme colors - exact match */
@@ -323,6 +325,7 @@
         <script>
             let checkInterval = null;
             let nextCheckTime = null;
+            let deviceInitialized = false;
 
             async function loadConfig() {
                 try {
@@ -336,6 +339,21 @@
                     }
                 } catch (e) {
                     // Ignore config load errors
+                }
+            }
+
+            // Initialize device management (shows setup overlay if needed)
+            async function initDeviceManagement() {
+                if (deviceInitialized) return;
+                deviceInitialized = true;
+                
+                try {
+                    await loadConfig();
+                    if (window.PosterramaDevice && typeof window.PosterramaDevice.init === 'function') {
+                        await window.PosterramaDevice.init(window.__serverConfig || {});
+                    }
+                } catch (e) {
+                    // Ignore device init errors
                 }
             }
 
@@ -434,7 +452,11 @@
 
             updateClock();
             setInterval(updateClock, 1000);
-            startAutoCheck();
+            
+            // Initialize device management first, then start media checks
+            initDeviceManagement().then(() => {
+                startAutoCheck();
+            });
         </script>
     </body>
 </html>

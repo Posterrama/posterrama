@@ -465,10 +465,11 @@
                     await ensureConfig();
                     try { window.logger && window.logger.debug && window.logger.debug('[WALLART] bootstrap: config loaded', { hasWallartConfig: !!window.wallartConfig }); } catch(_) {}
                     // Initialize device management to enable heartbeats and live WS logs
+                    // IMPORTANT: await init() so setup overlay completes before media check
                     window.debugLog && window.debugLog('WALLART_INIT_DEVICE_MGMT', {});
                     try {
                         if (window.PosterramaDevice && typeof window.PosterramaDevice.init === 'function') {
-                            window.PosterramaDevice.init(window.appConfig || {});
+                            await window.PosterramaDevice.init(window.appConfig || {});
                         }
                     } catch (e) { 
                         window.debugLog && window.debugLog('WALLART_DEVICE_MGMT_ERROR', { error: e.message });
