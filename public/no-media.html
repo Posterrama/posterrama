@@ -9,252 +9,313 @@
         <title>No Media Available - Posterrama</title>
         <link rel="icon" type="image/svg+xml" href="/icons/posterrama-icon.svg?v=3" />
         <link rel="icon" type="image/x-icon" href="/favicon.ico?v=3" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
         <style>
             :root {
-                /* Admin theme colors - exact copy from admin.css */
-                --color-primary: #00d4aa;
-                --color-primary-dark: #00b894;
+                /* Admin theme colors - exact match */
+                --color-accent: #00d4aa;
+                --color-accent-dim: rgba(0, 212, 170, 0.15);
                 --color-secondary: #667eea;
-                --color-secondary-dark: #5a6acf;
-                --color-bg-primary: #1a1d29;
-                --color-bg-secondary: #252a3a;
-                --color-bg-tertiary: #2a3142;
-                --color-bg-card: #232937;
-                --color-text-primary: #ffffff;
-                --color-text-secondary: #b8bcc8;
-                --color-text-muted: #8b92a5;
-                --color-text-inverse: #1a1d29;
-                --color-border: #3a4553;
-                --color-border-light: #4a5568;
-                --space-sm: 0.5rem;
-                --space-md: 1rem;
-                --space-lg: 1.5rem;
-                --border-radius-md: 0.5rem;
+                --color-bg-primary: #1f2028;
+                --color-bg-secondary: #2a2b38;
+                --color-bg-tertiary: #303240;
+                --color-bg-dark: #16161e;
+                --color-bg-card: #242530;
+                --color-text-primary: #c0caf5;
+                --color-text-secondary: #a9b1d6;
+                --color-text-muted: #565f89;
+                --color-border: rgba(255, 255, 255, 0.06);
+                --color-border-light: rgba(255, 255, 255, 0.1);
                 --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
                     'Helvetica Neue', Arial, sans-serif;
-                --font-size-base: 1rem;
-                --font-weight-medium: 500;
-                --font-weight-semibold: 600;
-                --font-weight-bold: 700;
             }
 
-            * {
+            *,
+            *::before,
+            *::after {
                 box-sizing: border-box;
                 margin: 0;
                 padding: 0;
             }
 
+            html,
             body {
-                font-family: var(--font-family);
-                font-size: var(--font-size-base);
-                line-height: 1.6;
-                color: var(--color-text-primary);
-                background-color: var(--color-bg-secondary);
-                overflow-x: hidden;
+                height: 100%;
             }
 
-            .container {
+            body {
+                font-family: var(--font-family);
+                background: var(--color-bg-primary);
+                color: var(--color-text-primary);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                min-height: 100vh;
+                overflow: hidden;
+            }
+
+            /* Subtle gradient background */
+            .bg-gradient {
+                position: fixed;
+                inset: 0;
+                background: radial-gradient(
+                        ellipse 80% 50% at 50% -20%,
+                        rgba(0, 212, 170, 0.05) 0%,
+                        transparent 50%
+                    ),
+                    radial-gradient(
+                        ellipse 60% 40% at 100% 100%,
+                        rgba(102, 126, 234, 0.04) 0%,
+                        transparent 40%
+                    );
+                pointer-events: none;
+            }
+
+            /* Clock - top right */
+            .clock {
+                position: fixed;
+                top: 2rem;
+                right: 2.5rem;
+                font-size: 2.5rem;
+                font-weight: 200;
+                letter-spacing: 0.08em;
+                color: var(--color-text-muted);
+                font-variant-numeric: tabular-nums;
+            }
+
+            /* Main container */
+            .container {
+                position: relative;
+                z-index: 1;
+                width: 100%;
+                max-width: 480px;
                 padding: 2rem;
             }
 
-            .content {
-                max-width: 600px;
-                width: 100%;
-                text-align: center;
-            }
-
-            .logo-container {
+            /* Logo section */
+            .logo-section {
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 gap: 1rem;
-                margin-bottom: 2rem;
+                margin-bottom: 3rem;
             }
 
-            .logo {
-                width: auto;
-                height: 80px;
-                max-width: 80px;
+            .logo-icon {
+                width: 56px;
+                height: 56px;
                 object-fit: contain;
-                filter: drop-shadow(0 4px 12px rgba(0, 212, 170, 0.2));
+                opacity: 0.9;
             }
 
-            .brand {
-                font-size: 2.5rem;
-                font-weight: 700;
-                background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            .logo-text {
+                font-size: 1.75rem;
+                font-weight: 600;
+                letter-spacing: -0.02em;
+                background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
-                letter-spacing: -0.02em;
             }
 
-            #message {
-                font-size: 1.75rem;
-                font-weight: 600;
-                margin-bottom: 2rem;
-                color: var(--color-text-primary);
-                line-height: 1.3;
-            }
-
-            .status-indicator {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.75rem;
-                background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(102, 126, 234, 0.1));
-                border: 1px solid var(--color-border);
-                border-radius: 12px;
-                padding: 1rem 1.5rem;
-                margin-bottom: 2rem;
-                font-size: 0.95rem;
-                color: var(--color-text-secondary);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            }
-
-            .status-dot {
-                width: 10px;
-                height: 10px;
-                border-radius: 50%;
-                background: var(--color-primary);
-                animation: blink 2s ease-in-out infinite;
-                box-shadow: 0 0 12px var(--color-primary);
-            }
-
-            @keyframes blink {
-                0%,
-                100% {
-                    opacity: 1;
-                }
-                50% {
-                    opacity: 0.3;
-                }
-            }
-
-            .suggestions {
+            /* Status card */
+            .status-card {
                 background: var(--color-bg-card);
-                border: 1px solid var(--color-border);
+                border: 1px solid var(--color-border-light);
                 border-radius: 12px;
                 padding: 2rem;
+                text-align: center;
+            }
+
+            .status-icon {
+                width: 64px;
+                height: 64px;
+                margin: 0 auto 1.5rem;
+                border-radius: 50%;
+                background: var(--color-accent-dim);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .status-icon i {
+                font-size: 1.5rem;
+                color: var(--color-accent);
+            }
+
+            .status-title {
+                font-size: 1.25rem;
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                color: var(--color-text-primary);
+            }
+
+            .status-subtitle {
+                font-size: 0.875rem;
+                color: var(--color-text-secondary);
+                margin-bottom: 2rem;
+            }
+
+            /* Checklist */
+            .checklist {
                 text-align: left;
                 margin-bottom: 2rem;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
             }
 
-            .suggestions h4 {
-                font-size: 1.1rem;
-                margin-bottom: 1.25rem;
-                color: var(--color-text-primary);
-                font-weight: var(--font-weight-semibold);
-            }
-
-            .suggestions ul {
-                list-style: none;
-                padding: 0;
-            }
-
-            .suggestions li {
-                font-size: 0.95rem;
-                line-height: 1.7;
+            .checklist-item {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.75rem;
                 padding: 0.75rem 0;
-                color: var(--color-text-secondary);
-                position: relative;
-                padding-left: 2rem;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                border-bottom: 1px solid var(--color-border);
             }
 
-            .suggestions li:last-child {
+            .checklist-item:last-child {
                 border-bottom: none;
             }
 
-            .suggestions li:before {
-                content: '→';
-                position: absolute;
-                left: 0;
-                color: var(--color-primary);
-                font-weight: var(--font-weight-bold);
-                font-size: 1.2rem;
+            .checklist-icon {
+                flex-shrink: 0;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: var(--color-bg-tertiary);
+                border: 1px solid var(--color-border-light);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-top: 2px;
             }
 
-            /* Clock for screensaver mode */
-            .clock {
-                position: fixed;
-                top: 2rem;
-                right: 2rem;
-                font-size: 3rem;
-                font-weight: 300;
-                letter-spacing: 0.05em;
-                opacity: 0.6;
-                font-variant-numeric: tabular-nums;
+            .checklist-icon i {
+                font-size: 0.55rem;
+                color: var(--color-text-muted);
+            }
+
+            .checklist-text {
+                font-size: 0.875rem;
+                color: var(--color-text-secondary);
+                line-height: 1.5;
+            }
+
+            /* Status indicator */
+            .status-bar {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.625rem;
+                padding: 0.875rem 1.25rem;
+                background: var(--color-bg-tertiary);
+                border-radius: 8px;
+                font-size: 0.8125rem;
                 color: var(--color-text-secondary);
             }
 
-            /* Responsive design */
-            @media (max-width: 768px) {
+            .pulse-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--color-accent);
+                animation: pulse 2s ease-in-out infinite;
+            }
+
+            @keyframes pulse {
+                0%,
+                100% {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+                50% {
+                    opacity: 0.4;
+                    transform: scale(0.9);
+                }
+            }
+
+            /* Responsive */
+            @media (max-width: 600px) {
                 .container {
                     padding: 1.5rem;
                 }
 
-                .logo-container {
-                    flex-direction: column;
-                    gap: 0.75rem;
-                }
-
-                .logo {
-                    height: 60px;
-                    max-width: 60px;
-                }
-
-                .brand {
+                .clock {
                     font-size: 1.75rem;
+                    top: 1.25rem;
+                    right: 1.5rem;
                 }
 
-                #message {
-                    font-size: 1.35rem !important;
+                .logo-section {
+                    margin-bottom: 2rem;
                 }
 
-                .suggestions {
+                .logo-icon {
+                    width: 44px;
+                    height: 44px;
+                }
+
+                .logo-text {
+                    font-size: 1.5rem;
+                }
+
+                .status-card {
                     padding: 1.5rem;
                 }
 
-                .clock {
-                    font-size: 2rem;
-                    top: 1rem;
-                    right: 1rem;
+                .status-icon {
+                    width: 52px;
+                    height: 52px;
+                }
+
+                .status-icon i {
+                    font-size: 1.25rem;
                 }
             }
         </style>
     </head>
     <body>
-        <!-- Clock (visible in screensaver mode) -->
-        <div class="clock" id="clock"></div>
+        <div class="bg-gradient"></div>
+
+        <div class="clock" id="clock">00:00</div>
 
         <div class="container">
-            <div class="content">
-                <div class="logo-container">
-                    <img src="/logo.png" alt="Posterrama Logo" class="logo" />
-                    <div class="brand">Posterrama</div>
+            <div class="logo-section">
+                <img src="/logo.png" alt="Posterrama" class="logo-icon" />
+                <span class="logo-text">Posterrama</span>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon">
+                    <i class="fas fa-photo-film"></i>
                 </div>
 
-                <div id="message">Media library is empty</div>
+                <h1 class="status-title">No Media Available</h1>
+                <p class="status-subtitle">Configure a media source to get started</p>
 
-                <div class="status-indicator">
-                    <span class="status-dot"></span>
+                <div class="checklist">
+                    <div class="checklist-item">
+                        <div class="checklist-icon"><i class="fas fa-check"></i></div>
+                        <span class="checklist-text"
+                            >Open the admin panel and go to Media Sources</span
+                        >
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checklist-icon"><i class="fas fa-check"></i></div>
+                        <span class="checklist-text"
+                            >Connect Plex, Jellyfin, TMDB, or another source</span
+                        >
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checklist-icon"><i class="fas fa-check"></i></div>
+                        <span class="checklist-text"
+                            >Enable libraries and verify the connection</span
+                        >
+                    </div>
+                </div>
+
+                <div class="status-bar">
+                    <span class="pulse-dot"></span>
                     <span id="status-text">Checking for media...</span>
-                </div>
-
-                <div class="suggestions">
-                    <h4>Configuration Required</h4>
-                    <ul>
-                        <li>Navigate to the admin panel to configure your media sources</li>
-                        <li>Connect at least one media server (Plex, Jellyfin, TMDB, or RomM)</li>
-                        <li>Enable the desired libraries and verify connection settings</li>
-                        <li>Ensure your media server contains accessible content</li>
-                    </ul>
                 </div>
             </div>
         </div>
@@ -263,162 +324,117 @@
             let checkInterval = null;
             let nextCheckTime = null;
 
-            // Load config on page load
             async function loadConfig() {
                 try {
                     if (window.__serverConfig) return;
                     const response = await fetch('/get-config', {
                         cache: 'no-cache',
-                        headers: { 'Cache-Control': 'no-cache' }
+                        headers: { 'Cache-Control': 'no-cache' },
                     });
                     if (response.ok) {
                         window.__serverConfig = await response.json();
-                        console.log('[No-Media] Config loaded:', window.__serverConfig?.wallartMode);
                     }
                 } catch (e) {
-                    console.warn('[No-Media] Failed to load config:', e);
+                    // Ignore config load errors
                 }
             }
 
-            // Update clock every second
             function updateClock() {
                 const now = new Date();
                 const hours = String(now.getHours()).padStart(2, '0');
                 const minutes = String(now.getMinutes()).padStart(2, '0');
-                document.getElementById('clock').textContent = `${hours}:${minutes}`;
+                document.getElementById('clock').textContent = hours + ':' + minutes;
             }
 
-            // Check if media is available
             async function checkMediaAvailability() {
                 try {
-                    // Ensure config is loaded
                     await loadConfig();
-                    
-                    // Check if games mode is active
+
                     const wallartMode = window.__serverConfig?.wallartMode || {};
                     const isGamesOnly = wallartMode.gamesOnly === true;
-                    
-                    // Build URL with appropriate parameter
+
                     let url = '/get-media?count=1';
                     if (isGamesOnly) {
                         url += '&gamesOnly=true';
-                        console.log('[No-Media] Games mode detected, fetching games...');
                     } else {
                         url += '&excludeGames=1';
                     }
-                    
-                    console.log('[No-Media] Fetching', url);
+
                     const response = await fetch(url, {
                         cache: 'no-cache',
-                        headers: {
-                            'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        },
+                        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
                     });
 
-                    console.log('[No-Media] Response status:', response.status, response.statusText);
-                    
-                    if (!response.ok) {
-                        console.error('[No-Media] Response not OK:', response.status);
-                        throw new Error('Failed to fetch media');
-                    }
+                    if (!response.ok) throw new Error('Failed to fetch media');
 
                     const data = await response.json();
-                    console.log('[No-Media] Response data:', {
-                        type: Array.isArray(data) ? 'array' : typeof data,
-                        isArray: Array.isArray(data),
-                        length: Array.isArray(data) ? data.length : 'N/A',
-                        status: data?.status,
-                        keys: typeof data === 'object' ? Object.keys(data) : 'N/A',
-                        sample: Array.isArray(data) ? data[0] : data
-                    });
 
-                    // Check if playlist is building (status object)
                     if (data && typeof data === 'object' && data.status === 'building') {
-                        console.log('[No-Media] ⏳ Playlist is building, will retry in 5s...');
-                        document.getElementById('status-text').textContent = 
-                            'Playlist is building, checking again in 5s...';
-                        // Return 'building' so interval knows to wait
+                        document.getElementById('status-text').textContent =
+                            'Building playlist...';
                         return 'building';
                     }
 
-                    // If we have media (array with items), redirect back to main page
                     if (Array.isArray(data) && data.length > 0) {
-                        console.log('[No-Media] ✅ Media detected! Count:', data.length);
-                        console.log('[No-Media] First item:', data[0]);
-                        document.getElementById('status-text').textContent = 'Media found! Redirecting...';
-                        setTimeout(() => {
-                            console.log('[No-Media] Redirecting to /');
+                        document.getElementById('status-text').textContent =
+                            'Media found! Redirecting...';
+                        setTimeout(function() {
                             window.location.href = '/';
                         }, 500);
                         return true;
                     }
 
-                    console.log('[No-Media] ❌ No media found (empty array or invalid response)');
                     return false;
                 } catch (error) {
-                    console.error('[No-Media] ⚠️ Error checking media:', error.message, error.stack);
                     return false;
                 }
             }
 
-            // Update status text with countdown
             function updateStatusText() {
                 if (!nextCheckTime) return;
-                
+
                 const now = Date.now();
                 const remaining = Math.ceil((nextCheckTime - now) / 1000);
-                
+
                 if (remaining > 0) {
-                    document.getElementById('status-text').textContent = 
-                        `Next check in ${remaining} second${remaining !== 1 ? 's' : ''}...`;
+                    document.getElementById('status-text').textContent =
+                        'Next check in ' + remaining + 's';
                 } else {
-                    document.getElementById('status-text').textContent = 'Checking for media...';
+                    document.getElementById('status-text').textContent = 'Checking...';
                 }
             }
 
-            // Start automatic checking
             function startAutoCheck() {
-                // Initial check
-                checkMediaAvailability().then(result => {
+                checkMediaAvailability().then(function(result) {
                     if (result === 'building') {
-                        // Set shorter interval for building checks
                         nextCheckTime = Date.now() + 5000;
                     } else if (!result) {
                         nextCheckTime = Date.now() + 15000;
                     }
                 });
 
-                // Check every 5 seconds (faster to catch when building completes)
                 if (checkInterval) clearInterval(checkInterval);
-                checkInterval = setInterval(async () => {
+                checkInterval = setInterval(async function() {
                     nextCheckTime = null;
-                    document.getElementById('status-text').textContent = 'Checking for media...';
+                    document.getElementById('status-text').textContent = 'Checking...';
                     const result = await checkMediaAvailability();
-                    
+
                     if (result === true) {
-                        // Media found, clear interval
                         clearInterval(checkInterval);
                     } else if (result === 'building') {
-                        // Building - check again in 5s
                         nextCheckTime = Date.now() + 5000;
                     } else {
-                        // No media - check again in 15s
                         nextCheckTime = Date.now() + 15000;
                     }
-                }, 5000); // Check every 5s instead of 15s for better responsiveness
+                }, 5000);
 
-                // Update countdown every second
                 setInterval(updateStatusText, 1000);
                 nextCheckTime = Date.now() + 5000;
             }
 
-            // Initialize
             updateClock();
             setInterval(updateClock, 1000);
             startAutoCheck();
-
-            // Message is hardcoded in HTML, no URL params needed
-            // (Removed URL parameter reading logic)
         </script>
     </body>
 </html>
