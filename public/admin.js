@@ -188,6 +188,29 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         return `${b.toFixed(1)} ${units[i]}`;
     }
 
+    /**
+     * Format a date as relative time (e.g., "Today 9:51 AM", "Yesterday 2:00 PM", "Dec 5")
+     */
+    function formatRelativeTime(date) {
+        const now = new Date();
+        const d = new Date(date);
+        const diffMs = now - d;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        const timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+        if (diffDays === 0 && now.getDate() === d.getDate()) {
+            return `Today ${timeStr}`;
+        } else if (diffDays <= 1 && now.getDate() - d.getDate() === 1) {
+            return `Yesterday ${timeStr}`;
+        } else if (diffDays < 7) {
+            const dayName = d.toLocaleDateString(undefined, { weekday: 'short' });
+            return `${dayName} ${timeStr}`;
+        } else {
+            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+    }
+
     // Simple HTML escaper available at module scope for safe rendering
     function escapeHtml(s) {
         return String(s || '')
@@ -2768,13 +2791,24 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 const created = new Date(b.createdAt || Date.now());
                 const count = (b.files || []).length;
                 const size = formatBytes(b.sizeBytes || 0);
+
+                // Use label if available, otherwise show friendly time
+                const displayName = b.label || formatRelativeTime(created);
+                const timeStr = created.toLocaleString(undefined, {
+                    month: 'numeric',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                });
+
                 const summary = document.createElement('div');
                 summary.className = 'backup-summary';
                 summary.innerHTML = `
                                         <div class="left">
                     <i class="fas fa-archive"></i>
-                    <strong>${b.id}</strong>
-                                        <span class="subtle">${created.toLocaleString()}</span>
+                    <strong>${displayName}</strong>
+                                        <span class="subtle">${timeStr}</span>
                                         <span class="subtle">• ${count} files • ${size}</span>
                   </div>
                   <div class="right">
