@@ -19,7 +19,7 @@
   <a href="https://github.com/jellyfin/jellyfin"><img alt="Jellyfin" src="https://img.shields.io/badge/Jellyfin-supported-8f7ee7.svg?logo=jellyfin&logoColor=white"></a>
   <a href="https://github.com/rommapp/romm"><img alt="RomM" src="https://img.shields.io/badge/RomM-supported-e74c3c.svg?logo=retroarch&logoColor=white"></a>
   <a href="https://www.themoviedb.org/"><img alt="TMDB" src="https://img.shields.io/badge/TMDB-supported-01d277.svg?logo=themoviedatabase&logoColor=white"></a>
-  <a href="https://posterrama.github.io/posterrama/"><img alt="API Docs" src="https://img.shields.io/badge/API-Docs-85EA2D.svg?logo=swagger&logoColor=white"></a>
+  <img alt="API Docs" src="https://img.shields.io/badge/API-Docs-85EA2D.svg?logo=swagger&logoColor=white">
 </p>
 
 <img src="./screenshots/screensaver.png" alt="Posterrama hero" width="740">
