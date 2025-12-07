@@ -17505,10 +17505,10 @@ select.input-error:focus {
 }
 
 .doc-search-inline .doc-search-input:focus {
-    border-color: var(--color-success);
+    border-color: var(--color-text-muted);
     box-shadow:
         inset 0 1px 2px rgba(0, 0, 0, 0.15),
-        0 0 0 3px rgba(76, 175, 80, 0.15);
+        0 0 0 3px rgba(255, 255, 255, 0.02);
 }
 
 .doc-search-inline .doc-search-input::placeholder {
@@ -17625,6 +17625,19 @@ select.input-error:focus {
     text-overflow: ellipsis;
 }
 
+.doc-search-result-default {
+    margin-left: auto;
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: rgba(134, 239, 172, 0.7);
+    background: rgba(134, 239, 172, 0.04);
+    border: 1px solid rgba(134, 239, 172, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
 /* Short description */
 .doc-search-result-desc {
     font-size: 0.75rem;
@@ -17652,26 +17665,34 @@ select.input-error:focus {
     margin-bottom: 8px;
 }
 
+.doc-search-result-help p {
+    margin: 0 0 8px 0;
+}
+
+.doc-search-result-help p:last-child {
+    margin-bottom: 0;
+}
+
+.doc-search-result-help strong {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
 .doc-search-result-example {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
     font-size: 0.72rem;
     color: var(--color-text-secondary);
     background: color-mix(in srgb, var(--color-bg-tertiary) 70%, var(--color-bg-primary));
     padding: 8px 10px;
     border-radius: 4px;
     border-left: 2px solid var(--color-secondary);
+    white-space: pre-wrap;
+    line-height: 1.5;
 }
 
-.doc-search-result-example::before {
-    content: '\f0eb'; /* fa-lightbulb */
-    font-family: 'Font Awesome 5 Free';
-    font-weight: 900;
-    font-size: 0.75rem;
-    color: var(--color-warning);
-    flex-shrink: 0;
-    margin-top: 1px;
+.doc-search-result-example strong {
+    color: var(--color-text-muted);
+    font-weight: 500;
+    margin-right: 4px;
 }
 
 /* Action hint */

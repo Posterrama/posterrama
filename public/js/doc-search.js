@@ -132,6 +132,11 @@
                 actionText = 'Go to section';
             }
 
+            const defaultValue =
+                entry.default !== undefined && entry.default !== null
+                    ? String(entry.default)
+                    : null;
+
             html += `
         <div class="doc-search-result${i === 0 ? ' selected' : ''}"
              data-index="${i}"
@@ -141,11 +146,12 @@
           <div class="doc-search-result-header">
             <span class="doc-search-result-category">${escapeHtml(entry.category)}</span>
             <span class="doc-search-result-title">${escapeHtml(entry.title)}</span>
+            ${defaultValue !== null ? `<span class="doc-search-result-default">Default: ${escapeHtml(defaultValue)}</span>` : ''}
           </div>
           <div class="doc-search-result-desc">${escapeHtml(entry.description)}</div>
           <div class="doc-search-result-details">
-            <div class="doc-search-result-help">${escapeHtml(entry.help || entry.description)}</div>
-            ${entry.example ? `<div class="doc-search-result-example">${escapeHtml(entry.example)}</div>` : ''}
+            <div class="doc-search-result-help">${formatHelpText(entry.help || entry.description)}</div>
+            ${entry.example ? `<div class="doc-search-result-example"><strong>Example:</strong> ${escapeHtml(entry.example)}</div>` : ''}
           </div>
           ${actionText ? `<div class="doc-search-result-action"><i class="fas fa-arrow-right"></i> ${actionText}</div>` : ''}
         </div>`;
@@ -178,6 +184,31 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Format help text with simple markdown-like syntax
+     * Supports: **bold**, • bullets, \n\n paragraphs, \n line breaks
+     */
+    function formatHelpText(text) {
+        if (!text) return '';
+
+        // First escape HTML
+        let html = escapeHtml(text);
+
+        // Convert **bold** to <strong>
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+        // Convert double newlines to paragraph breaks
+        html = html.replace(/\n\n/g, '</p><p>');
+
+        // Convert single newlines to <br> (for bullet lists)
+        html = html.replace(/\n/g, '<br>');
+
+        // Wrap in paragraph tags
+        html = '<p>' + html + '</p>';
+
+        return html;
     }
 
     function updateSelection() {

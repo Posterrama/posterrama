@@ -1,6 +1,6 @@
 {
     "version": "2.0.0",
-    "lastUpdated": "2025-12-02",
+    "lastUpdated": "2025-12-07",
     "entries": [
         {
             "id": "cinema-orientation",
@@ -12,7 +12,8 @@
             "example": "Portrait for wall-mounted TVs in vertical position",
             "section": "display",
             "showMode": "cinema",
-            "setting": "cinemaOrientation"
+            "setting": "cinemaOrientation",
+            "default": "auto"
         },
         {
             "id": "cinema-rotation",
@@ -550,7 +551,8 @@
             "help": "Toggle whether the poster/artwork is shown. Disable if you only want metadata or other visual elements.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "showPoster"
+            "setting": "showPoster",
+            "default": "Enabled"
         },
         {
             "id": "screensaver-show-metadata",
@@ -561,7 +563,8 @@
             "help": "Shows the title, year, and other metadata alongside the artwork.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "showMetadata"
+            "setting": "showMetadata",
+            "default": "Enabled"
         },
         {
             "id": "screensaver-show-clearlogo",
@@ -572,7 +575,8 @@
             "help": "When available, shows the official movie/show logo graphic instead of plain text. Clearlogos are sourced from Fanart.tv and your media server.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "showClearLogo"
+            "setting": "showClearLogo",
+            "default": "Enabled"
         },
         {
             "id": "screensaver-show-rotten-tomatoes",
@@ -583,7 +587,8 @@
             "help": "Shows the Rotten Tomatoes score with the appropriate Fresh/Rotten icon. Only displays for movies that meet your minimum score threshold.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "showRottenTomatoes"
+            "setting": "showRottenTomatoes",
+            "default": "Enabled"
         },
         {
             "id": "screensaver-rt-minimum",
@@ -595,7 +600,8 @@
             "example": "Set to 7 to only show ratings for 70%+ reviewed movies.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "rottenTomatoesMinimumScore"
+            "setting": "rottenTomatoesMinimumScore",
+            "default": "0"
         },
         {
             "id": "screensaver-clock-widget",
@@ -606,7 +612,8 @@
             "help": "Adds a clock to your screensaver. You can choose between 12-hour and 24-hour format, and select any timezone. The clock automatically adjusts for daylight saving time.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "clockWidget"
+            "setting": "clockWidget",
+            "default": "Enabled"
         },
         {
             "id": "screensaver-clock-timezone",
@@ -617,7 +624,8 @@
             "help": "Choose which timezone the clock displays. 'Auto' uses your system's timezone. Select a specific timezone if the display is for a different location.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "clockTimezone"
+            "setting": "clockTimezone",
+            "default": "auto"
         },
         {
             "id": "screensaver-clock-format",
@@ -628,7 +636,8 @@
             "help": "Choose between 12-hour (with AM/PM) or 24-hour time display.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "clockFormat"
+            "setting": "clockFormat",
+            "default": "24h"
         },
         {
             "id": "screensaver-ui-scaling-content",
@@ -639,7 +648,8 @@
             "help": "Adjust the size of the poster and metadata area. Values above 100% enlarge, below 100% shrink. Default is 100%.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "uiScaling_content"
+            "setting": "uiScaling_content",
+            "default": "100"
         },
         {
             "id": "screensaver-ui-scaling-clearlogo",
@@ -650,7 +660,8 @@
             "help": "Adjust the size of clearlogo graphics. Increase if logos appear too small, decrease if they dominate the display.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "uiScaling_clearlogo"
+            "setting": "uiScaling_clearlogo",
+            "default": "100"
         },
         {
             "id": "screensaver-ui-scaling-clock",
@@ -661,7 +672,8 @@
             "help": "Adjust the size of the clock widget. Increase for better visibility from across the room.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "uiScaling_clock"
+            "setting": "uiScaling_clock",
+            "default": "100"
         },
         {
             "id": "screensaver-ui-scaling-global",
@@ -672,7 +684,8 @@
             "help": "Adjust the size of all interface elements at once. Useful for quickly adapting to different screen sizes or viewing distances.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "uiScaling_global"
+            "setting": "uiScaling_global",
+            "default": "100"
         },
         {
             "id": "operations-sync-enabled",
@@ -682,7 +695,8 @@
             "description": "Synchronize content across multiple devices.",
             "help": "When enabled, all devices in the same group show the same content at the same time. Creates a unified experience across multiple screens. This setting applies to all display modes.",
             "section": "operations",
-            "setting": "syncEnabled"
+            "setting": "syncEnabled",
+            "default": "Enabled"
         },
         {
             "id": "operations-sync-delay",
@@ -692,7 +706,8 @@
             "description": "Maximum delay for sync alignment.",
             "help": "Sets the maximum time (in milliseconds) devices will wait to synchronize transitions. Higher values improve sync accuracy but may cause brief pauses. This setting applies to all display modes.",
             "section": "operations",
-            "setting": "syncAlignMaxDelayMs"
+            "setting": "syncAlignMaxDelayMs",
+            "default": "1200"
         },
         {
             "id": "screensaver-transition-effect",
@@ -703,7 +718,8 @@
             "help": "Choose how artwork animates. 'Ken Burns' adds slow zoom and pan movement. 'Fade' smoothly dissolves between images. 'Slide' moves images in and out.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "transitionEffect"
+            "setting": "transitionEffect",
+            "default": "kenburns"
         },
         {
             "id": "screensaver-effect-pause",
@@ -714,7 +730,8 @@
             "help": "How many seconds the image remains still after the transition animation completes. Adds a moment of calm before the next transition begins.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "effectPauseTime"
+            "setting": "effectPauseTime",
+            "default": "3"
         },
         {
             "id": "screensaver-transition-interval",
@@ -725,7 +742,8 @@
             "help": "Sets how many seconds each piece of content is displayed before transitioning to the next. Lower values create more dynamic displays, higher values are more relaxed.",
             "section": "display",
             "showMode": "screensaver",
-            "setting": "transitionIntervalSeconds"
+            "setting": "transitionIntervalSeconds",
+            "default": "10"
         },
         {
             "id": "wallart-mode",
@@ -758,7 +776,8 @@
             "help": "Controls how frequently panels rotate to new artwork. Scale of 1-10 where higher values mean faster updates. Affects battery usage on portable devices.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_refreshRate"
+            "setting": "wallartMode_refreshRate",
+            "default": "4"
         },
         {
             "id": "wallart-randomness",
@@ -769,7 +788,8 @@
             "help": "Controls the unpredictability of which panels update and when. Low values create more predictable patterns, high values create more chaotic, varied displays.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_randomness"
+            "setting": "wallartMode_randomness",
+            "default": "2"
         },
         {
             "id": "wallart-animation-type",
@@ -780,7 +800,8 @@
             "help": "Choose the animation style when panels change content. Options include fade, slide, flip, and zoom effects.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_animationType"
+            "setting": "wallartMode_animationType",
+            "default": "flip"
         },
         {
             "id": "wallart-density",
@@ -791,7 +812,8 @@
             "help": "Controls the number of artwork panels shown on screen. Higher density shows more smaller panels, lower density shows fewer larger panels.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_density"
+            "setting": "wallartMode_density",
+            "default": "high"
         },
         {
             "id": "wallart-layout-variant",
@@ -802,7 +824,8 @@
             "help": "Choose the grid layout pattern. Options include uniform grids, masonry layouts, and asymmetric arrangements with featured hero panels.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_layoutVariant"
+            "setting": "wallartMode_layoutVariant",
+            "default": "heroGrid"
         },
         {
             "id": "wallart-ambient-gradient",
@@ -813,7 +836,8 @@
             "help": "Creates a subtle color gradient behind the panels based on the artwork colors. Adds atmosphere and visual cohesion.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_ambientGradient"
+            "setting": "wallartMode_ambientGradient",
+            "default": "Enabled"
         },
         {
             "id": "wallart-bias-ambient-hero",
@@ -835,7 +859,8 @@
             "help": "When enabled, Wallart shows only game covers from RomM, excluding movies, shows, and music. Requires RomM to be configured as a media source.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_gamesOnly"
+            "setting": "wallartMode_gamesOnly",
+            "default": "Disabled"
         },
         {
             "id": "wallart-hero-side",
@@ -868,7 +893,8 @@
             "help": "When enabled, Wallart displays album covers and artist images instead of movie posters. You can configure which metadata to show. Requires a music library in Plex or Jellyfin.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_musicMode_enabled"
+            "setting": "wallartMode_musicMode_enabled",
+            "default": "Disabled"
         },
         {
             "id": "wallart-music-display-style",
@@ -879,7 +905,8 @@
             "help": "Choose how album covers are displayed. Options include flat covers, vinyl record style, CD jewel case, and more.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_musicMode_displayStyle"
+            "setting": "wallartMode_musicMode_displayStyle",
+            "default": "covers-only"
         },
         {
             "id": "wallart-music-animation",
@@ -890,7 +917,8 @@
             "help": "Choose the animation style for album covers. Options include spinning vinyl, CD rotation, or static display.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_musicMode_animation"
+            "setting": "wallartMode_musicMode_animation",
+            "default": "vinyl-spin"
         },
         {
             "id": "wallart-music-density",
@@ -901,7 +929,8 @@
             "help": "Controls how many album covers are shown at once in music mode.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_musicMode_density"
+            "setting": "wallartMode_musicMode_density",
+            "default": "high"
         },
         {
             "id": "wallart-music-show-artist",
@@ -912,7 +941,8 @@
             "help": "Shows the artist/band name below or on the album cover.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_musicMode_showArtist"
+            "setting": "wallartMode_musicMode_showArtist",
+            "default": "Enabled"
         },
         {
             "id": "wallart-music-show-album",
@@ -923,7 +953,8 @@
             "help": "Shows the album name below or on the cover.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_musicMode_showAlbumTitle"
+            "setting": "wallartMode_musicMode_showAlbumTitle",
+            "default": "Enabled"
         },
         {
             "id": "wallart-music-show-year",
@@ -934,7 +965,8 @@
             "help": "Shows when the album was released.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_musicMode_showYear"
+            "setting": "wallartMode_musicMode_showYear",
+            "default": "Enabled"
         },
         {
             "id": "wallart-music-show-genre",
@@ -945,7 +977,8 @@
             "help": "Shows the genre (Rock, Jazz, Electronic, etc.) for each album.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_musicMode_showGenre"
+            "setting": "wallartMode_musicMode_showGenre",
+            "default": "Disabled"
         },
         {
             "id": "wallart-music-artist-rotation",
@@ -956,7 +989,8 @@
             "help": "Sets how many seconds an artist's content is displayed before rotating. Longer times let you appreciate each artist more.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_musicMode_artistRotationSeconds"
+            "setting": "wallartMode_musicMode_artistRotationSeconds",
+            "default": "60"
         },
         {
             "id": "wallart-music-album-rotation",
@@ -967,7 +1001,8 @@
             "help": "Sets how many seconds each album cover is displayed before rotating.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_musicMode_albumRotationSeconds"
+            "setting": "wallartMode_musicMode_albumRotationSeconds",
+            "default": "15"
         },
         {
             "id": "wallart-music-sort-mode",
@@ -978,7 +1013,8 @@
             "help": "Choose how albums and artists are ordered: by recently added, popularity, or randomly shuffled. You can also set weighted combinations.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_musicMode_sortMode"
+            "setting": "wallartMode_musicMode_sortMode",
+            "default": "weighted-random"
         },
         {
             "id": "plex-integration",
@@ -1228,7 +1264,8 @@
             "description": "Auto-register devices in Home Assistant.",
             "help": "When enabled, Posterrama devices automatically appear in Home Assistant as controllable entities. No manual YAML configuration needed.",
             "section": "operations",
-            "setting": "mqtt.discovery.enabled"
+            "setting": "mqtt.discovery.enabled",
+            "default": "Enabled"
         },
         {
             "id": "backup-restore",
@@ -1899,7 +1936,8 @@
             "help": "Enable to use poster images from a local folder on the server. Great for custom artwork or posters not in your media library.",
             "section": "media-sources",
             "showPanel": "panel-local",
-            "setting": "localDirectory.enabled"
+            "setting": "localDirectory.enabled",
+            "default": "Enabled"
         },
         {
             "id": "streaming-enabled",
@@ -1954,7 +1992,8 @@
             "description": "Turn MQTT integration on or off.",
             "help": "Enable to connect Posterrama to an MQTT broker for home automation integration. Works with Home Assistant, Node-RED, and other MQTT clients.",
             "section": "operations",
-            "setting": "mqtt.enabled"
+            "setting": "mqtt.enabled",
+            "default": "Enabled"
         },
         {
             "id": "mqtt-broker",
@@ -2055,7 +2094,8 @@
             "example": "3",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_parallaxDepth_layerCount"
+            "setting": "wallartMode_parallaxDepth_layerCount",
+            "default": "3"
         },
         {
             "id": "wallart-parallax-depth-scale",
@@ -2066,7 +2106,8 @@
             "help": "How pronounced the depth/distance effect is between layers. Higher = more dramatic parallax.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_parallaxDepth_depthScale"
+            "setting": "wallartMode_parallaxDepth_depthScale",
+            "default": "1.3"
         },
         {
             "id": "wallart-parallax-perspective",
@@ -2077,7 +2118,8 @@
             "help": "Controls the 3D perspective effect. Higher values create a more dramatic vanishing point effect.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_parallaxDepth_perspective"
+            "setting": "wallartMode_parallaxDepth_perspective",
+            "default": "1000"
         },
         {
             "id": "wallart-parallax-speed",
@@ -2088,7 +2130,8 @@
             "help": "How fast the parallax scrolling animation moves. Lower = slower and more subtle.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_parallaxDepth_speed"
+            "setting": "wallartMode_parallaxDepth_speed",
+            "default": "1"
         },
         {
             "id": "wallart-parallax-smooth-scroll",
@@ -2099,7 +2142,8 @@
             "help": "When enabled, scrolling has a smooth easing effect instead of linear movement.",
             "section": "display",
             "showMode": "wallart",
-            "setting": "wallartMode_parallaxDepth_smoothScroll"
+            "setting": "wallartMode_parallaxDepth_smoothScroll",
+            "default": "Enabled"
         },
         {
             "id": "wallart-music-weight-recent",
@@ -2154,6 +2198,52 @@
             "section": "media-sources",
             "showPanel": "panel-tmdb",
             "setting": "streaming.providers"
+        },
+        {
+            "id": "environment-variables",
+            "title": "Environment Variables",
+            "category": "Environment Variables",
+            "keywords": [
+                "env",
+                "environment",
+                "variables",
+                "config",
+                "dotenv",
+                ".env",
+                "server",
+                "port",
+                "secret",
+                "admin",
+                "plex",
+                "jellyfin",
+                "romm",
+                "debug",
+                "log",
+                "session"
+            ],
+            "description": "Configure Posterrama using environment variables.",
+            "help": "Environment variables can be set in a .env file in the root directory or passed directly to the server. They override config.json settings.\n\n**Server:**\n• SERVER_PORT (default: 4000) - Server port\n• NODE_ENV (development/production/test)\n• DEBUG (true/false) - Enable debug mode\n\n**Authentication:**\n• SESSION_SECRET (required) - Cookie signing secret\n• ADMIN_USERNAME - Admin login username\n• ADMIN_PASSWORD_HASH - Bcrypt hashed password\n• ADMIN_2FA_SECRET - TOTP secret for 2FA\n• API_ACCESS_TOKEN - Token for API access\n\n**Plex:**\n• PLEX_HOSTNAME - Plex server hostname/IP\n• PLEX_PORT (default: 32400) - Plex server port\n• PLEX_TOKEN - Plex authentication token\n\n**Jellyfin:**\n• JELLYFIN_HOSTNAME - Jellyfin server hostname/IP\n• JELLYFIN_PORT (default: 8096) - Jellyfin server port\n• JELLYFIN_TOKEN - Jellyfin API key\n• JELLYFIN_INSECURE_HTTPS (true/false) - Allow self-signed certs\n\n**RomM:**\n• ROMM_HOSTNAME - RomM server hostname/IP\n• ROMM_PORT (default: 8080) - RomM server port\n• ROMM_USERNAME / ROMM_PASSWORD - RomM credentials\n\n**Logging:**\n• LOG_LEVEL (error/warn/info/debug) - Logging verbosity\n• DEBUG_JELLYFIN / DEBUG_ROMM - Source-specific debugging\n• JELLYFIN_HTTP_DEBUG / ROMM_HTTP_DEBUG - HTTP client debugging",
+            "example": "Create a .env file: SESSION_SECRET=\"your-secret-here\"\nSERVER_PORT=4000\nLOG_LEVEL=info",
+            "section": null
+        },
+        {
+            "id": "api-documentation",
+            "title": "API Documentation",
+            "category": "System",
+            "keywords": [
+                "api",
+                "rest",
+                "swagger",
+                "openapi",
+                "documentation",
+                "endpoints",
+                "integration",
+                "automation"
+            ],
+            "description": "Access the interactive API documentation.",
+            "help": "Posterrama provides a comprehensive REST API for automation and integration. The interactive Swagger/OpenAPI documentation is available at /api-docs on your server. It lists all available endpoints, request/response formats, and allows you to test API calls directly.",
+            "example": "Open http://your-server:4000/api-docs in your browser",
+            "section": null
         }
     ]
 }
