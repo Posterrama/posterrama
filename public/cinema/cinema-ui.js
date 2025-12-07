@@ -529,7 +529,7 @@
                 selectOptions.push(el('option', { value: preset }, preset));
             });
 
-            const currentValue = ctx[key] !== undefined ? ctx[key] : meta.defaultVal;
+            const _currentValue = ctx[key] !== undefined ? ctx[key] : meta.defaultVal;
             const selectId = `cin-ctx-${key}`;
             const priorityLabel = meta.noPriority ? '' : `#${priorityIndex + 1}`;
 
@@ -850,7 +850,7 @@
             row.classList.add('ctx-dragging');
             e.dataTransfer.effectAllowed = 'move';
         });
-        sortableContainer.addEventListener('dragend', e => {
+        sortableContainer.addEventListener('dragend', _e => {
             if (draggedEl) {
                 draggedEl.classList.remove('ctx-dragging');
                 draggedEl = null;
@@ -2878,7 +2878,7 @@
     }
 
     function collectCinemaOnly(baseCfg) {
-        const cfg = baseCfg || {};
+        const _cfg = baseCfg || {};
 
         // Collect priority order from sortable container
         const sortableContainer = document.querySelector('.ctx-sortable-container');
