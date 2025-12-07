@@ -51,7 +51,7 @@ Use it as:
 
 ### Cinema mode
 
-Perfect for vertical screens or digital signage. Show a rotating selection of posters in portrait orientation, with smooth transitions and optional info overlays. Ideal for hallway displays, kiosks, or a true cinema entrance feel.
+Transform any portrait screen into an authentic cinema entrance experience. Cinema mode displays fullscreen movie posters with rich metadata, theatrical lighting effects, and the unmistakable ambiance of a real movie theater lobby.
 
 <p>
   <img src="./screenshots/cinema_1.png" alt="Cinema Mode - Classic" width="155">&nbsp;
@@ -61,14 +61,19 @@ Perfect for vertical screens or digital signage. Show a rotating selection of po
   <img src="./screenshots/cinema_5.png" alt="Cinema Mode - Now Playing" width="155">
 </p>
 
-_From left to right: "Feature Presentation" banner with metadata footer showing year, rating score, content rating, and genres plus technical badges (4K, Dolby Atmos, Dolby Vision); "Now Playing" mode displaying the movie tagline; vintage-style header with logo art integration; and QR code overlay for quick mobile access alongside rich technical specifications._
+_Different configurations showing the versatility of Cinema mode — from classic theatrical banners to rich metadata displays with QR codes for mobile access._
 
 **Key features:**
 
-- Optimized for portrait/vertical screens
-- Smooth poster transitions
-- Optional info overlays and ratings
-- Now Playing mode — automatically displays posters from active Plex sessions. Perfect for showing what's currently being watched in real-time, with automatic fallback to rotation when playback stops
+- **Poster presentation**: 8 poster styles (floating, framed, polaroid, shadowBox, neon, ornate, and more) with 4 transition animations and vintage overlays (grain, VHS, scanlines, old movie)
+- **Smart headers**: Context-aware header text that automatically adapts — show "Now Playing" for active streams, "4K Ultra HD" for high-res content, "Certified Fresh" for top-rated films, or time-based messages like "Late Night Feature" and "Weekend Matinee". Fully customizable with 12 font families and configurable priority order
+- **Rich metadata footer**: Display year, runtime, ratings, genres, director, cast, and plot — or switch to a scrolling marquee or movie tagline. Technical specs badges show resolution (4K), audio format (Dolby Atmos), and HDR support (Dolby Vision)
+- **Theatrical backgrounds**: Choose from solid, blurred poster, gradient, ambient color extraction, spotlight effect, animated starfield, or velvet curtain — with optional vignette for that true theater feel
+- **Ambilight effect**: Poster colors glow beyond the frame edges, creating an immersive ambient lighting effect
+- **Now Playing integration**: Automatically displays what's currently streaming on Plex in real-time, with graceful fallback to poster rotation when playback stops
+- **Promotional features**: QR code overlays linking to trailers, IMDb, or TMDB pages — perfect for commercial venues. Optional trailer video playback with configurable autoplay and loop settings
+- **Ton-sur-ton typography**: Auto-calculated text colors that harmonize with each poster's palette for an elegant, cohesive look
+- **12 built-in presets**: From Classic Cinema and Noir to Neon Nights, Vintage Theater, Art Deco, and IMAX Premium — one-click styles to match any mood
 
 ### Wallart mode
 
