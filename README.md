@@ -4,9 +4,9 @@
       <img src="./public/logo.png" alt="Posterrama Logo" width="56">
     </td>
     <td valign="middle">
-      <img src="./public/readme-wordmark.svg" alt="posterrama" height="30">
+      <img src="./public/readme-wordmark.svg" alt="posterrama" height="42">
       <br>
-      <sub><em>Transform any screen into your personal gallery</em></sub>
+      <span style="font-size: 16px;"><em>Transform any screen into your personal gallery</em></span>
     </td>
   </tr>
 </table>

@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="820" height="120" viewBox="0 0 820 120" role="img" aria-label="posterrama">
   <defs>
-    <linearGradient id="posterramaGradient" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#667eea"/>
-      <stop offset="50%" stop-color="#764ba2"/>
-      <stop offset="100%" stop-color="#f093fb"/>
+    <linearGradient id="posterramaGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#73daca"/>
+      <stop offset="100%" stop-color="#7aa2f7"/>
     </linearGradient>
   </defs>
 
