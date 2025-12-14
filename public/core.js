@@ -555,17 +555,46 @@
             configChannel.onmessage = event => {
                 try {
                     if (event.data && event.data.type === 'config-updated') {
-                        // Update window.appConfig first (merge new settings into existing config)
-                        if (!window.appConfig) {
-                            window.appConfig = {};
-                        }
-                        Object.assign(window.appConfig, event.data.settings);
+                        // IMPORTANT:
+                        // Do NOT blindly merge the admin patch into appConfig here.
+                        // If this browser is a managed device with a profile, the patch would
+                        // overwrite profile-derived overrides. Instead, re-fetch /get-config
+                        // (which applies per-device/profile merges server-side) and dispatch.
+                        (async () => {
+                            try {
+                                const cfg = await Core.fetchConfig();
+                                if (cfg && typeof cfg === 'object') {
+                                    if (
+                                        typeof window.appConfig === 'object' &&
+                                        window.appConfig !== null
+                                    ) {
+                                        Object.assign(window.appConfig, cfg);
+                                    } else {
+                                        window.appConfig = cfg;
+                                    }
 
-                        // Dispatch settingsUpdated event just like WebSocket does
-                        const settingsEvent = new CustomEvent('settingsUpdated', {
-                            detail: { settings: event.data.settings },
-                        });
-                        window.dispatchEvent(settingsEvent);
+                                    window.dispatchEvent(
+                                        new CustomEvent('settingsUpdated', {
+                                            detail: { settings: cfg },
+                                        })
+                                    );
+                                    return;
+                                }
+                            } catch (_) {
+                                // Fall back to patch application if fetch fails
+                            }
+
+                            // Fallback: best-effort patch merge (legacy behavior)
+                            if (!window.appConfig) {
+                                window.appConfig = {};
+                            }
+                            Object.assign(window.appConfig, event.data.settings || {});
+                            window.dispatchEvent(
+                                new CustomEvent('settingsUpdated', {
+                                    detail: { settings: event.data.settings || {} },
+                                })
+                            );
+                        })();
                     }
                 } catch (e) {
                     console.error('[Core] BroadcastChannel message handling failed:', e);

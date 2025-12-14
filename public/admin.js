@@ -23,86 +23,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
     // Posterpack debug logger removed
 
-    // ---- Diagnostic Sentinel (notifications resilience) ----
-    // Provides quick confirmation in the browser console that the latest admin.js has loaded.
-    // Type:  __diagUI   or  window.__diagUI.showScripts()  in DevTools.
-    try {
-        // Directory modal UI removed (fixed 'media' root)
-        // Minimal diagnostic helpers for modals (safe to keep in production)
-        window.__diagUI = window.__diagUI || {};
-        window.__diagUI.modalInfo = function modalInfo(id) {
-            try {
-                const el = document.getElementById(id);
-                if (!el) return { exists: false };
-                const r = el.getBoundingClientRect();
-                return {
-                    exists: true,
-                    id,
-                    classes: [...el.classList],
-                    rect: r.toJSON(),
-                    portal: el.hasAttribute('data-portal'),
-                    hiddenAttr: el.hasAttribute('hidden'),
-                    ariaHidden: el.getAttribute('aria-hidden'),
-                    open: el.classList.contains('open'),
-                    parent: el.parentElement?.id || el.parentElement?.className,
-                };
-            } catch (e) {
-                return { error: e?.message };
-            }
-        };
-        window.__diagUI.openModalTest = function openModalTest(id) {
-            try {
-                window.openModal?.(id);
-                return window.__diagUI.modalInfo(id);
-            } catch (e) {
-                return { error: e?.message };
-            }
-        };
-        // Clear any previous log guard to ensure visibility
-        // Removed admin boot sentinel log (was noisy in production)
-        try {
-            window.__adminTrace = window.__adminTrace || [];
-            window.__adminTrace.push('after:sentinel');
-        } catch (_) {
-            /* adminTrace push is best-effort (localStorage/memory issues) */
-        }
-        // Portal watchdog (deferred): only repairs after user opens panel at least once to avoid auto-open side effect
-        try {
-            if (!window.__notifPortalWatch) {
-                window.__notifPortalWatch = setInterval(() => {
-                    try {
-                        const panel = document.getElementById('notify-center');
-                        if (!panel) return;
-                        if (!window.__notifUserOpenedOnce) return; // do nothing until user has opened
-                        if (!panel.classList.contains('open')) return; // only enforce when meant to be visible
-                        const r = panel.getBoundingClientRect();
-                        if (r.width === 0 || r.height === 0) {
-                            if (panel.parentElement !== document.body) {
-                                document.body.appendChild(panel);
-                                panel.setAttribute('data-portal', 'true');
-                                console.warn(
-                                    '[NotifDebug] watchdog moved panel to body (post-open)'
-                                );
-                            }
-                            window.__ensureVisible?.(panel, 'notify');
-                        } else if (window.__notifUserOpenedOnce) {
-                            // Once we have a healthy rect after user interaction we can retire the watchdog
-                            clearInterval(window.__notifPortalWatch);
-                            window.__notifPortalWatch = null;
-                        }
-                    } catch (e) {
-                        console.warn('[NotifDebug] portal watchdog error', e);
-                    }
-                }, 1200);
-            }
-        } catch (_) {
-            /* portal watchdog setup failed; resilience feature only */
-        }
-        // NOTE: portal watchdog is a resilience fallback. Can be removed once root cause of zero-size containment is permanently fixed.
-    } catch (_diagErr) {
-        /* admin diag helper init failed (suppressed) */
-    }
-
     // Early fallback binding for notification button (before heavy logic) so we at least log clicks.
     try {
         const earlyNotifBtn = document.getElementById('notif-btn');
@@ -1531,8 +1451,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
             // Clean up old localStorage (migration)
             localStorage.removeItem('dashboardCards');
-
-            console.log('[Dashboard Cards] Saved to server:', selectedIds);
         } catch (e) {
             console.error('Failed to save card config:', e);
             // Show error to user
@@ -1548,11 +1466,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         if (!container) return;
 
         const selectedIds = loadCardConfig();
-        console.log('[Dashboard Cards] Rendering cards:', selectedIds);
-        console.log(
-            '[Dashboard Cards] window.__serverConfig.dashboardCards:',
-            window.__serverConfig?.dashboardCards
-        );
         container.innerHTML = '';
 
         selectedIds.forEach(id => {
@@ -7639,7 +7552,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
             // Create mobile toggle tab element - APPEND TO BODY, not container!
             let tab = document.querySelector('.mobile-preview-tab');
-            console.log('[DEBUG] Existing tab found:', tab);
 
             if (!tab) {
                 tab = document.createElement('div');
@@ -7647,25 +7559,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 tab.innerHTML = '<i class="fas fa-chevron-left"></i>';
                 tab.title = 'Toggle preview';
                 document.body.appendChild(tab); // Append to body instead of container!
-                console.log('[DEBUG] Tab created and appended to BODY');
-                console.log('[DEBUG] Tab element:', tab);
-                console.log(
-                    '[DEBUG] Tab computed style display:',
-                    window.getComputedStyle(tab).display
-                );
-                console.log(
-                    '[DEBUG] Tab computed style position:',
-                    window.getComputedStyle(tab).position
-                );
-                console.log(
-                    '[DEBUG] Tab computed style right:',
-                    window.getComputedStyle(tab).right
-                );
-                console.log(
-                    '[DEBUG] Tab computed style zIndex:',
-                    window.getComputedStyle(tab).zIndex
-                );
-                console.log('[DEBUG] Tab offsetParent:', tab.offsetParent);
             }
 
             // Show/hide tab based on section visibility
@@ -7674,16 +7567,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 const isDisplayActive = section && section.classList.contains('active');
                 if (tab) {
                     tab.style.display = isDisplayActive ? 'flex' : 'none';
-                    console.log(
-                        '[DEBUG] Tab visibility updated:',
-                        isDisplayActive ? 'visible' : 'hidden'
-                    );
 
                     // If leaving display settings, also hide the preview
                     if (!isDisplayActive && container.classList.contains('mobile-expanded')) {
                         container.classList.remove('mobile-expanded');
                         container.style.display = 'none';
-                        console.log('[DEBUG] Left display settings, collapsed preview');
                     }
                 }
             };
@@ -7736,9 +7624,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             };
 
             document.addEventListener('click', closePreview);
-
-            console.log('[DEBUG] Mobile preview initialized, collapsed by default');
-            console.log('[DEBUG] Tab should be visible at right edge of screen');
         })();
     }
 
@@ -7769,12 +7654,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         } catch (e) {
             console.warn('API key status refresh failed', e);
         }
-    }
-
-    async function refreshSecurity() {
-        // Note: Security panel has been removed, this function is kept for compatibility
-        // with existing 2FA handlers in the user menu
-        // Security panel refresh requested (panel removed, skipping)
     }
 
     function openModal(id) {
@@ -7830,7 +7709,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         }
     }
     // Unified overlay show helper (for legacy direct handlers using classList only)
-    function __showOverlay(el, label = 'overlay') {
+    function __showOverlay(el, _label = 'overlay') {
         if (!el) return;
         try {
             if (el.__origStyle === undefined) {
@@ -7842,7 +7721,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             if (window.__ensureVisible) window.__ensureVisible(el, 'modal');
             const r = el.getBoundingClientRect();
             if (r.width === 0 || r.height === 0) {
-                console.warn('[ModalDebug] zero-rect after showOverlay', label, r.toJSON());
                 // Force minimal sizing try
                 try {
                     el.style.minWidth = el.style.minWidth || '320px';
@@ -7867,18 +7745,12 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         });
                         p = p.parentElement;
                     }
-                    console.warn('[ModalDebug] ancestor chain', label, chain);
                     // If parent chain suggests any ancestor has display:none, portal to body
                     const hiddenAncestor = chain.find(a => a.display === 'none');
                     if (hiddenAncestor || el.parentElement !== document.body) {
                         try {
                             document.body.appendChild(el);
                             el.setAttribute('data-portal', 'true');
-                            console.warn(
-                                '[ModalDebug] portal relocation applied',
-                                label,
-                                hiddenAncestor
-                            );
                         } catch (_) {
                             /* portalize attempt failed; keep original parent */
                         }
@@ -7893,17 +7765,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                 el.style.height = '100vh';
                                 el.style.alignItems = 'center';
                                 el.style.justifyContent = 'center';
-                                console.error(
-                                    '[ModalDebug] still zero-rect after portal & hard sizing',
-                                    label,
-                                    r2.toJSON()
-                                );
-                            } else {
-                                console.info(
-                                    '[ModalDebug] rect recovered after portal sizing',
-                                    label,
-                                    r2.toJSON()
-                                );
                             }
                         } catch (_) {
                             /* retry measurement failed (diagnostic only) */
@@ -7914,7 +7775,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 }
             }
         } catch (e) {
-            console.warn('[ModalDebug] showOverlay failed', label, e);
+            /* showOverlay best-effort; ignore */
         }
     }
 
@@ -7955,13 +7816,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             el.setAttribute('data-portal', 'true');
             __showOverlay(el, id + ':force');
             return true;
-        };
-        window.disableNotifWatchdog = () => {
-            if (window.__notifPortalWatch) {
-                clearInterval(window.__notifPortalWatch);
-                window.__notifPortalWatch = null;
-                // debug removed
-            }
         };
     } catch (_) {
         /* modal helpers exposure failed (optional) */
@@ -12164,7 +12018,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     duration: 4000,
                 });
                 closeModal('modal-2fa');
-                refreshSecurity();
             } catch (e) {
                 window.notify?.toast({
                     type: 'error',
@@ -13188,15 +13041,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 const overlay = document.getElementById('modal-merge');
                 if (overlay) {
                     __showOverlay(overlay, 'modal-merge');
-                    try {
-                        if (window.__uiDebug)
-                            console.info(
-                                '[ModalDebug] merge rect',
-                                overlay.getBoundingClientRect().toJSON()
-                            );
-                    } catch (_) {
-                        /* merge modal debug log optional; ignore */
-                    }
                 }
             }
             async function submitMerge() {
@@ -13430,22 +13274,14 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     __showOverlay(pairingOverlay, 'modal-pairing');
                     try {
                         const r = pairingOverlay.getBoundingClientRect();
-                        if (window.__uiDebug)
-                            console.info('[ModalDebug] openPairingFor rect', r.toJSON());
                         if (
                             (r.width === 0 || r.height === 0) &&
                             pairingOverlay.parentElement !== document.body
                         ) {
-                            console.warn('[ModalDebug] pairing zero-rect; force portal move');
                             document.body.appendChild(pairingOverlay);
                             pairingOverlay.setAttribute('data-portal', 'true');
                             requestAnimationFrame(() => {
                                 const r2 = pairingOverlay.getBoundingClientRect();
-                                if (window.__uiDebug)
-                                    console.info(
-                                        '[ModalDebug] pairing rect after portal',
-                                        r2.toJSON()
-                                    );
                                 if (r2.width === 0 || r2.height === 0) {
                                     pairingOverlay.style.width = '100vw';
                                     pairingOverlay.style.height = '100vh';
@@ -13584,16 +13420,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
                 // Update button states when opening
                 updateRemoteButtonStates(id);
-
-                try {
-                    if (window.__uiDebug)
-                        console.info(
-                            '[ModalDebug] openRemoteFor rect',
-                            overlay.getBoundingClientRect().toJSON()
-                        );
-                } catch (_) {
-                    /* DOMContentLoaded wrap attempt failed (later timers/raf still execute) */
-                }
                 // Attach a single delegated click handler once
                 if (!overlay._remoteBound) {
                     overlay.addEventListener('click', async ev => {
@@ -13661,16 +13487,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 const overlay = document.getElementById('modal-override');
                 const textarea = document.getElementById('override-json');
                 if (overlay) __showOverlay(overlay, 'modal-override');
-                try {
-                    overlay &&
-                        window.__uiDebug &&
-                        console.info(
-                            '[ModalDebug] openOverrideFor rect',
-                            overlay.getBoundingClientRect().toJSON()
-                        );
-                } catch (_) {
-                    /* admin2 mediaSourceWrapDebug export failed (debug only) */
-                }
                 const applyBtn = document.getElementById('btn-override-apply');
                 const statusEl = document.getElementById('override-json-status');
                 const formatBtn = document.getElementById('override-format');
@@ -14598,22 +14414,14 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     __showOverlay(overlay, 'modal-sendcmd');
                     try {
                         const r = overlay.getBoundingClientRect();
-                        if (window.__uiDebug)
-                            console.info('[ModalDebug] openSendCmdFor rect', r.toJSON());
                         if (
                             (r.width === 0 || r.height === 0) &&
                             overlay.parentElement !== document.body
                         ) {
-                            console.warn('[ModalDebug] sendcmd zero-rect; force portal move');
                             document.body.appendChild(overlay);
                             overlay.setAttribute('data-portal', 'true');
                             requestAnimationFrame(() => {
                                 const r2 = overlay.getBoundingClientRect();
-                                if (window.__uiDebug)
-                                    console.info(
-                                        '[ModalDebug] sendcmd rect after portal',
-                                        r2.toJSON()
-                                    );
                                 if (r2.width === 0 || r2.height === 0) {
                                     overlay.style.width = '100vw';
                                     overlay.style.height = '100vh';
@@ -15587,15 +15395,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     /* location datalist build failed (non-fatal; user may type any value) */
                 }
                 __showOverlay(overlay, 'modal-assign-location');
-                try {
-                    if (window.__uiDebug)
-                        console.info(
-                            '[ModalDebug] assign-location rect',
-                            overlay.getBoundingClientRect().toJSON()
-                        );
-                } catch (_) {
-                    /* assign-location modal debug rect read failed (overlay still opens) */
-                }
                 setTimeout(() => locationInput?.focus(), 50);
             }
             btnLocationApply?.addEventListener('click', async () => {
@@ -16844,15 +16643,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
                         if (overlay) {
                             __showOverlay(overlay, 'modal-create-device');
-                            try {
-                                if (window.__uiDebug)
-                                    console.info(
-                                        '[ModalDebug] create-device rect',
-                                        overlay.getBoundingClientRect().toJSON()
-                                    );
-                            } catch (_) {
-                                /* close other header menu failed (ignorable) */
-                            }
                         }
                         const confirmBtn = document.getElementById('btn-create-device-confirm');
                         const onConfirm = async () => {
@@ -17997,7 +17787,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     duration: 3500,
                 });
                 closeModal('modal-2fa-disable');
-                refreshSecurity();
                 // Clear password field
                 if (pw) pw.value = '';
             } catch (e) {
@@ -18909,15 +18698,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         btnForce.style.display = 'none';
         content.innerHTML = '<div class="subtle">Loading update information…</div>';
         __showOverlay(overlay, 'modal-update');
-        try {
-            if (window.__uiDebug)
-                console.info(
-                    '[ModalDebug] openUpdateModal overlay rect',
-                    overlay.getBoundingClientRect().toJSON()
-                );
-        } catch (_) {
-            /* clock rows re-display failed (non-fatal cosmetic) */
-        }
 
         try {
             const r = await fetch('/api/admin/update-check', { credentials: 'include' });
