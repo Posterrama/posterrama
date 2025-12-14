@@ -14828,16 +14828,19 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             function renderProfiles() {
                 const grid = document.getElementById('profiles-grid');
                 const empty = document.getElementById('profiles-empty');
+                const headerBtn = document.getElementById('btn-create-profile');
                 if (!grid || !empty) return;
 
                 if (!state.profiles.length) {
                     grid.style.display = 'none';
                     empty.style.display = 'block';
+                    if (headerBtn) headerBtn.style.display = 'none';
                     return;
                 }
 
                 grid.style.display = 'grid';
                 empty.style.display = 'none';
+                if (headerBtn) headerBtn.style.display = '';
 
                 grid.innerHTML = state.profiles
                     .map(p => {
@@ -15150,13 +15153,23 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     return;
                 }
 
+                if (!profileId) {
+                    window.notify?.toast({
+                        type: 'warning',
+                        title: 'No profile selected',
+                        message:
+                            'Please select a profile to assign, or use Clear to remove the current profile.',
+                    });
+                    return;
+                }
+
                 let ok = 0;
                 for (const id of ids) {
                     try {
                         await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ profileId: profileId || null }),
+                            body: JSON.stringify({ profileId: profileId }),
                         });
                         ok++;
                     } catch (_) {

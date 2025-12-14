@@ -190,6 +190,58 @@
 #profiles-ui .profiles-grid {
     margin-top: 8px;
 }
+/* Profiles section buttons - theme aligned surface style */
+#profiles-ui .btn.btn-primary.btn-sm,
+#profiles-ui .btn.btn-sm {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-weight: 500;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.25s ease;
+}
+#profiles-ui .btn.btn-primary.btn-sm i,
+#profiles-ui .btn.btn-primary.btn-sm .fas,
+#profiles-ui .btn.btn-primary.btn-sm > span:not(.spinner),
+#profiles-ui .btn.btn-sm i,
+#profiles-ui .btn.btn-sm .fas {
+    color: color-mix(in srgb, var(--color-secondary) 85%, white);
+}
+#profiles-ui .btn.btn-primary.btn-sm:hover,
+#profiles-ui .btn.btn-primary.btn-sm:focus,
+#profiles-ui .btn.btn-primary.btn-sm:focus-visible,
+#profiles-ui .btn.btn-sm:hover,
+#profiles-ui .btn.btn-sm:focus,
+#profiles-ui .btn.btn-sm:focus-visible {
+    color: var(--color-text-primary) !important;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+#profiles-ui .btn.btn-primary.btn-sm:active,
+#profiles-ui .btn.btn-sm:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
 /* Inline meta beside the thumbnail (single-line, no extra height) */
 #section-devices .nowplay-thumb .nowplay-meta {
     display: flex;
@@ -387,14 +439,17 @@
 }
 #modal-group-assign .btn-remove-accent,
 #modal-assign-preset .btn-remove-accent,
-#modal-assign-location .btn-remove-accent {
+#modal-assign-location .btn-remove-accent,
+#modal-assign-profile .btn-remove-accent {
     --accent-color: var(--color-warning);
 }
-#modal-group-assign .btn-assign-accent {
+#modal-group-assign .btn-assign-accent,
+#modal-assign-profile .btn-assign-accent {
     --accent-color: var(--color-secondary);
 }
 #modal-group-assign .modal-footer .btn,
-#modal-group-assign .form-group .btn.btn-assign-accent {
+#modal-group-assign .form-group .btn.btn-assign-accent,
+#modal-assign-profile .modal-footer .btn {
     border: none;
     border-radius: 4px;
     background:
@@ -420,14 +475,17 @@
 #modal-group-assign .modal-footer .btn:hover,
 #modal-group-assign .form-group .btn.btn-assign-accent:hover,
 #modal-group-assign .modal-footer .btn:focus-visible,
-#modal-group-assign .form-group .btn.btn-assign-accent:focus-visible {
+#modal-group-assign .form-group .btn.btn-assign-accent:focus-visible,
+#modal-assign-profile .modal-footer .btn:hover,
+#modal-assign-profile .modal-footer .btn:focus-visible {
     color: var(--color-text-primary);
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
         linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
 }
 #modal-group-assign .modal-footer .btn:active,
-#modal-group-assign .form-group .btn.btn-assign-accent:active {
+#modal-group-assign .form-group .btn.btn-assign-accent:active,
+#modal-assign-profile .modal-footer .btn:active {
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
         linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
@@ -435,28 +493,36 @@
         0 1px 0 0 rgba(255, 255, 255, 0.05),
         0 1px 1px rgba(0, 0, 0, 0.25) inset;
 }
-#modal-group-assign .modal-footer .btn.btn-remove-accent {
+#modal-group-assign .modal-footer .btn.btn-remove-accent,
+#modal-assign-profile .modal-footer .btn.btn-remove-accent {
     color: color-mix(in srgb, var(--color-warning) 78%, var(--color-text-secondary));
 }
 #modal-group-assign .modal-footer .btn.btn-remove-accent:hover,
-#modal-group-assign .modal-footer .btn.btn-remove-accent:focus-visible {
+#modal-group-assign .modal-footer .btn.btn-remove-accent:focus-visible,
+#modal-assign-profile .modal-footer .btn.btn-remove-accent:hover,
+#modal-assign-profile .modal-footer .btn.btn-remove-accent:focus-visible {
     color: color-mix(in srgb, var(--color-warning) 90%, var(--color-text-secondary));
 }
-#modal-group-assign .modal-footer .btn.btn-remove-accent:active {
+#modal-group-assign .modal-footer .btn.btn-remove-accent:active,
+#modal-assign-profile .modal-footer .btn.btn-remove-accent:active {
     color: color-mix(in srgb, var(--color-warning) 95%, var(--color-text-secondary));
 }
 #modal-group-assign .modal-footer .btn.btn-assign-accent,
-#modal-group-assign .form-group .btn.btn-assign-accent {
+#modal-group-assign .form-group .btn.btn-assign-accent,
+#modal-assign-profile .modal-footer .btn.btn-assign-accent {
     color: color-mix(in srgb, var(--color-secondary) 78%, var(--color-text-secondary));
 }
 #modal-group-assign .modal-footer .btn.btn-assign-accent:hover,
 #modal-group-assign .form-group .btn.btn-assign-accent:hover,
 #modal-group-assign .modal-footer .btn.btn-assign-accent:focus-visible,
-#modal-group-assign .form-group .btn.btn-assign-accent:focus-visible {
+#modal-group-assign .form-group .btn.btn-assign-accent:focus-visible,
+#modal-assign-profile .modal-footer .btn.btn-assign-accent:hover,
+#modal-assign-profile .modal-footer .btn.btn-assign-accent:focus-visible {
     color: color-mix(in srgb, var(--color-secondary) 90%, var(--color-text-secondary));
 }
 #modal-group-assign .modal-footer .btn.btn-assign-accent:active,
-#modal-group-assign .form-group .btn.btn-assign-accent:active {
+#modal-group-assign .form-group .btn.btn-assign-accent:active,
+#modal-assign-profile .modal-footer .btn.btn-assign-accent:active {
     color: color-mix(in srgb, var(--color-secondary) 95%, var(--color-text-secondary));
 }
 #modal-create-device .btn-cancel:hover,
@@ -8041,7 +8107,7 @@ body.page-logs {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    z-index: 11000;
+    z-index: 15000; /* Must be above modals (14000) */
 }
 .toast {
     display: flex;
