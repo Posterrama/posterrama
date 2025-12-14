@@ -500,6 +500,11 @@
                             "enum": ["none", "subtle", "dramatic", "neon", "glow"],
                             "default": "subtle",
                             "description": "Global text shadow/glow effect"
+                        },
+                        "hideAllUI": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Hide all UI elements (header, footer, specs, etc.)"
                         }
                     },
                     "additionalProperties": false,
@@ -512,7 +517,8 @@
                         "textColorMode": "custom",
                         "textColor": "#ffffff",
                         "tonSurTonIntensity": 45,
-                        "textEffect": "subtle"
+                        "textEffect": "subtle",
+                        "hideAllUI": false
                     }
                 },
                 "header": {

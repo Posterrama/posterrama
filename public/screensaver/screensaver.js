@@ -450,65 +450,8 @@
                                 showControls();
                             };
                         // Keyboard controls to match legacy
-                        // === Pause Indicator ===
-                        let pauseIndicatorEl = null;
-                        const createPauseIndicator = () => {
-                            if (pauseIndicatorEl) return;
-                            pauseIndicatorEl = document.createElement('div');
-                            pauseIndicatorEl.className = 'screensaver-pause-indicator';
-                            pauseIndicatorEl.innerHTML = `
-                                <div class="pause-icon">
-                                    <span class="pause-bar"></span>
-                                    <span class="pause-bar"></span>
-                                </div>
-                                <span class="pause-text">PAUSED</span>
-                            `;
-                            pauseIndicatorEl.style.cssText = `
-                                position: fixed;
-                                top: 50%;
-                                left: 50%;
-                                transform: translate(-50%, -50%) scale(0.8);
-                                display: flex;
-                                flex-direction: column;
-                                align-items: center;
-                                gap: 1rem;
-                                padding: 2rem 3rem;
-                                background: rgba(0, 0, 0, 0.3);
-                                backdrop-filter: blur(10px);
-                                -webkit-backdrop-filter: blur(10px);
-                                border-radius: 16px;
-                                border: 1px solid rgba(255, 255, 255, 0.1);
-                                opacity: 0;
-                                visibility: hidden;
-                                transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
-                                z-index: 9999;
-                            `;
-                            const icon = pauseIndicatorEl.querySelector('.pause-icon');
-                            if (icon) icon.style.cssText = 'display: flex; gap: 0.5rem;';
-                            pauseIndicatorEl.querySelectorAll('.pause-bar').forEach(bar => {
-                                bar.style.cssText =
-                                    'display: block; width: 0.75rem; height: 3rem; background: #fff; border-radius: 0.25rem;';
-                            });
-                            const text = pauseIndicatorEl.querySelector('.pause-text');
-                            if (text)
-                                text.style.cssText =
-                                    'font-size: 1.25rem; font-weight: 600; color: #fff; letter-spacing: 0.2em; text-transform: uppercase;';
-                            document.body.appendChild(pauseIndicatorEl);
-                        };
-                        const showPauseIndicator = () => {
-                            if (!pauseIndicatorEl) createPauseIndicator();
-                            pauseIndicatorEl.style.opacity = '1';
-                            pauseIndicatorEl.style.visibility = 'visible';
-                            pauseIndicatorEl.style.transform = 'translate(-50%, -50%) scale(1)';
-                        };
-                        const hidePauseIndicator = () => {
-                            if (pauseIndicatorEl) {
-                                pauseIndicatorEl.style.opacity = '0';
-                                pauseIndicatorEl.style.visibility = 'hidden';
-                                pauseIndicatorEl.style.transform =
-                                    'translate(-50%, -50%) scale(0.8)';
-                            }
-                        };
+                        // Note: Pause indicator functions are defined outside this try block
+                        // so they can be accessed by window.__posterramaPlayback
 
                         document.addEventListener('keydown', e => {
                             try {
@@ -518,7 +461,7 @@
                             }
                             if (e.key === 'ArrowRight') {
                                 e.preventDefault();
-                                hidePauseIndicator();
+                                if (typeof hidePauseIndicator === 'function') hidePauseIndicator();
                                 try {
                                     window.__posterramaPlayback &&
                                         window.__posterramaPlayback.next &&
@@ -528,7 +471,7 @@
                                 }
                             } else if (e.key === 'ArrowLeft') {
                                 e.preventDefault();
-                                hidePauseIndicator();
+                                if (typeof hidePauseIndicator === 'function') hidePauseIndicator();
                                 try {
                                     window.__posterramaPlayback &&
                                         window.__posterramaPlayback.prev &&
@@ -548,13 +491,11 @@
                                             window.__posterramaPlayback.resume &&
                                             window.__posterramaPlayback.resume();
                                         if (pauseBtn) pauseBtn.classList.remove('is-paused');
-                                        hidePauseIndicator();
                                     } else {
                                         window.__posterramaPlayback &&
                                             window.__posterramaPlayback.pause &&
                                             window.__posterramaPlayback.pause();
                                         if (pauseBtn) pauseBtn.classList.add('is-paused');
-                                        showPauseIndicator();
                                     }
                                 } catch (_) {
                                     /* noop */
@@ -567,7 +508,6 @@
                                         window.__posterramaPlayback.pause &&
                                         window.__posterramaPlayback.pause();
                                     if (pauseBtn) pauseBtn.classList.add('is-paused');
-                                    showPauseIndicator();
                                 }
                             } else if (e.key === 'MediaPlay') {
                                 e.preventDefault();
@@ -576,13 +516,75 @@
                                         window.__posterramaPlayback.resume &&
                                         window.__posterramaPlayback.resume();
                                     if (pauseBtn) pauseBtn.classList.remove('is-paused');
-                                    hidePauseIndicator();
                                 }
                             }
                         });
                     } catch (_) {
                         /* noop */
                     }
+
+                    // === Pause Indicator ===
+                    let pauseIndicatorEl = null;
+
+                    const createPauseIndicator = () => {
+                        if (pauseIndicatorEl) return;
+                        pauseIndicatorEl = document.createElement('div');
+                        pauseIndicatorEl.className = 'screensaver-pause-indicator';
+                        pauseIndicatorEl.innerHTML = `
+                            <div class="pause-icon">
+                                <span class="pause-bar"></span>
+                                <span class="pause-bar"></span>
+                            </div>
+                            <span class="pause-text">PAUSED</span>
+                        `;
+                        pauseIndicatorEl.style.cssText = `
+                            position: fixed;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%) scale(0.8);
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            gap: 1rem;
+                            padding: 2rem 3rem;
+                            background: rgba(0, 0, 0, 0.3);
+                            backdrop-filter: blur(10px);
+                            -webkit-backdrop-filter: blur(10px);
+                            border-radius: 16px;
+                            border: 1px solid rgba(255, 255, 255, 0.1);
+                            opacity: 0;
+                            visibility: hidden;
+                            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+                            z-index: 9999;
+                        `;
+                        const icon = pauseIndicatorEl.querySelector('.pause-icon');
+                        if (icon) icon.style.cssText = 'display: flex; gap: 0.5rem;';
+                        pauseIndicatorEl.querySelectorAll('.pause-bar').forEach(bar => {
+                            bar.style.cssText =
+                                'display: block; width: 0.75rem; height: 3rem; background: #fff; border-radius: 0.25rem;';
+                        });
+                        const text = pauseIndicatorEl.querySelector('.pause-text');
+                        if (text)
+                            text.style.cssText =
+                                'font-size: 1.25rem; font-weight: 600; color: #fff; letter-spacing: 0.2em; text-transform: uppercase;';
+                        document.body.appendChild(pauseIndicatorEl);
+                    };
+
+                    const showPauseIndicator = () => {
+                        if (!pauseIndicatorEl) createPauseIndicator();
+                        pauseIndicatorEl.style.opacity = '1';
+                        pauseIndicatorEl.style.visibility = 'visible';
+                        pauseIndicatorEl.style.transform = 'translate(-50%, -50%) scale(1)';
+                    };
+
+                    const hidePauseIndicator = () => {
+                        if (pauseIndicatorEl) {
+                            pauseIndicatorEl.style.opacity = '0';
+                            pauseIndicatorEl.style.visibility = 'hidden';
+                            pauseIndicatorEl.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                        }
+                    };
+
                     // Playback exposure for device mgmt
                     try {
                         window.__posterramaPlayback = {
@@ -591,6 +593,7 @@
                                     _state.paused = false;
                                     _state.isPinned = false;
                                     _state.pinnedMediaId = null;
+                                    hidePauseIndicator();
                                     api.showNextBackground({ forceNext: true });
                                 } catch (_) {
                                     /* noop */
@@ -601,6 +604,7 @@
                                     _state.paused = false;
                                     _state.isPinned = false;
                                     _state.pinnedMediaId = null;
+                                    hidePauseIndicator();
                                     const items = Array.isArray(window.mediaQueue)
                                         ? window.mediaQueue
                                         : [];
@@ -619,6 +623,7 @@
                                 } catch (_) {
                                     /* noop */
                                 }
+                                showPauseIndicator();
                                 try {
                                     triggerLiveBeat();
                                 } catch (_) {
@@ -634,6 +639,7 @@
                                 } catch (_) {
                                     /* noop */
                                 }
+                                hidePauseIndicator();
                                 // Note: triggerLiveBeat() removed - showNextBackground sends it
                                 api.showNextBackground({ forceNext: true });
                             },
@@ -646,6 +652,7 @@
                                         window.__posterramaCurrentMediaId ||
                                         null;
                                     window.__posterramaPaused = true;
+                                    showPauseIndicator();
 
                                     // Stop rotation timer
                                     if (_state.cycleTimer) {
@@ -662,9 +669,70 @@
                                     /* noop */
                                 }
                             },
+                            remoteKey: key => {
+                                try {
+                                    switch (key) {
+                                        case 'left':
+                                            window.__posterramaPlayback.prev();
+                                            break;
+                                        case 'right':
+                                            window.__posterramaPlayback.next();
+                                            break;
+                                    }
+                                } catch (_) {
+                                    /* noop */
+                                }
+                            },
                         };
                     } catch (_) {
                         /* noop */
+                    }
+
+                    // === D-pad / Remote Control Keyboard Handler ===
+                    try {
+                        const togglePause = () => {
+                            if (_state.paused) {
+                                window.__posterramaPlayback.resume();
+                            } else {
+                                window.__posterramaPlayback.pause();
+                            }
+                        };
+
+                        document.addEventListener('keydown', e => {
+                            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')
+                                return;
+
+                            switch (e.key) {
+                                case 'ArrowRight':
+                                    e.preventDefault();
+                                    window.__posterramaPlayback.next();
+                                    break;
+                                case 'ArrowLeft':
+                                    e.preventDefault();
+                                    window.__posterramaPlayback.prev();
+                                    break;
+                                case ' ':
+                                case 'Enter':
+                                case 'MediaPlayPause':
+                                    e.preventDefault();
+                                    togglePause();
+                                    break;
+                                case 'MediaPause':
+                                    e.preventDefault();
+                                    if (!_state.paused) {
+                                        window.__posterramaPlayback.pause();
+                                    }
+                                    break;
+                                case 'MediaPlay':
+                                    e.preventDefault();
+                                    if (_state.paused) {
+                                        window.__posterramaPlayback.resume();
+                                    }
+                                    break;
+                            }
+                        });
+                    } catch (_) {
+                        /* D-pad init best-effort */
                     }
                 } catch (_) {
                     /* noop */

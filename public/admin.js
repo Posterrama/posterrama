@@ -13486,6 +13486,34 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     container._pairPollTimer = setInterval(pollOnce, 1500);
                 }
             }
+
+            // Helper to update remote control button states based on device state
+            function updateRemoteButtonStates(deviceId) {
+                const dev = (state.all || []).find(d => d.id === deviceId);
+                const playPauseBtn = document.getElementById('remote-playpause-btn');
+                const playPauseIcon = document.getElementById('remote-playpause-icon');
+                const modeLabel = document.getElementById('remote-mode-label');
+
+                if (playPauseBtn && playPauseIcon && dev) {
+                    const isPaused = dev.liveState?.paused === true;
+                    if (isPaused) {
+                        playPauseBtn.classList.add('is-paused');
+                        playPauseIcon.className = 'fas fa-play';
+                        playPauseBtn.title = 'Resume';
+                    } else {
+                        playPauseBtn.classList.remove('is-paused');
+                        playPauseIcon.className = 'fas fa-pause';
+                        playPauseBtn.title = 'Pause';
+                    }
+                }
+
+                if (modeLabel && dev) {
+                    // Detect current mode from device's current URL/state
+                    const currentMode = dev.liveState?.mode || dev.currentMode || 'screensaver';
+                    modeLabel.textContent = currentMode;
+                }
+            }
+
             function openRemoteFor(id) {
                 const dev = (state.all || []).find(d => d.id === id);
                 const nameEl = document.getElementById('remote-target-name');
@@ -13495,6 +13523,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 // Stash current device id on overlay for delegated handler
                 overlay.dataset.targetId = id;
                 __showOverlay(overlay, 'modal-remote');
+
+                // Update button states when opening
+                updateRemoteButtonStates(id);
+
                 try {
                     if (window.__uiDebug)
                         console.info(
@@ -13523,8 +13555,26 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             } catch (_) {
                                 /* pulse feedback animation best-effort; ignore */
                             }
-                            if (key === 'playpause') {
+                            if (key === 'select') {
+                                // Select button now does play/pause
                                 await sendCommand(targetId, 'playback.toggle');
+                                // Toggle button state optimistically
+                                const playPauseBtn =
+                                    document.getElementById('remote-playpause-btn');
+                                const playPauseIcon =
+                                    document.getElementById('remote-playpause-icon');
+                                if (playPauseBtn && playPauseIcon) {
+                                    const wasPaused = playPauseBtn.classList.contains('is-paused');
+                                    if (wasPaused) {
+                                        playPauseBtn.classList.remove('is-paused');
+                                        playPauseIcon.className = 'fas fa-pause';
+                                        playPauseBtn.title = 'Pause';
+                                    } else {
+                                        playPauseBtn.classList.add('is-paused');
+                                        playPauseIcon.className = 'fas fa-play';
+                                        playPauseBtn.title = 'Resume';
+                                    }
+                                }
                             } else {
                                 await sendCommand(targetId, 'remote.key', { key });
                             }

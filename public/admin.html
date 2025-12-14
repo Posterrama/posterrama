@@ -4408,23 +4408,12 @@
         <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
       </div>
       <div class="modal-body">
-        <!-- Remote panel: only implemented controls (D‑pad + Select + Back/Home + Play/Pause) -->
+        <!-- Remote panel: Navigation + Play/Pause -->
         <div class="remote-panel">
-          <div class="remote-nav">
-            <div></div>
-            <button class="btn" data-remote="up" title="Up" aria-label="Up"><i class="fas fa-arrow-up"></i></button>
-            <div></div>
-            <button class="btn" data-remote="left" title="Left" aria-label="Left"><i class="fas fa-arrow-left"></i></button>
-            <button class="btn" data-remote="select" title="Select" aria-label="Select"><i class="fas fa-dot-circle"></i></button>
-            <button class="btn" data-remote="right" title="Right" aria-label="Right"><i class="fas fa-arrow-right"></i></button>
-            <div></div>
-            <button class="btn" data-remote="down" title="Down" aria-label="Down"><i class="fas fa-arrow-down"></i></button>
-            <div></div>
-          </div>
-          <div class="remote-actions">
-            <button class="btn" data-remote="back" title="Back" aria-label="Back"><i class="fas fa-arrow-rotate-left"></i></button>
-            <button class="btn" data-remote="playpause" title="Play/Pause" aria-label="Play or Pause"><i class="fas fa-play"></i></button>
-            <button class="btn" data-remote="home" title="Home" aria-label="Home"><i class="fas fa-house"></i></button>
+          <div class="remote-nav remote-nav-compact">
+            <button class="btn" data-remote="left" title="Previous" aria-label="Previous"><i class="fas fa-arrow-left"></i></button>
+            <button class="btn" data-remote="select" id="remote-playpause-btn" title="Play/Pause" aria-label="Play or Pause"><i class="fas fa-play" id="remote-playpause-icon"></i></button>
+            <button class="btn" data-remote="right" title="Next" aria-label="Next"><i class="fas fa-arrow-right"></i></button>
           </div>
         </div>
       </div>

@@ -2201,6 +2201,37 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                 }
                 break;
             }
+            case 'mode.cycle': {
+                try {
+                    const Core = typeof window !== 'undefined' ? window.PosterramaCore : null;
+                    if (Core && typeof Core.navigateToMode === 'function') {
+                        // Determine current mode and cycle to next
+                        const currentPath = window.location.pathname || '';
+                        let nextMode = 'screensaver';
+                        if (currentPath.includes('/screensaver')) {
+                            nextMode = 'wallart';
+                        } else if (currentPath.includes('/wallart')) {
+                            nextMode = 'cinema';
+                        } else if (currentPath.includes('/cinema')) {
+                            nextMode = 'screensaver';
+                        }
+                        liveDbg('[Live] invoking Core.navigateToMode (cycle)', {
+                            from: currentPath,
+                            to: nextMode,
+                        });
+                        try {
+                            localStorage.setItem('pr_just_navigated_mode', Date.now().toString());
+                        } catch (_) {
+                            /* ignore localStorage errors */
+                        }
+                        Core.navigateToMode(nextMode);
+                        return;
+                    }
+                } catch (_) {
+                    // Core not available or navigation failed; ignore
+                }
+                break;
+            }
             default:
                 // Unknown or unsupported command type
                 break;

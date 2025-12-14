@@ -667,6 +667,80 @@ function migrateConfig(cfg) {
     return modified;
 }
 
+/**
+ * Self-healing: Remove unknown properties that would cause schema validation to fail.
+ * This recursively traverses the config and removes any properties not defined in the schema.
+ * @param {object} cfg - The config object to clean
+ * @param {object} schema - The JSON schema
+ * @returns {boolean} - True if any properties were removed
+ */
+function removeUnknownProperties(cfg, schema) {
+    let removed = false;
+
+    if (!cfg || typeof cfg !== 'object' || !schema) return false;
+
+    /**
+     * Recursively clean an object against a schema definition
+     * @param {object} obj - Object to clean
+     * @param {object} schemaDef - Schema definition for this object
+     * @param {string} path - Current path for logging
+     */
+    function cleanObject(obj, schemaDef, pathStr) {
+        if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;
+        if (!schemaDef || schemaDef.type !== 'object') return;
+
+        const allowedProps = schemaDef.properties ? Object.keys(schemaDef.properties) : [];
+        const additionalAllowed = schemaDef.additionalProperties !== false;
+
+        // Get all current keys
+        const currentKeys = Object.keys(obj);
+
+        for (const key of currentKeys) {
+            // Check if this property is allowed
+            if (!additionalAllowed && !allowedProps.includes(key)) {
+                console.log(`[Config Self-Heal] Removing unknown property: ${pathStr}.${key}`);
+                delete obj[key];
+                removed = true;
+                continue;
+            }
+
+            // Recursively clean nested objects
+            if (schemaDef.properties && schemaDef.properties[key]) {
+                const propSchema = schemaDef.properties[key];
+                if (propSchema.type === 'object' && obj[key] && typeof obj[key] === 'object') {
+                    cleanObject(obj[key], propSchema, `${pathStr}.${key}`);
+                }
+                // Handle arrays of objects
+                if (propSchema.type === 'array' && propSchema.items && Array.isArray(obj[key])) {
+                    obj[key].forEach((item, idx) => {
+                        if (item && typeof item === 'object') {
+                            cleanObject(item, propSchema.items, `${pathStr}.${key}[${idx}]`);
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    // Start cleaning from root
+    cleanObject(cfg, schema, 'config');
+
+    // Save if we removed anything
+    if (removed && process.env.NODE_ENV !== 'test') {
+        try {
+            fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf-8');
+            console.log('[Config Self-Heal] ✓ Unknown properties removed and config saved');
+        } catch (err) {
+            console.error('[Config Self-Heal] Failed to save cleaned config:', err.message);
+        }
+    }
+
+    return removed;
+}
+
+// Run self-healing to remove unknown properties BEFORE migrations
+removeUnknownProperties(config, configSchema);
+
 // Run migrations before validation
 migrateConfig(config);
 

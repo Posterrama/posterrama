@@ -3569,85 +3569,7 @@
         }
     }
 
-    // ===== Playback Control API =====
-    window.__posterramaPlayback = {
-        pinPoster: payload => {
-            try {
-                isPinned = true;
-                pinnedMediaId = payload?.mediaId || window.__posterramaCurrentMediaId || null;
-                window.__posterramaPaused = true;
-
-                log('Poster pinned', { mediaId: pinnedMediaId });
-
-                // Trigger heartbeat to update admin UI
-                try {
-                    const dev = window.PosterramaDevice;
-                    if (dev && typeof dev.beat === 'function') {
-                        dev.beat();
-                    }
-                } catch (_) {
-                    /* ignore heartbeat */
-                }
-            } catch (e) {
-                error('Failed to pin poster', e);
-            }
-        },
-        resume: () => {
-            try {
-                isPinned = false;
-                pinnedMediaId = null;
-                window.__posterramaPaused = false;
-
-                log('Poster unpinned, rotation resumed');
-
-                // Trigger heartbeat to update admin UI
-                try {
-                    const dev = window.PosterramaDevice;
-                    if (dev && typeof dev.beat === 'function') {
-                        dev.beat();
-                    }
-                } catch (_) {
-                    /* ignore heartbeat */
-                }
-            } catch (e) {
-                error('Failed to resume rotation', e);
-            }
-        },
-        pause: () => {
-            try {
-                window.__posterramaPaused = true;
-                log('Playback paused');
-            } catch (_) {
-                /* ignore */
-            }
-        },
-        next: () => {
-            try {
-                if (isPinned) {
-                    isPinned = false;
-                    pinnedMediaId = null;
-                    window.__posterramaPaused = false;
-                }
-                showNextPoster();
-            } catch (e) {
-                error('Failed to show next poster', e);
-            }
-        },
-        prev: () => {
-            try {
-                if (isPinned) {
-                    isPinned = false;
-                    pinnedMediaId = null;
-                    window.__posterramaPaused = false;
-                }
-                showPreviousPoster();
-            } catch (e) {
-                error('Failed to show previous poster', e);
-            }
-        },
-    };
-
-    // ===== D-pad / Remote Control Keyboard Handler =====
+    // ===== Pause Indicator =====
     let pauseIndicatorEl = null;
 
     function createPauseIndicator() {
@@ -3676,17 +3598,109 @@
         }
     }
 
+    // ===== Playback Control API =====
+    window.__posterramaPlayback = {
+        pinPoster: payload => {
+            try {
+                isPinned = true;
+                pinnedMediaId = payload?.mediaId || window.__posterramaCurrentMediaId || null;
+                window.__posterramaPaused = true;
+                showPauseIndicator();
+
+                log('Poster pinned', { mediaId: pinnedMediaId });
+
+                // Trigger heartbeat to update admin UI
+                try {
+                    const dev = window.PosterramaDevice;
+                    if (dev && typeof dev.beat === 'function') {
+                        dev.beat();
+                    }
+                } catch (_) {
+                    /* ignore heartbeat */
+                }
+            } catch (e) {
+                error('Failed to pin poster', e);
+            }
+        },
+        resume: () => {
+            try {
+                isPinned = false;
+                pinnedMediaId = null;
+                window.__posterramaPaused = false;
+                hidePauseIndicator();
+
+                log('Poster unpinned, rotation resumed');
+
+                // Trigger heartbeat to update admin UI
+                try {
+                    const dev = window.PosterramaDevice;
+                    if (dev && typeof dev.beat === 'function') {
+                        dev.beat();
+                    }
+                } catch (_) {
+                    /* ignore heartbeat */
+                }
+            } catch (e) {
+                error('Failed to resume rotation', e);
+            }
+        },
+        pause: () => {
+            try {
+                window.__posterramaPaused = true;
+                showPauseIndicator();
+                log('Playback paused');
+            } catch (_) {
+                /* ignore */
+            }
+        },
+        next: () => {
+            try {
+                if (isPinned) {
+                    isPinned = false;
+                    pinnedMediaId = null;
+                    window.__posterramaPaused = false;
+                }
+                hidePauseIndicator();
+                showNextPoster();
+            } catch (e) {
+                error('Failed to show next poster', e);
+            }
+        },
+        prev: () => {
+            try {
+                if (isPinned) {
+                    isPinned = false;
+                    pinnedMediaId = null;
+                    window.__posterramaPaused = false;
+                }
+                hidePauseIndicator();
+                showPreviousPoster();
+            } catch (e) {
+                error('Failed to show previous poster', e);
+            }
+        },
+        remoteKey: key => {
+            try {
+                switch (key) {
+                    case 'left':
+                        window.__posterramaPlayback.prev();
+                        break;
+                    case 'right':
+                        window.__posterramaPlayback.next();
+                        break;
+                }
+            } catch (e) {
+                error('Failed to handle remote key', e);
+            }
+        },
+    };
+
+    // ===== D-pad / Remote Control Keyboard Handler =====
     function togglePause() {
         if (window.__posterramaPaused) {
-            // Resume
             window.__posterramaPlayback.resume();
-            hidePauseIndicator();
-            log('D-pad: Resumed playback');
         } else {
-            // Pause
             window.__posterramaPlayback.pause();
-            showPauseIndicator();
-            log('D-pad: Paused playback');
         }
     }
 
@@ -3698,13 +3712,11 @@
             switch (e.key) {
                 case 'ArrowRight':
                     e.preventDefault();
-                    hidePauseIndicator();
                     window.__posterramaPlayback.next();
                     log('D-pad: Next poster');
                     break;
                 case 'ArrowLeft':
                     e.preventDefault();
-                    hidePauseIndicator();
                     window.__posterramaPlayback.prev();
                     log('D-pad: Previous poster');
                     break;
@@ -3718,14 +3730,12 @@
                     e.preventDefault();
                     if (!window.__posterramaPaused) {
                         window.__posterramaPlayback.pause();
-                        showPauseIndicator();
                     }
                     break;
                 case 'MediaPlay':
                     e.preventDefault();
                     if (window.__posterramaPaused) {
                         window.__posterramaPlayback.resume();
-                        hidePauseIndicator();
                     }
                     break;
             }

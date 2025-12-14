@@ -13069,6 +13069,12 @@ body.page-logs {
     justify-content: center;
 }
 
+/* Compact nav layout (3 buttons in a row) */
+#modal-remote .remote-nav-compact {
+    grid-template-columns: repeat(3, 60px);
+    grid-template-rows: 60px;
+}
+
 /* Action row under D-pad */
 #modal-remote .remote-actions {
     display: flex;
@@ -13178,6 +13184,34 @@ body.page-logs {
 }
 #modal-remote .remote-panel .btn.pulse {
     animation: remotePulse 180ms ease-out;
+}
+
+/* Play/Pause button paused state */
+#modal-remote .remote-panel .btn.is-paused {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.05)),
+        linear-gradient(180deg, var(--color-orange, #f5a623), var(--color-orange, #e09520));
+    border-color: rgba(0, 0, 0, 0.4);
+    color: #fff;
+}
+#modal-remote .remote-panel .btn.is-paused:hover {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05)),
+        linear-gradient(180deg, var(--color-orange, #f5a623), var(--color-orange, #e09520));
+}
+
+/* Mode button with label */
+#modal-remote .remote-panel .btn[data-remote='mode'] {
+    width: auto;
+    min-width: 60px;
+    padding: 0 16px;
+    gap: 8px;
+}
+#modal-remote .remote-mode-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+    opacity: 0.9;
 }
 
 /* ============================
