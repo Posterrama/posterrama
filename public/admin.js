@@ -3901,15 +3901,21 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
     function setRadioGroupActive(val) {
         const segs = [
-            { id: 'seg-saver', value: 'screensaver' },
-            { id: 'seg-wallart', value: 'wallart' },
-            { id: 'seg-cinema', value: 'cinema' },
+            { id: 'seg-saver', value: 'screensaver', radioId: 'mode-screensaver' },
+            { id: 'seg-wallart', value: 'wallart', radioId: 'mode-wallart' },
+            { id: 'seg-cinema', value: 'cinema', radioId: 'mode-cinema' },
         ];
         segs.forEach(s => {
             const el = document.getElementById(s.id);
             if (!el) return;
             const active = s.value === val;
             el.setAttribute('aria-checked', String(active));
+
+            // Also set the actual radio button checked state
+            const radio = document.getElementById(s.radioId);
+            if (radio) {
+                radio.checked = active;
+            }
         });
 
         // Update sliding indicator position
@@ -3992,6 +3998,15 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         const w = c.wallartMode || {};
         // Active mode rules: cinema > wallart > screensaver
         const active = c.cinemaMode ? 'cinema' : w.enabled ? 'wallart' : 'screensaver';
+        console.log(
+            '%c[hydrateDisplayForm] Setting mode:',
+            'background: #00aa00; color: white; padding: 2px 6px;',
+            {
+                cinemaMode: c.cinemaMode,
+                wallartEnabled: w.enabled,
+                active: active,
+            }
+        );
         setRadioGroupActive(active);
         updateModeBadges(active);
 
@@ -6355,6 +6370,12 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
     async function initDisplaySection() {
         try {
+            // Skip server config load if in profile edit mode - profile will load its own settings
+            if (window.__profileEditMode) {
+                console.log('[initDisplaySection] Skipping - in profile edit mode');
+                return;
+            }
+
             // Prefill
             const cfg = await loadAdminConfig();
             // Store config globally for dashboard cards and other features
@@ -7070,6 +7091,29 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             }
         };
 
+        // Force preview to a specific mode, bypassing form state detection
+        window.__forcePreviewMode = mode => {
+            try {
+                let targetPath = '/screensaver';
+                if (mode === 'cinema') targetPath = '/cinema';
+                else if (mode === 'wallart') targetPath = '/wallart';
+
+                const newSrc = `${targetPath}?preview=1&cb=${Date.now()}`;
+                frame.setAttribute('src', newSrc);
+
+                // Also update container classes
+                container.classList.toggle('cinema-mode', mode === 'cinema');
+                container.classList.toggle('wallart-mode', mode === 'wallart');
+                container.classList.toggle('screensaver-mode', mode === 'screensaver');
+                container.classList.toggle('portrait', mode === 'cinema');
+                container.classList.toggle('landscape', mode !== 'cinema');
+
+                console.log('[Preview] Forced mode:', mode, '->', targetPath);
+            } catch (e) {
+                console.warn('[Preview] Force mode failed:', e);
+            }
+        };
+
         function debouncedSend() {
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(sendUpdate, 120);
@@ -7077,6 +7121,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
         frame.addEventListener('load', () => {
             previewWin = frame.contentWindow;
+            // If we're in profile edit mode, skip sendUpdate - the profile loading handles it
+            if (window.__profileEditMode) {
+                positionAtActiveMode();
+                return;
+            }
             // Initial sync after iframe is ready
             sendUpdate();
             positionAtActiveMode();
@@ -14836,10 +14885,21 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     console.warn('[Profile] Failed to backup config:', e);
                 }
 
-                // Set profile edit mode
+                // Set profile edit mode (also set global flag for initDisplaySection check)
                 profileEditMode = true;
+                window.__profileEditMode = true;
                 editingProfileId = profileId;
                 document.body.classList.add('profile-edit-mode');
+
+                // Determine the expected mode from profile settings
+                const settings = profile.settings || {};
+                const expectedMode = settings.cinemaMode
+                    ? 'cinema'
+                    : settings.wallartMode?.enabled
+                      ? 'wallart'
+                      : 'screensaver';
+                // Store expected mode for preview to use
+                window.__profileExpectedMode = expectedMode;
 
                 // Update banner
                 const banner = document.getElementById('profile-edit-banner');
@@ -14851,17 +14911,36 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 const modal = document.getElementById('modal-profile-builder');
                 if (modal && typeof closeModal === 'function') closeModal('modal-profile-builder');
 
-                // Navigate to Display Settings using showSection
+                // Navigate to Display Settings first (ensures DOM exists)
                 if (typeof showSection === 'function') {
                     showSection('section-display');
                 }
 
-                // Load profile settings into the form
-                setTimeout(() => {
+                // Wait for section to be visible and DOM ready, then load profile
+                requestAnimationFrame(() => {
+                    // Load profile settings into the form
                     loadProfileIntoDisplayForm(profile);
-                }, 150);
 
-                console.log('[Profile] Entered profile edit mode:', profile.name);
+                    // Force mode selection UI after hydration
+                    setRadioGroupActive(expectedMode);
+                    updateModeBadges(expectedMode);
+
+                    // Force preview to correct mode after form is ready
+                    setTimeout(() => {
+                        if (window.__forcePreviewMode) {
+                            window.__forcePreviewMode(expectedMode);
+                        }
+                        // Clear the expected mode flag
+                        delete window.__profileExpectedMode;
+                    }, 300);
+                });
+
+                console.log(
+                    '[Profile] Entered profile edit mode:',
+                    profile.name,
+                    'mode:',
+                    expectedMode
+                );
             }
 
             /**
@@ -14870,6 +14949,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
              */
             async function exitProfileEditMode(restoreConfig = true) {
                 profileEditMode = false;
+                window.__profileEditMode = false;
                 editingProfileId = null;
                 document.body.classList.remove('profile-edit-mode');
 
@@ -14926,11 +15006,27 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     ...settings,
                 };
 
+                console.log(
+                    '%c[Profile] Loading profile into form:',
+                    'background: #ff6b00; color: white; padding: 2px 6px; border-radius: 3px;',
+                    {
+                        cinemaMode: configFromProfile.cinemaMode,
+                        wallartEnabled: configFromProfile.wallartMode?.enabled,
+                        expectedMode: configFromProfile.cinemaMode
+                            ? 'cinema'
+                            : configFromProfile.wallartMode?.enabled
+                              ? 'wallart'
+                              : 'screensaver',
+                    }
+                );
+
                 // Hydrate the form with profile settings
                 hydrateDisplayForm(configFromProfile);
 
                 // Also hydrate cinema-ui.js managed elements (mounted separately)
                 hydrateCinemaUI(settings.cinema || {});
+
+                // Note: Preview mode forcing is handled by enterProfileEditMode after navigation
 
                 window.notify?.toast({
                     type: 'info',
@@ -15051,8 +15147,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     }
 
                     // Reload profiles and exit edit mode
+                    // Pass false - don't restore original config since we're navigating away anyway
                     await loadProfiles();
-                    await exitProfileEditMode(true);
+                    await exitProfileEditMode(false);
 
                     // Navigate back to Devices section
                     if (typeof showSection === 'function') {

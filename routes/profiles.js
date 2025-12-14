@@ -12,6 +12,7 @@ const router = express.Router();
 const profilesStore = require('../utils/profilesStore');
 const deviceStore = require('../utils/deviceStore');
 const wsHub = require('../utils/wsHub');
+const logger = require('../utils/logger');
 // const deepMerge = require('../utils/deep-merge'); // Reserved for future use
 
 /**
@@ -211,22 +212,60 @@ module.exports = function createProfilesRouter({ adminAuth, cacheManager }) {
 
             // Live-apply: if settings updated, push merged settings to connected devices with this profile
             try {
+                logger.info('[Profiles] Checking live-apply conditions', {
+                    hasProfile: !!profile,
+                    hasBody: !!req.body,
+                    hasSettings: req.body
+                        ? Object.prototype.hasOwnProperty.call(req.body, 'settings')
+                        : false,
+                    profileId: profile?.id,
+                });
+
                 if (
                     profile &&
                     req.body &&
                     Object.prototype.hasOwnProperty.call(req.body, 'settings')
                 ) {
                     const allDevices = await deviceStore.getAll();
+                    const connectedCount = { total: 0, matched: 0 };
+
+                    logger.info('[Profiles] Live-apply starting', {
+                        profileId: profile.id,
+                        totalDevices: allDevices.length,
+                        devicesWithProfile: allDevices
+                            .filter(d => d.profileId === profile.id)
+                            .map(d => d.id),
+                    });
 
                     for (const dev of allDevices) {
-                        if (dev.profileId === profile.id && wsHub.isConnected(dev.id)) {
-                            // Send the profile settings to the device
-                            wsHub.sendApplySettings(dev.id, profile.settings || {});
+                        if (dev.profileId === profile.id) {
+                            connectedCount.matched++;
+                            if (wsHub.isConnected(dev.id)) {
+                                connectedCount.total++;
+                                // Send the profile settings to the device
+                                const sent = wsHub.sendApplySettings(
+                                    dev.id,
+                                    profile.settings || {}
+                                );
+                                logger.info(
+                                    `[Profiles] Live-apply to device ${dev.id}: ${sent ? 'sent' : 'failed'}`,
+                                    {
+                                        cinemaMode: profile.settings?.cinemaMode,
+                                        wallartEnabled: profile.settings?.wallartMode?.enabled,
+                                    }
+                                );
+                            }
                         }
                     }
+
+                    if (connectedCount.matched > 0) {
+                        logger.info(
+                            `[Profiles] Live-apply: ${connectedCount.total}/${connectedCount.matched} devices connected`
+                        );
+                    }
                 }
-            } catch (_) {
-                /* ignore live-apply errors */
+            } catch (e) {
+                logger.warn('[Profiles] Live-apply error:', e.message);
             }
 
             res.json(profile);

@@ -35,7 +35,7 @@
     <body data-mode="cinema">
         <!-- Mode-based redirect: automatically redirect to mode-specific page -->
                 <script type="module">
-            import { checkModeRedirect, loadPromoOverlayIfEnabled, startPeriodicModeCheck } from './mode-redirect.js';
+            import { checkModeRedirect, loadPromoOverlayIfEnabled, startPeriodicModeCheck } from './mode-redirect.js?v=1765570858';
             
             await checkModeRedirect('cinema', '__cinemaModeVerified');
             window.MODE_HINT = 'cinema';
@@ -63,7 +63,7 @@
         <!-- Mode initialization -->
         <script type="module">
             import { initDevice, startAutoExitPoll } from './display-mode-init.js';
-            import { loadPromoOverlayIfEnabled } from './mode-redirect.js';
+            import { loadPromoOverlayIfEnabled } from './mode-redirect.js?v=1765570858';
             
             // Initialize device management (non-blocking)
             initDevice();

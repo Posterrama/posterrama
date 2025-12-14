@@ -54,6 +54,30 @@ async function forceServiceWorkerUpdate() {
 }
 
 /**
+ * Get device identification headers for config requests
+ */
+function getDeviceHeaders() {
+    const headers = { 'Cache-Control': 'no-cache' };
+    try {
+        // Try PosterramaDevice first
+        if (window.PosterramaDevice && typeof window.PosterramaDevice.getState === 'function') {
+            const devState = window.PosterramaDevice.getState();
+            if (devState.deviceId) headers['X-Device-Id'] = devState.deviceId;
+            if (devState.installId) headers['X-Install-Id'] = devState.installId;
+            if (devState.hardwareId) headers['X-Hardware-Id'] = devState.hardwareId;
+        }
+        // Fallback to localStorage for installId
+        if (!headers['X-Install-Id']) {
+            const stored = localStorage.getItem('posterrama.installId');
+            if (stored) headers['X-Install-Id'] = stored;
+        }
+    } catch (_) {
+        // Ignore errors
+    }
+    return headers;
+}
+
+/**
  * Ensure config is loaded into window.appConfig
  */
 async function ensureConfig() {
@@ -66,7 +90,7 @@ async function ensureConfig() {
             : await (
                   await fetch('/get-config', {
                       cache: 'no-cache',
-                      headers: { 'Cache-Control': 'no-cache' },
+                      headers: getDeviceHeaders(),
                   })
               ).json();
 

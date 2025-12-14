@@ -1568,6 +1568,19 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             ws.onmessage = ev => {
                 try {
                     const msg = JSON.parse(ev.data);
+
+                    // Debug: Log ALL incoming WebSocket messages
+                    console.log(
+                        '%c[WS] Message received',
+                        'background: #006600; color: white; padding: 2px 6px;',
+                        {
+                            kind: msg?.kind,
+                            type: msg?.type,
+                            hasPayload: !!msg?.payload,
+                            payloadKeys: msg?.payload ? Object.keys(msg.payload) : [],
+                        }
+                    );
+
                     if (!msg || !msg.kind) return;
 
                     // Handle pong response
@@ -1776,12 +1789,80 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                             /* ignore sync handler errors */
                         }
                     } else if (msg.kind === 'apply-settings' && msg.payload) {
-                        // Apply partial settings live if a global applySettings is exposed (legacy support)
+                        // Apply partial settings live if a global applySettings is exposed
                         try {
-                            if (typeof window.applySettings === 'function') {
-                                liveDbg('[Live] WS apply-settings received', {
+                            console.log(
+                                '%c[apply-settings] Received',
+                                'background: #0066ff; color: white; padding: 2px 6px;',
+                                {
                                     keys: Object.keys(msg.payload || {}),
+                                    cinemaMode: msg.payload.cinemaMode,
+                                    wallartEnabled: msg.payload.wallartMode?.enabled,
+                                }
+                            );
+                            liveDbg('[Live] WS apply-settings received', {
+                                keys: Object.keys(msg.payload || {}),
+                            });
+
+                            // Check if mode changed - requires navigation, not just settings update
+                            const payload = msg.payload || {};
+                            const newCinemaMode = payload.cinemaMode;
+                            const newWallartEnabled = payload.wallartMode?.enabled;
+
+                            // Determine new mode from payload
+                            let newMode = null;
+                            if (newCinemaMode === true) {
+                                newMode = 'cinema';
+                            } else if (newWallartEnabled === true) {
+                                newMode = 'wallart';
+                            } else if (newCinemaMode === false && newWallartEnabled === false) {
+                                newMode = 'screensaver';
+                            }
+
+                            const curr = currentMode();
+
+                            console.log(
+                                '%c[apply-settings] Mode check',
+                                'background: #0066ff; color: white; padding: 2px 6px;',
+                                {
+                                    currentMode: curr,
+                                    newMode: newMode,
+                                    willNavigate: newMode && curr !== newMode,
+                                    hasNavigateToMode: !!window.PosterramaCore?.navigateToMode,
+                                }
+                            );
+
+                            // Skip navigation in preview mode - preview is handled by admin.js
+                            const isPreview =
+                                window.location.search.includes('preview=1') ||
+                                (window.PosterramaCore?.isPreviewMode &&
+                                    window.PosterramaCore.isPreviewMode());
+
+                            // If mode changed, navigate to new mode (but not in preview mode)
+                            if (
+                                newMode &&
+                                curr !== newMode &&
+                                window.PosterramaCore?.navigateToMode &&
+                                !isPreview
+                            ) {
+                                liveDbg('[Live] apply-settings detected mode change, navigating', {
+                                    from: curr,
+                                    to: newMode,
                                 });
+                                try {
+                                    localStorage.setItem(
+                                        'pr_just_navigated_mode',
+                                        Date.now().toString()
+                                    );
+                                } catch (_) {
+                                    /* localStorage may not be available */
+                                }
+                                window.PosterramaCore.navigateToMode(newMode);
+                                return; // Don't apply settings, page will reload
+                            }
+
+                            // No mode change - apply settings live
+                            if (typeof window.applySettings === 'function') {
                                 window.debugLog &&
                                     window.debugLog('DEVICE_MGMT_WS_APPLY_SETTINGS', {
                                         keys: Object.keys(msg.payload || {}),

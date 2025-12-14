@@ -22,6 +22,11 @@
                     if (deviceState.hardwareId) headers['X-Hardware-Id'] = deviceState.hardwareId;
                 }
             }
+            // Fallback to localStorage for installId if not already set
+            if (!headers['X-Install-Id']) {
+                const stored = localStorage?.getItem?.('posterrama.installId');
+                if (stored) headers['X-Install-Id'] = stored;
+            }
         } catch (_) {
             // Ignore device header injection failures
         }
@@ -160,6 +165,49 @@
         if (now - lastNavTs < 1200) return; // debounce multi-triggers
         lastNavTs = now;
         const url = Core.buildUrlForMode(mode);
+
+        // Debug logging for navigation issues
+        console.log(
+            '%c[Core.navigateToMode]',
+            'background: #9900ff; color: white; padding: 2px 6px;',
+            {
+                mode,
+                builtUrl: url,
+                currentOrigin: window.location.origin,
+                currentPathname: window.location.pathname,
+                currentHref: window.location.href,
+            }
+        );
+
+        // Validate URL before navigating
+        try {
+            const parsed = new URL(url);
+            if (
+                !parsed.hostname ||
+                parsed.hostname === 'cinema' ||
+                parsed.hostname === 'wallart' ||
+                parsed.hostname === 'screensaver'
+            ) {
+                console.error('[Core.navigateToMode] Invalid URL detected, using fallback', {
+                    url,
+                    parsed,
+                });
+                // Fallback: use current origin + mode path
+                const fallbackUrl = window.location.origin + '/' + mode;
+                console.log('[Core.navigateToMode] Using fallback URL:', fallbackUrl);
+                if (opts.replace !== false) return void window.location.replace(fallbackUrl);
+                window.location.href = fallbackUrl;
+                return;
+            }
+        } catch (e) {
+            console.error('[Core.navigateToMode] URL parse error', { url, error: e.message });
+            // Fallback
+            const fallbackUrl = window.location.origin + '/' + mode;
+            if (opts.replace !== false) return void window.location.replace(fallbackUrl);
+            window.location.href = fallbackUrl;
+            return;
+        }
+
         if (opts.replace !== false) return void window.location.replace(url);
         window.location.href = url;
     };

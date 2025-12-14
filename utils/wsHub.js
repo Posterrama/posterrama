@@ -232,21 +232,22 @@ function isConnected(deviceId) {
 function sendToDevice(deviceId, message) {
     const ws = deviceToSocket.get(deviceId);
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-        logger.debug('📡 WebSocket message failed: device not connected', {
+        logger.warn('📡 [sendToDevice] FAILED: device not connected', {
             deviceId,
             messageType: message.type || message.kind,
             reason: !ws ? 'no_socket' : 'socket_not_open',
+            connectedDevices: Array.from(deviceToSocket.keys()),
         });
         return false;
     }
 
     sendJson(ws, message);
-    logger.debug('📡 WebSocket message sent', {
+    logger.info('📡 [sendToDevice] SUCCESS: message sent', {
         deviceId,
         messageType: message.type || message.kind,
         messageKind: message.kind,
         hasPayload: !!message.payload,
-        payloadSize: message.payload ? JSON.stringify(message.payload).length : 0,
+        payloadKeys: message.payload ? Object.keys(message.payload) : [],
     });
     return true;
 }

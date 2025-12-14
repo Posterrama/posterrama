@@ -223,6 +223,13 @@ module.exports = function createConfigPublicRouter({
                 const installId = req.get('X-Install-Id') || req.query.installId;
                 const hardwareId = req.get('X-Hardware-Id') || req.query.hardwareId;
 
+                logger.info('[get-config] Device identification attempt', {
+                    deviceId: deviceId || null,
+                    installId: installId || null,
+                    hardwareId: hardwareId || null,
+                    hasAnyId: !!(deviceId || installId || hardwareId),
+                });
+
                 let device = null;
                 if (deviceId) {
                     device = await deviceStore.getById(deviceId);
@@ -234,19 +241,30 @@ module.exports = function createConfigPublicRouter({
                     device = await deviceStore.findByHardwareId(hardwareId);
                 }
 
+                logger.info('[get-config] Device lookup result', {
+                    deviceFound: !!device,
+                    deviceId: device?.id || null,
+                    profileId: device?.profileId || null,
+                });
+
                 // Apply profile settings if device has profileId
                 let fromProfile = {};
                 try {
                     if (device && device.profileId && profilesStore) {
                         const profile = await profilesStore.getById(device.profileId);
+                        logger.info('[get-config] Profile lookup', {
+                            profileId: device.profileId,
+                            profileFound: !!profile,
+                            hasSettings: !!profile?.settings,
+                            cinemaMode: profile?.settings?.cinemaMode,
+                            wallartEnabled: profile?.settings?.wallartMode?.enabled,
+                        });
                         if (profile && profile.settings && typeof profile.settings === 'object') {
                             fromProfile = profile.settings;
-                            if (isDebug) {
-                                logger.debug('[get-config] Applied profile settings', {
-                                    deviceId: device.id,
-                                    profileId: device.profileId,
-                                });
-                            }
+                            logger.info('[get-config] Applied profile settings', {
+                                deviceId: device.id,
+                                profileId: device.profileId,
+                            });
                         }
                     }
                 } catch (pe) {
@@ -572,6 +590,10 @@ module.exports = function createConfigPublicRouter({
             } catch (_) {
                 // ignore
             }
+            // Prevent caching of config (important for profile-based settings)
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
             res.json(safeObjToSend);
         }
     );

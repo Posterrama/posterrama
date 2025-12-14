@@ -44,10 +44,55 @@ export function buildModeUrl(mode) {
 }
 
 /**
+ * Get device identification headers for config requests
+ * Uses PosterramaDevice if available, otherwise falls back to localStorage
+ */
+function getDeviceHeaders() {
+    const headers = {};
+
+    // Try PosterramaDevice first (most accurate)
+    if (window.PosterramaDevice && typeof window.PosterramaDevice.getState === 'function') {
+        const devState = window.PosterramaDevice.getState();
+        if (devState.deviceId) headers['X-Device-Id'] = devState.deviceId;
+        if (devState.installId) headers['X-Install-Id'] = devState.installId;
+        if (devState.hardwareId) headers['X-Hardware-Id'] = devState.hardwareId;
+    }
+
+    // Fallback to localStorage for installId if not set
+    if (!headers['X-Install-Id']) {
+        try {
+            const stored = localStorage.getItem('posterrama.installId');
+            if (stored) headers['X-Install-Id'] = stored;
+        } catch (_) {
+            // localStorage not available
+        }
+    }
+
+    // Fallback to localStorage for hardwareId if not set
+    if (!headers['X-Hardware-Id']) {
+        try {
+            const stored = localStorage.getItem('posterrama.hardwareId');
+            if (stored) headers['X-Hardware-Id'] = stored;
+        } catch (_) {
+            // localStorage not available
+        }
+    }
+
+    return headers;
+}
+
+/**
  * Fetch current configuration from server
+ * Includes device identification headers for profile-based config
  */
 export async function fetchConfig() {
-    const response = await fetch('/get-config', { cache: 'no-cache' });
+    const headers = getDeviceHeaders();
+    // Add cache-busting query parameter
+    const url = `/get-config?_t=${Date.now()}`;
+    const response = await fetch(url, {
+        cache: 'no-store',
+        headers,
+    });
     if (!response.ok) {
         throw new Error(`Config fetch failed: ${response.status}`);
     }
