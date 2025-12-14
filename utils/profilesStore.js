@@ -7,7 +7,7 @@ const deviceStore = require('./deviceStore');
  * Device Profiles Store
  *
  * Manages device profiles - reusable settings bundles that can be assigned to devices.
- * Replaces the previous groups + presets system with a simpler, more powerful model.
+ * Replaces the legacy device organization + presets model with a simpler, more powerful system.
  */
 
 // Determine store path with test isolation

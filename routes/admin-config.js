@@ -287,6 +287,16 @@ module.exports = function createAdminConfigRouter({
             const existingConfig = await readConfig();
             const mergedConfig = deepMerge({}, existingConfig, newConfig);
 
+            // Detect MQTT changes so we can reconnect the in-process bridge (no full restart required)
+            let mqttChanged = false;
+            try {
+                mqttChanged =
+                    JSON.stringify(existingConfig?.mqtt || null) !==
+                    JSON.stringify(mergedConfig?.mqtt || null);
+            } catch (_) {
+                mqttChanged = false;
+            }
+
             // Guardrails: prevent invalid numeric values from being persisted.
             // Root cause of "transitionIntervalSeconds: 0" was empty/invalid UI number inputs coercing to 0.
             normalizeIntField(mergedConfig, 'transitionIntervalSeconds', {
@@ -511,6 +521,19 @@ module.exports = function createAdminConfigRouter({
             // Update in-memory config so routes see latest values
             // config is a Config class instance, reload to update all private fields
             config.reload();
+
+            // Apply MQTT changes immediately by restarting the MQTT bridge in-process
+            if (mqttChanged && typeof global.__restartMqttBridge === 'function') {
+                setTimeout(() => {
+                    try {
+                        global.__restartMqttBridge('config-save');
+                    } catch (e) {
+                        logger.warn('[Admin API] MQTT reconnect failed', {
+                            error: e?.message || String(e),
+                        });
+                    }
+                }, 0);
+            }
 
             // Invalidate /get-config cache so changes are immediately visible
             try {

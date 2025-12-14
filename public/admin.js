@@ -3180,7 +3180,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     buckets[coreNames.includes(f.name) ? 'Core' : 'Data'].push(f);
                 });
                 const makeGroup = (title, files) => {
-                    if (!files || files.length === 0) return null; // Don't create empty groups
+                    if (!files || files.length === 0) return null; // Don't create empty sections
                     const wrap = document.createElement('div');
                     wrap.className = 'backup-group';
                     wrap.setAttribute('data-group', title);
@@ -12068,7 +12068,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 filterStatus: null,
                 filterRoom: null,
                 presets: [], // DEPRECATED: replaced by profiles
-                groups: [], // DEPRECATED: replaced by profiles
                 profiles: [], // NEW: Device profiles
                 profilesLoaded: false,
                 syncEnabled: undefined, // loaded from /get-config
@@ -12754,7 +12753,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                 title: 'Clear Display Overrides',
                                 message: `Remove all display settings overrides for <strong>${escapeHtml(
                                     state.all.find(d => d.id === id)?.name || id
-                                )}</strong>? It will then only inherit server and group configuration.`,
+                                )}</strong>? It will then only inherit server and profile configuration (if any).`,
                                 okText: 'Clear Overrides',
                                 okClass: 'btn-accent btn-confirm-accent',
                                 okIcon: 'eraser',
@@ -12762,7 +12761,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         } catch (_) {
                             // Fallback to native confirm if themed modal fails for any reason
                             return window.confirm(
-                                'Remove all overrides for this device? It will only follow server + group config.'
+                                'Remove all overrides for this device? It will only follow server + profile config.'
                             );
                         }
                     })();
@@ -16570,11 +16569,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             overlay?.classList.remove('open');
                             overlay?.setAttribute('aria-hidden', 'true');
                         };
-                        // Prepare fields: suggested name + location dropdown + groups
+                        // Prepare fields: suggested name + location dropdown
                         const nameEl = document.getElementById('create-device-name');
                         const locSel = document.getElementById('create-device-location-select');
                         const locNew = document.getElementById('create-device-location-new');
-                        const groupsSel = document.getElementById('create-device-groups');
                         const devices = state.all || [];
                         const rooms = Array.from(
                             new Set(
@@ -16687,28 +16685,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                 await loadDevices();
                                 const newId = r?.deviceId || r?.device?.id || r?.id;
                                 if (!newId) throw new Error('No device id returned');
-                                // Assign groups if any selected
-                                if (
-                                    groupsSel &&
-                                    groupsSel.selectedOptions &&
-                                    groupsSel.selectedOptions.length
-                                ) {
-                                    const selected = Array.from(groupsSel.selectedOptions).map(
-                                        o => o.value
-                                    );
-                                    try {
-                                        await fetchJSON(
-                                            `/api/devices/${encodeURIComponent(newId)}`,
-                                            {
-                                                method: 'PATCH',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ groups: selected }),
-                                            }
-                                        );
-                                    } catch (_) {
-                                        /* noop */
-                                    }
-                                }
                                 close();
                                 if (location)
                                     localStorage.setItem('admin2:last-location', location);
@@ -17549,7 +17525,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     try {
                         return await confirmAction({
                             title: 'Clear Display Overrides',
-                            message: `Remove all display settings overrides for <strong>${ids.length}</strong> device${ids.length !== 1 ? 's' : ''}? They will then only inherit server and group configuration.`,
+                            message: `Remove all display settings overrides for <strong>${ids.length}</strong> device${ids.length !== 1 ? 's' : ''}? They will then only inherit server and profile configuration (if any).`,
                             okText: 'Clear Overrides',
                             okClass: 'btn-accent btn-confirm-accent',
                             okIcon: 'eraser',
@@ -18333,6 +18309,90 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     });
                 } finally {
                     btnRepublishMqtt.classList.remove('btn-loading');
+                }
+            });
+        }
+
+        // MQTT: Test broker connection (uses current form fields; does not require restart)
+        const btnMqttTest = document.getElementById('btn-mqtt-test-connection');
+        const mqttTestPill = document.getElementById('mqtt-test-pill');
+        if (btnMqttTest) {
+            if (!btnMqttTest.querySelector('.spinner')) {
+                const sp = document.createElement('span');
+                sp.className = 'spinner';
+                btnMqttTest.insertBefore(sp, btnMqttTest.firstChild);
+            }
+
+            const setPill = (kind, text) => {
+                if (!mqttTestPill) return;
+                mqttTestPill.style.display = '';
+                mqttTestPill.textContent = text;
+                mqttTestPill.classList.toggle('status-success', kind === 'success');
+                mqttTestPill.classList.toggle('status-error', kind === 'error');
+                mqttTestPill.classList.toggle('status-warning', kind === 'warning');
+            };
+
+            btnMqttTest.addEventListener('click', async () => {
+                const host = (document.getElementById('mqtt.broker')?.value || '').trim();
+                const port = Number(document.getElementById('mqtt.port')?.value || 1883);
+                const username = (document.getElementById('mqtt.username')?.value || '').trim();
+                const password = document.getElementById('mqtt.password')?.value || '';
+
+                if (!host) {
+                    setPill('warning', 'Missing host');
+                    return window.notify?.toast({
+                        type: 'warning',
+                        title: 'MQTT Test',
+                        message: 'Enter a broker host first',
+                        duration: 3500,
+                    });
+                }
+
+                try {
+                    btnMqttTest.classList.add('btn-loading');
+                    setPill('warning', 'Testing…');
+
+                    const r = await fetch('/api/admin/mqtt/test-connection', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            broker: {
+                                host,
+                                port,
+                                username: username || undefined,
+                                password: password || undefined,
+                            },
+                        }),
+                    });
+                    const j = await r.json().catch(() => ({}));
+                    if (!r.ok) throw new Error(j?.message || 'MQTT connection test failed');
+
+                    setPill('success', 'Connected');
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'MQTT Test',
+                        message: j?.message || `Connected to ${host}:${port}`,
+                        duration: 3500,
+                    });
+
+                    try {
+                        if (typeof window.updateMqttStatusUI === 'function') {
+                            await window.updateMqttStatusUI();
+                        }
+                    } catch (_) {
+                        /* best effort */
+                    }
+                } catch (e) {
+                    setPill('error', 'Failed');
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'MQTT Test failed',
+                        message: e?.message || 'Unable to connect to broker',
+                        duration: 5000,
+                    });
+                } finally {
+                    btnMqttTest.classList.remove('btn-loading');
                 }
             });
         }
@@ -25123,34 +25183,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             }
         });
 
-        // Restart Server button
-        const btnRestartServer = document.getElementById('btn-restart-server');
-        if (btnRestartServer) {
-            if (!btnRestartServer.querySelector('.spinner')) {
-                const sp = document.createElement('span');
-                sp.className = 'spinner';
-                btnRestartServer.insertBefore(sp, btnRestartServer.firstChild);
-            }
-            btnRestartServer.addEventListener('click', async () => {
-                try {
-                    btnRestartServer.classList.add('btn-loading');
-                    await window.triggerRestartAndPoll({
-                        title: 'Restarting…',
-                        message: 'Server is restarting to apply configuration changes.',
-                    });
-                } catch (e) {
-                    window.notify?.toast({
-                        type: 'error',
-                        title: 'Restart failed',
-                        message: e?.message || 'Unable to restart server',
-                        duration: 5000,
-                    });
-                } finally {
-                    btnRestartServer.classList.remove('btn-loading');
-                }
-            });
-        }
-
         // Helper: update Operations save button label depending on restart requirement
         function opsRestartNeeded() {
             const portEl = document.getElementById('SERVER_PORT');
@@ -25347,7 +25379,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                 host: mqttBroker,
                                 port: mqttPort,
                                 username: mqttUsername,
-                                password: mqttPassword,
+                                password: mqttPassword || undefined,
                             },
                             discovery: {
                                 enabled: mqttDiscoveryEnabled,
@@ -25363,6 +25395,23 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     envPatch
                 );
 
+                // Determine whether MQTT changed (so we can reconnect without restarting)
+                let mqttChanged = false;
+                try {
+                    const currentHash = JSON.stringify({
+                        enabled: mqttEnabled,
+                        host: mqttBroker,
+                        port: mqttPort,
+                        username: mqttUsername,
+                        passwordLen: String(mqttPassword || '').length,
+                        discoveryEnabled: mqttDiscoveryEnabled,
+                    });
+                    mqttChanged = currentHash !== (btn.dataset.originalMqttHash || '');
+                    btn.dataset.originalMqttHash = currentHash;
+                } catch (_) {
+                    mqttChanged = true;
+                }
+
                 // Check if restart is needed (port change OR MQTT settings change)
                 const needsRestart = btn.dataset.restartRequired === 'true' || opsRestartNeeded();
                 if (needsRestart) {
@@ -25372,11 +25421,25 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         message: 'Configuration changed. Applying changes and restarting.',
                     });
                 } else {
+                    if (mqttChanged) {
+                        // Apply MQTT changes immediately (no full server restart required)
+                        try {
+                            await fetch('/api/admin/mqtt/reconnect', {
+                                method: 'POST',
+                                credentials: 'include',
+                                headers: { 'Content-Type': 'application/json' },
+                            });
+                        } catch (_) {
+                            /* best effort */
+                        }
+                    }
+
                     window.notify?.toast({
                         type: 'success',
                         title: 'Saved',
-                        message:
-                            'Operations settings updated. Restart required for MQTT changes to take effect.',
+                        message: mqttChanged
+                            ? 'Operations settings updated. MQTT will reconnect automatically.'
+                            : 'Operations settings updated.',
                         duration: 4000,
                     });
                 }
@@ -25655,6 +25718,23 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 mqttPill.textContent = mqtt.enabled ? 'Enabled' : 'Disabled';
                 mqttPill.classList.toggle('status-warning', !mqtt.enabled);
                 mqttPill.classList.toggle('status-success', !!mqtt.enabled);
+            }
+
+            // Track original MQTT values so we only reconnect when MQTT actually changed
+            try {
+                const btnSaveOps = document.getElementById('btn-save-operations');
+                if (btnSaveOps) {
+                    btnSaveOps.dataset.originalMqttHash = JSON.stringify({
+                        enabled: !!mqtt.enabled,
+                        host: mqtt.broker?.host || '',
+                        port: mqtt.broker?.port || 1883,
+                        username: mqtt.broker?.username || '',
+                        passwordLen: String(mqtt.broker?.password || '').length,
+                        discoveryEnabled: mqtt.discovery?.enabled !== false,
+                    });
+                }
+            } catch (_) {
+                /* noop */
             }
 
             // Toggle MQTT settings visibility

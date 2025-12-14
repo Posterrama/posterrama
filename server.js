@@ -197,6 +197,113 @@ const { getCacheConfig: getCacheConfigUtil } = require('./lib/cache-utils');
 // Device management stores and WebSocket hub
 const deviceStore = require('./utils/deviceStore');
 const wsHub = require('./utils/wsHub');
+
+// -----------------------------------------------------------------------------
+// MQTT bridge manager (supports reconnect without full process restart)
+// -----------------------------------------------------------------------------
+
+let __mqttBridgeTeardownListeners = null;
+let __mqttBridgeRestartQueue = Promise.resolve();
+
+function __attachMqttBridgeDeviceListeners(mqttBridge) {
+    if (!deviceStore?.deviceEvents?.on || !deviceStore?.deviceEvents?.off) {
+        return () => {};
+    }
+
+    const safe = fn => async payload => {
+        try {
+            await fn(payload);
+        } catch (error) {
+            logger.error('Error handling device event in MQTT:', error);
+        }
+    };
+
+    const onUpdated = safe(device => mqttBridge.onDeviceUpdate(device));
+    const onRegistered = safe(device => mqttBridge.onDeviceUpdate(device));
+    const onPatched = safe(device => mqttBridge.onDeviceUpdate(device));
+    const onDeleted = safe(device => mqttBridge.onDeviceDelete(device));
+
+    deviceStore.deviceEvents.on('device:updated', onUpdated);
+    deviceStore.deviceEvents.on('device:registered', onRegistered);
+    deviceStore.deviceEvents.on('device:patched', onPatched);
+    deviceStore.deviceEvents.on('device:deleted', onDeleted);
+
+    return () => {
+        try {
+            deviceStore.deviceEvents.off('device:updated', onUpdated);
+            deviceStore.deviceEvents.off('device:registered', onRegistered);
+            deviceStore.deviceEvents.off('device:patched', onPatched);
+            deviceStore.deviceEvents.off('device:deleted', onDeleted);
+        } catch (_) {
+            /* noop */
+        }
+    };
+}
+
+async function __stopMqttBridge(reason = 'stop') {
+    const existing = global.__posterramaMqttBridge;
+    if (!existing) return;
+
+    logger.info('🔌 Stopping MQTT bridge...', { reason });
+
+    try {
+        __mqttBridgeTeardownListeners?.();
+    } catch (_) {
+        /* noop */
+    }
+    __mqttBridgeTeardownListeners = null;
+
+    try {
+        if (typeof existing.shutdown === 'function') {
+            await existing.shutdown();
+        }
+    } catch (e) {
+        logger.warn('Failed to shutdown MQTT bridge cleanly', { error: e?.message || String(e) });
+    }
+
+    global.__posterramaMqttBridge = null;
+}
+
+async function __startMqttBridge(reason = 'start') {
+    // Config is a Config class instance; mqtt is derived from config.json
+    const mqttCfg = config?.mqtt;
+    if (!mqttCfg || !mqttCfg.enabled) {
+        return;
+    }
+
+    logger.info('🔌 Initializing MQTT bridge...', { reason });
+
+    const MqttBridge = require('./utils/mqttBridge');
+    const mqttBridge = new MqttBridge(mqttCfg);
+    await mqttBridge.init();
+
+    global.__posterramaMqttBridge = mqttBridge;
+    __mqttBridgeTeardownListeners = __attachMqttBridgeDeviceListeners(mqttBridge);
+
+    logger.info('✅ MQTT bridge initialized successfully', { reason });
+}
+
+function restartMqttBridge(reason = 'restart') {
+    __mqttBridgeRestartQueue = __mqttBridgeRestartQueue
+        .then(async () => {
+            await __stopMqttBridge(reason);
+            try {
+                await __startMqttBridge(reason);
+            } catch (e) {
+                logger.error('❌ Failed to initialize MQTT bridge:', e);
+                // Don't crash the server if MQTT fails
+            }
+        })
+        .catch(() => {
+            /* swallow to keep queue alive */
+        });
+
+    return __mqttBridgeRestartQueue;
+}
+
+global.__restartMqttBridge = restartMqttBridge;
+global.__stopMqttBridge = __stopMqttBridge;
+
 // Plex Sessions Poller
 const PlexSessionsPoller = require('./services/plexSessionsPoller');
 // Jellyfin Sessions Poller
@@ -5459,6 +5566,265 @@ app.post(
 
 /**
  * @swagger
+ * /api/admin/mqtt/test-connection:
+ *   post:
+ *     summary: Test connection to an MQTT broker
+ *     description: Attempts a short-lived connection to the broker using the provided settings (does not persist settings and does not require restart).
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               broker:
+ *                 type: object
+ *                 properties:
+ *                   host:
+ *                     type: string
+ *                   port:
+ *                     type: integer
+ *                   username:
+ *                     type: string
+ *                   password:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Connection successful
+ *       400:
+ *         description: Invalid input
+ *       502:
+ *         description: Broker unreachable / connection failed
+ */
+app.post(
+    '/api/admin/mqtt/test-connection',
+    // @ts-ignore - Express router overload with middleware
+    isAuthenticated,
+    express.json(),
+    asyncHandler(async (req, res) => {
+        const broker = (req.body && req.body.broker) || {};
+        const hostInput = String(broker.host || '').trim();
+        const portInput = Number(broker.port || 1883);
+        const username =
+            broker.username != null && String(broker.username).trim()
+                ? String(broker.username).trim()
+                : null;
+        const password =
+            broker.password != null && String(broker.password) ? String(broker.password) : null;
+        let passwordEnvVar =
+            broker.passwordEnvVar != null && String(broker.passwordEnvVar).trim()
+                ? String(broker.passwordEnvVar).trim()
+                : null;
+
+        if (!hostInput) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing broker host',
+            });
+        }
+
+        if (!Number.isFinite(portInput) || portInput < 1 || portInput > 65535) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid broker port',
+            });
+        }
+
+        // Normalize host input: allow host, host:port, mqtt://host[:port], mqtts://host[:port]
+        let scheme = null;
+        let host = hostInput;
+        let port = portInput;
+        try {
+            if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(hostInput)) {
+                const u = new URL(hostInput);
+                scheme = (u.protocol || '').replace(':', '').toLowerCase() || null;
+                host = u.hostname || hostInput;
+                port = u.port ? Number(u.port) : portInput;
+            } else if (hostInput.includes(':')) {
+                // Parses host:port (also tolerates host with accidental extra spaces)
+                const u = new URL(`mqtt://${hostInput}`);
+                host = u.hostname || hostInput;
+                port = u.port ? Number(u.port) : portInput;
+            }
+        } catch (_) {
+            // If parsing fails, fall back to raw host + provided port
+            host = hostInput;
+            port = portInput;
+        }
+
+        if (!Number.isFinite(port) || port < 1 || port > 65535) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid broker port',
+            });
+        }
+
+        // If no password was provided, allow using an env var (common setups store secrets in .env)
+        // Prefer explicitly provided passwordEnvVar; otherwise, if the requested broker matches
+        // the currently-configured broker, use its configured passwordEnvVar.
+        if (!password && !passwordEnvVar) {
+            try {
+                const cfgMqtt = config?.mqtt;
+                const cfgBroker =
+                    cfgMqtt && typeof cfgMqtt.broker === 'object' ? cfgMqtt.broker : null;
+                const cfgHost = String(cfgBroker?.host || '').trim();
+                const cfgPort = Number(cfgBroker?.port || 1883);
+                const cfgUser = String(cfgBroker?.username || '').trim();
+
+                if (
+                    cfgBroker?.passwordEnvVar &&
+                    (cfgHost === host || cfgHost === hostInput) &&
+                    cfgPort === port &&
+                    (!username || !cfgUser || cfgUser === username)
+                ) {
+                    passwordEnvVar = String(cfgBroker.passwordEnvVar).trim();
+                }
+            } catch (_) {
+                /* noop */
+            }
+        }
+
+        // Infer mqtts when not explicit and using the standard TLS port
+        if (!scheme && port === 8883) {
+            scheme = 'mqtts';
+        }
+
+        const brokerUrl = `${scheme || 'mqtt'}://${host}:${port}`;
+
+        const options = {
+            clientId: `posterrama_test_${Date.now()}`,
+            clean: true,
+            reconnectPeriod: 0,
+            connectTimeout: 5000,
+        };
+        if (username) options.username = username;
+        if (password) {
+            options.password = password;
+        } else if (passwordEnvVar) {
+            const envPw = process.env[passwordEnvVar];
+            if (envPw) {
+                options.password = String(envPw);
+            }
+        }
+        if (scheme === 'mqtts') options.protocol = 'mqtts';
+
+        let finished = false;
+        const timeoutMs = 5500;
+
+        let client;
+        try {
+            const mqtt = require('mqtt');
+            if (!mqtt || typeof mqtt.connect !== 'function') {
+                return res.status(502).json({
+                    success: false,
+                    connected: false,
+                    broker: { host, port },
+                    message: 'MQTT client library is unavailable',
+                });
+            }
+            client = mqtt.connect(brokerUrl, options);
+        } catch (e) {
+            return res.status(502).json({
+                success: false,
+                connected: false,
+                broker: { host, port },
+                message: e?.message || 'MQTT connection failed to start',
+            });
+        }
+
+        if (!client || typeof client.on !== 'function') {
+            return res.status(502).json({
+                success: false,
+                connected: false,
+                broker: { host, port },
+                message: 'MQTT connection failed to start',
+            });
+        }
+
+        const finish = (ok, message, extra = {}) => {
+            if (finished) return;
+            finished = true;
+
+            try {
+                client.removeAllListeners?.();
+            } catch (_) {
+                /* noop */
+            }
+
+            try {
+                client.end?.(true);
+            } catch (_) {
+                /* noop */
+            }
+
+            const status = ok ? 200 : 502;
+            res.status(status).json({
+                success: ok,
+                connected: ok,
+                broker: { host, port },
+                message,
+                ...extra,
+            });
+        };
+
+        const timer = setTimeout(() => {
+            finish(false, 'MQTT connection timeout');
+        }, timeoutMs);
+
+        client.on('connect', () => {
+            clearTimeout(timer);
+            finish(true, `Connected to ${host}:${port}`);
+        });
+
+        client.on('error', err => {
+            clearTimeout(timer);
+            finish(false, err?.message || 'MQTT connection failed');
+        });
+    })
+);
+
+/**
+ * @swagger
+ * /api/admin/mqtt/reconnect:
+ *   post:
+ *     summary: Reconnect MQTT bridge using current config
+ *     description: Stops and restarts the in-process MQTT bridge so config changes take effect without restarting the server.
+ *     tags: ['Admin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Reconnect scheduled
+ */
+app.post(
+    '/api/admin/mqtt/reconnect',
+    // @ts-ignore - Express router overload with middleware
+    isAuthenticated,
+    asyncHandler(async (_req, res) => {
+        try {
+            if (typeof global.__restartMqttBridge === 'function') {
+                // Fire-and-forget: the bridge connect timeout can be up to 30s.
+                global.__restartMqttBridge('admin-reconnect');
+            }
+        } catch (e) {
+            logger.warn('[Admin] MQTT reconnect trigger failed', {
+                error: e?.message || String(e),
+            });
+        }
+
+        res.json({
+            success: true,
+            restarting: true,
+            enabled: !!config?.mqtt?.enabled,
+        });
+    })
+);
+
+/**
+ * @swagger
  * /api/admin/mqtt/status:
  *   get:
  *     summary: Get MQTT bridge status and statistics
@@ -5479,11 +5845,24 @@ app.get(
     asyncHandler(async (req, res) => {
         const mqttBridge = global.__posterramaMqttBridge;
 
-        if (!mqttBridge) {
+        // Reflect configured enablement even if the bridge failed to start.
+        const cfgMqtt = config.mqtt || null;
+        const enabledInConfig = !!(cfgMqtt && cfgMqtt.enabled);
+
+        if (!enabledInConfig) {
             return res.json({
                 enabled: false,
                 connected: false,
-                message: 'MQTT integration is not enabled',
+                message: 'MQTT integration is disabled in configuration',
+            });
+        }
+
+        if (!mqttBridge) {
+            return res.json({
+                enabled: true,
+                connected: false,
+                message:
+                    'MQTT is enabled, but the bridge is not running. Check broker settings, then restart the server or use Test connection.',
             });
         }
 
@@ -6839,57 +7218,12 @@ if (require.main === module) {
 
         // Initialize MQTT bridge if enabled
         (async () => {
-            let mqttBridge = null;
-            if (config.mqtt && config.mqtt.enabled) {
-                try {
-                    logger.info('🔌 Initializing MQTT bridge...');
-                    const MqttBridge = require('./utils/mqttBridge');
-                    mqttBridge = new MqttBridge(config.mqtt);
-                    await mqttBridge.init();
-
-                    // Store globally for access in other routes
-                    global.__posterramaMqttBridge = mqttBridge;
-
-                    // Listen to device events for real-time MQTT updates
-                    deviceStore.deviceEvents.on('device:updated', async device => {
-                        try {
-                            await mqttBridge.onDeviceUpdate(device);
-                        } catch (error) {
-                            logger.error('Error handling device:updated event in MQTT:', error);
-                        }
-                    });
-
-                    deviceStore.deviceEvents.on('device:registered', async device => {
-                        try {
-                            await mqttBridge.onDeviceUpdate(device);
-                        } catch (error) {
-                            logger.error('Error handling device:registered event in MQTT:', error);
-                        }
-                    });
-
-                    deviceStore.deviceEvents.on('device:patched', async device => {
-                        try {
-                            await mqttBridge.onDeviceUpdate(device);
-                        } catch (error) {
-                            logger.error('Error handling device:patched event in MQTT:', error);
-                        }
-                    });
-
-                    deviceStore.deviceEvents.on('device:deleted', async device => {
-                        try {
-                            await mqttBridge.onDeviceDelete(device);
-                        } catch (error) {
-                            logger.error('Error handling device:deleted event in MQTT:', error);
-                        }
-                    });
-
-                    logger.info('✅ MQTT bridge initialized successfully');
-                } catch (mqttError) {
-                    logger.error('❌ Failed to initialize MQTT bridge:', mqttError);
-                    // Don't crash the server if MQTT fails
+            try {
+                if (typeof global.__restartMqttBridge === 'function') {
+                    await global.__restartMqttBridge('startup');
                 }
-            } else {
-                logger.debug('MQTT integration disabled in configuration');
+            } catch (e) {
+                logger.error('❌ Failed to initialize MQTT bridge:', e);
             }
         })();
 
@@ -7116,6 +7450,12 @@ if (require.main === module) {
         // Admin preview endpoint (authenticated): required for live preview of UNSAVED settings.
         // This is not exposed without valid session/token.
         siteApp.post('/api/admin/media/preview', proxyApiRequest);
+
+        // Admin MQTT endpoints (authenticated): allow admin UI actions when served via site server.
+        siteApp.get('/api/admin/mqtt/status', proxyApiRequest);
+        siteApp.post('/api/admin/mqtt/test-connection', proxyApiRequest);
+        siteApp.post('/api/admin/mqtt/reconnect', proxyApiRequest);
+        siteApp.post('/api/admin/mqtt/republish', proxyApiRequest);
 
         // Proxy mode pages (cinema, wallart, screensaver) to main app for asset stamping
         siteApp.get(['/cinema', '/cinema.html'], proxyApiRequest);

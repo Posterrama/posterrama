@@ -5,8 +5,22 @@
  * Removes old/orphaned MQTT entities from Home Assistant by:
  * 1. Publishing empty payloads to all known capability discovery topics
  * 2. Forcing a fresh republish of current capabilities
+ * 3. Removing Posterrama entities/devices from the Home Assistant registry (optional, via HA WebSocket API)
  *
- * Usage: node scripts/mqtt-cleanup-entities.js
+ * Usage:
+ *   node scripts/mqtt-cleanup-entities.js
+ *
+ * Home Assistant registry cleanup:
+ *   - Set HOME_ASSISTANT_URL (e.g. http://homeassistant.local:8123)
+ *   - Set HOME_ASSISTANT_TOKEN (Long-Lived Access Token)
+ *   - By default, the script will prompt before deleting registry entries
+ *   - Use --yes to skip prompt
+ *
+ * Modes:
+ *   --ha-only     Only remove from HA registry (no MQTT publish)
+ *   --mqtt-only   Only publish MQTT discovery cleanup/republish
+ *   --dry-run     Do not delete HA registry entries (still prints what would be removed)
+ *   --no-republish Clear MQTT discovery but do not recreate entities
  */
 
 const mqtt = require('mqtt');
@@ -14,16 +28,340 @@ const deviceStore = require('../utils/deviceStore');
 const capabilityRegistry = require('../utils/capabilityRegistry');
 const config = require('../config.json');
 const logger = require('../utils/logger');
+const WebSocket = require('ws');
+const readline = require('readline');
+
+function parseArgs(argv) {
+    const args = new Set((argv || []).slice(2));
+    return {
+        yes: args.has('--yes'),
+        dryRun: args.has('--dry-run'),
+        haOnly: args.has('--ha-only'),
+        mqttOnly: args.has('--mqtt-only'),
+        noRepublish: args.has('--no-republish'),
+    };
+}
+
+function buildHaWsUrl(homeAssistantUrl) {
+    const raw = String(homeAssistantUrl || '').trim();
+    if (!raw) return null;
+
+    try {
+        const u = new URL(raw);
+        const protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${protocol}//${u.host}/api/websocket`;
+    } catch (_) {
+        // Common: users pass "homeassistant.local:8123" (no scheme)
+        try {
+            if (!/^https?:\/\//i.test(raw) && !/^wss?:\/\//i.test(raw)) {
+                const u = new URL(`http://${raw}`);
+                const protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
+                return `${protocol}//${u.host}/api/websocket`;
+            }
+        } catch (_) {
+            // fall through
+        }
+
+        // Allow users to pass ws(s)://... directly
+        if (raw.startsWith('ws://') || raw.startsWith('wss://')) {
+            return raw.endsWith('/api/websocket') ? raw : `${raw.replace(/\/$/, '')}/api/websocket`;
+        }
+        return null;
+    }
+}
+
+async function promptYesNo(question) {
+    if (!process.stdin.isTTY) return false;
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    try {
+        const answer = await new Promise(resolve => rl.question(question, resolve));
+        return String(answer || '')
+            .trim()
+            .toLowerCase()
+            .startsWith('y');
+    } finally {
+        rl.close();
+    }
+}
+
+async function haWsConnect({ url, token, timeoutMs = 10000 }) {
+    return new Promise((resolve, reject) => {
+        const ws = new WebSocket(url);
+        const timeout = setTimeout(() => {
+            try {
+                ws.close();
+            } catch (_) {
+                /* noop */
+            }
+            reject(new Error('Home Assistant WebSocket connection timeout'));
+        }, timeoutMs);
+
+        ws.once('error', err => {
+            clearTimeout(timeout);
+            reject(err);
+        });
+
+        ws.once('open', () => {
+            // Wait for auth_required, then auth
+        });
+
+        const onMessage = msg => {
+            let data;
+            try {
+                data = JSON.parse(String(msg));
+            } catch (_) {
+                return;
+            }
+
+            if (data.type === 'auth_required') {
+                ws.send(JSON.stringify({ type: 'auth', access_token: token }));
+                return;
+            }
+
+            if (data.type === 'auth_ok') {
+                clearTimeout(timeout);
+                ws.off('message', onMessage);
+                resolve(ws);
+                return;
+            }
+
+            if (data.type === 'auth_invalid') {
+                clearTimeout(timeout);
+                ws.off('message', onMessage);
+                reject(new Error('Home Assistant auth failed (invalid token)'));
+            }
+        };
+
+        ws.on('message', onMessage);
+    });
+}
+
+function haWsRequest(ws, request, timeoutMs = 15000) {
+    const id = request.id;
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            ws.off('message', onMessage);
+            reject(new Error(`Home Assistant request timeout (id=${id})`));
+        }, timeoutMs);
+
+        const onMessage = raw => {
+            let msg;
+            try {
+                msg = JSON.parse(String(raw));
+            } catch (_) {
+                return;
+            }
+            if (msg.id !== id) return;
+            clearTimeout(timer);
+            ws.off('message', onMessage);
+            if (msg.success) return resolve(msg.result);
+            const err = msg.error?.message || 'Home Assistant request failed';
+            reject(new Error(err));
+        };
+
+        ws.on('message', onMessage);
+        ws.send(JSON.stringify(request));
+    });
+}
+
+function isPosterramaEntity(entity) {
+    const uniqueId = String(entity?.unique_id || '');
+    const entityId = String(entity?.entity_id || '');
+    const originalName = String(entity?.original_name || '');
+    const platform = String(entity?.platform || '');
+
+    if (uniqueId.toLowerCase().startsWith('posterrama_')) return true;
+    if (entityId.toLowerCase().includes('posterrama')) return true;
+    if (originalName.toLowerCase().includes('posterrama')) return true;
+
+    // Some HA installs might prefix unique_id differently; keep this conservative.
+    if (platform === 'mqtt' && uniqueId.toLowerCase().includes('posterrama')) return true;
+    return false;
+}
+
+function isPosterramaDevice(device) {
+    const manufacturer = String(device?.manufacturer || '');
+    if (manufacturer.toLowerCase() === 'posterrama') return true;
+
+    const identifiers = Array.isArray(device?.identifiers) ? device.identifiers : [];
+    return identifiers.some(pair =>
+        Array.isArray(pair)
+            ? String(pair.join(':')).toLowerCase().includes('posterrama')
+            : String(pair).toLowerCase().includes('posterrama')
+    );
+}
+
+async function cleanupHomeAssistantRegistry({ yes, dryRun }) {
+    const haUrl = process.env.HOME_ASSISTANT_URL || process.env.HASS_URL || process.env.HA_URL;
+    const haToken =
+        process.env.HOME_ASSISTANT_TOKEN ||
+        process.env.HASS_TOKEN ||
+        process.env.HA_TOKEN ||
+        process.env.SUPERVISOR_TOKEN;
+    const wsUrl = buildHaWsUrl(haUrl);
+
+    if (!wsUrl || !haToken) {
+        logger.warn(
+            '⚠️  Skipping Home Assistant registry cleanup (set HOME_ASSISTANT_URL + HOME_ASSISTANT_TOKEN to enable)'
+        );
+        logger.warn('   Detected:', {
+            hasUrl: Boolean(haUrl),
+            urlValue: haUrl ? String(haUrl) : undefined,
+            hasToken: Boolean(haToken),
+        });
+        return { removedEntities: 0, removedDevices: 0, matchedEntities: 0, matchedDevices: 0 };
+    }
+
+    logger.info('🏠 Connecting to Home Assistant WebSocket API...');
+    const ws = await haWsConnect({ url: wsUrl, token: haToken });
+    logger.info('✅ Connected to Home Assistant');
+
+    let nextId = 1;
+    const req = type => ({ id: nextId++, type });
+
+    try {
+        const entities = await haWsRequest(ws, req('config/entity_registry/list'));
+        const devices = await haWsRequest(ws, req('config/device_registry/list'));
+
+        const posterramaDevices = (Array.isArray(devices) ? devices : []).filter(
+            isPosterramaDevice
+        );
+        const posterramaDeviceIds = new Set(posterramaDevices.map(d => d?.id).filter(Boolean));
+
+        const posterramaEntities = (Array.isArray(entities) ? entities : []).filter(e => {
+            if (isPosterramaEntity(e)) return true;
+            const deviceId = e?.device_id;
+            return deviceId ? posterramaDeviceIds.has(deviceId) : false;
+        });
+
+        logger.info(
+            `🔎 Home Assistant registry matches: ${posterramaEntities.length} entities, ${posterramaDevices.length} devices`
+        );
+
+        if (posterramaEntities.length === 0 && posterramaDevices.length === 0) {
+            return { removedEntities: 0, removedDevices: 0, matchedEntities: 0, matchedDevices: 0 };
+        }
+
+        if (dryRun) {
+            logger.info('🧪 Dry-run enabled: no registry entries will be deleted');
+            return {
+                removedEntities: 0,
+                removedDevices: 0,
+                matchedEntities: posterramaEntities.length,
+                matchedDevices: posterramaDevices.length,
+            };
+        }
+
+        if (!yes) {
+            const ok = await promptYesNo(
+                `Delete ${posterramaEntities.length} entities and ${posterramaDevices.length} devices from Home Assistant? (y/N) `
+            );
+            if (!ok) {
+                logger.warn('Aborted Home Assistant cleanup. Re-run with --yes to skip prompt.');
+                return {
+                    removedEntities: 0,
+                    removedDevices: 0,
+                    matchedEntities: posterramaEntities.length,
+                    matchedDevices: posterramaDevices.length,
+                };
+            }
+        }
+
+        let removedEntities = 0;
+        for (const e of posterramaEntities) {
+            const entityId = e?.entity_id;
+            if (!entityId) continue;
+            try {
+                await haWsRequest(ws, {
+                    id: nextId++,
+                    type: 'config/entity_registry/remove',
+                    entity_id: entityId,
+                });
+                removedEntities++;
+            } catch (err) {
+                logger.warn('Failed to remove entity from HA registry', {
+                    entity_id: entityId,
+                    error: err?.message || String(err),
+                });
+            }
+        }
+
+        // Devices should be removed after entities; HA may block device removal if entities remain.
+        let removedDevices = 0;
+        for (const d of posterramaDevices) {
+            const deviceId = d?.id;
+            if (!deviceId) continue;
+            try {
+                await haWsRequest(ws, {
+                    id: nextId++,
+                    type: 'config/device_registry/remove',
+                    device_id: deviceId,
+                });
+                removedDevices++;
+            } catch (err) {
+                logger.warn('Failed to remove device from HA registry', {
+                    device_id: deviceId,
+                    error: err?.message || String(err),
+                });
+            }
+        }
+
+        return {
+            removedEntities,
+            removedDevices,
+            matchedEntities: posterramaEntities.length,
+            matchedDevices: posterramaDevices.length,
+        };
+    } finally {
+        try {
+            ws.close();
+        } catch (_) {
+            /* noop */
+        }
+    }
+}
 
 async function cleanupEntities() {
+    const args = parseArgs(process.argv);
+
     logger.info('🧹 Starting MQTT entity cleanup...');
     logger.info('⚠️  This will remove ALL Posterrama entities from Home Assistant');
     logger.info('   They will be recreated with current configuration');
 
+    const doHa = !args.mqttOnly;
+    const doMqtt = !args.haOnly;
+
+    // Step A: remove from Home Assistant registry (handles large backlogs of old devices)
+    let haResult = {
+        removedEntities: 0,
+        removedDevices: 0,
+        matchedEntities: 0,
+        matchedDevices: 0,
+    };
+    if (doHa) {
+        try {
+            haResult = await cleanupHomeAssistantRegistry({ yes: args.yes, dryRun: args.dryRun });
+        } catch (e) {
+            logger.error('❌ Home Assistant registry cleanup failed:', e?.message || e);
+        }
+    }
+
+    // Step B: MQTT retained discovery cleanup/republish
+    if (!doMqtt) {
+        logger.info('✅ Done (HA-only mode).');
+        logger.info(
+            `HA registry: removed ${haResult.removedEntities}/${haResult.matchedEntities} entities, ${haResult.removedDevices}/${haResult.matchedDevices} devices`
+        );
+        return;
+    }
+
     // Check if MQTT is enabled
     if (!config.mqtt?.enabled) {
-        logger.error('❌ MQTT is not enabled in config.json');
-        process.exit(1);
+        logger.warn('⚠️  MQTT is not enabled in config.json - skipping MQTT publish cleanup');
+        logger.info(
+            `HA registry: removed ${haResult.removedEntities}/${haResult.matchedEntities} entities, ${haResult.removedDevices}/${haResult.matchedDevices} devices`
+        );
+        return;
     }
 
     // Connect to MQTT broker
@@ -73,87 +411,80 @@ async function cleanupEntities() {
         let totalUnpublished = 0;
         let totalRepublished = 0;
 
-        for (const device of devices) {
-            logger.info(`\n🔧 Processing device: ${device.name} (${device.id})`);
+        // Sweep ALL retained Posterrama discovery topics, including orphaned devices.
+        // This is far more reliable than only iterating current deviceStore.
+        const sweepFilter = `${discoveryPrefix}/+/posterrama_+/+/config`;
+        logger.info(`\n🧽 Sweeping retained discovery topics: ${sweepFilter}`);
 
-            // Step 1: Unpublish ALL entity types with a wildcard pattern
-            // This ensures we catch everything, including old renamed entities
-            logger.info('  🗑️  Removing ALL Posterrama entities (all components)...');
+        const discoveredTopics = new Set();
+        const onMsg = (topic, _payload, packet) => {
+            if (!packet?.retain) return;
+            discoveredTopics.add(topic);
+        };
+        client.on('message', onMsg);
 
-            const allComponents = [
-                'button',
-                'switch',
-                'select',
-                'number',
-                'text',
-                'sensor',
-                'camera',
-                'binary_sensor',
-                'light',
-                'climate',
-            ];
+        await new Promise((resolve, reject) => {
+            client.subscribe(sweepFilter, { qos: 0 }, err => (err ? reject(err) : resolve()));
+        });
 
-            // For each component type, unpublish all possible entity patterns
-            for (const component of allComponents) {
-                // Unpublish all current known capabilities for this component
-                for (const cap of allCapabilities) {
-                    if (getHomeAssistantComponent(cap.entityType) === component) {
-                        const objectId = cap.id.replace(/\./g, '_');
-                        const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${objectId}/config`;
-                        await publish(client, discoveryTopic, '', { qos: 1, retain: true });
-                        totalUnpublished++;
-                    }
+        // Wait briefly for retained messages to arrive
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        await new Promise(resolve => {
+            client.unsubscribe(sweepFilter, () => resolve());
+        });
+        client.off('message', onMsg);
+
+        const topicsToClear = Array.from(discoveredTopics);
+        logger.info(
+            `🗑️  Found ${topicsToClear.length} retained Posterrama discovery topic(s) to clear`
+        );
+        for (const t of topicsToClear) {
+            await publish(client, t, '', { qos: 1, retain: true });
+            totalUnpublished++;
+        }
+
+        if (topicsToClear.length > 0) {
+            // Give HA a moment to process the retained removals
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
+        if (args.noRepublish) {
+            logger.info('⏭️  Skipping republish (--no-republish enabled)');
+        } else {
+            for (const device of devices) {
+                logger.info(`\n🔧 Processing device: ${device.name} (${device.id})`);
+
+                // Republish only available capabilities for current mode
+                logger.info('  📥 Republishing available capabilities...');
+                const availableCapabilities = capabilityRegistry.getAvailableCapabilities(device);
+
+                for (const cap of availableCapabilities) {
+                    const discoveryConfig = buildDiscoveryConfig(device, cap, topicPrefix, config);
+                    const component = getHomeAssistantComponent(cap.entityType);
+                    const objectId = cap.id.replace(/\./g, '_');
+                    const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${objectId}/config`;
+
+                    await publish(client, discoveryTopic, JSON.stringify(discoveryConfig), {
+                        qos: 1,
+                        retain: true,
+                    });
+                    totalRepublished++;
                 }
 
-                // Also unpublish common old patterns that might still exist
-                const oldPatterns = [
-                    'device_lastSeen',
-                    'settings_wallartMode_refreshRate',
-                    'power_on',
-                    'power_off',
-                    'device_reload',
-                    'device_reset',
-                    'settings_wallartMode_heroRotation', // Old switch version
-                ];
-
-                for (const pattern of oldPatterns) {
-                    const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${pattern}/config`;
-                    await publish(client, discoveryTopic, '', { qos: 1, retain: true });
-                    totalUnpublished++;
-                }
+                logger.info(
+                    `  ✅ Republished ${availableCapabilities.length} available capabilities`
+                );
             }
-
-            logger.info(
-                `  ✅ Unpublished all entities across ${allComponents.length} component types`
-            );
-
-            // Step 2: Wait a bit to ensure Home Assistant processes the unpublish
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Step 3: Republish only available capabilities for current mode
-            logger.info('  📥 Republishing available capabilities...');
-            const availableCapabilities = capabilityRegistry.getAvailableCapabilities(device);
-
-            for (const cap of availableCapabilities) {
-                const discoveryConfig = buildDiscoveryConfig(device, cap, topicPrefix, config);
-                const component = getHomeAssistantComponent(cap.entityType);
-                const objectId = cap.id.replace(/\./g, '_');
-                const discoveryTopic = `${discoveryPrefix}/${component}/posterrama_${device.id}/${objectId}/config`;
-
-                await publish(client, discoveryTopic, JSON.stringify(discoveryConfig), {
-                    qos: 1,
-                    retain: true,
-                });
-                totalRepublished++;
-            }
-
-            logger.info(`  ✅ Republished ${availableCapabilities.length} available capabilities`);
         }
 
         logger.info(`\n✅ Cleanup complete!`);
         logger.info(`   Unpublished: ${totalUnpublished} entities`);
         logger.info(`   Republished: ${totalRepublished} entities`);
         logger.info(`   Removed: ${totalUnpublished - totalRepublished} old entities`);
+        logger.info(
+            `   HA registry removed: ${haResult.removedEntities}/${haResult.matchedEntities} entities, ${haResult.removedDevices}/${haResult.matchedDevices} devices`
+        );
     } catch (error) {
         logger.error('❌ Cleanup failed:', error);
         process.exit(1);

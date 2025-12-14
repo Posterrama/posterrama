@@ -1582,18 +1582,6 @@ class CapabilityRegistry {
             },
         });
 
-        // Groups
-        this.register('device.groups', {
-            name: 'Groups',
-            category: 'sensor',
-            entityType: 'sensor',
-            icon: 'mdi:folder-multiple',
-            stateGetter: device => {
-                const groups = device.groups;
-                return Array.isArray(groups) && groups.length > 0 ? groups.join(', ') : 'None';
-            },
-        });
-
         // Preset
         this.register('device.preset', {
             name: 'Preset',
