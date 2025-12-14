@@ -2444,9 +2444,16 @@
                     "error-rate"
                 ]
             },
-            "minItems": 4,
-            "maxItems": 4,
-            "default": ["media-items", "active-devices", "now-playing", "system-health"]
+            "minItems": 1,
+            "maxItems": 12,
+            "default": [
+                "media-items",
+                "active-devices",
+                "now-playing",
+                "system-health",
+                "poster-health",
+                "source-response"
+            ]
         }
     },
     "required": [

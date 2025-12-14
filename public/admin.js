@@ -1449,8 +1449,8 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         } catch (e) {
             console.warn('Failed to load card config:', e);
         }
-        // Default: first 4 cards
-        return AVAILABLE_CARDS.slice(0, 4).map(c => c.id);
+        // Default: first 6 cards (user can select all if desired)
+        return AVAILABLE_CARDS.slice(0, 6).map(c => c.id);
     }
 
     // Save card configuration to server
@@ -2116,7 +2116,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         const cards = Array.from(
             document.querySelectorAll('#cards-selection-grid .card-selection-item')
         );
-        let selected = [];
+        const selected = [];
 
         // Get selected cards in their current display order
         cards.forEach(cardEl => {
@@ -2127,16 +2127,12 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             }
         });
 
-        // Ensure exactly 4 cards (auto-fill if needed)
-        if (selected.length < 4) {
-            AVAILABLE_CARDS.forEach(card => {
-                if (!selected.includes(card.id) && selected.length < 4) {
-                    selected.push(card.id);
-                }
-            });
-        } else if (selected.length > 4) {
-            selected = selected.slice(0, 4);
+        // Allow any number of cards (minimum 1)
+        if (selected.length < 1) {
+            // If no cards selected, show first card as minimum
+            selected.push(AVAILABLE_CARDS[0].id);
         }
+        // No maximum limit - cards will wrap to next row automatically
 
         // Save to server (async) - this updates window.__serverConfig
         await saveCardConfig(selected);

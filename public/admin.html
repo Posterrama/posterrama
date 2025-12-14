@@ -5058,9 +5058,9 @@
       </div>
       <div class="modal-body">
         <p style="margin-bottom: 16px; color: var(--color-text-secondary);">
-          Select exactly 4 cards and drag to reorder. Your selection order determines the dashboard layout.
+          Select cards to display and drag to reorder. Cards automatically wrap to the next row.
         </p>
-        <div id="cards-selection-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        <div id="cards-selection-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; max-height: 60vh; overflow-y: auto;">
           <!-- Cards will be dynamically added here -->
         </div>
       </div>
