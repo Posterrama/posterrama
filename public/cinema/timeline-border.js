@@ -54,6 +54,7 @@
     let _isPaused = false;
     let _pauseAnimationFrame = null;
     let _autoColor = null; // Color from ton-sur-ton
+    let _pausedOriginalProgress = null; // Store progress when paused to restore later
 
     /**
      * Initialize timeline border
@@ -148,29 +149,111 @@
     }
 
     /**
+     * Get the CSS gradient string for a specific border segment
+     * Each segment shows its portion of the full gradient
+     * @param {string} side - Which border side (top, right, bottom, left)
+     * @returns {string} CSS gradient string
+     */
+    function getSegmentGradient(side) {
+        // Full gradient colors
+        const colors = GRADIENT_COLORS.map(g => g.color);
+
+        // Each segment covers 25% of the total progress
+        // Top: 0-25% (blue → green)
+        // Right: 25-50% (green → yellow)
+        // Bottom: 50-75% (yellow → orange) - reversed direction
+        // Left: 75-100% (orange → red) - reversed direction
+
+        switch (side) {
+            case 'top':
+                // Left to right: blue → green
+                return `linear-gradient(90deg, ${colors[0]}, ${colors[1]})`;
+            case 'right':
+                // Top to bottom: green → yellow
+                return `linear-gradient(180deg, ${colors[1]}, ${colors[2]})`;
+            case 'bottom':
+                // Right to left: yellow → orange
+                return `linear-gradient(270deg, ${colors[2]}, ${colors[3]})`;
+            case 'left':
+                // Bottom to top: orange → red
+                return `linear-gradient(0deg, ${colors[3]}, ${colors[4]})`;
+            default:
+                return `linear-gradient(90deg, ${colors[0]}, ${colors[4]})`;
+        }
+    }
+
+    /**
      * Get border style CSS based on config
      * @param {string} color - Current color
+     * @param {string} side - Which border side (top, right, bottom, left)
+     * @param {boolean} forceNoGradient - Force single color mode (used for pause state)
      * @returns {object} Style properties
      */
-    function getBorderStyleProps(color) {
+    function getBorderStyleProps(color, side = 'top', forceNoGradient = false) {
         const style = _config.style || 'solid';
         const thickness = _config.thickness || 3;
         const opacity = _config.opacity || 0.6;
+
+        // Determine gradient direction based on side
+        // Horizontal borders (top/bottom) use 90deg (left to right)
+        // Vertical borders (left/right) use 0deg (top to bottom)
+        const isVertical = side === 'left' || side === 'right';
+        const gradientAngle = isVertical ? '0deg' : '90deg';
 
         const baseProps = {
             opacity: opacity,
         };
 
+        // For gradient mode (unless forced off for pause state), use the segment gradient
+        if (_config.gradient && !forceNoGradient) {
+            const segmentGradient = getSegmentGradient(side);
+
+            switch (style) {
+                case 'dashed': {
+                    // Overlay dashed pattern on top of gradient
+                    const dashGradient = isVertical
+                        ? `repeating-linear-gradient(0deg, transparent 0px, transparent 10px, rgba(0,0,0,0.8) 10px, rgba(0,0,0,0.8) 20px)`
+                        : `repeating-linear-gradient(90deg, transparent 0px, transparent 10px, rgba(0,0,0,0.8) 10px, rgba(0,0,0,0.8) 20px)`;
+                    return {
+                        ...baseProps,
+                        background: `${dashGradient}, ${segmentGradient}`,
+                    };
+                }
+                case 'dotted': {
+                    const dotGradient = isVertical
+                        ? `repeating-linear-gradient(0deg, transparent 0px, transparent ${thickness}px, rgba(0,0,0,0.8) ${thickness}px, rgba(0,0,0,0.8) ${thickness * 2}px)`
+                        : `repeating-linear-gradient(90deg, transparent 0px, transparent ${thickness}px, rgba(0,0,0,0.8) ${thickness}px, rgba(0,0,0,0.8) ${thickness * 2}px)`;
+                    return {
+                        ...baseProps,
+                        background: `${dotGradient}, ${segmentGradient}`,
+                    };
+                }
+                case 'neon':
+                    return {
+                        ...baseProps,
+                        background: segmentGradient,
+                        boxShadow: `0 0 ${thickness * 2}px ${GRADIENT_COLORS[2].color}, 0 0 ${thickness * 4}px ${GRADIENT_COLORS[2].color}`,
+                    };
+                case 'solid':
+                default:
+                    return {
+                        ...baseProps,
+                        background: segmentGradient,
+                    };
+            }
+        }
+
+        // Non-gradient modes (single color)
         switch (style) {
             case 'dashed':
                 return {
                     ...baseProps,
-                    background: `repeating-linear-gradient(90deg, ${color} 0px, ${color} 10px, transparent 10px, transparent 20px)`,
+                    background: `repeating-linear-gradient(${gradientAngle}, ${color} 0px, ${color} 10px, transparent 10px, transparent 20px)`,
                 };
             case 'dotted':
                 return {
                     ...baseProps,
-                    background: `repeating-linear-gradient(90deg, ${color} 0px, ${color} ${thickness}px, transparent ${thickness}px, transparent ${thickness * 2}px)`,
+                    background: `repeating-linear-gradient(${gradientAngle}, ${color} 0px, ${color} ${thickness}px, transparent ${thickness}px, transparent ${thickness * 2}px)`,
                 };
             case 'neon':
                 return {
@@ -226,7 +309,7 @@
             progress.className = `timeline-border-progress timeline-border-${side}`;
             progress.id = `timeline-progress-${side}`;
 
-            const styleProps = getBorderStyleProps(color);
+            const styleProps = getBorderStyleProps(color, side);
 
             let baseStyle = `
                 position: absolute;
@@ -375,8 +458,8 @@
         // Apply to left (height from bottom, so we position it from bottom)
         left.style.height = `${leftProgress}%`;
 
-        // Update colors if gradient is enabled or auto color changed
-        if (_config.gradient || _config.colorMode === 'auto') {
+        // Update colors only for auto color mode (gradient colors are fixed)
+        if (_config.colorMode === 'auto' && !_config.gradient) {
             updateBorderColors(percent);
         }
     }
@@ -389,9 +472,15 @@
         if (!_progressBorder) return;
 
         const color = getCurrentColor(percent);
-        const styleProps = getBorderStyleProps(color);
 
-        Object.values(_progressBorder).forEach(el => {
+        // Update each side with correct gradient direction
+        const sides = ['top', 'right', 'bottom', 'left'];
+        sides.forEach(side => {
+            const el = _progressBorder[side];
+            if (!el) return;
+
+            const styleProps = getBorderStyleProps(color, side);
+
             if (styleProps.backgroundColor) {
                 el.style.backgroundColor = styleProps.backgroundColor;
             }
@@ -435,15 +524,92 @@
 
     /**
      * Start pulsing animation for paused state
+     * Shows full border (all 4 sides at 100%) pulsing with current color
      */
     function startPauseAnimation() {
         if (_pauseAnimationFrame) return;
 
+        // Store original progress to restore later
+        _pausedOriginalProgress = _currentProgress;
+
+        // Determine the pause color
+        // For gradient mode: use the interpolated color at current progress
+        // For other modes: use the configured color or auto color
+        let pauseColor;
+        if (_config.gradient) {
+            pauseColor = interpolateGradientColor(_currentProgress);
+        } else if (_config.colorMode === 'auto' && _autoColor) {
+            pauseColor = _autoColor;
+        } else {
+            pauseColor = _config.color || '#ffffff';
+        }
+
+        // Expand all borders to 100% with the pause color, keeping the style
+        if (_progressBorder) {
+            const sides = ['top', 'right', 'bottom', 'left'];
+            const thickness = _config.thickness || 3;
+            log(`Pause: expanding all ${sides.length} borders to 100%, color: ${pauseColor}`);
+
+            sides.forEach(side => {
+                const el = _progressBorder[side];
+                if (!el) {
+                    log(`Pause: border element for ${side} not found!`);
+                    return;
+                }
+
+                // Get the style props for this side
+                const styleProps = getBorderStyleProps(pauseColor, side, true);
+
+                // Build complete inline style for each border at 100%
+                // Positions must match the original clockwise flow:
+                // top: left→right, right: top→bottom, bottom: right→left, left: bottom→top
+                let fullStyle = `
+                    position: absolute;
+                    transition: none;
+                    opacity: ${styleProps.opacity || 0.6};
+                `;
+
+                // Add background
+                if (styleProps.background) {
+                    fullStyle += `background: ${styleProps.background};`;
+                } else if (styleProps.backgroundColor) {
+                    fullStyle += `background-color: ${styleProps.backgroundColor};`;
+                }
+
+                // Add box shadow if present
+                if (styleProps.boxShadow) {
+                    fullStyle += `box-shadow: ${styleProps.boxShadow};`;
+                } else if (_config.glowEnabled) {
+                    const glowIntensity = _config.glowIntensity || 10;
+                    fullStyle += `box-shadow: 0 0 ${glowIntensity}px ${pauseColor};`;
+                }
+
+                // Position and size based on side - ALL at 100%
+                // Keep original anchor positions for clockwise animation
+                if (side === 'top') {
+                    fullStyle += `top: 0; left: 0; width: 100%; height: ${thickness}px;`;
+                } else if (side === 'right') {
+                    fullStyle += `top: 0; right: 0; width: ${thickness}px; height: 100%;`;
+                } else if (side === 'bottom') {
+                    fullStyle += `bottom: 0; right: 0; width: 100%; height: ${thickness}px;`;
+                } else if (side === 'left') {
+                    fullStyle += `bottom: 0; left: 0; width: ${thickness}px; height: 100%;`;
+                }
+
+                // Apply the complete style
+                el.style.cssText = fullStyle;
+                log(`Pause: ${side} set to 100% with full style reset`);
+            });
+        } else {
+            log('Pause: _progressBorder is null/undefined!');
+        }
+
         let opacity = _config.opacity || 0.6;
         let direction = -1;
-        const minOpacity = 0.2;
+        const minOpacity = 0.15;
         const maxOpacity = _config.opacity || 0.6;
-        const step = 0.02;
+        // Slower, more gentle pulsing (was 0.02)
+        const step = 0.008;
 
         function pulse() {
             opacity += step * direction;
@@ -468,11 +634,11 @@
         }
 
         _pauseAnimationFrame = requestAnimationFrame(pulse);
-        log('Pause animation started');
+        log('Pause animation started with full border');
     }
 
     /**
-     * Stop pulsing animation
+     * Stop pulsing animation and restore progress state
      */
     function stopPauseAnimation() {
         if (_pauseAnimationFrame) {
@@ -480,13 +646,61 @@
             _pauseAnimationFrame = null;
         }
 
-        // Reset opacity
-        if (_progressBorder) {
+        // Restore original progress and colors
+        if (typeof _pausedOriginalProgress === 'number' && _progressBorder) {
+            const thickness = _config.thickness || 3;
+            const color = getCurrentColor(_pausedOriginalProgress);
             const opacity = _config.opacity || 0.6;
-            Object.values(_progressBorder).forEach(el => {
-                el.style.opacity = String(opacity);
+
+            // Rebuild each border element with correct positioning and style
+            const sides = ['top', 'right', 'bottom', 'left'];
+            sides.forEach(side => {
+                const el = _progressBorder[side];
+                if (!el) return;
+
+                const styleProps = getBorderStyleProps(color, side);
+
+                // Build the base style with transition re-enabled
+                let baseStyle = `
+                    position: absolute;
+                    transition: width 0.5s ease-out, height 0.5s ease-out, background-color 0.5s ease-out;
+                    opacity: ${opacity};
+                `;
+
+                // Add background
+                if (styleProps.background) {
+                    baseStyle += `background: ${styleProps.background};`;
+                } else if (styleProps.backgroundColor) {
+                    baseStyle += `background-color: ${styleProps.backgroundColor};`;
+                }
+
+                // Add box shadow
+                if (styleProps.boxShadow) {
+                    baseStyle += `box-shadow: ${styleProps.boxShadow};`;
+                } else if (_config.glowEnabled && _config.style !== 'neon') {
+                    const glowIntensity = _config.glowIntensity || 10;
+                    baseStyle += `box-shadow: 0 0 ${glowIntensity}px ${color};`;
+                }
+
+                // Restore original positions (progress will be applied by applyProgress)
+                if (side === 'top') {
+                    baseStyle += `top: 0; left: 0; width: 0%; height: ${thickness}px;`;
+                } else if (side === 'right') {
+                    baseStyle += `top: 0; right: 0; width: ${thickness}px; height: 0%;`;
+                } else if (side === 'bottom') {
+                    baseStyle += `bottom: 0; right: 0; width: 0%; height: ${thickness}px;`;
+                } else if (side === 'left') {
+                    baseStyle += `bottom: 0; left: 0; width: ${thickness}px; height: 0%;`;
+                }
+
+                el.style.cssText = baseStyle;
             });
+
+            // Now apply the actual progress
+            applyProgress(_pausedOriginalProgress);
+            _pausedOriginalProgress = null;
         }
+
         log('Pause animation stopped');
     }
 
@@ -509,12 +723,17 @@
 
         setProgress(percent);
 
-        // Check if paused (Plex uses 'paused' state, Jellyfin uses 'IsPaused')
+        // Check if paused
+        // - Plex processed sessions: session.playerState === 'paused'
+        // - Plex raw sessions: session.Player?.state === 'paused'
+        // - Jellyfin: session.IsPaused === true or session.PlayState?.IsPaused === true
         const isPaused =
+            session.playerState === 'paused' ||
             session.state === 'paused' ||
             session.Player?.state === 'paused' ||
             session.IsPaused === true ||
             session.PlayState?.IsPaused === true;
+
         setPaused(isPaused);
     }
 
@@ -562,6 +781,7 @@
         _currentProgress = 0;
         _targetProgress = 0;
         _autoColor = null;
+        _pausedOriginalProgress = null;
 
         log('Timeline border destroyed');
     }

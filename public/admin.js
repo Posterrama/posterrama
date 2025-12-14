@@ -4162,13 +4162,15 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             timelineBorderColorContainer.appendChild(timelineBorderPicker);
         }
 
-        // Show/hide timeline border options based on enabled state and color mode
+        // Show/hide timeline border options based on enabled state, color mode, and gradient
         const timelineBorderEnabled = document.getElementById('cinemaTimelineBorderEnabled');
         const timelineBorderColorMode = document.getElementById('cinemaTimelineBorderColorMode');
+        const timelineBorderGradient = document.getElementById('cinemaTimelineBorderGradient');
         if (timelineBorderEnabled) {
             const updateTimelineBorderVisibility = () => {
                 const show = timelineBorderEnabled.checked;
                 const isAutoColor = timelineBorderColorMode?.value === 'auto';
+                const isGradient = timelineBorderGradient?.checked || false;
                 [
                     'timelineBorderThicknessRow',
                     'timelineBorderStyleRow',
@@ -4181,14 +4183,21 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const row = document.getElementById(id);
                     if (row) row.style.display = show ? '' : 'none';
                 });
-                // Hide color picker when auto mode is selected
+                // Hide color picker when auto mode or gradient is selected
                 const colorRow = document.getElementById('timelineBorderColorRow');
-                if (colorRow) colorRow.style.display = show && !isAutoColor ? '' : 'none';
+                if (colorRow)
+                    colorRow.style.display = show && !isAutoColor && !isGradient ? '' : 'none';
+                // Hide color mode when gradient is selected (gradient has its own colors)
+                const colorModeRow = document.getElementById('timelineBorderColorModeRow');
+                if (colorModeRow) colorModeRow.style.display = show && !isGradient ? '' : 'none';
             };
             updateTimelineBorderVisibility();
             timelineBorderEnabled.addEventListener('change', updateTimelineBorderVisibility);
             if (timelineBorderColorMode) {
                 timelineBorderColorMode.addEventListener('change', updateTimelineBorderVisibility);
+            }
+            if (timelineBorderGradient) {
+                timelineBorderGradient.addEventListener('change', updateTimelineBorderVisibility);
             }
         }
 
