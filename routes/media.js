@@ -12,6 +12,7 @@ const { PassThrough } = require('stream');
 // Import enrichment functions for extras support
 const { enrichPlexItemWithExtras } = require('../lib/plex-helpers');
 const { enrichJellyfinItemWithExtras } = require('../lib/jellyfin-helpers');
+const { getJellyfinClient, processJellyfinItem } = require('../lib/jellyfin-helpers');
 
 // Metrics tracking
 const metricsManager = require('../utils/metrics');
@@ -408,6 +409,7 @@ module.exports = function createMediaRouter({
             }
 
             const results = [];
+            const seenKeys = new Set();
             for (const item of items) {
                 const title = (item?.title || item?.name || '').toString();
                 if (!title) continue;
@@ -422,6 +424,11 @@ module.exports = function createMediaRouter({
                 }
 
                 if (title.toLowerCase().includes(qLower)) {
+                    const key = (item?.key || '').toString();
+                    if (key) {
+                        if (seenKeys.has(key)) continue;
+                        seenKeys.add(key);
+                    }
                     results.push({
                         key: item?.key,
                         title,
@@ -432,6 +439,205 @@ module.exports = function createMediaRouter({
                         backdropUrl: item?.backdropUrl || item?.backdrop_path || null,
                     });
                     if (results.length >= limit) break;
+                }
+            }
+
+            // Deep-search enabled servers for better UX (e.g. pin poster needs full library search).
+            // We keep the playlist-cache results first for quick relevance.
+            if (results.length < limit) {
+                const remaining = limit - results.length;
+                const currentConfig =
+                    (await (typeof readConfig === 'function' ? readConfig() : null)) ||
+                    config ||
+                    {};
+                const mediaServers = Array.isArray(currentConfig.mediaServers)
+                    ? currentConfig.mediaServers
+                    : [];
+
+                const wantPlex = !source || source === 'any' || source === 'plex';
+                const wantJellyfin = !source || source === 'any' || source === 'jellyfin';
+
+                const wantMovie = !type || type === 'all' || type === 'movie';
+                const wantSeries = !type || type === 'all' || type === 'series';
+
+                if (wantPlex) {
+                    const plexServers = mediaServers.filter(
+                        s => s && s.type === 'plex' && s.enabled === true
+                    );
+
+                    for (const serverConfig of plexServers) {
+                        if (results.length >= limit) break;
+                        try {
+                            const plex = await getPlexClient(serverConfig);
+                            const targetSize = Math.max(10, Math.min(50, remaining * 3));
+                            const qEnc = encodeURIComponent(q);
+
+                            const plexItems = [];
+
+                            const addFromResponse = resp => {
+                                const container = resp?.MediaContainer || {};
+                                const hubs = Array.isArray(container.Hub) ? container.Hub : [];
+                                const direct = Array.isArray(container.Metadata)
+                                    ? container.Metadata
+                                    : [];
+
+                                for (const h of hubs) {
+                                    const metas = Array.isArray(h?.Metadata) ? h.Metadata : [];
+                                    plexItems.push(...metas);
+                                }
+                                plexItems.push(...direct);
+                            };
+
+                            // Prefer /search which is typically more complete than /hubs/search.
+                            try {
+                                const resp = await plex.query(
+                                    `/search?query=${qEnc}&X-Plex-Container-Start=0&X-Plex-Container-Size=${targetSize}`
+                                );
+                                addFromResponse(resp);
+                            } catch (_) {
+                                /* fallback below */
+                            }
+
+                            // Fallback/augment with hubs/search for servers that restrict /search.
+                            try {
+                                const resp = await plex.query(
+                                    `/hubs/search?query=${qEnc}&X-Plex-Container-Start=0&X-Plex-Container-Size=${targetSize}`
+                                );
+                                addFromResponse(resp);
+                            } catch (_) {
+                                /* ignore */
+                            }
+
+                            for (const meta of plexItems) {
+                                if (results.length >= limit) break;
+
+                                const tl = (meta?.type || '').toString().toLowerCase();
+                                const mappedType =
+                                    tl === 'movie'
+                                        ? 'movie'
+                                        : tl === 'show' || tl === 'series' || tl === 'tv'
+                                          ? 'series'
+                                          : '';
+                                if (!mappedType) continue;
+                                if (mappedType === 'movie' && !wantMovie) continue;
+                                if (mappedType === 'series' && !wantSeries) continue;
+
+                                let ratingKeyStr = meta?.ratingKey ? String(meta.ratingKey) : '';
+                                if (!ratingKeyStr) {
+                                    const keyPath = meta?.key ? String(meta.key) : '';
+                                    const m = keyPath.match(/(\d+)(?:\/?$)/);
+                                    if (m) ratingKeyStr = m[1];
+                                }
+                                if (!ratingKeyStr || !/^\d+$/.test(ratingKeyStr)) continue;
+
+                                const compositeKey = `plex-${serverConfig.name}-${ratingKeyStr}`;
+                                if (seenKeys.has(compositeKey)) continue;
+                                seenKeys.add(compositeKey);
+
+                                const titleStr = (meta?.title || '').toString().trim();
+                                if (!titleStr) continue;
+
+                                const thumb = meta?.thumb ? String(meta.thumb) : '';
+                                const art = meta?.art ? String(meta.art) : '';
+
+                                results.push({
+                                    key: compositeKey,
+                                    title: titleStr,
+                                    year: meta?.year || null,
+                                    type: mappedType,
+                                    source: 'plex',
+                                    posterUrl: thumb
+                                        ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(thumb)}`
+                                        : null,
+                                    backdropUrl: art
+                                        ? `/image?server=${encodeURIComponent(serverConfig.name)}&path=${encodeURIComponent(art)}`
+                                        : null,
+                                });
+                            }
+                        } catch (e) {
+                            logger.warn('[Admin Search] Plex search failed', {
+                                server: serverConfig?.name,
+                                error: e?.message || String(e),
+                            });
+                        }
+                    }
+                }
+
+                if (wantJellyfin && results.length < limit) {
+                    const jfServers = mediaServers.filter(
+                        s => s && s.type === 'jellyfin' && s.enabled === true
+                    );
+
+                    for (const serverConfig of jfServers) {
+                        if (results.length >= limit) break;
+                        try {
+                            const client = await getJellyfinClient(serverConfig);
+                            const include = [];
+                            if (wantMovie) include.push('Movie');
+                            if (wantSeries) include.push('Series');
+                            if (include.length === 0) include.push('Movie', 'Series');
+
+                            const jfItems = await client.searchItems(q, include);
+                            for (const item of jfItems) {
+                                if (results.length >= limit) break;
+                                const id = item?.Id ? String(item.Id) : '';
+                                const name = (item?.Name || '').toString().trim();
+                                if (!id || !name) continue;
+
+                                const compositeKey = `jellyfin_${serverConfig.name}_${id}`;
+                                if (seenKeys.has(compositeKey)) continue;
+                                seenKeys.add(compositeKey);
+
+                                const mappedType =
+                                    item?.Type === 'Movie'
+                                        ? 'movie'
+                                        : item?.Type === 'Series'
+                                          ? 'series'
+                                          : '';
+                                if (!mappedType) continue;
+                                if (mappedType === 'movie' && !wantMovie) continue;
+                                if (mappedType === 'series' && !wantSeries) continue;
+
+                                let posterUrl = null;
+                                try {
+                                    if (item?.ImageTags?.Primary) {
+                                        const primaryUrl = client.getImageUrl(id, 'Primary');
+                                        posterUrl = `/image?url=${encodeURIComponent(primaryUrl)}`;
+                                    }
+                                } catch (_) {
+                                    posterUrl = null;
+                                }
+                                const backdropUrl = (() => {
+                                    try {
+                                        const hasBackdrop =
+                                            !!item?.ImageTags?.Backdrop ||
+                                            (Array.isArray(item?.BackdropImageTags) &&
+                                                item.BackdropImageTags.length > 0);
+                                        if (!hasBackdrop) return null;
+                                        const backdrop = client.getImageUrl(id, 'Backdrop');
+                                        return `/image?url=${encodeURIComponent(backdrop)}`;
+                                    } catch (_) {
+                                        return null;
+                                    }
+                                })();
+
+                                results.push({
+                                    key: compositeKey,
+                                    title: name,
+                                    year: item?.ProductionYear || null,
+                                    type: mappedType,
+                                    source: 'jellyfin',
+                                    posterUrl,
+                                    backdropUrl,
+                                });
+                            }
+                        } catch (e) {
+                            logger.warn('[Admin Search] Jellyfin search failed', {
+                                server: serverConfig?.name,
+                                error: e?.message || String(e),
+                            });
+                        }
+                    }
                 }
             }
 
@@ -455,7 +661,110 @@ module.exports = function createMediaRouter({
             const items = Array.isArray(cacheEntry?.cache) ? cacheEntry.cache : [];
             const found = items.find(it => (it?.key || '').toString() === key) || null;
 
-            if (!found) return res.json({ result: null });
+            if (!found) {
+                // Fallback: resolve by key directly from upstream server.
+                // This enables pinning items that are not currently in the playlist cache.
+                const currentConfig =
+                    (await (typeof readConfig === 'function' ? readConfig() : null)) ||
+                    config ||
+                    {};
+                const mediaServers = Array.isArray(currentConfig.mediaServers)
+                    ? currentConfig.mediaServers
+                    : [];
+
+                // Plex composite key: plex-ServerName-12345 (server name may contain hyphens)
+                if (key.startsWith('plex-')) {
+                    const parts = key.split('-');
+                    if (parts.length >= 3) {
+                        const ratingKey = parts[parts.length - 1];
+                        const serverName = parts.slice(1, -1).join('-');
+
+                        const serverConfig = mediaServers.find(
+                            s =>
+                                s &&
+                                s.type === 'plex' &&
+                                s.enabled === true &&
+                                String(s.name) === serverName
+                        );
+
+                        if (serverConfig && ratingKey && /^\d+$/.test(String(ratingKey))) {
+                            try {
+                                const plex = await getPlexClient(serverConfig);
+                                const metaResp = await plex.query(
+                                    `/library/metadata/${encodeURIComponent(String(ratingKey))}`
+                                );
+                                const meta = metaResp?.MediaContainer?.Metadata?.[0] || null;
+                                if (meta) {
+                                    const processed =
+                                        (await processPlexItem(meta, serverConfig, plex)) || null;
+                                    if (processed) {
+                                        processed.key = key;
+                                        return res.json({ result: processed });
+                                    }
+                                }
+                            } catch (e) {
+                                logger.warn('[Media Lookup] Plex fallback failed', {
+                                    server: serverName,
+                                    ratingKey,
+                                    error: e?.message || String(e),
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // Jellyfin composite key: jellyfin_<ServerName>_<ItemId> or jellyfin_<ItemId>
+                if (key.startsWith('jellyfin_')) {
+                    const parts = key.split('_');
+                    if (parts.length >= 2) {
+                        const itemId = parts[parts.length - 1];
+                        const serverName = parts.length >= 3 ? parts.slice(1, -1).join('_') : '';
+
+                        const serverConfig = serverName
+                            ? mediaServers.find(
+                                  s =>
+                                      s &&
+                                      s.type === 'jellyfin' &&
+                                      s.enabled === true &&
+                                      String(s.name) === serverName
+                              )
+                            : mediaServers.find(
+                                  s => s && s.type === 'jellyfin' && s.enabled === true
+                              );
+
+                        if (serverConfig && itemId) {
+                            try {
+                                const client = await getJellyfinClient(serverConfig);
+                                const resp = await client.http.get('/Items', {
+                                    params: {
+                                        Ids: itemId,
+                                        IncludeItemTypes: 'Movie,Series',
+                                        Recursive: true,
+                                    },
+                                });
+                                const item = resp?.data?.Items?.[0] || null;
+                                if (item) {
+                                    const processed =
+                                        (await processJellyfinItem(item, serverConfig, client)) ||
+                                        null;
+                                    if (processed) {
+                                        processed.key = key;
+                                        return res.json({ result: processed });
+                                    }
+                                }
+                            } catch (e) {
+                                logger.warn('[Media Lookup] Jellyfin fallback failed', {
+                                    server: serverConfig?.name,
+                                    itemId,
+                                    error: e?.message || String(e),
+                                });
+                            }
+                        }
+                    }
+                }
+
+                return res.json({ result: null });
+            }
 
             const source = (found?.source || found?.serverType || '').toString().toLowerCase();
             const k = (found?.key || '').toString().toLowerCase();

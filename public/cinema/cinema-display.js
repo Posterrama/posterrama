@@ -3646,19 +3646,25 @@
 
         pinIndicatorEl = document.createElement('div');
         pinIndicatorEl.className = 'cinema-pin-indicator';
+        pinIndicatorEl.setAttribute('role', 'status');
         pinIndicatorEl.innerHTML = `
-            <span class="pin-text">${pinnedByConfigLabel || 'PINNED BY CONFIG'}</span>
+            <span class="pin-icon" aria-hidden="true">
+                <svg class="pin-svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                    <path d="M12 22s8-4.5 8-11a8 8 0 10-16 0c0 6.5 8 11 8 11z"></path>
+                    <circle cx="12" cy="11" r="3"></circle>
+                </svg>
+            </span>
         `;
         document.body.appendChild(pinIndicatorEl);
+        setPinnedByConfigLabel(pinnedByConfigLabel);
     }
 
     function setPinnedByConfigLabel(label) {
         pinnedByConfigLabel = (label || '').toString().trim();
         if (pinIndicatorEl) {
-            const textEl = pinIndicatorEl.querySelector('.pin-text');
-            if (textEl) {
-                textEl.textContent = pinnedByConfigLabel || 'PINNED BY CONFIG';
-            }
+            const a11yLabel = pinnedByConfigLabel || 'Pinned';
+            pinIndicatorEl.setAttribute('aria-label', a11yLabel);
+            pinIndicatorEl.setAttribute('title', a11yLabel);
         }
     }
 

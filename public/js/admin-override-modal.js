@@ -73,7 +73,7 @@ export function createOverrideModal({
         const applyBtn = document.getElementById('btn-override-apply');
         const statusEl = document.getElementById('override-override-status');
 
-        const sessionModeEl = document.getElementById('override-session-mode');
+        let priorityEl = document.getElementById('override-session-mode');
         const plexUserRow = document.getElementById('override-plex-user-row');
         const plexUserEl = document.getElementById('override-plex-user');
         const sourcePrefEl = document.getElementById('override-nowplaying-source');
@@ -97,7 +97,8 @@ export function createOverrideModal({
         }
 
         const originals = {}; // id -> settingsOverride
-        const lockedUsers = [];
+        const effectivePriorities = [];
+        const effectiveUsers = [];
         const sourcePrefs = [];
         const pinnedKeys = [];
         let selectedPinnedKey = '';
@@ -113,12 +114,23 @@ export function createOverrideModal({
             }
         }
 
+        function syncPinnedResultVisuals() {
+            if (!pinResultsEl) return;
+            pinResultsEl.querySelectorAll('[data-pin-key]').forEach(el => {
+                const isActive = el.getAttribute('data-pin-key') === selectedPinnedKey;
+                el.classList.toggle('active', isActive);
+                const icon = el.querySelector('.pin-result-icon i');
+                if (!icon) return;
+                icon.classList.toggle('fa-map-pin', isActive);
+                icon.classList.toggle('fa-thumbtack', !isActive);
+            });
+        }
+
         function renderPinResults(results) {
             if (!pinResultsEl) return;
             const list = Array.isArray(results) ? results : [];
             if (!list.length) {
-                pinResultsEl.innerHTML =
-                    '<div class="hint" style="color: var(--color-text-muted);">No results.</div>';
+                pinResultsEl.innerHTML = '<div class="override-hint">No results.</div>';
                 return;
             }
             pinResultsEl.innerHTML = list
@@ -130,29 +142,22 @@ export function createOverrideModal({
                     const source = r?.source ? escapeHtml(safeString(r.source)) : '';
                     const posterUrl = r?.posterUrl ? safeString(r.posterUrl) : '';
                     const active = selectedPinnedKey && key === selectedPinnedKey;
+                    const pinIcon = active ? 'fa-map-pin' : 'fa-thumbtack';
                     return `
                         <button type="button" class="pin-result ${active ? 'active' : ''}" data-pin-key="${escapeHtml(
                             key
-                        )}" style="display:flex; gap:10px; align-items:center; text-align:left; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.02);">
-                            <div style="width:44px; height:66px; border-radius:8px; overflow:hidden; background: rgba(255,255,255,.06); flex: 0 0 auto;">
-                                ${
-                                    posterUrl
-                                        ? `<img src="${escapeHtml(
-                                              posterUrl
-                                          )}" alt="" style="width:100%; height:100%; object-fit:cover; display:block;" />`
-                                        : ''
-                                }
+                        )}">
+                            <div class="pin-result-thumb">
+                                ${posterUrl ? `<img src="${escapeHtml(posterUrl)}" alt="" />` : ''}
                             </div>
-                            <div style="display:flex; flex-direction:column; gap:2px; flex:1; min-width:0;">
-                                <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(
-                                    title
-                                )}${year}</div>
-                                <div class="hint" style="font-size:.82rem; color: var(--color-text-muted);">
-                                    ${type}${type && source ? ' • ' : ''}${source}
-                                </div>
+                            <div class="pin-result-meta">
+                                <div class="pin-result-title">${escapeHtml(title)}${year}</div>
+                                <div class="pin-result-sub">${type}${
+                                    type && source ? ' • ' : ''
+                                }${source}</div>
                             </div>
-                            <div style="flex: 0 0 auto; color: var(--color-teal);">
-                                <i class="fas fa-thumbtack"></i>
+                            <div class="pin-result-icon" aria-hidden="true">
+                                <i class="fas ${pinIcon}"></i>
                             </div>
                         </button>`;
                 })
@@ -179,18 +184,35 @@ export function createOverrideModal({
                 const srcPref = ov?.cinema?.nowPlaying?.sourcePreference || 'auto';
                 sourcePrefs.push(srcPref ? safeString(srcPref) : 'auto');
 
-                const ovUser = ov?.cinema?.nowPlaying?.filterUser || '';
-                const devUser = dev?.plexUsername || '';
-                lockedUsers.push(safeString(ovUser || devUser || ''));
+                const ovPriority = safeString(ov?.cinema?.nowPlaying?.priority || '').trim();
+                const ovUser = safeString(ov?.cinema?.nowPlaying?.filterUser || '').trim();
+                const devUser = safeString(dev?.plexUsername || '').trim();
+
+                // Determine effective UI state:
+                // - If override explicitly sets priority: respect it.
+                // - If device has plexUsername but no explicit priority override: treat as Specific user.
+                //   (This matches previous "Locked to user" behavior.)
+                if (ovPriority) {
+                    effectivePriorities.push(ovPriority);
+                    if (ovPriority === 'user') effectiveUsers.push(ovUser || devUser || '');
+                    else effectiveUsers.push('');
+                } else if (devUser) {
+                    effectivePriorities.push('user');
+                    effectiveUsers.push(devUser);
+                } else {
+                    effectivePriorities.push('');
+                    effectiveUsers.push('');
+                }
             });
 
-            const lockedUserSame = sameOrNull(lockedUsers);
+            const prioritySame = sameOrNull(effectivePriorities);
+            const userSame = sameOrNull(effectiveUsers);
             const srcPrefSame = sameOrNull(sourcePrefs);
             const pinnedSame = sameOrNull(pinnedKeys);
 
-            if (sessionModeEl) sessionModeEl.value = lockedUserSame ? 'locked' : 'multiple';
+            if (priorityEl) priorityEl.value = prioritySame ?? '';
             if (plexUserRow)
-                plexUserRow.style.display = sessionModeEl?.value === 'locked' ? 'block' : 'none';
+                plexUserRow.style.display = priorityEl?.value === 'user' ? 'block' : 'none';
 
             if (sourcePrefEl) sourcePrefEl.value = srcPrefSame || 'auto';
             setPinnedKey(pinnedSame || '', false);
@@ -208,8 +230,7 @@ export function createOverrideModal({
                         '<option value="">— Select user —</option>' +
                         names
                             .map(n => {
-                                const sel =
-                                    lockedUserSame && n === lockedUserSame ? ' selected' : '';
+                                const sel = userSame && n === userSame ? ' selected' : '';
                                 return `<option value="${escapeHtml(n)}"${sel}>${escapeHtml(n)}</option>`;
                             })
                             .join('');
@@ -226,13 +247,18 @@ export function createOverrideModal({
         }
 
         // Event binding
-        if (sessionModeEl) {
-            const next = sessionModeEl.cloneNode(true);
-            sessionModeEl.parentNode.replaceChild(next, sessionModeEl);
-            next.addEventListener('change', () => {
-                if (plexUserRow)
-                    plexUserRow.style.display = next.value === 'locked' ? 'block' : 'none';
-            });
+        if (priorityEl) {
+            const next = priorityEl.cloneNode(true);
+            priorityEl.parentNode.replaceChild(next, priorityEl);
+            priorityEl = next;
+
+            const syncUserRow = () => {
+                if (!plexUserRow) return;
+                plexUserRow.style.display = priorityEl.value === 'user' ? 'block' : 'none';
+            };
+
+            next.addEventListener('change', syncUserRow);
+            syncUserRow();
         }
 
         if (pinClearBtn) {
@@ -240,11 +266,7 @@ export function createOverrideModal({
             pinClearBtn.parentNode.replaceChild(next, pinClearBtn);
             next.addEventListener('click', () => {
                 setPinnedKey('', true);
-                if (pinResultsEl) {
-                    pinResultsEl
-                        .querySelectorAll('[data-pin-key]')
-                        .forEach(el => el.classList.remove('active'));
-                }
+                syncPinnedResultVisuals();
             });
         }
 
@@ -263,6 +285,7 @@ export function createOverrideModal({
                     const res = await fetchJSON(url);
                     const results = res?.results || [];
                     renderPinResults(results);
+                    syncPinnedResultVisuals();
                     setStatus('neutral', results.length ? 'Click a result to pin.' : 'No results.');
                 } catch (e) {
                     renderPinResults([]);
@@ -288,14 +311,7 @@ export function createOverrideModal({
                 if (!btn || !pinResultsEl.contains(btn)) return;
                 const key = btn.getAttribute('data-pin-key') || '';
                 setPinnedKey(key, true);
-                pinResultsEl
-                    .querySelectorAll('[data-pin-key]')
-                    .forEach(el =>
-                        el.classList.toggle(
-                            'active',
-                            el.getAttribute('data-pin-key') === selectedPinnedKey
-                        )
-                    );
+                syncPinnedResultVisuals();
             });
             pinResultsEl._boundPinClick = true;
         }
@@ -304,21 +320,21 @@ export function createOverrideModal({
             const next = applyBtn.cloneNode(true);
             applyBtn.parentNode.replaceChild(next, applyBtn);
             next.addEventListener('click', async () => {
-                const mode = safeString(
-                    document.getElementById('override-session-mode')?.value || 'multiple'
-                );
-                const lockedUser = safeString(
+                const priority = safeString(
+                    document.getElementById('override-session-mode')?.value
+                ).trim();
+                const selectedUser = safeString(
                     document.getElementById('override-plex-user')?.value
                 ).trim();
                 const srcPref = safeString(
                     document.getElementById('override-nowplaying-source')?.value || 'auto'
                 ).trim();
 
-                if (mode === 'locked' && !lockedUser) {
+                if (priority === 'user' && !selectedUser) {
                     toast({
                         type: 'error',
                         title: 'Missing user',
-                        message: 'Select a Plex user for Locked to user.',
+                        message: 'Select a Plex user for Specific user.',
                     });
                     return;
                 }
@@ -331,11 +347,16 @@ export function createOverrideModal({
                         nextOverride.cinema = nextOverride.cinema || {};
                         nextOverride.cinema.nowPlaying = nextOverride.cinema.nowPlaying || {};
 
-                        if (mode === 'locked') {
-                            nextOverride.cinema.nowPlaying.priority = 'user';
-                            nextOverride.cinema.nowPlaying.filterUser = lockedUser;
-                        } else {
+                        if (!priority) {
+                            // No override: inherit from global config
                             delete nextOverride.cinema.nowPlaying.priority;
+                            delete nextOverride.cinema.nowPlaying.filterUser;
+                        } else if (priority === 'user') {
+                            nextOverride.cinema.nowPlaying.priority = 'user';
+                            nextOverride.cinema.nowPlaying.filterUser = selectedUser;
+                        } else {
+                            // first/random
+                            nextOverride.cinema.nowPlaying.priority = priority;
                             delete nextOverride.cinema.nowPlaying.filterUser;
                         }
 
@@ -354,7 +375,7 @@ export function createOverrideModal({
                         cleanupEmpty(nextOverride);
 
                         const patchData = { settingsOverride: nextOverride };
-                        patchData.plexUsername = mode === 'locked' ? lockedUser : null;
+                        patchData.plexUsername = priority === 'user' ? selectedUser : null;
 
                         await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
                             method: 'PATCH',

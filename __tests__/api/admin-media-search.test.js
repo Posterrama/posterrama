@@ -1,0 +1,199 @@
+/**
+ * @file __tests__/api/admin-media-search.test.js
+ * Tests for authenticated admin media search and lookup fallbacks.
+ */
+
+const express = require('express');
+const request = require('supertest');
+
+function asyncHandler(fn) {
+    return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+}
+
+class ApiError extends Error {
+    constructor(statusCode, message) {
+        super(message);
+        this.statusCode = statusCode;
+    }
+}
+
+class NotFoundError extends Error {
+    constructor(message) {
+        super(message || 'Not found');
+        this.statusCode = 404;
+    }
+}
+
+function createTestApp({
+    isAuthenticatedImpl,
+    readConfigImpl,
+    getPlaylistCacheImpl,
+    getPlexClientImpl,
+    processPlexItemImpl,
+}) {
+    const app = express();
+    app.use(express.json());
+
+    const createMediaRouter = require('../../routes/media');
+
+    const router = createMediaRouter({
+        config: { mediaServers: [] },
+        logger: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+        },
+        isDebug: false,
+        fsp: {},
+        fetch: () => {
+            throw new Error('fetch not stubbed');
+        },
+        ApiError,
+        NotFoundError,
+        asyncHandler,
+        isAuthenticated: isAuthenticatedImpl,
+        getPlexClient: getPlexClientImpl,
+        processPlexItem: processPlexItemImpl,
+        getPlexLibraries: jest.fn(),
+        shuffleArray: items => items,
+        getPlaylistCache: getPlaylistCacheImpl,
+        isPlaylistRefreshing: () => false,
+        readConfig: readConfigImpl,
+        cacheDiskManager: {},
+        validateGetMediaQuery: (req, res, next) => next(),
+        validateMediaKeyParam: (req, res, next) => next(),
+        validateImageQuery: (req, res, next) => next(),
+        apiCacheMiddleware: { media: (req, res, next) => next() },
+    });
+
+    app.use('/', router);
+
+    // Minimal error handler
+    // eslint-disable-next-line no-unused-vars
+    app.use((err, req, res, next) => {
+        const status = err?.statusCode || err?.status || 500;
+        res.status(status).json({
+            error: err?.name || 'Error',
+            message: err?.message || 'Internal server error',
+            statusCode: status,
+        });
+    });
+
+    return app;
+}
+
+describe('Admin media search + lookup fallbacks', () => {
+    beforeEach(() => {
+        jest.resetModules();
+        jest.clearAllMocks();
+    });
+
+    it('GET /api/admin/media/search deep-searches Plex when cache results are insufficient', async () => {
+        const plexQuery = jest.fn().mockResolvedValue({
+            MediaContainer: {
+                Hub: [
+                    {
+                        Metadata: [
+                            {
+                                type: 'movie',
+                                title: 'Terminator 2: Judgment Day',
+                                ratingKey: '222',
+                                year: 1991,
+                                thumb: '/library/metadata/222/thumb',
+                                art: '/library/metadata/222/art',
+                            },
+                            {
+                                type: 'movie',
+                                title: 'Terminator 3: Rise of the Machines',
+                                key: '/library/metadata/333',
+                                year: 2003,
+                            },
+                        ],
+                    },
+                ],
+            },
+        });
+
+        const app = createTestApp({
+            isAuthenticatedImpl: (req, res, next) => next(),
+            readConfigImpl: jest.fn().mockResolvedValue({
+                mediaServers: [{ type: 'plex', enabled: true, name: 'TestServer' }],
+            }),
+            getPlaylistCacheImpl: () => ({
+                cache: [
+                    {
+                        key: 'plex-TestServer-111',
+                        title: 'The Terminator',
+                        year: 1984,
+                        type: 'movie',
+                        source: 'plex',
+                        posterUrl: '/image?server=TestServer&path=%2Fthumb',
+                    },
+                ],
+            }),
+            getPlexClientImpl: jest.fn().mockResolvedValue({ query: plexQuery }),
+            processPlexItemImpl: jest.fn(),
+        });
+
+        const res = await request(app)
+            .get('/api/admin/media/search')
+            .query({ q: 'terminator', type: 'all', source: 'any', limit: 10 })
+            .expect(200);
+
+        expect(Array.isArray(res.body.results)).toBe(true);
+        expect(res.body.results.length).toBeGreaterThanOrEqual(3);
+
+        const keys = res.body.results.map(r => r.key);
+        expect(keys).toContain('plex-TestServer-111');
+        expect(keys).toContain('plex-TestServer-222');
+        expect(keys).toContain('plex-TestServer-333');
+
+        expect(plexQuery).toHaveBeenCalled();
+    });
+
+    it('GET /api/media/lookup can resolve Plex keys not present in playlist cache', async () => {
+        const plexQuery = jest.fn().mockResolvedValue({
+            MediaContainer: {
+                Metadata: [
+                    {
+                        ratingKey: '333',
+                        title: 'Terminator 3: Rise of the Machines',
+                        type: 'movie',
+                    },
+                ],
+            },
+        });
+
+        const processPlexItem = jest.fn().mockResolvedValue({
+            key: 'plex-TestServer-333',
+            title: 'Terminator 3: Rise of the Machines',
+            year: 2003,
+            posterUrl: '/image?server=TestServer&path=%2Fthumb',
+            source: 'plex',
+        });
+
+        const app = createTestApp({
+            isAuthenticatedImpl: (req, res, next) => next(),
+            readConfigImpl: jest.fn().mockResolvedValue({
+                mediaServers: [{ type: 'plex', enabled: true, name: 'TestServer' }],
+            }),
+            getPlaylistCacheImpl: () => ({ cache: [] }),
+            getPlexClientImpl: jest.fn().mockResolvedValue({ query: plexQuery }),
+            processPlexItemImpl: processPlexItem,
+        });
+
+        const requestedKey = 'plex-TestServer-333';
+        const res = await request(app)
+            .get('/api/media/lookup')
+            .query({ key: requestedKey })
+            .expect(200);
+
+        expect(res.body.result).toBeTruthy();
+        expect(res.body.result.key).toBe(requestedKey);
+        expect(res.body.result.title).toContain('Terminator 3');
+
+        expect(plexQuery).toHaveBeenCalled();
+        expect(processPlexItem).toHaveBeenCalled();
+    });
+});

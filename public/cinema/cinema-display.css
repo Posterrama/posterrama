@@ -3565,16 +3565,22 @@ body.cinema-tint-active::after {
    ================================================================= */
 .cinema-pin-indicator {
     position: fixed;
-    top: 20px;
-    left: 20px;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    left: calc(14px + env(safe-area-inset-left, 0px));
     display: flex;
     align-items: center;
-    padding: 10px 14px;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
     background: rgba(0, 0, 0, 0.28);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+        0 10px 24px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset;
     opacity: 0;
     visibility: hidden;
     transform: translateY(-6px);
@@ -3591,11 +3597,23 @@ body.cinema-tint-active::after {
     transform: translateY(0);
 }
 
-.cinema-pin-indicator .pin-text {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    white-space: nowrap;
+.cinema-pin-indicator .pin-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Etched / cutout look */
+    color: rgba(255, 255, 255, 0.28);
+    mix-blend-mode: screen;
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.18)) drop-shadow(0 -1px 0 rgba(0, 0, 0, 0.55));
+}
+
+.cinema-pin-indicator .pin-svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    display: block;
 }

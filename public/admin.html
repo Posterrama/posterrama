@@ -4460,20 +4460,20 @@
             <i class="fas fa-user-lock" style="color: var(--color-teal);"></i>
             <span>Cinema Now Playing</span>
           </label>
+          <label for="override-session-mode" style="margin-bottom:6px; display:block;">Session Priority <span class="help-text">Multiple sessions</span></label>
           <div class="select-wrap has-caret" style="width:100%">
             <select id="override-session-mode" style="width:100%">
-              <option value="multiple">Multiple sessions</option>
-              <option value="locked">Locked to user</option>
+              <option value="">Use global (no override)</option>
+              <option value="first">First active session</option>
+              <option value="random">Random active session</option>
+              <option value="user">Specific user</option>
             </select>
             <span class="select-caret" aria-hidden="true">▾</span>
-          </div>
-          <div class="hint" style="margin-top:6px; color: var(--color-text-muted); font-size:.85rem;">
-            When locked, Cinema will only use sessions from the selected Plex user.
           </div>
         </div>
 
         <div class="form-group" id="override-plex-user-row" style="margin-bottom: 14px; display:none;">
-          <label for="override-plex-user" style="margin-bottom:6px; display:block;">Plex user</label>
+          <label for="override-plex-user" style="margin-bottom:6px; display:block;">Plex Username</label>
           <div class="select-wrap has-caret" style="width:100%">
             <select id="override-plex-user" style="width:100%">
               <option value="" selected>Loading…</option>
@@ -4496,27 +4496,40 @@
 
         <hr style="border:0; border-top:1px solid rgba(255,255,255,.08); margin: 14px 0;" />
 
-        <div class="form-group" style="margin-bottom: 10px;">
-          <label style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-            <i class="fas fa-thumbtack" style="color: var(--color-teal);"></i>
+        <div class="form-group override-pin-head">
+          <label class="override-section-label">
+            <i class="fas fa-thumbtack override-section-icon" aria-hidden="true"></i>
             <span>Pin poster (Cinema only)</span>
           </label>
-          <div class="hint" style="color: var(--color-text-muted); font-size:.85rem;">
-            Pinning pauses rotation on Cinema until cleared.
+          <div class="override-hint">Pinning pauses rotation on Cinema until cleared.</div>
+        </div>
+
+        <div class="form-group override-pin-search-row">
+          <input id="override-pin-query" type="text" placeholder="Search movie or series…" />
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm btn-override-pin-action"
+            id="override-pin-search-btn"
+          >
+            <i class="fas fa-search" aria-hidden="true"></i><span>Search</span>
+          </button>
+        </div>
+
+        <div id="override-pin-current" class="override-pin-current">
+          <div class="override-pin-current-left">
+            <span class="label">Pinned:</span>
+            <span id="override-pin-current-text">(none)</span>
           </div>
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm btn-override-pin-action"
+            id="override-pin-clear-btn"
+          >
+            <span>Clear</span>
+          </button>
         </div>
 
-        <div class="form-group" style="display:flex; gap:10px; align-items:center; margin-bottom: 10px;">
-          <input id="override-pin-query" type="text" placeholder="Search movie or series…" style="flex:1;" />
-          <button type="button" class="btn btn-outline btn-sm" id="override-pin-search-btn"><i class="fas fa-search"></i> Search</button>
-        </div>
-
-        <div id="override-pin-current" class="hint" style="margin: 0 0 10px 0; color: var(--color-text-secondary);">
-          Pinned: <span id="override-pin-current-text">(none)</span>
-          <button type="button" class="btn btn-outline btn-xs" id="override-pin-clear-btn" style="margin-left:10px;">Clear</button>
-        </div>
-
-        <div id="override-pin-results" style="display:grid; gap:8px;"></div>
+        <div id="override-pin-results"></div>
         <div id="override-override-status" class="override-status" aria-live="polite"></div>
       </div>
       <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end;">

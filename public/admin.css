@@ -6886,6 +6886,199 @@ select:not([multiple]) {
 #modal-override .override-status.neutral {
     color: var(--color-text-muted);
 }
+
+/* Override modal: Pin poster layout */
+#modal-override .override-pin-head {
+    margin-bottom: 10px;
+}
+#modal-override .override-section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+#modal-override .override-section-icon {
+    color: var(--color-teal);
+}
+#modal-override .override-hint {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
+#modal-override .override-pin-search-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+#modal-override .override-pin-search-row input {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+}
+
+/* Pin poster action buttons: match Cancel/Apply styling and sizing */
+#modal-override .btn-override-pin-action {
+    flex: 0 0 auto;
+    width: 120px;
+    white-space: nowrap;
+    justify-content: center;
+    border: none;
+    border-radius: 4px;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: var(--color-text-secondary);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+}
+#modal-override .btn-override-pin-action:hover,
+#modal-override .btn-override-pin-action:focus,
+#modal-override .btn-override-pin-action:focus-visible {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+}
+#modal-override .btn-override-pin-action:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+
+#modal-override .override-pin-current {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 0 10px;
+    color: var(--color-text-secondary);
+}
+#modal-override .override-pin-current-left {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+}
+#modal-override #override-pin-current-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#modal-override #override-pin-results {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/* Pin results: compact, readable list */
+#modal-override #override-pin-results .pin-result {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+}
+#modal-override #override-pin-results .pin-result:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+#modal-override #override-pin-results .pin-result.active {
+    border-color: color-mix(in srgb, var(--color-teal) 45%, rgba(255, 255, 255, 0.12));
+    background: color-mix(in srgb, var(--color-teal) 10%, rgba(255, 255, 255, 0.03));
+}
+
+#modal-override #override-pin-results .pin-result-thumb {
+    width: 38px;
+    height: 56px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+    flex: 0 0 auto;
+}
+#modal-override #override-pin-results .pin-result-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+#modal-override #override-pin-results .pin-result-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+#modal-override #override-pin-results .pin-result-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#modal-override #override-pin-results .pin-result-sub {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+}
+
+#modal-override #override-pin-results .pin-result-icon {
+    flex: 0 0 auto;
+    color: color-mix(in srgb, var(--color-teal) 85%, white);
+    width: 28px;
+    display: flex;
+    justify-content: flex-end;
+}
+#modal-override #override-pin-results .pin-result.active .pin-result-icon {
+    color: var(--color-teal);
+}
+
+/* Make the active "map-pin" feel more like a pinned indicator */
+#modal-override #override-pin-results .pin-result.active .fa-map-pin {
+    transform: translateY(-1px);
+}
+#modal-override #override-override-status {
+    margin-top: 12px;
+}
+
+@media (max-width: 520px) {
+    #modal-override .override-pin-search-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #modal-override .btn-override-pin-action {
+        width: 100%;
+    }
+
+    #modal-override .override-pin-current {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
 /* Pairing modal buttons: adopt new flattened neutral surface (matching Cinema/Display buttons) */
 #modal-pairing .modal-footer .btn {
     border: none;
