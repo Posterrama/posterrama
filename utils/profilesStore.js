@@ -1,6 +1,7 @@
 const path = require('path');
 const crypto = require('crypto');
 const SafeFileStore = require('./safeFileStore');
+const deviceStore = require('./deviceStore');
 
 /**
  * Device Profiles Store
@@ -162,6 +163,19 @@ async function deleteProfile(id) {
     if (next.length === all.length) return false;
 
     await writeAll(next);
+
+    // Clear profileId from all devices that had this profile assigned
+    try {
+        const devices = await deviceStore.getAll();
+        const affectedDevices = devices.filter(d => d.profileId === id);
+        for (const device of affectedDevices) {
+            await deviceStore.patchDevice(device.id, { profileId: null });
+        }
+    } catch (_err) {
+        // Log but don't fail profile deletion if device cleanup fails
+        console.error('[profilesStore] Failed to clear profileId from devices:', _err?.message);
+    }
+
     return true;
 }
 
