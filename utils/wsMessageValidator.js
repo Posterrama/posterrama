@@ -54,6 +54,32 @@ const schemas = {
         kind: Joi.string().valid('ping').required(),
         timestamp: Joi.number().integer().positive().optional(),
     }).required(),
+
+    // Device -> server: batched client logs (forwarded to admin SSE)
+    // Kept intentionally strict to avoid abuse and huge payloads.
+    'client-log': Joi.object({
+        kind: Joi.string().valid('client-log').required(),
+        deviceId: Joi.string()
+            .pattern(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i)
+            .required()
+            .messages({
+                'string.pattern.base': 'deviceId must be a valid UUID',
+            }),
+        entries: Joi.array()
+            .items(
+                Joi.object({
+                    t: Joi.number().integer().positive().required(),
+                    level: Joi.string().valid('log', 'info', 'warn', 'error', 'debug').required(),
+                    // Pre-rendered message so admin doesn't need to eval/format arbitrary args.
+                    message: Joi.string().max(4000).required(),
+                    // Optional structured context (safe subset)
+                    data: Joi.any().optional(),
+                }).required()
+            )
+            .min(1)
+            .max(60)
+            .required(),
+    }).required(),
 };
 
 /**

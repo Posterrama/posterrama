@@ -8010,6 +8010,23 @@ window.COLOR_PRESETS = COLOR_PRESETS;
     function closeModal(id) {
         const m = document.getElementById(id);
         if (!m) return;
+        // Optional close hooks (best-effort). Used by feature modals to cleanup listeners.
+        try {
+            const hooks = window.__modalCloseHooks;
+            if (hooks && typeof hooks.get === 'function') {
+                const fn = hooks.get(id);
+                if (typeof fn === 'function') {
+                    hooks.delete(id);
+                    try {
+                        fn();
+                    } catch (_) {
+                        /* ignore */
+                    }
+                }
+            }
+        } catch (_) {
+            /* ignore */
+        }
         try {
             // If a focused element is inside, blur it first to avoid aria-hidden warning
             const active = document.activeElement;
@@ -12590,6 +12607,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                                 <button type="button" class="btn btn-icon btn-sm btn-power${isPoweredOff ? ' is-off' : ''}" title="Power Toggle"${disabledPower}${poweredOff}><i class="fas fa-power-off"></i></button>
                                                 <button type="button" class="btn btn-icon btn-sm btn-reload" title="Reload this device"><i class="fas fa-rotate-right"></i></button>
                                                 <button type="button" class="btn btn-icon btn-sm btn-clearcache" title="Clear caches"><i class="fas fa-broom"></i></button>
+                                                <button type="button" class="btn btn-icon btn-sm btn-livelogs" title="Live logs" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas fa-bug"></i></button>
                                                 <button type="button" class="btn btn-icon btn-sm btn-pair card-secondary" title="Generate pairing code"><i class="fas fa-qrcode"></i></button>
                                                 <button type="button" class="btn btn-icon btn-sm btn-remote card-secondary" title="Open remote control" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas fa-gamepad"></i></button>
                                                 <button type="button" class="btn btn-icon btn-sm btn-override card-secondary" title="Edit display settings override"><i class="fas fa-sliders"></i></button>
@@ -12864,6 +12882,16 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         title: 'Clear cache',
                         message: `${state.all.find(d => d.id === id)?.name || id}: cache cleared`,
                     });
+                });
+                card.querySelector('.btn-livelogs')?.addEventListener('click', async e => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_) {
+                        /* click guard failed; continue */
+                    }
+                    const id = card.getAttribute('data-id');
+                    openDeviceLogsFor(id);
                 });
                 card.querySelector('.btn-pair')?.addEventListener('click', async e => {
                     try {
@@ -14713,6 +14741,322 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 }
             }
             mergeConfirm?.addEventListener('click', submitMerge);
+
+            function formatDeviceLogTimestamp(t) {
+                try {
+                    const d = new Date(Number(t) || Date.now());
+                    const hh = String(d.getHours()).padStart(2, '0');
+                    const mm = String(d.getMinutes()).padStart(2, '0');
+                    const ss = String(d.getSeconds()).padStart(2, '0');
+                    const ms = String(d.getMilliseconds()).padStart(3, '0');
+                    return `${hh}:${mm}:${ss}.${ms}`;
+                } catch (_) {
+                    return '';
+                }
+            }
+
+            function safeJsonPreview(v, maxLen = 1400) {
+                if (v === undefined) return '';
+                try {
+                    const seen = new WeakSet();
+                    const str = JSON.stringify(
+                        v,
+                        (_k, val) => {
+                            if (val && typeof val === 'object') {
+                                if (seen.has(val)) return '[Circular]';
+                                seen.add(val);
+                            }
+                            return val;
+                        },
+                        0
+                    );
+                    if (!str) return '';
+                    return str.length > maxLen ? str.slice(0, maxLen) + '…' : str;
+                } catch (_) {
+                    try {
+                        const s = String(v);
+                        return s.length > maxLen ? s.slice(0, maxLen) + '…' : s;
+                    } catch (_) {
+                        return '';
+                    }
+                }
+            }
+
+            function openDeviceLogsFor(id) {
+                if (!id) return;
+                const overlay = document.getElementById('modal-device-logs');
+                if (!overlay) return;
+
+                // Ensure close hooks storage exists
+                try {
+                    if (!window.__modalCloseHooks) window.__modalCloseHooks = new Map();
+                } catch (_) {
+                    /* ignore */
+                }
+
+                const dev = state.all.find(d => d.id === id);
+                const name = dev?.name || id;
+                const titleEl = document.getElementById('device-logs-target-name');
+                if (titleEl) titleEl.textContent = `(${name})`;
+
+                const statusEl = document.getElementById('device-logs-status');
+                if (statusEl) {
+                    const rs = window.__adminSSE?.readyState;
+                    const sseState =
+                        rs === 1 ? 'SSE connected' : rs === 0 ? 'SSE connecting' : 'SSE offline';
+                    statusEl.textContent = `Enabling remote logs… (${sseState})`;
+                }
+
+                const consoleEl = document.getElementById('device-logs-console');
+                if (consoleEl) consoleEl.innerHTML = '';
+
+                const filterEl = document.getElementById('device-logs-filter');
+                if (filterEl) filterEl.value = '';
+
+                __showOverlay(overlay, 'modal-device-logs');
+
+                let lastSse = null;
+                let reattachTimer = null;
+                let lines = 0;
+                let paused = false;
+                const MAX_LINES = 600;
+
+                let filterQ = '';
+                const setFilter = q => {
+                    filterQ = String(q || '')
+                        .trim()
+                        .toLowerCase();
+                    try {
+                        if (!consoleEl) return;
+                        const kids = Array.from(consoleEl.children || []);
+                        for (const el of kids) {
+                            const hay = String(el?.getAttribute?.('data-hay') || '').toLowerCase();
+                            const show = !filterQ || hay.includes(filterQ);
+                            el.style.display = show ? '' : 'none';
+                        }
+                    } catch (_) {
+                        /* ignore */
+                    }
+                };
+
+                try {
+                    if (filterEl) {
+                        const onInput0 = e => {
+                            try {
+                                setFilter(e?.target?.value);
+                            } catch (_) {
+                                /* ignore */
+                            }
+                        };
+                        const onInput = debounce(onInput0, 80);
+                        // Replace node to prevent duplicate listeners on repeated opens
+                        const clone = filterEl.cloneNode(true);
+                        filterEl.parentNode.replaceChild(clone, filterEl);
+                        clone.addEventListener('input', onInput);
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
+
+                const atBottom = () => {
+                    try {
+                        if (!consoleEl) return true;
+                        return (
+                            consoleEl.scrollTop + consoleEl.clientHeight >=
+                            consoleEl.scrollHeight - 40
+                        );
+                    } catch (_) {
+                        return true;
+                    }
+                };
+
+                const appendLine = payload => {
+                    if (!consoleEl) return;
+                    if (paused) return;
+                    if (!payload || payload.deviceId !== id) return;
+                    const shouldScroll = atBottom();
+                    const lvl = String(payload.level || 'log').toLowerCase();
+                    const ts = formatDeviceLogTimestamp(payload.t);
+                    const msg = String(payload.message || '');
+                    const extra = payload.data !== undefined ? safeJsonPreview(payload.data) : '';
+
+                    const row = document.createElement('div');
+                    row.className = `device-log-line lvl-${lvl}`;
+                    const levelTag = `[${lvl.toUpperCase()}]`;
+                    const hay = `${ts} ${lvl} ${msg} ${extra}`.trim();
+                    try {
+                        row.setAttribute('data-hay', hay);
+                    } catch (_) {
+                        /* ignore */
+                    }
+                    row.innerHTML = `
+                        <div class="device-log-ts">${escapeHtml(ts)}</div>
+                        <div class="device-log-level">${escapeHtml(levelTag)}</div>
+                        <div class="device-log-msg">${escapeHtml(msg)}${extra ? ' <span class="device-log-data">' + escapeHtml(extra) + '</span>' : ''}</div>
+                    `;
+                    consoleEl.appendChild(row);
+                    lines++;
+
+                    try {
+                        if (filterQ) {
+                            const show = hay.toLowerCase().includes(filterQ);
+                            row.style.display = show ? '' : 'none';
+                        }
+                    } catch (_) {
+                        /* ignore */
+                    }
+
+                    while (lines > MAX_LINES && consoleEl.firstChild) {
+                        consoleEl.removeChild(consoleEl.firstChild);
+                        lines--;
+                    }
+
+                    if (statusEl) statusEl.textContent = 'Streaming…';
+                    if (shouldScroll) {
+                        try {
+                            consoleEl.scrollTop = consoleEl.scrollHeight;
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    }
+                };
+
+                const onDeviceLog = ev => {
+                    try {
+                        const data = JSON.parse(ev?.data || '{}');
+                        appendLine(data);
+                    } catch (_) {
+                        /* ignore */
+                    }
+                };
+
+                const attachToSse = sse => {
+                    if (!sse || sse === lastSse) return;
+                    try {
+                        if (lastSse) lastSse.removeEventListener('device-log', onDeviceLog);
+                    } catch (_) {
+                        /* ignore */
+                    }
+                    try {
+                        sse.addEventListener('device-log', onDeviceLog);
+                        lastSse = sse;
+                    } catch (_) {
+                        /* ignore */
+                    }
+                };
+
+                // Wire modal buttons
+                try {
+                    const btnReload0 = document.getElementById('btn-device-logs-reload');
+                    const btnClearCache0 = document.getElementById('btn-device-logs-clearcache');
+                    const btnClear0 = document.getElementById('btn-device-logs-clear');
+
+                    const btnReload = btnReload0 ? btnReload0.cloneNode(true) : null;
+                    const btnClearCache = btnClearCache0 ? btnClearCache0.cloneNode(true) : null;
+                    const btnClear = btnClear0 ? btnClear0.cloneNode(true) : null;
+                    if (btnReload && btnReload0)
+                        btnReload0.parentNode.replaceChild(btnReload, btnReload0);
+                    if (btnClearCache && btnClearCache0)
+                        btnClearCache0.parentNode.replaceChild(btnClearCache, btnClearCache0);
+                    if (btnClear && btnClear0)
+                        btnClear0.parentNode.replaceChild(btnClear, btnClear0);
+
+                    btnReload?.addEventListener('click', async () => {
+                        try {
+                            window.__suppressSwUpdateToasts = true;
+                            setTimeout(() => (window.__suppressSwUpdateToasts = false), 8000);
+                        } catch (_) {
+                            /* ignore */
+                        }
+                        await sendCommand(id, 'core.mgmt.reload');
+                    });
+
+                    btnClearCache?.addEventListener('click', async () => {
+                        try {
+                            window.__suppressSwUpdateToasts = true;
+                            setTimeout(() => (window.__suppressSwUpdateToasts = false), 8000);
+                        } catch (_) {
+                            /* ignore */
+                        }
+                        await sendCommand(id, 'core.mgmt.clearCache');
+                    });
+
+                    btnClear?.addEventListener('click', () => {
+                        try {
+                            if (consoleEl) consoleEl.innerHTML = '';
+                            lines = 0;
+                            if (statusEl) statusEl.textContent = 'Cleared. Waiting for logs…';
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    });
+                } catch (_) {
+                    /* ignore */
+                }
+
+                // Attach to SSE (if available) and keep re-attaching on reconnect
+                try {
+                    attachToSse(window.__adminSSE);
+                    reattachTimer = setInterval(() => {
+                        if (window.__adminSSE && window.__adminSSE !== lastSse) {
+                            attachToSse(window.__adminSSE);
+                        }
+                    }, 1500);
+                } catch (_) {
+                    /* ignore */
+                }
+
+                // Enable logging on device (best-effort)
+                (async () => {
+                    try {
+                        await sendCommand(id, 'core.mgmt.enableRemoteLogs', { enabled: true });
+                        if (statusEl) {
+                            const rs = window.__adminSSE?.readyState;
+                            const sseState =
+                                rs === 1
+                                    ? 'SSE connected'
+                                    : rs === 0
+                                      ? 'SSE connecting'
+                                      : 'SSE offline';
+                            statusEl.textContent = `Waiting for logs… (${sseState})`;
+                        }
+                    } catch (e) {
+                        if (statusEl)
+                            statusEl.textContent = 'Could not enable remote logs (device offline?)';
+                        window.notify?.toast?.({
+                            type: 'warning',
+                            title: 'Remote logs',
+                            message: e?.message || 'Enable command failed',
+                        });
+                    }
+                })();
+
+                // Cleanup (runs on any close path)
+                try {
+                    window.__modalCloseHooks.set('modal-device-logs', () => {
+                        paused = true;
+                        try {
+                            if (reattachTimer) clearInterval(reattachTimer);
+                        } catch (_) {
+                            /* ignore */
+                        }
+                        try {
+                            if (lastSse) lastSse.removeEventListener('device-log', onDeviceLog);
+                        } catch (_) {
+                            /* ignore */
+                        }
+                        try {
+                            sendCommand(id, 'core.mgmt.enableRemoteLogs', { enabled: false }).catch(
+                                () => {}
+                            );
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    });
+                } catch (_) {
+                    /* ignore */
+                }
+            }
 
             function applyFilters() {
                 const q = state.query;

@@ -414,6 +414,37 @@ function init(httpServer, { path = '/ws/devices', verifyDevice = () => false } =
                 return;
             }
 
+            // Device -> server: client log batches (forward to admin SSE)
+            if (msg && msg.kind === 'client-log') {
+                try {
+                    const did = msg.deviceId || deviceId;
+                    const entries = Array.isArray(msg.entries) ? msg.entries : [];
+                    // Forward as SSE events; admin can filter by deviceId.
+                    for (const e of entries) {
+                        try {
+                            broadcastAdmin({
+                                kind: 'device-log',
+                                payload: {
+                                    deviceId: did,
+                                    t: e?.t || Date.now(),
+                                    level: e?.level || 'log',
+                                    message: e?.message || '',
+                                    data: e?.data,
+                                },
+                            });
+                        } catch (_) {
+                            // Ignore per-entry broadcast failure
+                        }
+                    }
+                } catch (e) {
+                    logger.debug('[WS] Failed to broadcast client-log', {
+                        error: e.message,
+                        deviceId,
+                    });
+                }
+                return;
+            }
+
             // Future: handle other client->server messages (e.g., state reports)
         }
 

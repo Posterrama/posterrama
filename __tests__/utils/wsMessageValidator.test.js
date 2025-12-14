@@ -208,6 +208,87 @@ describe('wsMessageValidator', () => {
             });
         });
 
+        describe('client-log messages', () => {
+            it('should validate valid client-log message', () => {
+                const message = {
+                    kind: 'client-log',
+                    deviceId: '550e8400-e29b-41d4-a716-446655440000',
+                    entries: [
+                        {
+                            t: Date.now(),
+                            level: 'info',
+                            message: 'Hello from device',
+                            data: { foo: 'bar' },
+                        },
+                    ],
+                };
+
+                const result = validateMessage(message);
+
+                expect(result.valid).toBe(true);
+                expect(result.value.kind).toBe('client-log');
+                expect(result.value.deviceId).toBe(message.deviceId);
+                expect(result.value.entries).toHaveLength(1);
+            });
+
+            it('should reject client-log with invalid UUID', () => {
+                const message = {
+                    kind: 'client-log',
+                    deviceId: 'not-a-valid-uuid',
+                    entries: [{ t: Date.now(), level: 'log', message: 'x' }],
+                };
+
+                const result = validateMessage(message);
+                expect(result.valid).toBe(false);
+                expect(result.error).toContain('UUID');
+            });
+
+            it('should reject client-log with too many entries', () => {
+                const entries = Array.from({ length: 61 }, () => ({
+                    t: Date.now(),
+                    level: 'log',
+                    message: 'x',
+                }));
+                const message = {
+                    kind: 'client-log',
+                    deviceId: '550e8400-e29b-41d4-a716-446655440000',
+                    entries,
+                };
+
+                const result = validateMessage(message);
+                expect(result.valid).toBe(false);
+            });
+
+            it('should reject client-log with invalid level', () => {
+                const message = {
+                    kind: 'client-log',
+                    deviceId: '550e8400-e29b-41d4-a716-446655440000',
+                    entries: [{ t: Date.now(), level: 'verbose', message: 'x' }],
+                };
+
+                const result = validateMessage(message);
+                expect(result.valid).toBe(false);
+                expect(result.error).toContain('level');
+            });
+
+            it('should reject client-log with overly long message', () => {
+                const message = {
+                    kind: 'client-log',
+                    deviceId: '550e8400-e29b-41d4-a716-446655440000',
+                    entries: [
+                        {
+                            t: Date.now(),
+                            level: 'error',
+                            message: 'a'.repeat(4001),
+                        },
+                    ],
+                };
+
+                const result = validateMessage(message);
+                expect(result.valid).toBe(false);
+            });
+        });
+
         describe('general validation', () => {
             it('should reject non-object messages', () => {
                 const result = validateMessage('not an object');
@@ -257,6 +338,7 @@ describe('wsMessageValidator', () => {
                 expect(result.error).toContain('hello');
                 expect(result.error).toContain('ack');
                 expect(result.error).toContain('ping');
+                expect(result.error).toContain('client-log');
             });
         });
     });

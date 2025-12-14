@@ -26,6 +26,48 @@ class ClientLogger {
             warn: console.warn,
             error: console.error,
         };
+
+        // Global in-memory log history so the admin can request "recent" logs
+        // (best-effort, bounded).
+        try {
+            if (typeof window !== 'undefined') {
+                if (!Array.isArray(window.__posterramaClientLogHistory)) {
+                    window.__posterramaClientLogHistory = [];
+                }
+            }
+        } catch (_) {
+            /* noop */
+        }
+    }
+
+    _pushRemote(level, args) {
+        // level: log|debug|info|warn|error
+        try {
+            if (typeof window === 'undefined') return;
+            const t = Date.now();
+
+            // Store bounded history (raw args) so a remote viewer can replay.
+            try {
+                const hist = window.__posterramaClientLogHistory;
+                if (Array.isArray(hist)) {
+                    hist.push({ t, level, args: Array.from(args || []) });
+                    const MAX = 500;
+                    if (hist.length > MAX) hist.splice(0, hist.length - MAX);
+                }
+            } catch (_) {
+                /* noop */
+            }
+
+            // Optional sink installed by device-mgmt.js for remote log streaming.
+            try {
+                const sink = window.__posterramaRemoteLogSink;
+                if (typeof sink === 'function') sink(level, args, t);
+            } catch (_) {
+                /* noop */
+            }
+        } catch (_) {
+            /* noop */
+        }
     }
 
     isDebugEnabled() {
@@ -50,24 +92,28 @@ class ClientLogger {
 
     debug(...args) {
         if (this.debugEnabled) {
+            this._pushRemote('debug', args);
             this.originalConsole.log('[DEBUG]', ...args);
         }
     }
 
     info(...args) {
         if (this.debugEnabled) {
+            this._pushRemote('info', args);
             this.originalConsole.info('[INFO]', ...args);
         }
     }
 
     warn(...args) {
         if (this.debugEnabled) {
+            this._pushRemote('warn', args);
             this.originalConsole.warn('[WARN]', ...args);
         }
     }
 
     error(...args) {
         // Errors are always logged
+        this._pushRemote('error', args);
         this.originalConsole.error('[ERROR]', ...args);
     }
 

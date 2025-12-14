@@ -18802,3 +18802,179 @@ body.profile-edit-mode #section-display .section-header h2 span {
 #modal-profile-rename input::placeholder {
     color: var(--color-text-muted);
 }
+
+/* Live Device Logs (Admin) */
+#modal-device-logs .device-logs-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+#modal-device-logs .device-logs-toolbar-left-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+#modal-device-logs #device-logs-filter-wrap.search-box {
+    height: 32px;
+    padding: 0 6px 0 8px;
+}
+
+#modal-device-logs #device-logs-filter-wrap.search-box input {
+    min-width: 180px;
+    width: clamp(180px, 24vw, 320px);
+    height: 30px;
+    line-height: 30px;
+    padding: 0 4px;
+}
+
+#modal-device-logs .device-logs-toolbar-right {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* Live Logs modal buttons - match Profiles surface style */
+#modal-device-logs .device-logs-toolbar-right .btn.btn-sm,
+#modal-device-logs .modal-footer .btn {
+    border: none !important;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25) !important;
+    color: var(--color-text-secondary) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    font-size: var(--font-size-sm) !important;
+    border-radius: 4px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-weight: 500;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.25s ease;
+}
+
+#modal-device-logs .device-logs-toolbar-right .btn.btn-sm i,
+#modal-device-logs .device-logs-toolbar-right .btn.btn-sm .fas,
+#modal-device-logs .device-logs-toolbar-right .btn.btn-sm > span:not(.spinner),
+#modal-device-logs .modal-footer .btn i,
+#modal-device-logs .modal-footer .btn .fas,
+#modal-device-logs .modal-footer .btn > span:not(.spinner) {
+    color: color-mix(in srgb, var(--color-secondary) 85%, white);
+}
+
+#modal-device-logs .device-logs-toolbar-right .btn.btn-sm:hover,
+#modal-device-logs .device-logs-toolbar-right .btn.btn-sm:focus,
+#modal-device-logs .device-logs-toolbar-right .btn.btn-sm:focus-visible,
+#modal-device-logs .modal-footer .btn:hover,
+#modal-device-logs .modal-footer .btn:focus,
+#modal-device-logs .modal-footer .btn:focus-visible {
+    color: var(--color-text-primary) !important;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary)) !important;
+}
+
+#modal-device-logs .device-logs-toolbar-right .btn.btn-sm:active,
+#modal-device-logs .modal-footer .btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary)) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
+}
+
+#modal-device-logs .device-logs-status {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+#modal-device-logs .device-logs-console {
+    height: min(70vh, 560px);
+    overflow: auto;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    background: rgba(10, 12, 16, 0.92);
+    padding: 10px 12px;
+    font-family: var(
+        --font-mono,
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        'Liberation Mono',
+        'Courier New',
+        monospace
+    );
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+#modal-device-logs .device-log-line {
+    display: grid;
+    grid-template-columns: 96px 64px 1fr;
+    gap: 10px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+#modal-device-logs .device-log-line:last-child {
+    border-bottom: none;
+}
+
+#modal-device-logs .device-log-ts {
+    color: rgba(255, 255, 255, 0.55);
+    font-variant-numeric: tabular-nums;
+}
+
+#modal-device-logs .device-log-level {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+#modal-device-logs .lvl-error .device-log-level {
+    color: #ff6b6b;
+}
+
+#modal-device-logs .lvl-warn .device-log-level {
+    color: #ffd166;
+}
+
+#modal-device-logs .lvl-info .device-log-level {
+    color: #64b5f6;
+}
+
+#modal-device-logs .lvl-debug .device-log-level {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+#modal-device-logs .lvl-log .device-log-level {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+#modal-device-logs .device-log-msg {
+    color: rgba(255, 255, 255, 0.92);
+}
+
+#modal-device-logs .device-log-data {
+    color: rgba(255, 255, 255, 0.62);
+    margin-left: 8px;
+}

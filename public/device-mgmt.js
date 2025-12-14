@@ -1362,6 +1362,443 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         maxMissedPongs: 3,
     };
 
+    // --- Remote logging (device -> server -> admin) ---
+    // Enabled on-demand by admin via core.mgmt.enableRemoteLogs.
+    const remoteLogs = {
+        installed: false,
+        enabled: false,
+        buffer: [],
+        flushTimer: null,
+        maxBatch: 30,
+        maxBufferedEntries: 200,
+        maxHistoryEntries: 500,
+        hooksInstalled: false,
+        orig: {
+            log: null,
+            info: null,
+            warn: null,
+            error: null,
+            debug: null,
+        },
+    };
+
+    function safeStringifyForLog(value, maxLen = 1200) {
+        try {
+            if (value === null) return 'null';
+            if (value === undefined) return 'undefined';
+            if (typeof value === 'string')
+                return value.length > maxLen ? value.slice(0, maxLen) + '…' : value;
+            if (
+                typeof value === 'number' ||
+                typeof value === 'boolean' ||
+                typeof value === 'bigint'
+            )
+                return String(value);
+            if (value instanceof Error) {
+                const msg = `${value.name || 'Error'}: ${value.message || ''}`.trim();
+                return msg.length > maxLen ? msg.slice(0, maxLen) + '…' : msg;
+            }
+            const seen = new WeakSet();
+            const s = JSON.stringify(
+                value,
+                (_k, v) => {
+                    if (v && typeof v === 'object') {
+                        if (seen.has(v)) return '[Circular]';
+                        seen.add(v);
+                    }
+                    return v;
+                },
+                0
+            );
+            if (typeof s !== 'string') return '';
+            return s.length > maxLen ? s.slice(0, maxLen) + '…' : s;
+        } catch (_) {
+            try {
+                const s = String(value);
+                return s.length > maxLen ? s.slice(0, maxLen) + '…' : s;
+            } catch (_) {
+                return '';
+            }
+        }
+    }
+
+    function safeJsonValueForLog(value, maxLen = 1800) {
+        try {
+            if (value === null || value === undefined) return value;
+            const t = typeof value;
+            if (t === 'string' || t === 'number' || t === 'boolean') return value;
+            if (t === 'bigint') return String(value);
+            if (value instanceof Error) {
+                const stack =
+                    typeof value.stack === 'string'
+                        ? value.stack.split('\n').slice(0, 6).join('\n')
+                        : undefined;
+                return {
+                    name: value.name || 'Error',
+                    message: value.message || '',
+                    stack,
+                };
+            }
+
+            const seen = new WeakSet();
+            const json = JSON.stringify(
+                value,
+                (_k, v) => {
+                    if (v && typeof v === 'object') {
+                        if (seen.has(v)) return '[Circular]';
+                        seen.add(v);
+                    }
+                    return v;
+                },
+                0
+            );
+            if (typeof json !== 'string') return null;
+
+            if (json.length > maxLen) {
+                return { __truncated: true, preview: json.slice(0, maxLen) + '…' };
+            }
+
+            try {
+                return JSON.parse(json);
+            } catch (_) {
+                return json;
+            }
+        } catch (_) {
+            // Worst case fallback: return a compact string
+            try {
+                return safeStringifyForLog(value, maxLen);
+            } catch (_) {
+                return undefined;
+            }
+        }
+    }
+
+    function buildLogEntry(level, args, tOverride = null) {
+        const t =
+            typeof tOverride === 'number' && Number.isFinite(tOverride) ? tOverride : Date.now();
+        const parts = [];
+        const data = [];
+        try {
+            for (let i = 0; i < args.length; i++) {
+                const a = args[i];
+                if (typeof a === 'string') {
+                    parts.push(a);
+                } else if (
+                    typeof a === 'number' ||
+                    typeof a === 'boolean' ||
+                    typeof a === 'bigint' ||
+                    a === null ||
+                    a === undefined
+                ) {
+                    parts.push(String(a));
+                } else if (a instanceof Error) {
+                    parts.push(`${a.name || 'Error'}: ${a.message || ''}`.trim());
+                    data.push(a);
+                } else {
+                    // Keep objects out of the main message to avoid double-stringifying;
+                    // render them as structured tail data in the admin viewer.
+                    parts.push('[Object]');
+                    data.push(a);
+                }
+            }
+        } catch (_) {
+            // ignore
+        }
+        let message = parts.join(' ').trim();
+        if (!message) message = '(no message)';
+        if (message.length > 4000) message = message.slice(0, 4000);
+
+        // Keep structured data small; admin mainly needs a hint, not full objects.
+        let compactData = undefined;
+        try {
+            if (data.length) {
+                compactData = data.slice(0, 4).map(v => safeJsonValueForLog(v, 1200));
+            }
+        } catch (_) {
+            compactData = undefined;
+        }
+
+        return {
+            t,
+            level,
+            message,
+            data: compactData,
+        };
+    }
+
+    function __appendHistoryEntry(entry) {
+        try {
+            if (typeof window === 'undefined') return;
+            if (!Array.isArray(window.__posterramaRemoteLogHistory)) {
+                window.__posterramaRemoteLogHistory = [];
+            }
+            const hist = window.__posterramaRemoteLogHistory;
+            hist.push(entry);
+            const MAX = remoteLogs.maxHistoryEntries || 500;
+            if (hist.length > MAX) hist.splice(0, hist.length - MAX);
+        } catch (_) {
+            /* ignore */
+        }
+    }
+
+    function sendWsOrBuffer(msg) {
+        try {
+            if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+                state.ws.send(JSON.stringify(msg));
+                return true;
+            }
+        } catch (_) {
+            // ignore and fall through to buffer
+        }
+        try {
+            // Buffer during disconnect (best-effort, bounded)
+            if (reconnection.messageBuffer.length >= reconnection.maxBufferSize) {
+                reconnection.messageBuffer.shift();
+            }
+            reconnection.messageBuffer.push({ ts: Date.now(), msg });
+            return false;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function flushRemoteLogs() {
+        try {
+            if (!remoteLogs.enabled) return;
+            if (!state.deviceId) return;
+            if (!remoteLogs.buffer.length) return;
+
+            const batch = remoteLogs.buffer.splice(0, remoteLogs.maxBatch);
+            if (!batch.length) return;
+
+            sendWsOrBuffer({
+                kind: 'client-log',
+                deviceId: state.deviceId,
+                entries: batch,
+            });
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    function scheduleRemoteFlush() {
+        try {
+            if (remoteLogs.flushTimer) return;
+            remoteLogs.flushTimer = setTimeout(() => {
+                remoteLogs.flushTimer = null;
+                flushRemoteLogs();
+                // If more logs queued, keep flushing periodically
+                if (remoteLogs.enabled && remoteLogs.buffer.length) scheduleRemoteFlush();
+            }, 250);
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    function queueRemoteLog(level, args) {
+        try {
+            const entry = buildLogEntry(level, args);
+            __appendHistoryEntry(entry);
+            if (!remoteLogs.enabled) return;
+
+            remoteLogs.buffer.push(entry);
+            // Keep memory bounded
+            if (remoteLogs.buffer.length > remoteLogs.maxBufferedEntries) {
+                remoteLogs.buffer.splice(
+                    0,
+                    remoteLogs.buffer.length - remoteLogs.maxBufferedEntries
+                );
+            }
+            if (remoteLogs.buffer.length >= remoteLogs.maxBatch) {
+                flushRemoteLogs();
+            } else {
+                scheduleRemoteFlush();
+            }
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    function replayHistoryToRemote() {
+        try {
+            const hist = window.__posterramaClientLogHistory;
+            if (!Array.isArray(hist) || !hist.length) return;
+
+            // Convert raw logger history entries into the WS schema entries.
+            for (const h of hist) {
+                try {
+                    const lvl = String(h?.level || 'log').toLowerCase();
+                    const args = Array.isArray(h?.args) ? h.args : [];
+                    const t = typeof h?.t === 'number' ? h.t : Date.now();
+                    const entry = buildLogEntry(lvl, args, t);
+                    // Store and enqueue for immediate send
+                    __appendHistoryEntry(entry);
+                    remoteLogs.buffer.push(entry);
+                } catch (_) {
+                    /* ignore */
+                }
+            }
+        } catch (_) {
+            /* ignore */
+        }
+    }
+
+    function installRemoteConsoleHook() {
+        if (remoteLogs.installed) return;
+        try {
+            remoteLogs.orig.log = console.log;
+            remoteLogs.orig.info = console.info;
+            remoteLogs.orig.warn = console.warn;
+            remoteLogs.orig.error = console.error;
+            remoteLogs.orig.debug = console.debug;
+
+            console.log = function () {
+                try {
+                    queueRemoteLog('log', arguments);
+                } catch (_) {
+                    /* ignore */
+                }
+                return remoteLogs.orig.log && remoteLogs.orig.log.apply(console, arguments);
+            };
+            console.info = function () {
+                try {
+                    queueRemoteLog('info', arguments);
+                } catch (_) {
+                    /* ignore */
+                }
+                return remoteLogs.orig.info && remoteLogs.orig.info.apply(console, arguments);
+            };
+            console.warn = function () {
+                try {
+                    queueRemoteLog('warn', arguments);
+                } catch (_) {
+                    /* ignore */
+                }
+                return remoteLogs.orig.warn && remoteLogs.orig.warn.apply(console, arguments);
+            };
+            console.error = function () {
+                try {
+                    queueRemoteLog('error', arguments);
+                } catch (_) {
+                    /* ignore */
+                }
+                return remoteLogs.orig.error && remoteLogs.orig.error.apply(console, arguments);
+            };
+            console.debug = function () {
+                try {
+                    queueRemoteLog('debug', arguments);
+                } catch (_) {
+                    /* ignore */
+                }
+                return remoteLogs.orig.debug && remoteLogs.orig.debug.apply(console, arguments);
+            };
+
+            // Capture global errors (best-effort) so the admin can see crashes too.
+            if (!remoteLogs.hooksInstalled && typeof window !== 'undefined') {
+                try {
+                    window.addEventListener(
+                        'error',
+                        ev => {
+                            try {
+                                if (!remoteLogs.enabled) return;
+                                const msg = ev?.message || 'window.error';
+                                const src = ev?.filename
+                                    ? `${ev.filename}:${ev.lineno || 0}:${ev.colno || 0}`
+                                    : '';
+                                queueRemoteLog('error', [msg, src].filter(Boolean));
+                            } catch (_) {
+                                /* ignore */
+                            }
+                        },
+                        true
+                    );
+                    window.addEventListener('unhandledrejection', ev => {
+                        try {
+                            if (!remoteLogs.enabled) return;
+                            const reason = ev?.reason;
+                            queueRemoteLog('error', ['unhandledrejection', reason]);
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    });
+                } catch (_) {
+                    /* ignore */
+                }
+                remoteLogs.hooksInstalled = true;
+            }
+
+            remoteLogs.installed = true;
+        } catch (_) {
+            // If the environment prevents patching console, just disable
+            remoteLogs.installed = false;
+            remoteLogs.enabled = false;
+        }
+    }
+
+    function setRemoteLogsEnabled(enabled) {
+        const on = !!enabled;
+        if (on) installRemoteConsoleHook();
+        // Do not gate streaming on whether we can patch console.*.
+        // Even if console patching is blocked, we can still emit explicit log lines and
+        // capture window errors/unhandled rejections.
+        remoteLogs.enabled = on;
+        try {
+            if (!remoteLogs.enabled) {
+                remoteLogs.buffer = [];
+                if (remoteLogs.flushTimer) {
+                    clearTimeout(remoteLogs.flushTimer);
+                    remoteLogs.flushTimer = null;
+                }
+            } else {
+                // Replay recent logs captured by client-logger (if available) so the admin
+                // sees the same startup log stream the device console shows.
+                try {
+                    replayHistoryToRemote();
+                } catch (_) {
+                    /* ignore */
+                }
+                // Emit an immediate line so the admin can verify the pipeline.
+                try {
+                    queueRemoteLog('info', [
+                        'Remote logs enabled',
+                        { href: window.location?.href, ua: navigator?.userAgent },
+                    ]);
+                    flushRemoteLogs();
+                } catch (_) {
+                    /* ignore */
+                }
+                scheduleRemoteFlush();
+            }
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    // Allow other scripts (e.g. client-logger.js) to forward their logs without
+    // relying on patched console methods.
+    try {
+        if (typeof window !== 'undefined') {
+            window.__posterramaRemoteLogSink = (level, args, t) => {
+                try {
+                    const entry = buildLogEntry(
+                        String(level || 'log').toLowerCase(),
+                        args || [],
+                        t
+                    );
+                    __appendHistoryEntry(entry);
+                    if (!remoteLogs.enabled) return;
+                    remoteLogs.buffer.push(entry);
+                    if (remoteLogs.buffer.length >= remoteLogs.maxBatch) flushRemoteLogs();
+                    else scheduleRemoteFlush();
+                } catch (_) {
+                    /* ignore */
+                }
+            };
+        }
+    } catch (_) {
+        /* ignore */
+    }
+
     // Debug logger (toggle with window.__POSTERRAMA_LIVE_DEBUG = false to silence)
     function liveDbg() {
         try {
@@ -1960,6 +2397,17 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         liveDbg('[Live] queued command received', { type });
         window.debugLog && window.debugLog('DEVICE_MGMT_COMMAND', { type, payload });
         switch (type) {
+            case 'core.mgmt.enableRemoteLogs': {
+                // payload: { enabled: boolean }
+                try {
+                    const enabled =
+                        payload && typeof payload.enabled === 'boolean' ? payload.enabled : true;
+                    setRemoteLogsEnabled(enabled);
+                } catch (_) {
+                    // ignore
+                }
+                break;
+            }
             // Core management commands
             case 'core.mgmt.reload':
                 window.debugLog && window.debugLog('DEVICE_MGMT_CMD_RELOAD', {});

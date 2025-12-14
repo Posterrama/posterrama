@@ -4609,6 +4609,39 @@
     </div>
   </div>
 
+  <!-- Live Device Logs Modal -->
+  <div class="modal-overlay" id="modal-device-logs" hidden data-auto-hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="device-logs-title" style="width:min(96vw, 980px)">
+      <div class="modal-header">
+        <div class="modal-title" id="device-logs-title"><i class="fas fa-bug"></i> Live Logs <span id="device-logs-target-name" style="opacity:.75"></span></div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" style="padding:12px 14px;">
+        <div class="device-logs-toolbar">
+          <div class="device-logs-toolbar-left">
+            <div class="device-logs-toolbar-left-row">
+              <span class="device-logs-status" id="device-logs-status">Waiting for logs…</span>
+              <div class="search-box input-shell" id="device-logs-filter-wrap" style="position:relative;">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input id="device-logs-filter" type="text" placeholder="Filter logs…" autocomplete="off" spellcheck="false" />
+              </div>
+            </div>
+          </div>
+          <div class="device-logs-toolbar-right">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-device-logs-reload"><i class="fas fa-rotate-right" aria-hidden="true"></i><span>Reload device</span></button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-device-logs-clearcache"><i class="fas fa-broom" aria-hidden="true"></i><span>Clear caches</span></button>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-device-logs-clear"><i class="fas fa-eraser" aria-hidden="true"></i><span>Clear</span></button>
+          </div>
+        </div>
+
+        <div class="device-logs-console" id="device-logs-console" role="log" aria-live="polite" aria-relevant="additions text"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-close-modal><span>Close</span></button>
+      </div>
+    </div>
+  </div>
+
   <!-- Pairing Codes Modal -->
   <div class="modal-overlay" id="modal-pairing">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pairing-title">
