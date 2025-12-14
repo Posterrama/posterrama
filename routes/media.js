@@ -1518,25 +1518,46 @@ module.exports = function createMediaRouter({
                 });
             }
 
-            // Get TMDB API key from config
-            const tmdbApiKey = config.tmdbSource?.apiKey || config.tmdb?.apiKey;
+            // Get TMDB API key from config or environment.
+            // Most deployments keep secrets in .env, not config.json.
+            const tmdbEnvVar =
+                config.tmdbSource?.apiKeyEnvVar || config.tmdb?.apiKeyEnvVar || 'TMDB_API_KEY';
+            const tmdbApiKey =
+                (typeof config.tmdbSource?.apiKey === 'string' && config.tmdbSource.apiKey.trim()
+                    ? config.tmdbSource.apiKey.trim()
+                    : null) ||
+                (typeof config.tmdb?.apiKey === 'string' && config.tmdb.apiKey.trim()
+                    ? config.tmdb.apiKey.trim()
+                    : null) ||
+                (typeof process.env[tmdbEnvVar] === 'string' && process.env[tmdbEnvVar].trim()
+                    ? process.env[tmdbEnvVar].trim()
+                    : null);
+
             if (!tmdbApiKey) {
-                return res.status(500).json({
+                logger.warn('[get-trailer] TMDB API key not configured', { tmdbEnvVar });
+                // Return 200 so clients (cinema QR) can silently skip without noisy console errors.
+                return res.status(200).json({
                     success: false,
                     error: 'TMDB API key not configured',
+                    trailer: null,
                 });
             }
 
             try {
                 const mediaType = type === 'tv' ? 'tv' : 'movie';
-                const url = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}/videos?api_key=${tmdbApiKey}`;
+                const url = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}/videos?api_key=${encodeURIComponent(
+                    tmdbApiKey
+                )}`;
 
                 const response = await fetch(url);
                 if (!response.ok) {
                     logger.warn(`[get-trailer] TMDB API error: ${response.status}`);
-                    return res.status(response.status).json({
+                    // Return 200 so clients can handle gracefully without console noise.
+                    return res.status(200).json({
                         success: false,
                         error: `TMDB API returned ${response.status}`,
+                        upstreamStatus: response.status,
+                        trailer: null,
                     });
                 }
 
@@ -1553,9 +1574,11 @@ module.exports = function createMediaRouter({
                     videos.find(v => v.site === 'YouTube');
 
                 if (!trailer) {
-                    return res.status(404).json({
+                    // Return 200 so clients can silently skip.
+                    return res.status(200).json({
                         success: false,
                         error: 'No trailer found for this title',
+                        trailer: null,
                     });
                 }
 

@@ -25,7 +25,9 @@ describe('Admin config scheduler reschedule', () => {
 
     test('reschedules background refresh on POST /api/admin/config', async () => {
         // If route is protected, treat unauthorized as soft skip
-        const getRes = await request(app).get('/api/admin/config');
+        const getRes = await request(app)
+            .get('/api/admin/config')
+            .set('Authorization', 'Bearer test-token');
         if ([401, 403].includes(getRes.status)) {
             console.warn('[TEST] Skipping scheduler reschedule test (unauthorized GET).');
             return;
@@ -37,14 +39,16 @@ describe('Admin config scheduler reschedule', () => {
         // Capture current interval reference, if any
         const beforeInterval = global.playlistRefreshInterval;
 
-        // Toggle backgroundRefreshMinutes to a different value to force reschedule
+        // Toggle backgroundRefreshMinutes to a different value to force reschedule.
+        // Use schema-valid values (config.schema.json minimum is 5).
         const current = Number(cfg.backgroundRefreshMinutes || 60);
-        const newMinutes = current === 1 ? 2 : 1; // switch between 1 and 2 minutes
+        const newMinutes = current === 5 ? 6 : 5;
         const patched = { ...cfg, backgroundRefreshMinutes: newMinutes };
 
         const postRes = await request(app)
             .post('/api/admin/config')
             .send({ config: patched, env: {} })
+            .set('Authorization', 'Bearer test-token')
             .set('Accept', 'application/json');
 
         if ([401, 403].includes(postRes.status)) {
@@ -64,7 +68,10 @@ describe('Admin config scheduler reschedule', () => {
 
         // Cleanup: revert config and trigger another reschedule (best-effort)
         const revert = { ...patched, backgroundRefreshMinutes: current };
-        await request(app).post('/api/admin/config').send({ config: revert, env: {} });
+        await request(app)
+            .post('/api/admin/config')
+            .send({ config: revert, env: {} })
+            .set('Authorization', 'Bearer test-token');
         await new Promise(r => setTimeout(r, 200));
     });
 });

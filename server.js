@@ -1,5 +1,4 @@
 const logger = require('./utils/logger');
-const env = require('./config/environment');
 const fs = require('fs');
 const path = require('path');
 const AdmZip = require('adm-zip');
@@ -57,10 +56,13 @@ const {
 } = require('./lib/playlist-cache');
 
 // Force reload environment on startup to prevent PM2 cache issues
-forceReloadEnv();
+forceReloadEnv(__dirname);
 
 // Initialize environment (directories, .env, config.json)
 const { imageCacheDir, avatarDir } = initializeEnvironment(__dirname);
+
+// Load env-derived configuration AFTER dotenv is loaded
+const env = require('./config/environment');
 
 const express = require('express');
 const session = require('express-session');
@@ -181,7 +183,6 @@ const { getPlaylistMedia } = require('./lib/media-aggregator');
 const { getCacheConfig: getCacheConfigUtil } = require('./lib/cache-utils');
 // INTENTIONAL-TODO(new-source): If you add a new source adapter under sources/<name>.js, require it here
 // const MyNewSource = require('./sources/mynew');
-const deepMerge = require('./utils/deep-merge');
 // Device management stores and WebSocket hub
 const deviceStore = require('./utils/deviceStore');
 const wsHub = require('./utils/wsHub');
@@ -2327,6 +2328,7 @@ const adminConfigRouter = createAdminConfigRouter({
     writeConfig,
     writeEnvFile,
     restartPM2ForEnvUpdate,
+    schedulePlaylistBackgroundRefresh,
     wsHub,
     apiCache,
     ApiError,
@@ -5953,162 +5955,6 @@ app.get(
 
 /**
  * @swagger
- * /api/admin/config:
- *   post:
- *     summary: Update server configuration (partial)
- *     tags: ['Admin']
- *     security:
- *       - sessionAuth: []
- *     x-codeSamples:
- *       - lang: 'curl'
- *         label: 'Update Screensaver Interval'
- *         source: |
- *           curl -X POST http://localhost:4000/api/admin/config \
- *             -H "Content-Type: application/json" \
- *             -H "Cookie: connect.sid=your-session" \
- *             -d '{
- *               "config": {
- *                 "screensaverInterval": 5000
- *               }
- *             }'
- *       - lang: 'JavaScript'
- *         label: 'Configure Plex Source'
- *         source: |
- *           fetch('http://localhost:4000/api/admin/config', {
- *             method: 'POST',
- *             headers: { 'Content-Type': 'application/json' },
- *             credentials: 'include',
- *             body: JSON.stringify({
- *               config: {
- *                 plex: {
- *                   enabled: true,
- *                   baseUrl: 'http://192.168.1.100:32400',
- *                   token: 'YOUR_PLEX_TOKEN',
- *                   libraries: ['Movies', 'TV Shows']
- *                 }
- *               }
- *             })
- *           });
- *       - lang: 'Python'
- *         label: 'Enable Local Directory'
- *         source: |
- *           import requests
- *           session = requests.Session()
- *           session.post('http://localhost:4000/admin/login',
- *                        data={'username': 'admin', 'password': 'pass'})
- *           session.post('http://localhost:4000/api/admin/config',
- *             json={'config': {
- *               'localDirectory': {
- *                 'enabled': True,
- *                 'rootPath': '/mnt/media/posterrama'
- *               }
- *             }})
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               config:
- *                 type: object
- *                 description: Partial config to deep-merge into config.json
- *           examples:
- *             screensaver:
- *               summary: Update screensaver settings
- *               value:
- *                 config:
- *                   screensaverInterval: 5000
- *                   transitionDuration: 2000
- *                   randomOrder: true
- *             plex:
- *               summary: Configure Plex connection
- *               value:
- *                 config:
- *                   plex:
- *                     enabled: true
- *                     baseUrl: 'http://192.168.1.100:32400'
- *                     token: 'YOUR_PLEX_TOKEN'
- *                     libraries: ['Movies', 'TV Shows']
- *             jellyfin:
- *               summary: Configure Jellyfin connection
- *               value:
- *                 config:
- *                   jellyfin:
- *                     enabled: true
- *                     baseUrl: 'http://192.168.1.100:8096'
- *                     apiKey: 'YOUR_API_KEY'
- *                     userId: 'YOUR_USER_ID'
- *                     libraries: ['Movies']
- *     responses:
- *       200:
- *         description: Configuration updated
- */
-app.post(
-    '/api/admin/config',
-    // @ts-ignore - Express router overload with middleware
-    isAuthenticated,
-    asyncHandler(async (req, res) => {
-        try {
-            const body = req.body || {};
-            const incoming = body.config || {};
-            // Load current config and deep-merge
-            const current = await readConfig();
-            const merged = deepMerge({}, current, incoming);
-            await writeConfig(merged, config);
-
-            // Invalidate /get-config cache so changes are immediately visible
-            try {
-                if (
-                    typeof apiCache !== 'undefined' &&
-                    apiCache &&
-                    // @ts-ignore - clearPattern is a custom method
-                    typeof apiCache.clearPattern === 'function'
-                ) {
-                    // @ts-ignore - clearPattern is a custom method
-                    apiCache.clearPattern('/get-config');
-                    logger.debug('Cleared /get-config cache after config update');
-                }
-            } catch (e2) {
-                logger.warn('Cache invalidation failed', { error: e2?.message });
-            }
-
-            // If cache section changed, update CacheDiskManager live
-            if (incoming && Object.prototype.hasOwnProperty.call(incoming, 'cache')) {
-                try {
-                    const c = merged.cache || {};
-                    if (cacheDiskManager && typeof cacheDiskManager.updateConfig === 'function') {
-                        cacheDiskManager.updateConfig(c);
-                    }
-                } catch (e2) {
-                    logger.warn('Live cache config update failed', { error: e2?.message });
-                }
-            }
-
-            // Prevent caching and include effective cache config so UI can update immediately
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            res.setHeader('Pragma', 'no-cache');
-            const effective = getCacheConfig();
-            try {
-                if (typeof broadcastAdminEvent === 'function') {
-                    broadcastAdminEvent('config-updated', {
-                        at: Date.now(),
-                        keys: Object.keys(incoming || {}),
-                        cacheConfig: effective,
-                    });
-                }
-            } catch (_) {
-                /* ignore broadcast errors */
-            }
-            res.json({ success: true, config: merged, cache: { cacheConfig: effective } });
-        } catch (e) {
-            res.status(500).json({ error: 'config_write_failed', message: e?.message || 'error' });
-        }
-    })
-);
-
-/**
- * @swagger
  * /api/admin/source-status:
  *   get:
  *     summary: Get per-source status for admin UI
@@ -6574,18 +6420,14 @@ app.get(
  * @swagger
  * /api/plex/users:
  *   get:
- *     summary: Get Plex Home users (admin)
- *     description: Returns Plex Home users for Now Playing user lock dropdowns.
+ *     summary: Get Plex users (admin)
+ *     description: Returns users with access to the configured Plex server (best-effort).
  *     tags: ['Admin', 'Plex']
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Users list
- *       503:
- *         description: Plex not configured
- *       502:
- *         description: Plex.tv request failed
  */
 app.get(
     '/api/plex/users',
@@ -6600,57 +6442,86 @@ app.get(
                 : null);
 
         if (!plexServer || !token) {
-            return res.status(503).json({
+            return res.status(200).json({
+                success: false,
                 error: 'Plex server not configured (missing token)',
                 users: [],
             });
         }
 
-        const url =
-            'https://plex.tv/api/v2/home/users?includeManaged=1&includeGuest=1&includeUnmanaged=1';
-        let r;
+        // Prefer Plex server's /accounts (includes shared users) over plex.tv Home users.
+        // /accounts can require an admin token; if unavailable we fall back to active sessions.
+        const users = [];
         try {
-            r = await fetch(url, {
-                headers: {
-                    Accept: 'application/json',
-                    'X-Plex-Token': token,
-                },
-            });
-        } catch (err) {
-            logger.error('[api/plex/users] plex.tv request failed', {
-                error: err?.message,
-            });
-            return res.status(502).json({
-                error: 'Failed to reach plex.tv',
+            const plex = await getPlexClient(plexServer);
+            if (plex?.query) {
+                try {
+                    const accounts = await plex.query('/accounts');
+                    const accountRaw = accounts?.MediaContainer?.Account;
+                    const accountList = Array.isArray(accountRaw)
+                        ? accountRaw
+                        : accountRaw
+                          ? [accountRaw]
+                          : [];
+
+                    accountList.forEach(account => {
+                        const username = account?.name || account?.title || account?.username;
+                        if (!username) return;
+                        users.push({
+                            id: account?.id ?? null,
+                            username,
+                            title: username,
+                            email: account?.email || null,
+                            thumb: account?.thumb || null,
+                        });
+                    });
+                } catch (e) {
+                    logger.debug('[api/plex/users] /accounts unavailable', { message: e?.message });
+                }
+            }
+        } catch (e) {
+            logger.debug('[api/plex/users] getPlexClient failed', { message: e?.message });
+        }
+
+        // Fallback: infer users from recent sessions
+        if (users.length === 0) {
+            try {
+                const poller = global.__posterramaSessionsPoller;
+                const sessions = poller?.getSessions?.()?.sessions || [];
+                sessions.forEach(session => {
+                    const username = session?.User?.title || session?.username;
+                    if (!username) return;
+                    users.push({
+                        id: session?.User?.id ?? null,
+                        username,
+                        title: username,
+                        email: null,
+                        thumb: session?.User?.thumb || null,
+                    });
+                });
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
+        // De-dup + sort
+        const uniqueUsers = users
+            .filter(u => u && u.username)
+            .reduce((acc, user) => {
+                if (!acc.find(u => u.username === user.username)) acc.push(user);
+                return acc;
+            }, [])
+            .sort((a, b) => (a.username || '').localeCompare(b.username || ''));
+
+        if (uniqueUsers.length === 0) {
+            return res.status(200).json({
+                success: false,
+                error: 'No Plex users found (insufficient permissions or no recent sessions)',
                 users: [],
             });
         }
 
-        if (!r.ok) {
-            const text = await r.text().catch(() => '');
-            logger.error('[api/plex/users] plex.tv responded non-200', {
-                status: r.status,
-                body: text ? text.slice(0, 400) : undefined,
-            });
-            return res.status(502).json({
-                error: `plex.tv error (${r.status})`,
-                users: [],
-            });
-        }
-
-        const data = await r.json().catch(() => null);
-        const arr = Array.isArray(data) ? data : [];
-        const users = arr
-            .map(u => ({
-                id: u?.id ?? null,
-                title: u?.title || u?.username || 'Unknown',
-                username: u?.title || u?.username || 'Unknown',
-                email: u?.email || null,
-            }))
-            .filter(u => !!u.title)
-            .sort((a, b) => a.title.localeCompare(b.title));
-
-        res.json({ users });
+        res.json({ success: true, users: uniqueUsers });
     })
 );
 
@@ -6711,144 +6582,6 @@ app.get(
         const serverName = jellyfinServer?.name || 'Jellyfin';
 
         res.json({ ...data, serverName });
-    })
-);
-
-/**
- * @swagger
- * /api/plex/users:
- *   get:
- *     summary: Get Plex users with access to this server
- *     description: >
- *       Returns a list of all Plex users (including owner and shared users) who have access to the server.
- *       Useful for filtering Now Playing sessions by specific users.
- *     tags: ['Admin', 'Plex']
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of Plex users
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 users:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                       username:
- *                         type: string
- *                       title:
- *                         type: string
- *                       email:
- *                         type: string
- *                       thumb:
- *                         type: string
- *       404:
- *         description: No Plex server configured
- *       500:
- *         description: Failed to fetch users from Plex
- */
-app.get(
-    '/api/plex/users',
-    // @ts-ignore - Express router overload with middleware
-    isAuthenticated,
-    asyncHandler(async (req, res) => {
-        const mediaServers = config.mediaServers || [];
-        const plexServer = mediaServers.find(s => s.type === 'plex' && s.enabled);
-
-        if (!plexServer) {
-            return res.status(404).json({ error: 'No Plex server configured', users: [] });
-        }
-
-        try {
-            const plex = await getPlexClient(plexServer);
-            if (!plex) {
-                return res.status(500).json({ error: 'Failed to connect to Plex', users: [] });
-            }
-
-            const users = [];
-
-            // Method 1: Get users from recent sessions
-            const poller = global.__posterramaSessionsPoller;
-            if (poller) {
-                const sessionData = poller.getSessions();
-                const sessions = sessionData?.sessions || [];
-                const seenUsers = new Set();
-
-                sessions.forEach(session => {
-                    const username = session.User?.title || session.username;
-                    if (username && !seenUsers.has(username)) {
-                        seenUsers.add(username);
-                        users.push({
-                            id: session.User?.id,
-                            username: username,
-                            title: username,
-                            thumb: session.User?.thumb,
-                        });
-                    }
-                });
-            }
-
-            // Method 2: Try to get account owner info
-            try {
-                const identity = await plex.query('/identity');
-                const ownerName =
-                    identity?.MediaContainer?.friendlyName ||
-                    identity?.MediaContainer?.machineIdentifier;
-                if (ownerName && !users.find(u => u.username === ownerName)) {
-                    users.unshift({
-                        id: 'owner',
-                        username: ownerName,
-                        title: ownerName,
-                    });
-                }
-            } catch (e) {
-                logger.debug('Could not fetch owner info:', e.message);
-            }
-
-            // Method 3: Query accounts endpoint (admin only)
-            try {
-                const accounts = await plex.query('/accounts');
-                if (accounts?.MediaContainer?.Account) {
-                    const accountList = Array.isArray(accounts.MediaContainer.Account)
-                        ? accounts.MediaContainer.Account
-                        : [accounts.MediaContainer.Account];
-
-                    accountList.forEach(account => {
-                        const username = account.name || account.title;
-                        if (username && !users.find(u => u.username === username)) {
-                            users.push({
-                                id: account.id,
-                                username: username,
-                                title: username,
-                                thumb: account.thumb,
-                            });
-                        }
-                    });
-                }
-            } catch (e) {
-                logger.debug('Could not fetch accounts (may require admin):', e.message);
-            }
-
-            // Fallback: If no users found, add a placeholder
-            if (users.length === 0) {
-                users.push({
-                    id: 'owner',
-                    username: 'Owner',
-                    title: 'Owner (Server Owner)',
-                });
-            }
-
-            res.json({ users });
-        } catch (error) {
-            logger.error('Failed to fetch Plex users:', error);
-            res.status(500).json({ error: 'Failed to fetch users from Plex', users: [] });
-        }
     })
 );
 

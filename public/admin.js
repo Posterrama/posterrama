@@ -2383,7 +2383,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const sub = (() => {
                         if (active === 'screensaver') {
                             const eff = String(c.transitionEffect || 'kenburns');
-                            const interval = Number(c.transitionIntervalSeconds || 0);
+                            const intervalRaw = Number(c.transitionIntervalSeconds ?? 10);
+                            const interval = Number.isFinite(intervalRaw)
+                                ? Math.max(5, Math.trunc(intervalRaw))
+                                : 10;
                             const clock = c.clockWidget !== false;
                             const effLabel =
                                 eff === 'kenburns'
@@ -2394,7 +2397,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                         ? 'Slide'
                                         : eff;
                             const parts = [];
-                            if (interval) parts.push(`Every ${interval}s`);
+                            parts.push(`Every ${interval}s`);
                             parts.push(`Effect: ${effLabel}`);
                             parts.push(`Clock: ${clock ? 'On' : 'Off'}`);
                             return parts.join(' · ');
@@ -3990,6 +3993,40 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         return r.json();
     }
 
+    function maybeWarnMissingTrailerPrereqs(cfgPayload) {
+        try {
+            const payload = cfgPayload || {};
+            const cfg = payload.config || payload || {};
+            const env = payload.env || {};
+
+            const trailerEnabled = !!cfg?.cinema?.promotional?.trailer?.enabled;
+            if (!trailerEnabled) return;
+
+            const tmdbKeyInConfig =
+                typeof cfg?.tmdbSource?.apiKey === 'string' && cfg.tmdbSource.apiKey.trim();
+            const tmdbKeyInEnv = !!env.TMDB_API_KEY;
+
+            if (tmdbKeyInConfig || tmdbKeyInEnv) return;
+
+            // Throttle: warn at most once per session (or every 30 minutes).
+            const k = 'posterrama_warn_missing_tmdb_for_trailer';
+            const now = Date.now();
+            const last = Number(sessionStorage.getItem(k) || '0');
+            if (Number.isFinite(last) && last > 0 && now - last < 30 * 60 * 1000) return;
+            sessionStorage.setItem(k, String(now));
+
+            window.notify?.toast?.({
+                type: 'warning',
+                title: 'Trailers enabled, TMDB API key missing',
+                message:
+                    'Trailers are enabled, but no TMDB API key is configured. Add a key in the TMDB panel (or set TMDB_API_KEY in .env) and Save. Note: the TMDB “source” does not need to be enabled for trailers—only the API key is required.',
+                duration: 9000,
+            });
+        } catch (_) {
+            /* warning toast is optional */
+        }
+    }
+
     function hydrateDisplayForm(cfg) {
         const c = cfg?.config || cfg || {};
         const w = c.wallartMode || {};
@@ -4014,7 +4051,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             if (el.type === 'checkbox') el.checked = !!val;
             else el.value = String(val);
         };
-        setIf('transitionIntervalSeconds', c.transitionIntervalSeconds);
+        (function () {
+            const raw = Number(c.transitionIntervalSeconds ?? 10);
+            const normalized = Number.isFinite(raw) ? Math.max(5, Math.trunc(raw)) : 10;
+            setIf('transitionIntervalSeconds', normalized);
+        })();
         setIf('transitionEffect', c.transitionEffect || 'kenburns');
         setIf('effectPauseTime', c.effectPauseTime);
         setIf('clockWidget', c.clockWidget !== false);
@@ -4609,6 +4650,12 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     .then(data => {
                         const users = data?.users || [];
                         const savedUser = c.cinema?.nowPlaying?.filterUser || '';
+
+                        if (!users.length && data?.success === false && data?.error) {
+                            filterUserSelect.innerHTML = `<option value="">${escapeHtml(data.error)}</option>`;
+                            filterUserSelect.disabled = true;
+                            return;
+                        }
 
                         filterUserSelect.innerHTML = '<option value="">Select a user</option>';
                         users.forEach(user => {
@@ -6222,7 +6269,12 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         // Build nested patch
         const patch = {
             // Global
-            transitionIntervalSeconds: val('transitionIntervalSeconds'),
+            transitionIntervalSeconds: (function () {
+                const v = val('transitionIntervalSeconds');
+                const n = Number(v);
+                if (!Number.isFinite(n)) return 10;
+                return Math.max(5, Math.trunc(n));
+            })(),
             transitionEffect: val('transitionEffect'),
             effectPauseTime: val('effectPauseTime'),
             clockWidget: val('clockWidget'),
@@ -6377,7 +6429,49 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             const cfg = await loadAdminConfig();
             // Store config globally for dashboard cards and other features
             window.__serverConfig = cfg?.config || cfg;
+            // Store env snapshot globally for best-effort warnings
+            window.__serverEnv = cfg?.env || {};
+            // Guardrail: warn if trailer overlay is enabled but no TMDB key exists.
+            maybeWarnMissingTrailerPrereqs(cfg);
             hydrateDisplayForm(cfg);
+
+            // Guardrail: also warn immediately when the Trailer toggle is turned on.
+            try {
+                const trailerToggle = document.getElementById('cinemaTrailerEnabled');
+                if (trailerToggle && !trailerToggle.__posterramaTrailerWarnBound) {
+                    trailerToggle.__posterramaTrailerWarnBound = true;
+                    trailerToggle.addEventListener('change', () => {
+                        try {
+                            if (!trailerToggle.checked) return;
+                            const baseCfg =
+                                (window.__profileEditMode &&
+                                    window.__profileOriginalConfigBackup) ||
+                                window.__serverConfig ||
+                                {};
+                            const env = window.__serverEnv || {};
+                            // Force enabled=true for this check so it fires immediately on toggle.
+                            const merged = {
+                                ...baseCfg,
+                                cinema: {
+                                    ...(baseCfg.cinema || {}),
+                                    promotional: {
+                                        ...(baseCfg.cinema?.promotional || {}),
+                                        trailer: {
+                                            ...(baseCfg.cinema?.promotional?.trailer || {}),
+                                            enabled: true,
+                                        },
+                                    },
+                                },
+                            };
+                            maybeWarnMissingTrailerPrereqs({ config: merged, env });
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    });
+                }
+            } catch (_) {
+                /* optional */
+            }
 
             // Trigger Music Mode visibility update after config is loaded
             try {
@@ -13520,7 +13614,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 return overrideModal.openOverrideFor(ids);
             }
 
-            async function openOverrideForLegacy(ids) {
+            async function _openOverrideForLegacy(ids) {
                 if (!Array.isArray(ids) || !ids.length) return;
                 const overlay = document.getElementById('modal-override');
                 const textarea = document.getElementById('override-json');
@@ -14899,6 +14993,8 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 // Backup current config
                 try {
                     originalConfigBackup = await fetchJSON('/get-config').catch(() => null);
+                    // Expose backup for guardrail warnings (e.g., trailer prerequisites) while editing profiles
+                    window.__profileOriginalConfigBackup = originalConfigBackup;
                 } catch (e) {
                     console.warn('[Profile] Failed to backup config:', e);
                 }
@@ -14970,6 +15066,12 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 window.__profileEditMode = false;
                 editingProfileId = null;
                 document.body.classList.remove('profile-edit-mode');
+
+                try {
+                    delete window.__profileOriginalConfigBackup;
+                } catch (_) {
+                    /* ignore */
+                }
 
                 // Hide banner
                 const banner = document.getElementById('profile-edit-banner');

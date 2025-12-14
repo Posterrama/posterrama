@@ -44,6 +44,12 @@ export function createOverrideModal({
         if (plexUsersCache && now - plexUsersCacheAt < TTL) return plexUsersCache;
 
         const res = await fetchJSON('/api/plex/users');
+        if (res && res.success === false) {
+            toast({
+                type: 'warning',
+                message: safeString(res.error || 'Plex users unavailable.'),
+            });
+        }
         const users = Array.isArray(res?.users) ? res.users : [];
         plexUsersCache = users;
         plexUsersCacheAt = now;

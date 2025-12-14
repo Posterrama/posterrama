@@ -6,6 +6,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const deepMerge = require('../utils/deep-merge');
 
 // Cache for RomM platform counts (30 minute TTL)
 const rommPlatformCache = new Map();
@@ -30,6 +31,7 @@ module.exports = function createAdminConfigRouter({
     writeConfig,
     writeEnvFile,
     restartPM2ForEnvUpdate,
+    schedulePlaylistBackgroundRefresh,
     wsHub,
     apiCache,
     ApiError,
@@ -41,6 +43,22 @@ module.exports = function createAdminConfigRouter({
     port,
 }) {
     const router = express.Router();
+
+    const normalizeIntField = (obj, key, { min, max, fallback }) => {
+        if (!Object.prototype.hasOwnProperty.call(obj, key)) return;
+
+        const raw = obj[key];
+        const num = Number(raw);
+        if (!Number.isFinite(num)) {
+            obj[key] = fallback;
+            return;
+        }
+
+        let value = Math.trunc(num);
+        if (Number.isFinite(min)) value = Math.max(min, value);
+        if (Number.isFinite(max)) value = Math.min(max, value);
+        obj[key] = value;
+    };
 
     // Helper to mask sensitive values in logs
     const maskSensitive = value => {
@@ -163,6 +181,10 @@ module.exports = function createAdminConfigRouter({
                 DEBUG: process.env.DEBUG,
             };
 
+            // TMDB key may be provided via environment; expose presence only (boolean).
+            // This aligns with the existing "explicit user request" env exposure behavior.
+            envVarsToExpose.TMDB_API_KEY = !!process.env.TMDB_API_KEY;
+
             // Create a deep copy of config for response (to avoid mutating original config)
             const configForResponse = JSON.parse(JSON.stringify(currentConfig));
 
@@ -263,7 +285,20 @@ module.exports = function createAdminConfigRouter({
 
             // Read existing config for merging and mode change detection
             const existingConfig = await readConfig();
-            const mergedConfig = { ...existingConfig, ...newConfig };
+            const mergedConfig = deepMerge({}, existingConfig, newConfig);
+
+            // Guardrails: prevent invalid numeric values from being persisted.
+            // Root cause of "transitionIntervalSeconds: 0" was empty/invalid UI number inputs coercing to 0.
+            normalizeIntField(mergedConfig, 'transitionIntervalSeconds', {
+                min: 5,
+                max: 3600,
+                fallback: Number(existingConfig.transitionIntervalSeconds ?? 10),
+            });
+            normalizeIntField(mergedConfig, 'backgroundRefreshMinutes', {
+                min: 5,
+                max: 1440,
+                fallback: Number(existingConfig.backgroundRefreshMinutes ?? 60),
+            });
 
             // Fix RomM password corruption: if password is boolean (from masked GET response),
             // restore it from existing config to prevent validation errors
@@ -318,10 +353,23 @@ module.exports = function createAdminConfigRouter({
                 );
             }
 
-            // Ensure tmdbSource.apiKey is string not null (schema requires string)
-            if (mergedConfig.tmdbSource && mergedConfig.tmdbSource.apiKey === null) {
+            // TMDB API key handling:
+            // The admin UI uses `null` to mean "leave existing key unchanged".
+            // Preserve existing config value instead of wiping it.
+            if (
+                newConfig?.tmdbSource &&
+                Object.prototype.hasOwnProperty.call(newConfig.tmdbSource, 'apiKey') &&
+                newConfig.tmdbSource.apiKey === null
+            ) {
+                mergedConfig.tmdbSource = mergedConfig.tmdbSource || {};
+                mergedConfig.tmdbSource.apiKey = existingConfig.tmdbSource?.apiKey ?? '';
+                logger.debug('[TMDB Debug] Preserved existing apiKey (null treated as unchanged)');
+            }
+
+            // Ensure schema compliance: tmdbSource.apiKey must be a string if present.
+            if (mergedConfig.tmdbSource && mergedConfig.tmdbSource.apiKey == null) {
                 mergedConfig.tmdbSource.apiKey = '';
-                logger.debug('[TMDB Debug] Converted null apiKey to empty string');
+                logger.debug('[TMDB Debug] Normalized missing apiKey to empty string');
             }
 
             // Detect mode changes for broadcast to devices
@@ -389,6 +437,17 @@ module.exports = function createAdminConfigRouter({
             // Write config.json
             await writeConfig(mergedConfig, config);
             logger.info('[Admin API] Successfully wrote config.json');
+
+            // Apply background refresh schedule changes immediately (no restart required)
+            try {
+                if (typeof schedulePlaylistBackgroundRefresh === 'function') {
+                    schedulePlaylistBackgroundRefresh();
+                }
+            } catch (e) {
+                logger.warn('[Admin API] Failed to reschedule playlist background refresh', {
+                    error: e?.message || String(e),
+                });
+            }
 
             // Prepare env variables for writing (sanitize and validate)
             const sanitizedEnv = {};

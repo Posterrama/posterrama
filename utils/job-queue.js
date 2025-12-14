@@ -244,22 +244,21 @@ class JobQueue extends EventEmitter {
                 process.env.JEST_WORKER_ID !== undefined;
             // In Jest, avoid scheduling background timers that can outlive the test and
             // trigger "import after environment torn down" warnings.
-            if (isTestRun) {
-                return;
-            }
-            let nextDelayMs = 100;
-            try {
-                const timeoutConfig = require('../config/');
-                if (timeoutConfig && typeof timeoutConfig.getTimeout === 'function') {
-                    const configured = timeoutConfig.getTimeout('jobQueueNext');
-                    if (Number.isFinite(configured)) {
-                        nextDelayMs = configured;
+            if (!isTestRun) {
+                let nextDelayMs = 100;
+                try {
+                    const timeoutConfig = require('../config/');
+                    if (timeoutConfig && typeof timeoutConfig.getTimeout === 'function') {
+                        const configured = timeoutConfig.getTimeout('jobQueueNext');
+                        if (Number.isFinite(configured)) {
+                            nextDelayMs = configured;
+                        }
                     }
+                } catch (_) {
+                    // Ignore config load failures in job-queue scheduling
                 }
-            } catch (_) {
-                // Ignore config load failures in job-queue scheduling
+                setTimeout(() => this.processNextJob(), nextDelayMs);
             }
-            setTimeout(() => this.processNextJob(), nextDelayMs);
         }
     }
 
