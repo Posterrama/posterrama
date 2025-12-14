@@ -242,6 +242,241 @@
         0 1px 0 0 rgba(255, 255, 255, 0.05),
         0 1px 1px rgba(0, 0, 0, 0.25) inset !important;
 }
+
+/* ============================================================================
+   PROFILE BUILDER ACCORDION
+   ============================================================================ */
+.profile-accordion {
+    display: flex;
+    flex-direction: column;
+}
+.accordion-section {
+    border-bottom: 1px solid var(--color-border);
+}
+.accordion-section:last-child {
+    border-bottom: none;
+}
+.accordion-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 16px 20px;
+    background: transparent;
+    border: none;
+    color: var(--color-text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-align: left;
+}
+.accordion-header:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+.accordion-header i:first-child {
+    color: var(--color-secondary);
+    width: 20px;
+    text-align: center;
+}
+.accordion-icon {
+    margin-left: auto;
+    transition: transform 0.25s ease;
+    opacity: 0.5;
+    font-size: 0.85rem;
+}
+.accordion-header[aria-expanded='true'] .accordion-icon {
+    transform: rotate(180deg);
+}
+.accordion-content {
+    display: none;
+    background: rgba(0, 0, 0, 0.15);
+}
+.accordion-content[style*='display: block'] {
+    display: block;
+}
+.accordion-inner {
+    padding: 16px 20px 24px;
+}
+/* Setting groups within accordion */
+.profile-setting-group {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.profile-setting-group:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+.setting-group-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.setting-group-title i {
+    color: var(--color-secondary);
+    opacity: 0.7;
+}
+.profile-setting-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 24px;
+}
+@media (max-width: 600px) {
+    .profile-setting-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.profile-setting-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.profile-setting-row label:not(.checkbox) {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+.profile-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px 16px;
+}
+.profile-slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.profile-slider-wrap input[type='range'] {
+    flex: 1;
+}
+.profile-slider-value {
+    min-width: 45px;
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+/* Mode-specific section visibility */
+.accordion-section[data-mode] {
+    display: none;
+}
+.accordion-section[data-mode].active {
+    display: block;
+}
+
+/* ============================================================================
+   PROFILE BUILDER CLONED SETTINGS
+   ============================================================================ */
+.profile-settings-container {
+    background: var(--color-bg-primary);
+}
+.profile-settings-container .profile-mode-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.profile-settings-container .profile-mode-content {
+    animation: fadeIn 0.2s ease;
+}
+.profile-settings-container .profile-cloned-settings {
+    /* Match Display Settings grid styling */
+}
+.profile-settings-container .profile-cloned-settings .mode-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    padding: 16px;
+    margin-bottom: 12px;
+}
+.profile-settings-container .form-grid.masonry {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+.profile-settings-container .profile-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+/* Ensure cloned sliders show values */
+.profile-settings-container .range-value,
+.profile-settings-container .slider-value {
+    min-width: 40px;
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+/* Hide preview frame in profile builder */
+.profile-settings-container #display-preview-container,
+.profile-settings-container .preview-shell,
+.profile-settings-container [id*='preview'] {
+    display: none !important;
+}
+
+/* Modal buttons styling */
+#modal-profile-builder .modal-footer .btn {
+    border: none;
+    border-radius: 4px;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+    color: var(--color-text-secondary);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 -1px 0 0 rgba(0, 0, 0, 0.35) inset,
+        0 1px 1px rgba(0, 0, 0, 0.25);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    font-size: 0.8rem;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.25s ease;
+}
+#modal-profile-builder .modal-footer .btn:hover,
+#modal-profile-builder .modal-footer .btn:focus-visible {
+    color: var(--color-text-primary);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
+}
+#modal-profile-builder .modal-footer .btn:active {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
+        linear-gradient(180deg, var(--color-bg-tertiary), var(--color-bg-tertiary));
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.05),
+        0 1px 1px rgba(0, 0, 0, 0.25) inset;
+}
+#modal-profile-builder .modal-footer .btn.btn-danger {
+    color: color-mix(in srgb, var(--color-error) 78%, var(--color-text-secondary));
+}
+#modal-profile-builder .modal-footer .btn.btn-danger:hover,
+#modal-profile-builder .modal-footer .btn.btn-danger:focus-visible {
+    color: color-mix(in srgb, var(--color-error) 90%, var(--color-text-secondary));
+}
+#modal-profile-builder .modal-footer .btn.btn-assign-accent {
+    color: color-mix(in srgb, var(--color-secondary) 78%, var(--color-text-secondary));
+}
+#modal-profile-builder .modal-footer .btn.btn-assign-accent:hover,
+#modal-profile-builder .modal-footer .btn.btn-assign-accent:focus-visible {
+    color: color-mix(in srgb, var(--color-secondary) 90%, var(--color-text-secondary));
+}
+#modal-profile-builder .modal-footer .btn.btn-assign-accent i,
+#modal-profile-builder .modal-footer .btn.btn-assign-accent .fas {
+    color: color-mix(in srgb, var(--color-secondary) 85%, white);
+}
+
 /* Inline meta beside the thumbnail (single-line, no extra height) */
 #section-devices .nowplay-thumb .nowplay-meta {
     display: flex;
