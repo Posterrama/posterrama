@@ -211,7 +211,7 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
     router.get('/api/v1/metrics/dashboard-kpi', (req, res) => {
         const performanceMetrics = metricsManager.getPerformanceMetrics();
         const errorMetrics = metricsManager.getErrorMetrics();
-        const systemMetrics = metricsManager.getSystemMetrics();
+        const _systemMetrics = metricsManager.getSystemMetrics(); // eslint: prefixed with _ for future use
 
         // Get source response times from performance metrics
         const sourceMetrics = metricsManager.getSourceMetrics
