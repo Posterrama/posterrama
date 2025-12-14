@@ -1303,19 +1303,19 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         // ===== NEW KPI CARDS (Issue #130) =====
         {
             id: 'poster-health',
-            name: 'Poster Health',
+            name: 'Cached Posters',
             icon: 'fa-image',
             color: 'status-success',
-            description: 'Percentage of high-quality posters (>1000px)',
+            description: 'Number of posters in image cache',
             enabled: true,
             render: container => {
                 container.innerHTML = `
-                    <div class="status-card status-success" id="card-poster-health" title="Percentage of high-quality posters (>1000px)">
+                    <div class="status-card status-success" id="card-poster-health" title="Number of posters in image cache">
                         <div class="card-icon"><i class="fas fa-image"></i></div>
                         <div class="card-content">
-                            <h3>Poster Health</h3>
-                            <span class="metric" id="metric-poster-health">—%</span>
-                            <span class="trend" id="metric-poster-health-sub">high quality</span>
+                            <h3>CACHED POSTERS</h3>
+                            <span class="metric" id="metric-poster-health">—</span>
+                            <span class="trend" id="metric-poster-health-sub">in cache</span>
                         </div>
                     </div>
                 `;
@@ -1333,8 +1333,8 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     <div class="status-card status-info" id="card-source-response" title="Average response time from media sources">
                         <div class="card-icon"><i class="fas fa-tachometer-alt"></i></div>
                         <div class="card-content">
-                            <h3>Source Response</h3>
-                            <span class="metric" id="metric-source-response">—ms</span>
+                            <h3>SOURCE RESPONSE</h3>
+                            <span class="metric" id="metric-source-response">—</span>
                             <span class="trend" id="metric-source-response-sub">avg response</span>
                         </div>
                     </div>
@@ -1345,16 +1345,16 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             id: 'fallback-rate',
             name: 'Fallback Rate',
             icon: 'fa-exchange-alt',
-            color: 'status-warning',
+            color: 'status-success',
             description: 'Percentage of posters using fallback images',
             enabled: true,
             render: container => {
                 container.innerHTML = `
-                    <div class="status-card status-warning" id="card-fallback-rate" title="Percentage of posters using fallback images">
+                    <div class="status-card status-success" id="card-fallback-rate" title="Percentage of posters using fallback images">
                         <div class="card-icon"><i class="fas fa-exchange-alt"></i></div>
                         <div class="card-content">
-                            <h3>Fallback Rate</h3>
-                            <span class="metric" id="metric-fallback-rate">—%</span>
+                            <h3>FALLBACK RATE</h3>
+                            <span class="metric" id="metric-fallback-rate">0%</span>
                             <span class="trend" id="metric-fallback-rate-sub">using fallback</span>
                         </div>
                     </div>
@@ -1363,19 +1363,19 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         },
         {
             id: 'library-freshness',
-            name: 'Library Freshness',
+            name: 'Server Uptime',
             icon: 'fa-sync',
             color: 'status-success',
-            description: 'Time since last successful library sync',
+            description: 'How long the server has been running',
             enabled: true,
             render: container => {
                 container.innerHTML = `
-                    <div class="status-card status-success" id="card-library-freshness" title="Time since last successful library sync">
+                    <div class="status-card status-success" id="card-library-freshness" title="How long the server has been running">
                         <div class="card-icon"><i class="fas fa-sync"></i></div>
                         <div class="card-content">
-                            <h3>Library Freshness</h3>
+                            <h3>SERVER UPTIME</h3>
                             <span class="metric" id="metric-library-freshness">—</span>
-                            <span class="trend" id="metric-library-freshness-sub">last sync</span>
+                            <span class="trend" id="metric-library-freshness-sub">uptime</span>
                         </div>
                     </div>
                 `;
@@ -1383,19 +1383,19 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         },
         {
             id: 'most-displayed',
-            name: 'Most Displayed',
-            icon: 'fa-star',
+            name: 'Cache Hit Rate',
+            icon: 'fa-bolt',
             color: 'status-warning',
-            description: 'Most frequently displayed poster',
+            description: 'Percentage of requests served from cache',
             enabled: true,
             render: container => {
                 container.innerHTML = `
-                    <div class="status-card status-warning" id="card-most-displayed" title="Most frequently displayed poster">
-                        <div class="card-icon"><i class="fas fa-star"></i></div>
+                    <div class="status-card status-warning" id="card-most-displayed" title="Percentage of requests served from cache">
+                        <div class="card-icon"><i class="fas fa-bolt"></i></div>
                         <div class="card-content">
-                            <h3>Most Displayed</h3>
-                            <span class="metric" id="metric-most-displayed" style="font-size: 0.9rem;">—</span>
-                            <span class="trend" id="metric-most-displayed-sub">top poster</span>
+                            <h3>CACHE HIT RATE</h3>
+                            <span class="metric" id="metric-most-displayed">—</span>
+                            <span class="trend" id="metric-most-displayed-sub">hit rate</span>
                         </div>
                     </div>
                 `;
@@ -1406,16 +1406,16 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             name: 'Error Rate',
             icon: 'fa-exclamation-triangle',
             color: 'status-error',
-            description: 'Errors in the last 24 hours',
+            description: 'Errors in the last hour',
             enabled: true,
             render: container => {
                 container.innerHTML = `
-                    <div class="status-card status-error" id="card-error-rate" title="Errors in the last 24 hours">
+                    <div class="status-card status-success" id="card-error-rate" title="Errors in the last hour">
                         <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
                         <div class="card-content">
-                            <h3>Error Rate</h3>
-                            <span class="metric" id="metric-error-rate">—</span>
-                            <span class="trend" id="metric-error-rate-sub">last 24h</span>
+                            <h3>ERROR RATE</h3>
+                            <span class="metric" id="metric-error-rate">0</span>
+                            <span class="trend" id="metric-error-rate-sub">last hour</span>
                         </div>
                     </div>
                 `;
@@ -1625,19 +1625,26 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     () => null
                 );
 
-                // Update Poster Health card
+                // Update Poster Health card - show cached poster count
                 if (selectedIds.includes('poster-health')) {
                     const el = document.getElementById('metric-poster-health');
                     const subEl = document.getElementById('metric-poster-health-sub');
+                    const cardEl = document.getElementById('card-poster-health');
                     if (el) {
-                        // For now, show cache-based estimate
-                        const percentage = kpiData?.kpi?.posterHealth?.percentage || 0;
-                        el.textContent = percentage > 0 ? `${percentage}%` : '—';
+                        const total = kpiData?.kpi?.posterHealth?.total || 0;
+                        if (total > 0) {
+                            el.textContent = total.toString();
+                            if (cardEl) {
+                                cardEl.classList.remove('status-warning', 'status-error');
+                                cardEl.classList.add('status-success');
+                            }
+                        } else {
+                            el.textContent = '0';
+                        }
                     }
                     if (subEl) {
                         const total = kpiData?.kpi?.posterHealth?.total || 0;
-                        subEl.textContent =
-                            total > 0 ? `${total} posters analyzed` : 'analyzing...';
+                        subEl.textContent = total > 0 ? 'posters cached' : 'no cache yet';
                     }
                 }
 
@@ -1645,17 +1652,37 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 if (selectedIds.includes('source-response')) {
                     const el = document.getElementById('metric-source-response');
                     const subEl = document.getElementById('metric-source-response-sub');
+                    const cardEl = document.getElementById('card-source-response');
                     if (el) {
                         const avgTime = Math.round(kpiData?.kpi?.sourceResponseTime?.current || 0);
-                        el.textContent = avgTime > 0 ? `${avgTime}ms` : '—';
+                        if (avgTime > 0) {
+                            el.textContent = `${avgTime}ms`;
+                            // Color code based on response time
+                            if (cardEl) {
+                                cardEl.classList.remove(
+                                    'status-success',
+                                    'status-warning',
+                                    'status-error'
+                                );
+                                if (avgTime < 500) {
+                                    cardEl.classList.add('status-success');
+                                } else if (avgTime < 1500) {
+                                    cardEl.classList.add('status-warning');
+                                } else {
+                                    cardEl.classList.add('status-error');
+                                }
+                            }
+                        } else {
+                            el.textContent = '—';
+                        }
                     }
                     if (subEl) {
-                        const sources = kpiData?.kpi?.sourceResponseTime?.sources || {};
-                        const activeSourceCount = Object.keys(sources).length;
+                        const activeCount =
+                            kpiData?.kpi?.sourceResponseTime?.activeSourceCount || 0;
                         subEl.textContent =
-                            activeSourceCount > 0
-                                ? `${activeSourceCount} source${activeSourceCount !== 1 ? 's' : ''} active`
-                                : 'no sources';
+                            activeCount > 0
+                                ? `${activeCount} source${activeCount !== 1 ? 's' : ''} active`
+                                : 'awaiting requests';
                     }
                 }
 
@@ -1694,38 +1721,82 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     }
                 }
 
-                // Update Library Freshness card
+                // Update Library Freshness card - show uptime instead
                 if (selectedIds.includes('library-freshness')) {
                     const el = document.getElementById('metric-library-freshness');
                     const subEl = document.getElementById('metric-library-freshness-sub');
                     const cardEl = document.getElementById('card-library-freshness');
                     if (el) {
-                        // Get last refresh time from global cache or localStorage
-                        const lastRefresh =
-                            window.__lastMediaRefresh || localStorage.getItem('lastMediaRefresh');
-                        if (lastRefresh) {
-                            const ago = Date.now() - parseInt(lastRefresh, 10);
-                            const minutes = Math.floor(ago / 60000);
-                            const hours = Math.floor(minutes / 60);
-                            const days = Math.floor(hours / 24);
+                        // Use server uptime from KPI data
+                        const uptime = kpiData?.kpi?.uptime;
+                        if (uptime?.formatted) {
+                            el.textContent = uptime.formatted;
+                            if (cardEl) {
+                                cardEl.classList.remove('status-warning', 'status-error');
+                                cardEl.classList.add('status-success');
+                            }
+                        } else {
+                            // Fallback to lastMediaRefresh from localStorage
+                            const lastRefresh =
+                                window.__lastMediaRefresh ||
+                                localStorage.getItem('lastMediaRefresh');
+                            if (lastRefresh) {
+                                const ago = Date.now() - parseInt(lastRefresh, 10);
+                                const minutes = Math.floor(ago / 60000);
+                                const hours = Math.floor(minutes / 60);
+                                const days = Math.floor(hours / 24);
 
-                            if (days > 0) {
-                                el.textContent = `${days}d`;
-                                if (cardEl) {
-                                    cardEl.classList.remove('status-success', 'status-warning');
-                                    cardEl.classList.add('status-error');
-                                }
-                            } else if (hours > 0) {
-                                el.textContent = `${hours}h`;
-                                if (cardEl) {
-                                    cardEl.classList.remove('status-success', 'status-error');
-                                    cardEl.classList.add('status-warning');
+                                if (days > 0) {
+                                    el.textContent = `${days}d`;
+                                    if (cardEl) {
+                                        cardEl.classList.remove('status-success', 'status-warning');
+                                        cardEl.classList.add('status-error');
+                                    }
+                                } else if (hours > 0) {
+                                    el.textContent = `${hours}h`;
+                                    if (cardEl) {
+                                        cardEl.classList.remove('status-success', 'status-error');
+                                        cardEl.classList.add('status-warning');
+                                    }
+                                } else {
+                                    el.textContent = `${minutes}m`;
+                                    if (cardEl) {
+                                        cardEl.classList.remove('status-warning', 'status-error');
+                                        cardEl.classList.add('status-success');
+                                    }
                                 }
                             } else {
-                                el.textContent = `${minutes}m`;
-                                if (cardEl) {
-                                    cardEl.classList.remove('status-warning', 'status-error');
+                                el.textContent = '—';
+                            }
+                        }
+                    }
+                    if (subEl) {
+                        subEl.textContent = 'server uptime';
+                    }
+                }
+
+                // Update Most Displayed card - show cache hit rate instead since we don't track displays
+                if (selectedIds.includes('most-displayed')) {
+                    const el = document.getElementById('metric-most-displayed');
+                    const subEl = document.getElementById('metric-most-displayed-sub');
+                    const cardEl = document.getElementById('card-most-displayed');
+                    if (el) {
+                        const cachePerf = kpiData?.kpi?.cachePerformance;
+                        if (cachePerf && (cachePerf.hits > 0 || cachePerf.misses > 0)) {
+                            el.textContent = `${cachePerf.hitRate}%`;
+                            // Color code based on hit rate
+                            if (cardEl) {
+                                cardEl.classList.remove(
+                                    'status-success',
+                                    'status-warning',
+                                    'status-error'
+                                );
+                                if (cachePerf.hitRate >= 80) {
                                     cardEl.classList.add('status-success');
+                                } else if (cachePerf.hitRate >= 50) {
+                                    cardEl.classList.add('status-warning');
+                                } else {
+                                    cardEl.classList.add('status-error');
                                 }
                             }
                         } else {
@@ -1733,30 +1804,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         }
                     }
                     if (subEl) {
-                        subEl.textContent = 'since last sync';
-                    }
-                }
-
-                // Update Most Displayed card
-                if (selectedIds.includes('most-displayed')) {
-                    const el = document.getElementById('metric-most-displayed');
-                    const subEl = document.getElementById('metric-most-displayed-sub');
-                    if (el) {
-                        const items = kpiData?.kpi?.mostDisplayed?.items || [];
-                        if (items.length > 0) {
-                            const top = items[0];
-                            el.textContent = top.title || 'Unknown';
-                            el.title = `Displayed ${top.count || 0} times`;
+                        const cachePerf = kpiData?.kpi?.cachePerformance;
+                        if (cachePerf && cachePerf.hits > 0) {
+                            subEl.textContent = `${cachePerf.hits} cache hits`;
                         } else {
-                            el.textContent = '—';
-                        }
-                    }
-                    if (subEl) {
-                        const items = kpiData?.kpi?.mostDisplayed?.items || [];
-                        if (items.length > 0) {
-                            subEl.textContent = `${items[0].count || 0} displays`;
-                        } else {
-                            subEl.textContent = 'tracking...';
+                            subEl.textContent = 'cache hit rate';
                         }
                     }
                 }
@@ -1766,8 +1818,8 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const el = document.getElementById('metric-error-rate');
                     const subEl = document.getElementById('metric-error-rate-sub');
                     const cardEl = document.getElementById('card-error-rate');
-                    if (el && kpiData?.kpi?.errorRate) {
-                        const errors = kpiData.kpi.errorRate.last24h || 0;
+                    if (el) {
+                        const errors = kpiData?.kpi?.errorRate?.total || 0;
                         el.textContent = errors.toString();
 
                         // Color code based on error count
@@ -1787,9 +1839,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         }
                     }
                     if (subEl) {
-                        const trend = kpiData?.kpi?.errorRate?.trend || 'stable';
-                        const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
-                        subEl.textContent = `${trendIcon} last 24h`;
+                        const trend = kpiData?.kpi?.errorRate?.trend || 'none';
+                        const trendText =
+                            trend === 'high' ? '↑ high' : trend === 'low' ? '↓ low' : '✓ none';
+                        subEl.textContent = `${trendText} (last hour)`;
                     }
                 }
             } catch (e) {

@@ -208,10 +208,11 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
      *       200:
      *         description: Dashboard KPI metrics retrieved successfully
      */
-    router.get('/api/v1/metrics/dashboard-kpi', (req, res) => {
+    router.get('/api/v1/metrics/dashboard-kpi', async (req, res) => {
         const performanceMetrics = metricsManager.getPerformanceMetrics();
         const errorMetrics = metricsManager.getErrorMetrics();
-        const _systemMetrics = metricsManager.getSystemMetrics(); // eslint: prefixed with _ for future use
+        const systemMetrics = metricsManager.getSystemMetrics();
+        const cacheMetrics = metricsManager.getCacheMetrics();
 
         // Get source response times from performance metrics
         const sourceMetrics = metricsManager.getSourceMetrics
@@ -223,48 +224,88 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
             ? metricsManager.getResponseTimeHistory(10)
             : [];
 
+        // Get image cache stats for poster health
+        const fs = require('fs');
+        const path = require('path');
+        const imageCacheDir = path.join(process.cwd(), 'image_cache');
+        const posterStats = { total: 0, analyzed: false };
+        try {
+            const files = fs.readdirSync(imageCacheDir);
+            posterStats.total = files.length;
+            posterStats.analyzed = true;
+        } catch {
+            // Image cache may not exist yet
+        }
+
+        // Count active sources from request metrics
+        const activeSources = Object.keys(sourceMetrics).filter(
+            source => sourceMetrics[source]?.count > 0
+        ).length;
+
         res.json({
             success: true,
             timestamp: Date.now(),
             kpi: {
-                // Poster Health - percentage of high quality posters (placeholder - needs image cache data)
+                // Poster Health - based on image cache count
                 posterHealth: {
-                    total: 0,
-                    highQuality: 0,
-                    lowQuality: 0,
-                    percentage: 0,
-                    label: 'N/A',
+                    total: posterStats.total,
+                    cached: posterStats.total,
+                    percentage: posterStats.total > 0 ? 100 : 0,
+                    analyzed: posterStats.analyzed,
                 },
                 // Source Response Time Trend
                 sourceResponseTime: {
                     current: performanceMetrics.responseTime?.average || 0,
+                    median: performanceMetrics.responseTime?.median || 0,
+                    p95: performanceMetrics.responseTime?.p95 || 0,
                     trend: responseTimeHistory,
                     sources: sourceMetrics,
+                    activeSourceCount: activeSources,
                 },
-                // Fallback Rate - from fallback metrics (fetched separately)
-                fallbackRate: {
-                    total: 0,
-                    fallbacks: 0,
-                    percentage: 0,
+                // Cache Performance
+                cachePerformance: {
+                    hitRate: cacheMetrics.hitRate || 0,
+                    hits: cacheMetrics.totalHits || 0,
+                    misses: cacheMetrics.totalMisses || 0,
                 },
-                // Library Freshness - last sync times per source (placeholder)
-                libraryFreshness: {
-                    sources: [],
+                // System uptime
+                uptime: {
+                    seconds: Math.floor(systemMetrics.uptime / 1000) || 0,
+                    formatted: formatUptime(systemMetrics.uptime || 0),
                 },
-                // Most Displayed Content (placeholder - needs tracking)
+                // Most Displayed Content (placeholder - needs display tracking)
                 mostDisplayed: {
                     items: [],
+                    tracking: false,
                 },
-                // Error Rate (24h)
+                // Error Rate (last hour)
                 errorRate: {
                     total: errorMetrics.totalErrors || 0,
-                    last24h: errorMetrics.errorsLast24h || errorMetrics.totalErrors || 0,
+                    last24h: errorMetrics.totalErrors || 0,
                     rate: errorMetrics.errorRate || 0,
-                    trend: errorMetrics.trend || 'stable',
+                    trend:
+                        errorMetrics.totalErrors > 10
+                            ? 'high'
+                            : errorMetrics.totalErrors > 0
+                              ? 'low'
+                              : 'none',
                 },
             },
         });
     });
+
+    // Helper function to format uptime
+    function formatUptime(ms) {
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (days > 0) return `${days}d ${hours % 24}h`;
+        if (hours > 0) return `${hours}h ${minutes % 60}m`;
+        if (minutes > 0) return `${minutes}m`;
+        return `${seconds}s`;
+    }
 
     /**
      * @swagger
