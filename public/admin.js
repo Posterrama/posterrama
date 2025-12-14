@@ -1432,7 +1432,8 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 Array.isArray(window.__serverConfig.dashboardCards)
             ) {
                 const serverCards = window.__serverConfig.dashboardCards;
-                if (serverCards.length === 4) {
+                // Accept any number of cards (1-12)
+                if (serverCards.length >= 1 && serverCards.length <= 12) {
                     return serverCards;
                 }
             }
@@ -1441,7 +1442,8 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             const saved = localStorage.getItem('dashboardCards');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length === 4) {
+                // Accept any valid array of cards
+                if (Array.isArray(parsed) && parsed.length >= 1) {
                     // Migrate to server on next save
                     return parsed;
                 }
