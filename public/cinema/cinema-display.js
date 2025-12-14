@@ -506,15 +506,24 @@
         // Set header text - use context-aware text if enabled
         const headerText = getContextAwareHeaderText();
 
+        console.log('[DEBUG] createHeader - headerText:', headerText);
+        console.log('[DEBUG] createHeader - entranceAnimation:', typo.entranceAnimation);
+        console.log('[DEBUG] createHeader - headerEl classes:', headerEl.className);
+
         // For typewriter entrance animation - type character by character
         if (typo.entranceAnimation === 'typewriter') {
+            console.log('[DEBUG] Typewriter mode activated');
             const inner = document.createElement('span');
-            inner.className = 'typewriter-inner';
+            // Add text effect class to inner span so gradients etc work on the text
+            inner.className = `typewriter-inner ${textEffectClass}`.trim();
+            // Force inline styles to ensure visibility
+            inner.style.cssText = 'display: inline-block; white-space: nowrap; position: relative;';
             inner.textContent = ''; // Start empty
             headerEl.innerHTML = '';
             headerEl.appendChild(inner);
 
             const chars = headerText.split('');
+            console.log('[DEBUG] Typewriter chars:', chars, 'length:', chars.length);
             let currentIndex = 0;
             const msPerChar = 70; // Speed per character
 
@@ -522,9 +531,17 @@
             const typeInterval = setInterval(() => {
                 if (currentIndex < chars.length) {
                     inner.textContent += chars[currentIndex];
+                    console.log(
+                        '[DEBUG] Typed char:',
+                        currentIndex,
+                        chars[currentIndex],
+                        'current text:',
+                        inner.textContent
+                    );
                     currentIndex++;
                 } else {
                     clearInterval(typeInterval);
+                    console.log('[DEBUG] Typewriter complete, final text:', inner.textContent);
                     // Hide cursor after typing is done
                     setTimeout(() => {
                         inner.classList.add('typing-done');
@@ -534,13 +551,18 @@
         }
         // For fade-words entrance animation, wrap each word in a span with staggered delay
         else if (typo.entranceAnimation === 'fade-words') {
+            console.log('[DEBUG] Fade-words mode activated');
             const words = headerText.split(' ').filter(w => w.length > 0);
+            console.log('[DEBUG] Fade-words words:', words);
+            // Add text effect class to each word span so gradients etc work
+            const wordClass = textEffectClass ? `word ${textEffectClass}` : 'word';
             const html = words
                 .map(
                     (word, i) =>
-                        `<span class="word" style="animation-delay: ${0.2 + i * 0.15}s">${word}</span>`
+                        `<span class="${wordClass}" style="display: inline-block; opacity: 0; animation: fadeInWord 0.5s ease forwards; animation-delay: ${0.2 + i * 0.15}s">${word}</span>`
                 )
-                .join('');
+                .join(' ');
+            console.log('[DEBUG] Fade-words html:', html);
             headerEl.innerHTML = html;
         } else {
             headerEl.textContent = headerText;

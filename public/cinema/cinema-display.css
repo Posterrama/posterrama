@@ -2705,6 +2705,7 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
     position: relative;
     display: inline-block;
     white-space: nowrap;
+    color: inherit;
 }
 
 .entrance-typewriter .typewriter-inner::after {
@@ -2744,6 +2745,7 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 .entrance-fade-words .word {
     display: inline-block;
     opacity: 0;
+    color: inherit;
     animation: fadeInWord 0.5s ease forwards;
 }
 

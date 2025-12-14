@@ -980,16 +980,11 @@
         const shadowRow = document.getElementById('cin-h-shadow')?.closest('.form-row');
 
         const syncDecorationVisibility = () => {
-            // Hide decoration when using animation-based textEffects (pulse, marquee)
+            // Hide decoration ONLY when using animation-based textEffects (pulse, marquee)
             const animEffects = ['pulse', 'marquee'];
             const isAnimEffect = animEffects.includes(textEffectSelect?.value);
 
-            // Also hide decoration for Text Reveal entrance animations (they don't work well with decorations)
-            const textRevealEntrances = ['typewriter', 'fade-words', 'letter-spread'];
-            const isTextReveal = textRevealEntrances.includes(entranceSelect?.value);
-
-            if (decorationRow)
-                decorationRow.style.display = isAnimEffect || isTextReveal ? 'none' : '';
+            if (decorationRow) decorationRow.style.display = isAnimEffect ? 'none' : '';
         };
 
         const syncShadowVisibility = () => {
