@@ -1449,8 +1449,8 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         } catch (e) {
             console.warn('Failed to load card config:', e);
         }
-        // Default: first 6 cards (user can select all if desired)
-        return AVAILABLE_CARDS.slice(0, 6).map(c => c.id);
+        // Default: first 4 cards (user can select more if desired)
+        return AVAILABLE_CARDS.slice(0, 4).map(c => c.id);
     }
 
     // Save card configuration to server

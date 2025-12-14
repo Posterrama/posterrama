@@ -2446,14 +2446,7 @@
             },
             "minItems": 1,
             "maxItems": 12,
-            "default": [
-                "media-items",
-                "active-devices",
-                "now-playing",
-                "system-health",
-                "poster-health",
-                "source-response"
-            ]
+            "default": ["media-items", "active-devices", "now-playing", "system-health"]
         }
     },
     "required": [
