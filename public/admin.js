@@ -15388,25 +15388,46 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
             /**
              * Build settings object from cloned profile form elements.
-             * Reads values from elements with PROFILE_ID_PREFIX and maps them to settings structure.
+             * Reads ALL values from elements with PROFILE_ID_PREFIX and maps them to settings structure.
+             * This must capture EVERY setting from Display Settings (Cinema, Wallart, Screensaver).
+             * For dynamically mounted elements (cin-h-*, cin-f-*, cin-a-*), falls back to original IDs.
              */
             function buildProfileSettingsFromForm() {
+                // Helper to get element - tries prefixed first, then original (for dynamic mounts)
+                const getEl = originalId => {
+                    const prefixed = document.getElementById(PROFILE_ID_PREFIX + originalId);
+                    if (prefixed) return prefixed;
+                    // Fallback to original for dynamically mounted elements (cin-*)
+                    return document.getElementById(originalId);
+                };
+
                 // Helper to get value by original ID (prefixed in DOM)
                 const getVal = (originalId, def) => {
-                    const el = document.getElementById(PROFILE_ID_PREFIX + originalId);
+                    const el = getEl(originalId);
                     return el?.value ?? def;
                 };
                 const getInt = (originalId, def) => {
-                    const el = document.getElementById(PROFILE_ID_PREFIX + originalId);
+                    const el = getEl(originalId);
                     return parseInt(el?.value, 10) || def;
                 };
                 const getFloat = (originalId, def) => {
-                    const el = document.getElementById(PROFILE_ID_PREFIX + originalId);
+                    const el = getEl(originalId);
                     return parseFloat(el?.value) || def;
                 };
-                const getChecked = (originalId, def = true) => {
-                    const el = document.getElementById(PROFILE_ID_PREFIX + originalId);
+                const getChecked = (originalId, def = false) => {
+                    const el = getEl(originalId);
                     return el?.checked ?? def;
+                };
+                // Get color picker value (check for color picker container or direct input)
+                const getColor = (originalId, def) => {
+                    const el = getEl(originalId);
+                    if (el?.value) return el.value;
+                    // Try to find color input inside container
+                    const container =
+                        document.getElementById(PROFILE_ID_PREFIX + originalId + '-container') ||
+                        document.getElementById(originalId + '-container');
+                    const colorInput = container?.querySelector('input[type="color"]');
+                    return colorInput?.value ?? def;
                 };
 
                 const mode =
@@ -15414,10 +15435,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     'screensaver';
 
                 const settings = {
-                    // Mode flags
+                    // ===== MODE FLAGS =====
                     cinemaMode: mode === 'cinema',
 
-                    // Wallart mode settings
+                    // ===== WALLART MODE - ALL SETTINGS =====
                     wallartMode: {
                         enabled: mode === 'wallart',
                         orientation: getVal('wallartOrientation', 'auto'),
@@ -15426,13 +15447,13 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         refreshRate: getInt('wallartRefreshRate', 5),
                         randomness: getInt('wallartRandomness', 3),
                         animationType: getVal('wallartAnimationType', 'random'),
-                        ambientGradient: getChecked('wallartAmbientGradient', false),
+                        ambientGradient: getChecked('wallartAmbientGradient'),
                         parallaxDepth: getInt('wallartParallaxDepth', 50),
                         filmCards: {
                             spacing: getVal('wallartFilmCards-spacing', 'normal'),
                             roundness: getInt('wallartFilmCards-roundness', 8),
                             shadow: getVal('wallartFilmCards-shadow', 'medium'),
-                            showTitles: getChecked('wallartFilmCards-showTitles', false),
+                            showTitles: getChecked('wallartFilmCards-showTitles'),
                         },
                         musicMode: {
                             displayStyle: getVal('wallartMusicMode-displayStyle', 'grid'),
@@ -15448,7 +15469,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         },
                     },
 
-                    // Global/Screensaver settings
+                    // ===== GLOBAL/SCREENSAVER SETTINGS =====
                     clockWidget: getChecked('clockWidget', true),
                     clockFormat: getVal('clockFormat', '24h'),
                     clockTimezone: getVal('clockTimezone', 'auto'),
@@ -15459,71 +15480,187 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         clock: getInt('uiScaling-clock', 110),
                     },
 
-                    // Screensaver specific
+                    // ===== SCREENSAVER SPECIFIC =====
                     screensaverOrientation: getVal('screensaverOrientation', 'auto'),
                     showPoster: getChecked('showPoster', true),
                     showMetadata: getChecked('showMetadata', true),
                     showClearLogo: getChecked('showClearLogo', true),
-                    showRottenTomatoes: getChecked('showRottenTomatoes', false),
+                    showRottenTomatoes: getChecked('showRottenTomatoes'),
                     rottenTomatoesMinimumScore: getFloat('rottenTomatoesMinimumScore', 0),
                     transitionEffect: getVal('transitionEffect', 'kenburns'),
                     effectPauseTime: getFloat('effectPauseTime', 2),
                     transitionIntervalSeconds: getInt('transitionIntervalSeconds', 10),
                     transitionDuration: getInt('transitionDuration', 1200),
 
-                    // Cinema settings
+                    // ===== CINEMA - ORIENTATION & ROTATION =====
                     cinemaOrientation: getVal('cinemaOrientation', 'auto'),
                     cinemaRotationInterval: getFloat('cinemaRotationInterval', 0),
 
+                    // ===== CINEMA - NOW PLAYING (ALL SETTINGS) =====
                     cinemaNowPlaying: {
-                        priority: getVal('cinemaNowPlaying-priority', 'first'),
-                        interval: getInt('cinemaNowPlaying-interval', 15),
+                        enabled: getChecked('cinemaNowPlayingEnabled'),
+                        priority: getVal('cinemaNowPlayingPriority', 'first'),
+                        filterUser: getVal('cinemaNowPlayingFilterUser', ''),
+                        interval: getInt('cinemaNowPlayingInterval', 15),
                     },
 
+                    // ===== CINEMA - TIMELINE BORDER (ALL SETTINGS) =====
                     cinemaTimelineBorder: {
-                        enabled: getChecked('cinemaTimelineBorder-enabled', false),
-                        thickness: getInt('cinemaTimelineBorder-thickness', 3),
-                        style: getVal('cinemaTimelineBorder-style', 'solid'),
-                        color: getVal('cinemaTimelineBorder-color', 'auto'),
+                        enabled: getChecked('cinemaTimelineBorderEnabled'),
+                        thickness: getInt('cinemaTimelineBorderThickness', 3),
+                        style: getVal('cinemaTimelineBorderStyle', 'solid'),
+                        colorMode: getVal('cinemaTimelineBorderColorMode', 'auto'),
+                        opacity: getInt('cinemaTimelineBorderOpacity', 60),
+                        gradient: getChecked('cinemaTimelineBorderGradient'),
+                        glow: getChecked('cinemaTimelineBorderGlow'),
+                        pausedIndicator: getChecked('cinemaTimelineBorderPaused', true),
                     },
 
+                    // ===== CINEMA - GLOBAL EFFECTS (ALL SETTINGS) =====
                     cinemaGlobalEffects: {
-                        font: getVal('cinemaGlobalEffects-font', 'system'),
-                        textEffect: getVal('cinemaGlobalEffects-textEffect', 'none'),
-                        colorScheme: getVal('cinemaGlobalEffects-colorScheme', 'auto'),
+                        fontFamily: getVal('cinemaGlobalFont', 'system'),
+                        textColorMode: getVal('cinemaGlobalTextColorMode', 'auto'),
+                        textColor: getColor('cinema-global-text-color-picker', '#ffffff'),
+                        tonSurTonIntensity: getInt('cinemaGlobalTstIntensity', 45),
+                        textEffect: getVal('cinemaGlobalTextEffect', 'none'),
+                        colorFilter: getVal('cinemaColorFilter', 'none'),
+                        tintColor: getColor('cinema-tint-color-picker', '#ff6b00'),
+                        contrast: getInt('cinemaContrast', 100),
+                        brightness: getInt('cinemaBrightness', 100),
+                        hideAllUI: getChecked('cinemaHideAllUI'),
                     },
 
+                    // ===== CINEMA - HEADER (ALL SETTINGS) =====
+                    // Dynamic mount uses cin-h-* IDs
                     cinemaHeader: {
-                        enabled: getChecked('cinemaHeader-enabled', true),
-                        text: getVal('cinemaHeader-text', ''),
-                        contextHeaders: getChecked('cinemaHeader-contextHeaders', true),
+                        enabled: getChecked('cin-h-enabled', true),
+                        text: getVal('cin-h-presets', ''),
+                        contextHeaders: {
+                            enabled: getChecked('cin-ctx-enabled', true),
+                            default: getVal('cin-ctx-default', 'Now Playing'),
+                            nowPlaying: getVal('cin-ctx-nowPlaying', 'Now Playing'),
+                            comingSoon: getVal('cin-ctx-comingSoon', 'Coming Soon'),
+                            certifiedFresh: getVal('cin-ctx-certifiedFresh', 'Certified Fresh'),
+                            lateNight: getVal('cin-ctx-lateNight', 'Late Night Feature'),
+                            weekend: getVal('cin-ctx-weekend', 'Weekend Matinee'),
+                            newArrival: getVal('cin-ctx-newArrival', 'New Arrival'),
+                            ultra4k: getVal('cin-ctx-ultra4k', '4K Ultra HD'),
+                        },
+                        typography: {
+                            fontFamily: getVal('cin-h-font', 'cinematic'),
+                            fontSize: getInt('cin-h-size', 100),
+                            color: getVal('cin-h-color', '#ffffff'),
+                            shadow: getVal('cin-h-shadow', 'subtle'),
+                            textEffect: getVal('cin-h-texteffect', 'none'),
+                            entranceAnimation: getVal('cin-h-entrance', 'none'),
+                            decoration: getVal('cin-h-decoration', 'none'),
+                            tonSurTon: getChecked('cin-h-tst'),
+                            tonSurTonIntensity: getInt('cin-h-tst-intensity', 45),
+                        },
                     },
 
+                    // ===== CINEMA - FOOTER (ALL SETTINGS) =====
+                    // Dynamic mount uses cin-f-* IDs
                     cinemaFooter: {
-                        enabled: getChecked('cinemaFooter-enabled', true),
-                        showTitle: getChecked('cinemaFooter-showTitle', true),
-                        showYear: getChecked('cinemaFooter-showYear', true),
-                        showRating: getChecked('cinemaFooter-showRating', true),
-                        showRuntime: getChecked('cinemaFooter-showRuntime', false),
-                        showGenres: getChecked('cinemaFooter-showGenres', false),
+                        enabled: getChecked('cin-f-enabled', true),
+                        type: getVal('cin-f-type', 'metadata'),
+                        marqueeText: getVal('cin-f-presets', 'Feature Presentation'),
+                        taglineMarquee: getChecked('cin-f-tagline-marquee'),
+                        typography: {
+                            fontFamily: getVal('cin-f-font', 'system'),
+                            fontSize: getInt('cin-f-size', 100),
+                            color: getVal('cin-f-color', '#cccccc'),
+                            shadow: getVal('cin-f-shadow', 'none'),
+                            tonSurTon: getChecked('cin-f-tst'),
+                            tonSurTonIntensity: getInt('cin-f-tst-intensity', 45),
+                        },
                     },
 
+                    // ===== CINEMA - AMBILIGHT =====
+                    cinemaAmbilight: {
+                        enabled: getChecked('cin-a-enabled'),
+                        strength: getInt('cin-a-strength', 60),
+                    },
+
+                    // ===== CINEMA - BACKGROUND (ALL SETTINGS) =====
                     cinemaBackground: {
-                        style: getVal('cinemaBackground-style', 'blur'),
-                        blur: getInt('cinemaBackground-blur', 20),
-                        opacity: getFloat('cinemaBackground-opacity', 0.6),
+                        mode: getVal('cinemaBackgroundMode', 'blur'),
+                        solidColor: getColor('cinema-background-color-picker', '#000000'),
+                        blurAmount: getInt('cinemaBackgroundBlur', 20),
+                        vignette: getVal('cinemaVignette', 'subtle'),
                     },
 
-                    cinemaPosterStyle: {
-                        layout: getVal('cinemaPosterStyle-layout', 'centered'),
-                        size: getVal('cinemaPosterStyle-size', 'large'),
-                        transition: getVal('cinemaPosterStyle-transition', 'fade'),
+                    // ===== CINEMA - POSTER (ALL SETTINGS) =====
+                    cinemaPoster: {
+                        style: getVal('cinemaPosterStyle', 'clean'),
+                        overlay: getVal('cinemaPosterOverlay', 'none'),
+                        frameColorMode: getVal('cinemaFrameColorMode', 'custom'),
+                        frameColor: getColor('cinema-frame-color-picker', '#333333'),
+                        frameWidth: getInt('cinemaFrameWidth', 8),
+                        transitionDuration: getFloat('cinemaPosterTransition', 1.5),
+                        cinematicTransitions: {
+                            selectionMode: getVal('cinemaTransitionMode', 'random'),
+                            singleTransition: getVal('cinemaSingleTransition', 'fade'),
+                            enabledTransitions: (() => {
+                                // Collect checked transitions from the grid
+                                const transitions = [];
+                                const grid =
+                                    document.getElementById(
+                                        PROFILE_ID_PREFIX + 'enabledTransitionsGrid'
+                                    ) || document.getElementById('enabledTransitionsGrid');
+                                if (grid) {
+                                    grid.querySelectorAll('input[type="checkbox"]:checked').forEach(
+                                        cb => transitions.push(cb.value)
+                                    );
+                                }
+                                return transitions.length > 0 ? transitions : ['fade'];
+                            })(),
+                        },
                     },
 
+                    // ===== CINEMA - METADATA (ALL SETTINGS) =====
+                    cinemaMetadata: {
+                        layout: getVal('cinemaMetadataLayout', 'spacious'),
+                        opacity: getInt('cinemaMetadataOpacity', 80),
+                        showYear: getChecked('cinemaShowYear', true),
+                        showRuntime: getChecked('cinemaShowRuntime', true),
+                        showRating: getChecked('cinemaShowRating', true),
+                        showCertification: getChecked('cinemaShowCertification'),
+                        showGenre: getChecked('cinemaShowGenre'),
+                        showDirector: getChecked('cinemaShowDirector'),
+                        showStudioLogo: getChecked('cinemaShowStudioLogo'),
+                        showResolution: getChecked('cinemaShowResolution', true),
+                        showAudio: getChecked('cinemaShowAudio', true),
+                        showHDR: getChecked('cinemaShowHDR', true),
+                        showAspectRatio: getChecked('cinemaShowAspectRatio'),
+                        specsStyle: getVal('cinemaSpecsStyle', 'icons-text'),
+                        specsIconSet: getVal('cinemaSpecsIconSet', 'tabler'),
+                    },
+
+                    // ===== CINEMA - PROMOTIONAL (ALL SETTINGS) =====
                     cinemaPromotional: {
-                        enabled: getChecked('cinemaPromotional-enabled', false),
-                        position: getVal('cinemaPromotional-position', 'bottom'),
-                        interval: getInt('cinemaPromotional-interval', 30),
+                        showRating: getChecked('cinemaRatingBadge'),
+                        ratingSource: getVal('cinemaRatingSource', 'imdb'),
+                        ratingPosition: getVal('cinemaRatingPosition', 'topRight'),
+                        showWatchProviders: getChecked('cinemaWatchProviders'),
+                        watchProviderPosition: getVal('cinemaWatchProviderPosition', 'bottomLeft'),
+                        showAwardsBadge: getChecked('cinemaAwardsBadge'),
+                        trailer: {
+                            enabled: getChecked('cinemaTrailerEnabled'),
+                            delay: getInt('cinemaTrailerDelay', 5),
+                            muted: getChecked('cinemaTrailerMuted', true),
+                            loop: getChecked('cinemaTrailerLoop', true),
+                            quality: getVal('cinemaTrailerQuality', 'default'),
+                            autohide: getVal('cinemaTrailerAutohide', 'never'),
+                            reshow: getVal('cinemaTrailerReshow', 'never'),
+                        },
+                        qrCode: {
+                            enabled: getChecked('cinemaQREnabled'),
+                            urlType: getVal('cinemaQRUrlType', 'trailer'),
+                            url: getVal('cinemaQRUrl', ''),
+                            position: getVal('cinemaQRPosition', 'bottomRight'),
+                            size: getInt('cinemaQRSize', 100),
+                        },
                     },
                 };
 

@@ -268,6 +268,263 @@ module.exports = function createConfigPublicRouter({
                         });
                     }
                 }
+
+                // Map root-level profile settings into nested cinema object
+                // Profile Builder stores settings at root level, but cinema-display.js expects them nested
+                if (fromProfile && Object.keys(fromProfile).length > 0) {
+                    merged.cinema = merged.cinema || {};
+
+                    // Orientation
+                    if (fromProfile.cinemaOrientation) {
+                        merged.cinema.orientation = fromProfile.cinemaOrientation;
+                    }
+
+                    // Rotation interval
+                    if (fromProfile.cinemaRotationInterval !== undefined) {
+                        merged.cinema.rotationIntervalMinutes = fromProfile.cinemaRotationInterval;
+                    }
+
+                    // Header settings (full merge including typography and contextHeaders)
+                    if (fromProfile.cinemaHeader) {
+                        merged.cinema.header = merged.cinema.header || {};
+                        if (fromProfile.cinemaHeader.enabled !== undefined) {
+                            merged.cinema.header.enabled = fromProfile.cinemaHeader.enabled;
+                        }
+                        if (fromProfile.cinemaHeader.text !== undefined) {
+                            merged.cinema.header.text = fromProfile.cinemaHeader.text;
+                        }
+                        // Handle contextHeaders - can be boolean (legacy) or object (new)
+                        if (typeof fromProfile.cinemaHeader.contextHeaders === 'boolean') {
+                            merged.cinema.header.contextHeaders =
+                                merged.cinema.header.contextHeaders || {};
+                            merged.cinema.header.contextHeaders.enabled =
+                                fromProfile.cinemaHeader.contextHeaders;
+                        } else if (
+                            typeof fromProfile.cinemaHeader.contextHeaders === 'object' &&
+                            fromProfile.cinemaHeader.contextHeaders
+                        ) {
+                            merged.cinema.header.contextHeaders = deepMerge(
+                                {},
+                                merged.cinema.header.contextHeaders || {},
+                                fromProfile.cinemaHeader.contextHeaders
+                            );
+                        }
+                        // Merge typography settings
+                        if (fromProfile.cinemaHeader.typography) {
+                            merged.cinema.header.typography = deepMerge(
+                                {},
+                                merged.cinema.header.typography || {},
+                                fromProfile.cinemaHeader.typography
+                            );
+                        }
+                    }
+
+                    // Footer settings (full merge including typography)
+                    if (fromProfile.cinemaFooter) {
+                        merged.cinema.footer = merged.cinema.footer || {};
+                        if (fromProfile.cinemaFooter.enabled !== undefined) {
+                            merged.cinema.footer.enabled = fromProfile.cinemaFooter.enabled;
+                        }
+                        if (fromProfile.cinemaFooter.type !== undefined) {
+                            merged.cinema.footer.type = fromProfile.cinemaFooter.type;
+                        }
+                        if (fromProfile.cinemaFooter.marqueeText !== undefined) {
+                            merged.cinema.footer.marqueeText = fromProfile.cinemaFooter.marqueeText;
+                        }
+                        if (fromProfile.cinemaFooter.taglineMarquee !== undefined) {
+                            merged.cinema.footer.taglineMarquee =
+                                fromProfile.cinemaFooter.taglineMarquee;
+                        }
+                        // Merge typography settings
+                        if (fromProfile.cinemaFooter.typography) {
+                            merged.cinema.footer.typography = deepMerge(
+                                {},
+                                merged.cinema.footer.typography || {},
+                                fromProfile.cinemaFooter.typography
+                            );
+                        }
+                    }
+
+                    // Now Playing settings
+                    if (fromProfile.cinemaNowPlaying) {
+                        merged.cinema.nowPlaying = deepMerge(
+                            {},
+                            merged.cinema.nowPlaying || {},
+                            fromProfile.cinemaNowPlaying
+                        );
+                    }
+
+                    // Timeline border (goes into nowPlaying.timelineBorder)
+                    if (fromProfile.cinemaTimelineBorder) {
+                        merged.cinema.nowPlaying = merged.cinema.nowPlaying || {};
+                        merged.cinema.nowPlaying.timelineBorder = deepMerge(
+                            {},
+                            merged.cinema.nowPlaying.timelineBorder || {},
+                            fromProfile.cinemaTimelineBorder
+                        );
+                    }
+
+                    // Background settings (new structure with mode, solidColor, blurAmount, vignette)
+                    if (fromProfile.cinemaBackground) {
+                        merged.cinema.background = deepMerge(
+                            {},
+                            merged.cinema.background || {},
+                            fromProfile.cinemaBackground
+                        );
+                        // Also handle legacy 'style' -> 'mode' and 'blur' -> 'blurAmount' mapping
+                        if (
+                            fromProfile.cinemaBackground.style &&
+                            !fromProfile.cinemaBackground.mode
+                        ) {
+                            merged.cinema.background.mode = fromProfile.cinemaBackground.style;
+                        }
+                        if (
+                            fromProfile.cinemaBackground.blur !== undefined &&
+                            fromProfile.cinemaBackground.blurAmount === undefined
+                        ) {
+                            merged.cinema.background.blurAmount = fromProfile.cinemaBackground.blur;
+                        }
+                    }
+
+                    // Poster settings (new structure: cinemaPoster with all settings)
+                    if (fromProfile.cinemaPoster) {
+                        merged.cinema.poster = deepMerge(
+                            {},
+                            merged.cinema.poster || {},
+                            fromProfile.cinemaPoster
+                        );
+                        // Map transitionMode/singleTransition to cinematicTransitions
+                        if (
+                            fromProfile.cinemaPoster.transitionMode ||
+                            fromProfile.cinemaPoster.singleTransition
+                        ) {
+                            merged.cinema.poster.cinematicTransitions =
+                                merged.cinema.poster.cinematicTransitions || {};
+                            if (fromProfile.cinemaPoster.transitionMode) {
+                                merged.cinema.poster.cinematicTransitions.selectionMode =
+                                    fromProfile.cinemaPoster.transitionMode;
+                            }
+                            if (fromProfile.cinemaPoster.singleTransition) {
+                                merged.cinema.poster.cinematicTransitions.singleTransition =
+                                    fromProfile.cinemaPoster.singleTransition;
+                            }
+                        }
+                    }
+
+                    // Legacy: cinemaPosterStyle (old profile format)
+                    if (fromProfile.cinemaPosterStyle && !fromProfile.cinemaPoster) {
+                        merged.cinema.poster = merged.cinema.poster || {};
+                        if (fromProfile.cinemaPosterStyle.layout) {
+                            merged.cinema.poster.style = fromProfile.cinemaPosterStyle.layout;
+                        }
+                        if (fromProfile.cinemaPosterStyle.transition) {
+                            merged.cinema.poster.cinematicTransitions =
+                                merged.cinema.poster.cinematicTransitions || {};
+                            merged.cinema.poster.cinematicTransitions.singleTransition =
+                                fromProfile.cinemaPosterStyle.transition;
+                        }
+                    }
+
+                    // Metadata settings (new separate object)
+                    if (fromProfile.cinemaMetadata) {
+                        merged.cinema.metadata = deepMerge(
+                            {},
+                            merged.cinema.metadata || {},
+                            fromProfile.cinemaMetadata
+                        );
+                        // Map specs settings
+                        if (
+                            fromProfile.cinemaMetadata.specsStyle ||
+                            fromProfile.cinemaMetadata.specsIconSet
+                        ) {
+                            merged.cinema.metadata.specs = merged.cinema.metadata.specs || {};
+                            if (fromProfile.cinemaMetadata.specsStyle) {
+                                merged.cinema.metadata.specs.style =
+                                    fromProfile.cinemaMetadata.specsStyle;
+                            }
+                            if (fromProfile.cinemaMetadata.specsIconSet) {
+                                merged.cinema.metadata.specs.iconSet =
+                                    fromProfile.cinemaMetadata.specsIconSet;
+                            }
+                        }
+                        // Map individual show* to specs object
+                        if (fromProfile.cinemaMetadata.showResolution !== undefined) {
+                            merged.cinema.metadata.specs = merged.cinema.metadata.specs || {};
+                            merged.cinema.metadata.specs.showResolution =
+                                fromProfile.cinemaMetadata.showResolution;
+                        }
+                        if (fromProfile.cinemaMetadata.showAudio !== undefined) {
+                            merged.cinema.metadata.specs = merged.cinema.metadata.specs || {};
+                            merged.cinema.metadata.specs.showAudio =
+                                fromProfile.cinemaMetadata.showAudio;
+                        }
+                        if (fromProfile.cinemaMetadata.showHDR !== undefined) {
+                            merged.cinema.metadata.specs = merged.cinema.metadata.specs || {};
+                            merged.cinema.metadata.specs.showHDR =
+                                fromProfile.cinemaMetadata.showHDR;
+                        }
+                        if (fromProfile.cinemaMetadata.showAspectRatio !== undefined) {
+                            merged.cinema.metadata.specs = merged.cinema.metadata.specs || {};
+                            merged.cinema.metadata.specs.showAspectRatio =
+                                fromProfile.cinemaMetadata.showAspectRatio;
+                        }
+                    }
+
+                    // Promotional settings (deep merge with nested trailer/qrCode)
+                    if (fromProfile.cinemaPromotional) {
+                        merged.cinema.promotional = deepMerge(
+                            {},
+                            merged.cinema.promotional || {},
+                            fromProfile.cinemaPromotional
+                        );
+                    }
+
+                    // Global effects (all settings including contrast, brightness, tint, etc.)
+                    if (fromProfile.cinemaGlobalEffects) {
+                        merged.cinema.globalEffects = deepMerge(
+                            {},
+                            merged.cinema.globalEffects || {},
+                            fromProfile.cinemaGlobalEffects
+                        );
+                        // Legacy mapping: 'font' -> 'fontFamily'
+                        if (
+                            fromProfile.cinemaGlobalEffects.font &&
+                            !fromProfile.cinemaGlobalEffects.fontFamily
+                        ) {
+                            merged.cinema.globalEffects.fontFamily =
+                                fromProfile.cinemaGlobalEffects.font;
+                        }
+                        // Legacy mapping: 'colorScheme' -> 'textColorMode'
+                        if (
+                            fromProfile.cinemaGlobalEffects.colorScheme &&
+                            !fromProfile.cinemaGlobalEffects.textColorMode
+                        ) {
+                            merged.cinema.globalEffects.textColorMode =
+                                fromProfile.cinemaGlobalEffects.colorScheme;
+                        }
+                    }
+
+                    // Ambilight settings
+                    if (fromProfile.cinemaAmbilight) {
+                        merged.cinema.ambilight = deepMerge(
+                            {},
+                            merged.cinema.ambilight || {},
+                            fromProfile.cinemaAmbilight
+                        );
+                    }
+
+                    // Screensaver orientation
+                    if (fromProfile.screensaverOrientation) {
+                        merged.screensaverMode = merged.screensaverMode || {};
+                        merged.screensaverMode.orientation = fromProfile.screensaverOrientation;
+                    }
+
+                    // Wallart orientation (if stored separately)
+                    if (fromProfile.wallartOrientation) {
+                        merged.wallartMode = merged.wallartMode || {};
+                        merged.wallartMode.orientation = fromProfile.wallartOrientation;
+                    }
+                }
             } catch (e) {
                 if (isDebug) {
                     logger.debug('[get-config] Override merge failed', { error: e?.message });

@@ -3298,12 +3298,18 @@
     // ===== Load Cinema Configuration =====
     async function loadCinemaConfig() {
         try {
-            const response = await fetch('/get-config');
-            if (!response.ok) {
-                throw new Error(`Failed to load config: ${response.status}`);
+            // Use Core.fetchConfig() to include device identity headers for profile settings
+            const useCore = !!(window.PosterramaCore && window.PosterramaCore.fetchConfig);
+            let data;
+            if (useCore) {
+                data = await window.PosterramaCore.fetchConfig();
+            } else {
+                const response = await fetch('/get-config');
+                if (!response.ok) {
+                    throw new Error(`Failed to load config: ${response.status}`);
+                }
+                data = await response.json();
             }
-
-            const data = await response.json();
             return data.cinema || {};
         } catch (err) {
             error('Failed to load cinema configuration', err);
