@@ -1721,19 +1721,36 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     }
                 }
 
-                // Update Library Freshness card - show uptime instead
+                // Update Library Freshness card - show time since last sync
                 if (selectedIds.includes('library-freshness')) {
                     const el = document.getElementById('metric-library-freshness');
                     const subEl = document.getElementById('metric-library-freshness-sub');
                     const cardEl = document.getElementById('card-library-freshness');
                     if (el) {
-                        // Use server uptime from KPI data
-                        const uptime = kpiData?.kpi?.uptime;
-                        if (uptime?.formatted) {
-                            el.textContent = uptime.formatted;
+                        // Use library freshness data from KPI endpoint
+                        const freshness = kpiData?.kpi?.libraryFreshness;
+                        const timeSinceSync = freshness?.timeSinceSync;
+
+                        if (timeSinceSync && timeSinceSync.formatted) {
+                            // Use the pre-formatted time from API
+                            el.textContent = timeSinceSync.formatted.replace(' ago', '');
+
+                            // Color code based on time value
+                            const value = timeSinceSync.value || 0;
+                            const unit = timeSinceSync.unit || 'm';
                             if (cardEl) {
-                                cardEl.classList.remove('status-warning', 'status-error');
-                                cardEl.classList.add('status-success');
+                                cardEl.classList.remove(
+                                    'status-success',
+                                    'status-warning',
+                                    'status-error'
+                                );
+                                if (unit === 'd' || (unit === 'h' && value > 12)) {
+                                    cardEl.classList.add('status-error');
+                                } else if (unit === 'h') {
+                                    cardEl.classList.add('status-warning');
+                                } else {
+                                    cardEl.classList.add('status-success');
+                                }
                             }
                         } else {
                             // Fallback to lastMediaRefresh from localStorage
@@ -1748,22 +1765,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
                                 if (days > 0) {
                                     el.textContent = `${days}d`;
-                                    if (cardEl) {
-                                        cardEl.classList.remove('status-success', 'status-warning');
-                                        cardEl.classList.add('status-error');
-                                    }
                                 } else if (hours > 0) {
                                     el.textContent = `${hours}h`;
-                                    if (cardEl) {
-                                        cardEl.classList.remove('status-success', 'status-error');
-                                        cardEl.classList.add('status-warning');
-                                    }
                                 } else {
                                     el.textContent = `${minutes}m`;
-                                    if (cardEl) {
-                                        cardEl.classList.remove('status-warning', 'status-error');
-                                        cardEl.classList.add('status-success');
-                                    }
                                 }
                             } else {
                                 el.textContent = '—';
@@ -1771,44 +1776,66 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         }
                     }
                     if (subEl) {
-                        subEl.textContent = 'server uptime';
+                        // Show which sources have synced
+                        const freshness = kpiData?.kpi?.libraryFreshness;
+                        const sources = freshness?.sources || freshness?.lastSync?.sources;
+                        if (sources) {
+                            const syncedSources = Object.entries(sources)
+                                .filter(([_, data]) => data !== null && data?.success)
+                                .map(([source]) => source);
+                            if (syncedSources.length > 0) {
+                                subEl.textContent = `${syncedSources.length} source${syncedSources.length !== 1 ? 's' : ''} synced`;
+                            } else {
+                                subEl.textContent = 'awaiting sync';
+                            }
+                        } else {
+                            subEl.textContent = 'awaiting sync';
+                        }
                     }
                 }
 
-                // Update Most Displayed card - show cache hit rate instead since we don't track displays
+                // Update Most Displayed card - show display tracking data
                 if (selectedIds.includes('most-displayed')) {
                     const el = document.getElementById('metric-most-displayed');
                     const subEl = document.getElementById('metric-most-displayed-sub');
                     const cardEl = document.getElementById('card-most-displayed');
                     if (el) {
-                        const cachePerf = kpiData?.kpi?.cachePerformance;
-                        if (cachePerf && (cachePerf.hits > 0 || cachePerf.misses > 0)) {
-                            el.textContent = `${cachePerf.hitRate}%`;
-                            // Color code based on hit rate
+                        const mostDisplayed = kpiData?.kpi?.mostDisplayed;
+                        const totalDisplays = mostDisplayed?.totalDisplays || 0;
+
+                        if (totalDisplays > 0) {
+                            el.textContent = totalDisplays.toString();
+                            // Color code based on display count (more = better engagement)
                             if (cardEl) {
                                 cardEl.classList.remove(
                                     'status-success',
                                     'status-warning',
                                     'status-error'
                                 );
-                                if (cachePerf.hitRate >= 80) {
+                                if (totalDisplays >= 100) {
                                     cardEl.classList.add('status-success');
-                                } else if (cachePerf.hitRate >= 50) {
+                                } else if (totalDisplays >= 10) {
                                     cardEl.classList.add('status-warning');
                                 } else {
-                                    cardEl.classList.add('status-error');
+                                    cardEl.classList.add('status-success'); // Low is fine too
                                 }
                             }
                         } else {
-                            el.textContent = '—';
+                            el.textContent = '0';
                         }
                     }
                     if (subEl) {
-                        const cachePerf = kpiData?.kpi?.cachePerformance;
-                        if (cachePerf && cachePerf.hits > 0) {
-                            subEl.textContent = `${cachePerf.hits} cache hits`;
+                        const mostDisplayed = kpiData?.kpi?.mostDisplayed;
+                        const items = mostDisplayed?.items || [];
+                        if (items.length > 0) {
+                            // Show top displayed item
+                            const topItem = items[0];
+                            const title = topItem.title || topItem.id || 'unknown';
+                            const shortTitle =
+                                title.length > 15 ? title.substring(0, 15) + '…' : title;
+                            subEl.textContent = `top: ${shortTitle}`;
                         } else {
-                            subEl.textContent = 'cache hit rate';
+                            subEl.textContent = 'displays tracked';
                         }
                     }
                 }

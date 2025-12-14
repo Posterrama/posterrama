@@ -13,6 +13,9 @@ const { PassThrough } = require('stream');
 const { enrichPlexItemWithExtras } = require('../lib/plex-helpers');
 const { enrichJellyfinItemWithExtras } = require('../lib/jellyfin-helpers');
 
+// Metrics tracking
+const metricsManager = require('../utils/metrics');
+
 // Fallback image tracking for monitoring upstream health
 const fallbackMetrics = {
     total: 0,
@@ -47,6 +50,11 @@ function trackFallback(reason, context, logger) {
     fallbackMetrics.lastFallbacks.unshift(event);
     if (fallbackMetrics.lastFallbacks.length > 20) {
         fallbackMetrics.lastFallbacks.pop();
+    }
+
+    // Also track in central metricsManager for KPI dashboard
+    if (metricsManager.recordFallbackUsage) {
+        metricsManager.recordFallbackUsage(reason, context?.mediaId || null);
     }
 
     logger.debug('[Image Proxy] Fallback served', {

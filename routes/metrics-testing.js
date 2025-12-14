@@ -213,6 +213,7 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
         const errorMetrics = metricsManager.getErrorMetrics();
         const systemMetrics = metricsManager.getSystemMetrics();
         const cacheMetrics = metricsManager.getCacheMetrics();
+        const kpiMetrics = metricsManager.getKpiMetrics ? metricsManager.getKpiMetrics() : {};
 
         // Get source response times from performance metrics
         const sourceMetrics = metricsManager.getSourceMetrics
@@ -228,11 +229,30 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
         const fs = require('fs');
         const path = require('path');
         const imageCacheDir = path.join(process.cwd(), 'image_cache');
-        const posterStats = { total: 0, analyzed: false };
+        const posterStats = { total: 0, totalSize: 0, analyzed: false };
         try {
             const files = fs.readdirSync(imageCacheDir);
             posterStats.total = files.length;
             posterStats.analyzed = true;
+
+            // Calculate total size and quality distribution
+            let totalBytes = 0;
+            let highQuality = 0;
+            for (const file of files.slice(0, 500)) {
+                // Sample first 500 for performance
+                try {
+                    const stat = fs.statSync(path.join(imageCacheDir, file));
+                    totalBytes += stat.size;
+                    if (stat.size > 100 * 1024) highQuality++; // > 100KB = high quality
+                } catch {
+                    /* skip */
+                }
+            }
+            posterStats.totalSize = Math.round(totalBytes / 1024 / 1024); // MB
+            posterStats.highQualityPercent =
+                files.length > 0
+                    ? Math.round((highQuality / Math.min(files.length, 500)) * 100)
+                    : 0;
         } catch {
             // Image cache may not exist yet
         }
@@ -242,15 +262,43 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
             source => sourceMetrics[source]?.count > 0
         ).length;
 
+        // Get fallback metrics from the dedicated endpoint data (if available)
+        const fallbackStats = { total: 0, rate: 0 };
+        if (kpiMetrics.fallbacks) {
+            fallbackStats.total = kpiMetrics.fallbacks.total || 0;
+            fallbackStats.recentCount = kpiMetrics.fallbacks.recentCount || 0;
+        }
+
+        // Get last sync info
+        const lastSyncInfo = {
+            timestamp: kpiMetrics.lastSyncTime || null,
+            source: kpiMetrics.lastSyncSource || null,
+            sources: kpiMetrics.lastSync || {},
+        };
+
+        // Calculate time since last sync
+        let timeSinceSync = null;
+        if (lastSyncInfo.timestamp) {
+            const ago = Date.now() - lastSyncInfo.timestamp;
+            const minutes = Math.floor(ago / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (days > 0) timeSinceSync = { value: days, unit: 'd', formatted: `${days}d ago` };
+            else if (hours > 0)
+                timeSinceSync = { value: hours, unit: 'h', formatted: `${hours}h ago` };
+            else timeSinceSync = { value: minutes, unit: 'm', formatted: `${minutes}m ago` };
+        }
+
         res.json({
             success: true,
             timestamp: Date.now(),
             kpi: {
-                // Poster Health - based on image cache count
+                // Poster Health - based on image cache analysis
                 posterHealth: {
                     total: posterStats.total,
-                    cached: posterStats.total,
-                    percentage: posterStats.total > 0 ? 100 : 0,
+                    totalSizeMB: posterStats.totalSize || 0,
+                    highQualityPercent: posterStats.highQualityPercent || 0,
                     analyzed: posterStats.analyzed,
                 },
                 // Source Response Time Trend
@@ -261,6 +309,19 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
                     trend: responseTimeHistory,
                     sources: sourceMetrics,
                     activeSourceCount: activeSources,
+                    perSource: kpiMetrics.sourceResponseTimes || {},
+                },
+                // Fallback Rate
+                fallbackRate: {
+                    total: fallbackStats.total,
+                    recentCount: fallbackStats.recentCount,
+                    byReason: kpiMetrics.fallbacks?.byReason || {},
+                },
+                // Library Freshness / Last Sync
+                libraryFreshness: {
+                    lastSync: lastSyncInfo,
+                    timeSinceSync,
+                    sources: lastSyncInfo.sources,
                 },
                 // Cache Performance
                 cachePerformance: {
@@ -270,19 +331,21 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
                 },
                 // System uptime
                 uptime: {
-                    seconds: Math.floor(systemMetrics.uptime / 1000) || 0,
+                    ms: systemMetrics.uptime || 0,
+                    seconds: Math.floor((systemMetrics.uptime || 0) / 1000),
                     formatted: formatUptime(systemMetrics.uptime || 0),
                 },
-                // Most Displayed Content (placeholder - needs display tracking)
+                // Most Displayed Content
                 mostDisplayed: {
-                    items: [],
-                    tracking: false,
+                    items: kpiMetrics.mostDisplayed || [],
+                    totalDisplays: kpiMetrics.totalDisplays || 0,
+                    tracking: (kpiMetrics.totalDisplays || 0) > 0,
                 },
                 // Error Rate (last hour)
                 errorRate: {
                     total: errorMetrics.totalErrors || 0,
-                    last24h: errorMetrics.totalErrors || 0,
                     rate: errorMetrics.errorRate || 0,
+                    byStatus: errorMetrics.errorsByStatus || {},
                     trend:
                         errorMetrics.totalErrors > 10
                             ? 'high'
@@ -292,6 +355,37 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
                 },
             },
         });
+    });
+
+    /**
+     * @swagger
+     * /api/v1/metrics/track-display:
+     *   post:
+     *     summary: Track poster display
+     *     description: Called by frontend when a poster is displayed to track most-shown content
+     *     tags: ['Metrics']
+     *     requestBody:
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               mediaId:
+     *                 type: string
+     *               title:
+     *                 type: string
+     *     responses:
+     *       200:
+     *         description: Display tracked
+     */
+    router.post('/api/v1/metrics/track-display', express.json(), (req, res) => {
+        const { mediaId, title } = req.body || {};
+
+        if (mediaId && metricsManager.recordPosterDisplay) {
+            metricsManager.recordPosterDisplay(mediaId, title);
+        }
+
+        res.json({ success: true });
     });
 
     // Helper function to format uptime

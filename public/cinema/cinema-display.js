@@ -2809,6 +2809,17 @@
                 tagline: media.tagline,
                 contentRating: media.contentRating,
             };
+
+            // Track display for KPI dashboard (fire-and-forget, don't await)
+            if (media.key && media.title) {
+                fetch('/api/v1/metrics/track-display', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mediaId: media.key, title: media.title }),
+                }).catch(() => {
+                    /* ignore tracking errors */
+                });
+            }
         }
 
         // PROGRESSIVE LOADING: Show thumbnail first, then upgrade to full quality

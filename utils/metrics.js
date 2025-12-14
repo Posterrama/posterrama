@@ -51,6 +51,39 @@ class MetricsManager {
         this._lastProcessCpu = null; // result of process.cpuUsage()
         this._lastHrtime = null; // result of process.hrtime()
 
+        // ===== KPI Dashboard Tracking =====
+        this.kpiMetrics = {
+            // Library sync times per source
+            lastSync: {
+                plex: null, // { timestamp, success, itemCount }
+                jellyfin: null,
+                tmdb: null,
+                romm: null,
+            },
+            // Poster display tracking
+            displayCounts: new Map(), // mediaId -> { title, count, lastDisplayed }
+            totalDisplays: 0,
+            // Fallback usage tracking
+            fallbacks: {
+                total: 0,
+                byReason: {}, // reason -> count
+                recent: [], // last 100 fallback events
+            },
+            // Source response times (per source type)
+            sourceResponseTimes: {
+                plex: [], // last 100 response times
+                jellyfin: [],
+                tmdb: [],
+                romm: [],
+            },
+            // Image cache quality tracking
+            posterQuality: {
+                total: 0,
+                highQuality: 0, // > 500KB or > 1000px
+                analyzed: false,
+            },
+        };
+
         // Avoid background timers automatically in test environment to prevent noisy failures & open handles
         if (process.env.NODE_ENV !== 'test') {
             this.startMetricsCollection();
@@ -409,6 +442,158 @@ class MetricsManager {
         }
 
         return sources;
+    }
+
+    // ===== KPI Dashboard Methods =====
+
+    /**
+     * Record a library sync event
+     * @param {string} sourceType - 'plex', 'jellyfin', 'tmdb', 'romm'
+     * @param {boolean} success - Whether sync was successful
+     * @param {number} itemCount - Number of items synced
+     * @param {number} responseTime - Time taken in ms
+     */
+    recordLibrarySync(sourceType, success, itemCount = 0, responseTime = 0) {
+        const validSources = ['plex', 'jellyfin', 'tmdb', 'romm'];
+        if (!validSources.includes(sourceType)) return;
+
+        this.kpiMetrics.lastSync[sourceType] = {
+            timestamp: Date.now(),
+            success,
+            itemCount,
+            responseTime,
+        };
+
+        // Also track response time
+        if (responseTime > 0) {
+            const times = this.kpiMetrics.sourceResponseTimes[sourceType];
+            times.push({ timestamp: Date.now(), responseTime });
+            // Keep last 100
+            if (times.length > 100) times.shift();
+        }
+    }
+
+    /**
+     * Record a poster display event
+     * @param {string} mediaId - Unique ID of the media
+     * @param {string} title - Title of the media
+     */
+    recordPosterDisplay(mediaId, title) {
+        if (!mediaId) return;
+
+        const existing = this.kpiMetrics.displayCounts.get(mediaId);
+        if (existing) {
+            existing.count++;
+            existing.lastDisplayed = Date.now();
+        } else {
+            this.kpiMetrics.displayCounts.set(mediaId, {
+                title: title || 'Unknown',
+                count: 1,
+                lastDisplayed: Date.now(),
+            });
+        }
+        this.kpiMetrics.totalDisplays++;
+
+        // Limit map size to prevent memory bloat
+        if (this.kpiMetrics.displayCounts.size > 1000) {
+            // Remove least displayed items
+            const entries = [...this.kpiMetrics.displayCounts.entries()].sort(
+                (a, b) => a[1].count - b[1].count
+            );
+            for (let i = 0; i < 100; i++) {
+                this.kpiMetrics.displayCounts.delete(entries[i][0]);
+            }
+        }
+    }
+
+    /**
+     * Record a fallback image usage
+     * @param {string} reason - Why fallback was used ('missing', 'error', 'timeout', etc.)
+     * @param {string} mediaId - Media that triggered fallback
+     */
+    recordFallbackUsage(reason = 'unknown', mediaId = null) {
+        this.kpiMetrics.fallbacks.total++;
+        this.kpiMetrics.fallbacks.byReason[reason] =
+            (this.kpiMetrics.fallbacks.byReason[reason] || 0) + 1;
+
+        this.kpiMetrics.fallbacks.recent.push({
+            timestamp: Date.now(),
+            reason,
+            mediaId,
+        });
+
+        // Keep last 100
+        if (this.kpiMetrics.fallbacks.recent.length > 100) {
+            this.kpiMetrics.fallbacks.recent.shift();
+        }
+    }
+
+    /**
+     * Record source API response time
+     * @param {string} sourceType - 'plex', 'jellyfin', 'tmdb', 'romm'
+     * @param {number} responseTime - Response time in ms
+     */
+    recordSourceResponseTime(sourceType, responseTime) {
+        const validSources = ['plex', 'jellyfin', 'tmdb', 'romm'];
+        if (!validSources.includes(sourceType) || !responseTime) return;
+
+        const times = this.kpiMetrics.sourceResponseTimes[sourceType];
+        times.push({ timestamp: Date.now(), responseTime });
+        if (times.length > 100) times.shift();
+    }
+
+    /**
+     * Get KPI metrics for dashboard cards
+     */
+    getKpiMetrics() {
+        // Calculate most displayed
+        const displayEntries = [...this.kpiMetrics.displayCounts.entries()]
+            .sort((a, b) => b[1].count - a[1].count)
+            .slice(0, 10)
+            .map(([id, data]) => ({
+                id,
+                title: data.title,
+                count: data.count,
+                lastDisplayed: data.lastDisplayed,
+            }));
+
+        // Calculate source response averages
+        const sourceAvgTimes = {};
+        for (const [source, times] of Object.entries(this.kpiMetrics.sourceResponseTimes)) {
+            if (times.length > 0) {
+                const recentTimes = times.slice(-20); // Last 20 requests
+                const avg =
+                    recentTimes.reduce((sum, t) => sum + t.responseTime, 0) / recentTimes.length;
+                sourceAvgTimes[source] = Math.round(avg);
+            }
+        }
+
+        // Find most recent sync across all sources
+        let lastSyncTime = null;
+        let lastSyncSource = null;
+        for (const [source, data] of Object.entries(this.kpiMetrics.lastSync)) {
+            if (data && (!lastSyncTime || data.timestamp > lastSyncTime)) {
+                lastSyncTime = data.timestamp;
+                lastSyncSource = source;
+            }
+        }
+
+        return {
+            lastSync: this.kpiMetrics.lastSync,
+            lastSyncTime,
+            lastSyncSource,
+            mostDisplayed: displayEntries,
+            totalDisplays: this.kpiMetrics.totalDisplays,
+            fallbacks: {
+                total: this.kpiMetrics.fallbacks.total,
+                byReason: this.kpiMetrics.fallbacks.byReason,
+                recentCount: this.kpiMetrics.fallbacks.recent.filter(
+                    f => Date.now() - f.timestamp < 3600000 // Last hour
+                ).length,
+            },
+            sourceResponseTimes: sourceAvgTimes,
+            posterQuality: this.kpiMetrics.posterQuality,
+        };
     }
 
     // Export metrics in different formats

@@ -698,6 +698,20 @@
                         window.__posterramaCurrentMediaId =
                             nextItem?.id || nextItem?.title || nextItem?.posterUrl || null;
                         window.__posterramaPaused = !!_state.paused;
+
+                        // Track display for KPI dashboard (fire-and-forget)
+                        if (nextItem?.key && nextItem?.title) {
+                            fetch('/api/v1/metrics/track-display', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    mediaId: nextItem.key,
+                                    title: nextItem.title,
+                                }),
+                            }).catch(() => {
+                                /* ignore */
+                            });
+                        }
                     } catch (_) {
                         /* noop */
                     }
