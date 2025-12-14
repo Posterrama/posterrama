@@ -179,6 +179,8 @@
             refreshTimeout: null,
             paused: false,
             refreshNow: null,
+            startRetries: 0,
+            mediaFetchPromise: null,
         };
 
         const api = {
@@ -393,7 +395,7 @@
 
                         // Prevent infinite retry loop
                         _state.startRetries = (_state.startRetries || 0) + 1;
-                        if (_state.startRetries > 5) {
+                        if (_state.startRetries > 30) {
                             window.debugLog && window.debugLog('WALLART_MAX_RETRIES_EXCEEDED', {});
                             console.error(
                                 '[Wallart] Max retries exceeded, cannot start without media'
@@ -403,21 +405,21 @@
 
                         try {
                             if (typeof window.fetchMedia === 'function') {
-                                window.fetchMedia(true).catch(() => {
-                                    /* noop: fetch best-effort */
-                                });
+                                if (!_state.mediaFetchPromise) {
+                                    _state.mediaFetchPromise = Promise.resolve()
+                                        .then(() => window.fetchMedia(true))
+                                        .catch(() => false)
+                                        .finally(() => {
+                                            _state.mediaFetchPromise = null;
+                                        });
+                                }
                             }
                         } catch (_) {
                             /* noop: fetch trigger failed */
                         }
                         setTimeout(() => {
                             try {
-                                if (
-                                    Array.isArray(window.mediaQueue) &&
-                                    window.mediaQueue.length > 0
-                                ) {
-                                    api.start(wallartConfig);
-                                }
+                                api.start(wallartConfig);
                             } catch (_) {
                                 /* noop: retry start failed */
                             }
@@ -1902,7 +1904,11 @@
                         const img = document.createElement('img');
                         // For artist-cards display style, use artist photo instead of album cover
                         const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
-                        const displayStyle = musicConfig.displayStyle || 'covers-only';
+                        let displayStyle = musicConfig.displayStyle || 'covers-only';
+                        // displayStyle 'album-info' has been removed; treat it as covers-only.
+                        if (displayStyle === 'album-info') displayStyle = 'covers-only';
+                        // displayStyle 'grid' is not supported; treat it as covers-only.
+                        if (displayStyle === 'grid') displayStyle = 'covers-only';
                         const useArtistPhoto =
                             isMusicItem && displayStyle === 'artist-cards' && item.backdropUrl;
                         const imageUrl = useArtistPhoto ? item.backdropUrl : item.posterUrl;
@@ -1956,62 +1962,65 @@
                         `;
                         posterItem.appendChild(img);
 
-                        // Add music metadata overlay if configured (only on medium/large tiles, not on 1x1 singles)
-                        const shouldShowOverlay = isMusicItem && Number(tileSize) >= 2;
-                        if (shouldShowOverlay) {
+                        // Add music metadata overlay if configured.
+                        // Historically, classic layout uses 1x1 tiles only; we still want metadata there when
+                        // displayStyle is not covers-only.
+                        if (isMusicItem) {
                             try {
                                 const musicConfig = window.appConfig?.wallartMode?.musicMode || {};
-                                const displayStyle = musicConfig.displayStyle || 'covers-only';
+                                let displayStyle = musicConfig.displayStyle || 'covers-only';
+                                // displayStyle 'album-info' has been removed; treat it as covers-only.
+                                if (displayStyle === 'album-info') displayStyle = 'covers-only';
+                                // displayStyle 'grid' is not supported; treat it as covers-only.
+                                if (displayStyle === 'grid') displayStyle = 'covers-only';
                                 const showArtist = musicConfig.showArtist !== false;
                                 const showAlbumTitle = musicConfig.showAlbumTitle !== false;
-                                const showYear = musicConfig.showYear !== false;
-                                const showGenre = musicConfig.showGenre === true;
+                                const _showYear = musicConfig.showYear !== false;
+                                const _showGenre = musicConfig.showGenre === true;
+
+                                const tileSizeNum = Number(tileSize);
+                                const effectiveTileSize = Number.isFinite(tileSizeNum)
+                                    ? tileSizeNum
+                                    : 1;
+                                const layoutVariant =
+                                    window.appConfig?.wallartMode?.layoutVariant || 'classic';
+                                const allowSinglesInClassic =
+                                    layoutVariant === 'classic' && displayStyle !== 'covers-only';
+                                const shouldShowOverlay =
+                                    displayStyle !== 'covers-only' &&
+                                    (allowSinglesInClassic || effectiveTileSize >= 2);
+
+                                if (!shouldShowOverlay) return posterItem;
 
                                 // Display style: covers-only (no overlay, just pure album covers)
                                 if (displayStyle === 'covers-only') {
                                     // No overlay for covers-only mode
                                 }
 
-                                // Display style: album-info (detailed metadata)
-                                else if (displayStyle === 'album-info') {
-                                    const overlay = document.createElement('div');
-                                    overlay.className = 'music-metadata-overlay album-info';
-                                    overlay.style.cssText = `
-                                        position: absolute;
-                                        bottom: 0;
-                                        right: 0;
-                                        background: transparent;
-                                        color: #fff;
-                                        padding: 12px;
-                                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                                        pointer-events: none;
-                                        z-index: 10;
-                                        text-align: right;
-                                    `;
-
-                                    let html = '';
-                                    if (showArtist && item.artist) {
-                                        html += `<div style="font-size: 0.9em; font-weight: 600; margin-bottom: 4px; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.artist}</div>`;
-                                    }
-                                    if (showAlbumTitle && item.title) {
-                                        html += `<div style="font-size: 0.8em; opacity: 0.9; margin-bottom: 4px; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title}</div>`;
-                                    }
-
-                                    const metaItems = [];
-                                    if (showYear && item.year) metaItems.push(item.year);
-                                    if (showGenre && item.genres && item.genres[0])
-                                        metaItems.push(item.genres[0]);
-
-                                    if (metaItems.length > 0) {
-                                        html += `<div style="font-size: 0.7em; opacity: 0.75; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8);">${metaItems.join(' • ')}</div>`;
-                                    }
-
-                                    overlay.innerHTML = html;
-                                    posterItem.appendChild(overlay);
-                                }
-
                                 // Display style: artist-cards (artist photo with prominent artist name)
                                 else if (displayStyle === 'artist-cards') {
+                                    const firstNonEmptyString = (...vals) => {
+                                        for (const v of vals) {
+                                            if (typeof v === 'string' && v.trim()) return v.trim();
+                                        }
+                                        return '';
+                                    };
+                                    const artistText = firstNonEmptyString(
+                                        item?.artist,
+                                        item?.grandparentTitle,
+                                        item?.parentTitle,
+                                        item?.originalTitle,
+                                        item?.metadata?.artist,
+                                        item?.meta?.artist
+                                    );
+                                    const albumText = firstNonEmptyString(
+                                        item?.album,
+                                        item?.title,
+                                        item?.name,
+                                        item?.metadata?.album,
+                                        item?.meta?.album
+                                    );
+
                                     const overlay = document.createElement('div');
                                     overlay.className = 'music-metadata-overlay artist-cards';
                                     overlay.style.cssText = `
@@ -2028,14 +2037,25 @@
                                         justify-content: flex-end;
                                     `;
 
-                                    let html = `<div style="font-size: 1.3em; font-weight: 700; margin-bottom: 4px; text-shadow: 0 3px 12px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.9); line-height: 1.2;">${item.artist}</div>`;
-
-                                    if (showAlbumTitle && item.title) {
-                                        html += `<div style="font-size: 0.75em; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title}</div>`;
+                                    if (showArtist && artistText) {
+                                        const heading = document.createElement('div');
+                                        heading.style.cssText =
+                                            'font-size: 1.3em; font-weight: 700; margin-bottom: 4px; text-shadow: 0 3px 12px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.9); line-height: 1.2;';
+                                        heading.textContent = artistText;
+                                        overlay.appendChild(heading);
                                     }
 
-                                    overlay.innerHTML = html;
-                                    posterItem.appendChild(overlay);
+                                    if (showAlbumTitle && albumText) {
+                                        const sub = document.createElement('div');
+                                        sub.style.cssText =
+                                            'font-size: 0.75em; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+                                        sub.textContent = albumText;
+                                        overlay.appendChild(sub);
+                                    }
+
+                                    if (overlay.children && overlay.children.length > 0) {
+                                        posterItem.appendChild(overlay);
+                                    }
                                 }
                             } catch (overlayErr) {
                                 // Gracefully ignore overlay creation errors
@@ -2215,6 +2235,37 @@
                             },
                         };
 
+                        // Some setting changes require refetching the media queue (e.g. switching
+                        // between movies/music/games or changing filmCards requirements).
+                        const oldLayoutVariant = oldConfig.layoutVariant;
+                        const newLayoutVariant = mergedWallartConfig.layoutVariant;
+                        const oldGamesOnly = oldConfig.gamesOnly === true;
+                        const newGamesOnly = mergedWallartConfig.gamesOnly === true;
+                        const oldMusicEnabled = oldConfig.musicMode?.enabled === true;
+                        const newMusicEnabled = mergedWallartConfig.musicMode?.enabled === true;
+                        const oldMusicStyle = oldConfig.musicMode?.displayStyle;
+                        const newMusicStyle = mergedWallartConfig.musicMode?.displayStyle;
+
+                        const oldAnim = String(oldConfig.animationType || '').toLowerCase();
+                        const newAnim = String(
+                            mergedWallartConfig.animationType || ''
+                        ).toLowerCase();
+
+                        // Hard mode switch inside wallart: parallaxDepth uses a different runtime.
+                        const parallaxSwitched =
+                            (oldAnim === 'parallaxdepth' || newAnim === 'parallaxdepth') &&
+                            oldAnim !== newAnim;
+
+                        // When the content source changes, we must refetch; otherwise the preview
+                        // can show movies in a music layout (square tiles) or vice versa.
+                        const needsMediaRefetch =
+                            oldGamesOnly !== newGamesOnly ||
+                            oldMusicEnabled !== newMusicEnabled ||
+                            oldLayoutVariant !== newLayoutVariant ||
+                            // artist-cards uses a different endpoint
+                            (oldMusicStyle === 'artist-cards') !==
+                                (newMusicStyle === 'artist-cards');
+
                         // Separate layout changes (require restart) from config-only changes
                         const layoutKeys = ['density', 'layoutVariant', 'gamesOnly'];
                         const configKeys = [
@@ -2306,9 +2357,71 @@
                             }
                         }
 
+                        // Check filmCards settings (nested in layoutSettings.filmCards)
+                        // Group By (spotlight theme) needs an immediate rebuild so preview updates live.
+                        if (
+                            !needsLayoutRebuild &&
+                            mergedWallartConfig.layoutSettings &&
+                            mergedWallartConfig.layoutSettings.filmCards
+                        ) {
+                            const oldFilmCards =
+                                (oldConfig.layoutSettings && oldConfig.layoutSettings.filmCards) ||
+                                {};
+                            const newFilmCards = mergedWallartConfig.layoutSettings.filmCards || {};
+                            const filmCardKeys = [
+                                'groupBy',
+                                'cardRotationSeconds',
+                                'posterRotationSeconds',
+                                'minGroupSize',
+                                'accentColor',
+                            ];
+
+                            for (const key of filmCardKeys) {
+                                if (
+                                    key in newFilmCards &&
+                                    newFilmCards[key] !== oldFilmCards[key]
+                                ) {
+                                    needsLayoutRebuild = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // If we switched into/out of parallaxDepth we must restart the wallart runtime.
+                        if (!needsLayoutRebuild && parallaxSwitched) {
+                            needsLayoutRebuild = true;
+                        }
+
+                        // If the underlying content source needs to change, force a rebuild.
+                        if (!needsLayoutRebuild && needsMediaRefetch) {
+                            needsLayoutRebuild = true;
+                        }
+
                         if (needsLayoutRebuild) {
                             // Stop current cycle to avoid conflicts
                             api.stop();
+
+                            // Reset retry counter so a few rapid preview toggles can't permanently
+                            // trip the max-retry guard while the media queue is refetching.
+                            _state.startRetries = 0;
+
+                            // If the setting change requires a different media source, clear the queue
+                            // and let the bootstrap/refetch helper rebuild it.
+                            if (needsMediaRefetch) {
+                                try {
+                                    window.mediaQueue = [];
+                                } catch (_) {
+                                    /* best-effort */
+                                }
+                                _state.mediaQueue = [];
+                                _state.mediaFetchPromise = null;
+                                // Kick an eager refetch when available; start() already retries if empty.
+                                try {
+                                    window.fetchMedia?.(true);
+                                } catch (_) {
+                                    /* best-effort */
+                                }
+                            }
 
                             // Clear state to force fresh rebuild
                             _state.wallartGrid = null;
@@ -2365,6 +2478,23 @@
                                 _state.layoutInfo = null;
                                 _state.currentPosters = [];
                                 _state.usedPosters = new Set();
+
+                                // Some music display changes (e.g. artist-cards) require refetching media.
+                                if (needsMediaRefetch) {
+                                    try {
+                                        window.mediaQueue = [];
+                                    } catch (_) {
+                                        /* best-effort */
+                                    }
+                                    _state.mediaQueue = [];
+                                    _state.mediaFetchPromise = null;
+                                    try {
+                                        window.fetchMedia?.(true);
+                                    } catch (_) {
+                                        /* best-effort */
+                                    }
+                                }
+
                                 setTimeout(() => {
                                     try {
                                         api.start(mergedWallartConfig);

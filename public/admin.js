@@ -4209,10 +4209,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         setIf('wallartMode_musicMode_displayStyle', musicMode.displayStyle || 'covers-only');
         setIf('wallartMode_musicMode_animation', musicMode.animation || 'vinyl-spin');
         setIf('wallartMode_musicMode_density', musicMode.density || 'medium');
-        setIf('wallartMode_musicMode_showArtist', musicMode.showArtist !== false);
-        setIf('wallartMode_musicMode_showAlbumTitle', musicMode.showAlbumTitle !== false);
-        setIf('wallartMode_musicMode_showYear', musicMode.showYear === true);
-        setIf('wallartMode_musicMode_showGenre', musicMode.showGenre === true);
         setIf('wallartMode_musicMode_minRating', musicMode.minRating || 0);
         setIf('wallartMode_musicMode_artistRotationSeconds', musicMode.artistRotationSeconds ?? 60);
         setIf('wallartMode_musicMode_albumRotationSeconds', musicMode.albumRotationSeconds ?? 15);
@@ -4329,67 +4325,14 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             const gamesSettings = document.getElementById('games-mode-settings');
             const musicSettings = document.getElementById('music-mode-settings');
 
+            // This config-apply block may run multiple times (e.g. after live updates).
+            // Guard against re-wiring the same listeners, which can cause event storms and UI freezes.
+            const alreadyWired = musicModeCheckbox?.dataset?.musicModeUiWired === '1';
+
             if (gamesOnlyCheckbox && musicModeCheckbox) {
-                // When games only is checked, disable music mode and update visibility
-                gamesOnlyCheckbox.addEventListener('change', () => {
-                    if (gamesOnlyCheckbox.checked && musicModeCheckbox.checked) {
-                        musicModeCheckbox.checked = false;
-                        musicModeCheckbox.dispatchEvent(new Event('change'));
-                    }
-
-                    // Update games settings visibility
-                    if (gamesSettings) {
-                        if (gamesOnlyCheckbox.checked) {
-                            gamesSettings.style.removeProperty('display');
-                        } else {
-                            gamesSettings.style.setProperty('display', 'none', 'important');
-                        }
-                    }
-                });
-
-                // When music mode is checked, disable games only and update visibility
-                musicModeCheckbox.addEventListener('change', () => {
-                    if (musicModeCheckbox.checked && gamesOnlyCheckbox.checked) {
-                        gamesOnlyCheckbox.checked = false;
-                        // Update games settings visibility when unchecked
-                        if (gamesSettings) {
-                            gamesSettings.style.setProperty('display', 'none', 'important');
-                        }
-                    }
-
-                    // Update music settings visibility
-                    if (musicSettings) {
-                        if (musicModeCheckbox.checked) {
-                            musicSettings.style.removeProperty('display');
-                        } else {
-                            musicSettings.style.setProperty('display', 'none', 'important');
-                        }
-                    }
-
-                    // Toggle preset buttons visibility
-                    const generalPresets = document.getElementById('wallart-presets-general');
-                    const musicPresets = document.getElementById('wallart-presets-music');
-                    if (generalPresets && musicPresets) {
-                        if (musicModeCheckbox.checked) {
-                            generalPresets.style.display = 'none';
-                            musicPresets.style.display = 'flex';
-                        } else {
-                            generalPresets.style.display = 'flex';
-                            musicPresets.style.display = 'none';
-                        }
-                    }
-
-                    // Hide wallart cards that don't affect Music Mode
-                    updateMusicModeCardVisibility();
-                });
-
-                // Helper function to update card visibility based on music mode state
+                // Helper: update card visibility based on music mode state
                 const updateMusicModeCardVisibility = () => {
                     const isMusicMode = musicModeCheckbox?.checked || false;
-                    console.log(
-                        '[Admin] updateMusicModeCardVisibility called, isMusicMode:',
-                        isMusicMode
-                    );
 
                     const tempoCard = document.querySelector('.mode-card[data-card-key="tempo"]');
                     const animationCard = document.querySelector(
@@ -4404,31 +4347,68 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         '.mode-card[data-card-key="filmcards"]'
                     );
 
-                    console.log('[Admin] Found cards:', {
-                        tempo: !!tempoCard,
-                        animation: !!animationCard,
-                        layout: !!layoutCard,
-                        ambience: !!ambienceCard,
-                        hero: !!heroCard,
-                        filmcards: !!filmcardsCard,
-                    });
-
                     if (tempoCard) tempoCard.style.display = isMusicMode ? 'none' : '';
                     if (animationCard) animationCard.style.display = isMusicMode ? 'none' : '';
                     if (layoutCard) layoutCard.style.display = isMusicMode ? 'none' : '';
                     if (ambienceCard) ambienceCard.style.display = isMusicMode ? 'none' : '';
                     if (heroCard) heroCard.style.display = isMusicMode ? 'none' : '';
-                    if (filmcardsCard) {
-                        console.log(
-                            '[Admin] Setting filmcardsCard display to:',
-                            isMusicMode ? 'none' : ''
-                        );
-                        filmcardsCard.style.display = isMusicMode ? 'none' : '';
-                    }
+                    if (filmcardsCard) filmcardsCard.style.display = isMusicMode ? 'none' : '';
                 };
 
-                // Apply initial visibility state immediately
-                console.log('[Admin] Calling updateMusicModeCardVisibility on page load');
+                // When games only is checked, disable music mode and update visibility
+                if (!alreadyWired) {
+                    gamesOnlyCheckbox.addEventListener('change', () => {
+                        if (gamesOnlyCheckbox.checked && musicModeCheckbox.checked) {
+                            musicModeCheckbox.checked = false;
+                            // Trigger downstream UI updates without re-wiring listeners.
+                            musicModeCheckbox.dispatchEvent(new Event('change'));
+                        }
+
+                        if (gamesSettings) {
+                            if (gamesOnlyCheckbox.checked) {
+                                gamesSettings.style.removeProperty('display');
+                            } else {
+                                gamesSettings.style.setProperty('display', 'none', 'important');
+                            }
+                        }
+                    });
+
+                    musicModeCheckbox.addEventListener('change', () => {
+                        if (musicModeCheckbox.checked && gamesOnlyCheckbox.checked) {
+                            gamesOnlyCheckbox.checked = false;
+                            if (gamesSettings) {
+                                gamesSettings.style.setProperty('display', 'none', 'important');
+                            }
+                        }
+
+                        if (musicSettings) {
+                            if (musicModeCheckbox.checked) {
+                                musicSettings.style.removeProperty('display');
+                            } else {
+                                musicSettings.style.setProperty('display', 'none', 'important');
+                            }
+                        }
+
+                        const generalPresets = document.getElementById('wallart-presets-general');
+                        const musicPresets = document.getElementById('wallart-presets-music');
+                        if (generalPresets && musicPresets) {
+                            if (musicModeCheckbox.checked) {
+                                generalPresets.style.display = 'none';
+                                musicPresets.style.display = 'flex';
+                            } else {
+                                generalPresets.style.display = 'flex';
+                                musicPresets.style.display = 'none';
+                            }
+                        }
+
+                        updateMusicModeCardVisibility();
+                    });
+
+                    // Mark as wired so config re-apply doesn't attach duplicate handlers
+                    musicModeCheckbox.dataset.musicModeUiWired = '1';
+                }
+
+                // Apply current visibility state immediately on each config apply
                 updateMusicModeCardVisibility();
 
                 // Hide density and display options for artist-cards mode
@@ -4437,7 +4417,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 );
                 const animationRow = document.getElementById('musicMode_animationRow');
                 const densityRow = document.getElementById('musicMode_densityRow');
-                const displayOptionsRow = document.getElementById('musicMode_displayOptionsRow');
                 const artistRotationRow = document.getElementById('musicMode_artistRotationRow');
                 const albumRotationRow = document.getElementById('musicMode_albumRotationRow');
                 const accentColorRow = document.getElementById('musicMode_accentColorRow');
@@ -4445,18 +4424,12 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 const toggleMusicModeOptions = () => {
                     const displayStyle = displayStyleSelect?.value;
                     const isArtistCards = displayStyle === 'artist-cards';
-                    const isCoversOnly = displayStyle === 'covers-only';
 
                     // Hide animation for artist-cards mode
                     if (animationRow) animationRow.style.display = isArtistCards ? 'none' : '';
 
                     // Hide density for artist-cards mode
                     if (densityRow) densityRow.style.display = isArtistCards ? 'none' : '';
-
-                    // Hide display options for covers-only and artist-cards modes
-                    if (displayOptionsRow)
-                        displayOptionsRow.style.display =
-                            isArtistCards || isCoversOnly ? 'none' : '';
 
                     // Show artist rotation slider only for artist-cards mode
                     if (artistRotationRow)
@@ -4470,17 +4443,24 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     if (accentColorRow) accentColorRow.style.display = isArtistCards ? '' : 'none';
                 };
 
-                displayStyleSelect?.addEventListener('change', toggleMusicModeOptions);
+                if (!alreadyWired) {
+                    displayStyleSelect?.addEventListener('change', toggleMusicModeOptions);
+                }
                 toggleMusicModeOptions();
 
                 // Sort mode dropdown - toggle weight sliders
                 const sortModeSelect = document.getElementById('wallartMode_musicMode_sortMode');
                 const sortWeightsRow = document.getElementById('musicMode_sortWeightsRow');
                 if (sortModeSelect && sortWeightsRow) {
-                    sortModeSelect.addEventListener('change', () => {
-                        sortWeightsRow.style.display =
-                            sortModeSelect.value === 'weighted-random' ? '' : 'none';
-                    });
+                    if (!alreadyWired) {
+                        sortModeSelect.addEventListener('change', () => {
+                            sortWeightsRow.style.display =
+                                sortModeSelect.value === 'weighted-random' ? '' : 'none';
+                        });
+                    }
+                    // Apply current state
+                    sortWeightsRow.style.display =
+                        sortModeSelect.value === 'weighted-random' ? '' : 'none';
                 }
 
                 // Weight sliders - update value displays in real-time
@@ -4488,35 +4468,18 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const slider = document.getElementById(id);
                     const display = document.getElementById(id + '_value');
                     if (slider && display) {
-                        slider.addEventListener('input', () => {
-                            display.textContent = slider.value + '%';
-                        });
+                        if (!alreadyWired) {
+                            slider.addEventListener('input', () => {
+                                display.textContent = slider.value + '%';
+                            });
+                        }
+                        // Apply current state
+                        display.textContent = slider.value + '%';
                     }
                 };
                 setupWeightSlider('wallartMode_musicMode_sortWeight_recent');
                 setupWeightSlider('wallartMode_musicMode_sortWeight_popular');
                 setupWeightSlider('wallartMode_musicMode_sortWeight_random');
-
-                // Initialize card visibility on page load
-                const initializeMusicModeCards = () => {
-                    const isMusicMode = musicModeCheckbox?.checked;
-                    const tempoCard = document.querySelector('.mode-card[data-card-key="tempo"]');
-                    const animationCard = document.querySelector(
-                        '.mode-card[data-card-key="animation"]'
-                    );
-                    const layoutCard = document.querySelector('.mode-card[data-card-key="layout"]');
-                    const ambienceCard = document.querySelector(
-                        '.mode-card[data-card-key="ambience"]'
-                    );
-                    const heroCard = document.querySelector('.mode-card[data-card-key="hero"]');
-
-                    if (tempoCard) tempoCard.style.display = isMusicMode ? 'none' : '';
-                    if (animationCard) animationCard.style.display = isMusicMode ? 'none' : '';
-                    if (layoutCard) layoutCard.style.display = isMusicMode ? 'none' : '';
-                    if (ambienceCard) ambienceCard.style.display = isMusicMode ? 'none' : '';
-                    if (heroCard) heroCard.style.display = isMusicMode ? 'none' : '';
-                };
-                initializeMusicModeCards();
             }
         } catch (_) {
             /* mutual exclusivity logic failed */
@@ -4572,7 +4535,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         setIf('screensaverOrientation', c.screensaverMode?.orientation || 'auto');
         setIf('wallartOrientation', c.wallartMode?.orientation || 'auto');
         setIf('cinemaOrientation', c.cinema?.orientation || 'auto');
-        setIf('cinemaRotationInterval', c.cinema?.rotationIntervalMinutes || 0);
+        setIf('cinemaRotationInterval', c.cinema?.rotationIntervalMinutes ?? 5);
 
         // Cinema Now Playing
         setIf('cinemaNowPlayingEnabled', c.cinema?.nowPlaying?.enabled || false, 'checkbox');
@@ -6190,7 +6153,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
             btnMusicJazz?.addEventListener('click', () =>
                 onMusicPreset({
-                    displayStyle: 'album-info',
+                    displayStyle: 'covers-only',
                     animation: 'crossfade',
                     density: 'low',
                     showArtist: true,
@@ -6214,7 +6177,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
             btnMusicAudiophile?.addEventListener('click', () =>
                 onMusicPreset({
-                    displayStyle: 'album-info',
+                    displayStyle: 'covers-only',
                     animation: 'vinyl-spin',
                     density: 'medium',
                     showArtist: true,
@@ -6388,10 +6351,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     displayStyle: val('wallartMode_musicMode_displayStyle'),
                     animation: val('wallartMode_musicMode_animation'),
                     density: val('wallartMode_musicMode_density'),
-                    showArtist: val('wallartMode_musicMode_showArtist'),
-                    showAlbumTitle: val('wallartMode_musicMode_showAlbumTitle'),
-                    showYear: val('wallartMode_musicMode_showYear'),
-                    showGenre: val('wallartMode_musicMode_showGenre'),
                     minRating: parseFloat(val('wallartMode_musicMode_minRating')) || 0,
                     artistRotationSeconds:
                         parseInt(val('wallartMode_musicMode_artistRotationSeconds')) || 60,

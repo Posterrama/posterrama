@@ -236,6 +236,43 @@ function migrateConfig(cfg) {
     // === TOP-LEVEL ORIENTATION ===
     modified = fixEnum(cfg, 'cinemaOrientation', VALID.orientation, 'auto', 'config') || modified;
 
+    // === WALLART MODE ===
+    // Handle deprecated/invalid values so config continues to validate after upgrades.
+    if (cfg.wallartMode && typeof cfg.wallartMode === 'object') {
+        const wallartMode = cfg.wallartMode;
+
+        if (wallartMode.musicMode && typeof wallartMode.musicMode === 'object') {
+            const musicMode = wallartMode.musicMode;
+
+            // Deprecated value removed from UI/schema; normalize old configs.
+            if (musicMode.displayStyle === 'album-info') {
+                console.log(
+                    '[Config Migration] Changed wallartMode.musicMode.displayStyle from "album-info" to "covers-only"'
+                );
+                musicMode.displayStyle = 'covers-only';
+                modified = true;
+            }
+
+            // Legacy/invalid value that was previously exposed in UI; normalize old configs.
+            if (musicMode.displayStyle === 'grid') {
+                console.log(
+                    '[Config Migration] Changed wallartMode.musicMode.displayStyle from "grid" to "covers-only"'
+                );
+                musicMode.displayStyle = 'covers-only';
+                modified = true;
+            }
+
+            modified =
+                fixEnum(
+                    musicMode,
+                    'displayStyle',
+                    ['covers-only', 'artist-cards'],
+                    'covers-only',
+                    'wallartMode.musicMode'
+                ) || modified;
+        }
+    }
+
     // === CINEMA OBJECT ===
     if (!cfg.cinema) {
         cfg.cinema = {};

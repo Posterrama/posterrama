@@ -18804,6 +18804,34 @@ body.profile-edit-mode #section-display .section-header h2 span {
 }
 
 /* Live Device Logs (Admin) */
+#modal-device-logs .modal {
+    /* Mobile-first: almost full width, but keep sane min/max */
+    width: clamp(320px, 96vw, 980px);
+    max-height: 94vh;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (min-width: 1200px) {
+    #modal-device-logs .modal {
+        /* Desktop/4K: wider, proportional to viewport, but still bounded */
+        width: clamp(980px, 75vw, 1800px);
+    }
+}
+
+#modal-device-logs .modal-body {
+    /* Allow toolbar + console to size naturally */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+#modal-device-logs .modal-footer {
+    flex: 0 0 auto;
+}
+
 #modal-device-logs .modal-header {
     padding: 14px 16px;
 }
@@ -18937,7 +18965,9 @@ body.profile-edit-mode #section-display .section-header h2 span {
 }
 
 #modal-device-logs .device-logs-console {
-    height: min(70vh, 560px);
+    /* Fill remaining space; keep it usable on small screens */
+    flex: 1 1 auto;
+    min-height: 260px;
     overflow: auto;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
@@ -18956,6 +18986,12 @@ body.profile-edit-mode #section-display .section-header h2 span {
     );
     font-size: 12.5px;
     line-height: 1.45;
+}
+
+@media (min-height: 900px) and (min-width: 1200px) {
+    #modal-device-logs .device-logs-console {
+        min-height: 420px;
+    }
 }
 
 #modal-device-logs .device-log-line {

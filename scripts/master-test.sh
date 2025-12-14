@@ -260,9 +260,7 @@ check_code_quality() {
         grep -v "process.env.CI" | grep -v "process.env.DEBUG" | \
         grep -v " \*" | grep -v "\/\/" | grep -v "JSDoc" | head -5)
     
-    # Frontend console.logs removed via production build (scripts/build-production.sh)
-    # Development: 127+ console.logs in public/ (acceptable for debugging)
-    # Production: Use npm run build:prod to create dist/public with console.logs removed
+    # Frontend code is served directly from public/
     
     if [[ -z "$CONSOLE_LOGS" ]]; then
         pass
@@ -271,7 +269,7 @@ check_code_quality() {
         if [[ $COUNT -eq 0 ]]; then
             pass
         else
-            warn "Found $COUNT console.log in backend code (see scripts/build-production.sh for frontend)"
+            warn "Found $COUNT console.log in backend code"
         fi
     fi
 }

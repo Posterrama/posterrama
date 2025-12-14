@@ -46,7 +46,7 @@ describe('Music Mode Config Schema', () => {
         });
 
         test('accepts all display styles', () => {
-            const styles = ['covers-only', 'album-info', 'artist-cards'];
+            const styles = ['covers-only', 'artist-cards'];
 
             for (const style of styles) {
                 const config = {

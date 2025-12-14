@@ -219,7 +219,7 @@ describe('Config Validation at Startup (Issue #10)', () => {
                 wallartMode: {
                     musicMode: {
                         enabled: true,
-                        displayStyle: 'album-info',
+                        displayStyle: 'covers-only',
                         animation: 'vinyl-spin',
                         density: 'medium',
                         showArtist: true,

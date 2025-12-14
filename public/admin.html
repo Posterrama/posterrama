@@ -970,9 +970,7 @@
                         <div class="select-wrap has-caret">
                           <select id="wallartMode_musicMode_displayStyle">
                             <option value="covers-only" selected>Album Covers Only</option>
-                            <option value="album-info">Album + Artist Info</option>
                             <option value="artist-cards">Artist Cards</option>
-                            <option value="grid">Grid</option>
                           </select>
                           <span class="select-caret" aria-hidden="true">▾</span>
                         </div>
@@ -1006,32 +1004,7 @@
                         </div>
                       </div>
 
-                      <!-- Display Options -->
-                      <div class="form-row" id="musicMode_displayOptionsRow" style="display: flex; flex-wrap: wrap; gap: 16px 24px;">
-                        <label class="checkbox" for="wallartMode_musicMode_showArtist">
-                          <input type="checkbox" id="wallartMode_musicMode_showArtist" />
-                          <span class="checkmark"></span>
-                          <span>Show artist name</span>
-                        </label>
-
-                        <label class="checkbox" for="wallartMode_musicMode_showAlbumTitle">
-                          <input type="checkbox" id="wallartMode_musicMode_showAlbumTitle" />
-                          <span class="checkmark"></span>
-                          <span>Show album title</span>
-                        </label>
-
-                        <label class="checkbox" for="wallartMode_musicMode_showYear">
-                          <input type="checkbox" id="wallartMode_musicMode_showYear" />
-                          <span class="checkmark"></span>
-                          <span>Show release year</span>
-                        </label>
-
-                        <label class="checkbox" for="wallartMode_musicMode_showGenre">
-                          <input type="checkbox" id="wallartMode_musicMode_showGenre" />
-                          <span class="checkmark"></span>
-                          <span>Show genre</span>
-                        </label>
-                      </div>
+                      <!-- Metadata overlay toggles removed (no longer used by supported display styles) -->
 
                       <!-- Artist Rotation Interval (only for artist-cards) -->
                       <div class="form-row" id="musicMode_artistRotationRow" style="display: none;">
@@ -3365,7 +3338,6 @@
             <span style="display: inline-flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--color-text-primary); padding: 6px 16px; border-radius: 20px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.3px;">
               <i class="fas fa-laptop" style="opacity: 0.8;"></i>
               Device Management
-              <span class="badge badge-beta" style="margin-left: 4px;">BETA</span>
             </span>
           </h2>
           <div class="section-header-actions" style="display: flex; gap: 12px; align-items: center;"></div>
@@ -4611,7 +4583,7 @@
 
   <!-- Live Device Logs Modal -->
   <div class="modal-overlay" id="modal-device-logs" hidden data-auto-hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="device-logs-title" style="width:min(96vw, 980px)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="device-logs-title">
       <div class="modal-header">
         <div class="modal-title" id="device-logs-title"><i class="fas fa-bug"></i> Live Logs <span id="device-logs-target-name" style="opacity:.75"></span></div>
         <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>

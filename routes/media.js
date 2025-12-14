@@ -213,6 +213,161 @@ module.exports = function createMediaRouter({
 }) {
     const router = express.Router();
 
+    // --- Admin preview utilities (authenticated) ---
+    // Allows the admin live preview iframe to fetch media according to UNSAVED settings.
+    // This is intentionally separate from /get-media (public) which is gated by saved config.
+    router.post(
+        '/api/admin/media/preview',
+        // @ts-ignore - Express router overload with middleware
+        isAuthenticated,
+        asyncHandler(async (req, res) => {
+            const body = req.body || {};
+            const wallartModeOverride = body.wallartMode || {};
+
+            // Clamp count to a safe range; default is aligned with wallart bootstrap.
+            const countRaw = Number(body.count);
+            const count = Number.isFinite(countRaw) ? Math.max(1, Math.min(2000, countRaw)) : 200;
+
+            const requestedType = (body.type || 'movie').toString();
+            const requestMusicMode = body.musicMode === true || body.musicMode === '1';
+            const requestFilmCards = body.filmCards === true || body.filmCards === '1';
+            const requestGamesOnly = body.gamesOnly === true || body.gamesOnly === '1';
+
+            // Read latest saved config for server connections/credentials.
+            const currentConfig =
+                (await (typeof readConfig === 'function' ? readConfig() : null)) || config || {};
+
+            // Compute an effective wallartMode for preview. We only need a shallow merge here.
+            const effectiveWallartMode = {
+                ...(currentConfig.wallartMode || {}),
+                ...(wallartModeOverride || {}),
+                musicMode: {
+                    ...(currentConfig.wallartMode?.musicMode || {}),
+                    ...(wallartModeOverride.musicMode || {}),
+                },
+                layoutSettings: {
+                    ...(currentConfig.wallartMode?.layoutSettings || {}),
+                    ...(wallartModeOverride.layoutSettings || {}),
+                    filmCards: {
+                        ...(currentConfig.wallartMode?.layoutSettings?.filmCards || {}),
+                        ...(wallartModeOverride.layoutSettings?.filmCards || {}),
+                    },
+                },
+            };
+
+            // Lazy-load PlexSource once
+            let PlexSource = null;
+            const getPlexSource = () => {
+                if (!PlexSource) PlexSource = require('../sources/plex');
+                return PlexSource;
+            };
+
+            // Games-only preview (RomM)
+            if (requestGamesOnly || effectiveWallartMode.gamesOnly === true) {
+                try {
+                    const RommSource = require('../sources/romm');
+                    const rommServer = (currentConfig.mediaServers || []).find(
+                        s => s.enabled && s.type === 'romm'
+                    );
+                    if (!rommServer) return res.json([]);
+                    const platforms = rommServer.selectedPlatforms || [];
+                    if (!platforms.length) return res.json([]);
+
+                    const rommSource = new RommSource(rommServer, shuffleArray, isDebug);
+                    const ROMM_GAMES_LIMIT = 2000;
+                    const games = await rommSource.fetchMedia(
+                        platforms,
+                        'game',
+                        Math.min(count || 2000, ROMM_GAMES_LIMIT)
+                    );
+                    return res.json(games);
+                } catch (err) {
+                    logger.error(`[Admin Preview] Games fetch failed: ${err.message}`, {
+                        error: err.stack,
+                    });
+                    return res.json([]);
+                }
+            }
+
+            // Music mode preview (Plex)
+            if (requestMusicMode && effectiveWallartMode.musicMode?.enabled === true) {
+                try {
+                    const PlexSourceClass = getPlexSource();
+                    const plexServer = (currentConfig.mediaServers || []).find(
+                        s => s.enabled && s.type === 'plex'
+                    );
+                    if (!plexServer) return res.json([]);
+
+                    const musicLibraries = plexServer.musicLibraryNames || [];
+                    const musicFilters = plexServer.musicFilters || {};
+
+                    const plexSource = new PlexSourceClass(
+                        plexServer,
+                        getPlexClient,
+                        processPlexItem,
+                        getPlexLibraries,
+                        shuffleArray,
+                        currentConfig.rottenTomatoesMinimumScore || 0,
+                        isDebug
+                    );
+
+                    const albums = await plexSource.fetchMusic(
+                        musicLibraries,
+                        count || 50,
+                        musicFilters
+                    );
+                    return res.json(albums);
+                } catch (err) {
+                    logger.error(`[Admin Preview] Music fetch failed: ${err.message}`, {
+                        error: err.stack,
+                    });
+                    return res.json([]);
+                }
+            }
+
+            // Film Cards preview requests more movies (Plex)
+            if (requestFilmCards || effectiveWallartMode.layoutVariant === 'filmCards') {
+                try {
+                    const PlexSourceClass = getPlexSource();
+                    const plexServer = (currentConfig.mediaServers || []).find(
+                        s => s.enabled && s.type === 'plex'
+                    );
+                    if (!plexServer) return res.json([]);
+
+                    const movieLibraries =
+                        plexServer.movieLibraryNames || plexServer.libraryNames || [];
+                    if (!movieLibraries.length) return res.json([]);
+
+                    const plexSource = new PlexSourceClass(
+                        plexServer,
+                        getPlexClient,
+                        processPlexItem,
+                        getPlexLibraries,
+                        shuffleArray,
+                        currentConfig.rottenTomatoesMinimumScore || 0,
+                        isDebug
+                    );
+
+                    const movies = await plexSource.fetchMedia(
+                        movieLibraries,
+                        String(requestedType || 'movie'),
+                        Math.max(1, Math.min(2000, count || 1000))
+                    );
+                    return res.json(movies);
+                } catch (err) {
+                    logger.error(`[Admin Preview] FilmCards fetch failed: ${err.message}`, {
+                        error: err.stack,
+                    });
+                    return res.json([]);
+                }
+            }
+
+            // Default: for non-special preview cases, fall back to public endpoint behavior.
+            // The wallart preview bootstrap will typically use /get-media directly for this.
+            return res.json([]);
+        })
+    );
+
     // --- Admin utilities (authenticated) ---
     // Search against the current playlist cache (fast; avoids per-server search APIs).
     router.get(

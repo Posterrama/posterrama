@@ -321,28 +321,121 @@
                     return false;
                 }
             }
-            async function ensureMediaQueue() {
+            async function ensureMediaQueue(force = false) {
                 window.debugLog && window.debugLog('WALLART_ENSURE_MEDIA_START', {});
                 try {
-                    if (Array.isArray(window.mediaQueue) && window.mediaQueue.length > 0) {
+                    if (!force && Array.isArray(window.mediaQueue) && window.mediaQueue.length > 0) {
                         window.debugLog && window.debugLog('WALLART_MEDIA_ALREADY_EXISTS', { count: window.mediaQueue.length });
                         return true;
+                    }
+
+                    if (force) {
+                        try {
+                            window.mediaQueue = [];
+                        } catch (_) {
+                            /* best-effort */
+                        }
                     }
                     // Check if games-only mode is enabled
                     const gamesOnly = window.appConfig?.wallartMode?.gamesOnly === true;
                     
                     // Check if music mode is enabled
                     const musicMode = window.appConfig?.wallartMode?.musicMode?.enabled === true;
+
+                    // Music display style (affects which endpoint we should use)
+                    let musicDisplayStyle = window.appConfig?.wallartMode?.musicMode?.displayStyle;
+                    // Backward-compat: normalize removed/invalid values
+                    if (musicDisplayStyle === 'album-info' || musicDisplayStyle === 'grid') {
+                        musicDisplayStyle = 'covers-only';
+                    }
                     
                     // Build absolute URL for better Safari/iOS compatibility
                     const baseUrl = window.location.origin;
                     let url;
                     
-                    // For music mode with artist-cards, use special endpoint
-                    if (musicMode && window.appConfig?.wallartMode?.musicMode?.displayStyle === 'artist-cards') {
-                        const artistCount = 50; // Fetch 50 random artists with all their albums
-                        url = `${baseUrl}/get-music-artists?count=${artistCount}`;
-                    } else if (gamesOnly) {
+                    // In admin preview mode, use an authenticated endpoint that can respect UNSAVED settings.
+                    // This is required because /get-media musicMode is gated by saved server config.
+                    const isPreview =
+                        (window.PosterramaCore &&
+                            typeof window.PosterramaCore.isPreviewMode === 'function' &&
+                            window.PosterramaCore.isPreviewMode()) ||
+                        window.IS_PREVIEW === true;
+
+                    if (isPreview && (musicMode || gamesOnly || window.appConfig?.wallartMode?.layoutVariant === 'filmCards')) {
+                        // Artist Cards needs per-artist discographies + artist photos.
+                        // The public /get-music-artists endpoint already returns that shape and does not depend
+                        // on saved wallartMode.musicMode.enabled, so it's safe for preview too.
+                        if (musicMode && musicDisplayStyle === 'artist-cards') {
+                            const artistCount = 50;
+                            url = `${baseUrl}/get-music-artists?count=${artistCount}`;
+
+                            const res = await fetch(url, {
+                                method: 'GET',
+                                cache: force ? 'no-store' : 'default',
+                                headers: { Accept: 'application/json' },
+                                credentials: 'same-origin',
+                                mode: 'cors',
+                            });
+
+                            if (!res.ok) return false;
+                            const data = await res.json();
+                            const items =
+                                Array.isArray(data)
+                                    ? data
+                                    : Array.isArray(data?.results)
+                                      ? data.results
+                                      : [];
+                            if (!items.length) return false;
+                            window.mediaQueue = items;
+                            return true;
+                        }
+
+                        // Use POST so we can send preview config without encoding into the URL.
+                        const layoutVariant = window.appConfig?.wallartMode?.layoutVariant;
+                        let previewCount = 200;
+                        if (musicMode) previewCount = 200;
+                        else if (layoutVariant === 'filmCards') previewCount = 1000;
+                        else if (gamesOnly) previewCount = 500;
+
+                        const type = (window.appConfig && window.appConfig.type) || 'movie';
+                        const resp = await fetch(`${baseUrl}/api/admin/media/preview`, {
+                            method: 'POST',
+                            credentials: 'include',
+                            cache: 'no-store',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Accept: 'application/json',
+                            },
+                            body: JSON.stringify({
+                                type,
+                                count: previewCount,
+                                musicMode: musicMode ? '1' : '0',
+                                filmCards: layoutVariant === 'filmCards' ? '1' : '0',
+                                gamesOnly: gamesOnly ? '1' : '0',
+                                wallartMode: window.appConfig?.wallartMode || {},
+                            }),
+                        });
+
+                        if (!resp.ok) {
+                            window.debugLog &&
+                                window.debugLog('WALLART_PREVIEW_MEDIA_FETCH_FAIL', {
+                                    status: resp.status,
+                                });
+                            // Fall back to public endpoint below
+                            throw new Error('preview_media_fetch_failed');
+                        }
+
+                        const data = await resp.json();
+                        const items =
+                            Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+                        if (!items.length) return false;
+                        window.mediaQueue = items;
+                        return true;
+                    }
+
+                    // Non-preview (or no special mode): fall back to public endpoints.
+                    // Games-only mode: fetch games from RomM
+                    if (gamesOnly) {
                         // Games-only mode: fetch games from RomM
                         const gameCount = 100; // Default game count
                         url = `${baseUrl}/get-media?count=${gameCount}&gamesOnly=1`;
@@ -350,6 +443,36 @@
                         // Regular media fetching (movies/TV)
                         let count;
                         if (musicMode) {
+                            // Artist Cards requires special endpoint with artist photos + discographies.
+                            if (musicDisplayStyle === 'artist-cards') {
+                                const artistCount = 50;
+                                url = `${baseUrl}/get-music-artists?count=${artistCount}`;
+                                window.debugLog &&
+                                    window.debugLog('WALLART_FETCH_MUSIC_ARTISTS', {
+                                        url,
+                                        artistCount,
+                                    });
+
+                                const res = await fetch(url, {
+                                    method: 'GET',
+                                    cache: force ? 'no-store' : 'default',
+                                    headers: { Accept: 'application/json' },
+                                    credentials: 'same-origin',
+                                    mode: 'cors',
+                                });
+                                if (!res.ok) return false;
+                                const data = await res.json();
+                                const items =
+                                    Array.isArray(data)
+                                        ? data
+                                        : Array.isArray(data?.results)
+                                          ? data.results
+                                          : [];
+                                if (!items.length) return false;
+                                window.mediaQueue = items;
+                                return true;
+                            }
+
                             count = 500; // Balanced count for reasonable loading time and variety
                         } else {
                             // Check if filmCards layout is active - needs more films for grouping
@@ -384,7 +507,7 @@
                     // Safari-compatible fetch - use short-term cache for faster reloads
                     const res = await fetch(url, { 
                         method: 'GET',
-                        cache: 'default', // Use browser cache for 60s (faster reloads)
+                        cache: force ? 'no-store' : 'default', // Avoid stale previews after toggles
                         headers: { 
                             'Accept': 'application/json'
                         },
@@ -456,6 +579,18 @@
                     return false;
                 }
             }
+
+            // Expose a refetch helper for live preview updates (admin iframe -> wallart preview)
+            // Signature: window.fetchMedia(force = false) -> Promise<boolean>
+            try {
+                if (typeof window.fetchMedia !== 'function') {
+                    window.fetchMedia = async function fetchMedia(force = false) {
+                        return ensureMediaQueue(!!force);
+                    };
+                }
+            } catch (_) {
+                /* best-effort */
+            }
             async function startWallartOnceReady() {
                 window.debugLog && window.debugLog('WALLART_START_ONCE_READY', {});
                 try {
@@ -474,7 +609,7 @@
                     } catch (e) { 
                         window.debugLog && window.debugLog('WALLART_DEVICE_MGMT_ERROR', { error: e.message });
                     }
-                    const hasMedia = await ensureMediaQueue();
+                    const hasMedia = await ensureMediaQueue(false);
                     if (!hasMedia) {
                         console.log('[Wallart] No media available, redirecting to no-media page');
                         window.location.replace('/no-media.html');

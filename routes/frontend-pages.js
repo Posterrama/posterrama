@@ -66,7 +66,12 @@ module.exports = function createFrontendPagesRouter({
             return html;
         }
 
-        const versions = getAssetVersions(path.dirname(publicDir));
+        const debugViewerOnDisk = path.join(publicDir, 'debug-viewer.js');
+        if (!fs.existsSync(debugViewerOnDisk)) {
+            return html;
+        }
+
+        const versions = getAssetVersions(path.resolve(publicDir, '..'));
         const debugViewerScript = `\n    <script src="/debug-viewer.js?v=${versions['debug-viewer.js'] || ASSET_VERSION}"></script>`;
 
         logger.info('[DebugViewer] Injecting debug-viewer.js script');
@@ -233,7 +238,7 @@ module.exports = function createFrontendPagesRouter({
      */
     // @ts-ignore - Express router overload issue with isAuthenticated middleware
     router.get('/performance', isAuthenticated, (req, res) => {
-        res.sendFile(path.join(__dirname, '..', 'public', 'performance.html'));
+        res.sendFile(path.join(publicDir, 'performance.html'));
     });
 
     /**

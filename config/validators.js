@@ -41,7 +41,7 @@ const schemas = {
             musicMode: Joi.object({
                 enabled: Joi.boolean().default(false),
                 displayStyle: Joi.string()
-                    .valid('covers-only', 'album-info', 'artist-cards')
+                    .valid('covers-only', 'artist-cards')
                     .default('covers-only'),
                 animation: Joi.string()
                     .valid('vinyl-spin', 'slide-fade', 'crossfade', 'flip')

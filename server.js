@@ -58,6 +58,12 @@ const {
 // Force reload environment on startup to prevent PM2 cache issues
 forceReloadEnv(__dirname);
 
+// Default to production when NODE_ENV is not set.
+// NOTE: This runs AFTER dotenv has loaded .env, so setting NODE_ENV=development in .env still works.
+if (!process.env.NODE_ENV || !String(process.env.NODE_ENV).trim()) {
+    process.env.NODE_ENV = 'production';
+}
+
 // Initialize environment (directories, .env, config.json)
 const { imageCacheDir, avatarDir } = initializeEnvironment(__dirname);
 
@@ -72,6 +78,11 @@ const { exec } = require('child_process');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
 const fsp = fs.promises;
+
+// Always serve static assets directly from public/.
+const publicDir = path.join(__dirname, 'public');
+
+logger.info(`[Server] Static files served from: ${publicDir}`);
 
 // Import Config class instance (provides methods like getTimeout())
 const config = require('./config/');
@@ -255,7 +266,7 @@ const autoUpdater = require('./utils/updater');
 // Session middleware setup (must come BEFORE any middleware/routes that access req.session)
 // Create a session store that gracefully ignores missing files (ENOENT)
 const __fileStore = new FileStore({
-    path: './sessions', // Sessions will be stored in a 'sessions' directory
+    path: path.join(__dirname, 'sessions'), // Sessions will be stored in a stable, absolute directory
     logFn: isDebug ? logger.debug : () => {},
     ttl: 86400 * 7, // Session TTL in seconds (7 days)
     reapInterval: 86400, // Clean up expired sessions once a day
@@ -280,6 +291,31 @@ if (typeof __fileStore.get === 'function') {
                 return cb(null, null);
             }
             return cb(e);
+        }
+    };
+}
+
+// express-session may call store.touch() (rolling sessions) to extend TTL without rewriting the whole session.
+// session-file-store's touch() reads the session file first; if the file was reaped/removed, it can throw ENOENT.
+// Treat that as benign to avoid noisy 500s and SSE reconnect loops.
+if (typeof __fileStore.touch === 'function') {
+    const __origTouch = __fileStore.touch.bind(__fileStore);
+    __fileStore.touch = (sid, sess, cb) => {
+        const callback = typeof cb === 'function' ? cb : () => {};
+        try {
+            __origTouch(sid, sess, err => {
+                if (err && (err.code === 'ENOENT' || /ENOENT/.test(String(err.message)))) {
+                    logger.debug?.(`[Session] ENOENT on touch for sid ${sid} — ignoring`);
+                    return callback(null);
+                }
+                return callback(err);
+            });
+        } catch (e) {
+            if (e && (e.code === 'ENOENT' || /ENOENT/.test(String(e.message)))) {
+                logger.debug?.(`[Session] ENOENT (thrown) on touch for sid ${sid} — ignoring`);
+                return callback(null);
+            }
+            return callback(e);
         }
     };
 }
@@ -889,7 +925,7 @@ const frontendPagesRouter = createFrontendPagesRouter({
     getAssetVersions,
     ASSET_VERSION,
     logger,
-    publicDir: path.join(__dirname, 'public'),
+    publicDir,
     getConfig: () => config,
 });
 app.use('/', frontendPagesRouter);
@@ -2133,7 +2169,8 @@ app.use((req, res, next) => {
 // Serve wallart.html with asset version stamping
 app.get(['/wallart', '/wallart.html'], (req, res) => {
     logger.info('[WALLART ROUTE] Serving wallart.html with asset versioning');
-    const filePath = path.join(__dirname, 'public', 'wallart.html');
+    const filePath = path.join(publicDir, 'wallart.html');
+
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) {
             logger.error('Error reading wallart.html:', err);
@@ -2144,7 +2181,7 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
         const crypto = require('crypto');
         const generateVersion = assetPath => {
             try {
-                const fullPath = path.join(__dirname, 'public', assetPath);
+                const fullPath = path.join(publicDir, assetPath);
                 const stats = fs.statSync(fullPath);
                 const hash = crypto
                     .createHash('sha1')
@@ -2219,12 +2256,7 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
     });
 });
 
-// Serve static files - always use public/ directory for now (vite build disabled for troubleshooting)
-const publicDir = path.join(__dirname, 'public');
-
-logger.info(
-    `[Server] Static files served from: ${publicDir} (NODE_ENV=${process.env.NODE_ENV || 'development'})`
-);
+// Serve static files from public/
 app.use(express.static(publicDir));
 
 // Block Next.js routes early to prevent MIME type errors from JSON 404 responses
@@ -2883,7 +2915,7 @@ app.get('/api-docs/swagger.json', (req, res) => {
 
 // Scalar API documentation (modern interactive docs with Try It functionality)
 app.get('/api-docs', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'api-docs-scalar.html'));
+    res.sendFile(path.join(publicDir, 'api-docs-scalar.html'));
 });
 
 // General request logger for debugging
@@ -2990,8 +3022,8 @@ app.get('/admin', (req, res) => {
     // If setup is done, the isAuthenticated middleware will handle the rest
     isAuthenticated(req, res, () => {
         // Generate cache buster based on file modification times for better caching
-        const cssPath = path.join(__dirname, 'public', 'admin.css');
-        const jsPath = path.join(__dirname, 'public', 'admin.js');
+        const cssPath = path.join(publicDir, 'admin.css');
+        const jsPath = path.join(publicDir, 'admin.js');
 
         try {
             const cssStats = fs.statSync(cssPath);
@@ -3000,7 +3032,7 @@ app.get('/admin', (req, res) => {
             const jsCacheBuster = jsStats.mtime.getTime();
 
             // Read admin.html and inject cache busters
-            fs.readFile(path.join(__dirname, 'public', 'admin.html'), 'utf8', (err, data) => {
+            fs.readFile(path.join(publicDir, 'admin.html'), 'utf8', (err, data) => {
                 if (err) {
                     logger.error('Error reading admin.html:', err);
                     return res.status(500).send('Internal Server Error');
@@ -3037,7 +3069,7 @@ app.get('/admin', (req, res) => {
             );
             const fallbackCacheBuster = Date.now();
 
-            fs.readFile(path.join(__dirname, 'public', 'admin.html'), 'utf8', (err, data) => {
+            fs.readFile(path.join(publicDir, 'admin.html'), 'utf8', (err, data) => {
                 if (err) {
                     logger.error('Error reading admin.html:', err);
                     return res.status(500).send('Internal Server Error');
@@ -3088,7 +3120,8 @@ app.get('/admin', (req, res) => {
 // @ts-ignore - Express router overload with middleware
 app.get('/admin/logs', isAuthenticated, (req, res) => {
     // This route serves the dedicated live log viewer page with auto-versioning.
-    const filePath = path.join(__dirname, 'public', 'logs.html');
+    const filePath = path.join(publicDir, 'logs.html');
+
     fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) {
             logger.error('Error reading logs.html:', err);
@@ -3367,6 +3400,17 @@ app.get('/api/health', (req, res, next) => {
     req.url = '/health' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
     req.originalUrl = '/health';
     app._router.handle(req, res, next);
+});
+
+// Compatibility endpoint: older cached clients may still probe this route.
+// Posterrama now always serves static assets from public/.
+app.get('/api/frontend/static-dir', (req, res) => {
+    res.json({
+        mode: 'public',
+        publicDir: 'public',
+        staticPath: publicDir,
+        assetVersion: ASSET_VERSION,
+    });
 });
 
 /**
@@ -6955,6 +6999,11 @@ if (require.main === module) {
         const sitePort = config.siteServer.port || 4001;
         const mainAppUrl = `http://localhost:${port}`; // 'port' is the main app's port
 
+        // Site server may proxy a small set of API requests (including POST for admin preview).
+        // We parse JSON bodies so we can forward them to the main app.
+        // Keep the limit modest; this is only used for settings/preview payloads.
+        siteApp.use(express.json({ limit: '1mb' }));
+
         // A simple proxy for API requests to the main application.
         // This ensures that the public site can fetch data without exposing admin endpoints.
         const proxyApiRequest = async (req, res) => {
@@ -6962,7 +7011,31 @@ if (require.main === module) {
             try {
                 if (isDebug)
                     logger.debug(`[Site Server Proxy] Forwarding request to: ${targetUrl}`);
-                const response = await fetch(targetUrl);
+
+                // Forward method, headers (including cookies/auth), and body when present.
+                // This is required for authenticated admin preview endpoints.
+                const method = (req.method || 'GET').toUpperCase();
+                const headers = { ...(req.headers || {}) };
+                // Ensure Host header matches target; let fetch set it.
+                delete headers.host;
+                // Content-Length may not match after body re-serialization.
+                delete headers['content-length'];
+
+                let body;
+                if (!['GET', 'HEAD'].includes(method)) {
+                    // Only support JSON payloads for proxy POST/PUT/PATCH.
+                    // For other body types, fall back to an empty body.
+                    const ct = String(headers['content-type'] || '').toLowerCase();
+                    if (ct.includes('application/json')) {
+                        body = JSON.stringify(req.body || {});
+                    }
+                }
+
+                const response = await fetch(targetUrl, {
+                    method,
+                    headers,
+                    body,
+                });
 
                 // Intercept /get-config to add flags for the promo site.
                 // Force screensaver mode + promo box for the public site (port 4001)
@@ -7037,6 +7110,13 @@ if (require.main === module) {
         siteApp.get('/image', proxyApiRequest);
         siteApp.get('/local-posterpack', proxyApiRequest);
 
+        // Compatibility endpoint (always public/)
+        siteApp.get('/api/frontend/static-dir', proxyApiRequest);
+
+        // Admin preview endpoint (authenticated): required for live preview of UNSAVED settings.
+        // This is not exposed without valid session/token.
+        siteApp.post('/api/admin/media/preview', proxyApiRequest);
+
         // Proxy mode pages (cinema, wallart, screensaver) to main app for asset stamping
         siteApp.get(['/cinema', '/cinema.html'], proxyApiRequest);
         siteApp.get(['/wallart', '/wallart.html'], proxyApiRequest);
@@ -7063,7 +7143,7 @@ if (require.main === module) {
         siteApp.get('/', (req, res) => {
             // Serve index.html which will redirect to the appropriate mode
             // The config intercept adds promoBoxEnabled:true, and mode pages load the overlay
-            res.sendFile(path.join(__dirname, 'public', 'index.html'));
+            res.sendFile(path.join(publicDir, 'index.html'));
         });
 
         // Disable caching for admin files on site server too

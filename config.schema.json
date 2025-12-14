@@ -285,9 +285,9 @@
                         },
                         "displayStyle": {
                             "type": "string",
-                            "enum": ["covers-only", "album-info", "artist-cards"],
+                            "enum": ["covers-only", "artist-cards"],
                             "default": "covers-only",
-                            "description": "Display style: covers-only (minimal), album-info (with metadata), artist-cards (artist-focused)"
+                            "description": "Display style: covers-only (minimal), artist-cards (artist-focused)"
                         },
                         "animation": {
                             "type": "string",
@@ -316,22 +316,22 @@
                         "showArtist": {
                             "type": "boolean",
                             "default": true,
-                            "description": "Show artist name overlay (covers-only style)"
+                            "description": "Show artist name overlay"
                         },
                         "showAlbumTitle": {
                             "type": "boolean",
                             "default": true,
-                            "description": "Show album title (album-info style)"
+                            "description": "Show album title"
                         },
                         "showYear": {
                             "type": "boolean",
                             "default": true,
-                            "description": "Show release year (album-info style)"
+                            "description": "Show release year"
                         },
                         "showGenre": {
                             "type": "boolean",
                             "default": false,
-                            "description": "Show genre tag (album-info style)"
+                            "description": "Show genre tag"
                         },
                         "artistRotationSeconds": {
                             "type": "integer",
@@ -1098,7 +1098,7 @@
                     "type": "number",
                     "minimum": 0,
                     "maximum": 60,
-                    "default": 0,
+                    "default": 5,
                     "description": "Poster/stream rotation interval in minutes. Supports decimals (0.5 = 30 seconds). 0 = disabled. Also used for multi-stream Now Playing rotation."
                 },
                 "poster": {
@@ -1663,7 +1663,7 @@
                     "fallbackToRotation": true,
                     "updateIntervalSeconds": 15
                 },
-                "rotationIntervalMinutes": 0,
+                "rotationIntervalMinutes": 5,
                 "presets": {
                     "headerTexts": [
                         "Coming Soon",

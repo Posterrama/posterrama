@@ -201,7 +201,7 @@ Local library: Add your own artwork with a simple upload—posters, cinematic ba
 
 - Realtime preview — see changes instantly while you configure. Most settings hot‑reload without a restart; the display updates live as you tweak options.
 
-### Device management (beta)
+### Device management
 
 <figure>
   <img src="./screenshots/device_management.png" alt="Device Management" width="740">
@@ -328,3 +328,10 @@ Everything is managed through a clear dashboard—no coding required.
 ## License
 
 GPL-3.0-or-later – See [LICENSE](LICENSE) for details.
+
+---
+
+## Development vs production
+
+- Static frontend assets are always served from `public/`.
+- Use `NODE_ENV=production` (default) for production behavior; set `NODE_ENV=development` (for example in `.env`) during development.

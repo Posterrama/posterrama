@@ -32,7 +32,7 @@
     // ===== Cinema Mode Configuration =====
     const cinemaConfig = {
         orientation: 'auto', // auto, portrait, portrait-flipped
-        rotationIntervalMinutes: 0, // 0 = disabled, supports decimals (0.5 = 30 seconds)
+        rotationIntervalMinutes: 5, // 0 = disabled, supports decimals (0.5 = 30 seconds)
         header: {
             enabled: true,
             text: 'Now Playing',

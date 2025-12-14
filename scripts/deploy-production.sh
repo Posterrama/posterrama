@@ -1,6 +1,6 @@
 #!/bin/bash
 # Posterrama Production Deployment Script
-# Builds frontend with Vite and restarts PM2 with production environment
+# Restarts PM2 with production environment
 
 set -e  # Exit on error
 
@@ -14,36 +14,13 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
-# Step 1: Build frontend with Vite
-echo "📦 Step 1: Building frontend with Vite..."
-npm run build
-
-if [ $? -ne 0 ]; then
-    echo "❌ Build failed! Aborting deployment."
-    exit 1
-fi
-
-echo "✅ Frontend build complete!"
-echo ""
-
-# Step 2: Check if dist/public exists
-if [ ! -d "dist/public" ]; then
-    echo "❌ Error: dist/public directory not found after build."
-    exit 1
-fi
-
-# Show build output size
-echo "📊 Build output:"
-du -sh dist/public/
-echo ""
-
-# Step 3: Stop PM2 process
-echo "🛑 Step 2: Stopping PM2 process..."
+# Step 1: Stop PM2 process
+echo "🛑 Step 1: Stopping PM2 process..."
 pm2 stop posterrama 2>/dev/null || echo "⚠️  posterrama not running"
 echo ""
 
-# Step 4: Start PM2 with production environment
-echo "🚀 Step 3: Starting PM2 in production mode..."
+# Step 2: Start PM2 with production environment
+echo "🚀 Step 2: Starting PM2 in production mode..."
 pm2 delete posterrama 2>/dev/null || true  # Delete old process
 pm2 start ecosystem.config.js
 
@@ -55,8 +32,8 @@ fi
 echo "✅ PM2 started successfully!"
 echo ""
 
-# Step 5: Save PM2 configuration
-echo "💾 Step 4: Saving PM2 configuration..."
+# Step 3: Save PM2 configuration
+echo "💾 Step 3: Saving PM2 configuration..."
 pm2 save
 
 echo ""

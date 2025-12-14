@@ -107,8 +107,15 @@ function error(err, req, res, _next) {
     // Log the error with appropriate severity
     const logPayload = { stack: err.stack, timestamp };
     if (isSessionENOENT) {
-        // Benign/ephemeral in file-session-store; treat as warning to reduce noise
-        logger.warn(
+        // Benign/ephemeral in file-session-store.
+        // For SSE streams, this can otherwise become very noisy due to automatic reconnects.
+        const isSsePath =
+            req.path === '/api/admin/logs/stream' ||
+            req.path === '/api/admin/events' ||
+            (typeof req.headers.accept === 'string' &&
+                req.headers.accept.includes('text/event-stream'));
+        const logFn = isSsePath ? logger.debug : logger.warn;
+        logFn(
             `[Error Handler] Caught (session ENOENT) for ${req.method} ${req.path}: ${err.message}`,
             logPayload
         );

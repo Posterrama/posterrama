@@ -144,7 +144,7 @@
                 "pausedIndicator": true
             }
         },
-        "rotationIntervalMinutes": 0,
+        "rotationIntervalMinutes": 5,
         "presets": {
             "headerTexts": [
                 "Coming Soon",

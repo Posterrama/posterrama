@@ -933,54 +933,6 @@
             "default": "high"
         },
         {
-            "id": "wallart-music-show-artist",
-            "title": "Show Artist Name",
-            "category": "Wallart",
-            "keywords": ["music", "artist", "name", "text"],
-            "description": "Display the artist name.",
-            "help": "Shows the artist/band name below or on the album cover.",
-            "section": "display",
-            "showMode": "wallart",
-            "setting": "wallartMode_musicMode_showArtist",
-            "default": "Enabled"
-        },
-        {
-            "id": "wallart-music-show-album",
-            "title": "Show Album Title",
-            "category": "Wallart",
-            "keywords": ["music", "album", "title", "name"],
-            "description": "Display the album title.",
-            "help": "Shows the album name below or on the cover.",
-            "section": "display",
-            "showMode": "wallart",
-            "setting": "wallartMode_musicMode_showAlbumTitle",
-            "default": "Enabled"
-        },
-        {
-            "id": "wallart-music-show-year",
-            "title": "Show Release Year",
-            "category": "Wallart",
-            "keywords": ["music", "year", "release", "date"],
-            "description": "Display the album's release year.",
-            "help": "Shows when the album was released.",
-            "section": "display",
-            "showMode": "wallart",
-            "setting": "wallartMode_musicMode_showYear",
-            "default": "Enabled"
-        },
-        {
-            "id": "wallart-music-show-genre",
-            "title": "Show Genre",
-            "category": "Wallart",
-            "keywords": ["music", "genre", "category", "type"],
-            "description": "Display the music genre.",
-            "help": "Shows the genre (Rock, Jazz, Electronic, etc.) for each album.",
-            "section": "display",
-            "showMode": "wallart",
-            "setting": "wallartMode_musicMode_showGenre",
-            "default": "Disabled"
-        },
-        {
             "id": "wallart-music-artist-rotation",
             "title": "Artist Rotation Time",
             "category": "Wallart",
