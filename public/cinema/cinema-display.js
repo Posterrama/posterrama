@@ -617,18 +617,25 @@
         // Clear existing content
         footerEl.innerHTML = '';
 
-        // Helper to calculate marquee duration based on text length
+        // Helper to calculate marquee duration and start animation
         // Target: ~60 pixels per second for consistent reading speed
-        const calculateMarqueeDuration = textEl => {
+        const startMarquee = textEl => {
             // Wait for element to be in DOM to measure
             requestAnimationFrame(() => {
                 const textWidth = textEl.scrollWidth;
                 const viewportWidth = window.innerWidth;
-                // Total distance = text width + viewport width (start off-screen, end off-screen)
+                // Total distance = text exits right edge + travels full viewport + text width
                 const totalDistance = textWidth + viewportWidth;
                 // Speed: 60 pixels per second, minimum 10s, maximum 40s
                 const duration = Math.max(10, Math.min(40, totalDistance / 60));
                 textEl.style.animationDuration = `${duration}s`;
+
+                // Reset animation to start fresh
+                textEl.classList.remove('running');
+                // Force reflow to reset animation
+                void textEl.offsetWidth;
+                // Start the animation
+                textEl.classList.add('running');
             });
         };
 
@@ -644,8 +651,8 @@
             marqueeDiv.appendChild(marqueeText);
             footerEl.appendChild(marqueeDiv);
 
-            // Calculate dynamic duration
-            calculateMarqueeDuration(marqueeText);
+            // Calculate duration and start animation
+            startMarquee(marqueeText);
 
             log('Cinema footer marquee created', {
                 text: cinemaConfig.footer.marqueeText,
@@ -981,8 +988,8 @@
                 marqueeDiv.appendChild(marqueeContent);
                 footerEl.appendChild(marqueeDiv);
 
-                // Calculate dynamic duration based on text length
-                calculateMarqueeDuration(marqueeContent);
+                // Calculate duration and start animation
+                startMarquee(marqueeContent);
 
                 log('Cinema footer tagline marquee created', {
                     tagline: displayText,
