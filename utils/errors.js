@@ -28,15 +28,20 @@ class SourceError extends Error {
      * @param {string} message - Human-readable error message
      * @param {Partial<ErrorOptions>} options - Error context
      */
-    constructor(message, options = {}) {
+    constructor(message, options) {
+        const safeOptions = options || {};
+
         super(message);
         this.name = this.constructor.name;
-        this.source = options.source;
-        this.operation = options.operation;
-        this.isRetryable = options.isRetryable || false;
-        this.context = options.context || {};
+        this.source = safeOptions.source;
+        this.operation = safeOptions.operation;
+        this.isRetryable = Boolean(safeOptions.isRetryable);
+        this.context = {};
+        if (safeOptions.context) {
+            this.context = safeOptions.context;
+        }
         this.timestamp = new Date().toISOString();
-        this.cause = options.cause;
+        this.cause = safeOptions.cause;
 
         // Preserve stack trace
         if (Error.captureStackTrace) {
@@ -49,6 +54,11 @@ class SourceError extends Error {
      * @returns {Object} Structured error object
      */
     toJSON() {
+        let causeMessage;
+        if (this.cause) {
+            causeMessage = this.cause.message;
+        }
+
         return {
             name: this.name,
             message: this.message,
@@ -58,7 +68,7 @@ class SourceError extends Error {
             context: this.context,
             timestamp: this.timestamp,
             stack: this.stack,
-            cause: this.cause ? this.cause.message : undefined,
+            cause: causeMessage,
         };
     }
 }
@@ -68,10 +78,11 @@ class SourceError extends Error {
  * These are typically transient and retryable
  */
 class NetworkError extends SourceError {
-    constructor(message, options = {}) {
-        super(message, { ...options, isRetryable: true });
-        this.statusCode = options.statusCode;
-        this.code = options.code; // ECONNREFUSED, ETIMEDOUT, etc.
+    constructor(message, options) {
+        const safeOptions = options || {};
+        super(message, { ...safeOptions, isRetryable: true });
+        this.statusCode = safeOptions.statusCode;
+        this.code = safeOptions.code; // ECONNREFUSED, ETIMEDOUT, etc.
     }
 }
 
@@ -80,9 +91,10 @@ class NetworkError extends SourceError {
  * These are NOT retryable - credentials need to be fixed
  */
 class AuthError extends SourceError {
-    constructor(message, options = {}) {
-        super(message, { ...options, isRetryable: false });
-        this.statusCode = options.statusCode;
+    constructor(message, options) {
+        const safeOptions = options || {};
+        super(message, { ...safeOptions, isRetryable: false });
+        this.statusCode = safeOptions.statusCode;
     }
 }
 
@@ -91,9 +103,10 @@ class AuthError extends SourceError {
  * These are NOT retryable - config needs to be fixed
  */
 class ConfigError extends SourceError {
-    constructor(message, options = {}) {
-        super(message, { ...options, isRetryable: false });
-        this.configKey = options.configKey; // Which config key is missing/invalid
+    constructor(message, options) {
+        const safeOptions = options || {};
+        super(message, { ...safeOptions, isRetryable: false });
+        this.configKey = safeOptions.configKey; // Which config key is missing/invalid
     }
 }
 
@@ -102,9 +115,10 @@ class ConfigError extends SourceError {
  * These are retryable - might succeed on retry
  */
 class TimeoutError extends SourceError {
-    constructor(message, options = {}) {
-        super(message, { ...options, isRetryable: true });
-        this.timeout = options.timeout; // Timeout value in ms
+    constructor(message, options) {
+        const safeOptions = options || {};
+        super(message, { ...safeOptions, isRetryable: true });
+        this.timeout = safeOptions.timeout; // Timeout value in ms
     }
 }
 
@@ -113,9 +127,10 @@ class TimeoutError extends SourceError {
  * These are NOT retryable - response format is wrong
  */
 class ParseError extends SourceError {
-    constructor(message, options = {}) {
-        super(message, { ...options, isRetryable: false });
-        this.rawData = options.rawData; // Raw data that failed to parse
+    constructor(message, options) {
+        const safeOptions = options || {};
+        super(message, { ...safeOptions, isRetryable: false });
+        this.rawData = safeOptions.rawData; // Raw data that failed to parse
     }
 }
 
@@ -124,10 +139,11 @@ class ParseError extends SourceError {
  * Always retryable with exponential backoff
  */
 class RateLimitError extends SourceError {
-    constructor(message, options = {}) {
-        super(message, { ...options, isRetryable: true, statusCode: 429 });
+    constructor(message, options) {
+        const safeOptions = options || {};
+        super(message, { ...safeOptions, isRetryable: true, statusCode: 429 });
         this.statusCode = 429;
-        this.retryAfter = options.retryAfter; // Seconds to wait before retry
+        this.retryAfter = safeOptions.retryAfter; // Seconds to wait before retry
     }
 }
 
@@ -174,7 +190,6 @@ class ApiError extends Error {
         // Specific retryable 4xx codes
         if (statusCode === 408) return true; // Request Timeout
         if (statusCode === 429) return true; // Too Many Requests
-        if (statusCode === 503) return true; // Service Unavailable
 
         // All other codes: not retryable
         return false;
@@ -226,10 +241,11 @@ function normalizeError(error, context) {
     // Axios error with response
     if (error.response) {
         const { status, statusText, data } = error.response;
-        const message = `${statusText || 'API Error'}: ${status}`;
+        const baseStatusText = statusText ? statusText : 'API Error';
+        const message = `${baseStatusText}: ${status}`;
 
         // Auth errors
-        if (status === 401 || status === 403) {
+        if ([401, 403].includes(status)) {
             return new AuthError(message, {
                 ...context,
                 statusCode: status,
@@ -261,7 +277,11 @@ function normalizeError(error, context) {
 
     // Axios error without response (network error)
     if (error.request) {
-        return new NetworkError(error.message || 'Network error', {
+        let networkMessage = 'Network error';
+        if (error.message) {
+            networkMessage = error.message;
+        }
+        return new NetworkError(networkMessage, {
             ...context,
             code: error.code,
             cause: error,
@@ -269,8 +289,12 @@ function normalizeError(error, context) {
     }
 
     // Timeout errors
-    if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKETTIMEDOUT') {
-        return new TimeoutError(error.message || 'Request timeout', {
+    if (['ETIMEDOUT', 'ESOCKETTIMEDOUT'].includes(error.code)) {
+        let timeoutMessage = 'Request timeout';
+        if (error.message) {
+            timeoutMessage = error.message;
+        }
+        return new TimeoutError(timeoutMessage, {
             ...context,
             code: error.code,
             cause: error,
@@ -278,24 +302,49 @@ function normalizeError(error, context) {
     }
 
     // Parse errors
-    if (error instanceof SyntaxError || error.name === 'SyntaxError') {
-        return new ParseError(error.message || 'Failed to parse response', {
+    if (error instanceof SyntaxError) {
+        let parseMessage = 'Failed to parse response';
+        if (error.message) {
+            parseMessage = error.message;
+        }
+        return new ParseError(parseMessage, {
+            ...context,
+            cause: error,
+        });
+    }
+
+    if (error && error.name === 'SyntaxError') {
+        let parseMessage = 'Failed to parse response';
+        if (error.message) {
+            parseMessage = error.message;
+        }
+        return new ParseError(parseMessage, {
             ...context,
             cause: error,
         });
     }
 
     // Generic network errors (ECONNREFUSED, ENOTFOUND, etc.)
-    if (error.code && error.code.startsWith('E')) {
-        return new NetworkError(error.message || 'Network error', {
-            ...context,
-            code: error.code,
-            cause: error,
-        });
+    if (error && typeof error.code === 'string') {
+        if (error.code.startsWith('E')) {
+            let networkMessage = 'Network error';
+            if (error.message) {
+                networkMessage = error.message;
+            }
+            return new NetworkError(networkMessage, {
+                ...context,
+                code: error.code,
+                cause: error,
+            });
+        }
     }
 
     // Unknown error - wrap as generic SourceError
-    return new SourceError(error.message || 'Unknown error', {
+    let unknownMessage = 'Unknown error';
+    if (error && error.message) {
+        unknownMessage = error.message;
+    }
+    return new SourceError(unknownMessage, {
         ...context,
         isRetryable: false,
         cause: error,

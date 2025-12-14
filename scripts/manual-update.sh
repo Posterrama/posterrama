@@ -86,7 +86,6 @@ echo -e "${YELLOW}Backing up configuration...${NC}"
 BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 cp config.json "config.json.backup.${BACKUP_TIMESTAMP}"
 [ -f devices.json ] && cp devices.json "devices.json.backup.${BACKUP_TIMESTAMP}"
-[ -f groups.json ] && cp groups.json "groups.json.backup.${BACKUP_TIMESTAMP}"
 [ -f .env ] && cp .env ".env.backup.${BACKUP_TIMESTAMP}"
 
 # Remove old code (keep data directories)
@@ -101,7 +100,6 @@ cp -r "/tmp/posterrama-${VERSION#v}"/* .
 echo -e "${YELLOW}Restoring configuration files...${NC}"
 cp "config.json.backup.${BACKUP_TIMESTAMP}" config.json
 [ -f "devices.json.backup.${BACKUP_TIMESTAMP}" ] && cp "devices.json.backup.${BACKUP_TIMESTAMP}" devices.json
-[ -f "groups.json.backup.${BACKUP_TIMESTAMP}" ] && cp "groups.json.backup.${BACKUP_TIMESTAMP}" groups.json
 [ -f ".env.backup.${BACKUP_TIMESTAMP}" ] && cp ".env.backup.${BACKUP_TIMESTAMP}" .env
 
 # Install dependencies

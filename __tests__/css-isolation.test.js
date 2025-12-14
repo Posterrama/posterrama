@@ -19,7 +19,7 @@ describe('CSS Isolation', () => {
     });
 
     describe('Shared ID usage across modes', () => {
-        const sharedIds = ['loader', 'error-message', 'info-container', 'poster-wrapper', 'poster'];
+        const sharedIds = ['error-message', 'info-container', 'poster-wrapper', 'poster'];
 
         const modes = [
             { path: '/cinema', name: 'Cinema' },
@@ -42,7 +42,7 @@ describe('CSS Isolation', () => {
                 expect(foundIds.length).toBeGreaterThan(0);
 
                 // Document which IDs are used
-                expect(html).toMatch(/id=["']loader["']/i);
+                expect(html).toMatch(/id=["']error-message["']/i);
             });
         });
 
@@ -54,8 +54,8 @@ describe('CSS Isolation', () => {
             const previewHtml = previewResponse.text;
 
             // Both should have loader
-            expect(wallartHtml).toMatch(/id=["']loader["']/i);
-            expect(previewHtml).toMatch(/id=["']loader["']/i);
+            expect(wallartHtml).toMatch(/id=["']error-message["']/i);
+            expect(previewHtml).toMatch(/id=["']error-message["']/i);
 
             // Both should have poster-wrapper
             expect(wallartHtml).toMatch(/id=["']poster-wrapper["']/i);
@@ -71,7 +71,7 @@ describe('CSS Isolation', () => {
             const html = response.text;
 
             // Preview page has same mode IDs as regular mode
-            expect(html).toMatch(/id=["']loader["']/i);
+            expect(html).toMatch(/id=["']error-message["']/i);
             expect(html).toMatch(/id=["']poster-wrapper["']/i);
 
             // Preview pages are loaded in iframes by admin, preventing CSS conflicts

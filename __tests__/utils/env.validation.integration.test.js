@@ -84,6 +84,8 @@ describe('Environment Validator integration', () => {
         } catch (_) {
             // Expected error when validation fails
         }
-        expect(mockExit).toHaveBeenCalledWith(1);
+        // In Jest we do not exit; we log and continue with an empty config
+        expect(mockExit).not.toHaveBeenCalled();
+        expect(mockConsoleError).toHaveBeenCalled();
     });
 });

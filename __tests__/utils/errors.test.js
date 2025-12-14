@@ -64,6 +64,34 @@ describe('SourceError', () => {
         expect(json.timestamp).toBeTruthy();
         expect(json.stack).toBeTruthy();
     });
+
+    it('should serialize cause message when present', () => {
+        const originalError = new Error('Original error');
+        const error = new SourceError('Wrapped', {
+            source: 'tmdb',
+            operation: 'search',
+            cause: originalError,
+        });
+
+        const json = error.toJSON();
+        expect(json.cause).toBe('Original error');
+    });
+
+    it('should not rely on Error.captureStackTrace', () => {
+        const originalCapture = Error.captureStackTrace;
+        Error.captureStackTrace = undefined;
+        try {
+            const error = new SourceError('No captureStackTrace', {
+                source: 'plex',
+                operation: 'fetchMedia',
+            });
+
+            expect(error).toBeInstanceOf(Error);
+            expect(error.stack).toBeTruthy();
+        } finally {
+            Error.captureStackTrace = originalCapture;
+        }
+    });
 });
 
 describe('NetworkError', () => {
@@ -167,6 +195,16 @@ describe('RateLimitError', () => {
     });
 });
 
+describe('Error constructors (default options)', () => {
+    it('should allow constructing errors without options arg', () => {
+        expect(new SourceError('x')).toBeInstanceOf(Error);
+        expect(new NetworkError('x')).toBeInstanceOf(Error);
+        expect(new AuthError('x')).toBeInstanceOf(Error);
+        expect(new ConfigError('x')).toBeInstanceOf(Error);
+        expect(new TimeoutError('x')).toBeInstanceOf(Error);
+    });
+});
+
 describe('normalizeError', () => {
     const context = { source: 'plex', operation: 'fetchMedia' };
 
@@ -222,6 +260,36 @@ describe('normalizeError', () => {
         expect(normalized.retryAfter).toBe(120);
     });
 
+    it('should handle axios 429 without retry-after header', () => {
+        const axiosError = {
+            response: {
+                status: 429,
+                statusText: 'Too Many Requests',
+                data: { error: 'Rate limit exceeded' },
+                headers: {},
+            },
+        };
+
+        const normalized = normalizeError(axiosError, context);
+        expect(normalized).toBeInstanceOf(RateLimitError);
+        expect(normalized.retryAfter).toBeUndefined();
+    });
+
+    it('should fall back to default statusText when missing', () => {
+        const axiosError = {
+            response: {
+                status: 500,
+                statusText: '',
+                data: { error: 'Server error' },
+            },
+        };
+
+        const normalized = normalizeError(axiosError, context);
+        expect(normalized).toBeInstanceOf(SourceError);
+        expect(normalized.message).toContain('API Error');
+        expect(normalized.isRetryable).toBe(true);
+    });
+
     it('should convert axios 500 to retryable SourceError', () => {
         const axiosError = {
             response: {
@@ -263,9 +331,28 @@ describe('normalizeError', () => {
         expect(normalized.code).toBe('ECONNREFUSED');
     });
 
+    it('should fall back to default message for axios network error', () => {
+        const axiosError = {
+            request: {},
+            code: 'ECONNRESET',
+        };
+
+        const normalized = normalizeError(axiosError, context);
+        expect(normalized).toBeInstanceOf(NetworkError);
+        expect(normalized.message).toBe('Network error');
+        expect(normalized.code).toBe('ECONNRESET');
+    });
+
     it('should convert ETIMEDOUT to TimeoutError', () => {
-        const timeoutError = new Error('Request timeout');
-        timeoutError.code = 'ETIMEDOUT';
+        const timeoutError = { message: 'Request timeout', code: 'ETIMEDOUT' };
+
+        const normalized = normalizeError(timeoutError, context);
+        expect(normalized).toBeInstanceOf(TimeoutError);
+        expect(normalized.isRetryable).toBe(true);
+    });
+
+    it('should convert ESOCKETTIMEDOUT to TimeoutError', () => {
+        const timeoutError = { message: 'Socket timeout', code: 'ESOCKETTIMEDOUT' };
 
         const normalized = normalizeError(timeoutError, context);
         expect(normalized).toBeInstanceOf(TimeoutError);
@@ -274,6 +361,14 @@ describe('normalizeError', () => {
 
     it('should convert SyntaxError to ParseError', () => {
         const syntaxError = new SyntaxError('Unexpected token < in JSON');
+
+        const normalized = normalizeError(syntaxError, context);
+        expect(normalized).toBeInstanceOf(ParseError);
+        expect(normalized.isRetryable).toBe(false);
+    });
+
+    it('should convert name-only SyntaxError to ParseError', () => {
+        const syntaxError = { name: 'SyntaxError', message: 'Bad JSON' };
 
         const normalized = normalizeError(syntaxError, context);
         expect(normalized).toBeInstanceOf(ParseError);
@@ -289,11 +384,30 @@ describe('normalizeError', () => {
         expect(normalized.isRetryable).toBe(true);
     });
 
+    it('should fall back to default message for generic network errors', () => {
+        const netError = { code: 'ECONNREFUSED' };
+
+        const normalized = normalizeError(netError, context);
+        expect(normalized).toBeInstanceOf(NetworkError);
+        expect(normalized.message).toBe('Network error');
+        expect(normalized.code).toBe('ECONNREFUSED');
+    });
+
     it('should wrap unknown error as non-retryable SourceError', () => {
         const unknownError = new Error('Something went wrong');
 
         const normalized = normalizeError(unknownError, context);
         expect(normalized).toBeInstanceOf(SourceError);
+        expect(normalized.isRetryable).toBe(false);
+        expect(normalized.cause).toBe(unknownError);
+    });
+
+    it('should handle unknown errors without a message', () => {
+        const unknownError = {};
+
+        const normalized = normalizeError(unknownError, context);
+        expect(normalized).toBeInstanceOf(SourceError);
+        expect(normalized.message).toBe('Unknown error');
         expect(normalized.isRetryable).toBe(false);
         expect(normalized.cause).toBe(unknownError);
     });

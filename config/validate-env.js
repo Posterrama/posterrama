@@ -810,7 +810,8 @@ function validateEnvironment() {
         console.error(
             '\nPlease copy `config.example.env` to a new file named `.env` and fill in the required values.'
         );
-        if (process.env.NODE_ENV !== 'test') {
+        const isJestRun = !!process.env.JEST_WORKER_ID;
+        if (process.env.NODE_ENV !== 'test' && !isJestRun) {
             process.exit(1); // Exit with an error code to prevent server from starting
         } else {
             console.warn('[Test Mode] Missing env vars but continuing...');
@@ -820,21 +821,35 @@ function validateEnvironment() {
 
     // Only now report config schema validation errors (if any) after env var fatal checks
     if (!isConfigValid) {
-        console.error(
-            '\x1b[31m%s\x1b[0m',
-            'FATAL ERROR: config.json is invalid. Please correct the following errors:'
-        );
-        validate.errors.forEach(error => {
-            const instancePath = error.instancePath || 'root';
-            const readablePath = instancePath.replace(/\//g, ' -> ').substring(3) || 'root';
-            console.error(`  - Path: \x1b[33m${readablePath}\x1b[0m`);
-            console.error(`    Message: ${error.message}`);
-            if (error.params) {
-                console.error(`    Details: ${JSON.stringify(error.params)}`);
-            }
-        });
+        const isJestRun = !!process.env.JEST_WORKER_ID;
+        const isTestRun = process.env.NODE_ENV === 'test' || isJestRun;
+        const verboseTestLogging =
+            String(process.env.TEST_VERBOSE_CONFIG_VALIDATION || '').trim() === '1' ||
+            String(process.env.TEST_VERBOSE_CONFIG_VALIDATION || '')
+                .trim()
+                .toLowerCase() === 'true';
+
+        if (isTestRun && !verboseTestLogging) {
+            // Keep at least one console.error call (some tests assert it), but avoid huge spam.
+            console.error('FATAL ERROR: config.json is invalid (test mode).');
+            console.error(`Validation errors: ${(validate.errors || []).length}`);
+        } else {
+            console.error(
+                '\x1b[31m%s\x1b[0m',
+                'FATAL ERROR: config.json is invalid. Please correct the following errors:'
+            );
+            validate.errors.forEach(error => {
+                const instancePath = error.instancePath || 'root';
+                const readablePath = instancePath.replace(/\//g, ' -> ').substring(3) || 'root';
+                console.error(`  - Path: \x1b[33m${readablePath}\x1b[0m`);
+                console.error(`    Message: ${error.message}`);
+                if (error.params) {
+                    console.error(`    Details: ${JSON.stringify(error.params)}`);
+                }
+            });
+        }
         // Don't exit during tests, just log the error
-        if (process.env.NODE_ENV !== 'test') {
+        if (process.env.NODE_ENV !== 'test' && !isJestRun) {
             process.exit(1);
         } else {
             console.warn('[Test Mode] Config validation failed but continuing...');

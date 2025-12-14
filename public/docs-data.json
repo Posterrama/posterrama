@@ -186,7 +186,7 @@
             "help": "Choose the animation style when switching between posters. Options include fade (smooth dissolve), slide (posters move in/out), zoom, and various combinations. 'None' switches instantly without animation.",
             "section": "display",
             "showMode": "cinema",
-            "setting": "cinemaPosterAnimation"
+            "setting": "cinemaSingleTransition"
         },
         {
             "id": "cinema-metadata-layout",

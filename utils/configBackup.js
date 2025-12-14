@@ -4,7 +4,9 @@ const fsp = require('fs').promises;
 const path = require('path');
 const { auditLog } = require('./auditLogger');
 
-const ROOT = path.join(__dirname, '..');
+const ROOT = process.env.POSTERRAMA_BACKUP_ROOT
+    ? path.resolve(String(process.env.POSTERRAMA_BACKUP_ROOT))
+    : path.join(__dirname, '..');
 const BACKUP_DIR = path.join(ROOT, 'backups', 'config');
 const CONFIG_FILE = path.join(ROOT, 'config.json');
 
@@ -15,7 +17,6 @@ const FILE_WHITELIST = [
     'device-presets.json',
     // User data mappings
     'devices.json',
-    'groups.json',
     // Secrets and API keys
     '.env',
 ];

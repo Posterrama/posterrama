@@ -15,10 +15,10 @@ describe('HealthCheck - Plex and Integration', () => {
 
         // Mock filesystem
         fs = require('fs').promises;
-        fs.readFile = jest.fn();
-        fs.access = jest.fn();
-        fs.stat = jest.fn();
-        fs.readdir = jest.fn();
+        jest.spyOn(fs, 'readFile');
+        jest.spyOn(fs, 'access');
+        jest.spyOn(fs, 'stat');
+        jest.spyOn(fs, 'readdir');
 
         // Mock logger
         mockLogger = {

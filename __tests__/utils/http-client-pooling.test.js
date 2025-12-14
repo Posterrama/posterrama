@@ -57,8 +57,8 @@ describe('HTTP Client Connection Pooling', () => {
                 timeout: 15000,
             });
 
-            expect(client.http.defaults.httpAgent.options.timeout).toBe(15000);
-            expect(client.http.defaults.httpsAgent.options.timeout).toBe(15000);
+            // Axios enforces request timeout; Node Agents are for pooling/keep-alive
+            expect(client.http.defaults.timeout).toBe(15000);
         });
     });
 
@@ -179,7 +179,8 @@ describe('HTTP Client Connection Pooling', () => {
             });
 
             const agent = client.http.defaults.httpAgent;
-            expect(agent.options.timeout).toBe(10000);
+            expect(agent).toBeDefined();
+            expect(client.http.defaults.timeout).toBe(10000);
         });
     });
 });

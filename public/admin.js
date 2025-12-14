@@ -7,6 +7,7 @@
 
 // Import UI Components
 import { createColorPicker, COLOR_PRESETS } from '/js/ui-components.js';
+import { createOverrideModal } from '/js/admin-override-modal.js';
 
 // Export to window for use by other scripts (e.g., cinema-ui.js)
 window.createColorPicker = createColorPicker;
@@ -3227,11 +3228,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                   ? 'fa-layer-group'
                                   : f.name === 'devices.json'
                                     ? 'fa-display'
-                                    : f.name === 'groups.json'
-                                      ? 'fa-object-group'
-                                      : f.name === '.env'
-                                        ? 'fa-key'
-                                        : 'fa-file-alt';
+                                    : f.name === '.env'
+                                      ? 'fa-key'
+                                      : 'fa-file-alt';
                         const subtitle =
                             f.name === 'config.json'
                                 ? 'Application settings'
@@ -3239,11 +3238,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                   ? 'Default device configuration'
                                   : f.name === 'devices.json'
                                     ? 'Registered devices list'
-                                    : f.name === 'groups.json'
-                                      ? 'Device groups and assignments'
-                                      : f.name === '.env'
-                                        ? 'Environment variables (API keys, secrets)'
-                                        : f.name;
+                                    : f.name === '.env'
+                                      ? 'Environment variables (API keys, secrets)'
+                                      : f.name;
                         row.innerHTML = `
                             <div class="file-left">
                                 <i class="fas ${icon}"></i>
@@ -13510,7 +13507,20 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     overlay._remoteBound = true;
                 }
             }
+            const overrideModal = createOverrideModal({
+                fetchJSON,
+                sendCommand,
+                showOverlay: __showOverlay,
+                escapeHtml,
+                notify: window.notify,
+                loadDevices,
+            });
+
             async function openOverrideFor(ids) {
+                return overrideModal.openOverrideFor(ids);
+            }
+
+            async function openOverrideForLegacy(ids) {
                 if (!Array.isArray(ids) || !ids.length) return;
                 const overlay = document.getElementById('modal-override');
                 const textarea = document.getElementById('override-json');

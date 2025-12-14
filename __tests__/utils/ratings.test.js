@@ -332,10 +332,13 @@ describe('Media Source Ratings Utilities', () => {
     describe('getJellyfinQualitiesWithCounts', () => {
         it('should get quality counts from Jellyfin', async () => {
             const mockClient = {
-                getQualitiesWithCounts: jest.fn().mockResolvedValue([
-                    { quality: '1080p', count: 100 },
-                    { quality: '4K', count: 50 },
-                ]),
+                getQualitiesWithCounts: jest.fn().mockResolvedValue({
+                    qualities: [
+                        { quality: '1080p', count: 100 },
+                        { quality: '4K', count: 50 },
+                    ],
+                    partial: false,
+                }),
             };
 
             const mockLibraries = new Map([
@@ -353,11 +356,15 @@ describe('Media Source Ratings Utilities', () => {
                 logger: mockLogger,
             });
 
-            expect(result).toEqual([
-                { quality: '1080p', count: 100 },
-                { quality: '4K', count: 50 },
-            ]);
-            expect(mockClient.getQualitiesWithCounts).toHaveBeenCalledWith(['lib1', 'lib2']);
+            expect(result).toEqual({
+                qualities: [
+                    { quality: '1080p', count: 100 },
+                    { quality: '4K', count: 50 },
+                ],
+                partial: false,
+            });
+            // Only movie libraries are queried (TV shows don't have series-level quality info)
+            expect(mockClient.getQualitiesWithCounts).toHaveBeenCalledWith(['lib1'], false);
         });
 
         it('should return empty array when no movie/TV libraries found', async () => {
@@ -375,7 +382,7 @@ describe('Media Source Ratings Utilities', () => {
                 logger: mockLogger,
             });
 
-            expect(result).toEqual([]);
+            expect(result).toEqual({ qualities: [], partial: false });
         });
 
         it('should handle errors gracefully', async () => {
@@ -391,17 +398,20 @@ describe('Media Source Ratings Utilities', () => {
                 logger: mockLogger,
             });
 
-            expect(result).toEqual([]);
+            expect(result).toEqual({ qualities: [], partial: false });
         });
     });
 
     describe('getJellyfinQualitiesWithCounts', () => {
         it('should get quality counts from Jellyfin', async () => {
             const mockClient = {
-                getQualitiesWithCounts: jest.fn().mockResolvedValue([
-                    { quality: '1080p', count: 100 },
-                    { quality: '4K', count: 50 },
-                ]),
+                getQualitiesWithCounts: jest.fn().mockResolvedValue({
+                    qualities: [
+                        { quality: '1080p', count: 100 },
+                        { quality: '4K', count: 50 },
+                    ],
+                    partial: false,
+                }),
             };
 
             const mockLibraries = new Map([
@@ -419,11 +429,14 @@ describe('Media Source Ratings Utilities', () => {
                 logger: mockLogger,
             });
 
-            expect(result).toEqual([
-                { quality: '1080p', count: 100 },
-                { quality: '4K', count: 50 },
-            ]);
-            expect(mockClient.getQualitiesWithCounts).toHaveBeenCalledWith(['lib1', 'lib2']);
+            expect(result).toEqual({
+                qualities: [
+                    { quality: '1080p', count: 100 },
+                    { quality: '4K', count: 50 },
+                ],
+                partial: false,
+            });
+            expect(mockClient.getQualitiesWithCounts).toHaveBeenCalledWith(['lib1'], false);
         });
 
         it('should handle errors gracefully', async () => {
@@ -439,7 +452,7 @@ describe('Media Source Ratings Utilities', () => {
                 logger: mockLogger,
             });
 
-            expect(result).toEqual([]);
+            expect(result).toEqual({ qualities: [], partial: false });
         });
     });
 });

@@ -543,6 +543,32 @@ module.exports = function createConfigPublicRouter({
                         merged.wallartMode.orientation = fromProfile.wallartOrientation;
                     }
                 }
+
+                // Merge per-device settings override last (Global < Profile < DeviceOverride)
+                // These overrides are expected to already be in the public config shape
+                // (e.g. { cinema: { nowPlaying: { ... } } }).
+                try {
+                    const deviceOverride =
+                        device &&
+                        device.settingsOverride &&
+                        typeof device.settingsOverride === 'object'
+                            ? device.settingsOverride
+                            : null;
+                    if (deviceOverride) {
+                        merged = deepMerge({}, merged, deviceOverride);
+                        if (isDebug) {
+                            logger.debug('[get-config] Applied device settingsOverride', {
+                                deviceId: device?.id || null,
+                                overrideKeys: Object.keys(deviceOverride || {}),
+                            });
+                        }
+                    }
+                } catch (de) {
+                    if (isDebug)
+                        logger.debug('[get-config] Device override merge failed', {
+                            error: de?.message,
+                        });
+                }
             } catch (e) {
                 if (isDebug) {
                     logger.debug('[get-config] Override merge failed', { error: e?.message });

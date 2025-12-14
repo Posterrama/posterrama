@@ -195,6 +195,7 @@ describe('CapabilityRegistry - Complex CommandHandlers', () => {
 
             expect(wsHub.sendCommand).toHaveBeenCalledWith('device-1', {
                 type: 'playback.toggle',
+                payload: {},
             });
         });
     });
@@ -206,6 +207,7 @@ describe('CapabilityRegistry - Complex CommandHandlers', () => {
 
             expect(wsHub.sendCommand).toHaveBeenCalledWith('device-1', {
                 type: 'power.on',
+                payload: {},
             });
         });
 
@@ -215,6 +217,7 @@ describe('CapabilityRegistry - Complex CommandHandlers', () => {
 
             expect(wsHub.sendCommand).toHaveBeenCalledWith('device-1', {
                 type: 'power.off',
+                payload: {},
             });
         });
 

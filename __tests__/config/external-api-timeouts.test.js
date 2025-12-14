@@ -25,9 +25,10 @@ describe('External API Timeout Configuration (Issue #3)', () => {
         });
 
         it('should use consistent default values', () => {
-            // Most services should use 15 seconds
+            // Plex and RomM are generally fast
             expect(config.getTimeout('externalApiPlex')).toBe(15000);
-            expect(config.getTimeout('externalApiJellyfin')).toBe(15000);
+            // Jellyfin can be slower for large libraries (virtual folders, counting)
+            expect(config.getTimeout('externalApiJellyfin')).toBe(30000);
             expect(config.getTimeout('externalApiRomm')).toBe(15000);
 
             // TMDB usually faster, 10 seconds
@@ -68,9 +69,10 @@ describe('External API Timeout Configuration (Issue #3)', () => {
         it('should have base timeout as reference', () => {
             const baseTimeout = config.getTimeout('externalApiBase');
 
-            expect(baseTimeout).toBe(15000);
-            expect(config.getTimeout('externalApiPlex')).toBe(baseTimeout);
+            expect(baseTimeout).toBe(30000);
+            // Jellyfin aligns with base; others may be lower
             expect(config.getTimeout('externalApiJellyfin')).toBe(baseTimeout);
+            expect(config.getTimeout('externalApiPlex')).toBeLessThanOrEqual(baseTimeout);
         });
 
         it('should have test timeouts shorter than main timeouts', () => {

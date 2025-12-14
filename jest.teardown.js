@@ -25,33 +25,74 @@ module.exports = async () => {
         const fs = require('fs');
         const path = require('path');
         const root = path.join(__dirname);
+
+        const safeUnlink = filePath => {
+            try {
+                if (!filePath.startsWith(root + path.sep)) return;
+                if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+                    fs.unlinkSync(filePath);
+                }
+            } catch (_) {
+                // ignore unlink failures
+            }
+        };
+
+        const safeRimrafDirContents = dirPath => {
+            try {
+                if (!dirPath.startsWith(root + path.sep)) return;
+                if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) return;
+                const entries = fs.readdirSync(dirPath);
+                for (const name of entries) {
+                    const full = path.join(dirPath, name);
+                    try {
+                        const st = fs.statSync(full);
+                        if (st.isDirectory()) {
+                            safeRimrafDirContents(full);
+                            fs.rmdirSync(full);
+                        } else {
+                            safeUnlink(full);
+                        }
+                    } catch (_) {
+                        // ignore per-entry failures
+                    }
+                }
+            } catch (_) {
+                // ignore cleanup errors
+            }
+        };
+
         const entries = fs.readdirSync(root);
         for (const name of entries) {
             // Clean up device test files
             if (name.startsWith('devices.test.') && name.endsWith('.json')) {
-                try {
-                    fs.unlinkSync(path.join(root, name));
-                } catch (_) {
-                    // ignore unlink failures
-                }
+                safeUnlink(path.join(root, name));
             }
-            // Clean up groups test files
+            // Clean up legacy test artifacts
             if (name.endsWith('.groups.test.json')) {
-                try {
-                    fs.unlinkSync(path.join(root, name));
-                } catch (_) {
-                    // ignore unlink failures
-                }
+                safeUnlink(path.join(root, name));
+            }
+            if (name.startsWith('devices.test.') && name.endsWith('.json.backup')) {
+                safeUnlink(path.join(root, name));
+            }
+            if (name.startsWith('devices.broadcast.') && name.endsWith('.json.backup')) {
+                safeUnlink(path.join(root, name));
+            }
+            if (name.endsWith('.test.json.backup') || name.endsWith('.test.backup')) {
+                safeUnlink(path.join(root, name));
+            }
+            if (name === '.env.backup') {
+                safeUnlink(path.join(root, name));
             }
             // Clean up device broadcast test files
             if (name.startsWith('devices.broadcast.') && name.endsWith('.json')) {
-                try {
-                    fs.unlinkSync(path.join(root, name));
-                } catch (_) {
-                    // ignore unlink failures
-                }
+                safeUnlink(path.join(root, name));
             }
         }
+
+        // Clean up runtime artifacts generated during Jest runs
+        safeRimrafDirContents(path.join(root, 'sessions'));
+        safeRimrafDirContents(path.join(root, 'image_cache'));
+        safeRimrafDirContents(path.join(root, 'logs'));
     } catch (_) {
         // ignore cleanup errors
     }

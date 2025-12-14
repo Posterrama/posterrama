@@ -129,6 +129,7 @@
     let currentMedia = null; // Track current media for live updates
     let isPinned = false; // Track if current poster is pinned
     let pinnedMediaId = null; // Store pinned media ID
+    let pinnedByConfig = false; // True when pinned via settings override (not user controls)
     let rotationTimer = null; // Timer for automatic poster rotation
     let mediaQueue = []; // Queue of media items for rotation
     let nowPlayingTimer = null; // Timer for Now Playing session polling
@@ -2774,6 +2775,9 @@
             if (config.nowPlaying) {
                 cinemaConfig.nowPlaying = { ...cinemaConfig.nowPlaying, ...config.nowPlaying };
             }
+            if (config.pinnedMediaKey !== undefined) {
+                cinemaConfig.pinnedMediaKey = config.pinnedMediaKey || null;
+            }
             // === Merge poster settings (including nested cinematicTransitions) ===
             if (config.poster) {
                 cinemaConfig.poster = { ...cinemaConfig.poster, ...config.poster };
@@ -2866,13 +2870,39 @@
             return mediaQueue;
         })();
 
+        // Pinned poster (Cinema only) overrides both rotation and Now Playing
+        const pinnedKey = cinemaConfig.pinnedMediaKey;
+        if (pinnedKey) {
+            pinnedByConfig = true;
+            isPinned = true;
+            pinnedMediaId = String(pinnedKey);
+            setPinnedByConfigLabel('PINNED BY CONFIG');
+            showPinIndicator();
+            stopNowPlaying();
+            stopRotation();
+            queuePromise.then(async () => {
+                const pinned = await fetchPinnedMediaByKey(pinnedKey);
+                if (pinned) {
+                    const title = (pinned?.title || pinned?.name || '').toString().trim();
+                    const year = pinned?.year ? String(pinned.year).trim() : '';
+                    if (title) {
+                        setPinnedByConfigLabel(`PINNED: ${title}${year ? ` (${year})` : ''}`);
+                    }
+                    updateCinemaDisplay(pinned);
+                } else {
+                    setPinnedByConfigLabel('PINNED BY CONFIG');
+                    warn('Pinned key not found in playlist cache', { key: pinnedKey });
+                }
+            });
+        }
+
         // Initialize Now Playing if enabled (takes priority over rotation)
         debug('Now Playing check', {
             nowPlayingEnabled: cinemaConfig.nowPlaying?.enabled,
             rotationInterval: cinemaConfig.rotationIntervalMinutes,
         });
 
-        if (cinemaConfig.nowPlaying?.enabled) {
+        if (!pinnedKey && cinemaConfig.nowPlaying?.enabled) {
             debug('Starting Now Playing mode');
             startNowPlaying();
         } else {
@@ -2882,7 +2912,7 @@
                 nowPlayingEnabled: cinemaConfig.nowPlaying?.enabled,
             });
             // Start rotation if enabled and Now Playing is disabled
-            if (cinemaConfig.rotationIntervalMinutes > 0) {
+            if (!pinnedKey && cinemaConfig.rotationIntervalMinutes > 0) {
                 debug('Rotation enabled, waiting for queue');
                 // Wait for queue to actually load before starting rotation
                 queuePromise.then(queue => {
@@ -2902,7 +2932,7 @@
                 // No rotation, but still show a random poster
                 queuePromise.then(queue => {
                     if (queue.length > 0) {
-                        showNextPoster();
+                        if (!pinnedKey) showNextPoster();
                     }
                 });
             }
@@ -3348,10 +3378,63 @@
                     stopRotation();
 
                     // Start appropriate mode
-                    if (newConfig.cinema.nowPlaying.enabled) {
+                    const pinnedKeyNext =
+                        newConfig.cinema.pinnedMediaKey !== undefined
+                            ? newConfig.cinema.pinnedMediaKey
+                            : cinemaConfig.pinnedMediaKey;
+                    if (pinnedKeyNext) {
+                        log('Skipping mode restart due to pinned poster', { key: pinnedKeyNext });
+                    } else if (newConfig.cinema.nowPlaying.enabled) {
                         startNowPlaying();
                     } else if (cinemaConfig.rotationIntervalMinutes > 0) {
                         startRotation();
+                    }
+                }
+            }
+
+            // Pinned poster (Cinema only)
+            if (newConfig.cinema.pinnedMediaKey !== undefined) {
+                const oldPinned = cinemaConfig.pinnedMediaKey || null;
+                cinemaConfig.pinnedMediaKey = newConfig.cinema.pinnedMediaKey || null;
+
+                const changed =
+                    String(oldPinned || '') !== String(cinemaConfig.pinnedMediaKey || '');
+                if (changed) {
+                    if (cinemaConfig.pinnedMediaKey) {
+                        pinnedByConfig = true;
+                        isPinned = true;
+                        pinnedMediaId = String(cinemaConfig.pinnedMediaKey);
+                        setPinnedByConfigLabel('PINNED BY CONFIG');
+                        showPinIndicator();
+                        stopNowPlaying();
+                        stopRotation();
+                        const pinned = await fetchPinnedMediaByKey(cinemaConfig.pinnedMediaKey);
+                        if (pinned) {
+                            const title = (pinned?.title || pinned?.name || '').toString().trim();
+                            const year = pinned?.year ? String(pinned.year).trim() : '';
+                            if (title) {
+                                setPinnedByConfigLabel(
+                                    `PINNED: ${title}${year ? ` (${year})` : ''}`
+                                );
+                            }
+                            updateCinemaDisplay(pinned);
+                        } else {
+                            setPinnedByConfigLabel('PINNED BY CONFIG');
+                        }
+                    } else {
+                        pinnedByConfig = false;
+                        isPinned = false;
+                        pinnedMediaId = null;
+                        setPinnedByConfigLabel('');
+                        hidePinIndicator();
+                        if (cinemaConfig.nowPlaying?.enabled) {
+                            startNowPlaying();
+                        } else if (cinemaConfig.rotationIntervalMinutes > 0) {
+                            showNextPoster();
+                            startRotation();
+                        } else {
+                            showNextPoster();
+                        }
                     }
                 }
             }
@@ -3368,7 +3451,7 @@
                         old: oldInterval,
                         new: newConfig.cinema.rotationIntervalMinutes,
                     });
-                    startRotation();
+                    if (!cinemaConfig.pinnedMediaKey) startRotation();
                 }
             }
 
@@ -3555,6 +3638,41 @@
 
     // ===== Pause Indicator =====
     let pauseIndicatorEl = null;
+    let pinIndicatorEl = null;
+    let pinnedByConfigLabel = ''; // Cached label shown in pin indicator
+
+    function createPinIndicator() {
+        if (pinIndicatorEl) return;
+
+        pinIndicatorEl = document.createElement('div');
+        pinIndicatorEl.className = 'cinema-pin-indicator';
+        pinIndicatorEl.innerHTML = `
+            <span class="pin-text">${pinnedByConfigLabel || 'PINNED BY CONFIG'}</span>
+        `;
+        document.body.appendChild(pinIndicatorEl);
+    }
+
+    function setPinnedByConfigLabel(label) {
+        pinnedByConfigLabel = (label || '').toString().trim();
+        if (pinIndicatorEl) {
+            const textEl = pinIndicatorEl.querySelector('.pin-text');
+            if (textEl) {
+                textEl.textContent = pinnedByConfigLabel || 'PINNED BY CONFIG';
+            }
+        }
+    }
+
+    function showPinIndicator() {
+        if (!pinnedByConfig) return;
+        if (!pinIndicatorEl) createPinIndicator();
+        pinIndicatorEl.classList.add('visible');
+    }
+
+    function hidePinIndicator() {
+        if (pinIndicatorEl) {
+            pinIndicatorEl.classList.remove('visible');
+        }
+    }
 
     function createPauseIndicator() {
         if (pauseIndicatorEl) return;
@@ -3589,12 +3707,22 @@
     window.__posterramaPlayback = {
         resume: () => {
             try {
-                isPinned = false;
-                pinnedMediaId = null;
+                if (!pinnedByConfig) {
+                    isPinned = false;
+                    pinnedMediaId = null;
+                } else {
+                    // Keep config pin intact
+                    isPinned = true;
+                    showPinIndicator();
+                }
                 window.__posterramaPaused = false;
                 hidePauseIndicator();
 
-                log('Poster unpinned, rotation resumed');
+                log(
+                    pinnedByConfig
+                        ? 'Resume: pinned by config (no unpin)'
+                        : 'Poster unpinned, rotation resumed'
+                );
 
                 // Trigger heartbeat to update admin UI
                 try {
@@ -3620,11 +3748,19 @@
         },
         next: () => {
             try {
-                isPinned = false;
-                pinnedMediaId = null;
-                window.__posterramaPaused = false;
-                hidePauseIndicator();
-                showNextPoster();
+                if (pinnedByConfig) {
+                    // Ignore next/prev while pinned via device override
+                    window.__posterramaPaused = false;
+                    hidePauseIndicator();
+                    showPinIndicator();
+                    log('Next ignored: poster is pinned by config');
+                } else {
+                    isPinned = false;
+                    pinnedMediaId = null;
+                    window.__posterramaPaused = false;
+                    hidePauseIndicator();
+                    showNextPoster();
+                }
                 // Trigger heartbeat to update admin UI
                 try {
                     const dev = window.PosterramaDevice;
@@ -3640,11 +3776,18 @@
         },
         prev: () => {
             try {
-                isPinned = false;
-                pinnedMediaId = null;
-                window.__posterramaPaused = false;
-                hidePauseIndicator();
-                showPreviousPoster();
+                if (pinnedByConfig) {
+                    window.__posterramaPaused = false;
+                    hidePauseIndicator();
+                    showPinIndicator();
+                    log('Prev ignored: poster is pinned by config');
+                } else {
+                    isPinned = false;
+                    pinnedMediaId = null;
+                    window.__posterramaPaused = false;
+                    hidePauseIndicator();
+                    showPreviousPoster();
+                }
                 // Trigger heartbeat to update admin UI
                 try {
                     const dev = window.PosterramaDevice;
@@ -3838,6 +3981,10 @@
 
     function showNextPoster() {
         try {
+            if (pinnedByConfig) {
+                log('Rotation skipped: poster is pinned by config');
+                return;
+            }
             // Don't rotate if Now Playing is active
             if (nowPlayingActive) {
                 log('Rotation skipped: Now Playing is active');
@@ -3877,6 +4024,10 @@
 
     function showPreviousPoster() {
         try {
+            if (pinnedByConfig) {
+                log('Rotation skipped: poster is pinned by config');
+                return;
+            }
             if (mediaQueue.length === 0) {
                 log('No media in queue for rotation');
                 return;
@@ -4009,40 +4160,69 @@
         const filterUser = cinemaConfig.nowPlaying?.filterUser || '';
         const deviceUsername = getDevicePlexUsername();
 
-        // Priority 1: If priority is 'user' and filterUser is set, filter by that username
-        if (priority === 'user' && filterUser) {
-            const userSessions = sessions.filter(s => s.username === filterUser);
-            if (userSessions.length > 0) {
-                log('Filtered sessions by configured filterUser', {
-                    username: filterUser,
-                    count: userSessions.length,
-                });
-                // Return first session for this user (user filter always takes first)
-                return userSessions[0];
+        function pickByPriority(list) {
+            if (!list || list.length === 0) return null;
+            if (priority === 'random') return list[Math.floor(Math.random() * list.length)];
+            return list[0];
+        }
+
+        function selectSessionFrom(list) {
+            if (!list || list.length === 0) return null;
+
+            // Priority 1: If priority is 'user' and filterUser is set, filter by that username
+            if (priority === 'user' && filterUser) {
+                const userSessions = list.filter(s => s.username === filterUser);
+                if (userSessions.length > 0) {
+                    log('Filtered sessions by configured filterUser', {
+                        username: filterUser,
+                        count: userSessions.length,
+                    });
+                    return userSessions[0];
+                }
+                log('No sessions found for filterUser', { username: filterUser });
+                return null;
             }
-            // No sessions for filterUser, return null (will trigger fallback)
-            log('No sessions found for filterUser', { username: filterUser });
+
+            // Priority 2: If device has plexUsername configured, filter by that username
+            let filtered = list;
+            if (deviceUsername) {
+                const userSessions = filtered.filter(s => s.username === deviceUsername);
+                if (userSessions.length > 0) {
+                    filtered = userSessions;
+                    log('Filtered sessions by device username', {
+                        username: deviceUsername,
+                        count: filtered.length,
+                    });
+                }
+            }
+
+            return pickByPriority(filtered);
+        }
+
+        const sourcePref = String(cinemaConfig.nowPlaying?.sourcePreference || 'auto');
+        if (sourcePref === 'plex' || sourcePref === 'jellyfin') {
+            const preferred = sessions.filter(s => s._source === sourcePref);
+            const fallback = sessions.filter(s => s._source !== sourcePref);
+            return selectSessionFrom(preferred) || selectSessionFrom(fallback);
+        }
+
+        return selectSessionFrom(sessions);
+    }
+
+    async function fetchPinnedMediaByKey(key) {
+        try {
+            const url = `/api/media/lookup?key=${encodeURIComponent(String(key || ''))}`;
+            const res = await fetch(url, {
+                cache: 'no-cache',
+                headers: { 'Cache-Control': 'no-cache' },
+                credentials: 'include',
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return data?.result || null;
+        } catch (_) {
             return null;
         }
-
-        // Priority 2: If device has plexUsername configured, filter by that username
-        if (deviceUsername) {
-            const userSessions = sessions.filter(s => s.username === deviceUsername);
-            if (userSessions.length > 0) {
-                sessions = userSessions;
-                log('Filtered sessions by device username', {
-                    username: deviceUsername,
-                    count: sessions.length,
-                });
-            }
-        }
-
-        // Select based on priority
-        if (priority === 'random') {
-            return sessions[Math.floor(Math.random() * sessions.length)];
-        }
-        // Default: first session
-        return sessions[0];
     }
 
     function convertSessionToMedia(session) {

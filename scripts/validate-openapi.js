@@ -109,7 +109,6 @@ function validateOpenAPISpec() {
         '/[site]/*',
         '/api/admin/events',
         '/api/devices/logs',
-        '/api/groups/{id}/logs',
         '/reset-refresh',
         '/local-media/{path}',
         '/local-media',

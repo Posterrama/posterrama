@@ -417,7 +417,7 @@ describe('SafeFileStore', () => {
 
     describe('getStats', () => {
         it('should return stats for existing file', async () => {
-            const store = new SafeFileStore(testFile);
+            const store = new SafeFileStore(testFile, { createBackup: false });
             const data = { test: 'stats' };
             await store.write(data);
 

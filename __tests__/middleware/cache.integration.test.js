@@ -284,7 +284,7 @@ describe('Middleware Cache Tests', () => {
         });
 
         test('short middleware should cache for 2 minutes', () => {
-            const req = { method: 'GET', url: '/api/groups', query: {} };
+            const req = { method: 'GET', url: '/api/devices', query: {} };
             const res = {
                 statusCode: 200,
                 json: jest.fn(function (_data) {
@@ -297,7 +297,7 @@ describe('Middleware Cache Tests', () => {
             cacheMiddleware.short(req, res, next);
             expect(next).toHaveBeenCalled();
 
-            res.json({ groups: [] });
+            res.json({ devices: [] });
             expect(res.set).toHaveBeenCalledWith('X-Cache', 'MISS');
         });
 

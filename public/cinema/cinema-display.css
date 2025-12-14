@@ -3559,3 +3559,43 @@ body.cinema-tint-active::after {
     letter-spacing: 0.2em;
     text-transform: uppercase;
 }
+
+/* =================================================================
+   PIN INDICATOR (config-driven pinned poster)
+   ================================================================= */
+.cinema-pin-indicator {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s ease,
+        visibility 0.25s;
+    z-index: 9998;
+}
+
+.cinema-pin-indicator.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.cinema-pin-indicator .pin-text {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}

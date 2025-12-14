@@ -122,12 +122,18 @@ describe('CapabilityRegistry - Real Control Capabilities', () => {
             const cap = capabilityRegistry.get('power.toggle');
 
             await cap.commandHandler('dev3', 'ON');
-            expect(wsHub.sendCommand).toHaveBeenCalledWith('dev3', { type: 'power.on' });
+            expect(wsHub.sendCommand).toHaveBeenCalledWith('dev3', {
+                type: 'power.on',
+                payload: {},
+            });
 
             jest.clearAllMocks();
 
             await cap.commandHandler('dev4', 'OFF');
-            expect(wsHub.sendCommand).toHaveBeenCalledWith('dev4', { type: 'power.off' });
+            expect(wsHub.sendCommand).toHaveBeenCalledWith('dev4', {
+                type: 'power.off',
+                payload: {},
+            });
         });
 
         test('power.toggle stateGetter returns boolean (true=ON, false=OFF)', () => {

@@ -113,7 +113,35 @@ const schemas = {
                 portEnvVar: Joi.any().forbidden().messages({
                     'any.unknown': 'portEnvVar is no longer supported. Use port instead.',
                 }),
-            })
+            }).custom((server, helpers) => {
+                // Startup config validation should reject enabled servers with missing required fields.
+                // (Runtime can still disable servers later, but config should be coherent.)
+                if (server?.type !== 'romm' || server?.enabled !== true) return server;
+
+                const urlOk = typeof server.url === 'string' && server.url.trim().length > 0;
+                const usernameOk =
+                    typeof server.username === 'string' && server.username.trim().length > 0;
+
+                const passwordOk =
+                    typeof server.password === 'string' && server.password.trim().length > 0;
+                const passwordEnvVarOk =
+                    typeof server.passwordEnvVar === 'string' &&
+                    server.passwordEnvVar.trim().length > 0;
+
+                if (!urlOk || !usernameOk) {
+                    return helpers.message(
+                        'RomM server is enabled and must include non-empty url and username'
+                    );
+                }
+
+                if (!passwordOk && !passwordEnvVarOk) {
+                    return helpers.message(
+                        'RomM server is enabled and must include password or passwordEnvVar'
+                    );
+                }
+
+                return server;
+            }, 'RomM enabled credentials validation')
         ),
     }),
 

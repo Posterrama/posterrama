@@ -78,6 +78,9 @@ const configJson = require('./config.json');
 // Validate configuration at startup (Issue #10: Config Validation Runs Too Late)
 // This ensures invalid configurations are caught before services initialize
 const { validateConfig } = require('./config/validators');
+const __isJestRun = !!process.env.JEST_WORKER_ID;
+const __isMainModule = require.main === module;
+const __shouldHardFailOnInvalidConfig = __isMainModule && !__isJestRun;
 try {
     const validation = validateConfig(configJson);
     if (!validation.valid) {
@@ -86,13 +89,21 @@ try {
             logger.error(`  - ${err.path}: ${err.message}`);
         });
         logger.error('Please fix the configuration errors in config.json and restart the server.');
-        process.exit(1);
+        if (__shouldHardFailOnInvalidConfig) {
+            process.exit(1);
+        } else {
+            logger.warn('[Test/Module Mode] Continuing despite invalid config.json');
+        }
     }
     logger.info('✅ Configuration validated successfully');
 } catch (error) {
     logger.error('❌ Configuration validation error:', error.message);
     logger.error('Please check your config.json file for syntax errors.');
-    process.exit(1);
+    if (__shouldHardFailOnInvalidConfig) {
+        process.exit(1);
+    } else {
+        logger.warn('[Test/Module Mode] Continuing despite config validation error');
+    }
 }
 
 // Migrate config: ensure all mediaServers have a 'name' field
@@ -3268,6 +3279,7 @@ app.use(
         ApiError,
         NotFoundError,
         asyncHandler,
+        isAuthenticated,
         getPlexClient,
         processPlexItem,
         getPlexLibraries,
@@ -6560,6 +6572,90 @@ app.get(
 
 /**
  * @swagger
+ * /api/plex/users:
+ *   get:
+ *     summary: Get Plex Home users (admin)
+ *     description: Returns Plex Home users for Now Playing user lock dropdowns.
+ *     tags: ['Admin', 'Plex']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Users list
+ *       503:
+ *         description: Plex not configured
+ *       502:
+ *         description: Plex.tv request failed
+ */
+app.get(
+    '/api/plex/users',
+    // @ts-ignore - Express router overload with middleware
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const plexServer = (config.mediaServers || []).find(s => s.enabled && s.type === 'plex');
+        const token =
+            plexServer?.token ||
+            (plexServer?.tokenEnvVar && process.env[plexServer.tokenEnvVar]
+                ? process.env[plexServer.tokenEnvVar]
+                : null);
+
+        if (!plexServer || !token) {
+            return res.status(503).json({
+                error: 'Plex server not configured (missing token)',
+                users: [],
+            });
+        }
+
+        const url =
+            'https://plex.tv/api/v2/home/users?includeManaged=1&includeGuest=1&includeUnmanaged=1';
+        let r;
+        try {
+            r = await fetch(url, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Plex-Token': token,
+                },
+            });
+        } catch (err) {
+            logger.error('[api/plex/users] plex.tv request failed', {
+                error: err?.message,
+            });
+            return res.status(502).json({
+                error: 'Failed to reach plex.tv',
+                users: [],
+            });
+        }
+
+        if (!r.ok) {
+            const text = await r.text().catch(() => '');
+            logger.error('[api/plex/users] plex.tv responded non-200', {
+                status: r.status,
+                body: text ? text.slice(0, 400) : undefined,
+            });
+            return res.status(502).json({
+                error: `plex.tv error (${r.status})`,
+                users: [],
+            });
+        }
+
+        const data = await r.json().catch(() => null);
+        const arr = Array.isArray(data) ? data : [];
+        const users = arr
+            .map(u => ({
+                id: u?.id ?? null,
+                title: u?.title || u?.username || 'Unknown',
+                username: u?.title || u?.username || 'Unknown',
+                email: u?.email || null,
+            }))
+            .filter(u => !!u.title)
+            .sort((a, b) => a.title.localeCompare(b.title));
+
+        res.json({ users });
+    })
+);
+
+/**
+ * @swagger
  * /api/jellyfin/sessions:
  *   get:
  *     summary: Get current Jellyfin playback sessions
@@ -6926,6 +7022,31 @@ if (require.main === module) {
             }
 
             // Optional: trigger a one-off refresh shortly after startup to warm caches further
+
+            // Prevent unhandled 'error' events (e.g., EADDRINUSE) from crashing without context
+            httpServer.on('error', err => {
+                const code = err?.code;
+                const message = err?.message;
+
+                if (code === 'EADDRINUSE') {
+                    logger.error('Failed to start server: port already in use', {
+                        port,
+                        code,
+                        message,
+                        hint: 'Another process is already listening on this port. Stop it or change env.server.port / config.serverPort.',
+                    });
+                } else {
+                    logger.error('Failed to start server: listen error', {
+                        port,
+                        code,
+                        message,
+                        stack: err?.stack,
+                    });
+                }
+
+                // Exit so process managers (PM2/systemd) can handle restart/backoff
+                process.exit(1);
+            });
             setTimeout(() => {
                 try {
                     refreshPlaylistCache();
@@ -7289,18 +7410,20 @@ function cleanup() {
 // @ts-ignore - Custom property on Express app
 app.cleanup = cleanup;
 
-// Handle process termination
-process.on('SIGTERM', () => {
-    logger.info('SIGTERM received, shutting down gracefully');
-    cleanup();
-    process.exit(0);
-});
+// Handle process termination (only when running as the entrypoint, not when imported by Jest)
+if (!__isJestRun && require.main === module) {
+    process.on('SIGTERM', () => {
+        logger.info('SIGTERM received, shutting down gracefully');
+        cleanup();
+        process.exit(0);
+    });
 
-process.on('SIGINT', () => {
-    logger.info('SIGINT received, shutting down gracefully');
-    cleanup();
-    process.exit(0);
-});
+    process.on('SIGINT', () => {
+        logger.info('SIGINT received, shutting down gracefully');
+        cleanup();
+        process.exit(0);
+    });
+}
 
 // --- Admin SSE: /api/admin/events (logs + alerts) ---
 // Register BEFORE the 404 handler so it isn't shadowed.

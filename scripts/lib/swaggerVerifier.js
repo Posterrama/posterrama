@@ -152,7 +152,6 @@ function verifySwagger() {
 
     // Known mount points for route modules
     const routeMountMap = {
-        'groups.js': '/api/groups',
         'config-public.js': '/get-config',
         'auth.js': '/admin',
         'devices.js': '/api/devices',

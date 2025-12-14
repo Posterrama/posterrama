@@ -9,7 +9,7 @@
  *   POSTERRAMA_DROP_PRIVS=true          -> after chown, call setgid/setuid to run unprivileged
  *
  * Rationale: In some deployments first start was executed as root (sudo / pm2 root) which creates
- * config.json, devices.json, groups.json, etc with root ownership. Later runs under an unprivileged
+ * config.json, devices.json, etc with root ownership. Later runs under an unprivileged
  * user then fail to write or rotate secrets. This helper repairs ownership deterministically during
  * restarts (e.g. PM2 restart) without needing external scripts.
  */
@@ -94,7 +94,6 @@ function fixOwnership(options = {}) {
 
     const targets = ensureList([
         path.join(baseDir, 'config.json'),
-        path.join(baseDir, 'groups.json'),
         ...collectDeviceFiles(baseDir),
         path.join(baseDir, 'sessions'),
         path.join(baseDir, 'cache'),

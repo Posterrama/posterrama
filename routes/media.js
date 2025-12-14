@@ -197,6 +197,7 @@ module.exports = function createMediaRouter({
     ApiError,
     NotFoundError,
     asyncHandler,
+    isAuthenticated,
     getPlexClient,
     processPlexItem,
     getPlexLibraries,
@@ -211,6 +212,120 @@ module.exports = function createMediaRouter({
     apiCacheMiddleware,
 }) {
     const router = express.Router();
+
+    // --- Admin utilities (authenticated) ---
+    // Search against the current playlist cache (fast; avoids per-server search APIs).
+    router.get(
+        '/api/admin/media/search',
+        // @ts-ignore - Express router overload with middleware
+        isAuthenticated,
+        asyncHandler(async (req, res) => {
+            const q = (req.query.q || '').toString().trim();
+            const type = (req.query.type || '').toString().trim().toLowerCase(); // movie|series|all
+            const source = (req.query.source || '').toString().trim().toLowerCase(); // plex|jellyfin|any
+            const limitRaw = Number(req.query.limit);
+            const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(50, limitRaw)) : 25;
+
+            if (!q || q.length < 2) {
+                return res.json({ results: [] });
+            }
+
+            const cacheEntry = getPlaylistCache?.();
+            const items = Array.isArray(cacheEntry?.cache) ? cacheEntry.cache : [];
+            const qLower = q.toLowerCase();
+
+            function inferSource(item) {
+                const s = (item?.source || item?.serverType || '').toString().toLowerCase();
+                if (s === 'plex' || s === 'jellyfin') return s;
+                const k = (item?.key || '').toString().toLowerCase();
+                if (k.startsWith('plex-')) return 'plex';
+                if (k.startsWith('jellyfin_')) return 'jellyfin';
+                return s || 'unknown';
+            }
+
+            function inferType(item) {
+                const t = (item?.type || item?.mediaType || item?.itemType || '').toString();
+                const tl = t.toLowerCase();
+                if (!tl) return '';
+                if (tl === 'movie') return 'movie';
+                if (tl === 'show' || tl === 'series' || tl === 'tv') return 'series';
+                return tl;
+            }
+
+            const results = [];
+            for (const item of items) {
+                const title = (item?.title || item?.name || '').toString();
+                if (!title) continue;
+
+                const sourceName = inferSource(item);
+                if (source && source !== 'any' && sourceName !== source) continue;
+
+                const itemType = inferType(item);
+                if (type && type !== 'all') {
+                    if (type === 'movie' && itemType !== 'movie') continue;
+                    if (type === 'series' && itemType !== 'series') continue;
+                }
+
+                if (title.toLowerCase().includes(qLower)) {
+                    results.push({
+                        key: item?.key,
+                        title,
+                        year: item?.year || item?.releaseYear || null,
+                        type: itemType || null,
+                        source: sourceName,
+                        posterUrl: item?.posterUrl || item?.poster_path || null,
+                        backdropUrl: item?.backdropUrl || item?.backdrop_path || null,
+                    });
+                    if (results.length >= limit) break;
+                }
+            }
+
+            res.json({ results });
+        })
+    );
+
+    // Public utilities
+    // Lookup a single item in the current playlist cache by exact key.
+    router.get(
+        '/api/media/lookup',
+        asyncHandler(async (req, res) => {
+            const key = (req.query.key || '').toString().trim();
+            if (!key) return res.json({ result: null });
+            if (key.length > 512) {
+                // @ts-ignore - ApiError is constructable
+                throw new ApiError(400, 'Invalid key');
+            }
+
+            const cacheEntry = getPlaylistCache?.();
+            const items = Array.isArray(cacheEntry?.cache) ? cacheEntry.cache : [];
+            const found = items.find(it => (it?.key || '').toString() === key) || null;
+
+            if (!found) return res.json({ result: null });
+
+            const source = (found?.source || found?.serverType || '').toString().toLowerCase();
+            const k = (found?.key || '').toString().toLowerCase();
+            const inferredSource =
+                source === 'plex' || source === 'jellyfin'
+                    ? source
+                    : k.startsWith('plex-')
+                      ? 'plex'
+                      : k.startsWith('jellyfin_')
+                        ? 'jellyfin'
+                        : source || 'unknown';
+
+            res.json({
+                result: {
+                    key: found?.key,
+                    title: found?.title || found?.name || '',
+                    year: found?.year || found?.releaseYear || null,
+                    type: found?.type || found?.mediaType || found?.itemType || null,
+                    source: inferredSource,
+                    posterUrl: found?.posterUrl || found?.poster_path || null,
+                    backdropUrl: found?.backdropUrl || found?.backdrop_path || null,
+                },
+            });
+        })
+    );
 
     /**
      * @swagger
@@ -1181,7 +1296,18 @@ module.exports = function createMediaRouter({
             if (isDebug) logger.debug(`[Image Proxy] Fetching from origin URL: ${imageUrl}`);
 
             try {
-                const mediaServerResponse = await fetch(imageUrl, fetchOptions);
+                // Enforce a hard timeout so bad DNS / hung connections don't stall the server (and tests)
+                const timeoutMs = Number(process.env.IMAGE_PROXY_FETCH_TIMEOUT_MS) || 8000;
+                const signal =
+                    typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+                        ? AbortSignal.timeout(timeoutMs)
+                        : (() => {
+                              const controller = new AbortController();
+                              setTimeout(() => controller.abort(), timeoutMs);
+                              return controller.signal;
+                          })();
+
+                const mediaServerResponse = await fetch(imageUrl, { ...fetchOptions, signal });
 
                 if (!mediaServerResponse.ok) {
                     logger.warn('[Image Proxy] Request failed', {

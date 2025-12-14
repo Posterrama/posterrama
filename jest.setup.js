@@ -72,9 +72,28 @@ global.cleanupTimers = function () {
 process.env.NODE_ENV = 'test';
 process.env.TEST_SILENT = 'true'; // Suppress logger output
 
-// Increase MaxListeners for tests that start multiple servers
-// This prevents warnings when tests run in parallel
-require('events').EventEmitter.defaultMaxListeners = 20;
+// Silence noisy console output during Jest runs (tests may still assert on console calls).
+// Opt in to full console output with TEST_VERBOSE_CONSOLE=1.
+const verboseConsole =
+    String(process.env.TEST_VERBOSE_CONSOLE || '').trim() === '1' ||
+    String(process.env.TEST_VERBOSE_CONSOLE || '')
+        .trim()
+        .toLowerCase() === 'true';
+
+if (!verboseConsole) {
+    // jest is available in setup files
+    // @ts-ignore
+    console.log = jest.fn();
+    // @ts-ignore
+    console.info = jest.fn();
+    // @ts-ignore
+    console.debug = jest.fn();
+}
+
+// Increase MaxListeners for tests that start multiple servers / re-import modules.
+// Some dependencies register many signal handlers; keep Jest output clean.
+require('events').EventEmitter.defaultMaxListeners = 50;
+process.setMaxListeners(50);
 
 // Ensure config.json exists for tests (copy from example if missing)
 const fs = require('fs');
@@ -124,6 +143,18 @@ for (const f of CRITICAL_FIXTURES) {
 // @ts-ignore - Jest global not recognized by TypeScript
 afterEach(() => {
     global.cleanupTimers();
+
+    // Keep console mocks from accumulating calls across tests
+    try {
+        // @ts-ignore
+        if (console.log && console.log.mockClear) console.log.mockClear();
+        // @ts-ignore
+        if (console.info && console.info.mockClear) console.info.mockClear();
+        // @ts-ignore
+        if (console.debug && console.debug.mockClear) console.debug.mockClear();
+    } catch (_) {
+        // ignore
+    }
 
     // Cleanup any server instances
     if (global.server && typeof global.server.cleanup === 'function') {

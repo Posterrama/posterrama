@@ -262,7 +262,9 @@ const baseLogger = {};
 
 // Create the default singleton logger (backward compatible)
 /** @type {ExtendedLogger} */
-const logger = createLoggerInstance({ forTest: process.env.NODE_ENV === 'test' });
+const logger = createLoggerInstance({
+    forTest: process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID != null,
+});
 
 // Expose factory for tests and advanced scenarios
 /**

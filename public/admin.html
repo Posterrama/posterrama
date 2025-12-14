@@ -4481,74 +4481,71 @@
         <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
       </div>
       <div class="modal-body">
-  <p class="override-intro">Override display settings (JSON).</p>
-        
-        <!-- Plex Username Field (for Now Playing Cinema mode) -->
-        <div class="form-group" style="margin-bottom: 16px;" id="override-plex-username-group">
-          <label for="override-plex-username" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-            <i class="fas fa-user" style="color: var(--color-teal);"></i>
-            <span>Plex Username</span>
-            <span style="font-size: 0.85rem; color: var(--color-text-secondary); font-weight: normal;">(optional, for Cinema Now Playing)</span>
+        <p class="override-intro" style="margin:0 0 12px 0;">Small, device-only overrides. Profiles handle the rest.</p>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="override-session-mode" style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <i class="fas fa-user-lock" style="color: var(--color-teal);"></i>
+            <span>Cinema Now Playing</span>
           </label>
-          <input type="text" id="override-plex-username" placeholder="Enter Plex username for this device" style="width: 100%;" />
-          <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin: 6px 0 0 0; line-height: 1.4;">
-            <i class="fas fa-info-circle"></i> When set, Cinema mode will show posters from this user's active Plex sessions
-          </p>
-        </div>
-        
-        <div class="override-helper override-layout">
-          <div class="override-row">
-            <div class="mode-segment" id="mode-segment" role="radiogroup" aria-label="Display mode">
-              <span class="seg-indicator" aria-hidden="true"></span>
-              <button type="button" role="radio" aria-checked="false" data-mode="general" class="seg-btn">Screensaver</button>
-              <button type="button" role="radio" aria-checked="false" data-mode="wallart" class="seg-btn">Wallart</button>
-              <button type="button" role="radio" aria-checked="false" data-mode="cinema" class="seg-btn">Cinema</button>
-              <span class="mode-badge" id="mode-mixed-badge" hidden>Mixed</span>
-            </div>
-            <div class="menu-shell">
-              <div class="menu-section"><i class="fas fa-key"></i><span class="menu-label">Keys</span></div>
-              <div class="ov-filter-wrap input-shell search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" id="ov-keys-search" placeholder="Search keys…" aria-label="Search keys" />
-              </div>
-            </div>
+          <div class="select-wrap has-caret" style="width:100%">
+            <select id="override-session-mode" style="width:100%">
+              <option value="multiple">Multiple sessions</option>
+              <option value="locked">Locked to user</option>
+            </select>
+            <span class="select-caret" aria-hidden="true">▾</span>
           </div>
-          <div class="override-snippets" id="override-snippets" aria-label="Quick JSON snippets" role="toolbar">
-            <button type="button" class="ov-snippet" data-override-snippet='{"wallart":{"duration":45}}'>wallart.duration</button>
-            <button type="button" class="ov-snippet" data-override-snippet='{"wallart":{"shuffle":true}}'>wallart.shuffle</button>
-            <button type="button" class="ov-snippet" data-override-snippet='{"screensaver":{"interval":120}}'>screensaver.interval</button>
-            <button type="button" class="ov-snippet" data-override-snippet='{"cinema":{"ambilight":{"strength":70}}}'>cinema.ambilight.strength</button>
-            <button type="button" class="ov-snippet" data-override-snippet='{"display":{"orientation":"landscape"}}'>display.orientation</button>
-            <button type="button" class="ov-snippet" data-override-snippet='{"display":{"theme":"dark"}}'>display.theme</button>
-          </div>
-          <div class="override-keys-panel" id="override-keys-panel">
-            <div id="ov-keys-list" class="ov-keys-list" role="listbox" aria-label="Override keys list"></div>
-            <div id="ov-keys-empty" class="ov-keys-empty">Start typing to see matching keys.</div>
-          </div>
-          <div class="override-conflicts" id="override-conflicts" hidden>
-            <div class="conflicts-header">
-              <button type="button" class="btn btn-outline btn-xs" id="conflicts-toggle"><i class="fas fa-code-branch"></i> Conflicts <span id="conflict-count">0</span></button>
-              <button type="button" class="btn btn-outline btn-xs" id="conflicts-rescan" title="Rescan conflicts"><i class="fas fa-rotate"></i></button>
-            </div>
-            <div class="conflicts-body" id="conflicts-body" hidden>
-              <div class="conflict-list-empty" id="conflicts-empty">No conflicts</div>
-              <ul class="conflict-list" id="conflict-list" aria-label="Conflict keys"></ul>
-              <div class="conflict-hint">Click a value to apply it; it will be removed from conflicts.</div>
-            </div>
+          <div class="hint" style="margin-top:6px; color: var(--color-text-muted); font-size:.85rem;">
+            When locked, Cinema will only use sessions from the selected Plex user.
           </div>
         </div>
-        <div class="override-json-shell">
-          <div class="toolbar-row">
-            <span class="label-spacer" aria-hidden="true"></span>
-            <div class="override-actions" id="override-toolbar">
-              <button type="button" class="btn btn-outline btn-sm" id="override-format" title="Format JSON"><i class="fas fa-magic"></i></button>
-              <button type="button" class="btn btn-outline btn-sm" id="override-clear" title="Clear JSON"><i class="fas fa-eraser"></i></button>
-              <button type="button" class="btn btn-outline btn-sm" id="override-clean" title="Reduce to current mode keys"><i class="fas fa-broom"></i></button>
-            </div>
+
+        <div class="form-group" id="override-plex-user-row" style="margin-bottom: 14px; display:none;">
+          <label for="override-plex-user" style="margin-bottom:6px; display:block;">Plex user</label>
+          <div class="select-wrap has-caret" style="width:100%">
+            <select id="override-plex-user" style="width:100%">
+              <option value="" selected>Loading…</option>
+            </select>
+            <span class="select-caret" aria-hidden="true">▾</span>
           </div>
-          <textarea id="override-json" rows="12" class="override-json" placeholder='{"wallart": {"duration": 30}}'></textarea>
         </div>
-        <div id="override-json-status" class="override-status" aria-live="polite"></div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="override-nowplaying-source" style="margin-bottom:6px; display:block;">Now Playing source preference</label>
+          <div class="select-wrap has-caret" style="width:100%">
+            <select id="override-nowplaying-source" style="width:100%">
+              <option value="auto">Auto (use any)</option>
+              <option value="plex">Prefer Plex (fallback to Jellyfin)</option>
+              <option value="jellyfin">Prefer Jellyfin (fallback to Plex)</option>
+            </select>
+            <span class="select-caret" aria-hidden="true">▾</span>
+          </div>
+        </div>
+
+        <hr style="border:0; border-top:1px solid rgba(255,255,255,.08); margin: 14px 0;" />
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <i class="fas fa-thumbtack" style="color: var(--color-teal);"></i>
+            <span>Pin poster (Cinema only)</span>
+          </label>
+          <div class="hint" style="color: var(--color-text-muted); font-size:.85rem;">
+            Pinning pauses rotation on Cinema until cleared.
+          </div>
+        </div>
+
+        <div class="form-group" style="display:flex; gap:10px; align-items:center; margin-bottom: 10px;">
+          <input id="override-pin-query" type="text" placeholder="Search movie or series…" style="flex:1;" />
+          <button type="button" class="btn btn-outline btn-sm" id="override-pin-search-btn"><i class="fas fa-search"></i> Search</button>
+        </div>
+
+        <div id="override-pin-current" class="hint" style="margin: 0 0 10px 0; color: var(--color-text-secondary);">
+          Pinned: <span id="override-pin-current-text">(none)</span>
+          <button type="button" class="btn btn-outline btn-xs" id="override-pin-clear-btn" style="margin-left:10px;">Clear</button>
+        </div>
+
+        <div id="override-pin-results" style="display:grid; gap:8px;"></div>
+        <div id="override-override-status" class="override-status" aria-live="polite"></div>
       </div>
       <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end;">
         <button class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>

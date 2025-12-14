@@ -204,12 +204,22 @@ class AutoUpdater {
                 // Kick off restart but do not block the status progression; if it takes
                 // too long or fails, we still mark completion so the UI doesn’t hang.
                 try {
-                    const timeoutConfig = require('../config/');
+                    let serviceStartRaceMs = 5000;
+                    try {
+                        const timeoutConfig = require('../config/');
+                        if (timeoutConfig && typeof timeoutConfig.getTimeout === 'function') {
+                            const configured = timeoutConfig.getTimeout('serviceStartRace');
+                            if (Number.isFinite(configured) && configured > 0) {
+                                serviceStartRaceMs = configured;
+                            }
+                        }
+                    } catch (_e) {
+                        // best-effort; fall back to default
+                    }
+
                     await Promise.race([
                         this.startServices(),
-                        new Promise(resolve =>
-                            setTimeout(resolve, timeoutConfig.getTimeout('serviceStartRace'))
-                        ),
+                        new Promise(resolve => setTimeout(resolve, serviceStartRaceMs)),
                     ]);
                 } catch (_e) {
                     // best-effort

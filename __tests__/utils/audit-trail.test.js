@@ -2,33 +2,9 @@
  * Tests for audit trail feature (#71/#62)
  */
 
-const path = require('path');
-const fs = require('fs').promises;
 const { auditLog, getAuditContext, auditLogger } = require('../../utils/auditLogger');
 
 describe('Backup Audit Trail (#71/#62)', () => {
-    const logDir = path.join(__dirname, '..', '..', 'logs');
-    const testLogPattern = /backup-audit-\d{4}-\d{2}-\d{2}\.log$/;
-
-    beforeAll(async () => {
-        // Ensure logs directory exists
-        await fs.mkdir(logDir, { recursive: true });
-    });
-
-    afterAll(async () => {
-        // Clean up test logs
-        try {
-            const files = await fs.readdir(logDir);
-            for (const file of files) {
-                if (testLogPattern.test(file)) {
-                    await fs.unlink(path.join(logDir, file)).catch(() => {});
-                }
-            }
-        } catch (e) {
-            // Ignore cleanup errors
-        }
-    });
-
     describe('Audit logger utility', () => {
         it('should log backup operations with correct structure', async () => {
             const action = 'backup.created';
@@ -42,30 +18,24 @@ describe('Backup Audit Trail (#71/#62)', () => {
                 ip: '127.0.0.1',
             };
 
+            const infoSpy = jest.spyOn(auditLogger, 'info').mockImplementation(() => {});
+
             auditLog(action, details, context);
 
-            // Allow time for async write
-            await new Promise(resolve => setTimeout(resolve, 100));
+            expect(infoSpy).toHaveBeenCalledTimes(1);
+            const entry = infoSpy.mock.calls[0][0];
 
-            // Verify log file exists
-            const files = await fs.readdir(logDir);
-            const logFile = files.find(f => testLogPattern.test(f));
-            expect(logFile).toBeDefined();
+            expect(entry).toMatchObject({
+                action,
+                backupId: details.backupId,
+                files: details.files,
+                trigger: details.trigger,
+                user: context.user,
+                ip: context.ip,
+            });
+            expect(entry.timestamp).toBeDefined();
 
-            if (logFile) {
-                const content = await fs.readFile(path.join(logDir, logFile), 'utf8');
-                const lines = content.trim().split('\n');
-                const lastLine = JSON.parse(lines[lines.length - 1]);
-                // Winston wraps the entry in a message field
-                const entry = lastLine.message || lastLine;
-
-                expect(entry.action).toBe(action);
-                expect(entry.backupId).toBe(details.backupId);
-                expect(entry.files).toBe(details.files);
-                expect(entry.user).toBe(context.user);
-                expect(entry.ip).toBe(context.ip);
-                expect(entry.timestamp).toBeDefined();
-            }
+            infoSpy.mockRestore();
         });
 
         it('should handle missing context gracefully', () => {
@@ -116,41 +86,41 @@ describe('Backup Audit Trail (#71/#62)', () => {
                 },
             ];
 
+            const infoSpy = jest.spyOn(auditLogger, 'info').mockImplementation(() => {});
+
             operations.forEach(op => {
                 auditLog(op.action, op.details, { user: 'test', ip: '127.0.0.1' });
             });
 
-            // Allow time for async writes
-            await new Promise(resolve => setTimeout(resolve, 200));
+            expect(infoSpy).toHaveBeenCalledTimes(operations.length);
+            operations.forEach((op, idx) => {
+                const entry = infoSpy.mock.calls[idx][0];
+                expect(entry).toMatchObject({
+                    action: op.action,
+                    ...op.details,
+                    user: 'test',
+                    ip: '127.0.0.1',
+                });
+                expect(entry.timestamp).toBeDefined();
+            });
 
-            const files = await fs.readdir(logDir);
-            const logFile = files.find(f => testLogPattern.test(f));
-            expect(logFile).toBeDefined();
+            infoSpy.mockRestore();
         });
 
         it('should use JSON format for structured querying', async () => {
+            const infoSpy = jest.spyOn(auditLogger, 'info').mockImplementation(() => {});
+
             auditLog(
                 'backup.created',
                 { backupId: 'json-test', files: 3 },
                 { user: 'admin', ip: '127.0.0.1' }
             );
 
-            await new Promise(resolve => setTimeout(resolve, 100));
+            expect(infoSpy).toHaveBeenCalledTimes(1);
+            const entry = infoSpy.mock.calls[0][0];
+            expect(() => JSON.stringify(entry)).not.toThrow();
 
-            const files = await fs.readdir(logDir);
-            const logFile = files.find(f => testLogPattern.test(f));
-
-            if (logFile) {
-                const content = await fs.readFile(path.join(logDir, logFile), 'utf8');
-                const lines = content.trim().split('\n');
-
-                // Verify each line is valid JSON
-                lines.forEach(line => {
-                    if (line.trim()) {
-                        expect(() => JSON.parse(line)).not.toThrow();
-                    }
-                });
-            }
+            infoSpy.mockRestore();
         });
     });
 
