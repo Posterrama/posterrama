@@ -52,6 +52,44 @@ module.exports = function createDevicesRouter({
 }) {
     const router = express.Router();
 
+    function isEmptyOverride(value) {
+        if (value == null) return true;
+        if (typeof value !== 'object') return false;
+        if (Array.isArray(value)) return value.length === 0;
+        return Object.keys(value).length === 0;
+    }
+
+    async function requestDeviceReload(deviceId, reason) {
+        const command = { type: 'core.mgmt.reload', payload: {} };
+
+        const isConnected = !!(wsHub && typeof wsHub.isConnected === 'function'
+            ? wsHub.isConnected(deviceId)
+            : false);
+
+        if (isConnected) {
+            try {
+                await Promise.resolve(wsHub.sendCommand(deviceId, command));
+                if (isDebug) {
+                    logger.debug('[Device PATCH] Reload sent live', { deviceId, reason });
+                }
+                return;
+            } catch (e) {
+                if (isDebug) {
+                    logger.debug('[Device PATCH] Live reload send failed; queueing', {
+                        deviceId,
+                        reason,
+                        error: e?.message || String(e),
+                    });
+                }
+            }
+        }
+
+        await Promise.resolve(deviceStore.queueCommand(deviceId, command));
+        if (isDebug) {
+            logger.debug('[Device PATCH] Reload queued', { deviceId, reason });
+        }
+    }
+
     /**
      * @swagger
      * /api/devices/register:
@@ -977,11 +1015,39 @@ module.exports = function createDevicesRouter({
     router.patch('/:id', testSessionShim, adminAuthDevices, express.json(), async (req, res) => {
         try {
             const deviceId = req.params.id;
+            const beforeDevice = await deviceStore.getById(deviceId);
+            const beforeProfileId = beforeDevice?.profileId ?? null;
+            const beforeOverrideWasEmpty = isEmptyOverride(beforeDevice?.settingsOverride);
             const updatedDevice = await deviceOps.processDeviceUpdate(
                 deviceStore,
                 deviceId,
                 req.body
             );
+
+            // Live-update behavior: ensure profile assignment changes and "clear overrides"
+            // actions apply immediately on the target device.
+            try {
+                const patch = req.body || {};
+                const profileChanged =
+                    patch.profileId !== undefined &&
+                    beforeProfileId !== (updatedDevice?.profileId ?? null);
+
+                const overridesCleared =
+                    patch.settingsOverride !== undefined &&
+                    isEmptyOverride(patch.settingsOverride) &&
+                    !beforeOverrideWasEmpty;
+
+                if (profileChanged) {
+                    await requestDeviceReload(deviceId, 'profile_changed');
+                } else if (overridesCleared) {
+                    await requestDeviceReload(deviceId, 'overrides_cleared');
+                }
+            } catch (e) {
+                logger.warn('[Device PATCH] Reload request failed (non-fatal)', {
+                    deviceId,
+                    error: e?.message || String(e),
+                });
+            }
 
             res.json({
                 success: true,

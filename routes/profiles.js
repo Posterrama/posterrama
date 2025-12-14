@@ -302,15 +302,36 @@ module.exports = function createProfilesRouter({ adminAuth, cacheManager }) {
      */
     router.delete('/:id', adminAuth, async (req, res) => {
         try {
-            const ok = await profilesStore.deleteProfile(req.params.id);
+            const profileId = req.params.id;
+            const ok = await profilesStore.deleteProfile(profileId);
             if (!ok) return res.status(404).json({ error: 'not_found' });
 
             // Clear profileId from all devices that had this profile
             try {
                 const allDevices = await deviceStore.getAll();
+                const affected = allDevices.filter(d => d.profileId === profileId);
                 for (const dev of allDevices) {
-                    if (dev.profileId === req.params.id) {
-                        await deviceStore.update(dev.id, { profileId: null });
+                    if (dev.profileId !== profileId) continue;
+
+                    // Note: deviceStore uses patchDevice; historical code used "update" here.
+                    await deviceStore.patchDevice(dev.id, { profileId: null });
+                }
+
+                // Reload only affected devices so they immediately fall back to global settings.
+                const reloadCmd = { type: 'core.mgmt.reload', payload: {} };
+                for (const dev of affected) {
+                    try {
+                        if (wsHub.isConnected(dev.id)) {
+                            wsHub.sendCommand(dev.id, reloadCmd);
+                        } else {
+                            deviceStore.queueCommand(dev.id, reloadCmd);
+                        }
+                    } catch (e) {
+                        logger.warn('[Profiles] Failed to reload device after profile delete', {
+                            deviceId: dev.id,
+                            profileId,
+                            error: e?.message || String(e),
+                        });
                     }
                 }
             } catch (_) {
