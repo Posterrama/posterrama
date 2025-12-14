@@ -112,12 +112,12 @@
     object-fit: cover;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
 }
-/* Straddle the separator: half in body, half in bottom cell */
+/* Position thumbnail overlapping the edge */
 #section-devices .nowplay-thumb-right {
     position: absolute;
     right: 18px;
-    top: -36px; /* place half of the 72px thumb above the bottom row to straddle the divider */
-    z-index: 1;
+    top: -24px; /* overlap into the body section */
+    z-index: 10;
 }
 /* Make the body a positioning context and reserve space for the right thumb */
 #section-devices .device-card-body {
@@ -156,15 +156,22 @@
         transform: translateX(calc(-100% + 200px));
     }
 }
-/* Keep pills on one line for Devices section */
+/* Device pills - wrap to next line if needed */
 #section-devices .device-badges {
-    flex-wrap: nowrap;
-    /* Keep pills on one line without clipping outer shadows */
-    overflow: visible;
-    gap: 8px; /* a touch more breathing room for three pills */
+    flex-wrap: wrap;
+    gap: 8px;
 }
 #section-devices .device-badges .status-pill {
     white-space: nowrap;
+}
+#section-devices .device-body-main {
+    min-width: 0; /* allow flex children to shrink */
+}
+/* Dupes pill - purple tint to stand out from other pills */
+#section-devices .device-badges .status-pill.sp-dupes {
+    background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+    color: var(--color-accent-light);
 }
 /* Inline meta beside the thumbnail (single-line, no extra height) */
 #section-devices .nowplay-thumb .nowplay-meta {
@@ -5291,7 +5298,7 @@ body .modal-overlay.open {
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-md);
-    overflow: visible; /* allow inner dropdowns to escape */
+    overflow: visible; /* allow thumbnail to overlap */
     display: grid;
     grid-template-rows: auto 1fr auto;
 }
@@ -5620,7 +5627,7 @@ body .modal-overlay.open {
         var(--space-lg) + 78px
     ); /* leave room for floating thumb when thumb exists */
     justify-content: flex-start; /* keep meta pills aligned to the left */
-    overflow: visible; /* allow the thumbnail to overlap upwards */
+    overflow: visible; /* allow thumbnail to overlap upwards */
 }
 .app-section#section-devices .device-actions .meta-pills {
     flex: 1;
@@ -5746,11 +5753,6 @@ body .modal-overlay.open {
 }
 
 /* Minor utilities for device pills */
-.pill-dupes {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(251, 191, 36, 0.12));
-    color: var(--color-warning);
-    border-color: rgba(245, 158, 11, 0.35);
-}
 .pill-room {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(96, 165, 250, 0.12));
     color: var(--color-info);

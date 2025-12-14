@@ -12369,7 +12369,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const title = `Likely duplicates (reasons per item):\n${tipList}`;
                     const safeTitle = title.replace(/"/g, '&quot;');
                     const safeIds = listIds.join(',').replace(/"/g, '&quot;');
-                    return `<span class="pill pill-dup js-dupes-hover" title="${safeTitle}" data-dupes-ids="${safeIds}" data-dupes-title="${safeTitle}"><i class="fas fa-clone"></i> Dupes: ${dupeList.length}</span>`;
+                    return `<span class="status-pill sp-dupes js-dupes-hover" title="${safeTitle}" data-dupes-ids="${safeIds}" data-dupes-title="${safeTitle}"><i class="fas fa-clone"></i> Dupes: ${dupeList.length}</span>`;
                 })();
                 // Map preset and groups to human-readable labels
                 const presetKey = (d && typeof d.preset === 'string' ? d.preset : '').trim();
