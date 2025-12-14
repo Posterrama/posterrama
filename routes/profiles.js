@@ -12,7 +12,7 @@ const router = express.Router();
 const profilesStore = require('../utils/profilesStore');
 const deviceStore = require('../utils/deviceStore');
 const wsHub = require('../utils/wsHub');
-const deepMerge = require('../utils/deep-merge');
+// const deepMerge = require('../utils/deep-merge'); // Reserved for future use
 
 /**
  * Middleware factory to get dependencies from server.js

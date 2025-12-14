@@ -33,7 +33,7 @@ const {
     createAdminAuthDevices,
 } = require('./middleware');
 // NOTE: presets are deprecated - replaced by profiles system
-// const { readPresets, writePresets } = require('./lib/preset-helpers');
+const { readPresets, writePresets } = require('./lib/preset-helpers');
 const {
     createPlexClient,
     getPlexClient,

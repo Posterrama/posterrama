@@ -12358,10 +12358,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 })();
                 // Map preset and groups to human-readable labels (DEPRECATED - kept for migration)
                 const presetKey = (d && typeof d.preset === 'string' ? d.preset : '').trim();
-                const presetName = presetKey
+                const _presetName = presetKey
                     ? state.presets.find(p => p.key === presetKey)?.name || presetKey
                     : '';
-                const groupNames = Array.isArray(d?.groups)
+                const _groupNames = Array.isArray(d?.groups)
                     ? d.groups
                           .map(gid => {
                               const g = (state.groups || []).find(
