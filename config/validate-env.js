@@ -39,7 +39,12 @@ require('dotenv').config({ path: envFileToUse });
 
 // --- Schema Validation ---
 // @ts-ignore - Ajv constructor is valid but TypeScript doesn't recognize it from require()
-const ajv = new Ajv({ allErrors: true, allowUnionTypes: true }); // allowUnionTypes to support multi-type definitions
+const ajv = new Ajv({
+    allErrors: true,
+    allowUnionTypes: true, // Support multi-type definitions like ["string", "integer", "null"]
+    useDefaults: true, // Inject defaults for missing properties
+    strict: false, // Disable strict mode to allow union types without warnings
+});
 const schemaPath = path.join(__dirname, '..', 'config.schema.json');
 
 // Create a local safe reader that doesn't globally monkey-patch fs, to avoid
@@ -212,6 +217,21 @@ function migrateConfig(cfg) {
         }
         return false;
     };
+
+    // === TOP-LEVEL REQUIRED PROPERTIES WITH DEFAULTS ===
+    // Ensure backgroundRefreshMinutes exists (was previously required in schema)
+    if (cfg.backgroundRefreshMinutes === undefined) {
+        cfg.backgroundRefreshMinutes = 60;
+        console.log('[Config Migration] Added missing backgroundRefreshMinutes: 60');
+        modified = true;
+    } else if (
+        typeof cfg.backgroundRefreshMinutes !== 'number' ||
+        cfg.backgroundRefreshMinutes < 5
+    ) {
+        cfg.backgroundRefreshMinutes = 60;
+        console.log('[Config Migration] Fixed invalid backgroundRefreshMinutes: 60');
+        modified = true;
+    }
 
     // === TOP-LEVEL ORIENTATION ===
     modified = fixEnum(cfg, 'cinemaOrientation', VALID.orientation, 'auto', 'config') || modified;
@@ -631,7 +651,8 @@ function migrateConfig(cfg) {
     }
 
     // === SAVE IF MODIFIED ===
-    if (modified) {
+    // Don't write to disk during tests to avoid corrupting test data
+    if (modified && process.env.NODE_ENV !== 'test') {
         try {
             fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf-8');
             console.log('[Config Migration] ✓ Config file repaired and saved');
@@ -757,4 +778,4 @@ function validateEnvironment() {
     });
 }
 
-module.exports = { validate: validateEnvironment };
+module.exports = { validate: validateEnvironment, migrateConfig };
