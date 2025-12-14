@@ -62,7 +62,8 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
 
             await cap.commandHandler(device.id, 'cinematic');
 
-            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev2', expect.any(Object));
+            // This capability is deprecated/no-op (availableWhen=false), so it shouldn't persist.
+            expect(deviceStore.patchDevice).not.toHaveBeenCalled();
         });
 
         test('layout commandHandler', async () => {
@@ -98,7 +99,8 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
 
             await cap.commandHandler(device.id, 45);
 
-            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev6', expect.any(Object));
+            // Deprecated/no-op
+            expect(deviceStore.patchDevice).not.toHaveBeenCalled();
         });
 
         test('timingRandomness commandHandler', async () => {
@@ -107,7 +109,8 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
 
             await cap.commandHandler(device.id, 0.3);
 
-            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev7', expect.any(Object));
+            // Deprecated/no-op
+            expect(deviceStore.patchDevice).not.toHaveBeenCalled();
         });
 
         test('biasToAmbiance commandHandler', async () => {
@@ -163,7 +166,8 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
 
             await cap.commandHandler(device.id, 'classic');
 
-            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev4', expect.any(Object));
+            // Deprecated/no-op (modern schema uses header.typography.*)
+            expect(deviceStore.patchDevice).not.toHaveBeenCalled();
         });
 
         test('ambilight.enabled commandHandler', async () => {
@@ -217,7 +221,8 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
 
             await cap.commandHandler(device.id, 'classic');
 
-            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev10', expect.any(Object));
+            // Deprecated/no-op (modern schema uses footer.typography.*)
+            expect(deviceStore.patchDevice).not.toHaveBeenCalled();
         });
 
         test('footer.specs.style commandHandler', async () => {
@@ -226,7 +231,8 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
 
             await cap.commandHandler(device.id, 'modern');
 
-            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev11', expect.any(Object));
+            // Deprecated/no-op (replaced by cinema.metadata.specs.*)
+            expect(deviceStore.patchDevice).not.toHaveBeenCalled();
         });
 
         test('footer.specs.iconSet commandHandler', async () => {
@@ -235,7 +241,8 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
 
             await cap.commandHandler(device.id, 'standard');
 
-            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev12', expect.any(Object));
+            // Deprecated/no-op
+            expect(deviceStore.patchDevice).not.toHaveBeenCalled();
         });
 
         test('footer.specs.showResolution commandHandler', async () => {
@@ -244,7 +251,8 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
 
             await cap.commandHandler(device.id, true);
 
-            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev13', expect.any(Object));
+            // Deprecated/no-op
+            expect(deviceStore.patchDevice).not.toHaveBeenCalled();
         });
 
         test('footer.specs.showAudio commandHandler', async () => {
@@ -253,7 +261,8 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
 
             await cap.commandHandler(device.id, true);
 
-            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev14', expect.any(Object));
+            // Deprecated/no-op
+            expect(deviceStore.patchDevice).not.toHaveBeenCalled();
         });
 
         test('footer.specs.showAspectRatio commandHandler', async () => {
@@ -262,7 +271,8 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
 
             await cap.commandHandler(device.id, true);
 
-            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev15', expect.any(Object));
+            // Deprecated/no-op
+            expect(deviceStore.patchDevice).not.toHaveBeenCalled();
         });
 
         test('footer.specs.showFlags commandHandler', async () => {
@@ -271,7 +281,8 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
 
             await cap.commandHandler(device.id, true);
 
-            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev16', expect.any(Object));
+            // Deprecated/no-op
+            expect(deviceStore.patchDevice).not.toHaveBeenCalled();
         });
     });
 

@@ -413,13 +413,23 @@ async function cleanupEntities() {
 
         // Sweep ALL retained Posterrama discovery topics, including orphaned devices.
         // This is far more reliable than only iterating current deviceStore.
-        const sweepFilter = `${discoveryPrefix}/+/posterrama_+/+/config`;
+        // NOTE: MQTT wildcards must occupy an entire path segment; you cannot use partial wildcards
+        // like "posterrama_+". Subscribe broadly, then filter topics in-code.
+        const sweepFilter = `${discoveryPrefix}/+/+/+/config`;
         logger.info(`\n🧽 Sweeping retained discovery topics: ${sweepFilter}`);
 
         const discoveredTopics = new Set();
         const onMsg = (topic, _payload, packet) => {
             if (!packet?.retain) return;
-            discoveredTopics.add(topic);
+            const t = String(topic || '');
+            const parts = t.split('/');
+            // Expected: {discoveryPrefix}/{component}/{nodeId}/{objectId}/config
+            // Example: homeassistant/select/posterrama_<deviceId>/settings_cinema_header_text/config
+            if (parts.length !== 5) return;
+            if (parts[0] !== discoveryPrefix) return;
+            if (parts[4] !== 'config') return;
+            if (!String(parts[2] || '').startsWith('posterrama_')) return;
+            discoveredTopics.add(t);
         };
         client.on('message', onMsg);
 
@@ -578,15 +588,27 @@ function buildDiscoveryConfig(device, capability, topicPrefix, config) {
                 icon: capability.icon,
             };
 
-        case 'select':
+        case 'select': {
+            let options = capability.options;
+            if (typeof capability.optionsGetter === 'function') {
+                try {
+                    const next = capability.optionsGetter(device);
+                    if (Array.isArray(next) && next.length) options = next;
+                } catch (_) {
+                    // ignore in cleanup script
+                }
+            }
+            const safeOptions = Array.isArray(options) ? options : [];
+            const fallbackOpt = safeOptions.length ? safeOptions[0] : '';
             return {
                 ...baseConfig,
                 state_topic: stateTopic,
-                value_template: `{{ value_json['${capability.id}'] | default('${capability.options[0]}') }}`,
+                value_template: `{{ value_json['${capability.id}'] | default('${fallbackOpt}') }}`,
                 command_topic: commandTopic,
-                options: capability.options,
+                options: safeOptions,
                 icon: capability.icon,
             };
+        }
 
         case 'number':
             return {
@@ -607,6 +629,7 @@ function buildDiscoveryConfig(device, capability, topicPrefix, config) {
                 state_topic: stateTopic,
                 value_template: `{{ value_json['${capability.id}'] | default('') }}`,
                 command_topic: commandTopic,
+                pattern: capability.pattern || '.*',
                 icon: capability.icon,
             };
 

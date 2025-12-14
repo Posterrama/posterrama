@@ -33,11 +33,29 @@ class MqttBridge extends EventEmitter {
         };
         this.deviceStates = new Map();
         this.discoveryPublished = new Set();
+        this.discoveryFingerprints = new Map();
         this.deviceModes = new Map(); // Track device modes to detect changes
         this.lastCameraPoster = new Map(); // Track camera poster URLs to avoid duplicate publishes
+        this.lastCameraPublishAt = new Map(); // Track last publish time to periodically refresh retained images
         this.commandHistory = []; // Last 50 commands
         this.maxCommandHistory = 50;
         this.startTime = Date.now();
+    }
+
+    _getSelectOptions(device, capability) {
+        let options = capability.options;
+        if (typeof capability.optionsGetter === 'function') {
+            try {
+                const next = capability.optionsGetter(device);
+                if (Array.isArray(next) && next.length) options = next;
+            } catch (e) {
+                logger.debug('MQTT discovery optionsGetter failed', {
+                    capabilityId: capability.id,
+                    message: e?.message,
+                });
+            }
+        }
+        return Array.isArray(options) ? options : [];
     }
 
     /**
@@ -496,15 +514,21 @@ class MqttBridge extends EventEmitter {
                 return;
             }
 
-            // Check if poster URL changed (avoid unnecessary publishes)
+            // Avoid unnecessary publishes, but periodically refresh the retained image so HA
+            // always has something to show (e.g., after HA restart or discovery republish).
+            const now = Date.now();
+            const minRepublishMs = 5 * 60 * 1000; // 5 minutes
             const lastPoster = this.lastCameraPoster.get(device.id);
-            if (lastPoster === posterUrl) {
+            const lastPublishedAt = this.lastCameraPublishAt.get(device.id) || 0;
+            const shouldRepublish = now - lastPublishedAt >= minRepublishMs;
+            if (lastPoster === posterUrl && !shouldRepublish) {
                 logger.debug('📷 Camera state unchanged, skipping publish', {
                     deviceId: device.id,
                 });
-                return; // No change, skip publish
+                return;
             }
             this.lastCameraPoster.set(device.id, posterUrl);
+            this.lastCameraPublishAt.set(device.id, now);
 
             // Build full image URL
             const config = require('../config/');
@@ -519,7 +543,7 @@ class MqttBridge extends EventEmitter {
                     this.config.externalUrl || `http://192.168.10.20:${cfg.serverPort || 4000}`;
                 imageUrl = `${baseUrl}${posterUrl}`;
 
-                // Fetch image for binary publishing (thumbnail)
+                // Fetch image for MQTT camera publishing (base64)
                 logger.debug('📷 Fetching camera image for thumbnail...', {
                     deviceId: device.id,
                     url: localUrl.substring(0, 80),
@@ -534,16 +558,19 @@ class MqttBridge extends EventEmitter {
                     },
                 });
 
-                // Publish binary image for thumbnail
+                // Publish base64 image (retain so HA has the last poster immediately)
                 const imageBuffer = Buffer.from(response.data);
-                await this.publish(cameraTopic, imageBuffer, { qos: 0, retain: false });
+                const base64 = imageBuffer.toString('base64');
+                await this.publish(cameraTopic, base64, { qos: 0, retain: true });
 
-                logger.debug('📷 Published binary image for thumbnail', {
+                logger.debug('📷 Published camera image (base64)', {
                     deviceId: device.id,
                     size: Math.round(imageBuffer.length / 1024) + 'KB',
                 });
             } else if (posterUrl.startsWith('http')) {
-                // Already a full URL
+                // Already a full URL.
+                // Don't fetch it here: (a) it may be unreachable from the server and
+                // (b) tests should not depend on network. We still publish camera/state.
                 imageUrl = posterUrl;
             } else {
                 logger.warn('Invalid poster URL format', { posterUrl });
@@ -591,22 +618,41 @@ class MqttBridge extends EventEmitter {
         }
 
         try {
-            // Skip if already published for this device (unless force)
-            if (this.discoveryPublished.has(device.id)) {
-                return;
-            }
+            const topicPrefix = this.config.topicPrefix || 'posterrama';
+            const discoveryPrefix = this.config.discovery.prefix || 'homeassistant';
 
             const allCapabilities = capabilityRegistry.getAllCapabilities();
             const availableCapabilities = capabilityRegistry.getAvailableCapabilities(device);
-            const discoveryPrefix = this.config.discovery.prefix || 'homeassistant';
-            const topicPrefix = this.config.topicPrefix || 'posterrama';
-
             const availableIds = new Set(availableCapabilities.map(c => c.id));
             const skippedCount = allCapabilities.length - availableCapabilities.length;
 
+            // Compute a lightweight fingerprint so we can republish only when
+            // (a) availability changes or (b) dynamic option lists change.
+            const mode = device.clientInfo?.mode || device.currentState?.mode || null;
+            const fingerprintObj = {
+                mode,
+                available: availableCapabilities.map(cap => {
+                    if (cap.entityType === 'select') {
+                        return { id: cap.id, t: 'select', o: this._getSelectOptions(device, cap) };
+                    }
+                    if (cap.entityType === 'text') {
+                        return { id: cap.id, t: 'text', p: cap.pattern || '.*' };
+                    }
+                    return { id: cap.id, t: cap.entityType };
+                }),
+            };
+            const fingerprint = JSON.stringify(fingerprintObj);
+            const prevFingerprint = this.discoveryFingerprints.get(device.id);
+            if (this.discoveryPublished.has(device.id) && prevFingerprint === fingerprint) {
+                logger.debug('⏭️  Skipping discovery - unchanged', {
+                    deviceId: device.id,
+                });
+                return;
+            }
+
             logger.debug('🔍 Publishing Home Assistant discovery', {
                 deviceId: device.id,
-                mode: device.clientInfo?.mode || device.currentState?.mode,
+                mode,
                 availableCapabilities: availableCapabilities.length,
                 totalCapabilities: allCapabilities.length,
                 skippedCapabilities: skippedCount,
@@ -655,6 +701,11 @@ class MqttBridge extends EventEmitter {
             }
 
             this.discoveryPublished.add(device.id);
+            this.discoveryFingerprints.set(device.id, fingerprint);
+
+            // Force a fresh camera publish after discovery changes so HA camera isn't blank.
+            this.lastCameraPoster.delete(device.id);
+            this.lastCameraPublishAt.delete(device.id);
             logger.debug('✅ Discovery publishing completed', {
                 deviceId: device.id,
                 published: availableCapabilities.length,
@@ -663,6 +714,9 @@ class MqttBridge extends EventEmitter {
 
             // Immediately publish state after discovery so switches show correct state
             await this.publishDeviceState(device);
+
+            // Ensure HA camera gets an image after discovery republish
+            await this.publishCameraState(device);
         } catch (error) {
             logger.error('Error publishing discovery:', error);
             this.stats.errors++;
@@ -674,6 +728,7 @@ class MqttBridge extends EventEmitter {
      */
     async republishDiscovery(device) {
         this.discoveryPublished.delete(device.id);
+        this.discoveryFingerprints.delete(device.id);
         await this.publishDiscovery(device);
     }
 
@@ -754,6 +809,7 @@ class MqttBridge extends EventEmitter {
 
             // Remove from tracking
             this.discoveryPublished.delete(device.id);
+            this.discoveryFingerprints.delete(device.id);
 
             logger.info('✅ Device removed from Home Assistant', {
                 deviceId: device.id,
@@ -833,15 +889,18 @@ class MqttBridge extends EventEmitter {
                     icon: capability.icon,
                 };
 
-            case 'select':
+            case 'select': {
+                const options = this._getSelectOptions(device, capability);
+                const fallbackOpt = options.length ? options[0] : '';
                 return {
                     ...baseConfig,
                     state_topic: stateTopic,
-                    value_template: `{{ value_json['${capability.id}'] | default('${capability.options[0]}') }}`,
+                    value_template: `{{ value_json['${capability.id}'] | default('${fallbackOpt}') }}`,
                     command_topic: commandTopic,
-                    options: capability.options,
+                    options: options || [],
                     icon: capability.icon,
                 };
+            }
 
             case 'number':
                 return {
@@ -868,14 +927,16 @@ class MqttBridge extends EventEmitter {
                 };
 
             case 'camera': {
-                // Use image_topic with binary data for reliable display
-                // Re-publish on every heartbeat to force refresh
+                // MQTT Camera discovery: Home Assistant expects `topic` for the image payload.
+                // Keep `image_topic` as well for backwards compatibility.
                 const cameraTopic = `${topicPrefix}/device/${device.id}/camera`;
                 const cameraStateTopic = `${topicPrefix}/device/${device.id}/camera/state`;
                 return {
                     ...baseConfig,
-                    topic: cameraTopic, // Binary image topic
-                    image_topic: cameraTopic, // Same - binary JPEG data
+                    topic: cameraTopic,
+                    image_topic: cameraTopic,
+                    image_encoding: 'b64',
+                    content_type: 'image/jpeg',
                     json_attributes_topic: cameraStateTopic, // Metadata with timestamp
                     icon: capability.icon,
                 };
@@ -950,8 +1011,8 @@ class MqttBridge extends EventEmitter {
             for (const device of devices) {
                 await this.publishDeviceState(device);
                 await this.publishDeviceAvailability(device);
-                // Camera state is published via heartbeat events for real-time updates
-                // await this.publishCameraState(device);
+                // Also publish camera periodically so HA has a retained poster after restarts.
+                await this.publishCameraState(device);
                 await this.publishDiscovery(device);
             }
 
@@ -1002,6 +1063,9 @@ class MqttBridge extends EventEmitter {
 
         // Clean up tracking
         this.deviceStates.delete(device.id);
+        this.discoveryFingerprints.delete(device.id);
+        this.lastCameraPoster.delete(device.id);
+        this.lastCameraPublishAt.delete(device.id);
 
         logger.info('🗑️  Device cleanup complete', {
             deviceId: device.id,

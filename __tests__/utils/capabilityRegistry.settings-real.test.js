@@ -278,8 +278,10 @@ describe('capabilityRegistry - actual settings capabilities', () => {
             expect(cap).toBeDefined();
             if (cap) {
                 expect(cap.entityType).toBe('select');
-                expect(cap.options).toContain('None');
-                expect(cap.options).toContain('Now Playing');
+                const options =
+                    typeof cap.optionsGetter === 'function' ? cap.optionsGetter({}) : cap.options;
+                expect(Array.isArray(options)).toBe(true);
+                expect(options).toContain('Now Playing');
             }
         });
     });

@@ -158,6 +158,46 @@ describe('MQTT Bridge', () => {
             expect(mqttBridge.stats).toHaveProperty('messagesReceived');
             expect(mqttBridge.stats).toHaveProperty('commandsExecuted');
         });
+
+        test('maps unknown entity types to sensor component', () => {
+            mqttBridge = new MqttBridge({ enabled: true });
+            expect(mqttBridge.getHomeAssistantComponent('does-not-exist')).toBe('sensor');
+        });
+    });
+
+    describe('Utility behavior', () => {
+        test('publish rejects when not connected', async () => {
+            mqttBridge = new MqttBridge({ enabled: true });
+            mqttBridge.client = null;
+            mqttBridge.connected = false;
+
+            await expect(mqttBridge.publish('t', 'm')).rejects.toThrow('MQTT client not connected');
+        });
+
+        test('onDeviceDelete clears caches', async () => {
+            mqttBridge = new MqttBridge({
+                enabled: true,
+                broker: { host: 'localhost', port: 1883 },
+                discovery: { enabled: true },
+            });
+            mqttBridge.client = mockMqttClient;
+            mqttBridge.connected = true;
+
+            mqttBridge.deviceStates.set('test-device-1', 'state');
+            mqttBridge.discoveryFingerprints.set('test-device-1', 'fp');
+            mqttBridge.lastCameraPoster.set('test-device-1', 'poster');
+            mqttBridge.lastCameraPublishAt.set('test-device-1', Date.now());
+
+            mqttBridge.unpublishDiscovery = jest.fn(() => Promise.resolve());
+
+            await mqttBridge.onDeviceDelete({ id: 'test-device-1', name: 'Test Device 1' });
+
+            expect(mqttBridge.unpublishDiscovery).toHaveBeenCalled();
+            expect(mqttBridge.deviceStates.has('test-device-1')).toBe(false);
+            expect(mqttBridge.discoveryFingerprints.has('test-device-1')).toBe(false);
+            expect(mqttBridge.lastCameraPoster.has('test-device-1')).toBe(false);
+            expect(mqttBridge.lastCameraPublishAt.has('test-device-1')).toBe(false);
+        });
     });
 
     describe('Initialization', () => {

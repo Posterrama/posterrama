@@ -74,6 +74,106 @@ describe('Capability Registry', () => {
 
             expect(sizeAfterFirst).toBe(sizeAfterSecond);
         });
+
+        test('registers modern cinema + wallart + screensaver settings capabilities', () => {
+            capabilityRegistry.init();
+
+            // Cinema (modern schema)
+            expect(capabilityRegistry.has('settings.cinema.footer.type')).toBe(true);
+            expect(capabilityRegistry.has('settings.cinema.footer.taglineMarquee')).toBe(true);
+            expect(capabilityRegistry.has('settings.cinema.metadata.specs.showHDR')).toBe(true);
+            expect(capabilityRegistry.has('settings.cinema.metadata.specs.style')).toBe(true);
+            expect(capabilityRegistry.has('settings.cinema.header.typography.fontFamily')).toBe(
+                true
+            );
+            expect(capabilityRegistry.has('settings.cinema.footer.typography.shadow')).toBe(true);
+
+            // Wallart (modern schema)
+            expect(capabilityRegistry.has('settings.wallartMode.refreshRate')).toBe(true);
+            expect(capabilityRegistry.has('settings.wallartMode.randomness')).toBe(true);
+            expect(capabilityRegistry.has('settings.wallartMode.ambientGradient')).toBe(true);
+            expect(capabilityRegistry.has('settings.wallartMode.orientation')).toBe(true);
+
+            // Screensaver orientation
+            expect(capabilityRegistry.has('settings.screensaverMode.orientation')).toBe(true);
+
+            // Override modal parity (Cinema)
+            expect(capabilityRegistry.has('settings.cinema.nowPlaying.priority')).toBe(true);
+            expect(capabilityRegistry.has('settings.cinema.nowPlaying.filterUser')).toBe(true);
+            expect(capabilityRegistry.has('settings.cinema.nowPlaying.sourcePreference')).toBe(
+                true
+            );
+            expect(capabilityRegistry.has('settings.cinema.pinnedMediaKey')).toBe(true);
+        });
+
+        test('keeps Cinema text presets in sync with cinema-ui.js', () => {
+            jest.resetModules();
+            jest.mock('../../utils/wsHub', () => ({
+                sendCommand: jest.fn().mockResolvedValue(true),
+                sendApplySettings: jest.fn().mockResolvedValue(true),
+            }));
+
+            // Ensure the optionsGetter only reflects system presets (no config presets)
+            jest.doMock('../../config', () => ({
+                config: { cinema: { presets: { headerTexts: [], footerTexts: [] } } },
+            }));
+
+            const fs = require('fs');
+            const path = require('path');
+            const cinemaUiPath = path.join(
+                __dirname,
+                '..',
+                '..',
+                'public',
+                'cinema',
+                'cinema-ui.js'
+            );
+            const src = fs.readFileSync(cinemaUiPath, 'utf8');
+            const m = src.match(/const\s+SYSTEM_TEXT_PRESETS\s*=\s*\[([\s\S]*?)\];/);
+            expect(m).toBeTruthy();
+            const block = m[1] || '';
+            const uiPresets = Array.from(block.matchAll(/['"]([^'"]+)['"]/g)).map(x => x[1]);
+
+            const reg = require('../../utils/capabilityRegistry');
+            reg.init();
+            const cap = reg.get('settings.cinema.header.text');
+            expect(cap).toBeTruthy();
+            expect(typeof cap.optionsGetter).toBe('function');
+
+            const dummyDevice = { id: 'd1', currentState: { mode: 'cinema' } };
+            const mqttPresets = cap.optionsGetter(dummyDevice);
+            expect(mqttPresets).toEqual(uiPresets);
+        });
+
+        test('keeps Cinema specs options in sync with admin.html', () => {
+            const fs = require('fs');
+            const path = require('path');
+            const adminHtmlPath = path.join(__dirname, '..', '..', 'public', 'admin.html');
+            const html = fs.readFileSync(adminHtmlPath, 'utf8');
+
+            const styleSelect = html.match(
+                /<select\s+id="cinemaSpecsStyle"[^>]*>([\s\S]*?)<\/select>/
+            );
+            expect(styleSelect).toBeTruthy();
+            const styleOpts = Array.from(
+                (styleSelect[1] || '').matchAll(/<option\s+value="([^"]+)"/g)
+            ).map(x => x[1]);
+
+            const iconSetSelect = html.match(
+                /<select\s+id="cinemaSpecsIconSet"[^>]*>([\s\S]*?)<\/select>/
+            );
+            expect(iconSetSelect).toBeTruthy();
+            const iconSetOpts = Array.from(
+                (iconSetSelect[1] || '').matchAll(/<option\s+value="([^"]+)"/g)
+            ).map(x => x[1]);
+
+            capabilityRegistry.init();
+            const styleCap = capabilityRegistry.get('settings.cinema.metadata.specs.style');
+            const iconSetCap = capabilityRegistry.get('settings.cinema.metadata.specs.iconSet');
+
+            expect(styleCap.options).toEqual(styleOpts);
+            expect(iconSetCap.options).toEqual(iconSetOpts);
+        });
     });
 
     describe('Capability Registration', () => {
@@ -217,6 +317,29 @@ describe('Capability Registry', () => {
 
             expect(availablePinned.some(c => c.id === 'pin.unpin')).toBe(true);
             expect(availableNotPinned.some(c => c.id === 'pin.unpin')).toBe(false);
+        });
+
+        test('does not expose deprecated legacy capabilities', () => {
+            const deviceCinema = {
+                id: 'test-device',
+                currentState: { mode: 'cinema' },
+            };
+
+            const available = capabilityRegistry.getAvailableCapabilities(deviceCinema);
+
+            // Deprecated legacy entities should not be available
+            expect(available.some(c => c.id === 'settings.cinema.footer.specs.showFlags')).toBe(
+                false
+            );
+            expect(available.some(c => c.id === 'settings.cinema.footer.marqueeStyle')).toBe(false);
+
+            // Modern replacements should be available
+            expect(available.some(c => c.id === 'settings.cinema.metadata.specs.showHDR')).toBe(
+                true
+            );
+            expect(
+                available.some(c => c.id === 'settings.cinema.footer.typography.fontFamily')
+            ).toBe(true);
         });
 
         test('includes power.on only when device is powered off', () => {

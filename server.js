@@ -6944,6 +6944,13 @@ app.get(
             });
         }
 
+        // Cache for other subsystems (e.g., MQTT discovery option lists)
+        try {
+            global.__posterramaPlexUsersCache = uniqueUsers;
+        } catch (_) {
+            /* ignore */
+        }
+
         res.json({ success: true, users: uniqueUsers });
     })
 );

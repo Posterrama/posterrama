@@ -134,7 +134,12 @@ class CapabilityRegistry {
             max: spec.max,
             step: spec.step,
             unit: spec.unit,
+            unitOfMeasurement: spec.unitOfMeasurement,
+            deviceClass: spec.deviceClass,
             options: spec.options,
+            optionsGetter: spec.optionsGetter,
+            pattern: spec.pattern,
+            affectsDiscovery: spec.affectsDiscovery === true,
         });
 
         logger.debug(`Registered capability: ${id}`, {
@@ -447,6 +452,8 @@ class CapabilityRegistry {
         const wsHub = require('./wsHub');
         const deviceStore = require('./deviceStore');
 
+        const deprecated = () => false;
+
         /**
          * Helper to persist settings to device override and send to device
          * @param {string} deviceId - Device ID
@@ -470,6 +477,102 @@ class CapabilityRegistry {
 
             // Send to device via WebSocket
             await wsHub.sendApplySettings(deviceId, settingsUpdate);
+        };
+
+        const deletePath = (obj, dottedPath) => {
+            if (!obj || typeof obj !== 'object') return;
+            const parts = String(dottedPath || '')
+                .split('.')
+                .filter(Boolean);
+            if (!parts.length) return;
+            let cur = obj;
+            for (let i = 0; i < parts.length - 1; i++) {
+                if (!cur || typeof cur !== 'object') return;
+                cur = cur[parts[i]];
+            }
+            if (cur && typeof cur === 'object') {
+                delete cur[parts[parts.length - 1]];
+            }
+        };
+
+        const cleanupEmpty = obj => {
+            if (!obj || typeof obj !== 'object') return;
+            for (const key of Object.keys(obj)) {
+                const v = obj[key];
+                if (v && typeof v === 'object' && !Array.isArray(v)) {
+                    cleanupEmpty(v);
+                    if (Object.keys(v).length === 0) delete obj[key];
+                }
+            }
+        };
+
+        const applyAndPersistSettingsWithDeletes = async (
+            deviceId,
+            settingsUpdate,
+            deletePaths
+        ) => {
+            const device = await deviceStore.getById(deviceId);
+            if (!device) {
+                throw new Error(`Device not found: ${deviceId}`);
+            }
+
+            const currentOverride = device.settingsOverride || {};
+            const nextOverride = this.deepMergeSettings(currentOverride, settingsUpdate || {});
+
+            (Array.isArray(deletePaths) ? deletePaths : []).forEach(p =>
+                deletePath(nextOverride, p)
+            );
+            cleanupEmpty(nextOverride);
+
+            await deviceStore.patchDevice(deviceId, { settingsOverride: nextOverride });
+
+            // Apply the settings update immediately.
+            await wsHub.sendApplySettings(deviceId, settingsUpdate || {});
+
+            // When deletions happen, force a reload so the client re-resolves effective config.
+            if (Array.isArray(deletePaths) && deletePaths.length) {
+                await wsHub.sendCommand(deviceId, { type: 'core.mgmt.reload', payload: {} });
+            }
+        };
+
+        const getCinemaTextPresets = (kind, device) => {
+            const SYSTEM_TEXT_PRESETS = [
+                'Now Playing',
+                'Coming Soon',
+                'Certified Fresh',
+                'Late Night Feature',
+                'Weekend Matinee',
+                'New Arrival',
+                '4K Ultra HD',
+                'Home Cinema',
+                'Feature Presentation',
+            ];
+            try {
+                const config = require('../config');
+                const headerList = config?.config?.cinema?.presets?.headerTexts;
+                const footerList = config?.config?.cinema?.presets?.footerTexts;
+                const headerRaw = Array.isArray(headerList) ? headerList : [];
+                const footerRaw = Array.isArray(footerList) ? footerList : [];
+                const merged = [...SYSTEM_TEXT_PRESETS, ...headerRaw, ...footerRaw];
+                const options = Array.from(
+                    new Set(merged.map(v => (v == null ? '' : String(v)).trim()).filter(Boolean))
+                );
+
+                // Ensure current value remains selectable even if presets drift.
+                const current =
+                    kind === 'footer'
+                        ? String(
+                              this.getCinemaSetting(device, 'footer.marqueeText', '') || ''
+                          ).trim()
+                        : String(this.getCinemaSetting(device, 'header.text', '') || '').trim();
+                if (current && !options.includes(current)) {
+                    options.unshift(current);
+                }
+
+                return options;
+            } catch (_) {
+                return SYSTEM_TEXT_PRESETS;
+            }
         };
 
         /**
@@ -773,15 +876,29 @@ class CapabilityRegistry {
             min: 1,
             max: 60,
             step: 1,
+            // Deprecated legacy capability (schema now uses wallartMode.refreshRate 1-10)
+            availableWhen: deprecated,
+            commandHandler: () => Promise.resolve(),
+        });
+
+        // Wallart refresh rate (relative tempo)
+        this.register('settings.wallartMode.refreshRate', {
+            name: 'Refresh Rate',
+            category: 'settings',
+            entityType: 'number',
+            icon: 'mdi:timer-outline',
+            min: 1,
+            max: 10,
+            step: 1,
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 return applyAndPersistSettings(deviceId, {
-                    wallartMode: { posterRefreshRate: parseInt(value) },
+                    wallartMode: { refreshRate: parseInt(value) },
                 });
             },
             stateGetter: device => {
-                if (device.settingsOverride?.wallartMode?.posterRefreshRate !== undefined) {
-                    return device.settingsOverride.wallartMode.posterRefreshRate;
+                if (device.settingsOverride?.wallartMode?.refreshRate !== undefined) {
+                    return device.settingsOverride.wallartMode.refreshRate;
                 }
                 try {
                     const config = require('../config.json');
@@ -805,15 +922,29 @@ class CapabilityRegistry {
             min: 0,
             max: 100,
             step: 5,
+            // Deprecated legacy capability (schema now uses wallartMode.randomness 0-10)
+            availableWhen: deprecated,
+            commandHandler: () => Promise.resolve(),
+        });
+
+        // Wallart randomness (0-10)
+        this.register('settings.wallartMode.randomness', {
+            name: 'Randomness',
+            category: 'settings',
+            entityType: 'number',
+            icon: 'mdi:dice-multiple',
+            min: 0,
+            max: 10,
+            step: 1,
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 return applyAndPersistSettings(deviceId, {
-                    wallartMode: { timingRandomness: parseInt(value) },
+                    wallartMode: { randomness: parseInt(value) },
                 });
             },
             stateGetter: device => {
-                if (device.settingsOverride?.wallartMode?.timingRandomness !== undefined) {
-                    return device.settingsOverride.wallartMode.timingRandomness;
+                if (device.settingsOverride?.wallartMode?.randomness !== undefined) {
+                    return device.settingsOverride.wallartMode.randomness;
                 }
                 try {
                     const config = require('../config.json');
@@ -844,6 +975,7 @@ class CapabilityRegistry {
                 'ripple',
                 'scanline',
                 'parallax',
+                'parallaxDepth',
                 'neonPulse',
                 'chromaticShift',
                 'mosaicShatter',
@@ -876,16 +1008,27 @@ class CapabilityRegistry {
             category: 'settings',
             entityType: 'switch',
             icon: 'mdi:lightbulb-on',
+            // Deprecated legacy capability (schema uses wallartMode.ambientGradient)
+            availableWhen: deprecated,
+            commandHandler: () => Promise.resolve(),
+        });
+
+        // Wallart ambient gradient
+        this.register('settings.wallartMode.ambientGradient', {
+            name: 'Ambient Gradient',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:gradient-horizontal',
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
                 return applyAndPersistSettings(deviceId, {
-                    wallartMode: { ambiance: boolValue },
+                    wallartMode: { ambientGradient: boolValue },
                 });
             },
             stateGetter: device => {
-                if (device.settingsOverride?.wallartMode?.ambiance !== undefined) {
-                    return device.settingsOverride.wallartMode.ambiance;
+                if (device.settingsOverride?.wallartMode?.ambientGradient !== undefined) {
+                    return device.settingsOverride.wallartMode.ambientGradient;
                 }
                 try {
                     const config = require('../config.json');
@@ -895,7 +1038,36 @@ class CapabilityRegistry {
                 } catch (_) {
                     // Config not available
                 }
-                return false;
+                return true;
+            },
+        });
+
+        // Wallart orientation
+        this.register('settings.wallartMode.orientation', {
+            name: 'Orientation',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:phone-rotate-portrait',
+            options: ['auto', 'portrait', 'landscape', 'portrait-flipped', 'landscape-flipped'],
+            availableWhen: device => this.getDeviceMode(device) === 'wallart',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    wallartMode: { orientation: value },
+                });
+            },
+            stateGetter: device => {
+                if (device.settingsOverride?.wallartMode?.orientation !== undefined) {
+                    return device.settingsOverride.wallartMode.orientation;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.wallartMode?.orientation !== undefined) {
+                        return config.wallartMode.orientation;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return 'auto';
             },
         });
 
@@ -962,11 +1134,16 @@ class CapabilityRegistry {
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:view-dashboard',
-            options: ['classic', 'hero-grid'],
+            options: ['classic', 'hero-grid', 'film-cards'],
             availableWhen: device => this.getDeviceMode(device) === 'wallart',
             commandHandler: (deviceId, value) => {
                 // Convert kebab-case to camelCase for internal use
-                const layoutVariant = value === 'hero-grid' ? 'heroGrid' : value;
+                const layoutVariant =
+                    value === 'hero-grid'
+                        ? 'heroGrid'
+                        : value === 'film-cards'
+                          ? 'filmCards'
+                          : value;
                 return applyAndPersistSettings(deviceId, {
                     wallartMode: { layoutVariant },
                 });
@@ -975,7 +1152,11 @@ class CapabilityRegistry {
                 // Check device override - support both old 'layout' and new 'layoutVariant'
                 if (device.settingsOverride?.wallartMode?.layoutVariant !== undefined) {
                     const variant = device.settingsOverride.wallartMode.layoutVariant;
-                    return variant === 'heroGrid' ? 'hero-grid' : variant;
+                    return variant === 'heroGrid'
+                        ? 'hero-grid'
+                        : variant === 'filmCards'
+                          ? 'film-cards'
+                          : variant;
                 }
                 if (device.settingsOverride?.wallartMode?.layout !== undefined) {
                     return device.settingsOverride.wallartMode.layout;
@@ -986,12 +1167,43 @@ class CapabilityRegistry {
                         // Convert camelCase to kebab-case
                         return config.wallartMode.layoutVariant === 'heroGrid'
                             ? 'hero-grid'
-                            : config.wallartMode.layoutVariant;
+                            : config.wallartMode.layoutVariant === 'filmCards'
+                              ? 'film-cards'
+                              : config.wallartMode.layoutVariant;
                     }
                 } catch (_) {
                     // Config not available
                 }
                 return 'classic';
+            },
+        });
+
+        // Wallart games-only
+        this.register('settings.wallartMode.gamesOnly', {
+            name: 'Games Only',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:controller-classic',
+            availableWhen: device => this.getDeviceMode(device) === 'wallart',
+            commandHandler: (deviceId, value) => {
+                const boolValue = value === true || value === 'ON' || value === 1;
+                return applyAndPersistSettings(deviceId, {
+                    wallartMode: { gamesOnly: boolValue },
+                });
+            },
+            stateGetter: device => {
+                if (device.settingsOverride?.wallartMode?.gamesOnly !== undefined) {
+                    return device.settingsOverride.wallartMode.gamesOnly;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.wallartMode?.gamesOnly !== undefined) {
+                        return config.wallartMode.gamesOnly;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return false;
             },
         });
 
@@ -1092,7 +1304,7 @@ class CapabilityRegistry {
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:phone-rotate-portrait',
-            options: ['auto', 'portrait', 'portrait-flipped'],
+            options: ['auto', 'portrait', 'portrait-flipped', 'landscape', 'landscape-flipped'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
                 return applyAndPersistSettings(deviceId, {
@@ -1101,6 +1313,35 @@ class CapabilityRegistry {
             },
             stateGetter: device => {
                 return this.getCinemaSetting(device, 'orientation', 'auto');
+            },
+        });
+
+        // Screensaver orientation
+        this.register('settings.screensaverMode.orientation', {
+            name: 'Orientation',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:phone-rotate-portrait',
+            options: ['auto', 'portrait', 'landscape', 'portrait-flipped', 'landscape-flipped'],
+            availableWhen: device => this.getDeviceMode(device) === 'screensaver',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    screensaverMode: { orientation: value },
+                });
+            },
+            stateGetter: device => {
+                if (device.settingsOverride?.screensaverMode?.orientation !== undefined) {
+                    return device.settingsOverride.screensaverMode.orientation;
+                }
+                try {
+                    const config = require('../config.json');
+                    if (config.screensaverMode?.orientation !== undefined) {
+                        return config.screensaverMode.orientation;
+                    }
+                } catch (_) {
+                    // Config not available
+                }
+                return 'auto';
             },
         });
 
@@ -1129,34 +1370,236 @@ class CapabilityRegistry {
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:format-title',
-            options: ['None', 'Now Playing', 'Feature Presentation', 'Coming Soon'],
+            optionsGetter: device => getCinemaTextPresets('header', device),
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
                 return applyAndPersistSettings(deviceId, {
-                    cinema: { header: { text: value === 'None' ? '' : value } },
+                    cinema: { header: { text: String(value || '').trim() } },
                 });
             },
             stateGetter: device => {
-                const text = this.getCinemaSetting(device, 'header.text', 'Now Playing');
-                return text === '' ? 'None' : text;
+                return this.getCinemaSetting(device, 'header.text', 'Now Playing');
             },
         });
 
-        // Cinema header style
+        // Cinema header style (deprecated - modern schema uses header.typography.*)
         this.register('settings.cinema.header.style', {
             name: 'Header Marquee Style',
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:palette',
             options: ['classic', 'neon', 'minimal', 'theatre'],
+            availableWhen: deprecated,
+            commandHandler: () => Promise.resolve(),
+        });
+
+        // Cinema header typography
+        this.register('settings.cinema.header.typography.fontFamily', {
+            name: 'Header Font Family',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:format-font',
+            options: [
+                'system',
+                'cinematic',
+                'classic',
+                'modern',
+                'elegant',
+                'marquee',
+                'retro',
+                'neon',
+                'scifi',
+                'poster',
+                'epic',
+                'bold',
+            ],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
                 return applyAndPersistSettings(deviceId, {
-                    cinema: { header: { style: value } },
+                    cinema: { header: { typography: { fontFamily: value } } },
                 });
             },
             stateGetter: device => {
-                return this.getCinemaSetting(device, 'header.style', 'classic');
+                return this.getCinemaSetting(device, 'header.typography.fontFamily', 'cinematic');
+            },
+        });
+
+        this.register('settings.cinema.header.typography.fontSize', {
+            name: 'Header Font Size',
+            category: 'settings',
+            entityType: 'number',
+            icon: 'mdi:format-size',
+            unit: '%',
+            min: 50,
+            max: 200,
+            step: 5,
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { header: { typography: { fontSize: parseInt(value) } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'header.typography.fontSize', 100);
+            },
+        });
+
+        this.register('settings.cinema.header.typography.tonSurTon', {
+            name: 'Header Auto Color (Ton-sur-ton)',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:invert-colors',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: async (deviceId, value) => {
+                const boolValue = value === true || value === 'ON' || value === 1;
+                await applyAndPersistSettings(deviceId, {
+                    cinema: { header: { typography: { tonSurTon: boolValue } } },
+                });
+                return true;
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'header.typography.tonSurTon', false);
+            },
+        });
+
+        this.register('settings.cinema.header.typography.tonSurTonIntensity', {
+            name: 'Header Auto Color Intensity',
+            category: 'settings',
+            entityType: 'number',
+            icon: 'mdi:contrast-circle',
+            unit: '%',
+            min: 10,
+            max: 100,
+            step: 5,
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { header: { typography: { tonSurTonIntensity: parseInt(value) } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'header.typography.tonSurTonIntensity', 45);
+            },
+        });
+
+        this.register('settings.cinema.header.typography.color', {
+            name: 'Header Text Color',
+            category: 'settings',
+            entityType: 'text',
+            icon: 'mdi:palette',
+            pattern: '^#[0-9A-Fa-f]{6}$',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { header: { typography: { color: String(value || '').trim() } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'header.typography.color', '#ffffff');
+            },
+        });
+
+        this.register('settings.cinema.header.typography.shadow', {
+            name: 'Header Shadow',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:format-color-text',
+            options: ['none', 'subtle', 'dramatic', 'neon', 'glow'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { header: { typography: { shadow: value } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'header.typography.shadow', 'subtle');
+            },
+        });
+
+        this.register('settings.cinema.header.typography.textEffect', {
+            name: 'Header Text Effect',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:format-color-fill',
+            options: [
+                'none',
+                'gradient',
+                'gradient-rainbow',
+                'gradient-gold',
+                'gradient-silver',
+                'outline',
+                'outline-thick',
+                'outline-double',
+                'metallic',
+                'chrome',
+                'gold-metallic',
+                'vintage',
+                'retro',
+                'fire',
+                'ice',
+                'pulse',
+                'marquee',
+            ],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { header: { typography: { textEffect: value } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'header.typography.textEffect', 'none');
+            },
+        });
+
+        this.register('settings.cinema.header.typography.entranceAnimation', {
+            name: 'Header Entrance Animation',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:animation',
+            options: [
+                'none',
+                'typewriter',
+                'fade-words',
+                'slide-left',
+                'slide-right',
+                'slide-top',
+                'slide-bottom',
+                'zoom',
+                'zoom-bounce',
+                'blur-focus',
+                'float',
+                'letter-spread',
+                'rotate-3d',
+                'flip',
+                'drop',
+                'fade',
+                'cinematic',
+            ],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { header: { typography: { entranceAnimation: value } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'header.typography.entranceAnimation', 'none');
+            },
+        });
+
+        this.register('settings.cinema.header.typography.decoration', {
+            name: 'Header Decoration',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:format-underline',
+            options: ['none', 'frame', 'underline'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { header: { typography: { decoration: value } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'header.typography.decoration', 'none');
             },
         });
 
@@ -1225,7 +1668,7 @@ class CapabilityRegistry {
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:view-split-horizontal',
-            options: ['marquee', 'specs'],
+            options: ['marquee', 'metadata', 'tagline'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
                 return applyAndPersistSettings(deviceId, {
@@ -1233,7 +1676,26 @@ class CapabilityRegistry {
                 });
             },
             stateGetter: device => {
-                return this.getCinemaSetting(device, 'footer.type', 'specs');
+                return this.getCinemaSetting(device, 'footer.type', 'metadata');
+            },
+        });
+
+        // Cinema footer tagline marquee
+        this.register('settings.cinema.footer.taglineMarquee', {
+            name: 'Footer Tagline Marquee',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:format-text-wrapping-wrap',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: async (deviceId, value) => {
+                const boolValue = value === true || value === 'ON' || value === 1;
+                await applyAndPersistSettings(deviceId, {
+                    cinema: { footer: { taglineMarquee: boolValue } },
+                });
+                return true;
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'footer.taglineMarquee', false);
             },
         });
 
@@ -1243,79 +1705,267 @@ class CapabilityRegistry {
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:format-text',
-            options: ['None', 'Feature Presentation', 'Now Showing', 'Coming Attractions'],
+            optionsGetter: device => getCinemaTextPresets('footer', device),
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
                 return applyAndPersistSettings(deviceId, {
-                    cinema: { footer: { marqueeText: value === 'None' ? '' : value } },
+                    cinema: { footer: { marqueeText: String(value || '').trim() } },
                 });
             },
             stateGetter: device => {
-                const text = this.getCinemaSetting(
-                    device,
-                    'footer.marqueeText',
-                    'Feature Presentation'
-                );
-                return text === '' ? 'None' : text;
+                return this.getCinemaSetting(device, 'footer.marqueeText', 'Feature Presentation');
             },
         });
 
-        // Cinema footer marquee style
+        // === Display Settings Override Modal parity (Cinema Now Playing + pin) ===
+        this.register('settings.cinema.nowPlaying.priority', {
+            name: 'Now Playing Priority',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:user-lock',
+            options: ['global', 'first', 'random', 'user'],
+            affectsDiscovery: true,
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: async (deviceId, value) => {
+                const v = String(value || '').trim();
+                if (!v || v === 'global') {
+                    // Remove override keys so device inherits global config
+                    await applyAndPersistSettingsWithDeletes(
+                        deviceId,
+                        { cinema: { nowPlaying: {} } },
+                        ['cinema.nowPlaying.priority', 'cinema.nowPlaying.filterUser']
+                    );
+                    return true;
+                }
+
+                await applyAndPersistSettings(deviceId, {
+                    cinema: { nowPlaying: { priority: v } },
+                });
+                return true;
+            },
+            stateGetter: device => {
+                const p = this.getCinemaSetting(device, 'nowPlaying.priority', null);
+                return p ? String(p) : 'global';
+            },
+        });
+
+        this.register('settings.cinema.nowPlaying.filterUser', {
+            name: 'Now Playing User',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:account',
+            affectsDiscovery: true,
+            optionsGetter: device => {
+                const selected = String(
+                    this.getCinemaSetting(device, 'nowPlaying.filterUser', '') || ''
+                ).trim();
+                const users = [];
+
+                try {
+                    const cached = global.__posterramaPlexUsersCache;
+                    if (Array.isArray(cached)) {
+                        cached.forEach(u => {
+                            const username = u?.username || u?.title || u?.name;
+                            if (username) users.push(String(username).trim());
+                        });
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
+
+                try {
+                    const poller = global.__posterramaSessionsPoller;
+                    const sessions = poller?.getSessions?.()?.sessions || [];
+                    sessions.forEach(s => {
+                        const u = s?.User?.title || s?.username;
+                        if (u) users.push(String(u).trim());
+                    });
+                } catch (_) {
+                    /* ignore */
+                }
+                const uniq = Array.from(new Set(users.filter(Boolean))).sort((a, b) =>
+                    a.localeCompare(b)
+                );
+                const list = selected && !uniq.includes(selected) ? [selected, ...uniq] : uniq;
+                return list.length ? list : selected ? [selected] : [''];
+            },
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: async (deviceId, value) => {
+                const user = String(value || '').trim();
+                if (!user) {
+                    await applyAndPersistSettingsWithDeletes(
+                        deviceId,
+                        { cinema: { nowPlaying: {} } },
+                        ['cinema.nowPlaying.filterUser']
+                    );
+                    return true;
+                }
+                await applyAndPersistSettings(deviceId, {
+                    cinema: { nowPlaying: { filterUser: user } },
+                });
+                return true;
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'nowPlaying.filterUser', '') || '';
+            },
+        });
+
+        this.register('settings.cinema.nowPlaying.sourcePreference', {
+            name: 'Now Playing Source Preference',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:database-search',
+            options: ['auto', 'plex', 'jellyfin'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                const v = String(value || '').trim() || 'auto';
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { nowPlaying: { sourcePreference: v } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'nowPlaying.sourcePreference', 'auto');
+            },
+        });
+
+        this.register('settings.cinema.pinnedMediaKey', {
+            name: 'Pinned Media Key',
+            category: 'settings',
+            entityType: 'text',
+            icon: 'mdi:pin',
+            pattern: '.*',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: async (deviceId, value) => {
+                const key = String(value || '').trim();
+                if (!key) {
+                    await applyAndPersistSettingsWithDeletes(deviceId, { cinema: {} }, [
+                        'cinema.pinnedMediaKey',
+                    ]);
+                    return true;
+                }
+                await applyAndPersistSettings(deviceId, {
+                    cinema: { pinnedMediaKey: key },
+                });
+                return true;
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'pinnedMediaKey', '') || '';
+            },
+        });
+
+        this.register('settings.cinema.pinnedMediaKey.clear', {
+            name: 'Clear Pinned Media',
+            category: 'settings',
+            entityType: 'button',
+            icon: 'mdi:pin-off',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: async deviceId => {
+                await applyAndPersistSettingsWithDeletes(deviceId, { cinema: {} }, [
+                    'cinema.pinnedMediaKey',
+                ]);
+                return true;
+            },
+        });
+
+        // Cinema footer marquee style (deprecated - modern schema uses footer.typography.*)
         this.register('settings.cinema.footer.marqueeStyle', {
             name: 'Cinema Footer Style',
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:palette',
             options: ['classic', 'neon', 'minimal', 'theatre'],
-            availableWhen: device => this.getDeviceMode(device) === 'cinema',
-            commandHandler: (deviceId, value) => {
-                return applyAndPersistSettings(deviceId, {
-                    cinema: { footer: { marqueeStyle: value } },
-                });
-            },
-            stateGetter: device => {
-                return this.getCinemaSetting(device, 'footer.marqueeStyle', 'classic');
-            },
+            availableWhen: deprecated,
+            commandHandler: () => Promise.resolve(),
         });
 
-        // Cinema footer specs style
+        // Deprecated legacy Cinema footer specs capabilities (replaced by cinema.metadata.specs.*)
         this.register('settings.cinema.footer.specs.style', {
             name: 'Cinema Footer Icons',
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:shape',
             options: ['subtle', 'filled', 'outline'],
-            availableWhen: device => this.getDeviceMode(device) === 'cinema',
-            commandHandler: (deviceId, value) => {
-                return applyAndPersistSettings(deviceId, {
-                    cinema: { footer: { specs: { style: value } } },
-                });
-            },
-            stateGetter: device => {
-                return this.getCinemaSetting(device, 'footer.specs.style', 'subtle');
-            },
+            availableWhen: deprecated,
+            commandHandler: () => Promise.resolve(),
         });
-
-        // Cinema footer specs icon set
         this.register('settings.cinema.footer.specs.iconSet', {
             name: 'Cinema Footer Icon Set',
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:image-filter-none',
             options: ['filled', 'line'],
+            availableWhen: deprecated,
+            commandHandler: () => Promise.resolve(),
+        });
+        this.register('settings.cinema.footer.specs.showResolution', {
+            name: 'Show Resolution',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:monitor',
+            availableWhen: deprecated,
+            commandHandler: () => Promise.resolve(),
+        });
+        this.register('settings.cinema.footer.specs.showAudio', {
+            name: 'Show Audio',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:speaker',
+            availableWhen: deprecated,
+            commandHandler: () => Promise.resolve(),
+        });
+        this.register('settings.cinema.footer.specs.showAspectRatio', {
+            name: 'Show Aspect Ratio',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:aspect-ratio',
+            availableWhen: deprecated,
+            commandHandler: () => Promise.resolve(),
+        });
+        this.register('settings.cinema.footer.specs.showFlags', {
+            name: 'Show Flags',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:flag',
+            availableWhen: deprecated,
+            commandHandler: () => Promise.resolve(),
+        });
+
+        // Cinema metadata specs (modern)
+        this.register('settings.cinema.metadata.specs.style', {
+            name: 'Specs Style',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:shape',
+            options: ['dark-glass', 'glass', 'icons-only', 'icons-text'],
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: (deviceId, value) => {
                 return applyAndPersistSettings(deviceId, {
-                    cinema: { footer: { specs: { iconSet: value } } },
+                    cinema: { metadata: { specs: { style: value } } },
                 });
             },
             stateGetter: device => {
-                return this.getCinemaSetting(device, 'footer.specs.iconSet', 'filled');
+                return this.getCinemaSetting(device, 'metadata.specs.style', 'icons-text');
             },
         });
 
-        // Cinema footer specs - show resolution
-        this.register('settings.cinema.footer.specs.showResolution', {
+        this.register('settings.cinema.metadata.specs.iconSet', {
+            name: 'Specs Icon Set',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:image-filter-none',
+            options: ['tabler', 'material'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { metadata: { specs: { iconSet: value } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'metadata.specs.iconSet', 'tabler');
+            },
+        });
+
+        this.register('settings.cinema.metadata.specs.showResolution', {
             name: 'Show Resolution',
             category: 'settings',
             entityType: 'switch',
@@ -1324,17 +1974,16 @@ class CapabilityRegistry {
             commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
                 await applyAndPersistSettings(deviceId, {
-                    cinema: { footer: { specs: { showResolution: boolValue } } },
+                    cinema: { metadata: { specs: { showResolution: boolValue } } },
                 });
                 return true;
             },
             stateGetter: device => {
-                return this.getCinemaSetting(device, 'footer.specs.showResolution', true);
+                return this.getCinemaSetting(device, 'metadata.specs.showResolution', true);
             },
         });
 
-        // Cinema footer specs - show audio
-        this.register('settings.cinema.footer.specs.showAudio', {
+        this.register('settings.cinema.metadata.specs.showAudio', {
             name: 'Show Audio',
             category: 'settings',
             entityType: 'switch',
@@ -1343,17 +1992,16 @@ class CapabilityRegistry {
             commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
                 await applyAndPersistSettings(deviceId, {
-                    cinema: { footer: { specs: { showAudio: boolValue } } },
+                    cinema: { metadata: { specs: { showAudio: boolValue } } },
                 });
                 return true;
             },
             stateGetter: device => {
-                return this.getCinemaSetting(device, 'footer.specs.showAudio', true);
+                return this.getCinemaSetting(device, 'metadata.specs.showAudio', true);
             },
         });
 
-        // Cinema footer specs - show aspect ratio
-        this.register('settings.cinema.footer.specs.showAspectRatio', {
+        this.register('settings.cinema.metadata.specs.showAspectRatio', {
             name: 'Show Aspect Ratio',
             category: 'settings',
             entityType: 'switch',
@@ -1362,31 +2010,153 @@ class CapabilityRegistry {
             commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
                 await applyAndPersistSettings(deviceId, {
-                    cinema: { footer: { specs: { showAspectRatio: boolValue } } },
+                    cinema: { metadata: { specs: { showAspectRatio: boolValue } } },
                 });
                 return true;
             },
             stateGetter: device => {
-                return this.getCinemaSetting(device, 'footer.specs.showAspectRatio', true);
+                return this.getCinemaSetting(device, 'metadata.specs.showAspectRatio', false);
             },
         });
 
-        // Cinema footer specs - show flags
-        this.register('settings.cinema.footer.specs.showFlags', {
-            name: 'Show Flags',
+        this.register('settings.cinema.metadata.specs.showHDR', {
+            name: 'Show HDR',
             category: 'settings',
             entityType: 'switch',
-            icon: 'mdi:flag',
+            icon: 'mdi:hdr',
             availableWhen: device => this.getDeviceMode(device) === 'cinema',
             commandHandler: async (deviceId, value) => {
                 const boolValue = value === true || value === 'ON' || value === 1;
                 await applyAndPersistSettings(deviceId, {
-                    cinema: { footer: { specs: { showFlags: boolValue } } },
+                    cinema: { metadata: { specs: { showHDR: boolValue } } },
                 });
                 return true;
             },
             stateGetter: device => {
-                return this.getCinemaSetting(device, 'footer.specs.showFlags', false);
+                return this.getCinemaSetting(device, 'metadata.specs.showHDR', true);
+            },
+        });
+
+        // Cinema footer typography
+        this.register('settings.cinema.footer.typography.fontFamily', {
+            name: 'Footer Font Family',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:format-font',
+            options: [
+                'system',
+                'cinematic',
+                'classic',
+                'modern',
+                'elegant',
+                'marquee',
+                'retro',
+                'neon',
+                'scifi',
+                'poster',
+                'epic',
+                'bold',
+            ],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { footer: { typography: { fontFamily: value } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'footer.typography.fontFamily', 'system');
+            },
+        });
+
+        this.register('settings.cinema.footer.typography.fontSize', {
+            name: 'Footer Font Size',
+            category: 'settings',
+            entityType: 'number',
+            icon: 'mdi:format-size',
+            unit: '%',
+            min: 50,
+            max: 200,
+            step: 5,
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { footer: { typography: { fontSize: parseInt(value) } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'footer.typography.fontSize', 100);
+            },
+        });
+
+        this.register('settings.cinema.footer.typography.tonSurTon', {
+            name: 'Footer Auto Color (Ton-sur-ton)',
+            category: 'settings',
+            entityType: 'switch',
+            icon: 'mdi:invert-colors',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: async (deviceId, value) => {
+                const boolValue = value === true || value === 'ON' || value === 1;
+                await applyAndPersistSettings(deviceId, {
+                    cinema: { footer: { typography: { tonSurTon: boolValue } } },
+                });
+                return true;
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'footer.typography.tonSurTon', false);
+            },
+        });
+
+        this.register('settings.cinema.footer.typography.tonSurTonIntensity', {
+            name: 'Footer Auto Color Intensity',
+            category: 'settings',
+            entityType: 'number',
+            icon: 'mdi:contrast-circle',
+            unit: '%',
+            min: 10,
+            max: 100,
+            step: 5,
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { footer: { typography: { tonSurTonIntensity: parseInt(value) } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'footer.typography.tonSurTonIntensity', 45);
+            },
+        });
+
+        this.register('settings.cinema.footer.typography.color', {
+            name: 'Footer Text Color',
+            category: 'settings',
+            entityType: 'text',
+            icon: 'mdi:palette',
+            pattern: '^#[0-9A-Fa-f]{6}$',
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { footer: { typography: { color: String(value || '').trim() } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'footer.typography.color', '#cccccc');
+            },
+        });
+
+        this.register('settings.cinema.footer.typography.shadow', {
+            name: 'Footer Shadow',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:format-color-text',
+            options: ['none', 'subtle', 'dramatic'],
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { footer: { typography: { shadow: value } } },
+                });
+            },
+            stateGetter: device => {
+                return this.getCinemaSetting(device, 'footer.typography.shadow', 'none');
             },
         });
     }
@@ -1443,7 +2213,22 @@ class CapabilityRegistry {
             entityType: 'sensor',
             icon: 'mdi:clock-outline',
             unitOfMeasurement: 'min',
-            stateGetter: device => device.currentState?.runtime || null,
+            stateGetter: device => {
+                const raw =
+                    device.currentState?.runtime ??
+                    device.currentState?.runtimeMs ??
+                    device.currentState?.duration ??
+                    null;
+                if (raw == null) return null;
+                const num = typeof raw === 'number' ? raw : Number(raw);
+                if (!Number.isFinite(num) || num <= 0) return null;
+
+                // Heuristic: values > 1000 are almost certainly milliseconds
+                if (num > 1000) return Math.round(num / 60000);
+
+                // Otherwise assume minutes
+                return Math.round(num);
+            },
         });
 
         // Genres
