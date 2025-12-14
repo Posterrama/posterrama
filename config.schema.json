@@ -1540,6 +1540,18 @@
                                     ],
                                     "default": "never",
                                     "description": "Re-show trailer after specified time (only applies if autohide is not 'never')"
+                                },
+                                "autoplay": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Automatically start playing trailer when loaded"
+                                },
+                                "height": {
+                                    "type": "integer",
+                                    "minimum": 10,
+                                    "maximum": 100,
+                                    "default": 30,
+                                    "description": "Trailer player height as percentage of screen height"
                                 }
                             },
                             "additionalProperties": false

@@ -3184,13 +3184,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
                 // Use label if available, otherwise show friendly time
                 const displayName = b.label || formatRelativeTime(created);
-                const timeStr = created.toLocaleString(undefined, {
-                    month: 'numeric',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                });
 
                 const summary = document.createElement('div');
                 summary.className = 'backup-summary';
@@ -3198,7 +3191,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                         <div class="left">
                     <i class="fas fa-archive"></i>
                     <strong>${displayName}</strong>
-                                        <span class="subtle">${timeStr}</span>
                                         <span class="subtle">• ${count} files • ${size}</span>
                   </div>
                   <div class="right">
@@ -6170,8 +6162,13 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         // Check for cinemaNowPlayingInterval as the indicator (cinemaNowPlayingEnabled doesn't exist in HTML)
         const nowPlayingIntervalEl = document.getElementById('cinemaNowPlayingInterval');
         if (nowPlayingIntervalEl !== null) {
+            // Preserve the enabled state from cinema-ui.js if available
+            const existingNowPlaying = cinemaUpdate.nowPlaying || {};
+            const nowPlayingEnabled =
+                existingNowPlaying.enabled !== undefined ? existingNowPlaying.enabled : true; // Default to true if not set
+
             cinemaUpdate.nowPlaying = {
-                enabled: true, // Now Playing is always enabled when cinema mode is active
+                enabled: nowPlayingEnabled,
                 priority: val('cinemaNowPlayingPriority') || 'first',
                 filterUser: val('cinemaNowPlayingFilterUser') || '',
                 fallbackToRotation: true, // Always enabled

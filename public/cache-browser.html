@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Posterrama - Cache Browser</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: #fff;
+        }
+
+        .header h1 i {
+            color: #e94560;
+            margin-right: 0.5rem;
+        }
+
+        .back-link {
+            color: #8ab4f8;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .back-link:hover {
+            color: #aecbfa;
+        }
+
+        .stats-bar {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem 2rem;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .stat-value.success { color: #4caf50; }
+        .stat-value.warning { color: #ff9800; }
+        .stat-value.info { color: #2196f3; }
+
+        .controls {
+            padding: 1rem 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-group label {
+            font-size: 0.875rem;
+            color: #aaa;
+        }
+
+        select, button {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        select:hover, button:hover {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        button.primary {
+            background: #e94560;
+            border-color: #e94560;
+        }
+
+        button.primary:hover {
+            background: #ff6b81;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
+        .pagination span {
+            font-size: 0.875rem;
+            color: #888;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            padding: 2rem;
+        }
+
+        .poster-card {
+            position: relative;
+            aspect-ratio: 2/3;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .poster-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .poster-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .poster-card .info-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+            padding: 2rem 0.5rem 0.5rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .poster-card:hover .info-overlay {
+            opacity: 1;
+        }
+
+        .poster-card .size-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .size-badge.thumbnail { background: #9c27b0; }
+        .size-badge.medium { background: #2196f3; }
+        .size-badge.highres { background: #4caf50; }
+
+        .poster-card .info-text {
+            font-size: 0.7rem;
+            color: #ccc;
+            line-height: 1.4;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+            font-size: 1.25rem;
+            color: #888;
+        }
+
+        .loading i {
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #e94560;
+        }
+
+        .error i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        /* Modal for full-size view */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .modal .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 2rem;
+            color: #fff;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .modal .image-info {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            color: #ccc;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #666;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .info-banner {
+            background: rgba(33, 150, 243, 0.15);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: #8ab4f8;
+        }
+
+        .info-banner i {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .info-banner .dismiss-btn {
+            background: none;
+            border: none;
+            color: #8ab4f8;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0 0.5rem;
+            margin-left: auto;
+        }
+
+        /* Analysis Modal */
+        .analysis-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1001;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .analysis-modal.active {
+            display: flex;
+        }
+
+        .analysis-content {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 800px;
+            width: 100%;
+            margin-top: 2rem;
+        }
+
+        .analysis-content h2 {
+            margin-bottom: 1.5rem;
+            color: #fff;
+        }
+
+        .analysis-content h3 {
+            margin: 1.5rem 0 1rem;
+            color: #8ab4f8;
+            font-size: 1rem;
+        }
+
+        .quality-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .quality-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .quality-bar .label {
+            width: 100px;
+            font-size: 0.875rem;
+            color: #aaa;
+        }
+
+        .quality-bar .bar-container {
+            flex: 1;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .quality-bar .bar {
+            height: 100%;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding-left: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .quality-bar .bar.thumbnail { background: #9c27b0; }
+        .quality-bar .bar.preview { background: #673ab7; }
+        .quality-bar .bar.medium { background: #2196f3; }
+        .quality-bar .bar.high { background: #4caf50; }
+        .quality-bar .bar.original { background: #ff9800; }
+
+        .quality-bar .count {
+            width: 80px;
+            text-align: right;
+            font-size: 0.875rem;
+            color: #fff;
+        }
+
+        .explanation-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: #ccc;
+        }
+
+        .explanation-box strong {
+            color: #fff;
+        }
+
+        .close-analysis {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 2rem;
+            color: #fff;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-images"></i> Poster Cache Browser</h1>
+        <a href="/admin" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Admin
+        </a>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-item">
+            <span class="stat-label">Total Cached</span>
+            <span class="stat-value" id="statTotal">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Estimated Unique</span>
+            <span class="stat-value info" id="statUnique" title="Click for detailed analysis">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Total Size</span>
+            <span class="stat-value" id="statSize">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Thumbnails (&lt;50KB)</span>
+            <span class="stat-value" id="statThumbnails">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Medium (50-200KB)</span>
+            <span class="stat-value" id="statMedium">—</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">High-Res (&gt;200KB)</span>
+            <span class="stat-value success" id="statHighres">—</span>
+        </div>
+        <div class="stat-item" style="margin-left: auto;">
+            <button onclick="showAnalysis()" style="padding: 0.5rem 1rem;">
+                <i class="fas fa-chart-pie"></i> Detailed Analysis
+            </button>
+        </div>
+    </div>
+
+    <div class="info-banner" id="infoBanner">
+        <i class="fas fa-info-circle"></i>
+        <span>
+            <strong>Why are there more cached images than unique posters?</strong>
+            Posterrama caches the same poster at different resolutions for optimal performance. 
+            High-res versions (~500KB+) are used for large displays like Wallart, while small thumbnails (~20-50KB) 
+            are used for quick loading during transitions.
+        </span>
+        <button class="dismiss-btn" onclick="this.parentElement.style.display='none'">×</button>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="sortSelect">Sort by:</label>
+            <select id="sortSelect">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="largest">Largest First</option>
+                <option value="smallest">Smallest First</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="limitSelect">Per page:</label>
+            <select id="limitSelect">
+                <option value="50">50</option>
+                <option value="100" selected>100</option>
+                <option value="200">200</option>
+                <option value="500">500</option>
+            </select>
+        </div>
+
+        <div class="pagination">
+            <button id="prevBtn" disabled><i class="fas fa-chevron-left"></i></button>
+            <span id="pageInfo">Page 1 of 1</span>
+            <button id="nextBtn" disabled><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+
+    <div id="content">
+        <div class="loading">
+            <i class="fas fa-spinner"></i> Loading cached posters...
+        </div>
+    </div>
+
+    <div class="modal" id="imageModal">
+        <button class="close-btn" id="closeModal">&times;</button>
+        <img id="modalImage" src="" alt="Full size poster">
+        <div class="image-info" id="modalInfo"></div>
+    </div>
+
+    <div class="analysis-modal" id="analysisModal">
+        <button class="close-analysis" onclick="closeAnalysisModal()">&times;</button>
+        <div class="analysis-content">
+            <h2><i class="fas fa-chart-pie"></i> Cache Analysis</h2>
+            <div id="analysisLoading" class="loading">
+                <i class="fas fa-spinner"></i> Analyzing cache...
+            </div>
+            <div id="analysisResults" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentSort = 'newest';
+        let currentLimit = 100;
+
+        const content = document.getElementById('content');
+        const statsBar = document.getElementById('statsBar');
+        const sortSelect = document.getElementById('sortSelect');
+        const limitSelect = document.getElementById('limitSelect');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const pageInfo = document.getElementById('pageInfo');
+        const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const modalInfo = document.getElementById('modalInfo');
+        const closeModal = document.getElementById('closeModal');
+
+        async function fetchCacheData() {
+            content.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i> Loading cached posters...</div>';
+
+            try {
+                const response = await fetch(`/api/admin/cache/browser?page=${currentPage}&limit=${currentLimit}&sort=${currentSort}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Unknown error');
+                }
+
+                updateStats(data.analytics);
+                updatePagination(data.pagination);
+                renderGrid(data.files);
+            } catch (err) {
+                content.innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h2>Failed to load cache data</h2>
+                        <p>${err.message}</p>
+                        <p style="margin-top: 1rem; font-size: 0.875rem; color: #888;">
+                            Make sure you're logged in as admin. 
+                            <a href="/admin" style="color: #8ab4f8;">Go to Admin</a>
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        function updateStats(analytics) {
+            document.getElementById('statTotal').textContent = analytics.totalFiles.toLocaleString();
+            document.getElementById('statUnique').textContent = `~${analytics.estimatedUniquePosters.toLocaleString()}`;
+            document.getElementById('statSize').textContent = `${analytics.totalSizeMB} MB`;
+            document.getElementById('statThumbnails').textContent = analytics.sizeCategories.thumbnail.toLocaleString();
+            document.getElementById('statMedium').textContent = analytics.sizeCategories.medium.toLocaleString();
+            document.getElementById('statHighres').textContent = analytics.sizeCategories.highRes.toLocaleString();
+        }
+
+        function updatePagination(pagination) {
+            currentPage = pagination.page;
+            totalPages = pagination.totalPages;
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+            prevBtn.disabled = !pagination.hasPrev;
+            nextBtn.disabled = !pagination.hasNext;
+        }
+
+        function renderGrid(files) {
+            if (files.length === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h2>No cached posters found</h2>
+                        <p>The image cache is empty. Posters will appear here after browsing your media.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'grid';
+
+            files.forEach(file => {
+                const card = document.createElement('div');
+                card.className = 'poster-card';
+                card.onclick = () => openModal(file);
+
+                let sizeClass = 'thumbnail';
+                if (file.sizeKB >= 200) sizeClass = 'highres';
+                else if (file.sizeKB >= 50) sizeClass = 'medium';
+
+                card.innerHTML = `
+                    <img src="${file.url}" alt="Cached poster" loading="lazy" onerror="this.src='/fallback-poster.png'">
+                    <span class="size-badge ${sizeClass}">${file.sizeKB} KB</span>
+                    <div class="info-overlay">
+                        <div class="info-text">
+                            <div>${new Date(file.mtime).toLocaleDateString()}</div>
+                            <div style="font-size: 0.6rem; color: #888; word-break: break-all;">${file.filename.substring(0, 20)}...</div>
+                        </div>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+
+            content.innerHTML = '';
+            content.appendChild(grid);
+        }
+
+        function openModal(file) {
+            modalImage.src = file.url;
+            modalInfo.textContent = `${file.sizeKB} KB • Cached ${new Date(file.mtime).toLocaleString()}`;
+            modal.classList.add('active');
+        }
+
+        closeModal.onclick = () => modal.classList.remove('active');
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.classList.remove('active');
+        };
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') modal.classList.remove('active');
+        });
+
+        sortSelect.onchange = () => {
+            currentSort = sortSelect.value;
+            currentPage = 1;
+            fetchCacheData();
+        };
+
+        limitSelect.onchange = () => {
+            currentLimit = parseInt(limitSelect.value, 10);
+            currentPage = 1;
+            fetchCacheData();
+        };
+
+        prevBtn.onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                fetchCacheData();
+            }
+        };
+
+        nextBtn.onclick = () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                fetchCacheData();
+            }
+        };
+
+        // Initial load
+        fetchCacheData();
+
+        // Analysis modal functions
+        async function showAnalysis() {
+            const analysisModal = document.getElementById('analysisModal');
+            const analysisLoading = document.getElementById('analysisLoading');
+            const analysisResults = document.getElementById('analysisResults');
+            
+            analysisModal.classList.add('active');
+            analysisLoading.style.display = 'flex';
+            analysisResults.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/admin/cache/analyze');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                if (!data.success) throw new Error(data.error || 'Unknown error');
+
+                const a = data.analysis;
+                const maxCount = Math.max(
+                    a.qualityTiers.thumbnail?.count || 0,
+                    a.qualityTiers.preview?.count || 0,
+                    a.qualityTiers.medium?.count || 0,
+                    a.qualityTiers.high?.count || 0,
+                    a.qualityTiers.original?.count || 0
+                );
+
+                analysisResults.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                        <div class="stat-item" style="text-align: center;">
+                            <span class="stat-label">Total Cached Files</span>
+                            <span class="stat-value">${a.totalFiles.toLocaleString()}</span>
+                        </div>
+                        <div class="stat-item" style="text-align: center;">
+                            <span class="stat-label">Estimated Unique Posters</span>
+                            <span class="stat-value info">${a.estimatedUniquePosters.toLocaleString()}</span>
+                        </div>
+                        <div class="stat-item" style="text-align: center;">
+                            <span class="stat-label">Total Cache Size</span>
+                            <span class="stat-value">${a.totalSizeMB} MB</span>
+                        </div>
+                    </div>
+
+                    <h3><i class="fas fa-layer-group"></i> Quality Distribution</h3>
+                    <div class="quality-bars">
+                        ${renderQualityBar('Thumbnail', 'thumbnail', a.qualityTiers.thumbnail, maxCount, '<50KB')}
+                        ${renderQualityBar('Preview', 'preview', a.qualityTiers.preview, maxCount, '50-100KB')}
+                        ${renderQualityBar('Medium', 'medium', a.qualityTiers.medium, maxCount, '100-200KB')}
+                        ${renderQualityBar('High', 'high', a.qualityTiers.high, maxCount, '200-500KB')}
+                        ${renderQualityBar('Original', 'original', a.qualityTiers.original, maxCount, '>500KB')}
+                    </div>
+
+                    <h3><i class="fas fa-copy"></i> Exact Size Duplicates</h3>
+                    <div class="explanation-box">
+                        ${a.exactSizeDuplicates.count === 0 
+                            ? '<span style="color: #4caf50;"><i class="fas fa-check-circle"></i> No exact duplicates found. Each cached file has a unique size.</span>'
+                            : `<span style="color: #ff9800;"><i class="fas fa-exclamation-circle"></i> Found ${a.exactSizeDuplicates.count} groups of files with identical sizes. These might be duplicates or different posters that happen to have the same file size.</span>`
+                        }
+                    </div>
+
+                    <h3><i class="fas fa-question-circle"></i> Why Multiple Versions?</h3>
+                    <div class="explanation-box">
+                        <p><strong>${a.explanation.whyMultipleVersions}</strong></p>
+                        <p style="margin-top: 0.5rem; color: #888; font-size: 0.8rem;">
+                            Technical: ${a.explanation.qualityKeyFormula}
+                        </p>
+                    </div>
+
+                    <h3><i class="fas fa-clock"></i> Cache Timeline</h3>
+                    <div class="explanation-box">
+                        <p><strong>Oldest cached:</strong> ${a.timeRange.oldest ? new Date(a.timeRange.oldest).toLocaleString() : 'N/A'}</p>
+                        <p><strong>Newest cached:</strong> ${a.timeRange.newest ? new Date(a.timeRange.newest).toLocaleString() : 'N/A'}</p>
+                    </div>
+                `;
+
+                analysisLoading.style.display = 'none';
+                analysisResults.style.display = 'block';
+            } catch (err) {
+                analysisResults.innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Failed to analyze cache</h3>
+                        <p>${err.message}</p>
+                    </div>
+                `;
+                analysisLoading.style.display = 'none';
+                analysisResults.style.display = 'block';
+            }
+        }
+
+        function renderQualityBar(label, tierClass, tier, maxCount, sizeRange) {
+            const count = tier?.count || 0;
+            const percentage = tier?.percentage || 0;
+            const width = maxCount > 0 ? (count / maxCount * 100) : 0;
+            
+            return `
+                <div class="quality-bar">
+                    <span class="label">${label}</span>
+                    <div class="bar-container">
+                        <div class="bar ${tierClass}" style="width: ${Math.max(width, count > 0 ? 5 : 0)}%">
+                            ${percentage}%
+                        </div>
+                    </div>
+                    <span class="count">${count.toLocaleString()} (${sizeRange})</span>
+                </div>
+            `;
+        }
+
+        function closeAnalysisModal() {
+            document.getElementById('analysisModal').classList.remove('active');
+        }
+
+        document.getElementById('analysisModal').onclick = (e) => {
+            if (e.target === document.getElementById('analysisModal')) {
+                closeAnalysisModal();
+            }
+        };
+    </script>
+</body>
+</html>

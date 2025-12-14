@@ -1668,6 +1668,13 @@
         $('#cinemaQRPosition') && ($('#cinemaQRPosition').value = qr.position || 'bottomRight');
         $('#cinemaQRSize') && ($('#cinemaQRSize').value = qr.size || 100);
 
+        // Orientation control
+        $('#cinemaOrientation') && ($('#cinemaOrientation').value = c.orientation || 'auto');
+
+        // Rotation interval control
+        $('#cinemaRotationInterval') &&
+            ($('#cinemaRotationInterval').value = c.rotationIntervalMinutes || 0);
+
         // Initialize color pickers for background, poster, and global effects
         initColorPickers(bg, poster, globalEffects);
 
@@ -2615,25 +2622,44 @@
     }
 
     function collectCurrentSettingsAsPreset() {
+        // Collect enabled transitions from checkboxes
+        const enabledTransitions = [];
+        document
+            .querySelectorAll('#enabledTransitionsGrid input[type="checkbox"]:checked')
+            .forEach(cb => {
+                enabledTransitions.push(cb.value);
+            });
+
         return {
+            // Poster settings
             poster: {
                 style: $('#cinemaPosterStyle')?.value || 'floating',
                 overlay: $('#cinemaPosterOverlay')?.value || 'none',
                 frameColor: $('#cinemaFrameColor')?.value || '#333333',
                 frameColorMode: $('#cinemaFrameColorMode')?.value || 'custom',
                 frameWidth: parseInt($('#cinemaFrameWidth')?.value || '8', 10),
+                transitionDuration: parseFloat($('#cinemaPosterTransition')?.value || '1.5'),
+                cinematicTransitions: {
+                    enabledTransitions:
+                        enabledTransitions.length > 0 ? enabledTransitions : ['fade'],
+                    selectionMode: $('#cinemaTransitionMode')?.value || 'random',
+                    singleTransition: $('#cinemaSingleTransition')?.value || 'fade',
+                },
             },
+            // Background settings
             background: {
                 mode: $('#cinemaBackgroundMode')?.value || 'solid',
                 solidColor: $('#cinemaBackgroundColor')?.value || '#000000',
                 blurAmount: parseInt($('#cinemaBackgroundBlur')?.value || '20', 10),
                 vignette: $('#cinemaVignette')?.value || 'subtle',
             },
+            // Global effects & typography
             globalEffects: {
                 colorFilter: $('#cinemaColorFilter')?.value || 'none',
                 tintColor: $('#cinemaTintColor')?.value || '#ff6b00',
                 contrast: parseInt($('#cinemaContrast')?.value || '100', 10),
                 brightness: parseInt($('#cinemaBrightness')?.value || '100', 10),
+                hideAllUI: !!$('#cinemaHideAllUI')?.checked,
             },
             typography: {
                 fontFamily: $('#cinemaGlobalFont')?.value || 'cinematic',
@@ -2642,6 +2668,86 @@
                 tonSurTonIntensity: parseInt($('#cinemaGlobalTstIntensity')?.value || '45', 10),
                 textEffect: $('#cinemaGlobalTextEffect')?.value || 'subtle',
             },
+            // Metadata settings
+            metadata: {
+                opacity: parseInt($('#cinemaMetadataOpacity')?.value || '80', 10),
+                layout: $('#cinemaMetadataLayout')?.value || 'comfortable',
+                showYear: $('#cinemaShowYear')?.checked !== false,
+                showRuntime: $('#cinemaShowRuntime')?.checked !== false,
+                showRating: $('#cinemaShowRating')?.checked !== false,
+                showCertification: !!$('#cinemaShowCertification')?.checked,
+                showGenre: !!$('#cinemaShowGenre')?.checked,
+                showDirector: !!$('#cinemaShowDirector')?.checked,
+                showStudioLogo: !!$('#cinemaShowStudioLogo')?.checked,
+                specs: {
+                    showResolution: $('#cinemaShowResolution')?.checked !== false,
+                    showAudio: $('#cinemaShowAudio')?.checked !== false,
+                    showHDR: $('#cinemaShowHDR')?.checked !== false,
+                    showAspectRatio: !!$('#cinemaShowAspectRatio')?.checked,
+                    style: $('#cinemaSpecsStyle')?.value || 'icons-text',
+                    iconSet: $('#cinemaSpecsIconSet')?.value || 'tabler',
+                },
+            },
+            // Promotional settings
+            promotional: {
+                showRating: !!$('#cinemaRatingBadge')?.checked,
+                showWatchProviders: !!$('#cinemaWatchProviders')?.checked,
+                showAwardsBadge: !!$('#cinemaAwardsBadge')?.checked,
+                trailer: {
+                    enabled: !!$('#cinemaTrailerEnabled')?.checked,
+                    delay: parseInt($('#cinemaTrailerDelay')?.value || '5', 10),
+                    muted: $('#cinemaTrailerMuted')?.checked !== false,
+                    loop: $('#cinemaTrailerLoop')?.checked !== false,
+                    quality: $('#cinemaTrailerQuality')?.value || 'default',
+                    autohide: $('#cinemaTrailerAutohide')?.value || 'never',
+                    reshow: $('#cinemaTrailerReshow')?.value || 'never',
+                },
+                qrCode: {
+                    enabled: !!$('#cinemaQREnabled')?.checked,
+                    urlType: $('#cinemaQRUrlType')?.value || 'trailer',
+                    url: $('#cinemaQRUrl')?.value || '',
+                    position: $('#cinemaQRPosition')?.value || 'bottomRight',
+                    size: parseInt($('#cinemaQRSize')?.value || '100', 10),
+                },
+            },
+            // Header settings
+            header: {
+                enabled: $('#cin-h-enabled')?.checked || false,
+                text: $('#cin-h-presets')?.value || 'Now Playing',
+                typography: {
+                    fontFamily: $('#cin-h-font')?.value || 'cinematic',
+                    fontSize: parseInt($('#cin-h-size')?.value || '100', 10),
+                    color: $('#cin-h-color')?.value || '#ffffff',
+                    shadow: $('#cin-h-shadow')?.value || 'subtle',
+                    textEffect: $('#cin-h-texteffect')?.value || 'none',
+                    entranceAnimation: $('#cin-h-entrance')?.value || 'none',
+                    decoration: $('#cin-h-decoration')?.value || 'none',
+                    tonSurTon: $('#cin-h-tst')?.checked || false,
+                    tonSurTonIntensity: parseInt($('#cin-h-tst-intensity')?.value || '45', 10),
+                },
+            },
+            // Footer settings
+            footer: {
+                enabled: $('#cin-f-enabled')?.checked || false,
+                type: $('#cin-f-type')?.value || 'metadata',
+                marqueeText: $('#cin-f-presets')?.value || 'Feature Presentation',
+                taglineMarquee: $('#cin-f-tagline-marquee')?.checked || false,
+                typography: {
+                    fontFamily: $('#cin-f-font')?.value || 'system',
+                    fontSize: parseInt($('#cin-f-size')?.value || '100', 10),
+                    color: $('#cin-f-color')?.value || '#cccccc',
+                    shadow: $('#cin-f-shadow')?.value || 'none',
+                    tonSurTon: $('#cin-f-tst')?.checked || false,
+                    tonSurTonIntensity: parseInt($('#cin-f-tst-intensity')?.value || '45', 10),
+                },
+            },
+            // Ambilight
+            ambilight: {
+                enabled: $('#cin-a-enabled')?.checked || false,
+                strength: parseInt($('#cin-a-strength')?.value || '60', 10),
+            },
+            // Orientation
+            orientation: $('#cinemaOrientation')?.value || 'auto',
         };
     }
 
@@ -2656,8 +2762,33 @@
             if (preset.poster.frameColorMode) {
                 setFieldValue($('#cinemaFrameColorMode'), preset.poster.frameColorMode);
             }
-            if (preset.poster.frameWidth) {
+            if (preset.poster.frameWidth !== undefined) {
                 setFieldValue($('#cinemaFrameWidth'), preset.poster.frameWidth, 'input');
+            }
+            if (preset.poster.transitionDuration !== undefined) {
+                setFieldValue(
+                    $('#cinemaPosterTransition'),
+                    preset.poster.transitionDuration,
+                    'input'
+                );
+            }
+            // Cinematic transitions
+            if (preset.poster.cinematicTransitions) {
+                const ct = preset.poster.cinematicTransitions;
+                if (ct.selectionMode) {
+                    setFieldValue($('#cinemaTransitionMode'), ct.selectionMode);
+                }
+                if (ct.singleTransition) {
+                    setFieldValue($('#cinemaSingleTransition'), ct.singleTransition);
+                }
+                // Apply enabled transitions checkboxes
+                if (ct.enabledTransitions && Array.isArray(ct.enabledTransitions)) {
+                    document
+                        .querySelectorAll('#enabledTransitionsGrid input[type="checkbox"]')
+                        .forEach(cb => {
+                            cb.checked = ct.enabledTransitions.includes(cb.value);
+                        });
+                }
             }
         }
 
@@ -2668,7 +2799,7 @@
             if (preset.background.solidColor) {
                 setFieldValue($('#cinemaBackgroundColor'), preset.background.solidColor);
             }
-            if (preset.background.blurAmount) {
+            if (preset.background.blurAmount !== undefined) {
                 setFieldValue($('#cinemaBackgroundBlur'), preset.background.blurAmount, 'input');
             }
         }
@@ -2685,11 +2816,133 @@
             if (preset.globalEffects.tintColor) {
                 setFieldValue($('#cinemaTintColor'), preset.globalEffects.tintColor);
             }
+            if ($('#cinemaHideAllUI')) {
+                $('#cinemaHideAllUI').checked = !!preset.globalEffects.hideAllUI;
+            }
         }
 
         // Apply typography
         if (preset.typography) {
             applyGlobalTypography(preset.typography);
+        }
+
+        // Apply metadata settings
+        if (preset.metadata) {
+            const meta = preset.metadata;
+            if (meta.opacity !== undefined) {
+                setFieldValue($('#cinemaMetadataOpacity'), meta.opacity, 'input');
+            }
+            if (meta.layout) {
+                setFieldValue($('#cinemaMetadataLayout'), meta.layout);
+            }
+            // Checkboxes
+            if ($('#cinemaShowYear')) $('#cinemaShowYear').checked = meta.showYear !== false;
+            if ($('#cinemaShowRuntime'))
+                $('#cinemaShowRuntime').checked = meta.showRuntime !== false;
+            if ($('#cinemaShowRating')) $('#cinemaShowRating').checked = meta.showRating !== false;
+            if ($('#cinemaShowCertification'))
+                $('#cinemaShowCertification').checked = !!meta.showCertification;
+            if ($('#cinemaShowGenre')) $('#cinemaShowGenre').checked = !!meta.showGenre;
+            if ($('#cinemaShowDirector')) $('#cinemaShowDirector').checked = !!meta.showDirector;
+            if ($('#cinemaShowStudioLogo'))
+                $('#cinemaShowStudioLogo').checked = !!meta.showStudioLogo;
+            // Specs
+            if (meta.specs) {
+                if ($('#cinemaShowResolution'))
+                    $('#cinemaShowResolution').checked = meta.specs.showResolution !== false;
+                if ($('#cinemaShowAudio'))
+                    $('#cinemaShowAudio').checked = meta.specs.showAudio !== false;
+                if ($('#cinemaShowHDR')) $('#cinemaShowHDR').checked = meta.specs.showHDR !== false;
+                if ($('#cinemaShowAspectRatio'))
+                    $('#cinemaShowAspectRatio').checked = !!meta.specs.showAspectRatio;
+                if (meta.specs.style) setFieldValue($('#cinemaSpecsStyle'), meta.specs.style);
+                if (meta.specs.iconSet) setFieldValue($('#cinemaSpecsIconSet'), meta.specs.iconSet);
+            }
+        }
+
+        // Apply promotional settings
+        if (preset.promotional) {
+            const promo = preset.promotional;
+            if ($('#cinemaRatingBadge')) $('#cinemaRatingBadge').checked = !!promo.showRating;
+            if ($('#cinemaWatchProviders'))
+                $('#cinemaWatchProviders').checked = !!promo.showWatchProviders;
+            if ($('#cinemaAwardsBadge')) $('#cinemaAwardsBadge').checked = !!promo.showAwardsBadge;
+            // Trailer settings
+            if (promo.trailer) {
+                const t = promo.trailer;
+                if ($('#cinemaTrailerEnabled')) $('#cinemaTrailerEnabled').checked = !!t.enabled;
+                if (t.delay !== undefined)
+                    setFieldValue($('#cinemaTrailerDelay'), t.delay, 'input');
+                if ($('#cinemaTrailerMuted')) $('#cinemaTrailerMuted').checked = t.muted !== false;
+                if ($('#cinemaTrailerLoop')) $('#cinemaTrailerLoop').checked = t.loop !== false;
+                if (t.quality) setFieldValue($('#cinemaTrailerQuality'), t.quality);
+                if (t.autohide) setFieldValue($('#cinemaTrailerAutohide'), t.autohide);
+                if (t.reshow) setFieldValue($('#cinemaTrailerReshow'), t.reshow);
+            }
+            // QR Code settings
+            if (promo.qrCode) {
+                const qr = promo.qrCode;
+                if ($('#cinemaQREnabled')) $('#cinemaQREnabled').checked = !!qr.enabled;
+                if (qr.urlType) setFieldValue($('#cinemaQRUrlType'), qr.urlType);
+                if (qr.url !== undefined) setFieldValue($('#cinemaQRUrl'), qr.url);
+                if (qr.position) setFieldValue($('#cinemaQRPosition'), qr.position);
+                if (qr.size !== undefined) setFieldValue($('#cinemaQRSize'), qr.size, 'input');
+            }
+        }
+
+        // Apply header settings
+        if (preset.header) {
+            const h = preset.header;
+            if ($('#cin-h-enabled')) $('#cin-h-enabled').checked = !!h.enabled;
+            if (h.text) setFieldValue($('#cin-h-presets'), h.text);
+            if (h.typography) {
+                const ht = h.typography;
+                if (ht.fontFamily) setFieldValue($('#cin-h-font'), ht.fontFamily);
+                if (ht.fontSize !== undefined)
+                    setFieldValue($('#cin-h-size'), ht.fontSize, 'input');
+                if (ht.color) setFieldValue($('#cin-h-color'), ht.color);
+                if (ht.shadow) setFieldValue($('#cin-h-shadow'), ht.shadow);
+                if (ht.textEffect) setFieldValue($('#cin-h-texteffect'), ht.textEffect);
+                if (ht.entranceAnimation) setFieldValue($('#cin-h-entrance'), ht.entranceAnimation);
+                if (ht.decoration) setFieldValue($('#cin-h-decoration'), ht.decoration);
+                if ($('#cin-h-tst')) $('#cin-h-tst').checked = !!ht.tonSurTon;
+                if (ht.tonSurTonIntensity !== undefined)
+                    setFieldValue($('#cin-h-tst-intensity'), ht.tonSurTonIntensity, 'input');
+            }
+        }
+
+        // Apply footer settings
+        if (preset.footer) {
+            const f = preset.footer;
+            if ($('#cin-f-enabled')) $('#cin-f-enabled').checked = !!f.enabled;
+            if (f.type) setFieldValue($('#cin-f-type'), f.type);
+            if (f.marqueeText) setFieldValue($('#cin-f-presets'), f.marqueeText);
+            if ($('#cin-f-tagline-marquee'))
+                $('#cin-f-tagline-marquee').checked = !!f.taglineMarquee;
+            if (f.typography) {
+                const ft = f.typography;
+                if (ft.fontFamily) setFieldValue($('#cin-f-font'), ft.fontFamily);
+                if (ft.fontSize !== undefined)
+                    setFieldValue($('#cin-f-size'), ft.fontSize, 'input');
+                if (ft.color) setFieldValue($('#cin-f-color'), ft.color);
+                if (ft.shadow) setFieldValue($('#cin-f-shadow'), ft.shadow);
+                if ($('#cin-f-tst')) $('#cin-f-tst').checked = !!ft.tonSurTon;
+                if (ft.tonSurTonIntensity !== undefined)
+                    setFieldValue($('#cin-f-tst-intensity'), ft.tonSurTonIntensity, 'input');
+            }
+        }
+
+        // Apply ambilight settings
+        if (preset.ambilight) {
+            if ($('#cin-a-enabled')) $('#cin-a-enabled').checked = !!preset.ambilight.enabled;
+            if (preset.ambilight.strength !== undefined) {
+                setFieldValue($('#cin-a-strength'), preset.ambilight.strength, 'input');
+            }
+        }
+
+        // Apply orientation
+        if (preset.orientation) {
+            setFieldValue($('#cinemaOrientation'), preset.orientation);
         }
 
         // Force unsaved changes indicator
@@ -2796,14 +3049,29 @@
                     modal.classList.remove('open');
                     cleanup();
 
-                    // Save directly to server (bypass workingState to avoid "unsaved changes")
+                    // Save preset AND current cinema settings to server
+                    // This ensures the active cinema config matches the preset we just saved
                     try {
                         if (typeof window.saveConfigPatch === 'function') {
                             await window.saveConfigPatch({
                                 cinema: {
+                                    // Save the preset to customStyles
                                     presets: {
                                         customStyles: customPresets,
                                     },
+                                    // Also save ALL current settings as the active config
+                                    // so they persist after page refresh
+                                    selectedPreset: `custom:${id}`,
+                                    poster: settings.poster,
+                                    background: settings.background,
+                                    globalEffects: settings.globalEffects,
+                                    typography: settings.typography,
+                                    metadata: settings.metadata,
+                                    promotional: settings.promotional,
+                                    header: settings.header,
+                                    footer: settings.footer,
+                                    ambilight: settings.ambilight,
+                                    orientation: settings.orientation,
                                 },
                             });
                             // Also update workingState to keep in sync
@@ -3046,6 +3314,7 @@
                 tintColor: $('#cinemaTintColor')?.value || '#ff6b00',
                 contrast: parseInt($('#cinemaContrast')?.value || '100', 10),
                 brightness: parseInt($('#cinemaBrightness')?.value || '100', 10),
+                hideAllUI: !!$('#cinemaHideAllUI')?.checked,
                 // Global typography master controls
                 fontFamily: $('#cinemaGlobalFont')?.value || 'cinematic',
                 textColorMode: $('#cinemaGlobalTextColorMode')?.value || 'custom',
@@ -3145,6 +3414,10 @@
             enabled: $('#cin-a-enabled')?.checked || false,
             strength: parseInt($('#cin-a-strength')?.value || '60', 10),
         };
+        // Now Playing settings
+        const nowPlaying = {
+            enabled: $('#cinemaNowPlayingEnabled')?.checked || false,
+        };
         // Orientation from top-level select
         const orientation = $('#cinemaOrientation')?.value || 'auto';
         // Rotation interval from new field
@@ -3166,6 +3439,7 @@
             header,
             footer,
             ambilight,
+            nowPlaying,
             rotationIntervalMinutes,
             presets,
             ...enhanced,
