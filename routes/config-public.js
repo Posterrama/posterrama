@@ -218,9 +218,10 @@ module.exports = function createConfigPublicRouter({
             // Try to identify device and merge settings from profile (Global < Profile)
             let merged = baseConfig;
             try {
-                const deviceId = req.get('X-Device-Id');
-                const installId = req.get('X-Install-Id');
-                const hardwareId = req.get('X-Hardware-Id');
+                // Support both headers and query parameters for device identification
+                const deviceId = req.get('X-Device-Id') || req.query.deviceId;
+                const installId = req.get('X-Install-Id') || req.query.installId;
+                const hardwareId = req.get('X-Hardware-Id') || req.query.hardwareId;
 
                 let device = null;
                 if (deviceId) {
@@ -240,6 +241,12 @@ module.exports = function createConfigPublicRouter({
                         const profile = await profilesStore.getById(device.profileId);
                         if (profile && profile.settings && typeof profile.settings === 'object') {
                             fromProfile = profile.settings;
+                            if (isDebug) {
+                                logger.debug('[get-config] Applied profile settings', {
+                                    deviceId: device.id,
+                                    profileId: device.profileId,
+                                });
+                            }
                         }
                     }
                 } catch (pe) {
@@ -249,7 +256,7 @@ module.exports = function createConfigPublicRouter({
                         });
                 }
 
-                // Merge order: Global < Profile
+                // Merge order: Global < Profile (profile settings override global)
                 merged = deepMerge({}, baseConfig, fromProfile || {});
                 if (isDebug) {
                     const pKeys = Object.keys(fromProfile || {});

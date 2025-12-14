@@ -304,8 +304,14 @@ function validateGetConfigQuery(req, res, next) {
         });
     }
 
-    // For get-config, we ignore query parameters, so just set to empty object
-    req.query = {};
+    // Preserve device identification parameters, clear others for security
+    const deviceParams = {
+        deviceId: sanitized.deviceId,
+        installId: sanitized.installId,
+        hardwareId: sanitized.hardwareId,
+        debug: sanitized.debug,
+    };
+    req.query = deviceParams;
     return next();
 }
 
