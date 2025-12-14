@@ -192,6 +192,15 @@
         }
     }
 
+    function restartCssClassAnimation(el, className) {
+        if (!el || !className) return;
+        if (!el.classList.contains(className)) return;
+        el.classList.remove(className);
+        // Force reflow to restart the CSS animation
+        void el.offsetWidth;
+        el.classList.add(className);
+    }
+
     // Debug overlay removed for production
 
     function error(message, data) {
@@ -411,7 +420,8 @@
     }
 
     // ===== Cinema Header =====
-    function createHeader() {
+    function createHeader(options = {}) {
+        const { restartEntranceAnimation = false } = options;
         if (!cinemaConfig.header.enabled) {
             if (headerEl) {
                 headerEl.remove();
@@ -467,6 +477,10 @@
             `cinema-header ${fontClass} ${shadowClass} ${animClass} ${decorationClass} ${textEffectClass} ${entranceClass}`
                 .trim()
                 .replace(/\\s+/g, ' ');
+
+        if (restartEntranceAnimation && entranceClass) {
+            restartCssClassAnimation(headerEl, entranceClass);
+        }
 
         // Apply inline styles for size and color
         headerEl.style.setProperty('--header-font-size', `${(typo.fontSize || 100) / 100}`);
@@ -2823,7 +2837,7 @@
             document.body.classList.add('cinema-header-active');
         }
         if (!cinemaConfig.header?.typography?.tonSurTon) {
-            createHeader();
+            createHeader({ restartEntranceAnimation: true });
         }
         createAmbilight();
 
@@ -3100,7 +3114,7 @@
         // Update header - always refresh when media changes for context-aware headers
         // Also needed if ton-sur-ton is enabled (needs effectiveBgColor from background)
         if (cinemaConfig.header?.enabled) {
-            createHeader();
+            createHeader({ restartEntranceAnimation: true });
         }
 
         // Update footer with current media info
