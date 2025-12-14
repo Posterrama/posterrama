@@ -948,22 +948,40 @@
             });
         } else if (cinemaConfig.footer.type === 'tagline' && currentMedia) {
             // Tagline footer - displays the movie/series tagline
-            const taglineDiv = document.createElement('div');
-            taglineDiv.className = 'cinema-footer-tagline';
-
             const taglineText = currentMedia.tagline || currentMedia.summary?.split('.')[0] || '';
-            if (taglineText) {
-                taglineDiv.textContent = taglineText;
+            const displayText = taglineText || currentMedia.title || '';
+
+            if (cinemaConfig.footer.taglineMarquee) {
+                // Marquee-style tagline - same structure as marquee type
+                const marqueeDiv = document.createElement('div');
+                marqueeDiv.className = 'cinema-footer-marquee';
+
+                const marqueeContent = document.createElement('div');
+                marqueeContent.className = 'cinema-footer-marquee-content';
+                marqueeContent.textContent = displayText;
+
+                marqueeDiv.appendChild(marqueeContent);
+                footerEl.appendChild(marqueeDiv);
+
+                log('Cinema footer tagline marquee created', {
+                    tagline: displayText,
+                    isMarquee: true,
+                });
+            } else {
+                // Static tagline display
+                const taglineDiv = document.createElement('div');
+                taglineDiv.className = 'cinema-footer-tagline';
+                taglineDiv.textContent = displayText;
+
+                if (!taglineText) {
+                    taglineDiv.classList.add('fallback-title');
+                }
+
                 footerEl.appendChild(taglineDiv);
 
                 log('Cinema footer tagline created', {
-                    tagline: taglineText,
+                    tagline: displayText,
                 });
-            } else {
-                // Fallback: show title if no tagline available
-                taglineDiv.textContent = currentMedia.title || '';
-                taglineDiv.classList.add('fallback-title');
-                footerEl.appendChild(taglineDiv);
             }
         }
     }

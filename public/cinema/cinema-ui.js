@@ -1171,13 +1171,25 @@
             mRowText,
         ]);
 
-        // === Tagline Block (just shows movie tagline, no config needed) ===
+        // === Tagline Block with marquee option ===
         const taglineBlock = el('div', { id: 'cin-f-tagline', class: 'cin-footer-col' }, [
             el(
                 'p',
                 { class: 'help-text', style: 'margin: 8px 0; color: var(--color-text-secondary);' },
                 'Displays the movie/series tagline from metadata.'
             ),
+            el('div', { class: 'form-row' }, [
+                el('label', { for: 'cin-f-tagline-marquee' }, 'Marquee'),
+                el('label', { class: 'checkbox', for: 'cin-f-tagline-marquee' }, [
+                    el('input', {
+                        type: 'checkbox',
+                        id: 'cin-f-tagline-marquee',
+                        checked: f.taglineMarquee ? 'checked' : null,
+                    }),
+                    el('span', { class: 'checkmark' }),
+                    el('span', {}, 'Scroll tagline as marquee'),
+                ]),
+            ]),
         ]);
 
         // === Typography Block (for marquee and tagline) ===
@@ -1413,6 +1425,20 @@
             } catch (e) {
                 // ignore preview update failure
                 void e;
+            }
+        });
+
+        // Tagline marquee checkbox change handler
+        $('#cin-f-tagline-marquee')?.addEventListener('change', e => {
+            const ws = getWorkingState();
+            ws.footer = Object.assign({}, ws.footer, {
+                taglineMarquee: e.target.checked,
+            });
+            saveWorkingState();
+            try {
+                window.__displayPreviewInit && (window.__forcePreviewUpdate?.() || 0);
+            } catch (e2) {
+                void e2;
             }
         });
 

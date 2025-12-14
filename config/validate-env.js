@@ -404,6 +404,9 @@ function migrateConfig(cfg) {
         footer.marqueeText = 'Feature Presentation';
         modified = true;
     }
+    if (footer.taglineMarquee === undefined) {
+        footer.taglineMarquee = false;
+    }
 
     // Fix footer.type (migrate "specs" to "metadata")
     if (footer.type === 'specs') {

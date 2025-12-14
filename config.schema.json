@@ -783,6 +783,11 @@
                             "default": "Feature Presentation",
                             "description": "Text for marquee-style footer"
                         },
+                        "taglineMarquee": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Show movie tagline as scrolling marquee"
+                        },
                         "typography": {
                             "type": "object",
                             "description": "Footer typography settings (for marquee and tagline types)",

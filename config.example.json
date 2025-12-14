@@ -95,6 +95,7 @@
             "enabled": true,
             "type": "marquee",
             "marqueeText": "Feature Presentation",
+            "taglineMarquee": false,
             "typography": {
                 "fontFamily": "cinematic",
                 "fontSize": 100,
