@@ -1,7 +1,7 @@
 <div align="center">
   <img src="./public/logo.png" alt="Posterrama Logo" width="96">
   
-  <img src="./public/readme-wordmark.png" alt="posterrama" height="48">
+  <h1 style="margin-bottom: 5px; font-size: 56px; line-height: 1.05;">posterrama</h1>
   <p style="margin-top: 0;"><em>Transform any screen into your personal gallery</em></p>
   <br>
 </div>
