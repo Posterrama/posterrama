@@ -966,10 +966,16 @@
                                     "default": 3,
                                     "description": "Border thickness in pixels"
                                 },
+                                "colorMode": {
+                                    "type": "string",
+                                    "enum": ["custom", "auto"],
+                                    "default": "custom",
+                                    "description": "Color mode: custom (manual color) or auto (ton-sur-ton from poster)"
+                                },
                                 "color": {
                                     "type": "string",
                                     "default": "#ffffff",
-                                    "description": "Border color (hex)"
+                                    "description": "Border color (hex) - only used when colorMode is custom"
                                 },
                                 "opacity": {
                                     "type": "number",
@@ -978,19 +984,39 @@
                                     "default": 0.6,
                                     "description": "Border opacity (0.1-1)"
                                 },
+                                "style": {
+                                    "type": "string",
+                                    "enum": ["solid", "dashed", "dotted", "neon"],
+                                    "default": "solid",
+                                    "description": "Border visual style"
+                                },
+                                "gradient": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Enable gradient color effect that changes as progress increases"
+                                },
                                 "glowEnabled": {
                                     "type": "boolean",
                                     "default": false,
                                     "description": "Enable glow effect on border"
+                                },
+                                "pausedIndicator": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Show visual indicator when playback is paused (pulsing animation)"
                                 }
                             },
                             "additionalProperties": false,
                             "default": {
                                 "enabled": false,
                                 "thickness": 3,
+                                "colorMode": "custom",
                                 "color": "#ffffff",
                                 "opacity": 0.6,
-                                "glowEnabled": false
+                                "style": "solid",
+                                "gradient": false,
+                                "glowEnabled": false,
+                                "pausedIndicator": true
                             }
                         }
                     },
@@ -1004,9 +1030,13 @@
                         "timelineBorder": {
                             "enabled": false,
                             "thickness": 3,
+                            "colorMode": "custom",
                             "color": "#ffffff",
                             "opacity": 0.6,
-                            "glowEnabled": false
+                            "style": "solid",
+                            "gradient": false,
+                            "glowEnabled": false,
+                            "pausedIndicator": true
                         }
                     }
                 },

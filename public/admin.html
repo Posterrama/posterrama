@@ -1259,6 +1259,34 @@
                         <div class="number-input-wrapper"><input type="number" min="1" max="10" step="1" id="cinemaTimelineBorderThickness" placeholder="3" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
                       </div>
                       
+                      <div class="form-row" id="timelineBorderStyleRow">
+                        <label for="cinemaTimelineBorderStyle">
+                          Style
+                          <span class="help-text">Border appearance</span>
+                        </label>
+                        <div class="select-wrap has-caret">
+                          <select id="cinemaTimelineBorderStyle">
+                            <option value="solid">Solid</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dotted">Dotted</option>
+                            <option value="neon">Neon</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div class="form-row" id="timelineBorderColorModeRow">
+                        <label for="cinemaTimelineBorderColorMode">
+                          Color Mode
+                          <span class="help-text">Manual or auto from poster</span>
+                        </label>
+                        <div class="select-wrap has-caret">
+                          <select id="cinemaTimelineBorderColorMode">
+                            <option value="custom">Custom Color</option>
+                            <option value="auto">Auto (Ton-sur-Ton)</option>
+                          </select>
+                        </div>
+                      </div>
+                      
                       <div class="form-row" id="timelineBorderColorRow">
                         <div id="timeline-border-color-picker-container"></div>
                       </div>
@@ -1271,11 +1299,27 @@
                         <div class="number-input-wrapper"><input type="number" min="10" max="100" step="10" id="cinemaTimelineBorderOpacity" placeholder="60" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
                       </div>
                       
+                      <div class="form-row" id="timelineBorderGradientRow">
+                        <label class="checkbox" for="cinemaTimelineBorderGradient">
+                          <input type="checkbox" id="cinemaTimelineBorderGradient">
+                          <span class="checkmark"></span>
+                          <span>Gradient <span class="help-text" style="font-weight:normal;">(color shifts with progress)</span></span>
+                        </label>
+                      </div>
+                      
                       <div class="form-row" id="timelineBorderGlowRow">
                         <label class="checkbox" for="cinemaTimelineBorderGlow">
                           <input type="checkbox" id="cinemaTimelineBorderGlow">
                           <span class="checkmark"></span>
                           <span>Glow Effect</span>
+                        </label>
+                      </div>
+                      
+                      <div class="form-row" id="timelineBorderPausedRow">
+                        <label class="checkbox" for="cinemaTimelineBorderPaused">
+                          <input type="checkbox" id="cinemaTimelineBorderPaused" checked>
+                          <span class="checkmark"></span>
+                          <span>Paused Indicator <span class="help-text" style="font-weight:normal;">(pulse when paused)</span></span>
                         </label>
                       </div>
                     </div>

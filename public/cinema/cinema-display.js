@@ -2419,6 +2419,9 @@
                 if (needsTonSurTon) {
                     updateTonSurTonFrameColor(dominantColor);
                 }
+
+                // Update timeline border auto color
+                updateTimelineBorderAutoColor(dominantColor);
             }
         }
 
@@ -3438,7 +3441,7 @@
                 headers: { 'Cache-Control': 'no-cache' },
                 credentials: 'include',
             });
-            if (!res.ok) return null;
+            if (!res.ok) return [];
             const data = await res.json();
 
             // Cache server name for image proxy URLs
@@ -3446,11 +3449,59 @@
                 window.__plexServerName = data.serverName;
             }
 
-            return data?.sessions || [];
+            // Mark sessions with source
+            const sessions = data?.sessions || [];
+            return sessions.map(s => ({ ...s, _source: 'plex' }));
         } catch (e) {
             error('Failed to fetch Plex sessions', e);
-            return null;
+            return [];
         }
+    }
+
+    async function fetchJellyfinSessions() {
+        try {
+            const res = await fetch('/api/jellyfin/sessions', {
+                cache: 'no-cache',
+                headers: { 'Cache-Control': 'no-cache' },
+                credentials: 'include',
+            });
+            if (!res.ok) return [];
+            const data = await res.json();
+
+            // Cache server name for image proxy URLs
+            if (data?.serverName) {
+                window.__jellyfinServerName = data.serverName;
+            }
+
+            // Sessions are already marked with _source: 'jellyfin' by the poller
+            return data?.sessions || [];
+        } catch (e) {
+            error('Failed to fetch Jellyfin sessions', e);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch sessions from all enabled media servers
+     * @returns {Promise<Array>} Combined sessions from Plex and Jellyfin
+     */
+    async function fetchAllSessions() {
+        // Fetch from both sources in parallel
+        const [plexSessions, jellyfinSessions] = await Promise.all([
+            fetchPlexSessions(),
+            fetchJellyfinSessions(),
+        ]);
+
+        // Combine sessions
+        const allSessions = [...plexSessions, ...jellyfinSessions];
+
+        log('Fetched all sessions', {
+            plex: plexSessions.length,
+            jellyfin: jellyfinSessions.length,
+            total: allSessions.length,
+        });
+
+        return allSessions;
     }
 
     function getDevicePlexUsername() {
@@ -3599,7 +3650,8 @@
             const nowPlayingConfig = cinemaConfig.nowPlaying;
             if (!nowPlayingConfig?.enabled) return;
 
-            const sessions = await fetchPlexSessions();
+            // Fetch sessions from all media servers (Plex + Jellyfin)
+            const sessions = await fetchAllSessions();
 
             // Filter sessions based on config (user filter, device username)
             const filteredSessions = filterSessions(sessions);
@@ -3895,21 +3947,26 @@
 
     /**
      * Update Timeline Border with session progress
-     * @param {object} session - Plex session with viewOffset and duration
+     * @param {object} session - Plex/Jellyfin session with viewOffset, duration, and state
      */
     function updateTimelineBorderProgress(session) {
         if (!window.PosterramaTimelineBorder) return;
 
-        if (!session || !session.duration) {
-            window.PosterramaTimelineBorder.setProgress(0);
-            return;
-        }
+        // Use updateFromSession which handles paused state detection
+        window.PosterramaTimelineBorder.updateFromSession(session);
+    }
 
-        const viewOffset = session.viewOffset || 0;
-        const duration = session.duration;
-        const percent = (viewOffset / duration) * 100;
+    /**
+     * Update Timeline Border auto color from poster dominant color
+     * @param {string} color - Dominant color from poster (ton-sur-ton calculated)
+     */
+    function updateTimelineBorderAutoColor(color) {
+        if (!window.PosterramaTimelineBorder) return;
+        if (!color) return;
 
-        window.PosterramaTimelineBorder.setProgress(percent);
+        // Calculate a brighter ton-sur-ton for better visibility
+        const brighterColor = calculateTonSurTonLight(color, 60);
+        window.PosterramaTimelineBorder.setAutoColor(brighterColor);
     }
 
     function stopNowPlaying() {

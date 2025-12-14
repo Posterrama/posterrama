@@ -183,6 +183,8 @@ const groupsStore = require('./utils/groupsStore');
 const wsHub = require('./utils/wsHub');
 // Plex Sessions Poller
 const PlexSessionsPoller = require('./services/plexSessionsPoller');
+// Jellyfin Sessions Poller
+const JellyfinSessionsPoller = require('./services/jellyfinSessionsPoller');
 const app = express();
 const { ApiError, NotFoundError } = require('./utils/errors.js');
 const ratingCache = require('./utils/rating-cache.js');
@@ -6686,6 +6688,66 @@ app.get(
 
 /**
  * @swagger
+ * /api/jellyfin/sessions:
+ *   get:
+ *     summary: Get current Jellyfin playback sessions
+ *     description: >
+ *       Returns cached Jellyfin session data showing what is currently being played.
+ *       Updated every 10 seconds via background polling.
+ *     tags: ['Admin', 'Jellyfin']
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current Jellyfin sessions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 sessions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 lastUpdate:
+ *                   type: number
+ *                   description: Timestamp of last poll (milliseconds)
+ *                 isActive:
+ *                   type: boolean
+ *                   description: Whether poller is currently running
+ *       503:
+ *         description: Sessions poller not initialized
+ */
+app.get(
+    '/api/jellyfin/sessions',
+    // @ts-ignore - Express router overload with middleware
+    isAuthenticated,
+    asyncHandler(async (req, res) => {
+        const poller = global.__posterramaJellyfinSessionsPoller;
+        if (!poller) {
+            return res.status(503).json({
+                error: 'Jellyfin sessions poller not initialized',
+                sessions: [],
+                lastUpdate: null,
+                isActive: false,
+                serverName: 'Jellyfin',
+            });
+        }
+
+        const data = poller.getSessions();
+
+        // Add Jellyfin server name from config
+        const jellyfinServer = (config.mediaServers || []).find(
+            s => s.enabled && s.type === 'jellyfin'
+        );
+        const serverName = jellyfinServer?.name || 'Jellyfin';
+
+        res.json({ ...data, serverName });
+    })
+);
+
+/**
+ * @swagger
  * /api/plex/users:
  *   get:
  *     summary: Get Plex users with access to this server
@@ -7088,6 +7150,37 @@ if (require.main === module) {
                 logger.info('✅ Plex sessions poller initialized successfully');
             } catch (error) {
                 logger.error('❌ Failed to initialize Plex sessions poller:', error);
+                // Don't crash the server if poller fails
+            }
+        })();
+
+        // Initialize Jellyfin Sessions Poller
+        (async () => {
+            try {
+                logger.info('🎬 Initializing Jellyfin sessions poller...');
+                const jellyfinSessionsPoller = new JellyfinSessionsPoller({
+                    getJellyfinClient,
+                    config,
+                    pollInterval: 10000, // 10 seconds
+                });
+
+                // Store globally for access in routes
+                global.__posterramaJellyfinSessionsPoller = jellyfinSessionsPoller;
+
+                // Broadcast sessions updates via WebSocket
+                jellyfinSessionsPoller.on('sessions', sessions => {
+                    wsHub.broadcastAdmin({
+                        kind: 'jellyfin-sessions',
+                        payload: { sessions, timestamp: Date.now() },
+                    });
+                });
+
+                // Start polling
+                jellyfinSessionsPoller.start();
+
+                logger.info('✅ Jellyfin sessions poller initialized successfully');
+            } catch (error) {
+                logger.error('❌ Failed to initialize Jellyfin sessions poller:', error);
                 // Don't crash the server if poller fails
             }
         })();

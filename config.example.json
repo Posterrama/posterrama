@@ -133,9 +133,13 @@
             "timelineBorder": {
                 "enabled": false,
                 "thickness": 3,
+                "colorMode": "custom",
                 "color": "#ffffff",
                 "opacity": 0.6,
-                "glowEnabled": false
+                "style": "solid",
+                "gradient": false,
+                "glowEnabled": false,
+                "pausedIndicator": true
             }
         },
         "rotationIntervalMinutes": 0,

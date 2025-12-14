@@ -4099,13 +4099,28 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             'cinemaTimelineBorderThickness',
             c.cinema?.nowPlaying?.timelineBorder?.thickness || 3
         );
+        setIf('cinemaTimelineBorderStyle', c.cinema?.nowPlaying?.timelineBorder?.style || 'solid');
+        setIf(
+            'cinemaTimelineBorderColorMode',
+            c.cinema?.nowPlaying?.timelineBorder?.colorMode || 'custom'
+        );
         setIf(
             'cinemaTimelineBorderOpacity',
             (c.cinema?.nowPlaying?.timelineBorder?.opacity || 0.6) * 100
         );
         setIf(
+            'cinemaTimelineBorderGradient',
+            c.cinema?.nowPlaying?.timelineBorder?.gradient || false,
+            'checkbox'
+        );
+        setIf(
             'cinemaTimelineBorderGlow',
             c.cinema?.nowPlaying?.timelineBorder?.glowEnabled || false,
+            'checkbox'
+        );
+        setIf(
+            'cinemaTimelineBorderPaused',
+            c.cinema?.nowPlaying?.timelineBorder?.pausedIndicator !== false,
             'checkbox'
         );
 
@@ -4147,23 +4162,34 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             timelineBorderColorContainer.appendChild(timelineBorderPicker);
         }
 
-        // Show/hide timeline border options based on enabled state
+        // Show/hide timeline border options based on enabled state and color mode
         const timelineBorderEnabled = document.getElementById('cinemaTimelineBorderEnabled');
+        const timelineBorderColorMode = document.getElementById('cinemaTimelineBorderColorMode');
         if (timelineBorderEnabled) {
             const updateTimelineBorderVisibility = () => {
                 const show = timelineBorderEnabled.checked;
+                const isAutoColor = timelineBorderColorMode?.value === 'auto';
                 [
                     'timelineBorderThicknessRow',
-                    'timelineBorderColorRow',
+                    'timelineBorderStyleRow',
+                    'timelineBorderColorModeRow',
                     'timelineBorderOpacityRow',
+                    'timelineBorderGradientRow',
                     'timelineBorderGlowRow',
+                    'timelineBorderPausedRow',
                 ].forEach(id => {
                     const row = document.getElementById(id);
                     if (row) row.style.display = show ? '' : 'none';
                 });
+                // Hide color picker when auto mode is selected
+                const colorRow = document.getElementById('timelineBorderColorRow');
+                if (colorRow) colorRow.style.display = show && !isAutoColor ? '' : 'none';
             };
             updateTimelineBorderVisibility();
             timelineBorderEnabled.addEventListener('change', updateTimelineBorderVisibility);
+            if (timelineBorderColorMode) {
+                timelineBorderColorMode.addEventListener('change', updateTimelineBorderVisibility);
+            }
         }
 
         // Load Plex users for filterUser dropdown (only if Plex is enabled)
@@ -5759,9 +5785,13 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 cinemaUpdate.nowPlaying.timelineBorder = {
                     enabled: val('cinemaTimelineBorderEnabled'),
                     thickness: val('cinemaTimelineBorderThickness') || 3,
+                    colorMode: val('cinemaTimelineBorderColorMode') || 'custom',
                     color: val('cinemaTimelineBorderColor') || '#ffffff',
                     opacity: opacityPercent / 100,
+                    style: val('cinemaTimelineBorderStyle') || 'solid',
+                    gradient: val('cinemaTimelineBorderGradient') || false,
                     glowEnabled: val('cinemaTimelineBorderGlow') || false,
+                    pausedIndicator: val('cinemaTimelineBorderPaused') !== false,
                 };
             }
         }
