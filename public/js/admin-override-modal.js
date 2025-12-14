@@ -82,7 +82,22 @@ export function createOverrideModal({
         const pinSearchBtn = document.getElementById('override-pin-search-btn');
         const pinResultsEl = document.getElementById('override-pin-results');
         const pinCurrentTextEl = document.getElementById('override-pin-current-text');
+        const pinCurrentThumbEl = document.getElementById('override-pin-current-thumb');
         const pinClearBtn = document.getElementById('override-pin-clear-btn');
+
+        // Always start with a clean search UI when opening.
+        clearPinSearchUI();
+
+        // Also clear when closing via Cancel/X/backdrop.
+        if (overlay && !overlay._boundOverridePinCleanup) {
+            overlay.addEventListener('click', ev => {
+                const clickedClose = ev.target?.closest?.('[data-close-modal]');
+                const clickedBackdrop = ev.target === overlay;
+                if (!clickedClose && !clickedBackdrop) return;
+                clearPinSearchUI();
+            });
+            overlay._boundOverridePinCleanup = true;
+        }
 
         function setStatus(kind, msg) {
             if (!statusEl) return;
@@ -102,10 +117,64 @@ export function createOverrideModal({
         const sourcePrefs = [];
         const pinnedKeys = [];
         let selectedPinnedKey = '';
+        let pinnedLookupSeq = 0;
+
+        function clearPinSearchUI() {
+            if (pinQueryEl) pinQueryEl.value = '';
+            if (pinResultsEl) pinResultsEl.innerHTML = '';
+        }
+
+        async function updatePinnedCurrentUI() {
+            if (!pinCurrentTextEl) return;
+
+            if (!selectedPinnedKey) {
+                pinCurrentTextEl.textContent = '(none)';
+                if (pinCurrentThumbEl) {
+                    pinCurrentThumbEl.innerHTML = '';
+                    pinCurrentThumbEl.style.display = 'none';
+                }
+                return;
+            }
+
+            const seq = ++pinnedLookupSeq;
+            const keyToResolve = selectedPinnedKey;
+
+            // Prefer not showing the raw key while resolving.
+            pinCurrentTextEl.textContent = 'Resolving…';
+            if (pinCurrentThumbEl) {
+                pinCurrentThumbEl.innerHTML = '';
+                pinCurrentThumbEl.style.display = 'none';
+            }
+
+            try {
+                const res = await fetchJSON(
+                    `/api/media/lookup?key=${encodeURIComponent(keyToResolve)}`
+                );
+                const item = res?.result || null;
+                const title = safeString(item?.title || item?.name).trim();
+                const year = item?.year ? String(item.year).trim() : '';
+                const posterUrl = safeString(item?.posterUrl || item?.poster_path).trim();
+
+                if (seq !== pinnedLookupSeq || selectedPinnedKey !== keyToResolve) return;
+
+                if (title) {
+                    pinCurrentTextEl.textContent = `${title}${year ? ` (${year})` : ''}`;
+                } else {
+                    pinCurrentTextEl.textContent = keyToResolve;
+                }
+                if (pinCurrentThumbEl && posterUrl) {
+                    pinCurrentThumbEl.innerHTML = `<img src="${escapeHtml(posterUrl)}" alt="" />`;
+                    pinCurrentThumbEl.style.display = 'inline-flex';
+                }
+            } catch (_) {
+                if (seq !== pinnedLookupSeq || selectedPinnedKey !== keyToResolve) return;
+                pinCurrentTextEl.textContent = keyToResolve;
+            }
+        }
 
         function setPinnedKey(key, fromUserAction = false) {
             selectedPinnedKey = key ? safeString(key) : '';
-            if (pinCurrentTextEl) pinCurrentTextEl.textContent = selectedPinnedKey || '(none)';
+            updatePinnedCurrentUI();
             if (fromUserAction) {
                 setStatus(
                     'neutral',
@@ -397,6 +466,7 @@ export function createOverrideModal({
                 }
 
                 document.getElementById('modal-override')?.classList.remove('open');
+                clearPinSearchUI();
 
                 if (ok)
                     toast({
