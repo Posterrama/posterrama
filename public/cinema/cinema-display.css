@@ -3504,3 +3504,54 @@ body.cinema-tint-active::after {
 .timeline-border-container.glow-active .timeline-border-left {
     box-shadow: 0 0 10px 2px var(--timeline-border-color, #e50914);
 }
+
+/* =================================================================
+   PAUSE INDICATOR (D-pad controls)
+   ================================================================= */
+.cinema-pause-indicator {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem 3rem;
+    background: rgba(0, 0, 0, 0.85);
+    border-radius: 1rem;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease,
+        visibility 0.3s;
+    z-index: 9999;
+}
+
+.cinema-pause-indicator.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.cinema-pause-indicator .pause-icon {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cinema-pause-indicator .pause-bar {
+    display: block;
+    width: 0.75rem;
+    height: 3rem;
+    background: #ffffff;
+    border-radius: 0.25rem;
+}
+
+.cinema-pause-indicator .pause-text {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}

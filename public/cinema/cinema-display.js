@@ -2915,6 +2915,9 @@
 
         log('Cinema mode initialized successfully');
         // Note: cinemaInitialized flag is set in showNextPoster() after first poster is displayed
+
+        // Initialize D-pad / remote control keyboard handler
+        initDpadControls();
     }
 
     // ===== Update Cinema Display =====
@@ -3552,6 +3555,93 @@
             }
         },
     };
+
+    // ===== D-pad / Remote Control Keyboard Handler =====
+    let pauseIndicatorEl = null;
+
+    function createPauseIndicator() {
+        if (pauseIndicatorEl) return;
+
+        pauseIndicatorEl = document.createElement('div');
+        pauseIndicatorEl.className = 'cinema-pause-indicator';
+        pauseIndicatorEl.innerHTML = `
+            <div class="pause-icon">
+                <span class="pause-bar"></span>
+                <span class="pause-bar"></span>
+            </div>
+            <span class="pause-text">PAUSED</span>
+        `;
+        document.body.appendChild(pauseIndicatorEl);
+    }
+
+    function showPauseIndicator() {
+        if (!pauseIndicatorEl) createPauseIndicator();
+        pauseIndicatorEl.classList.add('visible');
+    }
+
+    function hidePauseIndicator() {
+        if (pauseIndicatorEl) {
+            pauseIndicatorEl.classList.remove('visible');
+        }
+    }
+
+    function togglePause() {
+        if (window.__posterramaPaused) {
+            // Resume
+            window.__posterramaPlayback.resume();
+            hidePauseIndicator();
+            log('D-pad: Resumed playback');
+        } else {
+            // Pause
+            window.__posterramaPlayback.pause();
+            showPauseIndicator();
+            log('D-pad: Paused playback');
+        }
+    }
+
+    function initDpadControls() {
+        document.addEventListener('keydown', e => {
+            // Ignore if in input field
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            switch (e.key) {
+                case 'ArrowRight':
+                    e.preventDefault();
+                    hidePauseIndicator();
+                    window.__posterramaPlayback.next();
+                    log('D-pad: Next poster');
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    hidePauseIndicator();
+                    window.__posterramaPlayback.prev();
+                    log('D-pad: Previous poster');
+                    break;
+                case ' ': // Spacebar
+                case 'Enter':
+                case 'MediaPlayPause':
+                    e.preventDefault();
+                    togglePause();
+                    break;
+                case 'MediaPause':
+                    e.preventDefault();
+                    if (!window.__posterramaPaused) {
+                        window.__posterramaPlayback.pause();
+                        showPauseIndicator();
+                    }
+                    break;
+                case 'MediaPlay':
+                    e.preventDefault();
+                    if (window.__posterramaPaused) {
+                        window.__posterramaPlayback.resume();
+                        hidePauseIndicator();
+                    }
+                    break;
+            }
+        });
+
+        log('D-pad controls initialized');
+    }
 
     // ===== Poster Rotation Functions =====
     let currentMediaIndex = -1; // Start at -1, will be randomized on first showNextPoster()

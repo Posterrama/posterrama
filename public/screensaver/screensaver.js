@@ -450,6 +450,63 @@
                                 showControls();
                             };
                         // Keyboard controls to match legacy
+                        // === Pause Indicator ===
+                        let pauseIndicatorEl = null;
+                        const createPauseIndicator = () => {
+                            if (pauseIndicatorEl) return;
+                            pauseIndicatorEl = document.createElement('div');
+                            pauseIndicatorEl.className = 'screensaver-pause-indicator';
+                            pauseIndicatorEl.innerHTML = `
+                                <div class="pause-icon">
+                                    <span class="pause-bar"></span>
+                                    <span class="pause-bar"></span>
+                                </div>
+                                <span class="pause-text">PAUSED</span>
+                            `;
+                            pauseIndicatorEl.style.cssText = `
+                                position: fixed;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%) scale(0.8);
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                gap: 1rem;
+                                padding: 2rem 3rem;
+                                background: rgba(0, 0, 0, 0.85);
+                                border-radius: 1rem;
+                                opacity: 0;
+                                visibility: hidden;
+                                transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+                                z-index: 9999;
+                            `;
+                            const icon = pauseIndicatorEl.querySelector('.pause-icon');
+                            if (icon) icon.style.cssText = 'display: flex; gap: 0.5rem;';
+                            pauseIndicatorEl.querySelectorAll('.pause-bar').forEach(bar => {
+                                bar.style.cssText =
+                                    'display: block; width: 0.75rem; height: 3rem; background: #fff; border-radius: 0.25rem;';
+                            });
+                            const text = pauseIndicatorEl.querySelector('.pause-text');
+                            if (text)
+                                text.style.cssText =
+                                    'font-size: 1.25rem; font-weight: 600; color: #fff; letter-spacing: 0.2em; text-transform: uppercase;';
+                            document.body.appendChild(pauseIndicatorEl);
+                        };
+                        const showPauseIndicator = () => {
+                            if (!pauseIndicatorEl) createPauseIndicator();
+                            pauseIndicatorEl.style.opacity = '1';
+                            pauseIndicatorEl.style.visibility = 'visible';
+                            pauseIndicatorEl.style.transform = 'translate(-50%, -50%) scale(1)';
+                        };
+                        const hidePauseIndicator = () => {
+                            if (pauseIndicatorEl) {
+                                pauseIndicatorEl.style.opacity = '0';
+                                pauseIndicatorEl.style.visibility = 'hidden';
+                                pauseIndicatorEl.style.transform =
+                                    'translate(-50%, -50%) scale(0.8)';
+                            }
+                        };
+
                         document.addEventListener('keydown', e => {
                             try {
                                 showControls();
@@ -457,6 +514,8 @@
                                 /* noop */
                             }
                             if (e.key === 'ArrowRight') {
+                                e.preventDefault();
+                                hidePauseIndicator();
                                 try {
                                     window.__posterramaPlayback &&
                                         window.__posterramaPlayback.next &&
@@ -465,6 +524,8 @@
                                     /* noop */
                                 }
                             } else if (e.key === 'ArrowLeft') {
+                                e.preventDefault();
+                                hidePauseIndicator();
                                 try {
                                     window.__posterramaPlayback &&
                                         window.__posterramaPlayback.prev &&
@@ -472,7 +533,11 @@
                                 } catch (_) {
                                     /* noop */
                                 }
-                            } else if (e.key === ' ') {
+                            } else if (
+                                e.key === ' ' ||
+                                e.key === 'Enter' ||
+                                e.key === 'MediaPlayPause'
+                            ) {
                                 e.preventDefault();
                                 try {
                                     if (_state.paused) {
@@ -480,16 +545,36 @@
                                             window.__posterramaPlayback.resume &&
                                             window.__posterramaPlayback.resume();
                                         if (pauseBtn) pauseBtn.classList.remove('is-paused');
+                                        hidePauseIndicator();
                                     } else {
                                         window.__posterramaPlayback &&
                                             window.__posterramaPlayback.pause &&
                                             window.__posterramaPlayback.pause();
                                         if (pauseBtn) pauseBtn.classList.add('is-paused');
+                                        showPauseIndicator();
                                     }
                                 } catch (_) {
                                     /* noop */
                                 }
                                 // Note: triggerLiveBeat() removed - playback hooks already send it
+                            } else if (e.key === 'MediaPause') {
+                                e.preventDefault();
+                                if (!_state.paused) {
+                                    window.__posterramaPlayback &&
+                                        window.__posterramaPlayback.pause &&
+                                        window.__posterramaPlayback.pause();
+                                    if (pauseBtn) pauseBtn.classList.add('is-paused');
+                                    showPauseIndicator();
+                                }
+                            } else if (e.key === 'MediaPlay') {
+                                e.preventDefault();
+                                if (_state.paused) {
+                                    window.__posterramaPlayback &&
+                                        window.__posterramaPlayback.resume &&
+                                        window.__posterramaPlayback.resume();
+                                    if (pauseBtn) pauseBtn.classList.remove('is-paused');
+                                    hidePauseIndicator();
+                                }
                             }
                         });
                     } catch (_) {

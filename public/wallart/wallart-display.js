@@ -1062,6 +1062,119 @@
                     } catch (_) {
                         /* expose playback best-effort */
                     }
+
+                    // === D-pad / Remote Control Keyboard Handler ===
+                    try {
+                        let pauseIndicatorEl = null;
+
+                        const createPauseIndicator = () => {
+                            if (pauseIndicatorEl) return;
+                            pauseIndicatorEl = document.createElement('div');
+                            pauseIndicatorEl.className = 'wallart-pause-indicator';
+                            pauseIndicatorEl.innerHTML = `
+                                <div class="pause-icon">
+                                    <span class="pause-bar"></span>
+                                    <span class="pause-bar"></span>
+                                </div>
+                                <span class="pause-text">PAUSED</span>
+                            `;
+                            // Add inline styles since wallart may not have external CSS
+                            pauseIndicatorEl.style.cssText = `
+                                position: fixed;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%) scale(0.8);
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                gap: 1rem;
+                                padding: 2rem 3rem;
+                                background: rgba(0, 0, 0, 0.85);
+                                border-radius: 1rem;
+                                opacity: 0;
+                                visibility: hidden;
+                                transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+                                z-index: 9999;
+                            `;
+                            const icon = pauseIndicatorEl.querySelector('.pause-icon');
+                            if (icon) icon.style.cssText = 'display: flex; gap: 0.5rem;';
+                            pauseIndicatorEl.querySelectorAll('.pause-bar').forEach(bar => {
+                                bar.style.cssText =
+                                    'display: block; width: 0.75rem; height: 3rem; background: #fff; border-radius: 0.25rem;';
+                            });
+                            const text = pauseIndicatorEl.querySelector('.pause-text');
+                            if (text)
+                                text.style.cssText =
+                                    'font-size: 1.25rem; font-weight: 600; color: #fff; letter-spacing: 0.2em; text-transform: uppercase;';
+                            document.body.appendChild(pauseIndicatorEl);
+                        };
+
+                        const showPauseIndicator = () => {
+                            if (!pauseIndicatorEl) createPauseIndicator();
+                            pauseIndicatorEl.style.opacity = '1';
+                            pauseIndicatorEl.style.visibility = 'visible';
+                            pauseIndicatorEl.style.transform = 'translate(-50%, -50%) scale(1)';
+                        };
+
+                        const hidePauseIndicator = () => {
+                            if (pauseIndicatorEl) {
+                                pauseIndicatorEl.style.opacity = '0';
+                                pauseIndicatorEl.style.visibility = 'hidden';
+                                pauseIndicatorEl.style.transform =
+                                    'translate(-50%, -50%) scale(0.8)';
+                            }
+                        };
+
+                        const togglePause = () => {
+                            if (_state.paused) {
+                                window.__posterramaPlayback.resume();
+                                hidePauseIndicator();
+                            } else {
+                                window.__posterramaPlayback.pause();
+                                showPauseIndicator();
+                            }
+                        };
+
+                        document.addEventListener('keydown', e => {
+                            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')
+                                return;
+
+                            switch (e.key) {
+                                case 'ArrowRight':
+                                    e.preventDefault();
+                                    hidePauseIndicator();
+                                    window.__posterramaPlayback.next();
+                                    break;
+                                case 'ArrowLeft':
+                                    e.preventDefault();
+                                    hidePauseIndicator();
+                                    window.__posterramaPlayback.prev();
+                                    break;
+                                case ' ':
+                                case 'Enter':
+                                case 'MediaPlayPause':
+                                    e.preventDefault();
+                                    togglePause();
+                                    break;
+                                case 'MediaPause':
+                                    e.preventDefault();
+                                    if (!_state.paused) {
+                                        window.__posterramaPlayback.pause();
+                                        showPauseIndicator();
+                                    }
+                                    break;
+                                case 'MediaPlay':
+                                    e.preventDefault();
+                                    if (_state.paused) {
+                                        window.__posterramaPlayback.resume();
+                                        hidePauseIndicator();
+                                    }
+                                    break;
+                            }
+                        });
+                    } catch (_) {
+                        /* D-pad init best-effort */
+                    }
                 } catch (_) {
                     /* noop */
                 }
