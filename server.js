@@ -3515,6 +3515,38 @@ app.get('/api/health', (req, res, next) => {
 
 // Compatibility endpoint: older cached clients may still probe this route.
 // Posterrama now always serves static assets from public/.
+
+/**
+ * @swagger
+ * /api/frontend/static-dir:
+ *   get:
+ *     summary: Get static assets mode (compatibility)
+ *     description: Returns information about where Posterrama serves frontend static assets from.
+ *     tags: ['Frontend']
+ *     security: []
+ *     deprecated: true
+ *     responses:
+ *       200:
+ *         description: Static asset configuration
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 mode:
+ *                   type: string
+ *                 publicDir:
+ *                   type: string
+ *                 staticPath:
+ *                   type: string
+ *                 assetVersion:
+ *                   type: string
+ *             example:
+ *               mode: public
+ *               publicDir: public
+ *               staticPath: public
+ *               assetVersion: "2.9.9"
+ */
 app.get('/api/frontend/static-dir', (req, res) => {
     res.json({
         mode: 'public',

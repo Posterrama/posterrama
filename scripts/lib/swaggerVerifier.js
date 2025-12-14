@@ -2,6 +2,23 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
+function isInternalViaNearbySwaggerBlock(lines, lineIdx) {
+    // Look for the closest preceding @swagger block (not the first within a window).
+    // The previous implementation scanned forwards and could incorrectly associate
+    // an earlier x-internal block with a later, unrelated route.
+    const startIdx = Math.max(0, lineIdx - 200);
+    for (let i = lineIdx - 1; i >= startIdx; i--) {
+        if (/^\s*\*\s+@swagger/.test(lines[i])) {
+            for (let j = i; j <= lineIdx && j < lines.length; j++) {
+                if (/x-internal:\s*true/.test(lines[j])) return true;
+                if (/^\s*\*\//.test(lines[j])) break;
+            }
+            return false;
+        }
+    }
+    return false;
+}
+
 function loadServerFile() {
     const SERVER_FILE = path.join(__dirname, '..', '..', 'server.js');
     return fs.readFileSync(SERVER_FILE, 'utf8');
@@ -47,20 +64,7 @@ function buildExpressRouteSet(fileText) {
         const idx = m.index;
         if (rawPath.includes('_internal')) continue;
         const lineIdx = lineNumberFromIndex(idx);
-        let isInternal = false;
-        for (let i = Math.max(0, lineIdx - 40); i < lineIdx; i++) {
-            if (/^\s*\*\s+@swagger/.test(lines[i])) {
-                for (let j = i; j < lineIdx; j++) {
-                    if (/x-internal:\s*true/.test(lines[j])) {
-                        isInternal = true;
-                        break;
-                    }
-                    if (/^\s*\*\//.test(lines[j])) break;
-                }
-                break;
-            }
-        }
-        if (isInternal) continue;
+        if (isInternalViaNearbySwaggerBlock(lines, lineIdx)) continue;
         const openApiPath = rawPath.replace(/:([A-Za-z0-9_]+)/g, '{$1}');
         expressRoutes.push({ method, path: openApiPath });
     }
@@ -97,20 +101,7 @@ function buildRouterRouteSet(fileText) {
         const routePath = m[2];
         const idx = m.index;
         const lineIdx = lineNumberFromIndex(idx);
-        let isInternal = false;
-        for (let i = Math.max(0, lineIdx - 40); i < lineIdx; i++) {
-            if (/^\s*\*\s+@swagger/.test(lines[i])) {
-                for (let j = i; j < lineIdx; j++) {
-                    if (/x-internal:\s*true/.test(lines[j])) {
-                        isInternal = true;
-                        break;
-                    }
-                    if (/^\s*\*\//.test(lines[j])) break;
-                }
-                break;
-            }
-        }
-        if (isInternal) continue;
+        if (isInternalViaNearbySwaggerBlock(lines, lineIdx)) continue;
         const openApiPath = routePath.replace(/:([A-Za-z0-9_]+)/g, '{$1}');
         routes.push({ method, path: openApiPath });
     }
@@ -150,17 +141,44 @@ function verifySwagger() {
         mountPoints.set(mountPath, true);
     }
 
-    // Known mount points for route modules
+    // Known mount points for route modules.
+    // IMPORTANT: many routers define absolute paths (e.g. '/api/...') already, so mount prefixes should
+    // only be used for routers that use relative paths.
     const routeMountMap = {
         'config-public.js': '/get-config',
         'auth.js': '/admin',
         'devices.js': '/api/devices',
-        'media.js': '/',
-        'qr.js': '/',
-        'config-backups.js': '/api/admin',
-        'admin-observable.js': '/api/admin',
-        'profile-photo.js': '/',
+        'profiles.js': '/api/profiles',
     };
+
+    /**
+     * Combine a mount prefix (e.g. '/api/devices') with a router path (e.g. '/register').
+     * - If the router path is absolute API/public (starts with '/api/' or is in PUBLIC_ALLOWLIST),
+     *   we assume it's already fully-qualified and do not prefix.
+     * - Preserve '/' when both mountPrefix and routePath are root.
+     */
+    function combineMountPath(mountPrefix, routePath) {
+        const normalizedMount = mountPrefix || '';
+        const normalizedRoute = routePath || '';
+
+        // If route file already declares an absolute API/public path, do not prefix.
+        if (normalizedRoute.startsWith('/api/') || PUBLIC_ALLOWLIST.has(normalizedRoute)) {
+            return normalizedRoute;
+        }
+
+        if (!normalizedMount) {
+            return normalizedRoute === '' ? '/' : normalizedRoute;
+        }
+
+        if (normalizedRoute === '/' || normalizedRoute === '') {
+            return normalizedMount;
+        }
+
+        // Both are expected to start with '/', but normalize just in case.
+        const a = normalizedMount.endsWith('/') ? normalizedMount.slice(0, -1) : normalizedMount;
+        const b = normalizedRoute.startsWith('/') ? normalizedRoute : `/${normalizedRoute}`;
+        return a + b;
+    }
 
     for (const { path: filePath, content } of routeFiles) {
         const fileName = path.basename(filePath);
@@ -168,7 +186,7 @@ function verifySwagger() {
         const routerRoutes = buildRouterRouteSet(content);
         for (const route of routerRoutes) {
             // Combine mount prefix with route path
-            const fullPath = mountPrefix + (route.path === '/' ? '' : route.path);
+            const fullPath = combineMountPath(mountPrefix, route.path);
             expressRoutes.push({ method: route.method, path: fullPath });
         }
     }
@@ -180,7 +198,11 @@ function verifySwagger() {
     const uniqueExpress = new Map();
     for (const r of expressRoutes) uniqueExpress.set(r.method + ' ' + r.path, r);
     const missing = []; // exists in code but not in spec
-    for (const key of uniqueExpress.keys()) if (!documented.has(key)) missing.push(key);
+    for (const key of uniqueExpress.keys()) {
+        const [method, p] = key.split(' ');
+        if (!isMonitoredPath(p)) continue;
+        if (!documented.has(key)) missing.push(key);
+    }
     const orphaned = []; // exists in spec but not in code
     for (const key of documented) {
         const [method, p] = key.split(' ');

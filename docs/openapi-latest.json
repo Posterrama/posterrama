@@ -3733,6 +3733,61 @@
                 "security": []
             }
         },
+        "/api/frontend/static-dir": {
+            "get": {
+                "summary": "Get static assets mode (compatibility)",
+                "description": "Returns information about where Posterrama serves frontend static assets from.",
+                "tags": ["Frontend"],
+                "security": [],
+                "deprecated": true,
+                "responses": {
+                    "200": {
+                        "description": "Static asset configuration",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "mode": {
+                                            "type": "string"
+                                        },
+                                        "publicDir": {
+                                            "type": "string"
+                                        },
+                                        "staticPath": {
+                                            "type": "string"
+                                        },
+                                        "assetVersion": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "mode": "public",
+                                    "publicDir": "public",
+                                    "staticPath": "public",
+                                    "assetVersion": "2.9.9"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/restart-app": {
             "post": {
                 "summary": "Restart the application",
@@ -7090,6 +7145,84 @@
                 }
             }
         },
+        "/api/admin/plex-server-status": {
+            "get": {
+                "summary": "Get Plex server status",
+                "description": "Returns whether Plex is enabled/configured and whether a connection can be established.",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Plex server status",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "enabled": {
+                                            "type": "boolean"
+                                        },
+                                        "configured": {
+                                            "type": "boolean"
+                                        },
+                                        "connected": {
+                                            "type": "boolean"
+                                        },
+                                        "serverName": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "nullable": true
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "enabled": true,
+                                    "configured": true,
+                                    "connected": true,
+                                    "serverName": "My Plex"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required to access this endpoint",
+                                    "statusCode": 401
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/plex-libraries": {
             "post": {
                 "summary": "Retrieve Plex libraries",
@@ -7297,6 +7430,93 @@
                     }
                 },
                 "security": []
+            }
+        },
+        "/api/admin/jellyfin-server-status": {
+            "get": {
+                "summary": "Get Jellyfin server status",
+                "description": "Returns whether Jellyfin is enabled/configured and whether a connection can be established.",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Jellyfin server status",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "enabled": {
+                                            "type": "boolean"
+                                        },
+                                        "configured": {
+                                            "type": "boolean"
+                                        },
+                                        "connected": {
+                                            "type": "boolean"
+                                        },
+                                        "hasPendingRestart": {
+                                            "type": "boolean"
+                                        },
+                                        "serverName": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "version": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "nullable": true
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "enabled": true,
+                                    "configured": true,
+                                    "connected": true,
+                                    "hasPendingRestart": false,
+                                    "serverName": "My Jellyfin",
+                                    "version": "10.9.1"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required to access this endpoint",
+                                    "statusCode": 401
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/admin/romm-platforms": {
@@ -12136,6 +12356,333 @@
                 "security": []
             }
         },
+        "/api/admin/media/preview": {
+            "post": {
+                "summary": "Preview media for admin UI",
+                "description": "Returns a preview list of media items based on unsaved admin settings (used by the admin preview iframe).",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "count": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 2000
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "description": "Media type (e.g. movie)"
+                                    },
+                                    "musicMode": {
+                                        "type": "boolean"
+                                    },
+                                    "filmCards": {
+                                        "type": "boolean"
+                                    },
+                                    "gamesOnly": {
+                                        "type": "boolean"
+                                    },
+                                    "wallartMode": {
+                                        "type": "object",
+                                        "description": "Partial wallartMode override used for preview"
+                                    }
+                                }
+                            },
+                            "example": {
+                                "count": 200,
+                                "type": "movie",
+                                "musicMode": false,
+                                "filmCards": false,
+                                "gamesOnly": false
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Preview items (may be empty)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object"
+                                    }
+                                },
+                                "example": [
+                                    {
+                                        "key": "plex-MyPlex-12345",
+                                        "title": "Example Movie",
+                                        "year": 2024,
+                                        "type": "movie",
+                                        "source": "plex",
+                                        "posterUrl": "/image?url=https%3A%2F%2Fexample.com%2Fposter.jpg"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required to access this endpoint",
+                                    "statusCode": 401
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/media/search": {
+            "get": {
+                "summary": "Search media for admin UI",
+                "description": "Searches the current playlist cache and (optionally) enabled servers to help find items for pinning and preview.",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "description": "Search query (min 2 characters)"
+                    },
+                    {
+                        "in": "query",
+                        "name": "type",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["movie", "series", "all"]
+                        },
+                        "description": "Filter by type"
+                    },
+                    {
+                        "in": "query",
+                        "name": "source",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["plex", "jellyfin", "any"]
+                        },
+                        "description": "Filter by source"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50
+                        },
+                        "description": "Max results"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Search results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "results": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "results": [
+                                        {
+                                            "key": "plex-MyPlex-12345",
+                                            "title": "Example Movie",
+                                            "year": 2024,
+                                            "type": "movie",
+                                            "source": "plex",
+                                            "posterUrl": "/image?url=https%3A%2F%2Fexample.com%2Fposter.jpg"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required to access this endpoint",
+                                    "statusCode": 401
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/media/lookup": {
+            "get": {
+                "summary": "Lookup media item by key",
+                "description": "Looks up a single media item by exact key from the current playlist cache, with a best-effort upstream fallback.",
+                "tags": ["Public API"],
+                "security": [],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "key",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true,
+                        "description": "Composite media key (e.g. plex-ServerName-12345 or jellyfin_ServerName_ItemId)"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lookup result",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "result": {
+                                            "nullable": true,
+                                            "oneOf": [
+                                                {
+                                                    "type": "object"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "example": {
+                                    "result": {
+                                        "key": "plex-MyPlex-12345",
+                                        "title": "Example Movie",
+                                        "year": 2024,
+                                        "type": "movie"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/get-music-artists": {
             "get": {
                 "summary": "Get random artists with complete discographies",
@@ -12303,6 +12850,52 @@
                     }
                 },
                 "security": []
+            }
+        },
+        "/api/media/fallback-metrics": {
+            "get": {
+                "summary": "Get image fallback metrics",
+                "description": "Returns metrics about image proxy fallbacks (used for monitoring image availability/health).",
+                "tags": ["Metrics"],
+                "security": [],
+                "responses": {
+                    "200": {
+                        "description": "Fallback metrics",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "success": true,
+                                    "metrics": {
+                                        "total": 12,
+                                        "byReason": {
+                                            "upstream_error": 5,
+                                            "timeout": 7
+                                        },
+                                        "recentEvents": []
+                                    },
+                                    "timestamp": "2025-01-01T00:00:00.000Z"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/metrics/performance": {

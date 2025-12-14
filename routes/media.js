@@ -218,6 +218,62 @@ module.exports = function createMediaRouter({
     // --- Admin preview utilities (authenticated) ---
     // Allows the admin live preview iframe to fetch media according to UNSAVED settings.
     // This is intentionally separate from /get-media (public) which is gated by saved config.
+
+    /**
+     * @swagger
+     * /api/admin/media/preview:
+     *   post:
+     *     summary: Preview media for admin UI
+     *     description: Returns a preview list of media items based on unsaved admin settings (used by the admin preview iframe).
+     *     tags: ['Admin']
+     *     security:
+     *       - bearerAuth: []
+     *     requestBody:
+     *       required: false
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               count:
+     *                 type: integer
+     *                 minimum: 1
+     *                 maximum: 2000
+     *               type:
+     *                 type: string
+     *                 description: Media type (e.g. movie)
+     *               musicMode:
+     *                 type: boolean
+     *               filmCards:
+     *                 type: boolean
+     *               gamesOnly:
+     *                 type: boolean
+     *               wallartMode:
+     *                 type: object
+     *                 description: Partial wallartMode override used for preview
+     *           example:
+     *             count: 200
+     *             type: movie
+     *             musicMode: false
+     *             filmCards: false
+     *             gamesOnly: false
+     *     responses:
+     *       200:
+     *         description: Preview items (may be empty)
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 type: object
+     *             example:
+     *               - key: plex-MyPlex-12345
+     *                 title: "Example Movie"
+     *                 year: 2024
+     *                 type: movie
+     *                 source: plex
+     *                 posterUrl: "/image?url=https%3A%2F%2Fexample.com%2Fposter.jpg"
+     */
     router.post(
         '/api/admin/media/preview',
         // @ts-ignore - Express router overload with middleware
@@ -372,6 +428,63 @@ module.exports = function createMediaRouter({
 
     // --- Admin utilities (authenticated) ---
     // Search against the current playlist cache (fast; avoids per-server search APIs).
+
+    /**
+     * @swagger
+     * /api/admin/media/search:
+     *   get:
+     *     summary: Search media for admin UI
+     *     description: Searches the current playlist cache and (optionally) enabled servers to help find items for pinning and preview.
+     *     tags: ['Admin']
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: query
+     *         name: q
+     *         schema:
+     *           type: string
+     *         required: true
+     *         description: Search query (min 2 characters)
+     *       - in: query
+     *         name: type
+     *         schema:
+     *           type: string
+     *           enum: [movie, series, all]
+     *         description: Filter by type
+     *       - in: query
+     *         name: source
+     *         schema:
+     *           type: string
+     *           enum: [plex, jellyfin, any]
+     *         description: Filter by source
+     *       - in: query
+     *         name: limit
+     *         schema:
+     *           type: integer
+     *           minimum: 1
+     *           maximum: 50
+     *         description: Max results
+     *     responses:
+     *       200:
+     *         description: Search results
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 results:
+     *                   type: array
+     *                   items:
+     *                     type: object
+     *             example:
+     *               results:
+     *                 - key: plex-MyPlex-12345
+     *                   title: "Example Movie"
+     *                   year: 2024
+     *                   type: movie
+     *                   source: plex
+     *                   posterUrl: "/image?url=https%3A%2F%2Fexample.com%2Fposter.jpg"
+     */
     router.get(
         '/api/admin/media/search',
         // @ts-ignore - Express router overload with middleware
@@ -648,6 +761,42 @@ module.exports = function createMediaRouter({
 
     // Public utilities
     // Lookup a single item in the current playlist cache by exact key.
+
+    /**
+     * @swagger
+     * /api/media/lookup:
+     *   get:
+     *     summary: Lookup media item by key
+     *     description: Looks up a single media item by exact key from the current playlist cache, with a best-effort upstream fallback.
+     *     tags: ['Public API']
+     *     security: []
+     *     parameters:
+     *       - in: query
+     *         name: key
+     *         schema:
+     *           type: string
+     *         required: true
+     *         description: Composite media key (e.g. plex-ServerName-12345 or jellyfin_ServerName_ItemId)
+     *     responses:
+     *       200:
+     *         description: Lookup result
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 result:
+     *                   nullable: true
+     *                   oneOf:
+     *                     - type: object
+     *                     - type: 'null'
+     *             example:
+     *               result:
+     *                 key: plex-MyPlex-12345
+     *                 title: "Example Movie"
+     *                 year: 2024
+     *                 type: movie
+     */
     router.get(
         '/api/media/lookup',
         asyncHandler(async (req, res) => {
@@ -2066,6 +2215,32 @@ module.exports = function createMediaRouter({
     );
 
     // Metrics endpoint for monitoring image proxy fallback health
+
+    /**
+     * @swagger
+     * /api/media/fallback-metrics:
+     *   get:
+     *     summary: Get image fallback metrics
+     *     description: Returns metrics about image proxy fallbacks (used for monitoring image availability/health).
+     *     tags: ['Metrics']
+     *     security: []
+     *     responses:
+     *       200:
+     *         description: Fallback metrics
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *             example:
+     *               success: true
+     *               metrics:
+     *                 total: 12
+     *                 byReason:
+     *                   upstream_error: 5
+     *                   timeout: 7
+     *                 recentEvents: []
+     *               timestamp: "2025-01-01T00:00:00.000Z"
+     */
     router.get('/api/media/fallback-metrics', (req, res) => {
         res.json({
             success: true,

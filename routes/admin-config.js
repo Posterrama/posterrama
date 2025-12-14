@@ -802,6 +802,42 @@ module.exports = function createAdminConfigRouter({
     );
 
     // Plex server status endpoint (retrieves server name)
+
+    /**
+     * @swagger
+     * /api/admin/plex-server-status:
+     *   get:
+     *     summary: Get Plex server status
+     *     description: Returns whether Plex is enabled/configured and whether a connection can be established.
+     *     tags: ['Admin']
+     *     security:
+     *       - bearerAuth: []
+     *     responses:
+     *       200:
+     *         description: Plex server status
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 enabled:
+     *                   type: boolean
+     *                 configured:
+     *                   type: boolean
+     *                 connected:
+     *                   type: boolean
+     *                 serverName:
+     *                   type: string
+     *                   nullable: true
+     *                 error:
+     *                   type: string
+     *                   nullable: true
+     *             example:
+     *               enabled: true
+     *               configured: true
+     *               connected: true
+     *               serverName: "My Plex"
+     */
     router.get(
         '/api/admin/plex-server-status',
         isAuthenticated,
@@ -1300,6 +1336,49 @@ module.exports = function createAdminConfigRouter({
      */
 
     // Jellyfin server status endpoint (checks if restart is pending)
+
+    /**
+     * @swagger
+     * /api/admin/jellyfin-server-status:
+     *   get:
+     *     summary: Get Jellyfin server status
+     *     description: Returns whether Jellyfin is enabled/configured and whether a connection can be established.
+     *     tags: ['Admin']
+     *     security:
+     *       - bearerAuth: []
+     *     responses:
+     *       200:
+     *         description: Jellyfin server status
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 enabled:
+     *                   type: boolean
+     *                 configured:
+     *                   type: boolean
+     *                 connected:
+     *                   type: boolean
+     *                 hasPendingRestart:
+     *                   type: boolean
+     *                 serverName:
+     *                   type: string
+     *                   nullable: true
+     *                 version:
+     *                   type: string
+     *                   nullable: true
+     *                 error:
+     *                   type: string
+     *                   nullable: true
+     *             example:
+     *               enabled: true
+     *               configured: true
+     *               connected: true
+     *               hasPendingRestart: false
+     *               serverName: "My Jellyfin"
+     *               version: "10.9.1"
+     */
     router.get(
         '/api/admin/jellyfin-server-status',
         isAuthenticated,

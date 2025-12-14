@@ -1,10 +1,15 @@
-<div align="center">
-  <img src="./public/logo.png" alt="Posterrama Logo" width="120">
-  
-  <h1 style="margin-bottom: 5px;">posterrama</h1>
-  <p style="margin-top: 0;"><em>Transform any screen into your personal gallery</em></p>
-  <br>
-</div>
+<table cellpadding="0" cellspacing="0">
+  <tr>
+    <td valign="middle" width="72">
+      <img src="./public/logo.png" alt="Posterrama Logo" width="56">
+    </td>
+    <td valign="middle">
+      <img src="./public/readme-wordmark.svg" alt="posterrama" height="30">
+      <br>
+      <sub><em>Transform any screen into your personal gallery</em></sub>
+    </td>
+  </tr>
+</table>
 
 <div align="center">
 
