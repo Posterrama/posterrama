@@ -2037,6 +2037,21 @@
                 }
             }
         },
+        "pauseIndicator": {
+            "description": "Pause indicator overlay shown on display devices when playback is paused",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show pause indicator overlay on screensaver, wallart, and cinema when paused"
+                }
+            },
+            "additionalProperties": false,
+            "default": {
+                "enabled": true
+            }
+        },
         "clientDebugViewer": {
             "description": "Client-side debug viewer for live troubleshooting on display devices",
             "type": "object",

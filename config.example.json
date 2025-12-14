@@ -295,6 +295,9 @@
             "ipAllowList": ["127.0.0.1", "10.255.0.0/16"]
         }
     },
+    "pauseIndicator": {
+        "enabled": true
+    },
     "clientDebugViewer": {
         "enabled": false
     },

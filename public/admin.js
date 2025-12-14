@@ -12036,25 +12036,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 groups: [],
                 syncEnabled: undefined, // loaded from /get-config
             };
-            // Persist UI pin toggles so they survive reloads; merge with server state
-            const PIN_STORE_KEY = 'admin2:pinned-devices';
-            const loadPinnedMap = () => {
-                try {
-                    const raw = localStorage.getItem(PIN_STORE_KEY);
-                    const obj = raw ? JSON.parse(raw) : {};
-                    return obj && typeof obj === 'object' ? obj : {};
-                } catch (_) {
-                    return {};
-                }
-            };
-            let pinnedUI = loadPinnedMap();
-            const savePinnedMap = () => {
-                try {
-                    localStorage.setItem(PIN_STORE_KEY, JSON.stringify(pinnedUI));
-                } catch (_) {
-                    /* section mutation observer setup failed (retries via global observer) */
-                }
-            };
+
             // Expose minimal debug hooks
             try {
                 window.admin2 = window.admin2 || {};
@@ -12127,16 +12109,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 if (/Mac OS|Macintosh/i.test(ua)) return 'macOS';
                 return 'Browser';
             }
-            function isDevicePinned(d) {
-                if (!d) return false;
-                // Display must ALWAYS reflect what the client reports via server state.
-                const cs = d.currentState || {};
-                const serverPinned =
-                    cs.pinned === true ||
-                    cs.pin === true ||
-                    (cs.pinMediaId != null && cs.pinMediaId !== '');
-                return !!serverPinned;
-            }
+
             function iconForType(type) {
                 const t = String(type || '').toLowerCase();
                 if (t.includes('android tv')) return 'fas fa-tv';
@@ -12394,12 +12367,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 // - paused  => pause icon (yellow)
                 const ppIcon = pausedFlag === true ? 'fa-pause' : /* paused */ 'fa-play';
                 const ppTitle = pausedFlag === true ? 'Resume' : 'Pause';
-                // Pin button initial state
-                const initiallyPinned = isDevicePinned(d);
-                const pinCls = initiallyPinned ? ' is-pinned' : '';
-                const pinIcon = initiallyPinned ? 'fa-map-pin' : 'fa-thumbtack';
-                const pinTitle = initiallyPinned ? 'Unpin poster' : 'Pin current poster';
-                const pinPressed = initiallyPinned ? 'true' : 'false';
+
                 // Now-playing info (uses device-reported currentState URLs)
                 const cs = d && d.currentState ? d.currentState : {};
                 // thumbnailUrl is already mode-aware (wallart uses backgroundUrl)
@@ -12457,7 +12425,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                                 })()}
                                                 <button type="button" class="btn btn-icon btn-sm btn-sendcmd card-secondary" title="Send command" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas fa-terminal"></i></button>
                                                 <button type="button" class="btn btn-icon btn-sm btn-playpause${ppCls}" title="${ppTitle}" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas ${ppIcon}"></i></button>
-                                                <button type="button" class="btn btn-icon btn-sm btn-pin card-secondary${pinCls}" title="${pinTitle}" aria-pressed="${pinPressed}" ${status === 'offline' || isPoweredOff ? 'disabled' : ''}><i class="fas ${pinIcon}"></i></button>
                                                 <div class="dropdown card-more" style="position:relative;display:none;">
                                                         <button class="btn btn-icon btn-sm" title="More"><i class="fas fa-ellipsis"></i></button>
                                                         <div class="dropdown-menu"></div>
@@ -12856,64 +12823,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                 icon.className = `fas ${revertToPaused ? 'fa-pause' : 'fa-play'}`;
                             // Title reflects the next action
                             btn.title = revertToPaused ? 'Resume' : 'Pause';
-                        }
-                    }
-                });
-                card.querySelector('.btn-pin')?.addEventListener('click', async e => {
-                    try {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    } catch (_) {
-                        /* click guard failed; continue with pin flow */
-                    }
-                    const id = card.getAttribute('data-id');
-                    const btn = card.querySelector('.btn-pin');
-                    const icon = btn?.querySelector('i');
-                    const wasPinned = !!btn?.classList.contains('is-pinned');
-                    // optimistic UI: toggle pinned state and aria-pressed immediately
-                    if (btn) {
-                        btn.classList.toggle('is-pinned', !wasPinned);
-                        const pressed = !wasPinned;
-                        btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
-                        if (icon) {
-                            icon.className = pressed ? 'fas fa-map-pin' : 'fas fa-thumbtack';
-                        }
-                        btn.title = pressed ? 'Unpin poster' : 'Pin current poster';
-                    }
-                    try {
-                        const cmd = wasPinned ? 'playback.resume' : 'playback.pinPoster';
-                        await sendCommand(id, cmd);
-                        // Update local maps and in-memory state
-                        if (wasPinned) {
-                            if (pinnedUI && pinnedUI[id]) delete pinnedUI[id];
-                            savePinnedMap();
-                            const dev = state.all.find(d => d.id === id);
-                            if (dev) {
-                                dev.currentState = dev.currentState || {};
-                                dev.currentState.pinned = false;
-                                // Use empty string to explicitly signal cleared pin to server/UI
-                                dev.currentState.pinMediaId = '';
-                            }
-                        } else {
-                            pinnedUI = pinnedUI || {};
-                            pinnedUI[id] = true;
-                            savePinnedMap();
-                            const dev = state.all.find(d => d.id === id);
-                            if (dev) {
-                                dev.currentState = dev.currentState || {};
-                                dev.currentState.pinned = true;
-                            }
-                        }
-                    } catch (_) {
-                        // revert on failure
-                        if (btn) {
-                            btn.classList.toggle('is-pinned', wasPinned);
-                            const pressed = wasPinned;
-                            btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
-                            if (icon) {
-                                icon.className = pressed ? 'fas fa-map-pin' : 'fas fa-thumbtack';
-                            }
-                            btn.title = pressed ? 'Unpin poster' : 'Pin current poster';
                         }
                     }
                 });
@@ -13495,7 +13404,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 const modeLabel = document.getElementById('remote-mode-label');
 
                 if (playPauseBtn && playPauseIcon && dev) {
-                    const isPaused = dev.liveState?.paused === true;
+                    // Check both liveState and currentState for paused status
+                    const isPaused =
+                        dev.liveState?.paused === true || dev.currentState?.paused === true;
                     if (isPaused) {
                         playPauseBtn.classList.add('is-paused');
                         playPauseIcon.className = 'fas fa-play';
@@ -15810,22 +15721,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             ppBtn.title = paused ? 'Resume' : 'Pause';
                         }
 
-                        // Pin button truth from device state
-                        const pinBtn = card.querySelector('.btn-pin');
-                        if (pinBtn) {
-                            const pinned = isDevicePinned(d);
-                            pinBtn.classList.toggle('is-pinned', pinned);
-                            try {
-                                pinBtn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
-                            } catch (_) {
-                                /* close user menu during notif open failed (ignored) */
-                            }
-                            const icon = pinBtn.querySelector('i');
-                            if (icon)
-                                icon.className = `fas ${pinned ? 'fa-map-pin' : 'fa-thumbtack'}`;
-                            pinBtn.title = pinned ? 'Unpin poster' : 'Pin current poster';
-                        }
-
                         // Status pill + synced-dot + power button enablement
                         try {
                             const status = getStatusClass(d);
@@ -15981,12 +15876,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             try {
                                 const disabled =
                                     status === 'offline' || d?.currentState?.poweredOff === true;
-                                const sel = [
-                                    '.btn-remote',
-                                    '.btn-sendcmd',
-                                    '.btn-playpause',
-                                    '.btn-pin',
-                                ];
+                                const sel = ['.btn-remote', '.btn-sendcmd', '.btn-playpause'];
                                 sel.forEach(s => {
                                     const el = card.querySelector(s);
                                     if (el) el.disabled = disabled;
@@ -24305,6 +24195,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     'clientDebugViewer.enabled'
                 )?.checked;
 
+                // Collect Pause Indicator
+                const pauseIndicatorEnabled =
+                    !!document.getElementById('pauseIndicator.enabled')?.checked;
+
                 // Collect Burn-in Prevention
                 const burnInEnabled = !!document.getElementById('burnInPrevention.enabled')
                     ?.checked;
@@ -24408,6 +24302,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         serverPort: serverPort,
                         backgroundRefreshMinutes,
                         baseUrl,
+                        pauseIndicator: {
+                            enabled: pauseIndicatorEnabled,
+                        },
                         clientDebugViewer: {
                             enabled: clientDebugViewerEnabled,
                         },
@@ -24614,6 +24511,13 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             const debugViewerEl = document.getElementById('clientDebugViewer.enabled');
             if (debugViewerEl) {
                 debugViewerEl.checked = !!cfg?.clientDebugViewer?.enabled;
+            }
+
+            // Pause Indicator
+            const pauseIndicatorEl = document.getElementById('pauseIndicator.enabled');
+            if (pauseIndicatorEl) {
+                // Default to true if not set
+                pauseIndicatorEl.checked = cfg?.pauseIndicator?.enabled !== false;
             }
 
             // Burn-in Prevention

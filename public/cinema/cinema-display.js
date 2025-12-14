@@ -13,6 +13,14 @@
  */
 
 (function () {
+    // Reset pause state on page load (fresh start = not paused)
+    // This ensures admin UI is updated correctly when display refreshes
+    try {
+        window.__posterramaPaused = false;
+    } catch (_) {
+        /* ignore */
+    }
+
     console.log('[Cinema] cinema-display.js loaded');
 
     // Track effective background color for ton-sur-ton calculation
@@ -3588,6 +3596,9 @@
     }
 
     function showPauseIndicator() {
+        // Check if pause indicator is enabled in config (default: true)
+        const cfg = window.appConfig || window.__serverConfig;
+        if (cfg?.pauseIndicator?.enabled === false) return;
         if (!pauseIndicatorEl) createPauseIndicator();
         pauseIndicatorEl.classList.add('visible');
     }
@@ -3655,26 +3666,40 @@
         },
         next: () => {
             try {
-                if (isPinned) {
-                    isPinned = false;
-                    pinnedMediaId = null;
-                    window.__posterramaPaused = false;
-                }
+                isPinned = false;
+                pinnedMediaId = null;
+                window.__posterramaPaused = false;
                 hidePauseIndicator();
                 showNextPoster();
+                // Trigger heartbeat to update admin UI
+                try {
+                    const dev = window.PosterramaDevice;
+                    if (dev && typeof dev.beat === 'function') {
+                        dev.beat();
+                    }
+                } catch (_) {
+                    /* ignore heartbeat */
+                }
             } catch (e) {
                 error('Failed to show next poster', e);
             }
         },
         prev: () => {
             try {
-                if (isPinned) {
-                    isPinned = false;
-                    pinnedMediaId = null;
-                    window.__posterramaPaused = false;
-                }
+                isPinned = false;
+                pinnedMediaId = null;
+                window.__posterramaPaused = false;
                 hidePauseIndicator();
                 showPreviousPoster();
+                // Trigger heartbeat to update admin UI
+                try {
+                    const dev = window.PosterramaDevice;
+                    if (dev && typeof dev.beat === 'function') {
+                        dev.beat();
+                    }
+                } catch (_) {
+                    /* ignore heartbeat */
+                }
             } catch (e) {
                 error('Failed to show previous poster', e);
             }

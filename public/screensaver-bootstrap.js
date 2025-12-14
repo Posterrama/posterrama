@@ -164,6 +164,14 @@ async function ensureMediaQueue() {
  */
 export async function startScreensaver() {
     try {
+        // Reset pause state on page load (fresh start = not paused)
+        // This ensures admin UI is updated correctly when display refreshes
+        try {
+            window.__posterramaPaused = false;
+        } catch (_) {
+            /* ignore */
+        }
+
         // Force SW update first
         await forceServiceWorkerUpdate();
 

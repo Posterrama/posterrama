@@ -1,5 +1,13 @@
 // Screensaver module: extracted helpers from script.js for screensaver-specific behavior
 (function initScreensaverModule() {
+    // Reset pause state on page load (fresh start = not paused)
+    // This ensures admin UI is updated correctly when display refreshes
+    try {
+        window.__posterramaPaused = false;
+    } catch (_) {
+        /* ignore */
+    }
+
     try {
         // Define a single namespace on window to avoid globals
         const _state = {
@@ -571,6 +579,9 @@
                     };
 
                     const showPauseIndicator = () => {
+                        // Check if pause indicator is enabled in config (default: true)
+                        const cfg = window.appConfig || window.__serverConfig;
+                        if (cfg?.pauseIndicator?.enabled === false) return;
                         if (!pauseIndicatorEl) createPauseIndicator();
                         pauseIndicatorEl.style.opacity = '1';
                         pauseIndicatorEl.style.visibility = 'visible';
@@ -593,6 +604,7 @@
                                     _state.paused = false;
                                     _state.isPinned = false;
                                     _state.pinnedMediaId = null;
+                                    window.__posterramaPaused = false;
                                     hidePauseIndicator();
                                     api.showNextBackground({ forceNext: true });
                                 } catch (_) {
@@ -604,6 +616,7 @@
                                     _state.paused = false;
                                     _state.isPinned = false;
                                     _state.pinnedMediaId = null;
+                                    window.__posterramaPaused = false;
                                     hidePauseIndicator();
                                     const items = Array.isArray(window.mediaQueue)
                                         ? window.mediaQueue

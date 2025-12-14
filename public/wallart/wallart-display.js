@@ -1,6 +1,14 @@
 // Wallart module: begin extracting wallart-specific helpers from script.js
 
 (function initWallartModule() {
+    // Reset pause state on page load (fresh start = not paused)
+    // This ensures admin UI is updated correctly when display refreshes
+    try {
+        window.__posterramaPaused = false;
+    } catch (_) {
+        /* ignore */
+    }
+
     window.debugLog && window.debugLog('WALLART_MODULE_INIT', { timestamp: Date.now() });
     try {
         // Apply wallart orientation with auto detection and flipped support
@@ -1026,6 +1034,9 @@
                     };
 
                     const showPauseIndicator = () => {
+                        // Check if pause indicator is enabled in config (default: true)
+                        const cfg = window.appConfig || window.__serverConfig;
+                        if (cfg?.pauseIndicator?.enabled === false) return;
                         if (!pauseIndicatorEl) createPauseIndicator();
                         pauseIndicatorEl.style.opacity = '1';
                         pauseIndicatorEl.style.visibility = 'visible';
@@ -1048,8 +1059,10 @@
                                     _state.paused = false;
                                     _state.isPinned = false;
                                     _state.pinnedMediaId = null;
+                                    window.__posterramaPaused = false;
                                     hidePauseIndicator();
                                     _state.refreshNow && _state.refreshNow();
+                                    triggerLiveBeat();
                                 } catch (_) {
                                     /* ignore playback next */
                                 }
@@ -1059,8 +1072,10 @@
                                     _state.paused = false;
                                     _state.isPinned = false;
                                     _state.pinnedMediaId = null;
+                                    window.__posterramaPaused = false;
                                     hidePauseIndicator();
                                     _state.refreshNow && _state.refreshNow();
+                                    triggerLiveBeat();
                                 } catch (_) {
                                     /* ignore playback prev */
                                 }
