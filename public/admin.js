@@ -16,6 +16,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
+    // If the admin session expires (or the user is loading /admin via a one-off token URL),
+    // repeated polling calls can spam the browser console with 401s.
+    let __adminAuthLost = false;
+    let __adminAuthLostNotified = false;
+
     // Posterpack debug logger removed
 
     // ---- Diagnostic Sentinel (notifications resilience) ----
@@ -233,6 +238,30 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             /* ignore parse */
         }
         if (!res.ok) {
+            if (res.status === 401) {
+                __adminAuthLost = true;
+                if (!__adminAuthLostNotified) {
+                    __adminAuthLostNotified = true;
+                    console.warn('[Admin] Authentication required (401). Disabling admin polling.');
+                    try {
+                        if (typeof window.notify !== 'undefined' && window.notify.error) {
+                            window.notify.error(
+                                'Authentication required (401). Your session may have expired. Reload the page or log in again.'
+                            );
+                        }
+                    } catch (_) {
+                        /* ignore notify failures */
+                    }
+
+                    // Best-effort stop background polling loops that can spam 401s.
+                    try {
+                        window.stopPlexStatusPolling?.();
+                        window.stopJellyfinStatusPolling?.();
+                    } catch (_) {
+                        /* ignore stop polling failures */
+                    }
+                }
+            }
             const err = new Error(json?.error || `HTTP ${res.status}`);
             err.status = res.status;
             err.data = json || text;
@@ -1542,6 +1571,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
     // Update data for currently displayed cards
     async function updateDashboardCardsData() {
         const selectedIds = loadCardConfig();
+
+        // If we already detected an auth failure, avoid repeated 401s from polling cards.
+        if (__adminAuthLost) {
+            return;
+        }
 
         // Update Media Items card if it's displayed (loads from cache if available)
         if (selectedIds.includes('media-items')) {
@@ -22596,11 +22630,19 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         let plexStatusInterval;
         window.checkPlexServerStatus = async function checkPlexServerStatus() {
             try {
-                const res = await fetch('/api/admin/plex-server-status', {
-                    credentials: 'include',
+                if (__adminAuthLost) return;
+                const data = await fetchJSON('/api/admin/plex-server-status').catch(err => {
+                    // fetchJSON will set __adminAuthLost on 401.
+                    if (err && err.status === 401) {
+                        try {
+                            window.stopPlexStatusPolling?.();
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    }
+                    return null;
                 });
-                if (!res.ok) return;
-                const data = await res.json();
+                if (!data) return;
 
                 // Update section title with server name badge
                 if (data.connected && data.serverName) {

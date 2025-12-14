@@ -4052,12 +4052,22 @@
     }
 
     // ===== Now Playing Integration =====
+    // Avoid spamming the browser console with repeated 401s when the Sessions APIs are protected.
+    // If a sessions endpoint returns 401, temporarily disable polling.
+    const nowPlayingBackoff = {
+        plexDisabledUntil: 0,
+        jellyfinDisabledUntil: 0,
+        warnedPlex: false,
+        warnedJellyfin: false,
+    };
+
     async function initNowPlayingDeviceData() {
         try {
             const deviceState = window.PosterramaDevice?.getState?.();
             if (!deviceState?.deviceId) return;
 
-            const res = await fetch(`/api/devices/${deviceState.deviceId}`, {
+            // Device details endpoint is admin-only; use the public preview endpoint for display clients.
+            const res = await fetch(`/api/devices/${deviceState.deviceId}/preview`, {
                 credentials: 'include',
                 headers: { 'Cache-Control': 'no-cache' },
             });
@@ -4073,11 +4083,21 @@
 
     async function fetchPlexSessions() {
         try {
+            if (Date.now() < nowPlayingBackoff.plexDisabledUntil) return [];
             const res = await fetch('/api/plex/sessions', {
                 cache: 'no-cache',
                 headers: { 'Cache-Control': 'no-cache' },
                 credentials: 'include',
             });
+            if (res.status === 401) {
+                // Disable for 10 minutes to avoid noisy console spam on display clients.
+                nowPlayingBackoff.plexDisabledUntil = Date.now() + 10 * 60 * 1000;
+                if (!nowPlayingBackoff.warnedPlex) {
+                    nowPlayingBackoff.warnedPlex = true;
+                    log('Plex sessions unauthorized; disabling Now Playing polling for 10 minutes');
+                }
+                return [];
+            }
             if (!res.ok) return [];
             const data = await res.json();
 
@@ -4097,11 +4117,22 @@
 
     async function fetchJellyfinSessions() {
         try {
+            if (Date.now() < nowPlayingBackoff.jellyfinDisabledUntil) return [];
             const res = await fetch('/api/jellyfin/sessions', {
                 cache: 'no-cache',
                 headers: { 'Cache-Control': 'no-cache' },
                 credentials: 'include',
             });
+            if (res.status === 401) {
+                nowPlayingBackoff.jellyfinDisabledUntil = Date.now() + 10 * 60 * 1000;
+                if (!nowPlayingBackoff.warnedJellyfin) {
+                    nowPlayingBackoff.warnedJellyfin = true;
+                    log(
+                        'Jellyfin sessions unauthorized; disabling Now Playing polling for 10 minutes'
+                    );
+                }
+                return [];
+            }
             if (!res.ok) return [];
             const data = await res.json();
 

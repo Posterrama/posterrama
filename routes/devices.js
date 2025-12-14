@@ -860,6 +860,8 @@ module.exports = function createDevicesRouter({
                 name: device.name || 'Unnamed Device',
                 location: device.location || '',
                 connected: isConnected,
+                // Safe to expose: used by Cinema Now Playing filter, not a secret.
+                plexUsername: device.plexUsername || null,
                 settings: effectiveSettings,
                 lastSeen: device.lastSeen || null,
                 status: device.status || null,
