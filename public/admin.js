@@ -12095,6 +12095,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 presets: [], // DEPRECATED: replaced by profiles
                 groups: [], // DEPRECATED: replaced by profiles
                 profiles: [], // NEW: Device profiles
+                profilesLoaded: false,
                 syncEnabled: undefined, // loaded from /get-config
             };
 
@@ -12118,6 +12119,15 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     .toLowerCase()
                     .replace(/\s+/g, '-')
                     .replace(/[^a-z0-9-]/g, '');
+
+            function resolveProfileLabel(profileId) {
+                if (!profileId) return '';
+                const prof = (state.profiles || []).find(p => p.id === profileId);
+                if (prof) return prof.name || 'Unnamed profile';
+                if (state.profilesLoaded)
+                    return `Unknown profile (${String(profileId).slice(0, 8)})`;
+                return 'Loading profile…';
+            }
 
             function getStatusClass(d) {
                 const st = String(d?.status || '').toLowerCase();
@@ -12384,11 +12394,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const safeIds = listIds.join(',').replace(/"/g, '&quot;');
                     return `<span class="status-pill sp-dupes js-dupes-hover" title="${safeTitle}" data-dupes-ids="${safeIds}" data-dupes-title="${safeTitle}"><i class="fas fa-clone"></i> Dupes: ${dupeList.length}</span>`;
                 })();
-                // Get profile name for device
+                // Get profile name for device (avoid showing raw GUID while profiles load)
                 const profileId = d?.profileId || '';
-                const profileName = profileId
-                    ? (state.profiles || []).find(p => p.id === profileId)?.name || profileId
-                    : '';
+                const profileName = profileId ? resolveProfileLabel(profileId) : '';
                 // Playback state helpers for toolbar play/pause button
                 const pausedFlag = d?.currentState?.paused;
                 const ppCls = pausedFlag === true ? ' is-paused' : ' is-playing';
@@ -12502,7 +12510,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                         ${thumbRightHtml}
                                         <div class="meta-pills" style="display:flex; gap:6px; flex-wrap:wrap;">
                                             <span class="status-pill" title="Location"><i class="fas fa-location-dot"></i> ${escapeHtml(room)}</span>
-                                            ${profileName ? `<span class="status-pill sp-profile" title="Profile"><i class="fas fa-id-card"></i> ${escapeHtml(profileName)}</span>` : ''}
+                                            ${profileId ? `<span class="status-pill sp-profile" title="Profile"><i class="fas fa-id-card"></i> ${escapeHtml(profileName)}</span>` : ''}
                                         </div>
                                     </div>
                                 </div>`;
@@ -15267,10 +15275,23 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 try {
                     const list = await fetchJSON('/api/profiles');
                     state.profiles = Array.isArray(list) ? list : [];
+                    state.profilesLoaded = true;
                     renderProfiles();
+                    // Device cards can render before profiles arrive; refresh to show names.
+                    try {
+                        renderPage();
+                    } catch (_) {
+                        /* ignore */
+                    }
                 } catch (_) {
                     state.profiles = [];
+                    state.profilesLoaded = true;
                     renderProfiles();
+                    try {
+                        renderPage();
+                    } catch (_) {
+                        /* ignore */
+                    }
                 }
             }
             // Expose globally for tab switching
@@ -16475,14 +16496,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             if (metaPills) {
                                 const location = d.location || 'Unassigned';
                                 const profileId = d?.profileId || '';
-                                const profileName = profileId
-                                    ? (state.profiles || []).find(p => p.id === profileId)?.name ||
-                                      profileId
-                                    : '';
+                                const profileName = profileId ? resolveProfileLabel(profileId) : '';
 
                                 metaPills.innerHTML = `
                                     <span class="status-pill" title="Location"><i class="fas fa-location-dot"></i> ${escapeHtml(location)}</span>
-                                    ${profileName ? `<span class="status-pill sp-profile" title="Profile"><i class="fas fa-id-card"></i> ${escapeHtml(profileName)}</span>` : ''}
+                                    ${profileId ? `<span class="status-pill sp-profile" title="Profile"><i class="fas fa-id-card"></i> ${escapeHtml(profileName)}</span>` : ''}
                                 `;
                             }
 
